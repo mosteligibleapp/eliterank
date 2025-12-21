@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Calendar, FileText, Trophy, Building, Crown, Check, Star } from 'lucide-react';
+import { Award, Calendar, FileText, Trophy, Building, Crown, Check, Star, ExternalLink } from 'lucide-react';
 import { Avatar, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { formatEventDateRange } from '../../../utils/formatters';
@@ -179,54 +179,145 @@ export default function AboutTab({ judges, sponsors, events }) {
         </div>
 
         {platinumSponsor && (
-          <div
+          <a
+            href={platinumSponsor.websiteUrl || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
+              display: 'block',
               background: 'linear-gradient(135deg, rgba(200,200,200,0.1), rgba(200,200,200,0.02))',
               border: '1px solid rgba(200,200,200,0.2)',
               borderRadius: borderRadius.xxl,
               padding: spacing.xxxl,
               marginBottom: spacing.xl,
               textAlign: 'center',
+              textDecoration: 'none',
+              transition: 'all 0.3s',
+              cursor: platinumSponsor.websiteUrl ? 'pointer' : 'default',
             }}
           >
-            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: spacing.md }}>
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: spacing.lg }}>
               Presenting Sponsor
             </p>
-            <h3 style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: colors.tier.platinum, marginBottom: spacing.sm }}>
-              {platinumSponsor.name}
-            </h3>
-            <div style={{ width: '60px', height: '3px', background: 'linear-gradient(90deg, transparent, #e0e0e0, transparent)', margin: '0 auto' }} />
-          </div>
-        )}
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: spacing.lg }}>
-          {otherSponsors.map((sponsor) => (
-            <div
-              key={sponsor.id}
-              style={{
-                background: colors.background.card,
-                border: `1px solid ${sponsor.tier === 'Gold' ? 'rgba(212,175,55,0.2)' : 'rgba(139,92,246,0.2)'}`,
-                borderRadius: borderRadius.xl,
-                padding: spacing.xxl,
-                textAlign: 'center',
-              }}
-            >
-              <span
+            {platinumSponsor.logoUrl ? (
+              <div
                 style={{
-                  fontSize: typography.fontSize.xs,
-                  fontWeight: typography.fontWeight.semibold,
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  color: sponsor.tier === 'Gold' ? colors.tier.gold : colors.tier.silver,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  marginBottom: spacing.lg,
                 }}
               >
-                {sponsor.tier} Sponsor
-              </span>
-              <h4 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginTop: spacing.sm, color: '#fff' }}>
-                {sponsor.name}
-              </h4>
-            </div>
-          ))}
+                <div
+                  style={{
+                    padding: `${spacing.lg} ${spacing.xxxl}`,
+                    background: '#fff',
+                    borderRadius: borderRadius.lg,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <img
+                    src={platinumSponsor.logoUrl}
+                    alt={platinumSponsor.name}
+                    style={{ maxHeight: '60px', maxWidth: '200px', objectFit: 'contain' }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <h3 style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: colors.tier.platinum, marginBottom: spacing.lg }}>
+                {platinumSponsor.name}
+              </h3>
+            )}
+            {platinumSponsor.websiteUrl && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                <ExternalLink size={14} />
+                <span>Visit Website</span>
+              </div>
+            )}
+            <div style={{ width: '60px', height: '3px', background: 'linear-gradient(90deg, transparent, #e0e0e0, transparent)', margin: `${spacing.lg} auto 0` }} />
+          </a>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: spacing.lg }}>
+          {otherSponsors.map((sponsor) => {
+            const SponsorWrapper = sponsor.websiteUrl ? 'a' : 'div';
+            const wrapperProps = sponsor.websiteUrl ? {
+              href: sponsor.websiteUrl,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+            } : {};
+
+            return (
+              <SponsorWrapper
+                key={sponsor.id}
+                {...wrapperProps}
+                style={{
+                  display: 'block',
+                  background: colors.background.card,
+                  border: `1px solid ${sponsor.tier === 'Gold' ? 'rgba(212,175,55,0.2)' : 'rgba(139,92,246,0.2)'}`,
+                  borderRadius: borderRadius.xl,
+                  padding: spacing.xxl,
+                  textAlign: 'center',
+                  textDecoration: 'none',
+                  transition: 'all 0.3s',
+                  cursor: sponsor.websiteUrl ? 'pointer' : 'default',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: typography.fontSize.xs,
+                    fontWeight: typography.fontWeight.semibold,
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    color: sponsor.tier === 'Gold' ? colors.tier.gold : colors.tier.silver,
+                  }}
+                >
+                  {sponsor.tier} Sponsor
+                </span>
+
+                {sponsor.logoUrl ? (
+                  <div
+                    style={{
+                      margin: `${spacing.lg} auto`,
+                      padding: spacing.md,
+                      background: '#fff',
+                      borderRadius: borderRadius.md,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      maxWidth: '150px',
+                      height: '50px',
+                    }}
+                  >
+                    <img
+                      src={sponsor.logoUrl}
+                      alt={sponsor.name}
+                      style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
+                ) : (
+                  <h4 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginTop: spacing.lg, color: '#fff' }}>
+                    {sponsor.name}
+                  </h4>
+                )}
+
+                <p style={{ color: '#fff', fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium, marginTop: sponsor.logoUrl ? 0 : spacing.sm }}>
+                  {sponsor.name}
+                </p>
+
+                {sponsor.websiteUrl && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, color: colors.text.secondary, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>
+                    <ExternalLink size={10} />
+                    <span>Visit</span>
+                  </div>
+                )}
+              </SponsorWrapper>
+            );
+          })}
         </div>
       </div>
 

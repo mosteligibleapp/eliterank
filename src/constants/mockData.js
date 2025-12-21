@@ -236,10 +236,38 @@ export const INITIAL_JUDGES = [
 ];
 
 export const INITIAL_SPONSORS = [
-  { id: 1, name: 'Luxe Hotels', tier: 'Platinum', amount: 25000 },
-  { id: 2, name: 'Veuve Clicquot', tier: 'Gold', amount: 15000 },
-  { id: 3, name: 'Mercedes-Benz', tier: 'Gold', amount: 15000 },
-  { id: 4, name: "Tiffany & Co.", tier: 'Silver', amount: 8000 },
+  {
+    id: 1,
+    name: 'Luxe Hotels',
+    tier: 'Platinum',
+    amount: 25000,
+    logoUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200&h=100&fit=crop',
+    websiteUrl: 'https://example.com/luxe-hotels',
+  },
+  {
+    id: 2,
+    name: 'Veuve Clicquot',
+    tier: 'Gold',
+    amount: 15000,
+    logoUrl: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200&h=100&fit=crop',
+    websiteUrl: 'https://example.com/veuve',
+  },
+  {
+    id: 3,
+    name: 'Mercedes-Benz',
+    tier: 'Gold',
+    amount: 15000,
+    logoUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=200&h=100&fit=crop',
+    websiteUrl: 'https://example.com/mercedes',
+  },
+  {
+    id: 4,
+    name: "Tiffany & Co.",
+    tier: 'Silver',
+    amount: 8000,
+    logoUrl: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=100&fit=crop',
+    websiteUrl: 'https://example.com/tiffany',
+  },
 ];
 
 export const INITIAL_EVENTS = [

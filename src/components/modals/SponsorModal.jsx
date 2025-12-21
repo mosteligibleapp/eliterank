@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Image, Link, Upload } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { SPONSOR_TIERS } from '../../constants';
@@ -10,7 +10,13 @@ export default function SponsorModal({
   sponsor,
   onSave,
 }) {
-  const [form, setForm] = useState({ name: '', tier: 'Gold', amount: '' });
+  const [form, setForm] = useState({
+    name: '',
+    tier: 'Gold',
+    amount: '',
+    logoUrl: '',
+    websiteUrl: '',
+  });
   const isEditing = !!sponsor;
 
   useEffect(() => {
@@ -19,9 +25,11 @@ export default function SponsorModal({
         name: sponsor.name || '',
         tier: sponsor.tier || 'Gold',
         amount: sponsor.amount?.toString() || '',
+        logoUrl: sponsor.logoUrl || '',
+        websiteUrl: sponsor.websiteUrl || '',
       });
     } else {
-      setForm({ name: '', tier: 'Gold', amount: '' });
+      setForm({ name: '', tier: 'Gold', amount: '', logoUrl: '', websiteUrl: '' });
     }
   }, [sponsor, isOpen]);
 
@@ -30,7 +38,7 @@ export default function SponsorModal({
       ...form,
       amount: parseInt(form.amount, 10) || 0,
     });
-    setForm({ name: '', tier: 'Gold', amount: '' });
+    setForm({ name: '', tier: 'Gold', amount: '', logoUrl: '', websiteUrl: '' });
   };
 
   const tierButtonStyle = (tier, isSelected) => ({
@@ -62,7 +70,7 @@ export default function SponsorModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Sponsor' : 'Add Sponsor'}
-      maxWidth="450px"
+      maxWidth="500px"
       footer={
         <>
           <Button variant="secondary" onClick={onClose} style={{ width: 'auto' }}>
@@ -84,6 +92,7 @@ export default function SponsorModal({
         onChange={(e) => setForm({ ...form, name: e.target.value })}
         placeholder="e.g., Luxe Hotels"
       />
+
       <div style={{ marginBottom: spacing.lg }}>
         <label style={{ display: 'block', fontSize: typography.fontSize.base, color: colors.text.secondary, marginBottom: spacing.sm }}>
           Sponsorship Tier
@@ -100,6 +109,7 @@ export default function SponsorModal({
           ))}
         </div>
       </div>
+
       <Input
         label="Sponsorship Amount ($)"
         type="number"
@@ -107,6 +117,85 @@ export default function SponsorModal({
         onChange={(e) => setForm({ ...form, amount: e.target.value })}
         placeholder="e.g., 25000"
       />
+
+      {/* Logo URL Section */}
+      <div style={{ marginBottom: spacing.lg }}>
+        <label style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: spacing.sm,
+          fontSize: typography.fontSize.base,
+          color: colors.text.secondary,
+          marginBottom: spacing.sm
+        }}>
+          <Image size={14} /> Company Logo URL
+        </label>
+        <Input
+          value={form.logoUrl}
+          onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+          placeholder="https://example.com/logo.png"
+          style={{ marginBottom: 0 }}
+        />
+        {form.logoUrl && (
+          <div style={{
+            marginTop: spacing.md,
+            padding: spacing.md,
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: borderRadius.md,
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.md,
+          }}>
+            <div style={{
+              width: '60px',
+              height: '40px',
+              background: '#fff',
+              borderRadius: borderRadius.sm,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}>
+              <img
+                src={form.logoUrl}
+                alt="Logo preview"
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            </div>
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+              Logo Preview
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Website URL */}
+      <div style={{ marginBottom: spacing.lg }}>
+        <label style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: spacing.sm,
+          fontSize: typography.fontSize.base,
+          color: colors.text.secondary,
+          marginBottom: spacing.sm
+        }}>
+          <Link size={14} /> Website URL
+        </label>
+        <Input
+          value={form.websiteUrl}
+          onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
+          placeholder="https://example.com"
+          style={{ marginBottom: 0 }}
+        />
+        <p style={{
+          fontSize: typography.fontSize.sm,
+          color: colors.text.muted,
+          marginTop: spacing.xs
+        }}>
+          This link will be displayed on the public site
+        </p>
+      </div>
     </Modal>
   );
 }
