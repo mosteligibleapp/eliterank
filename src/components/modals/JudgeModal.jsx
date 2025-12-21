@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { Modal, Button, Input, Textarea } from '../ui';
 
@@ -6,11 +6,27 @@ export default function JudgeModal({
   isOpen,
   onClose,
   judge,
-  form,
-  onFormChange,
   onSave,
 }) {
+  const [form, setForm] = useState({ name: '', title: '', bio: '' });
   const isEditing = !!judge;
+
+  useEffect(() => {
+    if (judge) {
+      setForm({
+        name: judge.name || '',
+        title: judge.title || '',
+        bio: judge.bio || '',
+      });
+    } else {
+      setForm({ name: '', title: '', bio: '' });
+    }
+  }, [judge, isOpen]);
+
+  const handleSave = () => {
+    onSave(form);
+    setForm({ name: '', title: '', bio: '' });
+  };
 
   return (
     <Modal
@@ -24,7 +40,7 @@ export default function JudgeModal({
             Cancel
           </Button>
           <Button
-            onClick={onSave}
+            onClick={handleSave}
             icon={Check}
             disabled={!form.name || !form.title}
           >
@@ -36,19 +52,19 @@ export default function JudgeModal({
       <Input
         label="Full Name"
         value={form.name}
-        onChange={(e) => onFormChange({ ...form, name: e.target.value })}
+        onChange={(e) => setForm({ ...form, name: e.target.value })}
         placeholder="e.g., Victoria Blackwell"
       />
       <Input
         label="Title / Role"
         value={form.title}
-        onChange={(e) => onFormChange({ ...form, title: e.target.value })}
+        onChange={(e) => setForm({ ...form, title: e.target.value })}
         placeholder="e.g., Fashion Editor, Vogue"
       />
       <Textarea
         label="Bio (Optional)"
         value={form.bio}
-        onChange={(e) => onFormChange({ ...form, bio: e.target.value })}
+        onChange={(e) => setForm({ ...form, bio: e.target.value })}
         placeholder="Brief description of the judge..."
         rows={3}
       />

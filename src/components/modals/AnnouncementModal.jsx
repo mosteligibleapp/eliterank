@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Sparkles, FileText, MapPin } from 'lucide-react';
 import { Modal, Button, Input, Textarea } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -8,11 +8,28 @@ export default function AnnouncementModal({
   isOpen,
   onClose,
   announcement,
-  form,
-  onFormChange,
   onSave,
 }) {
+  const [form, setForm] = useState({ type: 'announcement', title: '', content: '', pinned: false });
   const isEditing = !!announcement;
+
+  useEffect(() => {
+    if (announcement) {
+      setForm({
+        type: announcement.type || 'announcement',
+        title: announcement.title || '',
+        content: announcement.content || '',
+        pinned: announcement.pinned || false,
+      });
+    } else {
+      setForm({ type: 'announcement', title: '', content: '', pinned: false });
+    }
+  }, [announcement, isOpen]);
+
+  const handleSave = () => {
+    onSave(form);
+    setForm({ type: 'announcement', title: '', content: '', pinned: false });
+  };
 
   const typeConfig = {
     announcement: { icon: Sparkles, color: colors.gold.primary },
@@ -87,7 +104,7 @@ export default function AnnouncementModal({
               Cancel
             </Button>
             <Button
-              onClick={onSave}
+              onClick={handleSave}
               icon={Check}
               disabled={!form.title || !form.content}
             >
@@ -108,7 +125,7 @@ export default function AnnouncementModal({
             return (
               <button
                 key={type.value}
-                onClick={() => onFormChange({ ...form, type: type.value })}
+                onClick={() => setForm({ ...form, type: type.value })}
                 style={typeButtonStyle(type.value, form.type === type.value)}
               >
                 <Icon size={14} /> {type.label}
@@ -121,14 +138,14 @@ export default function AnnouncementModal({
       <Input
         label="Title"
         value={form.title}
-        onChange={(e) => onFormChange({ ...form, title: e.target.value })}
+        onChange={(e) => setForm({ ...form, title: e.target.value })}
         placeholder="e.g., Exciting News About Round 2!"
       />
 
       <Textarea
         label="Content"
         value={form.content}
-        onChange={(e) => onFormChange({ ...form, content: e.target.value })}
+        onChange={(e) => setForm({ ...form, content: e.target.value })}
         placeholder="Write your announcement here..."
         rows={5}
         maxLength={500}
@@ -138,7 +155,7 @@ export default function AnnouncementModal({
       {/* Pin Option */}
       <div
         style={toggleStyle}
-        onClick={() => onFormChange({ ...form, pinned: !form.pinned })}
+        onClick={() => setForm({ ...form, pinned: !form.pinned })}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
           <MapPin size={18} style={{ color: form.pinned ? colors.gold.primary : colors.text.secondary }} />
