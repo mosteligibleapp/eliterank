@@ -429,6 +429,13 @@ export default function App() {
       <EliteRankCityModal
         isOpen={eliteRankCityOpen}
         onClose={() => setEliteRankCityOpen(false)}
+        onOpenCompetition={(competition) => {
+          // Close Elite Rank City and open the competition's public site
+          setEliteRankCityOpen(false);
+          if (competition.city === 'New York') {
+            setShowPublicSite(true);
+          }
+        }}
       />
     </>
   );
