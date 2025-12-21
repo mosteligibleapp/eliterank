@@ -104,14 +104,49 @@ export default function PublicSitePage({
               </div>
             </div>
             {platinumSponsor && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginLeft: spacing.lg, paddingLeft: spacing.lg, borderLeft: `1px solid ${colors.border.light}` }}>
+              <a
+                href={platinumSponsor.websiteUrl || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.md,
+                  marginLeft: spacing.lg,
+                  paddingLeft: spacing.lg,
+                  borderLeft: `1px solid ${colors.border.light}`,
+                  textDecoration: 'none',
+                  cursor: platinumSponsor.websiteUrl ? 'pointer' : 'default',
+                }}
+              >
                 <span style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Presented by
                 </span>
-                <span style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.tier.platinum }}>
-                  {platinumSponsor.name}
-                </span>
-              </div>
+                {platinumSponsor.logoUrl ? (
+                  <div
+                    style={{
+                      height: '32px',
+                      padding: `${spacing.xs} ${spacing.md}`,
+                      background: '#fff',
+                      borderRadius: borderRadius.sm,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <img
+                      src={platinumSponsor.logoUrl}
+                      alt={platinumSponsor.name}
+                      style={{ maxHeight: '24px', maxWidth: '100px', objectFit: 'contain' }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
+                ) : (
+                  <span style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.tier.platinum }}>
+                    {platinumSponsor.name}
+                  </span>
+                )}
+              </a>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>

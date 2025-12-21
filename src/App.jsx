@@ -15,6 +15,7 @@ import { PublicSitePage } from './features/public-site';
 import {
   JudgeModal,
   SponsorModal,
+  SponsorInfoModal,
   EventModal,
   AnnouncementModal,
   ConvertNomineeModal,
@@ -53,6 +54,7 @@ export default function App() {
   // Modal state
   const [judgeModal, setJudgeModal] = useState({ isOpen: false, judge: null });
   const [sponsorModal, setSponsorModal] = useState({ isOpen: false, sponsor: null });
+  const [sponsorInfoOpen, setSponsorInfoOpen] = useState(false);
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
   const [announcementModal, setAnnouncementModal] = useState({ isOpen: false, announcement: null });
   const [convertModal, setConvertModal] = useState({ isOpen: false, nominee: null });
@@ -333,6 +335,7 @@ export default function App() {
             onEditSponsor={handleEditSponsor}
             onDeleteSponsor={handleDeleteSponsor}
             onEditEvent={handleEditEvent}
+            onShowSponsorInfo={() => setSponsorInfoOpen(true)}
           />
         );
 
@@ -393,6 +396,11 @@ export default function App() {
         onClose={() => setSponsorModal({ isOpen: false, sponsor: null })}
         sponsor={sponsorModal.sponsor}
         onSave={handleSaveSponsor}
+      />
+
+      <SponsorInfoModal
+        isOpen={sponsorInfoOpen}
+        onClose={() => setSponsorInfoOpen(false)}
       />
 
       <EventModal

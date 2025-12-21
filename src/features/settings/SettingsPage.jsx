@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Building, Calendar, Plus, Edit, Trash2, Check } from 'lucide-react';
+import { Award, Building, Calendar, Plus, Edit, Trash2, Check, Info, Link, Image } from 'lucide-react';
 import { Panel, Avatar, Badge, Button } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { formatCurrency, formatEventDateRange } from '../../utils/formatters';
@@ -15,6 +15,7 @@ export default function SettingsPage({
   onEditSponsor,
   onDeleteSponsor,
   onEditEvent,
+  onShowSponsorInfo,
 }) {
   const getTierStyle = (tier) => {
     const tierMap = {
@@ -91,9 +92,20 @@ export default function SettingsPage({
         title="Sponsors"
         icon={Building}
         action={
-          <Button onClick={onAddSponsor} icon={Plus} size="md">
-            Add Sponsor
-          </Button>
+          <div style={{ display: 'flex', gap: spacing.md }}>
+            <Button
+              variant="secondary"
+              size="md"
+              icon={Info}
+              onClick={onShowSponsorInfo}
+              style={{ width: 'auto' }}
+            >
+              Sponsorship Guide
+            </Button>
+            <Button onClick={onAddSponsor} icon={Plus} size="md">
+              Add Sponsor
+            </Button>
+          </div>
         }
       >
         <div style={{ padding: spacing.xl }}>
@@ -107,37 +119,91 @@ export default function SettingsPage({
                   alignItems: 'center',
                   gap: spacing.lg,
                   padding: spacing.lg,
-                  background: 'rgba(255,255,255,0.02)',
+                  background: sponsor.tier === 'Platinum' ? 'rgba(200,200,200,0.05)' : 'rgba(255,255,255,0.02)',
+                  border: sponsor.tier === 'Platinum' ? '1px solid rgba(200,200,200,0.2)' : 'none',
                   borderRadius: borderRadius.lg,
                   marginBottom: spacing.sm,
                 }}
               >
-                <div
-                  style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: borderRadius.md,
-                    background: tierStyle.bg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Building size={20} style={{ color: tierStyle.color }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: typography.fontWeight.medium }}>{sponsor.name}</p>
-                  <Badge
-                    variant={sponsor.tier === 'Platinum' ? 'platinum' : sponsor.tier === 'Gold' ? 'gold' : 'silver'}
-                    size="sm"
-                    uppercase
+                {/* Logo or Icon */}
+                {sponsor.logoUrl ? (
+                  <div
+                    style={{
+                      width: '60px',
+                      height: '40px',
+                      borderRadius: borderRadius.md,
+                      background: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                    }}
                   >
-                    {sponsor.tier}
-                  </Badge>
+                    <img
+                      src={sponsor.logoUrl}
+                      alt={`${sponsor.name} logo`}
+                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: '60px',
+                      height: '40px',
+                      borderRadius: borderRadius.md,
+                      background: tierStyle.bg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Building size={20} style={{ color: tierStyle.color }} />
+                  </div>
+                )}
+
+                {/* Sponsor Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
+                    <p style={{ fontWeight: typography.fontWeight.medium }}>{sponsor.name}</p>
+                    <Badge
+                      variant={sponsor.tier === 'Platinum' ? 'platinum' : sponsor.tier === 'Gold' ? 'gold' : 'silver'}
+                      size="sm"
+                      uppercase
+                    >
+                      {sponsor.tier}
+                    </Badge>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
+                    {sponsor.websiteUrl && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                        <Link size={12} />
+                        <span style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sponsor.websiteUrl.replace(/^https?:\/\//, '')}
+                        </span>
+                      </span>
+                    )}
+                    {sponsor.logoUrl && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, fontSize: typography.fontSize.sm, color: colors.status.success }}>
+                        <Image size={12} /> Logo uploaded
+                      </span>
+                    )}
+                    {!sponsor.logoUrl && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, fontSize: typography.fontSize.sm, color: colors.text.muted }}>
+                        <Image size={12} /> No logo
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* Amount */}
                 <span style={{ color: colors.status.success, fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.lg }}>
                   {formatCurrency(sponsor.amount)}
                 </span>
+
+                {/* Actions */}
                 <Button
                   variant="secondary"
                   size="sm"
@@ -161,7 +227,10 @@ export default function SettingsPage({
           {sponsors.length === 0 && (
             <div style={{ textAlign: 'center', padding: spacing.xxxl, color: colors.text.muted }}>
               <Building size={32} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-              <p>No sponsors added yet</p>
+              <p style={{ marginBottom: spacing.md }}>No sponsors added yet</p>
+              <Button variant="secondary" onClick={onShowSponsorInfo} icon={Info} style={{ width: 'auto' }}>
+                View Sponsorship Guide
+              </Button>
             </div>
           )}
           {sponsors.length > 0 && (
