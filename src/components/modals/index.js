@@ -5,3 +5,4 @@ export { default as EventModal } from './EventModal';
 export { default as AnnouncementModal } from './AnnouncementModal';
 export { default as ConvertNomineeModal } from './ConvertNomineeModal';
 export { default as ApproveNomineeModal } from './ApproveNomineeModal';
+export { default as EliteRankCityModal } from './EliteRankCityModal';
