@@ -10,6 +10,7 @@ import { CommunityPage } from './features/community';
 import { SettingsPage } from './features/settings';
 import { ProfilePage } from './features/profile';
 import { PublicSitePage } from './features/public-site';
+import { LoginPage } from './features/auth';
 
 // Modals
 import {
@@ -37,6 +38,10 @@ import {
 } from './constants';
 
 export default function App() {
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+
   // Navigation state
   const [activeTab, setActiveTab] = useState('overview');
   const [showPublicSite, setShowPublicSite] = useState(false);
@@ -282,6 +287,20 @@ export default function App() {
   };
 
   // ============================================
+  // Authentication Handlers
+  // ============================================
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    setActiveTab('overview');
+  };
+
+  // ============================================
   // Render Content
   // ============================================
   const renderContent = () => {
@@ -361,12 +380,18 @@ export default function App() {
     return tabConfig?.label || 'Dashboard';
   };
 
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   return (
     <>
       <MainLayout
         activeTab={activeTab}
         onTabChange={setActiveTab}
         hostProfile={hostProfile}
+        onLogout={handleLogout}
       >
         <PageHeader title={getPageTitle()} />
         {renderContent()}

@@ -8,6 +8,7 @@ export default function MainLayout({
   activeTab,
   onTabChange,
   hostProfile,
+  onLogout,
 }) {
   const containerStyle = {
     minHeight: '100vh',
@@ -24,7 +25,7 @@ export default function MainLayout({
 
   return (
     <div style={containerStyle}>
-      <Header hostProfile={hostProfile} />
+      <Header hostProfile={hostProfile} onLogout={onLogout} />
       <Navigation activeTab={activeTab} onTabChange={onTabChange} />
       <main style={mainStyle}>{children}</main>
     </div>
