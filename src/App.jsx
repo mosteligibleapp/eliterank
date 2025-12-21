@@ -19,6 +19,7 @@ import {
   AnnouncementModal,
   ConvertNomineeModal,
   ApproveNomineeModal,
+  EliteRankCityModal,
 } from './components/modals';
 
 // Constants and mock data
@@ -53,6 +54,7 @@ export default function App() {
   // Modal state
   const [judgeModal, setJudgeModal] = useState({ isOpen: false, judge: null });
   const [sponsorModal, setSponsorModal] = useState({ isOpen: false, sponsor: null });
+  const [eliteRankCityOpen, setEliteRankCityOpen] = useState(false);
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
   const [announcementModal, setAnnouncementModal] = useState({ isOpen: false, announcement: null });
   const [convertModal, setConvertModal] = useState({ isOpen: false, nominee: null });
@@ -293,6 +295,7 @@ export default function App() {
             events={events}
             competitionRankings={COMPETITION_RANKINGS}
             onViewPublicSite={() => setShowPublicSite(true)}
+            onViewEliteRankCity={() => setEliteRankCityOpen(true)}
           />
         );
 
@@ -421,6 +424,11 @@ export default function App() {
         onClose={() => setApproveModal({ isOpen: false, nominee: null })}
         nominee={approveModal.nominee}
         onConfirm={handleConfirmApprove}
+      />
+
+      <EliteRankCityModal
+        isOpen={eliteRankCityOpen}
+        onClose={() => setEliteRankCityOpen(false)}
       />
     </>
   );

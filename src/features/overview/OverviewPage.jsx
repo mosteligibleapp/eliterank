@@ -1,5 +1,6 @@
 import React from 'react';
-import { spacing } from '../../styles/theme';
+import { Globe } from 'lucide-react';
+import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import RevenueCard from './components/RevenueCard';
 import HostPayoutCard from './components/HostPayoutCard';
 import RankingCard from './components/RankingCard';
@@ -16,6 +17,7 @@ export default function OverviewPage({
   events,
   competitionRankings,
   onViewPublicSite,
+  onViewEliteRankCity,
 }) {
   // Calculate revenue data
   const sponsorshipTotal = sponsors.reduce((sum, s) => sum + s.amount, 0);
@@ -70,6 +72,44 @@ export default function OverviewPage({
 
       {/* Leaderboard */}
       <Leaderboard contestants={contestants} title="New York Top Contestants" />
+
+      {/* Footer */}
+      <div
+        style={{
+          marginTop: spacing.xxxl,
+          paddingTop: spacing.xl,
+          borderTop: `1px solid ${colors.border.light}`,
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        <button
+          onClick={onViewEliteRankCity}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.sm,
+            background: 'transparent',
+            border: `1px solid ${colors.border.gold}`,
+            borderRadius: borderRadius.pill,
+            padding: `${spacing.md} ${spacing.xl}`,
+            color: colors.gold.primary,
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.medium,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
+        >
+          <Globe size={16} />
+          View Elite Rank City - All Competitions
+        </button>
+      </div>
     </div>
   );
 }
