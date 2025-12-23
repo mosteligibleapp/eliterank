@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Crown, Users, Calendar, Sparkles, Award, UserPlus, Trophy } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -52,6 +52,11 @@ export default function PublicSitePage({
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [selectedContestant, setSelectedContestant] = useState(null);
   const [voteCount, setVoteCount] = useState(1);
+
+  // Reset active tab when phase or city changes
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [phase, city, defaultTab]);
 
   if (!isOpen) return null;
 
@@ -196,7 +201,7 @@ export default function PublicSitePage({
             onVote={setSelectedContestant}
           />
         )}
-        {activeTab === 'events' && <EventsTab events={events} />}
+        {activeTab === 'events' && <EventsTab events={events} city={city} season={season} phase={phase} />}
         {activeTab === 'announcements' && <AnnouncementsTab announcements={announcements} />}
         {activeTab === 'about' && (
           <AboutTab

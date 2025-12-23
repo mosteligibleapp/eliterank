@@ -349,7 +349,10 @@ export default function App() {
             sponsors={sponsors}
             events={events}
             competitionRankings={COMPETITION_RANKINGS}
-            onViewPublicSite={() => setShowPublicSite(true)}
+            onViewPublicSite={() => {
+              setSelectedCompetition({ city: 'New York', season: '2026', phase: 'voting', winners: [] });
+              setShowPublicSite(true);
+            }}
             onViewEliteRankCity={openEliteRankCity}
           />
         );
