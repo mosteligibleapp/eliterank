@@ -129,19 +129,21 @@ export default function useSupabaseAuth() {
 
       if (error) throw error;
 
-      // Create profile after signup
+      // Try to create/update profile with upsert
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: data.user.id,
             email: data.user.email,
             first_name: metadata.first_name || '',
             last_name: metadata.last_name || '',
-            role: 'host',
-          });
+          }, { onConflict: 'id' });
 
-        if (profileError) console.error('Error creating profile:', profileError);
+        if (profileError) {
+          console.error('Error saving profile:', profileError);
+          // Don't fail signup if profile save fails
+        }
       }
 
       return { user: data.user, error: null };
