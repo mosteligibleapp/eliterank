@@ -11,6 +11,7 @@ import { SettingsPage } from './features/settings';
 import { ProfilePage } from './features/profile';
 import { PublicSitePage } from './features/public-site';
 import { LoginPage } from './features/auth';
+import { SuperAdminPage } from './features/super-admin';
 
 // Modals
 import {
@@ -323,8 +324,8 @@ export default function App() {
   // Authentication Handlers
   // ============================================
   const handleLogin = useCallback((userData) => {
-    // Handle mock login
-    if (userData.id === 'mock-host-id') {
+    // Handle mock login (host or super admin)
+    if (userData.id === 'mock-host-id' || userData.id === 'mock-super-admin-id') {
       setMockUser(userData);
     }
     setActiveTab('overview');
@@ -439,6 +440,14 @@ export default function App() {
   // Show login page if not authenticated
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
+  }
+
+  // Check if user is super admin
+  const isSuperAdmin = mockUser?.role === 'super_admin';
+
+  // Show super admin dashboard for super admins
+  if (isSuperAdmin) {
+    return <SuperAdminPage onLogout={handleLogout} />;
   }
 
   return (
