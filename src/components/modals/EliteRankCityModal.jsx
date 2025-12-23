@@ -22,6 +22,7 @@ const COMPETITIONS = [
     city: 'New York',
     season: '2026',
     status: 'live',
+    phase: 'voting',
     startDate: 'March 2026',
     contestants: 24,
     votes: 125500,
@@ -33,12 +34,13 @@ const COMPETITIONS = [
     name: 'Most Eligible Chicago',
     city: 'Chicago',
     season: '2026',
-    status: 'upcoming',
-    startDate: 'May 2026',
+    status: 'nomination',
+    phase: 'nomination',
+    startDate: 'Nominations Open',
     contestants: 0,
     votes: 0,
     image: 'https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=800&h=600&fit=crop',
-    available: false,
+    available: true,
   },
   {
     id: 3,
@@ -249,6 +251,13 @@ export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition 
                 LIVE NOW
               </span>
             </Badge>
+          ) : competition.status === 'nomination' ? (
+            <Badge variant="warning" size="md" pill>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <UserPlus size={12} />
+                NOMINATIONS OPEN
+              </span>
+            </Badge>
           ) : competition.status === 'upcoming' ? (
             <Badge variant="warning" size="md" pill><Clock size={12} /> COMING SOON</Badge>
           ) : (
@@ -286,6 +295,11 @@ export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition 
                 <span style={{ fontSize: typography.fontSize.sm, color: '#fff' }}>{(competition.votes / 1000).toFixed(0)}K Votes</span>
               </div>
             </div>
+          ) : competition.status === 'nomination' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: `${spacing.sm} ${spacing.md}`, background: 'rgba(212,175,55,0.15)', borderRadius: borderRadius.md, border: `1px solid ${colors.border.gold}`, width: 'fit-content' }}>
+              <UserPlus size={16} style={{ color: colors.gold.primary }} />
+              <span style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary }}>Nominate yourself or someone you know</span>
+            </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: `${spacing.sm} ${spacing.md}`, background: 'rgba(255,255,255,0.1)', borderRadius: borderRadius.md, width: 'fit-content' }}>
               <Sparkles size={16} style={{ color: colors.gold.primary }} />
@@ -295,7 +309,7 @@ export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition 
 
           {isAvailable && (
             <div style={{ marginTop: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, opacity: isHovered ? 1 : 0.7, transition: 'opacity 0.2s' }}>
-              View Competition
+              {competition.status === 'nomination' ? 'Nominate Now' : 'View Competition'}
               <ChevronRight size={18} style={{ transform: isHovered ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.2s' }} />
             </div>
           )}

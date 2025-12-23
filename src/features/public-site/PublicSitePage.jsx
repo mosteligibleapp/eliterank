@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
-import { X, Crown, Users, Calendar, Sparkles, Award } from 'lucide-react';
+import { X, Crown, Users, Calendar, Sparkles, Award, UserPlus } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import ContestantsTab from './components/ContestantsTab';
 import EventsTab from './components/EventsTab';
 import AnnouncementsTab from './components/AnnouncementsTab';
 import AboutTab from './components/AboutTab';
+import NominationTab from './components/NominationTab';
 import VoteModal from './components/VoteModal';
 
-const TABS = [
+const VOTING_TABS = [
   { id: 'contestants', label: 'Contestants', icon: Users },
+  { id: 'events', label: 'Events', icon: Calendar },
+  { id: 'announcements', label: 'Announcements', icon: Sparkles },
+  { id: 'about', label: 'About', icon: Award },
+];
+
+const NOMINATION_TABS = [
+  { id: 'nominate', label: 'Nominate', icon: UserPlus },
   { id: 'events', label: 'Events', icon: Calendar },
   { id: 'announcements', label: 'Announcements', icon: Sparkles },
   { id: 'about', label: 'About', icon: Award },
@@ -18,6 +26,8 @@ const TABS = [
 export default function PublicSitePage({
   isOpen,
   onClose,
+  city = 'New York',
+  phase = 'voting', // 'nomination' or 'voting'
   contestants,
   events,
   announcements,
@@ -25,7 +35,9 @@ export default function PublicSitePage({
   sponsors,
   forceDoubleVoteDay = true,
 }) {
-  const [activeTab, setActiveTab] = useState('contestants');
+  const isNominationPhase = phase === 'nomination';
+  const TABS = isNominationPhase ? NOMINATION_TABS : VOTING_TABS;
+  const [activeTab, setActiveTab] = useState(isNominationPhase ? 'nominate' : 'contestants');
   const [selectedContestant, setSelectedContestant] = useState(null);
   const [voteCount, setVoteCount] = useState(1);
 
@@ -99,7 +111,7 @@ export default function PublicSitePage({
                   Most Eligible
                 </p>
                 <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#fff' }}>
-                  New York
+                  {city}
                 </p>
               </div>
             </div>
@@ -115,9 +127,15 @@ export default function PublicSitePage({
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-            <Badge variant="success" size="md" pill>
-              ● LIVE
-            </Badge>
+            {isNominationPhase ? (
+              <Badge variant="warning" size="md" pill>
+                <Sparkles size={12} /> NOMINATIONS OPEN
+              </Badge>
+            ) : (
+              <Badge variant="success" size="md" pill>
+                ● LIVE
+              </Badge>
+            )}
             <Button variant="secondary" onClick={onClose} icon={X} style={{ width: 'auto', padding: `${spacing.sm} ${spacing.lg}` }}>
               Exit Preview
             </Button>
@@ -141,6 +159,12 @@ export default function PublicSitePage({
 
       {/* Content */}
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: `${spacing.xxxl} ${spacing.xxl}` }}>
+        {activeTab === 'nominate' && (
+          <NominationTab
+            city={city}
+            onNominationSubmit={(data) => console.log('Nomination submitted:', data)}
+          />
+        )}
         {activeTab === 'contestants' && (
           <ContestantsTab
             contestants={contestants}

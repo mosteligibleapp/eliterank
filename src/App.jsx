@@ -87,6 +87,7 @@ export default function App() {
   // Navigation state
   const [activeTab, setActiveTab] = useState('overview');
   const [showPublicSite, setShowPublicSite] = useState(false);
+  const [selectedCompetition, setSelectedCompetition] = useState({ city: 'New York', phase: 'voting' });
 
   // Data state
   const [nominees, setNominees] = useState(INITIAL_NOMINEES);
@@ -453,6 +454,8 @@ export default function App() {
       <PublicSitePage
         isOpen={showPublicSite}
         onClose={() => setShowPublicSite(false)}
+        city={selectedCompetition.city}
+        phase={selectedCompetition.phase}
         contestants={contestants}
         events={events}
         announcements={announcements}
@@ -509,9 +512,11 @@ export default function App() {
         onOpenCompetition={(competition) => {
           // Close Elite Rank City and open the competition's public site
           closeEliteRankCity();
-          if (competition.city === 'New York') {
-            setShowPublicSite(true);
-          }
+          setSelectedCompetition({
+            city: competition.city,
+            phase: competition.phase || 'voting',
+          });
+          setShowPublicSite(true);
         }}
       />
     </>
