@@ -1,14 +1,24 @@
 import React from 'react';
-import { Crown, Trophy, Medal, Star, Instagram, Award, Sparkles } from 'lucide-react';
+import { Crown, Trophy, Star, Instagram, Sparkles } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { formatNumber } from '../../../utils/formatters';
+
+// Winner images - professional headshots
+const WINNER_IMAGES = [
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=500&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=500&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=500&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&crop=face',
+];
 
 // Medal colors for top 5
 const MEDAL_STYLES = {
-  1: { bg: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000', label: '1st Place', icon: Crown },
-  2: { bg: 'linear-gradient(135deg, #C0C0C0, #A8A8A8)', color: '#000', label: '2nd Place', icon: Medal },
-  3: { bg: 'linear-gradient(135deg, #CD7F32, #B8860B)', color: '#000', label: '3rd Place', icon: Medal },
-  4: { bg: 'linear-gradient(135deg, #4a5568, #2d3748)', color: '#fff', label: '4th Place', icon: Award },
-  5: { bg: 'linear-gradient(135deg, #4a5568, #2d3748)', color: '#fff', label: '5th Place', icon: Award },
+  1: { bg: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000' },
+  2: { bg: 'linear-gradient(135deg, #C0C0C0, #A8A8A8)', color: '#000' },
+  3: { bg: 'linear-gradient(135deg, #CD7F32, #B8860B)', color: '#000' },
+  4: { bg: 'rgba(0,0,0,0.7)', color: '#fff' },
+  5: { bg: 'rgba(0,0,0,0.7)', color: '#fff' },
 };
 
 export default function WinnersTab({ city, season, winners = [] }) {
@@ -29,32 +39,13 @@ export default function WinnersTab({ city, season, winners = [] }) {
       {/* Hero Section */}
       <div style={{
         textAlign: 'center',
-        padding: `${spacing.xxxl} ${spacing.xl}`,
-        background: 'linear-gradient(180deg, rgba(212,175,55,0.15) 0%, transparent 100%)',
-        borderRadius: borderRadius.xxl,
         marginBottom: spacing.xxxl,
       }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: spacing.sm,
-          padding: `${spacing.sm} ${spacing.lg}`,
-          background: 'rgba(212,175,55,0.2)',
-          border: `1px solid ${colors.gold.primary}`,
-          borderRadius: borderRadius.pill,
-          marginBottom: spacing.xl,
-        }}>
-          <Trophy size={16} style={{ color: colors.gold.primary }} />
-          <span style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>
-            SEASON {season} COMPLETE
-          </span>
-        </div>
-
         <h1 style={{
           fontSize: 'clamp(32px, 6vw, 56px)',
           fontWeight: typography.fontWeight.bold,
           color: '#fff',
-          marginBottom: spacing.lg,
+          marginBottom: spacing.md,
           lineHeight: 1.1,
         }}>
           Congratulations to
@@ -72,78 +63,114 @@ export default function WinnersTab({ city, season, winners = [] }) {
         </p>
       </div>
 
-      {/* Grand Winner Card */}
+      {/* Grand Winner Card - Photo Focused */}
       {grandWinner && (
         <div style={{
-          background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(212,175,55,0.05) 100%)',
-          border: `2px solid ${colors.gold.primary}`,
-          borderRadius: borderRadius.xxl,
-          padding: spacing.xxxl,
+          maxWidth: '400px',
+          margin: '0 auto',
           marginBottom: spacing.xxxl,
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
         }}>
-          {/* Crown decoration */}
           <div style={{
-            position: 'absolute',
-            top: '-20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '80px',
-            height: '80px',
-            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 20px rgba(212,175,55,0.5)',
+            background: colors.background.card,
+            border: `2px solid ${colors.gold.primary}`,
+            borderRadius: borderRadius.xxl,
+            overflow: 'hidden',
+            position: 'relative',
           }}>
-            <Crown size={40} style={{ color: '#000' }} />
-          </div>
-
-          <div style={{ marginTop: spacing.xxxl }}>
-            <p style={{
-              fontSize: typography.fontSize.sm,
-              color: colors.gold.primary,
-              textTransform: 'uppercase',
-              letterSpacing: '3px',
-              marginBottom: spacing.md,
-              fontWeight: typography.fontWeight.semibold,
-            }}>
-              Season {season} Winner
-            </p>
-
-            <h2 style={{
-              fontSize: typography.fontSize.hero,
-              fontWeight: typography.fontWeight.bold,
-              color: '#fff',
-              marginBottom: spacing.sm,
-            }}>
-              {grandWinner.name}
-            </h2>
-
-            <p style={{
-              fontSize: typography.fontSize.lg,
-              color: colors.text.secondary,
-              marginBottom: spacing.lg,
-            }}>
-              {grandWinner.occupation}
-            </p>
-
+            {/* Crown Badge */}
             <div style={{
-              display: 'inline-flex',
+              position: 'absolute',
+              top: spacing.md,
+              left: spacing.md,
+              width: '48px',
+              height: '48px',
+              borderRadius: borderRadius.lg,
+              background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+              display: 'flex',
               alignItems: 'center',
-              gap: spacing.xl,
-              padding: `${spacing.md} ${spacing.xl}`,
-              background: 'rgba(0,0,0,0.3)',
-              borderRadius: borderRadius.xl,
+              justifyContent: 'center',
+              zIndex: 2,
+              boxShadow: '0 4px 12px rgba(212,175,55,0.4)',
             }}>
-              <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-                  {grandWinner.votes.toLocaleString()}
+              <Crown size={28} style={{ color: '#000' }} />
+            </div>
+
+            {/* Winner Badge */}
+            <div style={{
+              position: 'absolute',
+              top: spacing.md,
+              right: spacing.md,
+              padding: `${spacing.xs} ${spacing.md}`,
+              background: 'rgba(212,175,55,0.9)',
+              borderRadius: borderRadius.pill,
+              zIndex: 2,
+            }}>
+              <span style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold, color: '#000', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Winner
+              </span>
+            </div>
+
+            {/* Profile Image */}
+            <div style={{
+              width: '100%',
+              aspectRatio: '4/5',
+              background: '#1a1a24',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              <img
+                src={WINNER_IMAGES[0]}
+                alt={grandWinner.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                padding: `${spacing.xxxl} ${spacing.lg} ${spacing.lg}`,
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.95))',
+              }}>
+                <p style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.gold.primary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '2px',
+                  marginBottom: spacing.xs,
+                  fontWeight: typography.fontWeight.semibold,
+                }}>
+                  Season {season} Champion
                 </p>
-                <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Total Votes</p>
+                <h2 style={{
+                  fontSize: typography.fontSize.xxl,
+                  fontWeight: typography.fontWeight.bold,
+                  color: '#fff',
+                  marginBottom: spacing.xs,
+                }}>
+                  {grandWinner.name}
+                </h2>
+                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: typography.fontSize.md }}>
+                  {grandWinner.occupation}
+                </p>
+              </div>
+            </div>
+
+            {/* Card Footer */}
+            <div style={{
+              padding: `${spacing.lg} ${spacing.xl}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: colors.background.cardHover,
+            }}>
+              <div>
+                <p style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
+                  {formatNumber(grandWinner.votes)}
+                </p>
+                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Total Votes
+                </p>
               </div>
               {grandWinner.instagram && (
                 <a
@@ -156,10 +183,13 @@ export default function WinnersTab({ city, season, winners = [] }) {
                     gap: spacing.sm,
                     color: colors.text.light,
                     textDecoration: 'none',
+                    padding: `${spacing.sm} ${spacing.md}`,
+                    background: 'rgba(255,255,255,0.1)',
+                    borderRadius: borderRadius.md,
                   }}
                 >
-                  <Instagram size={20} />
-                  <span>{grandWinner.instagram}</span>
+                  <Instagram size={18} />
+                  <span style={{ fontSize: typography.fontSize.sm }}>{grandWinner.instagram}</span>
                 </a>
               )}
             </div>
@@ -167,7 +197,7 @@ export default function WinnersTab({ city, season, winners = [] }) {
         </div>
       )}
 
-      {/* Runner Ups */}
+      {/* Runner Ups - Photo Cards */}
       <div style={{ marginBottom: spacing.xxxl }}>
         <h3 style={{
           fontSize: typography.fontSize.xl,
@@ -186,21 +216,20 @@ export default function WinnersTab({ city, season, winners = [] }) {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: spacing.lg,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+          gap: spacing.xl,
         }}>
-          {runnerUps.map((winner) => {
+          {runnerUps.map((winner, index) => {
             const medalStyle = MEDAL_STYLES[winner.rank];
-            const Icon = medalStyle?.icon || Award;
 
             return (
               <div
                 key={winner.rank}
                 style={{
                   background: colors.background.card,
-                  border: `1px solid ${colors.border.light}`,
-                  borderRadius: borderRadius.xl,
-                  padding: spacing.xl,
+                  border: winner.rank <= 3 ? `2px solid rgba(212,175,55,0.4)` : `1px solid ${colors.border.light}`,
+                  borderRadius: borderRadius.xxl,
+                  overflow: 'hidden',
                   position: 'relative',
                 }}
               >
@@ -208,62 +237,70 @@ export default function WinnersTab({ city, season, winners = [] }) {
                 <div style={{
                   position: 'absolute',
                   top: spacing.md,
-                  right: spacing.md,
-                  width: '36px',
-                  height: '36px',
-                  background: medalStyle?.bg || colors.background.secondary,
-                  borderRadius: '50%',
+                  left: spacing.md,
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: borderRadius.md,
+                  background: medalStyle?.bg || 'rgba(0,0,0,0.7)',
+                  backdropFilter: 'blur(8px)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  fontSize: typography.fontSize.md,
+                  fontWeight: typography.fontWeight.bold,
+                  color: medalStyle?.color || '#fff',
+                  zIndex: 2,
                 }}>
-                  <Icon size={18} style={{ color: medalStyle?.color || '#fff' }} />
+                  {winner.rank}
                 </div>
 
+                {/* Profile Image */}
                 <div style={{
-                  fontSize: typography.fontSize.xs,
-                  color: colors.text.muted,
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: spacing.sm,
+                  width: '100%',
+                  aspectRatio: '4/5',
+                  background: '#1a1a24',
+                  position: 'relative',
+                  overflow: 'hidden',
                 }}>
-                  {medalStyle?.label || `${winner.rank}th Place`}
+                  <img
+                    src={WINNER_IMAGES[index + 1] || WINNER_IMAGES[0]}
+                    alt={winner.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    padding: `${spacing.xxxl} ${spacing.lg} ${spacing.md}`,
+                    background: 'linear-gradient(transparent, rgba(0,0,0,0.95))',
+                  }}>
+                    <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, marginBottom: '2px', color: '#fff' }}>
+                      {winner.name}
+                    </h3>
+                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: typography.fontSize.sm }}>
+                      {winner.occupation}
+                    </p>
+                  </div>
                 </div>
 
-                <h4 style={{
-                  fontSize: typography.fontSize.lg,
-                  fontWeight: typography.fontWeight.semibold,
-                  color: '#fff',
-                  marginBottom: spacing.xs,
-                }}>
-                  {winner.name}
-                </h4>
-
-                <p style={{
-                  fontSize: typography.fontSize.sm,
-                  color: colors.text.secondary,
-                  marginBottom: spacing.md,
-                }}>
-                  {winner.occupation}
-                </p>
-
+                {/* Card Footer */}
                 <div style={{
+                  padding: `${spacing.md} ${spacing.lg}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  background: colors.background.cardHover,
                 }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                    color: colors.gold.primary,
-                  }}>
-                    <Star size={14} />
-                    <span style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold }}>
-                      {winner.votes.toLocaleString()} votes
-                    </span>
+                  <div>
+                    <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: winner.rank <= 3 ? colors.gold.primary : '#fff' }}>
+                      {formatNumber(winner.votes)}
+                    </p>
+                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Votes
+                    </p>
                   </div>
-
                   {winner.instagram && (
                     <a
                       href={`https://instagram.com/${winner.instagram.replace('@', '')}`}
@@ -271,7 +308,7 @@ export default function WinnersTab({ city, season, winners = [] }) {
                       rel="noopener noreferrer"
                       style={{ color: colors.text.muted }}
                     >
-                      <Instagram size={16} />
+                      <Instagram size={18} />
                     </a>
                   )}
                 </div>
@@ -301,13 +338,13 @@ export default function WinnersTab({ city, season, winners = [] }) {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
           gap: spacing.lg,
         }}>
           {[
             { value: '18', label: 'Contestants' },
             { value: '89K+', label: 'Total Votes' },
-            { value: '12', label: 'Events Hosted' },
+            { value: '12', label: 'Events' },
             { value: '5', label: 'Winners' },
           ].map((stat, i) => (
             <div key={i} style={{ textAlign: 'center' }}>
