@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 
 // Layout components
 import { MainLayout, PageHeader } from './components/layout';
@@ -24,7 +24,7 @@ import {
 } from './components/modals';
 
 // Hooks
-import { useModals, useAuth } from './hooks';
+import { useModals, useSupabaseAuth } from './hooks';
 
 // Constants and mock data
 import {
@@ -41,8 +41,17 @@ import {
 } from './constants';
 
 export default function App() {
-  // Authentication (custom hook)
-  const { isAuthenticated, user, login, logout } = useAuth();
+  // Authentication (Supabase hook)
+  const {
+    user,
+    profile,
+    loading: authLoading,
+    isAuthenticated,
+    isDemoMode,
+    signIn,
+    signOut,
+    updateProfile
+  } = useSupabaseAuth();
 
   // Modal management (custom hook)
   const {
@@ -80,8 +89,26 @@ export default function App() {
   const [sponsors, setSponsors] = useState(INITIAL_SPONSORS);
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [announcements, setAnnouncements] = useState(INITIAL_ANNOUNCEMENTS);
-  const [hostProfile, setHostProfile] = useState(DEFAULT_HOST_PROFILE);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+  // Derive host profile from Supabase profile or use default for demo
+  const hostProfile = useMemo(() => {
+    if (profile) {
+      return {
+        firstName: profile.first_name || '',
+        lastName: profile.last_name || '',
+        bio: profile.bio || '',
+        city: profile.city || '',
+        instagram: profile.instagram || '',
+        twitter: profile.twitter || '',
+        linkedin: profile.linkedin || '',
+        tiktok: profile.tiktok || '',
+        hobbies: profile.hobbies || [],
+      };
+    }
+    // Fallback to demo profile
+    return DEFAULT_HOST_PROFILE;
+  }, [profile]);
 
   // ============================================
   // Nominee Handlers
@@ -265,17 +292,40 @@ export default function App() {
     setIsEditingProfile(false);
   }, []);
 
-  const handleProfileChange = useCallback((updates) => {
-    setHostProfile((prev) => ({ ...prev, ...updates }));
-  }, []);
+  const handleProfileChange = useCallback(async (updates) => {
+    // Convert from UI format to database format
+    const dbUpdates = {
+      first_name: updates.firstName,
+      last_name: updates.lastName,
+      bio: updates.bio,
+      city: updates.city,
+      instagram: updates.instagram,
+      twitter: updates.twitter,
+      linkedin: updates.linkedin,
+      tiktok: updates.tiktok,
+      hobbies: updates.hobbies,
+    };
+    // Remove undefined values
+    Object.keys(dbUpdates).forEach(key => {
+      if (dbUpdates[key] === undefined) delete dbUpdates[key];
+    });
+    await updateProfile(dbUpdates);
+  }, [updateProfile]);
 
   // ============================================
-  // Authentication Handler
+  // Authentication Handlers
   // ============================================
-  const handleLogout = useCallback(() => {
-    logout();
+  const handleLogin = useCallback(async (userData) => {
+    // Called by LoginPage after successful auth
+    // The useSupabaseAuth hook will automatically update state
+    // when Supabase auth state changes
     setActiveTab('overview');
-  }, [logout]);
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await signOut();
+    setActiveTab('overview');
+  }, [signOut]);
 
   // ============================================
   // Render Content
@@ -357,9 +407,26 @@ export default function App() {
     return tabConfig?.label || 'Dashboard';
   };
 
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)',
+        color: '#d4af37',
+        fontSize: '1.25rem',
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
   // Show login page if not authenticated
   if (!isAuthenticated) {
-    return <LoginPage onLogin={login} />;
+    return <LoginPage onLogin={handleLogin} />;
   }
 
   return (
