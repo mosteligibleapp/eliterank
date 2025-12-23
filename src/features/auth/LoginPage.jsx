@@ -56,6 +56,18 @@ export default function LoginPage({ onLogin }) {
 
     setIsLoading(true);
 
+    // Mock login - bypass Supabase for testing
+    if (mode === 'login' && email === 'host@eliterank.com' && password === 'hostname123') {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      onLogin({
+        id: 'mock-host-id',
+        email: 'host@eliterank.com',
+        name: 'James Davidson',
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       if (mode === 'signup') {
         const { user, error } = await signUp(email, password, {
