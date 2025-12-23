@@ -1,32 +1,104 @@
 import React, { useState } from 'react';
-import { Crown, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
+import { Crown, Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { colors, gradients, shadows, borderRadius, spacing, typography } from '../../styles/theme';
+import { useSupabaseAuth } from '../../hooks';
 
 export default function LoginPage({ onLogin }) {
+  const [mode, setMode] = useState('login'); // 'login' or 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const { signIn, signUp, isDemoMode } = useSupabaseAuth();
+
+  const validateForm = () => {
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return false;
+    }
+
+    if (!email.includes('@')) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return false;
+    }
+
+    if (mode === 'signup') {
+      if (!firstName || !lastName) {
+        setError('Please enter your first and last name');
+        return false;
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return false;
+      }
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+
+    if (!validateForm()) return;
+
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      if (mode === 'signup') {
+        const { user, error } = await signUp(email, password, {
+          first_name: firstName,
+          last_name: lastName,
+        });
 
-    // Mock validation - accept any email/password for demo
-    if (email && password) {
-      onLogin({
-        email,
-        name: email.split('@')[0],
-      });
-    } else {
-      setError('Please enter both email and password');
+        if (error) {
+          setError(error);
+        } else if (user) {
+          if (isDemoMode) {
+            // Demo mode - log in immediately
+            onLogin({ email, name: `${firstName} ${lastName}` });
+          } else {
+            // Real Supabase - check for email confirmation
+            setSuccess('Account created! Please check your email to confirm your account.');
+            setMode('login');
+          }
+        }
+      } else {
+        const { user, error } = await signIn(email, password);
+
+        if (error) {
+          setError(error);
+        } else if (user) {
+          onLogin({
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.first_name || email.split('@')[0],
+          });
+        }
+      }
+    } catch (err) {
+      setError(err.message || 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
+  };
+
+  const switchMode = () => {
+    setMode(mode === 'login' ? 'signup' : 'login');
+    setError('');
+    setSuccess('');
   };
 
   const containerStyle = {
@@ -45,7 +117,7 @@ export default function LoginPage({ onLogin }) {
     borderRadius: borderRadius.xxl,
     padding: spacing.xxxl,
     width: '100%',
-    maxWidth: '420px',
+    maxWidth: '440px',
     boxShadow: shadows.goldLarge,
   };
 
@@ -53,7 +125,7 @@ export default function LoginPage({ onLogin }) {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    marginBottom: spacing.xxxl,
+    marginBottom: spacing.xxl,
   };
 
   const logoIconStyle = {
@@ -86,7 +158,13 @@ export default function LoginPage({ onLogin }) {
   const formStyle = {
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing.xl,
+    gap: spacing.lg,
+  };
+
+  const rowStyle = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: spacing.md,
   };
 
   const inputGroupStyle = {
@@ -127,6 +205,11 @@ export default function LoginPage({ onLogin }) {
     transition: 'all 0.2s ease',
   };
 
+  const inputStyleNoIcon = {
+    ...inputStyle,
+    paddingLeft: spacing.lg,
+  };
+
   const passwordToggleStyle = {
     position: 'absolute',
     right: spacing.md,
@@ -157,34 +240,61 @@ export default function LoginPage({ onLogin }) {
     boxShadow: shadows.gold,
     transition: 'all 0.2s ease',
     opacity: isLoading ? 0.7 : 1,
+    marginTop: spacing.md,
   };
 
-  const errorStyle = {
-    background: 'rgba(248,113,113,0.1)',
-    border: `1px solid ${colors.status.error}`,
+  const alertStyle = (type) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+    background: type === 'error' ? 'rgba(248,113,113,0.1)' : 'rgba(74,222,128,0.1)',
+    border: `1px solid ${type === 'error' ? colors.status.error : colors.status.success}`,
     borderRadius: borderRadius.md,
     padding: spacing.md,
-    color: colors.status.error,
+    color: type === 'error' ? colors.status.error : colors.status.success,
     fontSize: typography.fontSize.sm,
+  });
+
+  const switchStyle = {
+    marginTop: spacing.xl,
     textAlign: 'center',
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
   };
 
-  const footerStyle = {
-    marginTop: spacing.xxl,
-    textAlign: 'center',
-    fontSize: typography.fontSize.sm,
-    color: colors.text.muted,
+  const linkStyle = {
+    color: colors.gold.primary,
+    cursor: 'pointer',
+    fontWeight: typography.fontWeight.medium,
+    marginLeft: spacing.xs,
   };
 
   const demoNoteStyle = {
-    marginTop: spacing.xl,
-    padding: spacing.lg,
+    marginTop: spacing.lg,
+    padding: spacing.md,
     background: 'rgba(212,175,55,0.1)',
     border: `1px solid ${colors.border.gold}`,
     borderRadius: borderRadius.lg,
     fontSize: typography.fontSize.sm,
     color: colors.gold.primary,
     textAlign: 'center',
+  };
+
+  const footerStyle = {
+    marginTop: spacing.xl,
+    textAlign: 'center',
+    fontSize: typography.fontSize.sm,
+    color: colors.text.muted,
+  };
+
+  const handleInputFocus = (e) => {
+    e.target.style.borderColor = colors.gold.primary;
+    e.target.style.boxShadow = `0 0 0 3px rgba(212,175,55,0.1)`;
+  };
+
+  const handleInputBlur = (e) => {
+    e.target.style.borderColor = colors.border.light;
+    e.target.style.boxShadow = 'none';
   };
 
   return (
@@ -206,12 +316,60 @@ export default function LoginPage({ onLogin }) {
             <Crown size={32} />
           </div>
           <h1 style={titleStyle}>EliteRank</h1>
-          <p style={subtitleStyle}>Host Dashboard Login</p>
+          <p style={subtitleStyle}>
+            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+          </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={formStyle}>
-          {error && <div style={errorStyle}>{error}</div>}
+          {error && (
+            <div style={alertStyle('error')}>
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div style={alertStyle('success')}>
+              <CheckCircle size={16} />
+              {success}
+            </div>
+          )}
+
+          {mode === 'signup' && (
+            <div style={rowStyle}>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>First Name</label>
+                <div style={inputWrapperStyle}>
+                  <User size={18} style={inputIconStyle} />
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="John"
+                    style={inputStyle}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                  />
+                </div>
+              </div>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>Last Name</label>
+                <div style={inputWrapperStyle}>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
+                    style={inputStyleNoIcon}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div style={inputGroupStyle}>
             <label style={labelStyle}>Email Address</label>
@@ -221,16 +379,10 @@ export default function LoginPage({ onLogin }) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="host@eliterank.com"
+                placeholder="you@example.com"
                 style={inputStyle}
-                onFocus={(e) => {
-                  e.target.style.borderColor = colors.gold.primary;
-                  e.target.style.boxShadow = `0 0 0 3px rgba(212,175,55,0.1)`;
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = colors.border.light;
-                  e.target.style.boxShadow = 'none';
-                }}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
               />
             </div>
           </div>
@@ -243,16 +395,10 @@ export default function LoginPage({ onLogin }) {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={mode === 'signup' ? 'Min. 6 characters' : 'Enter your password'}
                 style={{ ...inputStyle, paddingRight: '44px' }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = colors.gold.primary;
-                  e.target.style.boxShadow = `0 0 0 3px rgba(212,175,55,0.1)`;
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = colors.border.light;
-                  e.target.style.boxShadow = 'none';
-                }}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
               />
               <button
                 type="button"
@@ -263,6 +409,24 @@ export default function LoginPage({ onLogin }) {
               </button>
             </div>
           </div>
+
+          {mode === 'signup' && (
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Confirm Password</label>
+              <div style={inputWrapperStyle}>
+                <Lock size={18} style={inputIconStyle} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  style={inputStyle}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                />
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -291,26 +455,34 @@ export default function LoginPage({ onLogin }) {
                     animation: 'spin 0.8s linear infinite',
                   }}
                 />
-                Signing in...
+                {mode === 'login' ? 'Signing in...' : 'Creating account...'}
               </>
             ) : (
               <>
-                <LogIn size={18} />
-                Sign In
+                {mode === 'login' ? <LogIn size={18} /> : <UserPlus size={18} />}
+                {mode === 'login' ? 'Sign In' : 'Create Account'}
               </>
             )}
           </button>
         </form>
 
+        {/* Switch mode */}
+        <p style={switchStyle}>
+          {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
+          <span style={linkStyle} onClick={switchMode}>
+            {mode === 'login' ? 'Sign up' : 'Sign in'}
+          </span>
+        </p>
+
         {/* Demo Note */}
-        <div style={demoNoteStyle}>
-          <strong>Demo Mode:</strong> Enter any email and password to login
-        </div>
+        {isDemoMode && (
+          <div style={demoNoteStyle}>
+            <strong>Demo Mode:</strong> Supabase not configured. Any credentials work.
+          </div>
+        )}
 
         {/* Footer */}
-        <p style={footerStyle}>
-          © 2025 EliteRank. All rights reserved.
-        </p>
+        <p style={footerStyle}>© 2025 EliteRank. All rights reserved.</p>
       </div>
 
       {/* CSS Animation for spinner */}
