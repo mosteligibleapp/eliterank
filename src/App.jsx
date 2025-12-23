@@ -41,17 +41,23 @@ import {
 } from './constants';
 
 export default function App() {
+  // Local auth state for mock login
+  const [mockUser, setMockUser] = useState(null);
+
   // Authentication (Supabase hook)
   const {
     user,
     profile,
     loading: authLoading,
-    isAuthenticated,
+    isAuthenticated: supabaseAuthenticated,
     isDemoMode,
     signIn,
     signOut,
     updateProfile
   } = useSupabaseAuth();
+
+  // Combined auth - either Supabase or mock
+  const isAuthenticated = supabaseAuthenticated || !!mockUser;
 
   // Modal management (custom hook)
   const {
@@ -315,14 +321,16 @@ export default function App() {
   // ============================================
   // Authentication Handlers
   // ============================================
-  const handleLogin = useCallback(async (userData) => {
-    // Called by LoginPage after successful auth
-    // The useSupabaseAuth hook will automatically update state
-    // when Supabase auth state changes
+  const handleLogin = useCallback((userData) => {
+    // Handle mock login
+    if (userData.id === 'mock-host-id') {
+      setMockUser(userData);
+    }
     setActiveTab('overview');
   }, []);
 
   const handleLogout = useCallback(async () => {
+    setMockUser(null);
     await signOut();
     setActiveTab('overview');
   }, [signOut]);
