@@ -42,6 +42,7 @@ export default function PublicSitePage({
   announcements,
   judges,
   sponsors,
+  host,
   winners = [],
   forceDoubleVoteDay = true,
 }) {
@@ -208,6 +209,8 @@ export default function PublicSitePage({
             judges={judges}
             sponsors={sponsors}
             events={events}
+            host={host}
+            city={city}
           />
         )}
       </main>

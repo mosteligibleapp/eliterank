@@ -88,7 +88,13 @@ export default function App() {
   // Navigation state
   const [activeTab, setActiveTab] = useState('overview');
   const [showPublicSite, setShowPublicSite] = useState(false);
-  const [selectedCompetition, setSelectedCompetition] = useState({ city: 'New York', season: '2026', phase: 'voting', winners: [] });
+  const [selectedCompetition, setSelectedCompetition] = useState({
+    city: 'New York',
+    season: '2026',
+    phase: 'voting',
+    host: null,
+    winners: []
+  });
 
   // Data state
   const [nominees, setNominees] = useState(INITIAL_NOMINEES);
@@ -351,7 +357,20 @@ export default function App() {
             events={events}
             competitionRankings={COMPETITION_RANKINGS}
             onViewPublicSite={() => {
-              setSelectedCompetition({ city: 'New York', season: '2026', phase: 'voting', winners: [] });
+              setSelectedCompetition({
+                city: 'New York',
+                season: '2026',
+                phase: 'voting',
+                host: {
+                  name: `${hostProfile.firstName} ${hostProfile.lastName}`.trim() || 'James Davidson',
+                  title: 'Competition Host',
+                  bio: hostProfile.bio || 'Your dedicated host for Most Eligible New York, bringing together the city\'s most outstanding singles.',
+                  instagram: hostProfile.instagram,
+                  twitter: hostProfile.twitter,
+                  linkedin: hostProfile.linkedin,
+                },
+                winners: []
+              });
               setShowPublicSite(true);
             }}
             onViewEliteRankCity={openEliteRankCity}
@@ -474,6 +493,7 @@ export default function App() {
         announcements={announcements}
         judges={judges}
         sponsors={sponsors}
+        host={selectedCompetition.host}
         winners={selectedCompetition.winners}
       />
 
@@ -530,6 +550,7 @@ export default function App() {
             city: competition.city,
             season: competition.season || '2026',
             phase: competition.phase || 'voting',
+            host: competition.host || null,
             winners: competition.winners || [],
           });
           setShowPublicSite(true);

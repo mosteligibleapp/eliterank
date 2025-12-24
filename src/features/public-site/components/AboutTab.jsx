@@ -1,10 +1,10 @@
 import React from 'react';
-import { Award, Calendar, FileText, Trophy, Building, Crown, Check, Star } from 'lucide-react';
+import { Award, Calendar, FileText, Trophy, Building, Crown, Check, Star, Instagram, Linkedin, Twitter, User } from 'lucide-react';
 import { Avatar, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { formatEventDateRange } from '../../../utils/formatters';
 
-export default function AboutTab({ judges, sponsors, events }) {
+export default function AboutTab({ judges, sponsors, events, host, city = 'New York' }) {
   const platinumSponsor = sponsors.find((s) => s.tier === 'Platinum');
   const otherSponsors = sponsors.filter((s) => s.tier !== 'Platinum');
   const publicEvents = events.filter((e) => e.publicVisible !== false);
@@ -13,12 +13,145 @@ export default function AboutTab({ judges, sponsors, events }) {
     <div>
       <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
         <h1 style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, marginBottom: spacing.md }}>
-          About Most Eligible NYC
+          About Most Eligible {city}
         </h1>
         <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg, maxWidth: '600px', margin: '0 auto' }}>
-          The premier competition celebrating New York's most outstanding singles
+          The premier competition celebrating {city}'s most outstanding singles
         </p>
       </div>
+
+      {/* Host Section */}
+      {host && (
+        <div style={{ marginBottom: spacing.xxxl }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xxl }}>
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.1))',
+                borderRadius: borderRadius.lg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Crown size={24} style={{ color: '#8b5cf6' }} />
+            </div>
+            <h2 style={{ fontSize: typography.fontSize.xxxl, fontWeight: typography.fontWeight.bold }}>Your Host</h2>
+          </div>
+
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(212,175,55,0.05))',
+              border: `1px solid rgba(139,92,246,0.3)`,
+              borderRadius: borderRadius.xxl,
+              padding: spacing.xxl,
+              display: 'flex',
+              gap: spacing.xxl,
+              alignItems: 'center',
+            }}
+          >
+            {/* Host Avatar */}
+            <div style={{
+              width: '140px',
+              height: '140px',
+              borderRadius: borderRadius.xl,
+              background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 8px 32px rgba(139,92,246,0.3)',
+              overflow: 'hidden',
+            }}>
+              {host.avatar ? (
+                <img src={host.avatar} alt={host.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ fontSize: '48px', fontWeight: typography.fontWeight.bold, color: '#fff' }}>
+                  {host.name?.charAt(0) || 'H'}
+                </span>
+              )}
+            </div>
+
+            {/* Host Info */}
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+                <h3 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold }}>
+                  {host.name}
+                </h3>
+                <Badge variant="warning" size="sm">HOST</Badge>
+              </div>
+
+              {host.title && (
+                <p style={{ color: '#8b5cf6', fontSize: typography.fontSize.md, marginBottom: spacing.sm }}>
+                  {host.title}
+                </p>
+              )}
+
+              {host.bio && (
+                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, lineHeight: 1.6, marginBottom: spacing.lg, maxWidth: '500px' }}>
+                  {host.bio}
+                </p>
+              )}
+
+              {/* Social Links */}
+              <div style={{ display: 'flex', gap: spacing.sm }}>
+                {host.instagram && (
+                  <a
+                    href={`https://instagram.com/${host.instagram.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: spacing.sm,
+                      background: 'rgba(255,255,255,0.1)',
+                      borderRadius: borderRadius.md,
+                      color: colors.text.light,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                      textDecoration: 'none',
+                      fontSize: typography.fontSize.sm,
+                    }}
+                  >
+                    <Instagram size={16} />
+                    <span>{host.instagram}</span>
+                  </a>
+                )}
+                {host.twitter && (
+                  <a
+                    href={`https://twitter.com/${host.twitter.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: spacing.sm,
+                      background: 'rgba(255,255,255,0.1)',
+                      borderRadius: borderRadius.md,
+                      color: colors.text.light,
+                    }}
+                  >
+                    <Twitter size={16} />
+                  </a>
+                )}
+                {host.linkedin && (
+                  <a
+                    href={`https://linkedin.com/in/${host.linkedin}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: spacing.sm,
+                      background: 'rgba(255,255,255,0.1)',
+                      borderRadius: borderRadius.md,
+                      color: colors.text.light,
+                    }}
+                  >
+                    <Linkedin size={16} />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Judges Section */}
       <div style={{ marginBottom: spacing.xxxl }}>

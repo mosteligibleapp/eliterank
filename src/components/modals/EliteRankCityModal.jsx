@@ -28,6 +28,13 @@ const COMPETITIONS = [
     votes: 125500,
     image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop',
     available: true,
+    host: {
+      name: 'James Davidson',
+      title: 'Competition Host',
+      bio: 'James is a New York-based entrepreneur and socialite who has been connecting people in the city for over a decade. His passion for bringing together ambitious singles led him to become the host of Most Eligible New York.',
+      instagram: '@jamesdavidson',
+      linkedin: 'jamesdavidson',
+    },
   },
   {
     id: 2,
@@ -41,6 +48,13 @@ const COMPETITIONS = [
     votes: 0,
     image: 'https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=800&h=600&fit=crop',
     available: true,
+    host: {
+      name: 'Sarah Miller',
+      title: 'Competition Host',
+      bio: 'Sarah is a Chicago native with deep roots in the city\'s social scene. As a successful event planner, she brings her expertise in creating memorable experiences to Most Eligible Chicago.',
+      instagram: '@sarahmiller',
+      linkedin: 'sarahmiller',
+    },
   },
   {
     id: 3,
@@ -53,6 +67,7 @@ const COMPETITIONS = [
     votes: 0,
     image: 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&h=600&fit=crop',
     available: false,
+    host: null,
   },
   {
     id: 4,
@@ -65,6 +80,7 @@ const COMPETITIONS = [
     votes: 0,
     image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&h=600&fit=crop',
     available: false,
+    host: null,
   },
 ];
 
@@ -82,6 +98,13 @@ const ENDED_COMPETITIONS = [
     votes: 89420,
     image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&h=600&fit=crop',
     available: true,
+    host: {
+      name: 'David Park',
+      title: 'Competition Host',
+      bio: 'David hosted the inaugural Most Eligible Chicago competition, bringing together the Windy City\'s finest singles for an unforgettable season.',
+      instagram: '@davidpark',
+      linkedin: 'davidpark',
+    },
     winners: [
       { rank: 1, name: 'Sarah Mitchell', votes: 28450, occupation: 'Marketing Executive', instagram: '@sarahmitchell' },
       { rank: 2, name: 'James Rodriguez', votes: 24320, occupation: 'Tech Entrepreneur', instagram: '@jamesrodriguez' },
