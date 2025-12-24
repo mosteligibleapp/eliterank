@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Crown, Trophy, Star, Instagram, Sparkles } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatNumber } from '../../../utils/formatters';
+import ProfileModal from './ProfileModal';
 
 // Winner images - professional headshots
 const WINNER_IMAGES = [
@@ -22,6 +23,14 @@ const MEDAL_STYLES = {
 };
 
 export default function WinnersTab({ city, season, winners = [] }) {
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const handleViewProfile = (winner, index) => {
+    setSelectedProfile(winner);
+    setSelectedIndex(index);
+  };
+
   // If no winners provided, use placeholder data
   const displayWinners = winners.length > 0 ? winners : [
     { rank: 1, name: 'Sarah Mitchell', votes: 28450, occupation: 'Marketing Executive', instagram: '@sarahmitchell' },
@@ -70,13 +79,18 @@ export default function WinnersTab({ city, season, winners = [] }) {
           margin: '0 auto',
           marginBottom: spacing.xxxl,
         }}>
-          <div style={{
-            background: colors.background.card,
-            border: `2px solid ${colors.gold.primary}`,
-            borderRadius: borderRadius.xxl,
-            overflow: 'hidden',
-            position: 'relative',
-          }}>
+          <div
+            onClick={() => handleViewProfile(grandWinner, 0)}
+            style={{
+              background: colors.background.card,
+              border: `2px solid ${colors.gold.primary}`,
+              borderRadius: borderRadius.xxl,
+              overflow: 'hidden',
+              position: 'relative',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+            }}
+          >
             {/* Crown Badge */}
             <div style={{
               position: 'absolute',
@@ -225,12 +239,15 @@ export default function WinnersTab({ city, season, winners = [] }) {
             return (
               <div
                 key={winner.rank}
+                onClick={() => handleViewProfile(winner, index + 1)}
                 style={{
                   background: colors.background.card,
                   border: winner.rank <= 3 ? `2px solid rgba(212,175,55,0.4)` : `1px solid ${colors.border.light}`,
                   borderRadius: borderRadius.xxl,
                   overflow: 'hidden',
                   position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
                 }}
               >
                 {/* Rank Badge */}
@@ -392,6 +409,16 @@ export default function WinnersTab({ city, season, winners = [] }) {
           See you next season!
         </p>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={!!selectedProfile}
+        onClose={() => setSelectedProfile(null)}
+        profile={selectedProfile}
+        type="contestant"
+        rank={selectedProfile?.rank}
+        imageIndex={selectedIndex}
+      />
     </div>
   );
 }

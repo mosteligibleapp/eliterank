@@ -1,14 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Crown, Sparkles } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatNumber } from '../../../utils/formatters';
 import { useCountdown } from '../../../hooks';
 import { CONTESTANT_IMAGES, COMPETITION_STAGES } from '../../../constants';
+import ProfileModal from './ProfileModal';
 
 export default function ContestantsTab({ contestants, events, forceDoubleVoteDay, onVote }) {
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   const currentStage = COMPETITION_STAGES.find((s) => s.status === 'active') || COMPETITION_STAGES[1];
   const timeLeft = useCountdown(currentStage.endDate);
+
+  const handleViewProfile = (contestant, index) => {
+    setSelectedProfile(contestant);
+    setSelectedIndex(index);
+  };
+
+  const handleVoteFromProfile = (contestant) => {
+    setSelectedProfile(null);
+    onVote(contestant);
+  };
 
   const getTrendStyle = (trend) => ({
     width: '28px',
@@ -147,7 +161,7 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
         {contestants.map((contestant, index) => (
           <div
             key={contestant.id}
-            onClick={() => onVote(contestant)}
+            onClick={() => handleViewProfile(contestant, index)}
             style={{
               background: colors.background.card,
               border: index < 3 ? `2px solid rgba(212,175,55,0.4)` : `1px solid ${colors.border.light}`,
@@ -261,6 +275,17 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
           </div>
         ))}
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={!!selectedProfile}
+        onClose={() => setSelectedProfile(null)}
+        profile={selectedProfile}
+        type="contestant"
+        onVote={handleVoteFromProfile}
+        rank={selectedIndex + 1}
+        imageIndex={selectedIndex}
+      />
     </div>
   );
 }

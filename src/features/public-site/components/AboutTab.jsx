@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Award, Calendar, FileText, Trophy, Building, Crown, Check, Star, Instagram, Linkedin, Twitter, User } from 'lucide-react';
 import { Avatar, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { formatEventDateRange } from '../../../utils/formatters';
+import ProfileModal from './ProfileModal';
 
 export default function AboutTab({ judges, sponsors, events, host, city = 'New York' }) {
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [profileType, setProfileType] = useState('host');
+
   const platinumSponsor = sponsors.find((s) => s.tier === 'Platinum');
   const otherSponsors = sponsors.filter((s) => s.tier !== 'Platinum');
   const publicEvents = events.filter((e) => e.publicVisible !== false);
+
+  const handleViewProfile = (profile, type) => {
+    setSelectedProfile(profile);
+    setProfileType(type);
+  };
 
   return (
     <div>
@@ -41,6 +50,7 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
           </div>
 
           <div
+            onClick={() => handleViewProfile(host, 'host')}
             style={{
               background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(212,175,55,0.05))',
               border: `1px solid rgba(139,92,246,0.3)`,
@@ -49,6 +59,8 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
               display: 'flex',
               gap: spacing.xxl,
               alignItems: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
             }}
           >
             {/* Host Avatar */}
@@ -175,12 +187,15 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
           {judges.map((judge) => (
             <div
               key={judge.id}
+              onClick={() => handleViewProfile(judge, 'judge')}
               style={{
                 background: colors.background.card,
                 border: `1px solid ${colors.border.light}`,
                 borderRadius: borderRadius.xxl,
                 padding: spacing.xxl,
                 textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
               }}
             >
               <Avatar name={judge.name} size={100} style={{ margin: '0 auto 16px' }} />
@@ -395,9 +410,9 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
           The <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>Top 5 finalists</span> from New York Most Eligible will automatically qualify to compete in the national <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>Most Eligible USA</span> competition for the <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>$100,000 grand prize</span>.
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
-          {['New York', 'Los Angeles', 'Miami', 'Chicago', 'Houston'].map((city, i) => (
+          {['New York', 'Los Angeles', 'Miami', 'Chicago', 'Houston'].map((cityName, i) => (
             <span
-              key={city}
+              key={cityName}
               style={{
                 padding: `${spacing.md} ${spacing.xl}`,
                 background: i === 0 ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.05)',
@@ -407,11 +422,19 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
                 color: i === 0 ? colors.gold.primary : colors.text.secondary,
               }}
             >
-              {city}
+              {cityName}
             </span>
           ))}
         </div>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={!!selectedProfile}
+        onClose={() => setSelectedProfile(null)}
+        profile={selectedProfile}
+        type={profileType}
+      />
     </div>
   );
 }
