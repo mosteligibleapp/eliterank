@@ -309,7 +309,18 @@ const OPPORTUNITIES = [
   },
 ];
 
-export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition }) {
+export default function EliteRankCityModal({
+  isOpen,
+  onClose,
+  onOpenCompetition,
+  isFullPage = false,
+  onLogin,
+  onDashboard,
+  isAuthenticated = false,
+  userRole = 'fan',
+  userName,
+  onLogout,
+}) {
   const [activeTab, setActiveTab] = useState('competitions');
   const [hoveredCard, setHoveredCard] = useState(null);
   const [selectedCity, setSelectedCity] = useState('All');
@@ -1174,7 +1185,51 @@ export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition 
               <p style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary, margin: 0, letterSpacing: '1px' }}>Find Your City</p>
             </div>
           </div>
-          <Button variant="secondary" onClick={onClose} icon={X} style={{ width: 'auto', padding: `${spacing.sm} ${spacing.lg}` }}>Exit</Button>
+          {/* Auth Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+            {isAuthenticated ? (
+              <>
+                {userName && (
+                  <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                    Hi, {userName}
+                  </span>
+                )}
+                {onDashboard && (userRole === 'host' || userRole === 'super_admin') && (
+                  <Button
+                    variant="primary"
+                    onClick={onDashboard}
+                    style={{ width: 'auto', padding: `${spacing.sm} ${spacing.lg}` }}
+                  >
+                    {userRole === 'super_admin' ? 'Admin Dashboard' : 'Host Dashboard'}
+                  </Button>
+                )}
+                {onLogout && (
+                  <Button
+                    variant="secondary"
+                    onClick={onLogout}
+                    style={{ width: 'auto', padding: `${spacing.sm} ${spacing.lg}` }}
+                  >
+                    Sign Out
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                {onLogin && (
+                  <Button
+                    variant="primary"
+                    onClick={onLogin}
+                    style={{ width: 'auto', padding: `${spacing.sm} ${spacing.lg}` }}
+                  >
+                    Sign In
+                  </Button>
+                )}
+              </>
+            )}
+            {!isFullPage && (
+              <Button variant="secondary" onClick={onClose} icon={X} style={{ width: 'auto', padding: `${spacing.sm} ${spacing.lg}` }}>Exit</Button>
+            )}
+          </div>
         </div>
       </header>
 

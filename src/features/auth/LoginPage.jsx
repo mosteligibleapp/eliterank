@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Crown, Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { Crown, Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { colors, gradients, shadows, borderRadius, spacing, typography } from '../../styles/theme';
 import { useSupabaseAuth } from '../../hooks';
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin, onBack }) {
   const [mode, setMode] = useState('login'); // 'login' or 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -337,6 +337,28 @@ export default function LoginPage({ onLogin }) {
       />
 
       <div style={cardStyle}>
+        {/* Back Button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              background: 'none',
+              border: 'none',
+              color: colors.text.secondary,
+              fontSize: typography.fontSize.sm,
+              cursor: 'pointer',
+              marginBottom: spacing.lg,
+              padding: 0,
+            }}
+          >
+            <ArrowLeft size={16} />
+            Back to competitions
+          </button>
+        )}
+
         {/* Logo */}
         <div style={logoStyle}>
           <div style={logoIconStyle}>
