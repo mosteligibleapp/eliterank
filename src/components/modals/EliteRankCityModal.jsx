@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users, Star,
   Ticket, Activity, Info, Briefcase, Award, Heart, TrendingUp, CheckCircle,
-  Mic, DollarSign, UserPlus, Building2, Megaphone
+  Mic, DollarSign, UserPlus, Building2, Megaphone, ArrowLeft, Globe, Instagram, ExternalLink
 } from 'lucide-react';
 import { Button, Badge } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -13,6 +13,46 @@ const TABS = [
   { id: 'activity', label: 'Activity', icon: Activity },
   { id: 'about', label: 'About', icon: Info },
   { id: 'opportunities', label: 'Opportunities', icon: Briefcase },
+];
+
+// ============================================
+// Organizations Data
+// ============================================
+const ORGANIZATIONS = [
+  {
+    id: 'most-eligible',
+    name: 'Most Eligible',
+    logo: '👑',
+    tagline: 'Find Your City\'s Most Eligible Singles',
+    description: 'Most Eligible is the premier social competition celebrating ambitious singles in major cities across America. Our city-based competitions bring together accomplished professionals who compete for the title of their city\'s Most Eligible.',
+    founded: '2024',
+    website: 'mostelgible.com',
+    instagram: '@mosteligible',
+    stats: {
+      cities: 5,
+      contestants: 200,
+      totalVotes: 500000,
+      events: 50,
+    },
+    coverImage: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&h=400&fit=crop',
+  },
+  {
+    id: 'elite-professionals',
+    name: 'Elite Professionals',
+    logo: '💼',
+    tagline: 'Celebrating Excellence in Business',
+    description: 'Elite Professionals showcases the brightest business minds and entrepreneurs in each city. Our competitions highlight innovation, leadership, and professional achievement.',
+    founded: '2025',
+    website: 'eliteprofessionals.com',
+    instagram: '@eliteprofessionals',
+    stats: {
+      cities: 3,
+      contestants: 75,
+      totalVotes: 125000,
+      events: 15,
+    },
+    coverImage: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=1200&h=400&fit=crop',
+  },
 ];
 
 const COMPETITIONS = [
@@ -28,6 +68,7 @@ const COMPETITIONS = [
     votes: 125500,
     image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop',
     available: true,
+    organizationId: 'most-eligible',
     host: {
       name: 'James Davidson',
       title: 'Competition Host',
@@ -48,6 +89,7 @@ const COMPETITIONS = [
     votes: 0,
     image: 'https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=800&h=600&fit=crop',
     available: true,
+    organizationId: 'most-eligible',
     host: {
       name: 'Sarah Miller',
       title: 'Competition Host',
@@ -67,6 +109,7 @@ const COMPETITIONS = [
     votes: 0,
     image: 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&h=600&fit=crop',
     available: false,
+    organizationId: 'most-eligible',
     host: null,
   },
   {
@@ -80,6 +123,42 @@ const COMPETITIONS = [
     votes: 0,
     image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&h=600&fit=crop',
     available: false,
+    organizationId: 'most-eligible',
+    host: null,
+  },
+  {
+    id: 6,
+    name: 'Elite Professionals New York',
+    city: 'New York',
+    season: '2026',
+    status: 'nomination',
+    phase: 'nomination',
+    startDate: 'Nominations Open',
+    contestants: 12,
+    votes: 0,
+    image: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop',
+    available: true,
+    organizationId: 'elite-professionals',
+    host: {
+      name: 'Victoria Sterling',
+      title: 'Competition Host',
+      bio: 'Victoria is a Wall Street executive with a passion for recognizing business excellence.',
+      instagram: '@victoriastarling',
+      linkedin: 'victoriastarling',
+    },
+  },
+  {
+    id: 7,
+    name: 'Elite Professionals Los Angeles',
+    city: 'Los Angeles',
+    season: '2026',
+    status: 'upcoming',
+    startDate: 'August 2026',
+    contestants: 0,
+    votes: 0,
+    image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&h=600&fit=crop',
+    available: false,
+    organizationId: 'elite-professionals',
     host: null,
   },
 ];
@@ -98,6 +177,7 @@ const ENDED_COMPETITIONS = [
     votes: 89420,
     image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&h=600&fit=crop',
     available: true,
+    organizationId: 'most-eligible',
     host: {
       name: 'David Park',
       title: 'Competition Host',
@@ -233,6 +313,7 @@ export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition 
   const [activeTab, setActiveTab] = useState('competitions');
   const [hoveredCard, setHoveredCard] = useState(null);
   const [selectedCity, setSelectedCity] = useState('All');
+  const [selectedOrganization, setSelectedOrganization] = useState(null);
 
   if (!isOpen) return null;
 
@@ -242,7 +323,24 @@ export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition 
     }
   };
 
-  const cities = ['All', 'New York', 'Chicago', 'Miami', 'National'];
+  const handleOrganizationClick = (orgId, e) => {
+    e.stopPropagation();
+    const org = ORGANIZATIONS.find(o => o.id === orgId);
+    if (org) {
+      setSelectedOrganization(org);
+    }
+  };
+
+  const handleBackToCompetitions = () => {
+    setSelectedOrganization(null);
+  };
+
+  const getOrganizationName = (orgId) => {
+    const org = ORGANIZATIONS.find(o => o.id === orgId);
+    return org?.name || '';
+  };
+
+  const cities = ['All', 'New York', 'Chicago', 'Miami', 'Los Angeles', 'National'];
   const filteredEvents = selectedCity === 'All'
     ? UPCOMING_EVENTS
     : UPCOMING_EVENTS.filter(e => e.city === selectedCity);
@@ -301,6 +399,36 @@ export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition 
             <MapPin size={14} style={{ color: colors.gold.primary }} />
             <span style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, textTransform: 'uppercase', letterSpacing: '2px', fontWeight: typography.fontWeight.semibold }}>{competition.city}</span>
           </div>
+          {/* Organization name - clickable */}
+          {competition.organizationId && (
+            <button
+              onClick={(e) => handleOrganizationClick(competition.organizationId, e)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+                marginBottom: spacing.xs,
+              }}
+            >
+              <span style={{
+                fontSize: typography.fontSize.xs,
+                color: colors.text.secondary,
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={(e) => e.target.style.color = colors.gold.primary}
+              onMouseLeave={(e) => e.target.style.color = colors.text.secondary}
+              >
+                {getOrganizationName(competition.organizationId)}
+              </span>
+              <ExternalLink size={10} style={{ color: colors.text.muted }} />
+            </button>
+          )}
           <h3 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: '#fff', marginBottom: spacing.sm, lineHeight: 1.2 }}>{competition.name}</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.lg }}>
             <Calendar size={14} style={{ color: colors.text.secondary }} />
@@ -342,6 +470,288 @@ export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition 
             <div style={{ marginTop: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, opacity: isHovered ? 1 : 0.7, transition: 'opacity 0.2s' }}>
               {competition.status === 'ended' ? 'View Winners' : competition.status === 'nomination' ? 'Nominate Now' : 'View Competition'}
               <ChevronRight size={18} style={{ transform: isHovered ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.2s' }} />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================
+  // Organization Page Component
+  // ============================================
+  const OrganizationPage = ({ organization }) => {
+    const orgCompetitions = COMPETITIONS.filter(c => c.organizationId === organization.id);
+    const orgEndedCompetitions = ENDED_COMPETITIONS.filter(c => c.organizationId === organization.id);
+    const allOrgCompetitions = [...orgCompetitions, ...orgEndedCompetitions];
+
+    return (
+      <div style={{ minHeight: '100vh' }}>
+        {/* Cover Image */}
+        <div style={{ position: 'relative', height: '300px', overflow: 'hidden' }}>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `url(${organization.coverImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }} />
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(180deg, rgba(10,10,15,0.3) 0%, rgba(10,10,15,0.95) 100%)',
+          }} />
+
+          {/* Back Button */}
+          <button
+            onClick={handleBackToCompetitions}
+            style={{
+              position: 'absolute',
+              top: spacing.xl,
+              left: spacing.xxl,
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              padding: `${spacing.sm} ${spacing.lg}`,
+              background: 'rgba(0,0,0,0.5)',
+              border: `1px solid ${colors.border.light}`,
+              borderRadius: borderRadius.pill,
+              color: '#fff',
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.medium,
+              cursor: 'pointer',
+              backdropFilter: 'blur(10px)',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(212,175,55,0.2)';
+              e.currentTarget.style.borderColor = colors.gold.primary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(0,0,0,0.5)';
+              e.currentTarget.style.borderColor = colors.border.light;
+            }}
+          >
+            <ArrowLeft size={16} />
+            Back to All Competitions
+          </button>
+
+          {/* Organization Header */}
+          <div style={{
+            position: 'absolute',
+            bottom: spacing.xxxl,
+            left: spacing.xxl,
+            right: spacing.xxl,
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: spacing.xl,
+          }}>
+            <div style={{
+              width: '100px',
+              height: '100px',
+              background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
+              borderRadius: borderRadius.xxl,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '48px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              border: '4px solid rgba(255,255,255,0.2)',
+            }}>
+              {organization.logo}
+            </div>
+            <div style={{ flex: 1 }}>
+              <h1 style={{
+                fontSize: typography.fontSize.hero,
+                fontWeight: typography.fontWeight.bold,
+                color: '#fff',
+                marginBottom: spacing.xs,
+              }}>
+                {organization.name}
+              </h1>
+              <p style={{
+                fontSize: typography.fontSize.lg,
+                color: colors.gold.primary,
+                margin: 0,
+              }}>
+                {organization.tagline}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Organization Info */}
+        <div style={{ padding: `${spacing.xxxl} ${spacing.xxl}`, maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Description & Stats */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '2fr 1fr',
+            gap: spacing.xxl,
+            marginBottom: spacing.xxxl,
+          }}>
+            <div>
+              <h2 style={{
+                fontSize: typography.fontSize.xl,
+                fontWeight: typography.fontWeight.semibold,
+                color: '#fff',
+                marginBottom: spacing.lg,
+              }}>
+                About {organization.name}
+              </h2>
+              <p style={{
+                fontSize: typography.fontSize.md,
+                color: colors.text.secondary,
+                lineHeight: 1.8,
+                marginBottom: spacing.xl,
+              }}>
+                {organization.description}
+              </p>
+              <div style={{ display: 'flex', gap: spacing.xl, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                  <Calendar size={18} style={{ color: colors.gold.primary }} />
+                  <span style={{ fontSize: typography.fontSize.sm, color: colors.text.light }}>
+                    Founded {organization.founded}
+                  </span>
+                </div>
+                {organization.website && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                    <Globe size={18} style={{ color: colors.gold.primary }} />
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.light }}>
+                      {organization.website}
+                    </span>
+                  </div>
+                )}
+                {organization.instagram && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                    <Instagram size={18} style={{ color: colors.gold.primary }} />
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.light }}>
+                      {organization.instagram}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Stats Card */}
+            <div style={{
+              background: colors.background.card,
+              border: `1px solid ${colors.border.gold}`,
+              borderRadius: borderRadius.xxl,
+              padding: spacing.xl,
+            }}>
+              <h3 style={{
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.gold.primary,
+                marginBottom: spacing.lg,
+                textAlign: 'center',
+              }}>
+                Platform Stats
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: typography.fontSize.xxxl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.gold.primary,
+                  }}>
+                    {organization.stats.cities}
+                  </div>
+                  <div style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Cities
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: typography.fontSize.xxxl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.gold.primary,
+                  }}>
+                    {organization.stats.contestants}+
+                  </div>
+                  <div style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Contestants
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: typography.fontSize.xxxl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.gold.primary,
+                  }}>
+                    {(organization.stats.totalVotes / 1000).toFixed(0)}K
+                  </div>
+                  <div style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Total Votes
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: typography.fontSize.xxxl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.gold.primary,
+                  }}>
+                    {organization.stats.events}+
+                  </div>
+                  <div style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Events
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Current Competitions */}
+          {orgCompetitions.length > 0 && (
+            <section style={{ marginBottom: spacing.xxxl }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
+                <Sparkles size={24} style={{ color: colors.gold.primary }} />
+                <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff' }}>
+                  Current Competitions
+                </h3>
+                <Badge variant="warning" size="sm">{orgCompetitions.length} Active</Badge>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: spacing.xl }}>
+                {orgCompetitions.map((competition) => (
+                  <CompetitionCard key={competition.id} competition={competition} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Past Competitions */}
+          {orgEndedCompetitions.length > 0 && (
+            <section>
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
+                <Trophy size={24} style={{ color: colors.text.secondary }} />
+                <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.text.secondary }}>
+                  Past Competitions
+                </h3>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: spacing.xl }}>
+                {orgEndedCompetitions.map((competition) => (
+                  <CompetitionCard key={competition.id} competition={competition} isEnded />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* No competitions message */}
+          {allOrgCompetitions.length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: spacing.xxxl,
+              background: colors.background.card,
+              borderRadius: borderRadius.xxl,
+              border: `1px solid ${colors.border.light}`,
+            }}>
+              <Crown size={48} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
+              <h3 style={{ fontSize: typography.fontSize.xl, color: '#fff', marginBottom: spacing.sm }}>
+                No Competitions Yet
+              </h3>
+              <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary }}>
+                Stay tuned for upcoming competitions from {organization.name}
+              </p>
             </div>
           )}
         </div>
@@ -690,6 +1100,62 @@ export default function EliteRankCityModal({ isOpen, onClose, onOpenCompetition 
         return null;
     }
   };
+
+  // If organization is selected, show organization page
+  if (selectedOrganization) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', zIndex: 100, overflow: 'auto' }}>
+        {/* Animated Background */}
+        <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.15) 0%, transparent 50%)', pointerEvents: 'none' }} />
+
+        {/* Header */}
+        <header style={{ background: 'linear-gradient(180deg, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.8) 100%)', borderBottom: `1px solid rgba(212,175,55,0.2)`, padding: `${spacing.lg} ${spacing.xxl}`, position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(20px)' }}>
+          <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
+                borderRadius: borderRadius.lg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px',
+                boxShadow: '0 4px 15px rgba(212,175,55,0.4)',
+              }}>
+                {selectedOrganization.logo}
+              </div>
+              <div>
+                <h1 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: '#fff', margin: 0 }}>{selectedOrganization.name}</h1>
+                <p style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary, margin: 0, letterSpacing: '1px' }}>Organization</p>
+              </div>
+            </div>
+            <Button variant="secondary" onClick={onClose} icon={X} style={{ width: 'auto', padding: `${spacing.sm} ${spacing.lg}` }}>Exit</Button>
+          </div>
+        </header>
+
+        {/* Organization Content */}
+        <OrganizationPage organization={selectedOrganization} />
+
+        {/* Footer */}
+        <footer style={{ padding: `${spacing.xxxl} ${spacing.xxl}`, textAlign: 'center', borderTop: `1px solid ${colors.border.light}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+            <span style={{ fontSize: '20px' }}>{selectedOrganization.logo}</span>
+            <span style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: '#fff' }}>{selectedOrganization.name}</span>
+          </div>
+          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>© 2025 {selectedOrganization.name}. All rights reserved.</p>
+        </footer>
+
+        {/* CSS Animation */}
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', zIndex: 100, overflow: 'auto' }}>
