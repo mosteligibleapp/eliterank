@@ -1,58 +1,42 @@
 import React, { useState } from 'react';
-import { Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus, ChevronDown, Check, X, Eye } from 'lucide-react';
+import {
+  Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
+  ChevronDown, Check, X, Eye, Building2, Trophy, Vote, Scale,
+  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft
+} from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 
-// Mock data for competition templates
-const MOCK_TEMPLATES = [
-  {
-    id: '1',
-    name: 'Most Eligible New York',
-    city: 'New York',
-    season: 2026,
-    status: 'active',
-    assignedHost: { id: 'h1', name: 'James Davidson', email: 'host@eliterank.com' },
-    votePrice: 1.00,
-    hostPayoutPercentage: 20,
-    maxContestants: 30,
-    nominationStart: '2026-01-15',
-    nominationEnd: '2026-02-15',
-    votingStart: '2026-02-20',
-    votingEnd: '2026-04-15',
-    finalsDate: '2026-04-20',
-  },
-  {
-    id: '2',
-    name: 'Most Eligible Chicago',
-    city: 'Chicago',
-    season: 2026,
-    status: 'assigned',
-    assignedHost: { id: 'h2', name: 'Sarah Miller', email: 'sarah@example.com' },
-    votePrice: 1.00,
-    hostPayoutPercentage: 20,
-    maxContestants: 25,
-    nominationStart: '2026-03-01',
-    nominationEnd: '2026-04-01',
-    votingStart: '2026-04-15',
-    votingEnd: '2026-06-15',
-    finalsDate: '2026-06-20',
-  },
-  {
-    id: '3',
-    name: 'Most Eligible Miami',
-    city: 'Miami',
-    season: 2026,
-    status: 'draft',
-    assignedHost: null,
-    votePrice: 1.00,
-    hostPayoutPercentage: 20,
-    maxContestants: 25,
-    nominationStart: null,
-    nominationEnd: null,
-    votingStart: null,
-    votingEnd: null,
-    finalsDate: null,
-  },
+// Organizations (owners)
+const ORGANIZATIONS = [
+  { id: 'org1', name: 'Most Eligible', logo: '👑', description: 'Dating & Singles Competition' },
+  { id: 'org2', name: 'Elite Pageants', logo: '✨', description: 'Beauty & Talent Pageants' },
+  { id: 'org3', name: 'Fit Nation', logo: '💪', description: 'Fitness & Health Competitions' },
+  { id: 'org4', name: 'Social Stars', logo: '⭐', description: 'Social Media Competitions' },
+];
+
+// Category types with icons
+const CATEGORY_TYPES = [
+  { id: 'dating', name: 'Dating', icon: Heart, color: '#ec4899', description: 'Singles & eligibility competitions' },
+  { id: 'pageant', name: 'Pageant', icon: Crown, color: '#d4af37', description: 'Beauty, talent & personality' },
+  { id: 'fitness', name: 'Fitness', icon: Dumbbell, color: '#22c55e', description: 'Body transformation & athletics' },
+  { id: 'health', name: 'Health & Wellness', icon: Heart, color: '#06b6d4', description: 'Wellness journey competitions' },
+  { id: 'social', name: 'Social Influencer', icon: Star, color: '#8b5cf6', description: 'Social media & content creation' },
+  { id: 'talent', name: 'Talent', icon: Sparkles, color: '#f59e0b', description: 'Performance & skill-based' },
+];
+
+// Contestant entry types
+const CONTESTANT_TYPES = [
+  { id: 'nominations', name: 'Nominations', description: 'Public can nominate contestants who then apply' },
+  { id: 'appointments', name: 'Appointments', description: 'Host directly selects and invites contestants' },
+  { id: 'applications', name: 'Open Applications', description: 'Anyone can apply to be a contestant' },
+];
+
+// Winner selection criteria
+const SELECTION_CRITERIA = [
+  { id: 'votes', name: 'Public Votes Only', icon: Vote, description: 'Winner determined 100% by public votes' },
+  { id: 'judges', name: 'Judges Only', icon: Scale, description: 'Winner determined 100% by judge panel' },
+  { id: 'hybrid', name: 'Hybrid', icon: Trophy, description: 'Combination of votes and judges' },
 ];
 
 const AVAILABLE_CITIES = [
@@ -66,6 +50,8 @@ const AVAILABLE_CITIES = [
   { name: 'San Francisco', state: 'CA' },
   { name: 'Seattle', state: 'WA' },
   { name: 'Denver', state: 'CO' },
+  { name: 'Houston', state: 'TX' },
+  { name: 'Phoenix', state: 'AZ' },
 ];
 
 const AVAILABLE_HOSTS = [
@@ -75,6 +61,70 @@ const AVAILABLE_HOSTS = [
   { id: 'h4', name: 'Emily Rodriguez', email: 'emily@example.com', city: null },
 ];
 
+// Mock templates with new fields
+const MOCK_TEMPLATES = [
+  {
+    id: '1',
+    organization: ORGANIZATIONS[0],
+    name: 'Most Eligible New York',
+    city: 'New York',
+    season: 2026,
+    category: 'dating',
+    contestantType: 'nominations',
+    hasHost: true,
+    hasEvents: true,
+    numberOfWinners: 5,
+    selectionCriteria: 'hybrid',
+    voteWeight: 70,
+    judgeWeight: 30,
+    status: 'active',
+    assignedHost: { id: 'h1', name: 'James Davidson', email: 'host@eliterank.com' },
+    votePrice: 1.00,
+    hostPayoutPercentage: 20,
+    maxContestants: 30,
+  },
+  {
+    id: '2',
+    organization: ORGANIZATIONS[0],
+    name: 'Most Eligible Chicago',
+    city: 'Chicago',
+    season: 2026,
+    category: 'dating',
+    contestantType: 'nominations',
+    hasHost: true,
+    hasEvents: true,
+    numberOfWinners: 5,
+    selectionCriteria: 'votes',
+    voteWeight: 100,
+    judgeWeight: 0,
+    status: 'assigned',
+    assignedHost: { id: 'h2', name: 'Sarah Miller', email: 'sarah@example.com' },
+    votePrice: 1.00,
+    hostPayoutPercentage: 20,
+    maxContestants: 25,
+  },
+  {
+    id: '3',
+    organization: ORGANIZATIONS[1],
+    name: 'Elite Pageants Miami',
+    city: 'Miami',
+    season: 2026,
+    category: 'pageant',
+    contestantType: 'applications',
+    hasHost: true,
+    hasEvents: true,
+    numberOfWinners: 3,
+    selectionCriteria: 'judges',
+    voteWeight: 0,
+    judgeWeight: 100,
+    status: 'draft',
+    assignedHost: null,
+    votePrice: 1.00,
+    hostPayoutPercentage: 20,
+    maxContestants: 25,
+  },
+];
+
 const statusStyles = {
   draft: { bg: 'rgba(100,100,100,0.2)', color: colors.text.secondary, label: 'Draft' },
   assigned: { bg: 'rgba(59,130,246,0.2)', color: '#3b82f6', label: 'Host Assigned' },
@@ -82,41 +132,71 @@ const statusStyles = {
   completed: { bg: 'rgba(139,92,246,0.2)', color: '#8b5cf6', label: 'Completed' },
 };
 
+const WIZARD_STEPS = [
+  { id: 1, name: 'Organization', description: 'Select owner organization' },
+  { id: 2, name: 'Location', description: 'Choose city and year' },
+  { id: 3, name: 'Category', description: 'Select competition type' },
+  { id: 4, name: 'Contestants', description: 'Entry method' },
+  { id: 5, name: 'Settings', description: 'Host & events' },
+  { id: 6, name: 'Winners', description: 'Selection criteria' },
+  { id: 7, name: 'Review', description: 'Confirm details' },
+];
+
 export default function CompetitionsManager() {
   const [templates, setTemplates] = useState(MOCK_TEMPLATES);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [currentStep, setCurrentStep] = useState(1);
+
   const [newTemplate, setNewTemplate] = useState({
+    organization: null,
     city: '',
     season: new Date().getFullYear() + 1,
+    category: '',
+    contestantType: '',
+    hasHost: true,
+    hasEvents: true,
+    numberOfWinners: 5,
+    selectionCriteria: '',
+    voteWeight: 50,
+    judgeWeight: 50,
     votePrice: 1.00,
     hostPayoutPercentage: 20,
     maxContestants: 30,
   });
 
-  const handleCreateTemplate = () => {
-    const template = {
-      id: `t${Date.now()}`,
-      name: `Most Eligible ${newTemplate.city}`,
-      ...newTemplate,
-      status: 'draft',
-      assignedHost: null,
-      nominationStart: null,
-      nominationEnd: null,
-      votingStart: null,
-      votingEnd: null,
-      finalsDate: null,
-    };
-    setTemplates([...templates, template]);
-    setShowCreateModal(false);
+  const resetWizard = () => {
+    setCurrentStep(1);
     setNewTemplate({
+      organization: null,
       city: '',
       season: new Date().getFullYear() + 1,
+      category: '',
+      contestantType: '',
+      hasHost: true,
+      hasEvents: true,
+      numberOfWinners: 5,
+      selectionCriteria: '',
+      voteWeight: 50,
+      judgeWeight: 50,
       votePrice: 1.00,
       hostPayoutPercentage: 20,
       maxContestants: 30,
     });
+  };
+
+  const handleCreateTemplate = () => {
+    const template = {
+      id: `t${Date.now()}`,
+      name: `${newTemplate.organization.name} ${newTemplate.city}`,
+      ...newTemplate,
+      status: 'draft',
+      assignedHost: null,
+    };
+    setTemplates([...templates, template]);
+    setShowCreateModal(false);
+    resetWizard();
   };
 
   const handleAssignHost = (templateId, host) => {
@@ -137,6 +217,634 @@ export default function CompetitionsManager() {
 
   const handleDelete = (templateId) => {
     setTemplates(templates.filter(t => t.id !== templateId));
+  };
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1: return newTemplate.organization !== null;
+      case 2: return newTemplate.city !== '';
+      case 3: return newTemplate.category !== '';
+      case 4: return newTemplate.contestantType !== '';
+      case 5: return true;
+      case 6: return newTemplate.selectionCriteria !== '';
+      case 7: return true;
+      default: return false;
+    }
+  };
+
+  const getCategoryIcon = (categoryId) => {
+    const cat = CATEGORY_TYPES.find(c => c.id === categoryId);
+    return cat ? cat.icon : Star;
+  };
+
+  const getCategoryColor = (categoryId) => {
+    const cat = CATEGORY_TYPES.find(c => c.id === categoryId);
+    return cat ? cat.color : '#8b5cf6';
+  };
+
+  const renderWizardStep = () => {
+    switch (currentStep) {
+      case 1: // Organization
+        return (
+          <div>
+            <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.xl }}>
+              Select Organization
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
+              {ORGANIZATIONS.map((org) => (
+                <div
+                  key={org.id}
+                  onClick={() => setNewTemplate({ ...newTemplate, organization: org })}
+                  style={{
+                    padding: spacing.xl,
+                    background: newTemplate.organization?.id === org.id
+                      ? 'rgba(139,92,246,0.2)'
+                      : colors.background.secondary,
+                    border: `2px solid ${newTemplate.organization?.id === org.id ? '#8b5cf6' : colors.border.light}`,
+                    borderRadius: borderRadius.xl,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: '48px', marginBottom: spacing.md }}>{org.logo}</div>
+                  <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                    {org.name}
+                  </h4>
+                  <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                    {org.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 2: // Location
+        return (
+          <div>
+            <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.xl }}>
+              Location & Season
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
+              <div>
+                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                  City *
+                </label>
+                <select
+                  value={newTemplate.city}
+                  onChange={(e) => setNewTemplate({ ...newTemplate, city: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: spacing.md,
+                    background: colors.background.secondary,
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.md,
+                    color: '#fff',
+                    fontSize: typography.fontSize.md,
+                  }}
+                >
+                  <option value="">Select a city</option>
+                  {AVAILABLE_CITIES.map((city) => (
+                    <option key={city.name} value={city.name}>
+                      {city.name}, {city.state}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                  Season (Year) *
+                </label>
+                <input
+                  type="number"
+                  value={newTemplate.season}
+                  onChange={(e) => setNewTemplate({ ...newTemplate, season: parseInt(e.target.value) })}
+                  min={new Date().getFullYear()}
+                  max={new Date().getFullYear() + 5}
+                  style={{
+                    width: '100%',
+                    padding: spacing.md,
+                    background: colors.background.secondary,
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.md,
+                    color: '#fff',
+                    fontSize: typography.fontSize.md,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3: // Category
+        return (
+          <div>
+            <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.xl }}>
+              Competition Category
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
+              {CATEGORY_TYPES.map((cat) => {
+                const IconComponent = cat.icon;
+                return (
+                  <div
+                    key={cat.id}
+                    onClick={() => setNewTemplate({ ...newTemplate, category: cat.id })}
+                    style={{
+                      padding: spacing.lg,
+                      background: newTemplate.category === cat.id
+                        ? `${cat.color}20`
+                        : colors.background.secondary,
+                      border: `2px solid ${newTemplate.category === cat.id ? cat.color : colors.border.light}`,
+                      borderRadius: borderRadius.xl,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        background: `${cat.color}30`,
+                        borderRadius: borderRadius.lg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <IconComponent size={20} style={{ color: cat.color }} />
+                      </div>
+                      <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold }}>
+                        {cat.name}
+                      </h4>
+                    </div>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                      {cat.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+
+      case 4: // Contestant Type
+        return (
+          <div>
+            <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.xl }}>
+              How Will Contestants Enter?
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+              {CONTESTANT_TYPES.map((type) => (
+                <div
+                  key={type.id}
+                  onClick={() => setNewTemplate({ ...newTemplate, contestantType: type.id })}
+                  style={{
+                    padding: spacing.xl,
+                    background: newTemplate.contestantType === type.id
+                      ? 'rgba(139,92,246,0.2)'
+                      : colors.background.secondary,
+                    border: `2px solid ${newTemplate.contestantType === type.id ? '#8b5cf6' : colors.border.light}`,
+                    borderRadius: borderRadius.xl,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                        {type.name}
+                      </h4>
+                      <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                        {type.description}
+                      </p>
+                    </div>
+                    {newTemplate.contestantType === type.id && (
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        background: '#8b5cf6',
+                        borderRadius: borderRadius.full,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Check size={14} style={{ color: '#fff' }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 5: // Settings (Host & Events)
+        return (
+          <div>
+            <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.xl }}>
+              Competition Settings
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
+              {/* Host Toggle */}
+              <div style={{
+                padding: spacing.xl,
+                background: colors.background.secondary,
+                borderRadius: borderRadius.xl,
+                border: `1px solid ${colors.border.light}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
+                  <div>
+                    <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                      Assign Host
+                    </h4>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                      A host manages the competition locally
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setNewTemplate({ ...newTemplate, hasHost: !newTemplate.hasHost })}
+                    style={{
+                      width: '56px',
+                      height: '32px',
+                      borderRadius: borderRadius.pill,
+                      background: newTemplate.hasHost ? '#8b5cf6' : colors.background.card,
+                      border: `1px solid ${newTemplate.hasHost ? '#8b5cf6' : colors.border.light}`,
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: borderRadius.full,
+                      background: '#fff',
+                      position: 'absolute',
+                      top: '3px',
+                      left: newTemplate.hasHost ? '28px' : '3px',
+                      transition: 'all 0.2s',
+                    }} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Events Toggle */}
+              <div style={{
+                padding: spacing.xl,
+                background: colors.background.secondary,
+                borderRadius: borderRadius.xl,
+                border: `1px solid ${colors.border.light}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
+                  <div>
+                    <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                      Include Events
+                    </h4>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                      Host can create in-person or virtual events
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setNewTemplate({ ...newTemplate, hasEvents: !newTemplate.hasEvents })}
+                    style={{
+                      width: '56px',
+                      height: '32px',
+                      borderRadius: borderRadius.pill,
+                      background: newTemplate.hasEvents ? '#8b5cf6' : colors.background.card,
+                      border: `1px solid ${newTemplate.hasEvents ? '#8b5cf6' : colors.border.light}`,
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: borderRadius.full,
+                      background: '#fff',
+                      position: 'absolute',
+                      top: '3px',
+                      left: newTemplate.hasEvents ? '28px' : '3px',
+                      transition: 'all 0.2s',
+                    }} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Max Contestants & Vote Price */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                    Max Contestants
+                  </label>
+                  <input
+                    type="number"
+                    value={newTemplate.maxContestants}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, maxContestants: parseInt(e.target.value) })}
+                    style={{
+                      width: '100%',
+                      padding: spacing.md,
+                      background: colors.background.secondary,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.md,
+                      color: '#fff',
+                      fontSize: typography.fontSize.md,
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                    Vote Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.25"
+                    value={newTemplate.votePrice}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, votePrice: parseFloat(e.target.value) })}
+                    style={{
+                      width: '100%',
+                      padding: spacing.md,
+                      background: colors.background.secondary,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.md,
+                      color: '#fff',
+                      fontSize: typography.fontSize.md,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 6: // Winners & Selection
+        return (
+          <div>
+            <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.xl }}>
+              Winner Selection
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
+              {/* Number of Winners */}
+              <div>
+                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                  Number of Winners
+                </label>
+                <div style={{ display: 'flex', gap: spacing.sm }}>
+                  {[1, 3, 5, 10].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setNewTemplate({ ...newTemplate, numberOfWinners: num })}
+                      style={{
+                        flex: 1,
+                        padding: spacing.md,
+                        background: newTemplate.numberOfWinners === num ? '#8b5cf6' : colors.background.secondary,
+                        border: `1px solid ${newTemplate.numberOfWinners === num ? '#8b5cf6' : colors.border.light}`,
+                        borderRadius: borderRadius.md,
+                        color: '#fff',
+                        fontSize: typography.fontSize.md,
+                        fontWeight: typography.fontWeight.semibold,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    value={newTemplate.numberOfWinners}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, numberOfWinners: parseInt(e.target.value) || 1 })}
+                    min="1"
+                    max="100"
+                    placeholder="Custom"
+                    style={{
+                      width: '80px',
+                      padding: spacing.md,
+                      background: colors.background.secondary,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.md,
+                      color: '#fff',
+                      fontSize: typography.fontSize.md,
+                      textAlign: 'center',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Selection Criteria */}
+              <div>
+                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.md }}>
+                  Selection Criteria *
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+                  {SELECTION_CRITERIA.map((criteria) => {
+                    const IconComponent = criteria.icon;
+                    return (
+                      <div
+                        key={criteria.id}
+                        onClick={() => {
+                          const weights = criteria.id === 'votes'
+                            ? { voteWeight: 100, judgeWeight: 0 }
+                            : criteria.id === 'judges'
+                              ? { voteWeight: 0, judgeWeight: 100 }
+                              : { voteWeight: 50, judgeWeight: 50 };
+                          setNewTemplate({ ...newTemplate, selectionCriteria: criteria.id, ...weights });
+                        }}
+                        style={{
+                          padding: spacing.lg,
+                          background: newTemplate.selectionCriteria === criteria.id
+                            ? 'rgba(139,92,246,0.2)'
+                            : colors.background.secondary,
+                          border: `2px solid ${newTemplate.selectionCriteria === criteria.id ? '#8b5cf6' : colors.border.light}`,
+                          borderRadius: borderRadius.xl,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            background: 'rgba(139,92,246,0.2)',
+                            borderRadius: borderRadius.lg,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            <IconComponent size={20} style={{ color: '#8b5cf6' }} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                              {criteria.name}
+                            </h4>
+                            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                              {criteria.description}
+                            </p>
+                          </div>
+                          {newTemplate.selectionCriteria === criteria.id && (
+                            <div style={{
+                              width: '24px',
+                              height: '24px',
+                              background: '#8b5cf6',
+                              borderRadius: borderRadius.full,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                              <Check size={14} style={{ color: '#fff' }} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Weight Sliders for Hybrid */}
+              {newTemplate.selectionCriteria === 'hybrid' && (
+                <div style={{
+                  padding: spacing.xl,
+                  background: colors.background.secondary,
+                  borderRadius: borderRadius.xl,
+                  border: `1px solid ${colors.border.light}`,
+                }}>
+                  <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg }}>
+                    Weight Distribution
+                  </h4>
+
+                  <div style={{ marginBottom: spacing.lg }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+                      <span style={{ fontSize: typography.fontSize.sm }}>Public Votes</span>
+                      <span style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: '#22c55e' }}>
+                        {newTemplate.voteWeight}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={newTemplate.voteWeight}
+                      onChange={(e) => {
+                        const voteWeight = parseInt(e.target.value);
+                        setNewTemplate({ ...newTemplate, voteWeight, judgeWeight: 100 - voteWeight });
+                      }}
+                      style={{
+                        width: '100%',
+                        accentColor: '#22c55e',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+                      <span style={{ fontSize: typography.fontSize.sm }}>Judge Scores</span>
+                      <span style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: '#d4af37' }}>
+                        {newTemplate.judgeWeight}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={newTemplate.judgeWeight}
+                      onChange={(e) => {
+                        const judgeWeight = parseInt(e.target.value);
+                        setNewTemplate({ ...newTemplate, judgeWeight, voteWeight: 100 - judgeWeight });
+                      }}
+                      style={{
+                        width: '100%',
+                        accentColor: '#d4af37',
+                      }}
+                    />
+                  </div>
+
+                  {/* Visual Representation */}
+                  <div style={{
+                    marginTop: spacing.lg,
+                    height: '24px',
+                    borderRadius: borderRadius.pill,
+                    overflow: 'hidden',
+                    display: 'flex',
+                  }}>
+                    <div style={{ width: `${newTemplate.voteWeight}%`, background: '#22c55e', transition: 'width 0.2s' }} />
+                    <div style={{ width: `${newTemplate.judgeWeight}%`, background: '#d4af37', transition: 'width 0.2s' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: spacing.sm }}>
+                    <span style={{ fontSize: typography.fontSize.xs, color: '#22c55e' }}>Votes ({newTemplate.voteWeight}%)</span>
+                    <span style={{ fontSize: typography.fontSize.xs, color: '#d4af37' }}>Judges ({newTemplate.judgeWeight}%)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 7: // Review
+        return (
+          <div>
+            <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.xl }}>
+              Review Competition
+            </h3>
+            <div style={{
+              padding: spacing.xl,
+              background: colors.background.secondary,
+              borderRadius: borderRadius.xl,
+              border: `1px solid ${colors.border.light}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
+                <div style={{ fontSize: '32px' }}>{newTemplate.organization?.logo}</div>
+                <div>
+                  <h2 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold }}>
+                    {newTemplate.organization?.name} {newTemplate.city}
+                  </h2>
+                  <p style={{ color: colors.text.secondary }}>Season {newTemplate.season}</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.lg }}>
+                {[
+                  { label: 'Category', value: CATEGORY_TYPES.find(c => c.id === newTemplate.category)?.name },
+                  { label: 'Contestant Entry', value: CONTESTANT_TYPES.find(c => c.id === newTemplate.contestantType)?.name },
+                  { label: 'Has Host', value: newTemplate.hasHost ? 'Yes' : 'No' },
+                  { label: 'Has Events', value: newTemplate.hasEvents ? 'Yes' : 'No' },
+                  { label: 'Max Contestants', value: newTemplate.maxContestants },
+                  { label: 'Vote Price', value: `$${newTemplate.votePrice.toFixed(2)}` },
+                  { label: 'Number of Winners', value: newTemplate.numberOfWinners },
+                  { label: 'Selection', value: SELECTION_CRITERIA.find(c => c.id === newTemplate.selectionCriteria)?.name },
+                ].map((item, i) => (
+                  <div key={i}>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>
+                      {item.label}
+                    </p>
+                    <p style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium }}>
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {newTemplate.selectionCriteria === 'hybrid' && (
+                <div style={{ marginTop: spacing.lg, paddingTop: spacing.lg, borderTop: `1px solid ${colors.border.light}` }}>
+                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
+                    Winner Selection Weight
+                  </p>
+                  <div style={{ display: 'flex', gap: spacing.md }}>
+                    <Badge variant="success" size="md">Votes: {newTemplate.voteWeight}%</Badge>
+                    <Badge variant="gold" size="md">Judges: {newTemplate.judgeWeight}%</Badge>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
@@ -161,8 +869,8 @@ export default function CompetitionsManager() {
         {[
           { label: 'Total Templates', value: templates.length, icon: Crown },
           { label: 'Active', value: templates.filter(t => t.status === 'active').length, icon: Check },
-          { label: 'Awaiting Host', value: templates.filter(t => !t.assignedHost).length, icon: UserPlus },
-          { label: 'Cities', value: [...new Set(templates.map(t => t.city))].length, icon: MapPin },
+          { label: 'Awaiting Host', value: templates.filter(t => t.hasHost && !t.assignedHost).length, icon: UserPlus },
+          { label: 'Organizations', value: [...new Set(templates.map(t => t.organization?.id))].length, icon: Building2 },
         ].map((stat, i) => (
           <div key={i} style={{
             background: colors.background.card,
@@ -185,6 +893,9 @@ export default function CompetitionsManager() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: spacing.xl }}>
         {templates.map((template) => {
           const status = statusStyles[template.status];
+          const CategoryIcon = getCategoryIcon(template.category);
+          const categoryColor = getCategoryColor(template.category);
+
           return (
             <div
               key={template.id}
@@ -200,15 +911,15 @@ export default function CompetitionsManager() {
                 padding: spacing.lg,
                 background: template.status === 'active'
                   ? 'linear-gradient(135deg, rgba(34,197,94,0.1), transparent)'
-                  : 'linear-gradient(135deg, rgba(139,92,246,0.1), transparent)',
+                  : `linear-gradient(135deg, ${categoryColor}15, transparent)`,
                 borderBottom: `1px solid ${colors.border.light}`,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
-                      <MapPin size={14} style={{ color: '#8b5cf6' }} />
-                      <span style={{ fontSize: typography.fontSize.xs, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                        {template.city}
+                      <span style={{ fontSize: '20px' }}>{template.organization?.logo}</span>
+                      <span style={{ fontSize: typography.fontSize.xs, color: categoryColor, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {template.organization?.name}
                       </span>
                     </div>
                     <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold }}>
@@ -230,85 +941,92 @@ export default function CompetitionsManager() {
 
               {/* Card Body */}
               <div style={{ padding: spacing.lg }}>
-                {/* Season & Settings */}
+                {/* Category & Settings */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md, marginBottom: spacing.lg }}>
+                  <div>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Category</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                      <CategoryIcon size={14} style={{ color: categoryColor }} />
+                      <span style={{ fontSize: typography.fontSize.sm }}>{CATEGORY_TYPES.find(c => c.id === template.category)?.name}</span>
+                    </div>
+                  </div>
                   <div>
                     <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Season</p>
                     <p style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium }}>{template.season}</p>
                   </div>
                   <div>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Vote Price</p>
-                    <p style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium }}>${template.votePrice.toFixed(2)}</p>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Winners</p>
+                    <p style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium }}>{template.numberOfWinners}</p>
                   </div>
                   <div>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Host Payout</p>
-                    <p style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium }}>{template.hostPayoutPercentage}%</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Max Contestants</p>
-                    <p style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium }}>{template.maxContestants}</p>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Selection</p>
+                    <p style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium }}>
+                      {SELECTION_CRITERIA.find(c => c.id === template.selectionCriteria)?.name}
+                    </p>
                   </div>
                 </div>
+
+                {/* Weight Bar for Hybrid */}
+                {template.selectionCriteria === 'hybrid' && (
+                  <div style={{ marginBottom: spacing.lg }}>
+                    <div style={{
+                      height: '8px',
+                      borderRadius: borderRadius.pill,
+                      overflow: 'hidden',
+                      display: 'flex',
+                    }}>
+                      <div style={{ width: `${template.voteWeight}%`, background: '#22c55e' }} />
+                      <div style={{ width: `${template.judgeWeight}%`, background: '#d4af37' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: spacing.xs }}>
+                      <span style={{ fontSize: typography.fontSize.xs, color: '#22c55e' }}>Votes {template.voteWeight}%</span>
+                      <span style={{ fontSize: typography.fontSize.xs, color: '#d4af37' }}>Judges {template.judgeWeight}%</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Assigned Host */}
-                <div style={{
-                  padding: spacing.md,
-                  background: colors.background.secondary,
-                  borderRadius: borderRadius.lg,
-                  marginBottom: spacing.lg,
-                }}>
-                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>Assigned Host</p>
-                  {template.assignedHost ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
-                        borderRadius: borderRadius.full,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: typography.fontSize.sm,
-                        fontWeight: typography.fontWeight.bold,
-                        color: '#fff',
-                      }}>
-                        {template.assignedHost.name.charAt(0)}
+                {template.hasHost && (
+                  <div style={{
+                    padding: spacing.md,
+                    background: colors.background.secondary,
+                    borderRadius: borderRadius.lg,
+                    marginBottom: spacing.lg,
+                  }}>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>Assigned Host</p>
+                    {template.assignedHost ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+                          borderRadius: borderRadius.full,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: typography.fontSize.sm,
+                          fontWeight: typography.fontWeight.bold,
+                          color: '#fff',
+                        }}>
+                          {template.assignedHost.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>{template.assignedHost.name}</p>
+                          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>{template.assignedHost.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>{template.assignedHost.name}</p>
-                        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>{template.assignedHost.email}</p>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.muted }}>
+                        <UserPlus size={16} />
+                        <span style={{ fontSize: typography.fontSize.sm }}>No host assigned</span>
                       </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.muted }}>
-                      <UserPlus size={16} />
-                      <span style={{ fontSize: typography.fontSize.sm }}>No host assigned</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Dates */}
-                {template.nominationStart && (
-                  <div style={{ marginBottom: spacing.lg }}>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>Schedule</p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, fontSize: typography.fontSize.sm }}>
-                        <Calendar size={14} style={{ color: colors.text.muted }} />
-                        <span style={{ color: colors.text.secondary }}>Nominations:</span>
-                        <span>{template.nominationStart} - {template.nominationEnd}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, fontSize: typography.fontSize.sm }}>
-                        <Calendar size={14} style={{ color: colors.text.muted }} />
-                        <span style={{ color: colors.text.secondary }}>Voting:</span>
-                        <span>{template.votingStart} - {template.votingEnd}</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 )}
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: spacing.sm }}>
-                  {!template.assignedHost && (
+                  {template.hasHost && !template.assignedHost && (
                     <Button
                       variant="primary"
                       size="sm"
@@ -322,7 +1040,7 @@ export default function CompetitionsManager() {
                       Assign Host
                     </Button>
                   )}
-                  {template.assignedHost && template.status === 'assigned' && (
+                  {(!template.hasHost || template.assignedHost) && template.status !== 'active' && (
                     <Button
                       variant="primary"
                       size="sm"
@@ -363,163 +1081,140 @@ export default function CompetitionsManager() {
         })}
       </div>
 
-      {/* Create Modal */}
+      {/* Create Modal - Wizard */}
       {showCreateModal && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.8)',
+          background: 'rgba(0,0,0,0.9)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
+          padding: spacing.xl,
         }}>
           <div style={{
             background: colors.background.card,
             borderRadius: borderRadius.xxl,
-            padding: spacing.xxl,
             width: '100%',
-            maxWidth: '500px',
+            maxWidth: '700px',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
             border: `1px solid ${colors.border.light}`,
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl }}>
-              <h2 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold }}>
-                Create Competition
-              </h2>
+            {/* Modal Header */}
+            <div style={{
+              padding: spacing.xl,
+              borderBottom: `1px solid ${colors.border.light}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <h2 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold }}>
+                  Create New Competition
+                </h2>
+                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                  Step {currentStep} of {WIZARD_STEPS.length}: {WIZARD_STEPS[currentStep - 1].description}
+                </p>
+              </div>
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  setShowCreateModal(false);
+                  resetWizard();
+                }}
                 style={{ background: 'none', border: 'none', color: colors.text.secondary, cursor: 'pointer' }}
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
-              {/* City Select */}
-              <div>
-                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
-                  City *
-                </label>
-                <select
-                  value={newTemplate.city}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, city: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: spacing.md,
-                    background: colors.background.secondary,
-                    border: `1px solid ${colors.border.light}`,
-                    borderRadius: borderRadius.md,
-                    color: '#fff',
-                    fontSize: typography.fontSize.md,
-                  }}
-                >
-                  <option value="">Select a city</option>
-                  {AVAILABLE_CITIES.map((city) => (
-                    <option key={city.name} value={city.name}>
-                      {city.name}, {city.state}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Season */}
-              <div>
-                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
-                  Season (Year)
-                </label>
-                <input
-                  type="number"
-                  value={newTemplate.season}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, season: parseInt(e.target.value) })}
-                  style={{
-                    width: '100%',
-                    padding: spacing.md,
-                    background: colors.background.secondary,
-                    border: `1px solid ${colors.border.light}`,
-                    borderRadius: borderRadius.md,
-                    color: '#fff',
-                    fontSize: typography.fontSize.md,
-                  }}
-                />
-              </div>
-
-              {/* Vote Price */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
-                    Vote Price ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.25"
-                    value={newTemplate.votePrice}
-                    onChange={(e) => setNewTemplate({ ...newTemplate, votePrice: parseFloat(e.target.value) })}
+            {/* Progress Steps */}
+            <div style={{ padding: `${spacing.md} ${spacing.xl}`, borderBottom: `1px solid ${colors.border.light}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                {WIZARD_STEPS.map((step) => (
+                  <div
+                    key={step.id}
                     style={{
-                      width: '100%',
-                      padding: spacing.md,
-                      background: colors.background.secondary,
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.md,
-                      color: '#fff',
-                      fontSize: typography.fontSize.md,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      flex: 1,
                     }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
-                    Host Payout (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={newTemplate.hostPayoutPercentage}
-                    onChange={(e) => setNewTemplate({ ...newTemplate, hostPayoutPercentage: parseInt(e.target.value) })}
-                    style={{
-                      width: '100%',
-                      padding: spacing.md,
-                      background: colors.background.secondary,
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.md,
-                      color: '#fff',
-                      fontSize: typography.fontSize.md,
-                    }}
-                  />
-                </div>
+                  >
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: borderRadius.full,
+                      background: step.id < currentStep
+                        ? '#22c55e'
+                        : step.id === currentStep
+                          ? '#8b5cf6'
+                          : colors.background.secondary,
+                      border: step.id <= currentStep ? 'none' : `1px solid ${colors.border.light}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: typography.fontSize.sm,
+                      fontWeight: typography.fontWeight.bold,
+                      color: step.id <= currentStep ? '#fff' : colors.text.muted,
+                      marginBottom: spacing.xs,
+                    }}>
+                      {step.id < currentStep ? <Check size={16} /> : step.id}
+                    </div>
+                    <span style={{
+                      fontSize: typography.fontSize.xs,
+                      color: step.id === currentStep ? '#8b5cf6' : colors.text.muted,
+                      textAlign: 'center',
+                    }}>
+                      {step.name}
+                    </span>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              {/* Max Contestants */}
-              <div>
-                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
-                  Max Contestants
-                </label>
-                <input
-                  type="number"
-                  value={newTemplate.maxContestants}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, maxContestants: parseInt(e.target.value) })}
-                  style={{
-                    width: '100%',
-                    padding: spacing.md,
-                    background: colors.background.secondary,
-                    border: `1px solid ${colors.border.light}`,
-                    borderRadius: borderRadius.md,
-                    color: '#fff',
-                    fontSize: typography.fontSize.md,
-                  }}
-                />
-              </div>
+            {/* Step Content */}
+            <div style={{ flex: 1, overflow: 'auto', padding: spacing.xl }}>
+              {renderWizardStep()}
+            </div>
 
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: spacing.md, marginTop: spacing.md }}>
-                <Button variant="secondary" onClick={() => setShowCreateModal(false)} style={{ flex: 1 }}>
-                  Cancel
-                </Button>
+            {/* Modal Footer */}
+            <div style={{
+              padding: spacing.xl,
+              borderTop: `1px solid ${colors.border.light}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+            }}>
+              <Button
+                variant="secondary"
+                icon={ChevronLeft}
+                onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                disabled={currentStep === 1}
+              >
+                Back
+              </Button>
+
+              {currentStep < WIZARD_STEPS.length ? (
                 <Button
-                  onClick={handleCreateTemplate}
-                  disabled={!newTemplate.city}
-                  style={{ flex: 1 }}
+                  icon={ChevronRight}
+                  iconPosition="right"
+                  onClick={() => setCurrentStep(currentStep + 1)}
+                  disabled={!canProceed()}
                 >
-                  Create Template
+                  Continue
                 </Button>
-              </div>
+              ) : (
+                <Button
+                  icon={Check}
+                  onClick={handleCreateTemplate}
+                  disabled={!canProceed()}
+                >
+                  Create Competition
+                </Button>
+              )}
             </div>
           </div>
         </div>
