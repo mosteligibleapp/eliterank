@@ -2,18 +2,21 @@ import React, { useState } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
   ChevronDown, Check, X, Eye, Building2, Trophy, Vote, Scale,
-  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft
+  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft, DollarSign
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 
-// Organizations (owners)
-const ORGANIZATIONS = [
+// Default organizations (owners)
+const DEFAULT_ORGANIZATIONS = [
   { id: 'org1', name: 'Most Eligible', logo: '👑', description: 'Dating & Singles Competition' },
   { id: 'org2', name: 'Elite Pageants', logo: '✨', description: 'Beauty & Talent Pageants' },
   { id: 'org3', name: 'Fit Nation', logo: '💪', description: 'Fitness & Health Competitions' },
   { id: 'org4', name: 'Social Stars', logo: '⭐', description: 'Social Media Competitions' },
 ];
+
+// Emoji options for new organizations
+const LOGO_OPTIONS = ['👑', '✨', '💪', '⭐', '🏆', '🎭', '💎', '🌟', '🎯', '🔥', '💫', '🎪'];
 
 // Category types with icons
 const CATEGORY_TYPES = [
@@ -65,7 +68,7 @@ const AVAILABLE_HOSTS = [
 const MOCK_TEMPLATES = [
   {
     id: '1',
-    organization: ORGANIZATIONS[0],
+    organization: DEFAULT_ORGANIZATIONS[0],
     name: 'Most Eligible New York',
     city: 'New York',
     season: 2026,
@@ -85,7 +88,7 @@ const MOCK_TEMPLATES = [
   },
   {
     id: '2',
-    organization: ORGANIZATIONS[0],
+    organization: DEFAULT_ORGANIZATIONS[0],
     name: 'Most Eligible Chicago',
     city: 'Chicago',
     season: 2026,
@@ -105,7 +108,7 @@ const MOCK_TEMPLATES = [
   },
   {
     id: '3',
-    organization: ORGANIZATIONS[1],
+    organization: DEFAULT_ORGANIZATIONS[1],
     name: 'Elite Pageants Miami',
     city: 'Miami',
     season: 2026,
@@ -144,10 +147,13 @@ const WIZARD_STEPS = [
 
 export default function CompetitionsManager() {
   const [templates, setTemplates] = useState(MOCK_TEMPLATES);
+  const [organizations, setOrganizations] = useState(DEFAULT_ORGANIZATIONS);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showNewOrgForm, setShowNewOrgForm] = useState(false);
+  const [newOrg, setNewOrg] = useState({ name: '', logo: '🏆', description: '' });
 
   const [newTemplate, setNewTemplate] = useState({
     organization: null,
@@ -168,6 +174,8 @@ export default function CompetitionsManager() {
 
   const resetWizard = () => {
     setCurrentStep(1);
+    setShowNewOrgForm(false);
+    setNewOrg({ name: '', logo: '🏆', description: '' });
     setNewTemplate({
       organization: null,
       city: '',
@@ -184,6 +192,20 @@ export default function CompetitionsManager() {
       hostPayoutPercentage: 20,
       maxContestants: 30,
     });
+  };
+
+  const handleCreateOrganization = () => {
+    if (!newOrg.name.trim()) return;
+    const org = {
+      id: `org${Date.now()}`,
+      name: newOrg.name.trim(),
+      logo: newOrg.logo,
+      description: newOrg.description.trim() || `${newOrg.name} competitions`,
+    };
+    setOrganizations([...organizations, org]);
+    setNewTemplate({ ...newTemplate, organization: org });
+    setShowNewOrgForm(false);
+    setNewOrg({ name: '', logo: '🏆', description: '' });
   };
 
   const handleCreateTemplate = () => {
@@ -250,33 +272,199 @@ export default function CompetitionsManager() {
             <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.xl }}>
               Select Organization
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
-              {ORGANIZATIONS.map((org) => (
+
+            {!showNewOrgForm ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
+                  {organizations.map((org) => (
+                    <div
+                      key={org.id}
+                      onClick={() => setNewTemplate({ ...newTemplate, organization: org })}
+                      style={{
+                        padding: spacing.xl,
+                        background: newTemplate.organization?.id === org.id
+                          ? 'rgba(139,92,246,0.2)'
+                          : colors.background.secondary,
+                        border: `2px solid ${newTemplate.organization?.id === org.id ? '#8b5cf6' : colors.border.light}`,
+                        borderRadius: borderRadius.xl,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: '48px', marginBottom: spacing.md }}>{org.logo}</div>
+                      <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                        {org.name}
+                      </h4>
+                      <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                        {org.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Create New Organization Button */}
                 <div
-                  key={org.id}
-                  onClick={() => setNewTemplate({ ...newTemplate, organization: org })}
+                  onClick={() => setShowNewOrgForm(true)}
                   style={{
+                    marginTop: spacing.xl,
                     padding: spacing.xl,
-                    background: newTemplate.organization?.id === org.id
-                      ? 'rgba(139,92,246,0.2)'
-                      : colors.background.secondary,
-                    border: `2px solid ${newTemplate.organization?.id === org.id ? '#8b5cf6' : colors.border.light}`,
+                    background: 'rgba(139,92,246,0.05)',
+                    border: `2px dashed rgba(139,92,246,0.3)`,
                     borderRadius: borderRadius.xl,
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: '48px', marginBottom: spacing.md }}>{org.logo}</div>
-                  <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
-                    {org.name}
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    background: 'rgba(139,92,246,0.2)',
+                    borderRadius: borderRadius.full,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto',
+                    marginBottom: spacing.md,
+                  }}>
+                    <Plus size={24} style={{ color: '#8b5cf6' }} />
+                  </div>
+                  <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs, color: '#8b5cf6' }}>
+                    Create New Organization
                   </h4>
                   <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                    {org.description}
+                    Add a new brand like "Playboy", "Sports Illustrated", etc.
                   </p>
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              /* New Organization Form */
+              <div style={{
+                padding: spacing.xxl,
+                background: colors.background.secondary,
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.xl,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
+                  <Building2 size={24} style={{ color: '#8b5cf6' }} />
+                  <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold }}>
+                    New Organization
+                  </h4>
+                </div>
+
+                {/* Logo Selection */}
+                <div style={{ marginBottom: spacing.xl }}>
+                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                    Logo / Icon
+                  </label>
+                  <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+                    {LOGO_OPTIONS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => setNewOrg({ ...newOrg, logo: emoji })}
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          fontSize: '24px',
+                          background: newOrg.logo === emoji ? 'rgba(139,92,246,0.3)' : colors.background.card,
+                          border: `2px solid ${newOrg.logo === emoji ? '#8b5cf6' : colors.border.light}`,
+                          borderRadius: borderRadius.lg,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Organization Name */}
+                <div style={{ marginBottom: spacing.xl }}>
+                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                    Organization Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newOrg.name}
+                    onChange={(e) => setNewOrg({ ...newOrg, name: e.target.value })}
+                    placeholder="e.g., Playboy, Sports Illustrated"
+                    style={{
+                      width: '100%',
+                      padding: spacing.md,
+                      background: colors.background.card,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.md,
+                      color: '#fff',
+                      fontSize: typography.fontSize.md,
+                    }}
+                  />
+                </div>
+
+                {/* Description */}
+                <div style={{ marginBottom: spacing.xl }}>
+                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                    Description (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newOrg.description}
+                    onChange={(e) => setNewOrg({ ...newOrg, description: e.target.value })}
+                    placeholder="Brief description of the organization"
+                    style={{
+                      width: '100%',
+                      padding: spacing.md,
+                      background: colors.background.card,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.md,
+                      color: '#fff',
+                      fontSize: typography.fontSize.md,
+                    }}
+                  />
+                </div>
+
+                {/* Preview */}
+                {newOrg.name && (
+                  <div style={{
+                    padding: spacing.lg,
+                    background: 'rgba(139,92,246,0.1)',
+                    border: `1px solid rgba(139,92,246,0.3)`,
+                    borderRadius: borderRadius.lg,
+                    marginBottom: spacing.xl,
+                    textAlign: 'center',
+                  }}>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>Preview</p>
+                    <div style={{ fontSize: '32px', marginBottom: spacing.sm }}>{newOrg.logo}</div>
+                    <p style={{ fontWeight: typography.fontWeight.semibold }}>{newOrg.name}</p>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                      {newOrg.description || `${newOrg.name} competitions`}
+                    </p>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: spacing.md }}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setShowNewOrgForm(false);
+                      setNewOrg({ name: '', logo: '🏆', description: '' });
+                    }}
+                    style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCreateOrganization}
+                    disabled={!newOrg.name.trim()}
+                    style={{ flex: 1 }}
+                  >
+                    Create & Select
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -532,47 +720,25 @@ export default function CompetitionsManager() {
                 </div>
               </div>
 
-              {/* Max Contestants & Vote Price */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
-                    Max Contestants
-                  </label>
-                  <input
-                    type="number"
-                    value={newTemplate.maxContestants}
-                    onChange={(e) => setNewTemplate({ ...newTemplate, maxContestants: parseInt(e.target.value) })}
-                    style={{
-                      width: '100%',
-                      padding: spacing.md,
-                      background: colors.background.secondary,
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.md,
-                      color: '#fff',
-                      fontSize: typography.fontSize.md,
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
-                    Vote Price ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.25"
-                    value={newTemplate.votePrice}
-                    onChange={(e) => setNewTemplate({ ...newTemplate, votePrice: parseFloat(e.target.value) })}
-                    style={{
-                      width: '100%',
-                      padding: spacing.md,
-                      background: colors.background.secondary,
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.md,
-                      color: '#fff',
-                      fontSize: typography.fontSize.md,
-                    }}
-                  />
-                </div>
+              {/* Max Contestants */}
+              <div>
+                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                  Max Contestants
+                </label>
+                <input
+                  type="number"
+                  value={newTemplate.maxContestants}
+                  onChange={(e) => setNewTemplate({ ...newTemplate, maxContestants: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    padding: spacing.md,
+                    background: colors.background.secondary,
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.md,
+                    color: '#fff',
+                    fontSize: typography.fontSize.md,
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -779,6 +945,85 @@ export default function CompetitionsManager() {
                   </div>
                 </div>
               )}
+
+              {/* Vote Price - Only shown for votes or hybrid selection */}
+              {(newTemplate.selectionCriteria === 'votes' || newTemplate.selectionCriteria === 'hybrid') && (
+                <div style={{
+                  padding: spacing.xl,
+                  background: colors.background.secondary,
+                  borderRadius: borderRadius.xl,
+                  border: `1px solid ${colors.border.light}`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      background: 'rgba(34,197,94,0.2)',
+                      borderRadius: borderRadius.lg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <DollarSign size={20} style={{ color: '#22c55e' }} />
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold }}>
+                        Price Per Vote
+                      </h4>
+                      <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                        How much each vote costs
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                    <span style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#22c55e' }}>$</span>
+                    <input
+                      type="number"
+                      step="0.25"
+                      min="0.25"
+                      value={newTemplate.votePrice}
+                      onChange={(e) => setNewTemplate({ ...newTemplate, votePrice: parseFloat(e.target.value) || 1 })}
+                      style={{
+                        width: '120px',
+                        padding: spacing.md,
+                        background: colors.background.card,
+                        border: `1px solid ${colors.border.light}`,
+                        borderRadius: borderRadius.md,
+                        color: '#fff',
+                        fontSize: typography.fontSize.xl,
+                        fontWeight: typography.fontWeight.bold,
+                        textAlign: 'center',
+                      }}
+                    />
+                    <span style={{ fontSize: typography.fontSize.md, color: colors.text.secondary }}>per vote</span>
+                  </div>
+
+                  {/* Quick price options */}
+                  <div style={{ display: 'flex', gap: spacing.sm, marginTop: spacing.lg }}>
+                    {[0.50, 1.00, 2.00, 5.00].map((price) => (
+                      <button
+                        key={price}
+                        onClick={() => setNewTemplate({ ...newTemplate, votePrice: price })}
+                        style={{
+                          flex: 1,
+                          padding: spacing.sm,
+                          background: newTemplate.votePrice === price ? '#22c55e' : colors.background.card,
+                          border: `1px solid ${newTemplate.votePrice === price ? '#22c55e' : colors.border.light}`,
+                          borderRadius: borderRadius.md,
+                          color: newTemplate.votePrice === price ? '#000' : '#fff',
+                          fontSize: typography.fontSize.sm,
+                          fontWeight: typography.fontWeight.medium,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        ${price.toFixed(2)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -812,9 +1057,12 @@ export default function CompetitionsManager() {
                   { label: 'Has Host', value: newTemplate.hasHost ? 'Yes' : 'No' },
                   { label: 'Has Events', value: newTemplate.hasEvents ? 'Yes' : 'No' },
                   { label: 'Max Contestants', value: newTemplate.maxContestants },
-                  { label: 'Vote Price', value: `$${newTemplate.votePrice.toFixed(2)}` },
                   { label: 'Number of Winners', value: newTemplate.numberOfWinners },
                   { label: 'Selection', value: SELECTION_CRITERIA.find(c => c.id === newTemplate.selectionCriteria)?.name },
+                  // Only show vote price for votes or hybrid
+                  ...(newTemplate.selectionCriteria === 'votes' || newTemplate.selectionCriteria === 'hybrid'
+                    ? [{ label: 'Vote Price', value: `$${newTemplate.votePrice.toFixed(2)}` }]
+                    : []),
                 ].map((item, i) => (
                   <div key={i}>
                     <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>
