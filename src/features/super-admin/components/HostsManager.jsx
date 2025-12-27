@@ -94,12 +94,38 @@ export default function HostsManager() {
 
   // Load data on mount
   useEffect(() => {
+    let isMounted = true;
+
     const loadData = async () => {
+      console.log('HostsManager: Starting data load...');
       setLoading(true);
-      await Promise.all([fetchHosts(), fetchApplications()]);
-      setLoading(false);
+
+      // Failsafe timeout
+      const timeout = setTimeout(() => {
+        if (isMounted) {
+          console.warn('HostsManager: Load timeout - forcing loading to false');
+          setLoading(false);
+        }
+      }, 10000);
+
+      try {
+        await Promise.all([fetchHosts(), fetchApplications()]);
+        console.log('HostsManager: Data load complete');
+      } catch (err) {
+        console.error('HostsManager: Error loading data:', err);
+      } finally {
+        clearTimeout(timeout);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
+
     loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [fetchHosts, fetchApplications]);
 
   // Approve a host application

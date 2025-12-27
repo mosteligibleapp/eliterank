@@ -92,17 +92,38 @@ export function useCompetitionManager() {
 
   // Initial data load
   useEffect(() => {
+    let isMounted = true;
+
     const loadData = async () => {
+      console.log('CompetitionManager: Starting data load...');
       setLoading(true);
+
+      // Failsafe timeout - ensure loading completes even if something hangs
+      const timeout = setTimeout(() => {
+        if (isMounted) {
+          console.warn('CompetitionManager: Load timeout - forcing loading to false');
+          setLoading(false);
+        }
+      }, 10000); // 10 second timeout
+
       try {
         await Promise.all([fetchCompetitions(), fetchOrganizations()]);
+        console.log('CompetitionManager: Data load complete');
       } catch (err) {
-        console.error('Error loading data:', err);
+        console.error('CompetitionManager: Error loading data:', err);
       } finally {
-        setLoading(false);
+        clearTimeout(timeout);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
+
     loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [fetchCompetitions, fetchOrganizations]);
 
   // Create a new competition in Supabase
