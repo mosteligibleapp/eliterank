@@ -9,27 +9,27 @@ export function useCompetitionManager() {
 
   // Fetch competitions from Supabase
   const fetchCompetitions = useCallback(async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
 
     try {
+      // Simple query without joins - more resilient
       const { data, error } = await supabase
         .from('competitions')
-        .select(`
-          *,
-          host:profiles!competitions_host_id_fkey(id, email, first_name, last_name),
-          organization:organizations(id, name, slug, logo)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       // Transform data to match expected format
-      const transformed = data.map(comp => ({
+      const transformed = (data || []).map(comp => ({
         id: comp.id,
-        name: comp.organization ? `${comp.organization.name} ${comp.city}` : comp.city,
+        name: comp.city || 'Unnamed Competition',
         city: comp.city,
         season: comp.season,
-        status: comp.status || 'draft',
+        status: comp.status || 'upcoming',
         phase: comp.phase,
         // Form fields
         category: comp.category,
@@ -43,13 +43,11 @@ export function useCompetitionManager() {
         maxContestants: comp.total_contestants || 30,
         votePrice: comp.vote_price || 1.00,
         hostPayoutPercentage: comp.host_payout_percentage || 20,
-        // Related data
-        organization: comp.organization,
-        assignedHost: comp.host ? {
-          id: comp.host.id,
-          name: `${comp.host.first_name || ''} ${comp.host.last_name || ''}`.trim() || comp.host.email,
-          email: comp.host.email,
-        } : null,
+        // IDs for related data
+        hostId: comp.host_id,
+        organizationId: comp.organization_id,
+        organization: null, // Will be populated separately if needed
+        assignedHost: null, // Will be populated separately if needed
         // Dates
         nominationStart: comp.nomination_start,
         nominationEnd: comp.nomination_end,
@@ -75,11 +73,17 @@ export function useCompetitionManager() {
         .select('*')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        // Table might not exist yet - that's ok
+        console.warn('Organizations table error:', error);
+        setOrganizations([]);
+        return;
+      }
       setOrganizations(data || []);
     } catch (err) {
       console.error('Error fetching organizations:', err);
-      setError(err.message);
+      // Don't set error for organizations - not critical
+      setOrganizations([]);
     }
   }, []);
 

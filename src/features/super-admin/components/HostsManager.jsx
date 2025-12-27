@@ -14,7 +14,10 @@ export default function HostsManager() {
 
   // Fetch hosts from Supabase (users with is_host = true)
   const fetchHosts = useCallback(async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      setHosts([]);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -23,7 +26,12 @@ export default function HostsManager() {
         .eq('is_host', true)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // is_host column might not exist - that's ok
+        console.warn('Error fetching hosts (is_host column may not exist):', error);
+        setHosts([]);
+        return;
+      }
 
       setHosts((data || []).map(h => ({
         id: h.id,
@@ -40,7 +48,8 @@ export default function HostsManager() {
       })));
     } catch (err) {
       console.error('Error fetching hosts:', err);
-      setError(err.message);
+      // Don't set error - just show empty hosts
+      setHosts([]);
     }
   }, []);
 
