@@ -4,7 +4,15 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Create Supabase client if credentials are provided
+// Debug logging
+console.log('Supabase URL configured:', !!supabaseUrl);
+console.log('Supabase Key configured:', !!supabaseAnonKey);
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel.');
+}
+
+// Create Supabase client - always create if we have credentials
 export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
