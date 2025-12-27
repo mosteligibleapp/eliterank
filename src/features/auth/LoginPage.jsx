@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Crown, Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { colors, gradients, shadows, borderRadius, spacing, typography } from '../../styles/theme';
 import { useSupabaseAuth } from '../../hooks';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 export default function LoginPage({ onLogin, onBack }) {
   const [mode, setMode] = useState('login'); // 'login' or 'signup'
@@ -14,8 +15,13 @@ export default function LoginPage({ onLogin, onBack }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [debugInfo, setDebugInfo] = useState('');
 
   const { signIn, signUp, isDemoMode } = useSupabaseAuth();
+
+  // Debug info
+  const supabaseConfigured = isSupabaseConfigured();
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   const validateForm = () => {
     if (!email || !password) {
@@ -85,16 +91,21 @@ export default function LoginPage({ onLogin, onBack }) {
 
     try {
       if (mode === 'signup') {
+        setDebugInfo(`Attempting signup... isDemoMode=${isDemoMode}, supabaseConfigured=${supabaseConfigured}`);
+
         const { user, error } = await signUp(email, password, {
           first_name: firstName,
           last_name: lastName,
         });
+
+        setDebugInfo(prev => prev + ` | Result: user=${user?.id || 'null'}, error=${error || 'none'}`);
 
         if (error) {
           setError(error);
         } else if (user) {
           if (isDemoMode) {
             // Demo mode - log in immediately
+            setDebugInfo(prev => prev + ' | Demo mode login');
             onLogin({ email, name: `${firstName} ${lastName}` });
           } else {
             // Real Supabase - check for email confirmation
@@ -523,15 +534,23 @@ export default function LoginPage({ onLogin, onBack }) {
           </span>
         </p>
 
-        {/* Demo Note */}
-        {isDemoMode && (
-          <div style={demoNoteStyle}>
-            <strong>Demo Mode:</strong> Supabase not configured.<br/>
-            <small style={{ opacity: 0.8 }}>
-              Check Vercel: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set for Preview environment.
-            </small>
-          </div>
-        )}
+        {/* Debug Info */}
+        <div style={{
+          ...demoNoteStyle,
+          background: supabaseConfigured ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)',
+          border: `1px solid ${supabaseConfigured ? 'green' : 'red'}`
+        }}>
+          <strong>Status:</strong> {supabaseConfigured ? 'Supabase CONNECTED' : 'Supabase NOT CONNECTED'}<br/>
+          <small style={{ opacity: 0.8 }}>
+            URL: {supabaseUrl ? supabaseUrl.substring(0, 40) + '...' : 'NOT SET'}<br/>
+            isDemoMode: {String(isDemoMode)}
+          </small>
+          {debugInfo && (
+            <div style={{ marginTop: 8, fontSize: 11, wordBreak: 'break-all' }}>
+              {debugInfo}
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
         <p style={footerStyle}>© 2025 EliteRank. All rights reserved.</p>
