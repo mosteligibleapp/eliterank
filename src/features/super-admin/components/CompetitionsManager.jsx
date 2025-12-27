@@ -1,19 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
   ChevronDown, Check, X, Eye, Building2, Trophy, Vote, Scale,
-  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft, DollarSign, Save
+  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft, DollarSign, Save, Loader
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
-
-// Default organizations (owners)
-const DEFAULT_ORGANIZATIONS = [
-  { id: 'org1', name: 'Most Eligible', logo: '👑', description: 'Dating & Singles Competition' },
-  { id: 'org2', name: 'Elite Pageants', logo: '✨', description: 'Beauty & Talent Pageants' },
-  { id: 'org3', name: 'Fit Nation', logo: '💪', description: 'Fitness & Health Competitions' },
-  { id: 'org4', name: 'Social Stars', logo: '⭐', description: 'Social Media Competitions' },
-];
+import { useCompetitionManager } from '../hooks';
+import { supabase } from '../../../lib/supabase';
 
 // Emoji options for new organizations
 const LOGO_OPTIONS = ['👑', '✨', '💪', '⭐', '🏆', '🎭', '💎', '🌟', '🎯', '🔥', '💫', '🎪'];
@@ -57,81 +51,13 @@ const AVAILABLE_CITIES = [
   { name: 'Phoenix', state: 'AZ' },
 ];
 
-const AVAILABLE_HOSTS = [
-  { id: 'h1', name: 'James Davidson', email: 'host@eliterank.com', city: 'New York' },
-  { id: 'h2', name: 'Sarah Miller', email: 'sarah@example.com', city: 'Chicago' },
-  { id: 'h3', name: 'Michael Chen', email: 'michael@example.com', city: null },
-  { id: 'h4', name: 'Emily Rodriguez', email: 'emily@example.com', city: null },
-];
-
-// Mock templates with new fields
-const MOCK_TEMPLATES = [
-  {
-    id: '1',
-    organization: DEFAULT_ORGANIZATIONS[0],
-    name: 'Most Eligible New York',
-    city: 'New York',
-    season: 2026,
-    category: 'dating',
-    contestantType: 'nominations',
-    hasHost: true,
-    hasEvents: true,
-    numberOfWinners: 5,
-    selectionCriteria: 'hybrid',
-    voteWeight: 70,
-    judgeWeight: 30,
-    status: 'active',
-    assignedHost: { id: 'h1', name: 'James Davidson', email: 'host@eliterank.com' },
-    votePrice: 1.00,
-    hostPayoutPercentage: 20,
-    maxContestants: 30,
-  },
-  {
-    id: '2',
-    organization: DEFAULT_ORGANIZATIONS[0],
-    name: 'Most Eligible Chicago',
-    city: 'Chicago',
-    season: 2026,
-    category: 'dating',
-    contestantType: 'nominations',
-    hasHost: true,
-    hasEvents: true,
-    numberOfWinners: 5,
-    selectionCriteria: 'votes',
-    voteWeight: 100,
-    judgeWeight: 0,
-    status: 'assigned',
-    assignedHost: { id: 'h2', name: 'Sarah Miller', email: 'sarah@example.com' },
-    votePrice: 1.00,
-    hostPayoutPercentage: 20,
-    maxContestants: 25,
-  },
-  {
-    id: '3',
-    organization: DEFAULT_ORGANIZATIONS[1],
-    name: 'Elite Pageants Miami',
-    city: 'Miami',
-    season: 2026,
-    category: 'pageant',
-    contestantType: 'applications',
-    hasHost: true,
-    hasEvents: true,
-    numberOfWinners: 3,
-    selectionCriteria: 'judges',
-    voteWeight: 0,
-    judgeWeight: 100,
-    status: 'draft',
-    assignedHost: null,
-    votePrice: 1.00,
-    hostPayoutPercentage: 20,
-    maxContestants: 25,
-  },
-];
-
 const statusStyles = {
   draft: { bg: 'rgba(100,100,100,0.2)', color: colors.text.secondary, label: 'Draft' },
+  upcoming: { bg: 'rgba(100,100,100,0.2)', color: colors.text.secondary, label: 'Upcoming' },
   assigned: { bg: 'rgba(59,130,246,0.2)', color: '#3b82f6', label: 'Host Assigned' },
   active: { bg: 'rgba(34,197,94,0.2)', color: '#22c55e', label: 'Active' },
+  nomination: { bg: 'rgba(212,175,55,0.2)', color: '#d4af37', label: 'Nominations' },
+  voting: { bg: 'rgba(139,92,246,0.2)', color: '#8b5cf6', label: 'Voting' },
   completed: { bg: 'rgba(139,92,246,0.2)', color: '#8b5cf6', label: 'Completed' },
 };
 
@@ -147,14 +73,30 @@ const WIZARD_STEPS = [
 ];
 
 export default function CompetitionsManager({ onViewDashboard }) {
-  const [templates, setTemplates] = useState(MOCK_TEMPLATES);
-  const [organizations, setOrganizations] = useState(DEFAULT_ORGANIZATIONS);
+  // Use the Supabase-connected hook
+  const {
+    templates,
+    organizations,
+    loading,
+    error,
+    createCompetition,
+    updateCompetition,
+    deleteCompetition,
+    assignHost,
+    activateCompetition,
+    createOrganization,
+  } = useCompetitionManager();
+
+  // Hosts from Supabase (users with is_host = true)
+  const [availableHosts, setAvailableHosts] = useState([]);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [showNewOrgForm, setShowNewOrgForm] = useState(false);
   const [newOrg, setNewOrg] = useState({ name: '', logo: '🏆', description: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Edit mode state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -178,6 +120,26 @@ export default function CompetitionsManager({ onViewDashboard }) {
     maxContestants: 30,
   });
 
+  // Fetch available hosts from Supabase
+  useEffect(() => {
+    const fetchHosts = async () => {
+      if (!supabase) return;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name')
+        .eq('is_host', true);
+
+      if (!error && data) {
+        setAvailableHosts(data.map(h => ({
+          id: h.id,
+          name: `${h.first_name || ''} ${h.last_name || ''}`.trim() || h.email,
+          email: h.email,
+        })));
+      }
+    };
+    fetchHosts();
+  }, []);
+
   const resetWizard = () => {
     setCurrentStep(1);
     setShowNewOrgForm(false);
@@ -200,51 +162,46 @@ export default function CompetitionsManager({ onViewDashboard }) {
     });
   };
 
-  const handleCreateOrganization = () => {
+  const handleCreateOrganization = async () => {
     if (!newOrg.name.trim()) return;
-    const org = {
-      id: `org${Date.now()}`,
+    setIsSubmitting(true);
+    const org = await createOrganization({
       name: newOrg.name.trim(),
       logo: newOrg.logo,
       description: newOrg.description.trim() || `${newOrg.name} competitions`,
-    };
-    setOrganizations([...organizations, org]);
-    setNewTemplate({ ...newTemplate, organization: org });
+    });
+    if (org) {
+      setNewTemplate({ ...newTemplate, organization: org });
+    }
     setShowNewOrgForm(false);
     setNewOrg({ name: '', logo: '🏆', description: '' });
+    setIsSubmitting(false);
   };
 
-  const handleCreateTemplate = () => {
-    const template = {
-      id: `t${Date.now()}`,
-      name: `${newTemplate.organization.name} ${newTemplate.city}`,
-      ...newTemplate,
-      status: 'draft',
-      assignedHost: null,
-    };
-    setTemplates([...templates, template]);
+  const handleCreateTemplate = async () => {
+    setIsSubmitting(true);
+    await createCompetition(newTemplate, null); // No host assigned initially
     setShowCreateModal(false);
     resetWizard();
+    setIsSubmitting(false);
   };
 
-  const handleAssignHost = (templateId, host) => {
-    setTemplates(templates.map(t =>
-      t.id === templateId
-        ? { ...t, assignedHost: host, status: 'assigned' }
-        : t
-    ));
+  const handleAssignHost = async (templateId, host) => {
+    setIsSubmitting(true);
+    await assignHost(templateId, host.id);
     setShowAssignModal(false);
     setSelectedTemplate(null);
+    setIsSubmitting(false);
   };
 
-  const handleActivate = (templateId) => {
-    setTemplates(templates.map(t =>
-      t.id === templateId ? { ...t, status: 'active' } : t
-    ));
+  const handleActivate = async (templateId) => {
+    await activateCompetition(templateId);
   };
 
-  const handleDelete = (templateId) => {
-    setTemplates(templates.filter(t => t.id !== templateId));
+  const handleDelete = async (templateId) => {
+    if (window.confirm('Are you sure you want to delete this competition?')) {
+      await deleteCompetition(templateId);
+    }
   };
 
   // Open edit modal with pre-populated data
@@ -255,15 +212,13 @@ export default function CompetitionsManager({ onViewDashboard }) {
   };
 
   // Save edited template
-  const handleSaveEdit = () => {
-    setTemplates(templates.map(t =>
-      t.id === editingTemplate.id
-        ? { ...editingTemplate, name: `${editingTemplate.organization?.name} ${editingTemplate.city}` }
-        : t
-    ));
+  const handleSaveEdit = async () => {
+    setIsSubmitting(true);
+    await updateCompetition(editingTemplate.id, editingTemplate);
     setShowEditModal(false);
     setEditingTemplate(null);
     setEditStep(1);
+    setIsSubmitting(false);
   };
 
   
@@ -1121,6 +1076,43 @@ export default function CompetitionsManager({ onViewDashboard }) {
     }
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: spacing.xxxl,
+        color: colors.text.secondary
+      }}>
+        <Loader size={32} style={{ animation: 'spin 1s linear infinite', marginBottom: spacing.md }} />
+        <p>Loading competitions...</p>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div style={{
+        padding: spacing.xxl,
+        background: 'rgba(239,68,68,0.1)',
+        border: '1px solid rgba(239,68,68,0.3)',
+        borderRadius: borderRadius.xl,
+        textAlign: 'center',
+        color: '#ef4444'
+      }}>
+        <p style={{ marginBottom: spacing.md }}>Error loading competitions: {error}</p>
+        <Button variant="secondary" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Header */}
@@ -1164,6 +1156,24 @@ export default function CompetitionsManager({ onViewDashboard }) {
       </div>
 
       {/* Templates Grid */}
+      {templates.length === 0 ? (
+        <div style={{
+          padding: spacing.xxxl,
+          background: colors.background.card,
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.xl,
+          textAlign: 'center',
+        }}>
+          <Crown size={48} style={{ color: colors.text.muted, marginBottom: spacing.md }} />
+          <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.sm }}>No Competitions Yet</h3>
+          <p style={{ color: colors.text.secondary, marginBottom: spacing.xl }}>
+            Create your first competition to get started.
+          </p>
+          <Button icon={Plus} onClick={() => setShowCreateModal(true)}>
+            Create Competition
+          </Button>
+        </div>
+      ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: spacing.xl }}>
         {templates.map((template) => {
           const status = statusStyles[template.status];
@@ -1356,6 +1366,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
           );
         })}
       </div>
+      )}
 
       {/* Create Modal - Wizard */}
       {showCreateModal && (
@@ -1468,7 +1479,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
                 variant="secondary"
                 icon={ChevronLeft}
                 onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                disabled={currentStep === 1}
+                disabled={currentStep === 1 || isSubmitting}
               >
                 Back
               </Button>
@@ -1484,11 +1495,11 @@ export default function CompetitionsManager({ onViewDashboard }) {
                 </Button>
               ) : (
                 <Button
-                  icon={Check}
+                  icon={isSubmitting ? Loader : Check}
                   onClick={handleCreateTemplate}
-                  disabled={!canProceed()}
+                  disabled={!canProceed() || isSubmitting}
                 >
-                  Create Competition
+                  {isSubmitting ? 'Creating...' : 'Create Competition'}
                 </Button>
               )}
             </div>
@@ -1536,46 +1547,50 @@ export default function CompetitionsManager({ onViewDashboard }) {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-              {AVAILABLE_HOSTS.map((host) => (
-                <div
-                  key={host.id}
-                  onClick={() => handleAssignHost(selectedTemplate.id, host)}
-                  style={{
-                    padding: spacing.lg,
-                    background: colors.background.secondary,
-                    border: `1px solid ${colors.border.light}`,
-                    borderRadius: borderRadius.lg,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
-                      borderRadius: borderRadius.full,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: typography.fontSize.lg,
-                      fontWeight: typography.fontWeight.bold,
-                      color: '#fff',
-                    }}>
-                      {host.name.charAt(0)}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs }}>{host.name}</p>
-                      <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>{host.email}</p>
-                    </div>
-                    {host.city && (
-                      <Badge variant="secondary" size="sm">
-                        <MapPin size={12} /> {host.city}
-                      </Badge>
-                    )}
-                  </div>
+              {availableHosts.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.muted }}>
+                  <UserPlus size={32} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+                  <p>No hosts available.</p>
+                  <p style={{ fontSize: typography.fontSize.sm }}>Mark users as hosts in the Hosts tab first.</p>
                 </div>
-              ))}
+              ) : (
+                availableHosts.map((host) => (
+                  <div
+                    key={host.id}
+                    onClick={() => !isSubmitting && handleAssignHost(selectedTemplate.id, host)}
+                    style={{
+                      padding: spacing.lg,
+                      background: colors.background.secondary,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.lg,
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      opacity: isSubmitting ? 0.5 : 1,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+                        borderRadius: borderRadius.full,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: typography.fontSize.lg,
+                        fontWeight: typography.fontWeight.bold,
+                        color: '#fff',
+                      }}>
+                        {host.name.charAt(0)}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs }}>{host.name}</p>
+                        <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>{host.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             <div style={{ marginTop: spacing.xl }}>
@@ -1977,15 +1992,17 @@ export default function CompetitionsManager({ onViewDashboard }) {
                   setEditingTemplate(null);
                 }}
                 style={{ flex: 1 }}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button
-                icon={Save}
+                icon={isSubmitting ? Loader : Save}
                 onClick={handleSaveEdit}
                 style={{ flex: 1 }}
+                disabled={isSubmitting}
               >
-                Save Changes
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </div>
