@@ -122,22 +122,40 @@ export default function useSupabaseAuth() {
     setError(null);
 
     try {
-      console.log('Calling supabase.auth.signUp...');
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: metadata,
+      // Try direct fetch first to diagnose network issues
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      console.log('Attempting direct fetch signup...');
+      console.log('URL:', `${supabaseUrl}/auth/v1/signup`);
+
+      const directResponse = await fetch(`${supabaseUrl}/auth/v1/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
         },
+        body: JSON.stringify({
+          email,
+          password,
+          data: metadata,
+        }),
       });
 
-      console.log('SignUp response:', { user: data?.user?.id, error });
+      console.log('Direct fetch response status:', directResponse.status);
+      const directData = await directResponse.json();
+      console.log('Direct fetch response data:', directData);
 
-      if (error) throw error;
+      if (!directResponse.ok) {
+        throw new Error(directData.error_description || directData.msg || directData.error || 'Signup failed');
+      }
 
-      return { user: data.user, error: null };
+      return { user: directData.user || directData, error: null };
     } catch (err) {
       console.error('SignUp error:', err);
+      console.error('Error name:', err.name);
+      console.error('Error message:', err.message);
       setError(err.message);
       return { user: null, error: err.message };
     } finally {
