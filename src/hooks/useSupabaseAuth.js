@@ -14,40 +14,24 @@ export default function useSupabaseAuth() {
   // Check if we're in demo mode
   const isDemoMode = !isSupabaseConfigured();
 
-  // Fetch user profile and roles from database
+  // Fetch user profile from database (simplified - no user_roles view)
   const fetchProfile = useCallback(async (userId) => {
     if (!supabase || !userId) return null;
 
     try {
-      // Fetch profile data
-      const { data: profile, error: profileError } = await supabase
+      // Just fetch profile data - role flags should be on the profile itself
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (profileError) throw profileError;
-
-      // Fetch roles from the user_roles view
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (rolesError) {
-        console.warn('Could not fetch user roles:', rolesError);
-        return profile;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return null;
       }
 
-      // Merge profile with role data
-      return {
-        ...profile,
-        is_host: roles?.is_host || false,
-        is_contestant: roles?.is_contestant || false,
-        is_nominee: roles?.is_nominee || false,
-        is_fan: roles?.is_fan || false,
-      };
+      return profileData;
     } catch (err) {
       console.error('Error fetching profile:', err);
       return null;
@@ -61,35 +45,71 @@ export default function useSupabaseAuth() {
       return;
     }
 
-    // Get initial session with error handling
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchProfile(session.user.id).then(setProfile);
-        }
-      })
-      .catch((err) => {
-        console.error('Error getting session:', err);
-      })
-      .finally(() => {
+    let isMounted = true;
+
+    // Failsafe timeout - ensure loading completes
+    const timeout = setTimeout(() => {
+      if (isMounted && loading) {
+        console.warn('Auth: Load timeout - forcing loading to false');
         setLoading(false);
-      });
+      }
+    }, 10000);
+
+    const initAuth = async () => {
+      console.log('Auth: Initializing...');
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          console.error('Auth: Session error:', sessionError);
+        }
+
+        if (isMounted) {
+          setUser(session?.user ?? null);
+
+          if (session?.user) {
+            const profileData = await fetchProfile(session.user.id);
+            if (isMounted) {
+              setProfile(profileData);
+            }
+          }
+          console.log('Auth: Initialization complete');
+        }
+      } catch (err) {
+        console.error('Auth: Error during initialization:', err);
+      } finally {
+        clearTimeout(timeout);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          const profile = await fetchProfile(session.user.id);
-          setProfile(profile);
-        } else {
-          setProfile(null);
+        console.log('Auth: State changed -', event);
+        if (isMounted) {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            const profileData = await fetchProfile(session.user.id);
+            if (isMounted) {
+              setProfile(profileData);
+            }
+          } else {
+            setProfile(null);
+          }
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [isDemoMode, fetchProfile]);
 
   // Sign in with email/password
