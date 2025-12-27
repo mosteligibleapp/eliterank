@@ -207,10 +207,22 @@ export default function CompetitionsManager({ onViewDashboard }) {
 
   const handleAssignHost = async (templateId, host) => {
     setIsSubmitting(true);
-    await assignHost(templateId, host.id);
-    setShowAssignModal(false);
-    setSelectedTemplate(null);
-    setIsSubmitting(false);
+    try {
+      const result = await assignHost(templateId, host.id);
+      if (result && result.success) {
+        setShowAssignModal(false);
+        setSelectedTemplate(null);
+      } else {
+        const errorMsg = result?.error || 'Unknown error';
+        console.error('Failed to assign host:', errorMsg);
+        alert(`Failed to assign host: ${errorMsg}`);
+      }
+    } catch (err) {
+      console.error('Error assigning host:', err);
+      alert(`Error assigning host: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleActivate = async (templateId) => {

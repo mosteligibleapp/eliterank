@@ -178,7 +178,10 @@ export function useCompetitionManager() {
 
   // Update an existing competition in Supabase
   const updateCompetition = useCallback(async (competitionId, updates) => {
-    if (!supabase) return;
+    if (!supabase) {
+      console.error('Supabase not configured');
+      return { success: false, error: 'Supabase not configured' };
+    }
 
     try {
       const dbUpdates = {};
@@ -202,17 +205,26 @@ export function useCompetitionManager() {
       if (updates.votePrice) dbUpdates.vote_price = updates.votePrice;
       if (updates.hostPayoutPercentage) dbUpdates.host_payout_percentage = updates.hostPayoutPercentage;
 
-      const { error } = await supabase
+      console.log('Updating competition:', competitionId, 'with:', dbUpdates);
+
+      const { data, error } = await supabase
         .from('competitions')
         .update(dbUpdates)
-        .eq('id', competitionId);
+        .eq('id', competitionId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
 
+      console.log('Update result:', data);
       await fetchCompetitions();
+      return { success: true, data };
     } catch (err) {
       console.error('Error updating competition:', err);
       setError(err.message);
+      return { success: false, error: err.message };
     }
   }, [fetchCompetitions]);
 
@@ -237,7 +249,9 @@ export function useCompetitionManager() {
 
   // Assign a host to a competition
   const assignHost = useCallback(async (competitionId, hostId) => {
-    await updateCompetition(competitionId, { hostId, status: 'assigned' });
+    console.log('Assigning host:', hostId, 'to competition:', competitionId);
+    const result = await updateCompetition(competitionId, { hostId, status: 'assigned' });
+    return result;
   }, [updateCompetition]);
 
   // Activate a competition
