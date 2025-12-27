@@ -526,7 +526,10 @@ export default function LoginPage({ onLogin, onBack }) {
         {/* Demo Note */}
         {isDemoMode && (
           <div style={demoNoteStyle}>
-            <strong>Demo Mode:</strong> Supabase not configured. Any credentials work.
+            <strong>Demo Mode:</strong> Supabase not configured.<br/>
+            <small style={{ opacity: 0.8 }}>
+              Check Vercel: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set for Preview environment.
+            </small>
           </div>
         )}
 
