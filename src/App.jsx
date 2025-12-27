@@ -27,7 +27,7 @@ import {
 // Hooks
 import { useModals, useSupabaseAuth } from './hooks';
 
-// Constants and mock data
+// Constants and initial state
 import {
   ADMIN_TABS,
   DEFAULT_HOST_PROFILE,
@@ -42,9 +42,6 @@ import {
 } from './constants';
 
 export default function App() {
-  // Local auth state for mock login
-  const [mockUser, setMockUser] = useState(null);
-
   // View state - 'public' is default, 'login' for auth, 'dashboard' for admin views
   const [currentView, setCurrentView] = useState('public');
 
@@ -53,29 +50,17 @@ export default function App() {
     user,
     profile,
     loading: authLoading,
-    isAuthenticated: supabaseAuthenticated,
-    isDemoMode,
-    signIn,
+    isAuthenticated,
     signOut,
     updateProfile
   } = useSupabaseAuth();
 
-  // Combined auth - either Supabase or mock
-  const isAuthenticated = supabaseAuthenticated || !!mockUser;
-
-  // Determine user role
+  // Determine user role from Supabase profile
   const userRole = useMemo(() => {
-    // Check mock user first
-    if (mockUser?.role === 'super_admin') return 'super_admin';
-    if (mockUser?.role === 'host') return 'host';
-
-    // Check Supabase profile
     if (profile?.is_super_admin) return 'super_admin';
     if (profile?.is_host) return 'host';
-
-    // Default to fan (regular user)
     return 'fan';
-  }, [mockUser, profile]);
+  }, [profile]);
 
   // Modal management (custom hook)
   const {
@@ -122,7 +107,7 @@ export default function App() {
   const [announcements, setAnnouncements] = useState(INITIAL_ANNOUNCEMENTS);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
-  // Derive host profile from Supabase profile or use default for demo
+  // Derive host profile from Supabase profile
   const hostProfile = useMemo(() => {
     if (profile) {
       return {
@@ -137,7 +122,6 @@ export default function App() {
         hobbies: profile.hobbies || [],
       };
     }
-    // Fallback to demo profile
     return DEFAULT_HOST_PROFILE;
   }, [profile]);
 
@@ -334,25 +318,14 @@ export default function App() {
   // ============================================
   // Authentication Handlers
   // ============================================
-  const handleLogin = useCallback((userData) => {
-    // Handle mock login (host or super admin)
-    if (userData.id === 'mock-host-id' || userData.id === 'mock-super-admin-id') {
-      setMockUser(userData);
-    }
-    // After login, go to appropriate dashboard based on role
-    if (userData.role === 'super_admin') {
-      setCurrentView('super_admin');
-    } else if (userData.role === 'host') {
-      setCurrentView('host_dashboard');
-    } else {
-      // Regular users go back to public view
-      setCurrentView('public');
-    }
+  const handleLogin = useCallback(() => {
+    // After login, navigate based on user role (determined by profile)
+    // Role will be checked after profile is loaded
+    setCurrentView('public');
     setActiveTab('overview');
   }, []);
 
   const handleLogout = useCallback(async () => {
-    setMockUser(null);
     await signOut();
     setCurrentView('public');
     setActiveTab('overview');
@@ -622,7 +595,7 @@ export default function App() {
         onDashboard={isAuthenticated && (userRole === 'host' || userRole === 'super_admin') ? handleGoToDashboard : null}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
-        userName={profile?.first_name || mockUser?.name || user?.email?.split('@')[0]}
+        userName={profile?.first_name || user?.email?.split('@')[0]}
         onLogout={handleLogout}
       />
 

@@ -14,19 +14,40 @@ export default function useSupabaseAuth() {
   // Check if we're in demo mode
   const isDemoMode = !isSupabaseConfigured();
 
-  // Fetch user profile from database
+  // Fetch user profile and roles from database
   const fetchProfile = useCallback(async (userId) => {
     if (!supabase || !userId) return null;
 
     try {
-      const { data, error } = await supabase
+      // Fetch profile data
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
-      return data;
+      if (profileError) throw profileError;
+
+      // Fetch roles from the user_roles view
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (rolesError) {
+        console.warn('Could not fetch user roles:', rolesError);
+        return profile;
+      }
+
+      // Merge profile with role data
+      return {
+        ...profile,
+        is_host: roles?.is_host || false,
+        is_contestant: roles?.is_contestant || false,
+        is_nominee: roles?.is_nominee || false,
+        is_fan: roles?.is_fan || false,
+      };
     } catch (err) {
       console.error('Error fetching profile:', err);
       return null;

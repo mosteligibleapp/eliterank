@@ -56,33 +56,6 @@ export default function LoginPage({ onLogin, onBack }) {
 
     setIsLoading(true);
 
-    // Mock login - bypass Supabase for testing
-    // Super Admin login
-    if (mode === 'login' && email === 'admin@eliterank.com' && password === 'superadmin123') {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      onLogin({
-        id: 'mock-super-admin-id',
-        email: 'admin@eliterank.com',
-        name: 'Super Admin',
-        role: 'super_admin',
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    // Host login
-    if (mode === 'login' && email === 'host@eliterank.com' && password === 'hostname123') {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      onLogin({
-        id: 'mock-host-id',
-        email: 'host@eliterank.com',
-        name: 'James Davidson',
-        role: 'host',
-      });
-      setIsLoading(false);
-      return;
-    }
-
     try {
       if (mode === 'signup') {
         const { user, error } = await signUp(email, password, {

@@ -1,417 +1,55 @@
-// Mock data for development and demo purposes
-// In production, this would come from an API
+// Initial data - empty for production
+// Data will come from Supabase
 
 export const DEFAULT_HOST_PROFILE = {
-  firstName: 'James',
-  lastName: 'Davidson',
-  bio: 'Award-winning event host with 10+ years of experience in luxury lifestyle events.',
-  city: 'New York',
-  instagram: '@jamesdavidson',
-  twitter: '@jdavidson',
-  linkedin: 'jamesdavidson',
-  tiktok: '@jamesdavidsonhost',
-  hobbies: ['Travel', 'Fine Dining', 'Golf', 'Art Collecting'],
+  firstName: '',
+  lastName: '',
+  bio: '',
+  city: '',
+  instagram: '',
+  twitter: '',
+  linkedin: '',
+  tiktok: '',
+  hobbies: [],
 };
 
-export const INITIAL_COMPETITIONS = [
-  {
-    id: 1,
-    city: 'New York',
-    status: 'active',
-    phase: 'voting',
-    contestants: 24,
-    votes: 15420,
-    revenue: 48500,
-  },
-  {
-    id: 2,
-    city: 'Los Angeles',
-    status: 'nomination',
-    phase: 'nomination',
-    contestants: 0,
-    votes: 0,
-    revenue: 12000,
-  },
-  {
-    id: 3,
-    city: 'Miami',
-    status: 'upcoming',
-    phase: 'setup',
-    contestants: 0,
-    votes: 0,
-    revenue: 0,
-  },
-];
-
-export const INITIAL_NOMINEES = [
-  {
-    id: 1,
-    name: 'Alexandra Chen',
-    age: 28,
-    occupation: 'Creative Director',
-    nominatedBy: 'Self',
-    status: 'pending',
-    city: 'New York',
-    bio: 'Award-winning creative director with a passion for sustainable fashion.',
-    instagram: '@alexchen',
-    interests: ['Art', 'Travel', 'Sustainability'],
-    email: 'alex.chen@email.com',
-    profileComplete: true,
-  },
-  {
-    id: 2,
-    name: 'Marcus Williams',
-    age: 31,
-    occupation: 'Tech Entrepreneur',
-    nominatedBy: 'Third Party',
-    nominatorName: 'Jessica Adams',
-    nominatorEmail: 'jessica@email.com',
-    status: 'pending-approval',
-    city: 'New York',
-    bio: '',
-    instagram: '',
-    interests: [],
-    email: 'marcus.w@email.com',
-    profileComplete: false,
-  },
-  {
-    id: 3,
-    name: 'Sofia Rodriguez',
-    age: 26,
-    occupation: 'Physician',
-    nominatedBy: 'Self',
-    status: 'approved',
-    city: 'New York',
-    bio: 'Emergency medicine resident. Passionate about healthcare access.',
-    instagram: '@drsofia',
-    interests: ['Medicine', 'Yoga', 'Reading'],
-    email: 'sofia.r@email.com',
-    profileComplete: true,
-    votes: 2340,
-  },
-  {
-    id: 4,
-    name: 'Tyler Bennett',
-    age: 29,
-    occupation: 'Investment Banker',
-    nominatedBy: 'Third Party',
-    nominatorName: 'Rachel Kim',
-    nominatorEmail: 'rachel.k@email.com',
-    status: 'awaiting-profile',
-    city: 'New York',
-    bio: '',
-    instagram: '',
-    interests: [],
-    email: 'tyler.b@email.com',
-    profileComplete: false,
-  },
-  {
-    id: 5,
-    name: 'Jasmine Okafor',
-    age: 27,
-    occupation: 'Attorney',
-    nominatedBy: 'Third Party',
-    nominatorName: 'David Park',
-    nominatorEmail: 'david.p@email.com',
-    status: 'profile-complete',
-    city: 'New York',
-    bio: 'Corporate lawyer by day, salsa dancer by night. Passionate about justice and good food.',
-    instagram: '@jasmineokafor',
-    interests: ['Law', 'Dancing', 'Cooking', 'Travel'],
-    email: 'jasmine.o@email.com',
-    profileComplete: true,
-  },
-];
-
-export const INITIAL_CONTESTANTS = [
-  {
-    id: 1,
-    name: 'Sofia Rodriguez',
-    votes: 2340,
-    rank: 1,
-    trend: 'up',
-    age: 26,
-    occupation: 'Physician',
-    bio: 'Emergency medicine resident. Passionate about healthcare access.',
-    instagram: '@drsofia',
-  },
-  {
-    id: 2,
-    name: 'David Kim',
-    votes: 2180,
-    rank: 2,
-    trend: 'up',
-    age: 29,
-    occupation: 'Architect',
-    bio: 'Award-winning architect designing sustainable urban spaces.',
-    instagram: '@davidkim',
-  },
-  {
-    id: 3,
-    name: 'Emma Thompson',
-    votes: 1950,
-    rank: 3,
-    trend: 'down',
-    age: 27,
-    occupation: 'Marketing Director',
-    bio: 'Leading brand strategies for Fortune 500 companies.',
-    instagram: '@emmathompson',
-  },
-  {
-    id: 4,
-    name: 'Michael Santos',
-    votes: 1820,
-    rank: 4,
-    trend: 'up',
-    age: 31,
-    occupation: 'Tech Founder',
-    bio: 'Building the future of AI-powered healthcare.',
-    instagram: '@msantos',
-  },
-  {
-    id: 5,
-    name: 'Isabella Martinez',
-    votes: 1680,
-    rank: 5,
-    trend: 'same',
-    age: 25,
-    occupation: 'Fashion Designer',
-    bio: 'Sustainable fashion advocate and creative director.',
-    instagram: '@isabellamartinez',
-  },
-  {
-    id: 6,
-    name: 'James Wilson',
-    votes: 1520,
-    rank: 6,
-    trend: 'up',
-    age: 30,
-    occupation: 'Investment Banker',
-    bio: 'Finance professional with a passion for philanthropy.',
-    instagram: '@jameswilson',
-  },
-  {
-    id: 7,
-    name: 'Olivia Chen',
-    votes: 1410,
-    rank: 7,
-    trend: 'down',
-    age: 28,
-    occupation: 'Art Curator',
-    bio: 'Curating contemporary art exhibitions worldwide.',
-    instagram: '@oliviachen',
-  },
-  {
-    id: 8,
-    name: 'Alexander Brooks',
-    votes: 1280,
-    rank: 8,
-    trend: 'up',
-    age: 32,
-    occupation: 'Attorney',
-    bio: 'Civil rights lawyer fighting for justice.',
-    instagram: '@alexbrooks',
-  },
-];
-
-export const INITIAL_JUDGES = [
-  {
-    id: 1,
-    name: 'Victoria Blackwell',
-    title: 'Fashion Editor, Vogue',
-    bio: "With over 15 years in fashion journalism, Victoria brings her keen eye for style and elegance to the panel.",
-  },
-  {
-    id: 2,
-    name: 'Christopher Hayes',
-    title: 'Lifestyle Influencer',
-    bio: "5M+ followers trust Christopher's insights on modern dating, relationships, and personal branding.",
-  },
-  {
-    id: 3,
-    name: 'Diana Chen',
-    title: 'Founder, Elite Events',
-    bio: 'Diana has connected thousands of eligible singles through her exclusive matchmaking events across the globe.',
-  },
-];
-
-export const INITIAL_SPONSORS = [
-  {
-    id: 1,
-    name: 'Luxe Hotels',
-    tier: 'Platinum',
-    amount: 25000,
-    logoUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200&h=100&fit=crop',
-    websiteUrl: 'https://example.com/luxe-hotels',
-  },
-  {
-    id: 2,
-    name: 'Veuve Clicquot',
-    tier: 'Gold',
-    amount: 15000,
-    logoUrl: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200&h=100&fit=crop',
-    websiteUrl: 'https://example.com/veuve',
-  },
-  {
-    id: 3,
-    name: 'Mercedes-Benz',
-    tier: 'Gold',
-    amount: 15000,
-    logoUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=200&h=100&fit=crop',
-    websiteUrl: 'https://example.com/mercedes',
-  },
-  {
-    id: 4,
-    name: "Tiffany & Co.",
-    tier: 'Silver',
-    amount: 8000,
-    logoUrl: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=100&fit=crop',
-    websiteUrl: 'https://example.com/tiffany',
-  },
-];
-
-export const INITIAL_EVENTS = [
-  {
-    id: 1,
-    name: 'Nomination Period',
-    date: '2025-01-15',
-    endDate: '2025-02-01',
-    status: 'completed',
-    publicVisible: true,
-  },
-  {
-    id: 2,
-    name: 'Contestants Announced',
-    date: '2025-02-03',
-    status: 'completed',
-    publicVisible: true,
-  },
-  {
-    id: 3,
-    name: 'Voting Round 1',
-    date: '2025-02-05',
-    endDate: '2025-02-12',
-    status: 'active',
-    publicVisible: true,
-  },
-  {
-    id: 4,
-    name: 'Double Vote Day',
-    date: '2025-02-10',
-    status: 'upcoming',
-    publicVisible: false,
-    isDoubleVoteDay: true,
-  },
-  {
-    id: 5,
-    name: 'Voting Round 2',
-    date: '2025-02-13',
-    endDate: '2025-02-18',
-    status: 'upcoming',
-    publicVisible: true,
-  },
-  {
-    id: 6,
-    name: 'Finals Gala',
-    date: '2025-02-20',
-    time: '19:00',
-    location: 'The Plaza Hotel',
-    status: 'upcoming',
-    publicVisible: true,
-  },
-];
-
-export const INITIAL_ANNOUNCEMENTS = [
-  {
-    id: 1,
-    type: 'announcement',
-    title: 'Double Vote Day Coming!',
-    content:
-      'Mark your calendars! This Saturday all votes count double. Share with friends and help your favorite contestant win!',
-    date: '2025-02-08T10:00:00',
-    pinned: true,
-  },
-  {
-    id: 2,
-    title: 'Voting Round 1 Now Open!',
-    content:
-      'The wait is over! Voting for Round 1 is officially open. Cast your votes now to help your favorites advance to the next round.',
-    date: '2025-02-05T09:00:00',
-    type: 'update',
-  },
-  {
-    id: 3,
-    title: 'Meet Our 24 Contestants',
-    content:
-      "We're thrilled to announce our official contestant lineup! Head to the Contestants page to meet all 24 amazing individuals competing for the title.",
-    date: '2025-02-03T12:00:00',
-    type: 'announcement',
-  },
-  {
-    id: 4,
-    title: 'Judges Panel Revealed',
-    content:
-      'Excited to announce our distinguished panel of judges who will help select our winner. Check out the About page to learn more about each judge.',
-    date: '2025-01-28T14:00:00',
-    type: 'news',
-  },
-];
-
-export const COMPETITION_RANKINGS = [
-  { city: 'Los Angeles', revenue: 142000, rank: 1 },
-  { city: 'New York', revenue: 125500, rank: 2 },
-  { city: 'Miami', revenue: 98000, rank: 3 },
-  { city: 'Chicago', revenue: 87500, rank: 4 },
-  { city: 'Houston', revenue: 72000, rank: 5 },
-];
+// Empty initial states - data comes from Supabase
+export const INITIAL_COMPETITIONS = [];
+export const INITIAL_NOMINEES = [];
+export const INITIAL_CONTESTANTS = [];
+export const INITIAL_JUDGES = [];
+export const INITIAL_SPONSORS = [];
+export const INITIAL_EVENTS = [];
+export const INITIAL_ANNOUNCEMENTS = [];
+export const COMPETITION_RANKINGS = [];
 
 export const COMPETITION_STAGES = [
   {
     id: 'nomination',
     name: 'Nomination Period',
-    endDate: new Date('2025-02-01T23:59:59'),
-    status: 'completed',
+    status: 'upcoming',
   },
   {
     id: 'round1',
     name: 'Voting Round 1',
-    endDate: new Date('2025-02-12T23:59:59'),
-    status: 'active',
-  },
-  {
-    id: 'doubleVote',
-    name: 'Double Vote Day',
-    endDate: new Date('2025-02-10T23:59:59'),
     status: 'upcoming',
   },
   {
     id: 'round2',
     name: 'Voting Round 2',
-    endDate: new Date('2025-02-18T23:59:59'),
     status: 'upcoming',
   },
   {
     id: 'finals',
     name: 'Finals Voting',
-    endDate: new Date('2025-02-19T23:59:59'),
     status: 'upcoming',
   },
   {
     id: 'gala',
     name: 'Finals Gala',
-    endDate: new Date('2025-02-20T19:00:00'),
     status: 'upcoming',
   },
 ];
 
-// Contestant profile images for public site
-export const CONTESTANT_IMAGES = [
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=500&fit=crop',
-];
+// Placeholder images for contestants without avatars
+export const CONTESTANT_IMAGES = [];
