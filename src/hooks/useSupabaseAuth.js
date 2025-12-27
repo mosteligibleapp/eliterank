@@ -14,26 +14,39 @@ export default function useSupabaseAuth() {
   // Check if we're in demo mode
   const isDemoMode = !isSupabaseConfigured();
 
-  // Fetch user profile from database (simplified - no user_roles view)
+  // Fetch user profile from database with timeout
   const fetchProfile = useCallback(async (userId) => {
     if (!supabase || !userId) return null;
 
+    console.log('Auth: Fetching profile for user:', userId);
+
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
+    });
+
     try {
-      // Just fetch profile data - role flags should be on the profile itself
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Race between the query and the timeout
+      const result = await Promise.race([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single(),
+        timeoutPromise
+      ]);
+
+      const { data: profileData, error: profileError } = result;
 
       if (profileError) {
-        console.error('Error fetching profile:', profileError);
+        console.error('Auth: Error fetching profile:', profileError);
         return null;
       }
 
+      console.log('Auth: Profile fetched successfully');
       return profileData;
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error('Auth: Profile fetch failed:', err.message);
       return null;
     }
   }, []);
