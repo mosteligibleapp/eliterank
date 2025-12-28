@@ -6,3 +6,4 @@ export { default as Badge, StatusBadge } from './Badge';
 export { default as Card, Panel, StatCard } from './Card';
 export { Input, Textarea, Select, FormSection, FormGrid } from './Input';
 export { default as InterestTag, HobbySelector } from './InterestTag';
+export { default as OrganizationLogo } from './OrganizationLogo';

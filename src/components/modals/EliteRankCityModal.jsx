@@ -3,7 +3,7 @@ import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users, Star,
   Ticket, Activity, Info, Briefcase, UserPlus, Loader
 } from 'lucide-react';
-import { Button, Badge } from '../ui';
+import { Button, Badge, OrganizationLogo } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 
@@ -90,7 +90,7 @@ export default function EliteRankCityModal({
 
   const getOrganizationLogo = (orgId) => {
     const org = organizations.find(o => o.id === orgId);
-    return org?.logo || '👑';
+    return org?.logo || null;
   };
 
   // Competition Card Component
@@ -145,7 +145,7 @@ export default function EliteRankCityModal({
                 {status.label}
               </span>
             </Badge>
-            <span style={{ fontSize: '24px' }}>{getOrganizationLogo(competition.organizationId)}</span>
+            <OrganizationLogo logo={getOrganizationLogo(competition.organizationId)} size={40} />
           </div>
 
           <div style={{ flex: 1 }}>
