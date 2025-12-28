@@ -5,7 +5,8 @@ import { colors, spacing, borderRadius, typography, gradients } from '../../../s
 import { ALL_HOBBIES, MAX_HOBBIES } from '../../../constants';
 
 export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange }) {
-  const initials = `${hostProfile.firstName[0]}${hostProfile.lastName[0]}`;
+  if (!hostProfile) return null;
+  const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
 
   const handleFieldChange = (field, value) => {
     onChange({ ...hostProfile, [field]: value });

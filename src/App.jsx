@@ -106,6 +106,7 @@ export default function App() {
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [announcements, setAnnouncements] = useState(INITIAL_ANNOUNCEMENTS);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editingProfileData, setEditingProfileData] = useState(null);
 
   // Derive host profile from Supabase profile
   const hostProfile = useMemo(() => {
@@ -286,34 +287,44 @@ export default function App() {
   // Profile Handlers
   // ============================================
   const handleEditProfile = useCallback(() => {
+    // Start editing with a copy of current profile
+    setEditingProfileData({ ...hostProfile });
     setIsEditingProfile(true);
-  }, []);
+  }, [hostProfile]);
 
-  const handleSaveProfile = useCallback(() => {
-    setIsEditingProfile(false);
-  }, []);
+  const handleSaveProfile = useCallback(async () => {
+    if (!editingProfileData) return;
 
-  const handleCancelProfile = useCallback(() => {
-    setIsEditingProfile(false);
-  }, []);
-
-  const handleProfileChange = useCallback(async (updates) => {
+    // Save to Supabase
     const dbUpdates = {
-      first_name: updates.firstName,
-      last_name: updates.lastName,
-      bio: updates.bio,
-      city: updates.city,
-      instagram: updates.instagram,
-      twitter: updates.twitter,
-      linkedin: updates.linkedin,
-      tiktok: updates.tiktok,
-      hobbies: updates.hobbies,
+      first_name: editingProfileData.firstName,
+      last_name: editingProfileData.lastName,
+      bio: editingProfileData.bio,
+      city: editingProfileData.city,
+      instagram: editingProfileData.instagram,
+      twitter: editingProfileData.twitter,
+      linkedin: editingProfileData.linkedin,
+      tiktok: editingProfileData.tiktok,
+      hobbies: editingProfileData.hobbies,
     };
     Object.keys(dbUpdates).forEach(key => {
       if (dbUpdates[key] === undefined) delete dbUpdates[key];
     });
+
     await updateProfile(dbUpdates);
-  }, [updateProfile]);
+    setIsEditingProfile(false);
+    setEditingProfileData(null);
+  }, [editingProfileData, updateProfile]);
+
+  const handleCancelProfile = useCallback(() => {
+    setIsEditingProfile(false);
+    setEditingProfileData(null);
+  }, []);
+
+  const handleProfileChange = useCallback((updates) => {
+    // Only update local state - fast, no DB calls
+    setEditingProfileData(updates);
+  }, []);
 
   // ============================================
   // Authentication Handlers
@@ -427,7 +438,7 @@ export default function App() {
       case 'profile':
         return (
           <ProfilePage
-            hostProfile={hostProfile}
+            hostProfile={isEditingProfile ? editingProfileData : hostProfile}
             isEditing={isEditingProfile}
             onEdit={handleEditProfile}
             onSave={handleSaveProfile}
