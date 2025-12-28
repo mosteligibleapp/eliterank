@@ -14,7 +14,7 @@ export function useCompetitionManager() {
     }
 
     try {
-      // Simple query without joins - more resilient
+      // Fetch competitions
       const { data, error } = await supabase
         .from('competitions')
         .select('*')
@@ -24,6 +24,29 @@ export function useCompetitionManager() {
         console.error('Error fetching competitions:', error);
         setCompetitions([]);
         return;
+      }
+
+      // Get unique host IDs to fetch host profiles
+      const hostIds = [...new Set((data || []).map(c => c.host_id).filter(Boolean))];
+
+      // Fetch host profiles if there are any
+      let hostsMap = {};
+      if (hostIds.length > 0) {
+        const { data: hostsData } = await supabase
+          .from('profiles')
+          .select('id, email, first_name, last_name')
+          .in('id', hostIds);
+
+        if (hostsData) {
+          hostsMap = hostsData.reduce((acc, host) => {
+            acc[host.id] = {
+              id: host.id,
+              name: `${host.first_name || ''} ${host.last_name || ''}`.trim() || host.email,
+              email: host.email,
+            };
+            return acc;
+          }, {});
+        }
       }
 
       // Transform data to match expected format
@@ -50,7 +73,7 @@ export function useCompetitionManager() {
         hostId: comp.host_id,
         organizationId: comp.organization_id,
         organization: null, // Will be populated separately if needed
-        assignedHost: null, // Will be populated separately if needed
+        assignedHost: comp.host_id ? hostsMap[comp.host_id] || null : null,
         // Dates
         nominationStart: comp.nomination_start,
         nominationEnd: comp.nomination_end,

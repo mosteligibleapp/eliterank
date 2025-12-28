@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, TrendingUp, ChevronRight, Building, Users, Calendar } from 'lucide-react';
+import { DollarSign, ChevronRight, Building, Users, Calendar } from 'lucide-react';
 import { StatCard } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatCurrency } from '../../../utils/formatters';
@@ -25,10 +25,7 @@ export default function RevenueCard({ revenueData, sponsors }) {
       onClick={() => setShowBreakdown(!showBreakdown)}
       style={{ cursor: 'pointer' }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, fontSize: typography.fontSize.sm, color: colors.status.success }}>
-          <TrendingUp size={14} /> +23% from last month
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: spacing.md }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
           <span>View breakdown</span>
           <ChevronRight

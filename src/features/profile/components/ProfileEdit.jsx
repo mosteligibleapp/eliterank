@@ -1,11 +1,17 @@
-import React from 'react';
-import { Edit, User, FileText, Globe, Heart, Camera, Save, Plus } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Edit, User, FileText, Globe, Heart, Camera, Save, Plus, X, Loader } from 'lucide-react';
 import { Button, Input, Textarea, FormSection, FormGrid, HobbySelector } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { ALL_HOBBIES, MAX_HOBBIES } from '../../../constants';
 
-export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange }) {
-  const initials = `${hostProfile.firstName[0]}${hostProfile.lastName[0]}`;
+export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, userId }) {
+  if (!hostProfile) return null;
+
+  const [uploading, setUploading] = useState({ cover: false, avatar: false, gallery: null });
+  const coverInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
+
+  const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
 
   const handleFieldChange = (field, value) => {
     onChange({ ...hostProfile, [field]: value });
@@ -15,8 +21,103 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange })
     onChange({ ...hostProfile, hobbies });
   };
 
+  // Upload image to Vercel Blob
+  const uploadImage = async (file, folder) => {
+    if (!file) return null;
+
+    try {
+      // Generate unique filename with folder prefix
+      const timestamp = Date.now();
+      const ext = file.name.split('.').pop();
+      const filename = `${folder}/${timestamp}.${ext}`;
+
+      const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        body: file,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      return data.url;
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert(`Upload failed: ${error.message}`);
+      return null;
+    }
+  };
+
+  // Handle cover image upload
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(prev => ({ ...prev, cover: true }));
+    const url = await uploadImage(file, 'covers');
+    if (url) {
+      handleFieldChange('coverImage', url);
+    }
+    setUploading(prev => ({ ...prev, cover: false }));
+  };
+
+  // Handle avatar image upload
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(prev => ({ ...prev, avatar: true }));
+    const url = await uploadImage(file, 'avatars');
+    if (url) {
+      handleFieldChange('avatarUrl', url);
+    }
+    setUploading(prev => ({ ...prev, avatar: false }));
+  };
+
+  // Handle gallery image upload
+  const handleGalleryUpload = async (e, index) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(prev => ({ ...prev, gallery: index }));
+    const url = await uploadImage(file, 'gallery');
+    if (url) {
+      const gallery = [...(hostProfile.gallery || [])];
+      gallery[index] = url;
+      handleFieldChange('gallery', gallery);
+    }
+    setUploading(prev => ({ ...prev, gallery: null }));
+  };
+
+  // Remove gallery image
+  const handleRemoveGalleryImage = (index) => {
+    const gallery = [...(hostProfile.gallery || [])];
+    gallery[index] = null;
+    handleFieldChange('gallery', gallery.filter(Boolean));
+  };
+
+  const gallery = hostProfile.gallery || [];
+
   return (
     <div>
+      {/* Hidden file inputs */}
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleCoverUpload}
+        style={{ display: 'none' }}
+      />
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleAvatarUpload}
+        style={{ display: 'none' }}
+      />
+
       {/* Edit Header */}
       <div
         style={{
@@ -64,32 +165,36 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange })
         <div
           style={{
             height: '180px',
-            background: gradients.cover,
+            background: hostProfile.coverImage ? `url(${hostProfile.coverImage}) center/cover` : gradients.cover,
             position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                width: '60px',
-                height: '60px',
-                margin: '0 auto 12px',
-                borderRadius: borderRadius.full,
-                background: 'rgba(255,255,255,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Camera size={24} style={{ color: colors.text.secondary }} />
+          {!hostProfile.coverImage && (
+            <div style={{ textAlign: 'center' }}>
+              <div
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  margin: '0 auto 12px',
+                  borderRadius: borderRadius.full,
+                  background: 'rgba(255,255,255,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Camera size={24} style={{ color: colors.text.secondary }} />
+              </div>
+              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>Upload Cover Image</p>
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Recommended: 1500 x 400px</p>
             </div>
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>Upload Cover Image</p>
-            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Recommended: 1500 x 400px</p>
-          </div>
+          )}
           <button
+            onClick={() => coverInputRef.current?.click()}
+            disabled={uploading.cover}
             style={{
               position: 'absolute',
               bottom: spacing.lg,
@@ -104,10 +209,11 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange })
               borderRadius: borderRadius.sm,
               fontSize: typography.fontSize.base,
               color: '#fff',
-              cursor: 'pointer',
+              cursor: uploading.cover ? 'wait' : 'pointer',
             }}
           >
-            <Camera size={16} /> Change Cover
+            {uploading.cover ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={16} />}
+            {uploading.cover ? 'Uploading...' : 'Change Cover'}
           </button>
         </div>
         <div style={{ padding: `0 ${spacing.xxl} ${spacing.xxl}`, marginTop: '-48px' }}>
@@ -117,7 +223,9 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange })
                 width: '120px',
                 height: '120px',
                 borderRadius: borderRadius.xxl,
-                background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
+                background: hostProfile.avatarUrl
+                  ? `url(${hostProfile.avatarUrl}) center/cover`
+                  : 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
                 border: '4px solid #1a1a24',
                 display: 'flex',
                 alignItems: 'center',
@@ -128,8 +236,10 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange })
                 position: 'relative',
               }}
             >
-              {initials}
+              {!hostProfile.avatarUrl && initials}
               <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploading.avatar}
                 style={{
                   position: 'absolute',
                   bottom: '-8px',
@@ -142,11 +252,11 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange })
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#0a0a0f',
-                  cursor: 'pointer',
+                  cursor: uploading.avatar ? 'wait' : 'pointer',
                   border: 'none',
                 }}
               >
-                <Camera size={16} />
+                {uploading.avatar ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={16} />}
               </button>
             </div>
             <div style={{ paddingBottom: spacing.sm }}>
@@ -239,25 +349,74 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange })
           Upload up to 6 photos to showcase your hosting experience
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              style={{
-                aspectRatio: '1',
-                background: 'rgba(255,255,255,0.03)',
-                border: `2px dashed ${colors.border.light}`,
-                borderRadius: borderRadius.lg,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Plus size={24} style={{ color: colors.text.secondary, marginBottom: spacing.xs }} />
-              <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Add Photo</span>
-            </div>
-          ))}
+          {[0, 1, 2, 3, 4, 5].map((index) => {
+            const imageUrl = gallery[index];
+            const isUploading = uploading.gallery === index;
+
+            return (
+              <div
+                key={index}
+                style={{
+                  aspectRatio: '1',
+                  background: imageUrl ? `url(${imageUrl}) center/cover` : 'rgba(255,255,255,0.03)',
+                  border: `2px ${imageUrl ? 'solid' : 'dashed'} ${colors.border.light}`,
+                  borderRadius: borderRadius.lg,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: isUploading ? 'wait' : 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+                onClick={() => {
+                  if (!imageUrl && !isUploading) {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (e) => handleGalleryUpload(e, index);
+                    input.click();
+                  }
+                }}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite', marginBottom: spacing.xs }} />
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Uploading...</span>
+                  </>
+                ) : imageUrl ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveGalleryImage(index);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: spacing.sm,
+                      right: spacing.sm,
+                      width: '28px',
+                      height: '28px',
+                      background: 'rgba(0,0,0,0.7)',
+                      border: 'none',
+                      borderRadius: borderRadius.full,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: '#fff',
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                ) : (
+                  <>
+                    <Plus size={24} style={{ color: colors.text.secondary, marginBottom: spacing.xs }} />
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Add Photo</span>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
       </FormSection>
 
@@ -274,6 +433,14 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange })
       >
         Save Profile
       </Button>
+
+      {/* Spin animation */}
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

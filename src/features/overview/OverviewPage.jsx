@@ -11,7 +11,7 @@ import CompetitionOverview from './components/CompetitionOverview';
 import Leaderboard from './components/Leaderboard';
 
 export default function OverviewPage({
-  competitions,
+  hostCompetition,
   contestants,
   sponsors,
   events,
@@ -19,16 +19,17 @@ export default function OverviewPage({
   onViewPublicSite,
   onViewEliteRankCity,
 }) {
-  // Calculate revenue data
+  // Calculate revenue from actual data
   const sponsorshipTotal = sponsors.reduce((sum, s) => sum + s.amount, 0);
   const revenueData = {
-    total: 125500,
+    total: sponsorshipTotal, // Only sponsorships for now, add votes/tickets when implemented
     sponsorships: sponsorshipTotal,
-    paidVotes: 42500,
-    eventTickets: 20000,
+    paidVotes: 0,
+    eventTickets: 0,
   };
 
-  const currentCompetition = competitions[0];
+  // Extract city name from competition name (e.g., "Chicago Most Eligible 2026" -> "Chicago")
+  const cityName = hostCompetition?.name?.split(' ')[0] || 'Your City';
 
   return (
     <div>
@@ -45,7 +46,7 @@ export default function OverviewPage({
         <HostPayoutCard totalRevenue={revenueData.total} />
         <RankingCard
           competitionRankings={competitionRankings}
-          currentCity="New York"
+          currentCity={cityName}
           currentRevenue={revenueData.total}
         />
       </div>
@@ -59,19 +60,19 @@ export default function OverviewPage({
           marginBottom: spacing.xxxl,
         }}
       >
-        <CurrentPhaseCard events={events} />
+        <CurrentPhaseCard competition={hostCompetition} />
         <TrafficCard />
         <UpcomingCard events={events} />
       </div>
 
       {/* Competition Overview */}
       <CompetitionOverview
-        competition={currentCompetition}
+        competition={hostCompetition}
         onViewPublicSite={onViewPublicSite}
       />
 
       {/* Leaderboard */}
-      <Leaderboard contestants={contestants} title="New York Top Contestants" />
+      <Leaderboard contestants={contestants} title={`${cityName} Top Contestants`} />
 
       {/* Footer */}
       <div

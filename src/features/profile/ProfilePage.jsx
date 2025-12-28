@@ -9,6 +9,7 @@ export default function ProfilePage({
   onSave,
   onCancel,
   onChange,
+  hostCompetition,
 }) {
   if (isEditing) {
     return (
@@ -21,5 +22,5 @@ export default function ProfilePage({
     );
   }
 
-  return <ProfileView hostProfile={hostProfile} onEdit={onEdit} />;
+  return <ProfileView hostProfile={hostProfile} onEdit={onEdit} hostCompetition={hostCompetition} />;
 }

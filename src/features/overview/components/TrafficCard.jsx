@@ -1,16 +1,16 @@
 import React from 'react';
-import { Eye, TrendingUp } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { StatCard } from '../../../components/ui';
 import { colors, spacing, typography } from '../../../styles/theme';
 import { formatNumber } from '../../../utils/formatters';
 
 export default function TrafficCard() {
-  // In production, this would come from analytics API
+  // Traffic data will come from analytics API when implemented
   const trafficData = {
-    pageViews: 48392,
-    uniqueVisitors: 32150,
-    totalPageViews: 156420,
-    avgTimeOnSite: '4m 32s',
+    pageViews: 0,
+    uniqueVisitors: 0,
+    totalPageViews: 0,
+    avgTimeOnSite: '--',
   };
 
   const metrics = [
@@ -25,8 +25,6 @@ export default function TrafficCard() {
       value={formatNumber(trafficData.pageViews)}
       icon={Eye}
       iconColor="blue"
-      trend={<TrendingUp size={14} />}
-      trendValue="+12% this week"
     >
       {/* Traffic Breakdown */}
       <div style={{ marginTop: spacing.lg }}>
@@ -52,7 +50,7 @@ export default function TrafficCard() {
       </div>
 
       <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.md }}>
-        Since nominations opened (Jan 15)
+        Analytics coming soon
       </p>
     </StatCard>
   );

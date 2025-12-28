@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 
 // Layout components
 import { MainLayout, PageHeader } from './components/layout';
@@ -26,6 +26,9 @@ import {
 
 // Hooks
 import { useModals, useSupabaseAuth } from './hooks';
+
+// Supabase client
+import { supabase } from './lib/supabase';
 
 // Constants and initial state
 import {
@@ -61,6 +64,54 @@ export default function App() {
     if (profile?.is_host) return 'host';
     return 'fan';
   }, [profile]);
+
+  // Host's assigned competition
+  const [hostCompetition, setHostCompetition] = useState(null);
+
+  // Fetch host's assigned competition from Supabase
+  // Fetches for anyone who can access the host dashboard (hosts and super_admins)
+  useEffect(() => {
+    const fetchHostCompetition = async () => {
+      if (!user?.id) {
+        setHostCompetition(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('competitions')
+          .select('*')
+          .eq('host_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          // PGRST116 = no rows returned, which is fine
+          console.error('Error fetching host competition:', error);
+        }
+
+        if (data) {
+          // Transform raw data to include computed name
+          // If city already includes "Most Eligible", use it as-is
+          // Otherwise build the full name
+          const cityIncludesName = data.city?.toLowerCase().includes('most eligible');
+          const name = cityIncludesName
+            ? data.city
+            : `${data.city || 'Unknown'} Most Eligible ${data.season || ''}`.trim();
+
+          setHostCompetition({
+            ...data,
+            name,
+          });
+        } else {
+          setHostCompetition(null);
+        }
+      } catch (err) {
+        console.error('Error fetching host competition:', err);
+      }
+    };
+
+    fetchHostCompetition();
+  }, [user?.id]);
 
   // Modal management (custom hook)
   const {
@@ -106,6 +157,7 @@ export default function App() {
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [announcements, setAnnouncements] = useState(INITIAL_ANNOUNCEMENTS);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editingProfileData, setEditingProfileData] = useState(null);
 
   // Derive host profile from Supabase profile
   const hostProfile = useMemo(() => {
@@ -120,6 +172,9 @@ export default function App() {
         linkedin: profile.linkedin || '',
         tiktok: profile.tiktok || '',
         hobbies: profile.hobbies || [],
+        avatarUrl: profile.avatar_url || '',
+        coverImage: profile.cover_image || '',
+        gallery: profile.gallery || [],
       };
     }
     return DEFAULT_HOST_PROFILE;
@@ -286,34 +341,47 @@ export default function App() {
   // Profile Handlers
   // ============================================
   const handleEditProfile = useCallback(() => {
+    // Start editing with a copy of current profile
+    setEditingProfileData({ ...hostProfile });
     setIsEditingProfile(true);
-  }, []);
+  }, [hostProfile]);
 
-  const handleSaveProfile = useCallback(() => {
-    setIsEditingProfile(false);
-  }, []);
+  const handleSaveProfile = useCallback(async () => {
+    if (!editingProfileData) return;
 
-  const handleCancelProfile = useCallback(() => {
-    setIsEditingProfile(false);
-  }, []);
-
-  const handleProfileChange = useCallback(async (updates) => {
+    // Save to Supabase
     const dbUpdates = {
-      first_name: updates.firstName,
-      last_name: updates.lastName,
-      bio: updates.bio,
-      city: updates.city,
-      instagram: updates.instagram,
-      twitter: updates.twitter,
-      linkedin: updates.linkedin,
-      tiktok: updates.tiktok,
-      hobbies: updates.hobbies,
+      first_name: editingProfileData.firstName,
+      last_name: editingProfileData.lastName,
+      bio: editingProfileData.bio,
+      city: editingProfileData.city,
+      instagram: editingProfileData.instagram,
+      twitter: editingProfileData.twitter,
+      linkedin: editingProfileData.linkedin,
+      tiktok: editingProfileData.tiktok,
+      hobbies: editingProfileData.hobbies,
+      avatar_url: editingProfileData.avatarUrl,
+      cover_image: editingProfileData.coverImage,
+      gallery: editingProfileData.gallery,
     };
     Object.keys(dbUpdates).forEach(key => {
       if (dbUpdates[key] === undefined) delete dbUpdates[key];
     });
+
     await updateProfile(dbUpdates);
-  }, [updateProfile]);
+    setIsEditingProfile(false);
+    setEditingProfileData(null);
+  }, [editingProfileData, updateProfile]);
+
+  const handleCancelProfile = useCallback(() => {
+    setIsEditingProfile(false);
+    setEditingProfileData(null);
+  }, []);
+
+  const handleProfileChange = useCallback((updates) => {
+    // Only update local state - fast, no DB calls
+    setEditingProfileData(updates);
+  }, []);
 
   // ============================================
   // Authentication Handlers
@@ -358,20 +426,21 @@ export default function App() {
       case 'overview':
         return (
           <OverviewPage
-            competitions={INITIAL_COMPETITIONS}
+            hostCompetition={hostCompetition}
             contestants={contestants}
             sponsors={sponsors}
             events={events}
             competitionRankings={COMPETITION_RANKINGS}
             onViewPublicSite={() => {
+              const cityName = hostCompetition?.name?.split(' ')[0] || 'Your City';
               setSelectedCompetition({
-                city: 'New York',
-                season: '2026',
-                phase: 'voting',
+                city: cityName,
+                season: hostCompetition?.season || '2026',
+                phase: hostCompetition?.status || 'voting',
                 host: {
-                  name: `${hostProfile.firstName} ${hostProfile.lastName}`.trim() || 'James Davidson',
+                  name: `${hostProfile.firstName} ${hostProfile.lastName}`.trim() || 'Host',
                   title: 'Competition Host',
-                  bio: hostProfile.bio || 'Your dedicated host for Most Eligible New York.',
+                  bio: hostProfile.bio || `Your dedicated host for ${hostCompetition?.name || 'this competition'}.`,
                   instagram: hostProfile.instagram,
                   twitter: hostProfile.twitter,
                   linkedin: hostProfile.linkedin,
@@ -427,12 +496,13 @@ export default function App() {
       case 'profile':
         return (
           <ProfilePage
-            hostProfile={hostProfile}
+            hostProfile={isEditingProfile ? editingProfileData : hostProfile}
             isEditing={isEditingProfile}
             onEdit={handleEditProfile}
             onSave={handleSaveProfile}
             onCancel={handleCancelProfile}
             onChange={handleProfileChange}
+            hostCompetition={hostCompetition}
           />
         );
 
@@ -492,7 +562,11 @@ export default function App() {
           hostProfile={hostProfile}
           onLogout={handleLogout}
         >
-          <PageHeader title={getPageTitle()} />
+          <PageHeader
+            tab={activeTab}
+            competitionName={hostCompetition?.name}
+            showCompetitionLabel={activeTab === 'overview'}
+          />
           {renderDashboardContent()}
         </MainLayout>
 

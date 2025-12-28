@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Crown, Users, Calendar, Sparkles, Award, UserPlus, Trophy } from 'lucide-react';
+import { X, Crown, Users, Calendar, Sparkles, Award, UserPlus, Trophy, Clock } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import ContestantsTab from './components/ContestantsTab';
@@ -36,7 +36,7 @@ export default function PublicSitePage({
   onClose,
   city = 'New York',
   season = '2026',
-  phase = 'voting', // 'nomination', 'voting', or 'completed'
+  phase = 'voting', // 'setup', 'assigned', 'nomination', 'voting', 'judging', or 'completed'
   contestants,
   events,
   announcements,
@@ -46,18 +46,46 @@ export default function PublicSitePage({
   winners = [],
   forceDoubleVoteDay = true,
 }) {
+  // Determine phase categories
+  const isSetupPhase = phase === 'setup' || phase === 'assigned';
   const isNominationPhase = phase === 'nomination';
+  const isVotingPhase = phase === 'voting' || phase === 'active';
+  const isJudgingPhase = phase === 'judging';
   const isCompletedPhase = phase === 'completed';
-  const TABS = isCompletedPhase ? COMPLETED_TABS : (isNominationPhase ? NOMINATION_TABS : VOTING_TABS);
-  const defaultTab = isCompletedPhase ? 'winners' : (isNominationPhase ? 'nominate' : 'contestants');
+
+  // Determine which tabs to show based on phase
+  let TABS;
+  let defaultTab;
+
+  if (isCompletedPhase) {
+    TABS = COMPLETED_TABS;
+    defaultTab = 'winners';
+  } else if (isNominationPhase || isSetupPhase) {
+    // Show nomination tabs for setup/assigned phases (coming soon state)
+    TABS = NOMINATION_TABS;
+    defaultTab = 'nominate';
+  } else {
+    // Voting or judging phase - show contestants
+    TABS = VOTING_TABS;
+    defaultTab = 'contestants';
+  }
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [selectedContestant, setSelectedContestant] = useState(null);
   const [voteCount, setVoteCount] = useState(1);
 
   // Reset active tab when phase or city changes
   useEffect(() => {
-    setActiveTab(defaultTab);
-  }, [phase, city, defaultTab]);
+    // Determine correct default tab based on phase
+    let newDefaultTab;
+    if (phase === 'completed') {
+      newDefaultTab = 'winners';
+    } else if (phase === 'nomination' || phase === 'setup' || phase === 'assigned') {
+      newDefaultTab = 'nominate';
+    } else {
+      newDefaultTab = 'contestants';
+    }
+    setActiveTab(newDefaultTab);
+  }, [phase, city]);
 
   if (!isOpen) return null;
 
@@ -183,6 +211,14 @@ export default function PublicSitePage({
             {isCompletedPhase ? (
               <Badge variant="default" size="md" pill>
                 <Trophy size={12} /> SEASON {season} COMPLETE
+              </Badge>
+            ) : isJudgingPhase ? (
+              <Badge variant="info" size="md" pill>
+                <Award size={12} /> JUDGING IN PROGRESS
+              </Badge>
+            ) : isSetupPhase ? (
+              <Badge variant="warning" size="md" pill>
+                <Clock size={12} /> COMING SOON
               </Badge>
             ) : isNominationPhase ? (
               <Badge variant="warning" size="md" pill>

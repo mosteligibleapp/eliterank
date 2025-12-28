@@ -3,7 +3,7 @@ import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users, Star,
   Ticket, Activity, Info, Briefcase, UserPlus, Loader
 } from 'lucide-react';
-import { Button, Badge } from '../ui';
+import { Button, Badge, OrganizationLogo } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 
@@ -51,10 +51,12 @@ export default function EliteRankCityModal({
             city: comp.city,
             season: comp.season || new Date().getFullYear(),
             status: comp.status || 'upcoming',
-            phase: comp.phase || 'setup',
+            // Use status as the phase for PublicSitePage consistency
+            phase: comp.status || 'setup',
             contestants: 0,
             votes: 0,
-            available: ['active', 'nomination', 'voting', 'assigned'].includes(comp.status),
+            // Allow viewing competitions that are in nomination, voting, judging, or completed phases
+            available: ['active', 'nomination', 'voting', 'judging', 'completed', 'assigned'].includes(comp.status),
             organizationId: comp.organization_id,
             host: comp.host_id ? { id: comp.host_id } : null,
           })));
@@ -90,7 +92,7 @@ export default function EliteRankCityModal({
 
   const getOrganizationLogo = (orgId) => {
     const org = organizations.find(o => o.id === orgId);
-    return org?.logo || '👑';
+    return org?.logo || null;
   };
 
   // Competition Card Component
@@ -102,6 +104,8 @@ export default function EliteRankCityModal({
       active: { variant: 'success', label: 'LIVE NOW', icon: null, pulse: true },
       voting: { variant: 'success', label: 'VOTING', icon: null, pulse: true },
       nomination: { variant: 'warning', label: 'NOMINATIONS OPEN', icon: UserPlus },
+      judging: { variant: 'info', label: 'JUDGING', icon: null, pulse: true },
+      setup: { variant: 'default', label: 'SETUP', icon: Clock },
       assigned: { variant: 'warning', label: 'COMING SOON', icon: Clock },
       upcoming: { variant: 'warning', label: 'COMING SOON', icon: Clock },
       completed: { variant: 'secondary', label: 'COMPLETED', icon: Trophy },
@@ -145,7 +149,7 @@ export default function EliteRankCityModal({
                 {status.label}
               </span>
             </Badge>
-            <span style={{ fontSize: '24px' }}>{getOrganizationLogo(competition.organizationId)}</span>
+            <OrganizationLogo logo={getOrganizationLogo(competition.organizationId)} size={40} />
           </div>
 
           <div style={{ flex: 1 }}>

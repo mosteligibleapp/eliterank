@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
   ChevronDown, Check, X, Eye, Building2, Trophy, Vote, Scale,
-  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft, DollarSign, Save, Loader
+  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft, DollarSign, Save, Loader, Upload, Image
 } from 'lucide-react';
-import { Button, Badge } from '../../../components/ui';
+import { Button, Badge, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useCompetitionManager } from '../hooks';
 import { supabase } from '../../../lib/supabase';
@@ -119,6 +119,37 @@ export default function CompetitionsManager({ onViewDashboard }) {
     hostPayoutPercentage: 20,
     maxContestants: 30,
   });
+
+  // File upload ref for organization logo
+  const logoInputRef = useRef(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // Upload organization logo image
+  const handleLogoUpload = async (file) => {
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      const timestamp = Date.now();
+      const ext = file.name.split('.').pop();
+      const filename = `organizations/${timestamp}.${ext}`;
+
+      const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        body: file,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+      setNewOrg({ ...newOrg, logo: data.url });
+    } catch (err) {
+      console.error('Error uploading logo:', err);
+      alert('Failed to upload logo. Please try again.');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   // Fetch available hosts from Supabase
   useEffect(() => {
@@ -310,7 +341,9 @@ export default function CompetitionsManager({ onViewDashboard }) {
                         textAlign: 'center',
                       }}
                     >
-                      <div style={{ fontSize: '48px', marginBottom: spacing.md }}>{org.logo}</div>
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: spacing.md }}>
+                        <OrganizationLogo logo={org.logo} size={64} />
+                      </div>
                       <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
                         {org.name}
                       </h4>
@@ -376,7 +409,78 @@ export default function CompetitionsManager({ onViewDashboard }) {
                   <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
                     Logo / Icon
                   </label>
-                  <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+
+                  {/* Upload Image Button */}
+                  <div style={{ marginBottom: spacing.md }}>
+                    <input
+                      type="file"
+                      ref={logoInputRef}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file);
+                      }}
+                    />
+                    <button
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={uploadingLogo}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.sm,
+                        padding: `${spacing.md} ${spacing.lg}`,
+                        background: newOrg.logo?.startsWith('http') ? 'rgba(34,197,94,0.2)' : 'rgba(139,92,246,0.1)',
+                        border: `2px dashed ${newOrg.logo?.startsWith('http') ? '#22c55e' : 'rgba(139,92,246,0.3)'}`,
+                        borderRadius: borderRadius.lg,
+                        color: '#fff',
+                        cursor: uploadingLogo ? 'wait' : 'pointer',
+                        transition: 'all 0.2s',
+                        width: '100%',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {uploadingLogo ? (
+                        <>
+                          <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                          Uploading...
+                        </>
+                      ) : newOrg.logo?.startsWith('http') ? (
+                        <>
+                          <Check size={18} style={{ color: '#22c55e' }} />
+                          Image Uploaded - Click to Change
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={18} />
+                          Upload Logo Image
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Show uploaded image preview */}
+                  {newOrg.logo?.startsWith('http') && (
+                    <div style={{ marginBottom: spacing.md, display: 'flex', justifyContent: 'center' }}>
+                      <img
+                        src={newOrg.logo}
+                        alt="Logo preview"
+                        style={{
+                          width: '80px',
+                          height: '80px',
+                          borderRadius: borderRadius.lg,
+                          objectFit: 'cover',
+                          border: `2px solid ${colors.border.gold}`,
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Or use emoji */}
+                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm, textAlign: 'center' }}>
+                    — or select an icon —
+                  </p>
+                  <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap', justifyContent: 'center' }}>
                     {LOGO_OPTIONS.map((emoji) => (
                       <button
                         key={emoji}
@@ -453,7 +557,9 @@ export default function CompetitionsManager({ onViewDashboard }) {
                     textAlign: 'center',
                   }}>
                     <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>Preview</p>
-                    <div style={{ fontSize: '32px', marginBottom: spacing.sm }}>{newOrg.logo}</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: spacing.sm }}>
+                      <OrganizationLogo logo={newOrg.logo} size={64} />
+                    </div>
                     <p style={{ fontWeight: typography.fontWeight.semibold }}>{newOrg.name}</p>
                     <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
                       {newOrg.description || `${newOrg.name} competitions`}
@@ -1059,7 +1165,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
               border: `1px solid ${colors.border.light}`,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
-                <div style={{ fontSize: '32px' }}>{newTemplate.organization?.logo}</div>
+                <OrganizationLogo logo={newTemplate.organization?.logo} size={48} />
                 <div>
                   <h2 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold }}>
                     {newTemplate.organization?.name} {newTemplate.city}
@@ -1238,7 +1344,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
-                      <span style={{ fontSize: '20px' }}>{template.organization?.logo}</span>
+                      <OrganizationLogo logo={template.organization?.logo} size={28} />
                       <span style={{ fontSize: typography.fontSize.xs, color: categoryColor, textTransform: 'uppercase', letterSpacing: '1px' }}>
                         {template.organization?.name}
                       </span>
@@ -1733,7 +1839,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
                         gap: spacing.sm,
                       }}
                     >
-                      <span style={{ fontSize: '24px' }}>{org.logo}</span>
+                      <OrganizationLogo logo={org.logo} size={32} />
                       <span style={{ fontWeight: typography.fontWeight.medium }}>{org.name}</span>
                     </div>
                   ))}

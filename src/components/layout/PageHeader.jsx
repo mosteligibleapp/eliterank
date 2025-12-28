@@ -18,15 +18,20 @@ const ICON_MAP = {
 };
 
 const TITLE_MAP = {
-  overview: 'New York Most Eligible',
+  overview: 'Competition Overview',
   nominations: 'Nominations',
   community: 'Community',
   settings: 'Settings',
   profile: 'Host Profile',
 };
 
-export default function PageHeader({ tab, showCompetitionLabel = false }) {
+export default function PageHeader({ tab, showCompetitionLabel = false, competitionName }) {
   const Icon = ICON_MAP[tab];
+
+  // Use competition name for overview tab if provided
+  const displayTitle = tab === 'overview' && competitionName
+    ? competitionName
+    : TITLE_MAP[tab];
 
   const containerStyle = {
     marginBottom: spacing.xxxl,
@@ -61,7 +66,7 @@ export default function PageHeader({ tab, showCompetitionLabel = false }) {
       )}
       <h1 style={titleStyle}>
         {Icon && <Icon size={28} style={{ color: colors.gold.primary }} />}
-        {TITLE_MAP[tab]}
+        {displayTitle}
       </h1>
     </div>
   );

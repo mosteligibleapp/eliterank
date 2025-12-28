@@ -1,12 +1,5 @@
 import { Heart, Sparkles, Dumbbell, Star, Crown, Trophy, Vote, Scale } from 'lucide-react';
 
-// Default organizations (owners)
-export const DEFAULT_ORGANIZATIONS = [
-  { id: 'org1', name: 'Most Eligible', logo: '👑', description: 'Dating & Singles Competition' },
-  { id: 'org2', name: 'Elite Pageants', logo: '✨', description: 'Beauty & Talent Pageants' },
-  { id: 'org3', name: 'FitLife Pro', logo: '💪', description: 'Fitness & Wellness Competitions' },
-];
-
 // Available cities for competitions
 export const AVAILABLE_CITIES = [
   { name: 'New York', state: 'NY', country: 'USA' },

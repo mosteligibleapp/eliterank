@@ -3,8 +3,35 @@ import { Edit, MapPin, Star, FileText, Heart, Camera, Globe, Trophy } from 'luci
 import { Panel, Button, Badge, InterestTag } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 
-export default function ProfileView({ hostProfile, onEdit }) {
-  const initials = `${hostProfile.firstName[0]}${hostProfile.lastName[0]}`;
+// Human-readable status labels
+const STATUS_LABELS = {
+  setup: 'Setup',
+  assigned: 'Assigned',
+  nomination: 'Nomination Phase',
+  voting: 'Voting Phase',
+  judging: 'Judging Phase',
+  completed: 'Completed',
+  upcoming: 'Upcoming',
+  active: 'Active',
+};
+
+// Status badge variants
+const STATUS_VARIANTS = {
+  setup: 'default',
+  assigned: 'info',
+  nomination: 'warning',
+  voting: 'success',
+  judging: 'info',
+  completed: 'purple',
+  upcoming: 'default',
+  active: 'success',
+};
+
+export default function ProfileView({ hostProfile, onEdit, hostCompetition }) {
+  if (!hostProfile) return null;
+
+  const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
+  const gallery = hostProfile.gallery || [];
 
   const socialLinks = [
     { platform: 'Instagram', handle: hostProfile.instagram, icon: '📷', gradient: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCAF45)' },
@@ -20,7 +47,9 @@ export default function ProfileView({ hostProfile, onEdit }) {
         <div
           style={{
             height: '200px',
-            background: gradients.cover,
+            background: hostProfile.coverImage
+              ? `url(${hostProfile.coverImage}) center/cover`
+              : gradients.cover,
             position: 'relative',
           }}
         >
@@ -46,7 +75,9 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 width: '140px',
                 height: '140px',
                 borderRadius: borderRadius.xxl,
-                background: 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
+                background: hostProfile.avatarUrl
+                  ? `url(${hostProfile.avatarUrl}) center/cover`
+                  : 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
                 border: '4px solid #1a1a24',
                 display: 'flex',
                 alignItems: 'center',
@@ -56,7 +87,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 color: colors.gold.primary,
               }}
             >
-              {initials}
+              {!hostProfile.avatarUrl && initials}
             </div>
             <div style={{ flex: 1, paddingBottom: spacing.sm }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
@@ -93,26 +124,28 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 <FileText size={20} style={{ color: colors.gold.primary }} /> About
               </h3>
               <p style={{ color: colors.text.light, fontSize: typography.fontSize.lg, lineHeight: '1.7' }}>
-                {hostProfile.bio}
+                {hostProfile.bio || 'No bio added yet.'}
               </p>
             </div>
           </Panel>
 
           {/* Hobbies Section */}
-          <Panel style={{ marginBottom: spacing.xl }}>
-            <div style={{ padding: spacing.xxl }}>
-              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                <Heart size={20} style={{ color: colors.gold.primary }} /> Interests
-              </h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.md }}>
-                {hostProfile.hobbies.map((hobby) => (
-                  <InterestTag key={hobby} size="lg">
-                    {hobby}
-                  </InterestTag>
-                ))}
+          {hostProfile.hobbies && hostProfile.hobbies.length > 0 && (
+            <Panel style={{ marginBottom: spacing.xl }}>
+              <div style={{ padding: spacing.xxl }}>
+                <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                  <Heart size={20} style={{ color: colors.gold.primary }} /> Interests
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.md }}>
+                  {hostProfile.hobbies.map((hobby) => (
+                    <InterestTag key={hobby} size="lg">
+                      {hobby}
+                    </InterestTag>
+                  ))}
+                </div>
               </div>
-            </div>
-          </Panel>
+            </Panel>
+          )}
 
           {/* Photo Gallery */}
           <Panel>
@@ -121,21 +154,35 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 <Camera size={20} style={{ color: colors.gold.primary }} /> Gallery
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div
-                    key={i}
-                    style={{
-                      aspectRatio: '1',
-                      background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
-                      borderRadius: borderRadius.lg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Camera size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                  </div>
-                ))}
+                {gallery.length > 0 ? (
+                  gallery.map((imageUrl, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        aspectRatio: '1',
+                        background: `url(${imageUrl}) center/cover`,
+                        borderRadius: borderRadius.lg,
+                      }}
+                    />
+                  ))
+                ) : (
+                  // Show placeholders if no gallery images
+                  [1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        aspectRatio: '1',
+                        background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
+                        borderRadius: borderRadius.lg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Camera size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </Panel>
@@ -144,57 +191,59 @@ export default function ProfileView({ hostProfile, onEdit }) {
         {/* Right Column */}
         <div>
           {/* Social Links */}
-          <Panel style={{ marginBottom: spacing.xl }}>
-            <div style={{ padding: spacing.xxl }}>
-              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                <Globe size={20} style={{ color: colors.gold.primary }} /> Connect
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.platform}
-                    href="#"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                      padding: spacing.md,
-                      background: 'rgba(255,255,255,0.03)',
-                      borderRadius: borderRadius.lg,
-                      textDecoration: 'none',
-                      color: colors.text.primary,
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    <div
+          {socialLinks.length > 0 && (
+            <Panel style={{ marginBottom: spacing.xl }}>
+              <div style={{ padding: spacing.xxl }}>
+                <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                  <Globe size={20} style={{ color: colors.gold.primary }} /> Connect
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+                  {socialLinks.map((link) => (
+                    <a
+                      key={link.platform}
+                      href="#"
                       style={{
-                        width: '40px',
-                        height: '40px',
-                        background: link.gradient || link.background,
-                        borderRadius: borderRadius.md,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: link.icon === 'in' ? '16px' : '18px',
-                        fontWeight: typography.fontWeight.bold,
-                        color: '#fff',
+                        gap: spacing.md,
+                        padding: spacing.md,
+                        background: 'rgba(255,255,255,0.03)',
+                        borderRadius: borderRadius.lg,
+                        textDecoration: 'none',
+                        color: colors.text.primary,
+                        transition: 'all 0.2s',
                       }}
                     >
-                      {link.icon}
-                    </div>
-                    <div>
-                      <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.md }}>
-                        {link.platform}
-                      </p>
-                      <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.base }}>
-                        {link.handle}
-                      </p>
-                    </div>
-                  </a>
-                ))}
+                      <div
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          background: link.gradient || link.background,
+                          borderRadius: borderRadius.md,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: link.icon === 'in' ? '16px' : '18px',
+                          fontWeight: typography.fontWeight.bold,
+                          color: '#fff',
+                        }}
+                      >
+                        {link.icon}
+                      </div>
+                      <div>
+                        <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.md }}>
+                          {link.platform}
+                        </p>
+                        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.base }}>
+                          {link.handle}
+                        </p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
-          </Panel>
+            </Panel>
+          )}
 
           {/* Current Competition */}
           <Panel>
@@ -212,13 +261,15 @@ export default function ProfileView({ hostProfile, onEdit }) {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}>
                   <MapPin size={16} style={{ color: colors.gold.primary }} />
-                  <span style={{ fontWeight: typography.fontWeight.semibold }}>New York Most Eligible</span>
+                  <span style={{ fontWeight: typography.fontWeight.semibold }}>
+                    {hostCompetition?.name || 'No Competition Assigned'}
+                  </span>
                 </div>
                 <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary, marginBottom: spacing.md }}>
-                  Season 2025 • Voting Phase
+                  {hostCompetition ? `Season ${hostCompetition.season || '2025'} • ${STATUS_LABELS[hostCompetition.status] || 'Upcoming'}` : 'Contact admin to be assigned'}
                 </p>
-                <Badge variant="success" size="md" pill>
-                  ● ACTIVE
+                <Badge variant={hostCompetition ? (STATUS_VARIANTS[hostCompetition.status] || 'success') : 'warning'} size="md" pill>
+                  ● {hostCompetition ? (STATUS_LABELS[hostCompetition.status] || hostCompetition.status)?.toUpperCase() : 'PENDING'}
                 </Badge>
               </div>
             </div>
