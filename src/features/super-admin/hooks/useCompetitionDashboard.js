@@ -134,13 +134,15 @@ export function useCompetitionDashboard(competitionId) {
         id: n.id,
         name: n.name,
         email: n.email,
-        nominatedBy: n.nominator_name || (n.nominated_by === 'self' ? 'Self' : 'Anonymous'),
+        phone: n.phone,
+        instagram: n.instagram,
+        nominatedBy: n.nominated_by === 'self' ? 'Self' : (n.nominator_anonymous ? 'Anonymous' : 'Someone'),
         status: n.status,
-        nominations: 1, // Could aggregate if we track multiple nominations
         age: n.age,
-        occupation: n.occupation,
-        bio: n.bio,
         city: n.city,
+        livesNearCity: n.lives_near_city,
+        isSingle: n.is_single,
+        profileComplete: n.profile_complete,
         createdAt: n.created_at,
       }));
 
@@ -249,9 +251,10 @@ export function useCompetitionDashboard(competitionId) {
         competition_id: competitionId,
         name: nominee.name,
         email: nominee.email,
+        phone: nominee.phone,
+        instagram: nominee.instagram,
         age: nominee.age,
-        occupation: nominee.occupation,
-        bio: nominee.bio,
+        city: nominee.city,
         status: 'active',
         votes: 0,
       };

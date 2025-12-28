@@ -425,21 +425,26 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
                 marginBottom: spacing.md,
               }}>
                 <Avatar name={nominee.name} size={48} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: typography.fontWeight.medium }}>{nominee.name}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                    <p style={{ fontWeight: typography.fontWeight.medium }}>{nominee.name}</p>
+                    {nominee.age && (
+                      <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                        ({nominee.age})
+                      </span>
+                    )}
+                  </div>
                   <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                    {nominee.email} • {nominee.nominatedBy}
+                    {nominee.nominatedBy === 'Self' ? 'Self-nominated' : `Nominated by ${nominee.nominatedBy}`}
+                    {nominee.email && ` • ${nominee.email}`}
+                    {nominee.instagram && ` • ${nominee.instagram}`}
                   </p>
                 </div>
                 <Badge
-                  variant={
-                    nominee.status === 'pending' ? 'warning' :
-                    nominee.status === 'pending-approval' ? 'info' :
-                    'secondary'
-                  }
+                  variant={nominee.nominatedBy === 'Self' ? 'gold' : 'secondary'}
                   size="sm"
                 >
-                  {nominee.status}
+                  {nominee.nominatedBy === 'Self' ? 'Self' : 'Nominated'}
                 </Badge>
                 <div style={{ display: 'flex', gap: spacing.sm }}>
                   <Button variant="approve" size="sm" onClick={() => approveNominee(nominee)}>Approve</Button>

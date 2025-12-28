@@ -1,29 +1,32 @@
 import React, { useState } from 'react';
-import { Crown, User, Phone, Mail, Instagram, MapPin, Heart, Users, Check, ChevronRight, Sparkles, AlertCircle } from 'lucide-react';
+import { Crown, User, Phone, Mail, Instagram, MapPin, Heart, Users, Check, ChevronRight, Sparkles, AlertCircle, Share2, Copy, EyeOff, Bell } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 
-export default function NominationForm({ city, competitionId, onSubmit, onClose }) {
+export default function NominationForm({ city, competitionId, onSubmit, onClose, userEmail, userInstagram }) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    fullName: '',
-    age: '',
-    livesNearCity: null,
-    contactMethod: 'email',
-    email: '',
-    phone: '',
-    instagram: '',
-    relationshipStatus: null,
-    nominationType: 'self',
+    // Step 1: Nominee info
     nomineeName: '',
-    nomineeContact: '',
-    optInMarketing: false,
+    nomineeAge: '',
+    livesNearCity: null,
+    isSingle: null,
+    // Step 2: Nomination type & contact
+    nominationType: null, // 'self' or 'other'
+    email: userEmail || '',
+    phone: '',
+    instagram: userInstagram || '',
+    stayAnonymous: null,
+    // Step 3: Updates opt-in (only for "other" nominations)
+    wantsUpdates: null,
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [nomineeId, setNomineeId] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -32,34 +35,40 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     }
   };
 
+  // Calculate total steps based on nomination type
+  const getTotalSteps = () => {
+    if (formData.nominationType === 'other') return 3;
+    return 2; // self-nomination only needs 2 steps
+  };
+
   const validateStep = () => {
     const newErrors = {};
 
     if (step === 1) {
-      if (!formData.fullName.trim()) newErrors.fullName = 'Name is required';
-      if (!formData.age || formData.age < 21 || formData.age > 45) newErrors.age = 'Age must be between 21-45';
+      if (!formData.nomineeName.trim()) newErrors.nomineeName = 'Full name is required';
+      if (!formData.nomineeAge || formData.nomineeAge < 21 || formData.nomineeAge > 45) {
+        newErrors.nomineeAge = 'Age must be between 21-45';
+      }
       if (formData.livesNearCity === null) newErrors.livesNearCity = 'Please select an option';
+      if (formData.isSingle === null) newErrors.isSingle = 'Please select an option';
     }
 
     if (step === 2) {
-      if (formData.contactMethod === 'email' && !formData.email.includes('@')) {
-        newErrors.email = 'Valid email is required';
-      }
-      if (formData.contactMethod === 'phone' && formData.phone.length < 10) {
-        newErrors.phone = 'Valid phone number is required';
-      }
-      if (!formData.instagram.trim()) newErrors.instagram = 'Instagram handle is required';
-    }
+      if (formData.nominationType === null) newErrors.nominationType = 'Please select an option';
 
-    if (step === 3) {
-      if (formData.relationshipStatus === null) newErrors.relationshipStatus = 'Please select an option';
-    }
+      if (formData.nominationType === 'self') {
+        if (!formData.email.includes('@')) newErrors.email = 'Valid email is required';
+        if (!formData.phone || formData.phone.length < 10) newErrors.phone = 'Phone number is required';
+        if (!formData.instagram.trim()) newErrors.instagram = 'Instagram handle is required';
+      }
 
-    if (step === 4) {
       if (formData.nominationType === 'other') {
-        if (!formData.nomineeName.trim()) newErrors.nomineeName = 'Nominee name is required';
-        if (!formData.nomineeContact.trim()) newErrors.nomineeContact = 'Contact info is required';
+        if (formData.stayAnonymous === null) newErrors.stayAnonymous = 'Please select an option';
       }
+    }
+
+    if (step === 3 && formData.nominationType === 'other') {
+      if (formData.wantsUpdates === null) newErrors.wantsUpdates = 'Please select an option';
     }
 
     setErrors(newErrors);
@@ -68,7 +77,8 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
 
   const handleNext = () => {
     if (validateStep()) {
-      if (step < 5) {
+      const totalSteps = getTotalSteps();
+      if (step < totalSteps) {
         setStep(step + 1);
       } else {
         handleSubmit();
@@ -89,26 +99,26 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         throw new Error('Competition ID is required');
       }
 
-      // Determine nominee data based on nomination type
       const isSelfNomination = formData.nominationType === 'self';
-      const nomineeName = isSelfNomination ? formData.fullName : formData.nomineeName;
-      const nomineeEmail = isSelfNomination
-        ? (formData.contactMethod === 'email' ? formData.email : formData.nomineeContact)
-        : formData.nomineeContact;
 
       // Build the nominee record
       const nomineeData = {
         competition_id: competitionId,
-        name: nomineeName,
-        email: nomineeEmail.includes('@') ? nomineeEmail : null,
-        age: isSelfNomination ? parseInt(formData.age) : null,
+        name: formData.nomineeName,
+        age: parseInt(formData.nomineeAge),
         city: city,
-        instagram: isSelfNomination ? formData.instagram : null,
+        lives_near_city: formData.livesNearCity,
+        is_single: formData.isSingle,
         nominated_by: isSelfNomination ? 'self' : 'third_party',
-        nominator_name: isSelfNomination ? null : formData.fullName,
-        nominator_email: isSelfNomination ? null : (formData.contactMethod === 'email' ? formData.email : null),
         status: 'pending',
         profile_complete: isSelfNomination,
+        // Self-nomination contact info
+        email: isSelfNomination ? formData.email : null,
+        phone: isSelfNomination ? formData.phone : null,
+        instagram: isSelfNomination ? formData.instagram : null,
+        // Third-party nomination info
+        nominator_anonymous: !isSelfNomination ? formData.stayAnonymous : null,
+        nominator_wants_updates: !isSelfNomination ? formData.wantsUpdates : null,
       };
 
       // Insert into Supabase
@@ -119,13 +129,13 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         .single();
 
       if (error) {
-        // Check for duplicate entry
         if (error.code === '23505') {
           throw new Error('This person has already been nominated for this competition.');
         }
         throw error;
       }
 
+      setNomineeId(data.id);
       setIsSuccess(true);
       if (onSubmit) onSubmit({ ...formData, nomineeId: data.id });
     } catch (err) {
@@ -133,6 +143,44 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
       setSubmitError(err.message || 'Failed to submit nomination. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const getShareableLink = () => {
+    // Generate a shareable link for the competition/nominee
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/c/${city.toLowerCase().replace(/\s+/g, '-')}`;
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareableLink());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `Most Eligible ${city}`,
+      text: formData.nominationType === 'self'
+        ? `I just entered to be Most Eligible ${city}! Support me by voting!`
+        : `I just nominated someone for Most Eligible ${city}! Check it out!`,
+      url: getShareableLink(),
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          handleCopyLink();
+        }
+      }
+    } else {
+      handleCopyLink();
     }
   };
 
@@ -186,13 +234,16 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     transition: 'background 0.3s',
   });
 
+  // Success screen
   if (isSuccess) {
+    const isSelfNomination = formData.nominationType === 'self';
+
     return (
       <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
         <div style={{
           width: '80px',
           height: '80px',
-          background: 'linear-gradient(135deg, rgba(74,222,128,0.2), rgba(74,222,128,0.05))',
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
@@ -200,21 +251,128 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
           margin: '0 auto',
           marginBottom: spacing.xl,
         }}>
-          <Check size={40} style={{ color: colors.status.success }} />
+          <Crown size={40} style={{ color: colors.gold.primary }} />
         </div>
-        <h2 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: '#fff', marginBottom: spacing.md }}>
-          Nomination Submitted!
+
+        <h2 style={{
+          fontSize: typography.fontSize.xxl,
+          fontWeight: typography.fontWeight.bold,
+          color: '#fff',
+          marginBottom: spacing.md
+        }}>
+          Congrats!
         </h2>
-        <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, marginBottom: spacing.xl, maxWidth: '400px', margin: '0 auto' }}>
-          {formData.nominationType === 'self'
-            ? "Thank you for nominating yourself! We'll review your application and get back to you soon."
-            : `Thank you for nominating ${formData.nomineeName}! We'll reach out to them shortly.`
-          }
+
+        <p style={{
+          fontSize: typography.fontSize.lg,
+          color: colors.text.secondary,
+          marginBottom: spacing.xl,
+          maxWidth: '400px',
+          margin: '0 auto',
+          marginBottom: spacing.xl,
+          lineHeight: 1.6,
+        }}>
+          Your nomination has been recorded.
         </p>
-        <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginBottom: spacing.xxl }}>
-          Check your {formData.contactMethod === 'email' ? 'email' : 'phone'} for updates on your nomination status.
-        </p>
-        <Button onClick={onClose}>Back to Competition</Button>
+
+        {isSelfNomination ? (
+          <>
+            <p style={{
+              fontSize: typography.fontSize.md,
+              color: colors.text.primary,
+              marginBottom: spacing.lg,
+              lineHeight: 1.6,
+            }}>
+              Share the news on socials to get your supporters engaged early!
+            </p>
+
+            <div style={{
+              padding: spacing.lg,
+              background: 'rgba(212,175,55,0.1)',
+              border: `1px solid ${colors.border.gold}`,
+              borderRadius: borderRadius.lg,
+              marginBottom: spacing.xl,
+            }}>
+              <p style={{
+                fontSize: typography.fontSize.sm,
+                color: colors.gold.primary,
+                fontWeight: typography.fontWeight.medium,
+              }}>
+                You will be contacted within 24 hours regarding next steps.
+              </p>
+            </div>
+          </>
+        ) : (
+          <p style={{
+            fontSize: typography.fontSize.md,
+            color: colors.text.primary,
+            marginBottom: spacing.xl,
+            lineHeight: 1.6,
+          }}>
+            Share the nomination link with your network.
+          </p>
+        )}
+
+        {/* Shareable link section */}
+        <div style={{
+          background: colors.background.card,
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.xl,
+          padding: spacing.lg,
+          marginBottom: spacing.xl,
+        }}>
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.muted,
+            marginBottom: spacing.sm
+          }}>
+            Share this link:
+          </p>
+          <div style={{
+            display: 'flex',
+            gap: spacing.sm,
+            alignItems: 'center',
+          }}>
+            <div style={{
+              flex: 1,
+              padding: spacing.md,
+              background: colors.background.secondary,
+              borderRadius: borderRadius.md,
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {getShareableLink()}
+            </div>
+            <button
+              onClick={handleCopyLink}
+              style={{
+                padding: spacing.md,
+                background: copied ? 'rgba(74,222,128,0.2)' : colors.background.secondary,
+                border: `1px solid ${copied ? colors.status.success : colors.border.light}`,
+                borderRadius: borderRadius.md,
+                color: copied ? colors.status.success : colors.text.secondary,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {copied ? <Check size={18} /> : <Copy size={18} />}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: spacing.md }}>
+          <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>
+            Back to Competition
+          </Button>
+          <Button onClick={handleShare} icon={Share2} style={{ flex: 1 }}>
+            Share
+          </Button>
+        </div>
       </div>
     );
   }
@@ -223,32 +381,39 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     <div style={{ maxWidth: '500px', margin: '0 auto' }}>
       {/* Progress */}
       <div style={progressStyle}>
-        {[1, 2, 3, 4, 5].map(num => (
+        {Array.from({ length: getTotalSteps() }, (_, i) => i + 1).map(num => (
           <div key={num} style={progressDotStyle(num)} />
         ))}
       </div>
 
-      {/* Step 1: Basic Info */}
+      {/* Step 1: Nominee Eligibility Info */}
       {step === 1 && (
         <div>
-          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff', marginBottom: spacing.lg }}>
-            Let's Start With the Basics
+          <h3 style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.semibold,
+            color: '#fff',
+            marginBottom: spacing.lg
+          }}>
+            Nominee Information
           </h3>
 
           <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>Full Name *</label>
+            <label style={labelStyle}>Nominee's Full Name *</label>
             <input
               type="text"
-              value={formData.fullName}
-              onChange={(e) => updateField('fullName', e.target.value)}
-              placeholder="Enter your full name"
+              value={formData.nomineeName}
+              onChange={(e) => updateField('nomineeName', e.target.value)}
+              placeholder="Enter full name"
               style={{
                 ...inputStyle,
-                borderColor: errors.fullName ? colors.status.error : colors.border.light,
+                borderColor: errors.nomineeName ? colors.status.error : colors.border.light,
               }}
             />
-            {errors.fullName && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.fullName}</p>
+            {errors.nomineeName && (
+              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                {errors.nomineeName}
+              </p>
             )}
           </div>
 
@@ -256,23 +421,25 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
             <label style={labelStyle}>Age *</label>
             <input
               type="number"
-              value={formData.age}
-              onChange={(e) => updateField('age', parseInt(e.target.value) || '')}
+              value={formData.nomineeAge}
+              onChange={(e) => updateField('nomineeAge', parseInt(e.target.value) || '')}
               placeholder="Must be 21-45"
               min="21"
               max="45"
               style={{
                 ...inputStyle,
-                borderColor: errors.age ? colors.status.error : colors.border.light,
+                borderColor: errors.nomineeAge ? colors.status.error : colors.border.light,
               }}
             />
-            {errors.age && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.age}</p>
+            {errors.nomineeAge && (
+              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                {errors.nomineeAge}
+              </p>
             )}
           </div>
 
           <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>Do you live within 100 miles of {city}? *</label>
+            <label style={labelStyle}>Do they live within 100 miles of {city}? *</label>
             <div style={{ display: 'flex', gap: spacing.md }}>
               <button
                 type="button"
@@ -292,133 +459,40 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
               </button>
             </div>
             {errors.livesNearCity && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.livesNearCity}</p>
+              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                {errors.livesNearCity}
+              </p>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Step 2: Contact Info */}
-      {step === 2 && (
-        <div>
-          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff', marginBottom: spacing.lg }}>
-            How Can We Reach You?
-          </h3>
 
           <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>Preferred Contact Method *</label>
+            <label style={labelStyle}>Are they single (not married or engaged)? *</label>
             <div style={{ display: 'flex', gap: spacing.md }}>
               <button
                 type="button"
-                onClick={() => updateField('contactMethod', 'email')}
-                style={optionButtonStyle(formData.contactMethod === 'email')}
-              >
-                <Mail size={24} />
-                Email
-              </button>
-              <button
-                type="button"
-                onClick={() => updateField('contactMethod', 'phone')}
-                style={optionButtonStyle(formData.contactMethod === 'phone')}
-              >
-                <Phone size={24} />
-                Phone
-              </button>
-            </div>
-          </div>
-
-          {formData.contactMethod === 'email' ? (
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>Email Address *</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => updateField('email', e.target.value)}
-                placeholder="you@example.com"
-                style={{
-                  ...inputStyle,
-                  borderColor: errors.email ? colors.status.error : colors.border.light,
-                }}
-              />
-              {errors.email && (
-                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.email}</p>
-              )}
-            </div>
-          ) : (
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>Phone Number *</label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => updateField('phone', e.target.value)}
-                placeholder="(555) 555-5555"
-                style={{
-                  ...inputStyle,
-                  borderColor: errors.phone ? colors.status.error : colors.border.light,
-                }}
-              />
-              {errors.phone && (
-                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.phone}</p>
-              )}
-            </div>
-          )}
-
-          <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>Instagram Handle *</label>
-            <div style={{ position: 'relative' }}>
-              <Instagram size={18} style={{ position: 'absolute', left: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.text.muted }} />
-              <input
-                type="text"
-                value={formData.instagram}
-                onChange={(e) => updateField('instagram', e.target.value)}
-                placeholder="@yourusername"
-                style={{
-                  ...inputStyle,
-                  paddingLeft: '44px',
-                  borderColor: errors.instagram ? colors.status.error : colors.border.light,
-                }}
-              />
-            </div>
-            {errors.instagram && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.instagram}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Eligibility */}
-      {step === 3 && (
-        <div>
-          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff', marginBottom: spacing.lg }}>
-            Eligibility Check
-          </h3>
-
-          <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>Are you currently single (not married or engaged)? *</label>
-            <div style={{ display: 'flex', gap: spacing.md }}>
-              <button
-                type="button"
-                onClick={() => updateField('relationshipStatus', 'single')}
-                style={optionButtonStyle(formData.relationshipStatus === 'single')}
+                onClick={() => updateField('isSingle', true)}
+                style={optionButtonStyle(formData.isSingle === true)}
               >
                 <Heart size={24} />
-                Yes, I'm Single
+                Yes
               </button>
               <button
                 type="button"
-                onClick={() => updateField('relationshipStatus', 'taken')}
-                style={optionButtonStyle(formData.relationshipStatus === 'taken')}
+                onClick={() => updateField('isSingle', false)}
+                style={optionButtonStyle(formData.isSingle === false)}
               >
                 <Users size={24} />
                 No
               </button>
             </div>
-            {errors.relationshipStatus && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.relationshipStatus}</p>
+            {errors.isSingle && (
+              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                {errors.isSingle}
+              </p>
             )}
           </div>
 
-          {formData.relationshipStatus === 'taken' && (
+          {formData.isSingle === false && (
             <div style={{
               padding: spacing.lg,
               background: 'rgba(248,113,113,0.1)',
@@ -426,21 +500,26 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
               borderRadius: borderRadius.lg,
             }}>
               <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm }}>
-                Unfortunately, contestants must be single to participate. You can still nominate someone else who is eligible!
+                Unfortunately, contestants must be single to participate.
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* Step 4: Nomination Type */}
-      {step === 4 && (
+      {/* Step 2: Nomination Type & Contact */}
+      {step === 2 && (
         <div>
-          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff', marginBottom: spacing.lg }}>
+          <h3 style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.semibold,
+            color: '#fff',
+            marginBottom: spacing.lg
+          }}>
             Who Are You Nominating?
           </h3>
 
-          <div style={{ marginBottom: spacing.lg }}>
+          <div style={{ marginBottom: spacing.xl }}>
             <div style={{ display: 'flex', gap: spacing.md }}>
               <button
                 type="button"
@@ -459,85 +538,185 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
                 Someone Else
               </button>
             </div>
+            {errors.nominationType && (
+              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                {errors.nominationType}
+              </p>
+            )}
           </div>
 
-          {formData.nominationType === 'other' && (
+          {/* Self-nomination: Contact info */}
+          {formData.nominationType === 'self' && (
             <>
+              <h4 style={{
+                fontSize: typography.fontSize.lg,
+                fontWeight: typography.fontWeight.medium,
+                color: '#fff',
+                marginBottom: spacing.md
+              }}>
+                Your Contact Information
+              </h4>
+
               <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Nominee's Full Name *</label>
-                <input
-                  type="text"
-                  value={formData.nomineeName}
-                  onChange={(e) => updateField('nomineeName', e.target.value)}
-                  placeholder="Their full name"
-                  style={{
-                    ...inputStyle,
-                    borderColor: errors.nomineeName ? colors.status.error : colors.border.light,
-                  }}
-                />
-                {errors.nomineeName && (
-                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.nomineeName}</p>
+                <label style={labelStyle}>Email Address *</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={18} style={{
+                    position: 'absolute',
+                    left: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: colors.text.muted
+                  }} />
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => updateField('email', e.target.value)}
+                    placeholder="you@example.com"
+                    style={{
+                      ...inputStyle,
+                      paddingLeft: '44px',
+                      borderColor: errors.email ? colors.status.error : colors.border.light,
+                    }}
+                  />
+                </div>
+                {errors.email && (
+                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                    {errors.email}
+                  </p>
                 )}
               </div>
 
               <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Nominee's Email or Phone *</label>
-                <input
-                  type="text"
-                  value={formData.nomineeContact}
-                  onChange={(e) => updateField('nomineeContact', e.target.value)}
-                  placeholder="How can we reach them?"
-                  style={{
-                    ...inputStyle,
-                    borderColor: errors.nomineeContact ? colors.status.error : colors.border.light,
-                  }}
-                />
-                {errors.nomineeContact && (
-                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.nomineeContact}</p>
+                <label style={labelStyle}>Phone Number *</label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={18} style={{
+                    position: 'absolute',
+                    left: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: colors.text.muted
+                  }} />
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => updateField('phone', e.target.value)}
+                    placeholder="(555) 555-5555"
+                    style={{
+                      ...inputStyle,
+                      paddingLeft: '44px',
+                      borderColor: errors.phone ? colors.status.error : colors.border.light,
+                    }}
+                  />
+                </div>
+                {errors.phone && (
+                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                    {errors.phone}
+                  </p>
+                )}
+              </div>
+
+              <div style={{ marginBottom: spacing.lg }}>
+                <label style={labelStyle}>Instagram Handle *</label>
+                <div style={{ position: 'relative' }}>
+                  <Instagram size={18} style={{
+                    position: 'absolute',
+                    left: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: colors.text.muted
+                  }} />
+                  <input
+                    type="text"
+                    value={formData.instagram}
+                    onChange={(e) => updateField('instagram', e.target.value)}
+                    placeholder="@yourusername"
+                    style={{
+                      ...inputStyle,
+                      paddingLeft: '44px',
+                      borderColor: errors.instagram ? colors.status.error : colors.border.light,
+                    }}
+                  />
+                </div>
+                {errors.instagram && (
+                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                    {errors.instagram}
+                  </p>
                 )}
               </div>
             </>
           )}
+
+          {/* Nominating someone else: Anonymous option */}
+          {formData.nominationType === 'other' && (
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>Do you wish to stay anonymous? *</label>
+              <div style={{ display: 'flex', gap: spacing.md }}>
+                <button
+                  type="button"
+                  onClick={() => updateField('stayAnonymous', true)}
+                  style={optionButtonStyle(formData.stayAnonymous === true)}
+                >
+                  <EyeOff size={24} />
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('stayAnonymous', false)}
+                  style={optionButtonStyle(formData.stayAnonymous === false)}
+                >
+                  <User size={24} />
+                  No
+                </button>
+              </div>
+              {errors.stayAnonymous && (
+                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                  {errors.stayAnonymous}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Step 5: Marketing Opt-in */}
-      {step === 5 && (
+      {/* Step 3: Updates opt-in (ONLY for "other" nominations) */}
+      {step === 3 && formData.nominationType === 'other' && (
         <div>
-          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff', marginBottom: spacing.lg }}>
+          <h3 style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.semibold,
+            color: '#fff',
+            marginBottom: spacing.lg
+          }}>
             Stay Updated
           </h3>
 
-          <div style={{
-            padding: spacing.xl,
-            background: colors.background.card,
-            border: `1px solid ${colors.border.light}`,
-            borderRadius: borderRadius.xl,
-            marginBottom: spacing.xl,
-          }}>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.md, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={formData.optInMarketing}
-                onChange={(e) => updateField('optInMarketing', e.target.checked)}
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  accentColor: colors.gold.primary,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  marginTop: '2px',
-                }}
-              />
-              <div>
-                <p style={{ fontSize: typography.fontSize.md, color: '#fff', fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs }}>
-                  Keep me updated
-                </p>
-                <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.5 }}>
-                  I'd like to receive updates about the competition, nominee status, exclusive events, and special offers from Most Eligible {city}.
-                </p>
-              </div>
+          <div style={{ marginBottom: spacing.lg }}>
+            <label style={labelStyle}>
+              Do you want to receive competition updates to see how your nominee is performing? *
             </label>
+            <div style={{ display: 'flex', gap: spacing.md }}>
+              <button
+                type="button"
+                onClick={() => updateField('wantsUpdates', true)}
+                style={optionButtonStyle(formData.wantsUpdates === true)}
+              >
+                <Bell size={24} />
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => updateField('wantsUpdates', false)}
+                style={optionButtonStyle(formData.wantsUpdates === false)}
+              >
+                <Bell size={24} style={{ opacity: 0.5 }} />
+                No
+              </button>
+            </div>
+            {errors.wantsUpdates && (
+              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                {errors.wantsUpdates}
+              </p>
+            )}
           </div>
 
           <div style={{
@@ -548,12 +727,16 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
               <Sparkles size={18} style={{ color: colors.gold.primary }} />
-              <span style={{ fontSize: typography.fontSize.md, color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>
+              <span style={{
+                fontSize: typography.fontSize.md,
+                color: colors.gold.primary,
+                fontWeight: typography.fontWeight.semibold
+              }}>
                 Ready to Submit
               </span>
             </div>
             <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-              By submitting, you confirm that all information provided is accurate and you agree to our terms and conditions.
+              By submitting, you confirm that all information provided is accurate.
             </p>
           </div>
         </div>
@@ -587,12 +770,12 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         )}
         <Button
           onClick={handleNext}
-          disabled={isSubmitting || (step === 3 && formData.relationshipStatus === 'taken')}
+          disabled={isSubmitting || (step === 1 && formData.isSingle === false)}
           style={{ flex: 1 }}
         >
           {isSubmitting ? (
             'Submitting...'
-          ) : step === 5 ? (
+          ) : step === getTotalSteps() ? (
             <>Submit Nomination</>
           ) : (
             <>Continue <ChevronRight size={18} /></>
