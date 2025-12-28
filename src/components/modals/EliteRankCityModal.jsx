@@ -102,6 +102,8 @@ export default function EliteRankCityModal({
       active: { variant: 'success', label: 'LIVE NOW', icon: null, pulse: true },
       voting: { variant: 'success', label: 'VOTING', icon: null, pulse: true },
       nomination: { variant: 'warning', label: 'NOMINATIONS OPEN', icon: UserPlus },
+      judging: { variant: 'info', label: 'JUDGING', icon: null, pulse: true },
+      setup: { variant: 'default', label: 'SETUP', icon: Clock },
       assigned: { variant: 'warning', label: 'COMING SOON', icon: Clock },
       upcoming: { variant: 'warning', label: 'COMING SOON', icon: Clock },
       completed: { variant: 'secondary', label: 'COMPLETED', icon: Trophy },

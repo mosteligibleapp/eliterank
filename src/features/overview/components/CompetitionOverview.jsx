@@ -4,6 +4,30 @@ import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, shadows } from '../../../styles/theme';
 import { formatNumber } from '../../../utils/formatters';
 
+// Human-readable status labels
+const STATUS_LABELS = {
+  setup: 'Setup',
+  assigned: 'Assigned',
+  nomination: 'Nominations',
+  voting: 'Voting',
+  judging: 'Judging',
+  completed: 'Completed',
+  upcoming: 'Upcoming',
+  active: 'Active',
+};
+
+// Status badge variants
+const STATUS_VARIANTS = {
+  setup: 'default',
+  assigned: 'info',
+  nomination: 'warning',
+  voting: 'success',
+  judging: 'info',
+  completed: 'purple',
+  upcoming: 'default',
+  active: 'success',
+};
+
 export default function CompetitionOverview({ competition, onViewPublicSite }) {
   const panelStyle = {
     background: colors.background.card,
@@ -47,8 +71,8 @@ export default function CompetitionOverview({ competition, onViewPublicSite }) {
               <Crown size={18} style={{ color: colors.gold.primary }} />
               {comp.name || 'Your Competition'}
             </div>
-            <Badge variant="success" pill uppercase>
-              {comp.status}
+            <Badge variant={STATUS_VARIANTS[comp.status] || 'default'} pill uppercase>
+              {STATUS_LABELS[comp.status] || comp.status}
             </Badge>
           </div>
 

@@ -60,7 +60,7 @@ export default function OverviewPage({
           marginBottom: spacing.xxxl,
         }}
       >
-        <CurrentPhaseCard events={events} />
+        <CurrentPhaseCard competition={hostCompetition} />
         <TrafficCard />
         <UpcomingCard events={events} />
       </div>

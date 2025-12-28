@@ -3,6 +3,30 @@ import { Edit, MapPin, Star, FileText, Heart, Camera, Globe, Trophy } from 'luci
 import { Panel, Button, Badge, InterestTag } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 
+// Human-readable status labels
+const STATUS_LABELS = {
+  setup: 'Setup',
+  assigned: 'Assigned',
+  nomination: 'Nomination Phase',
+  voting: 'Voting Phase',
+  judging: 'Judging Phase',
+  completed: 'Completed',
+  upcoming: 'Upcoming',
+  active: 'Active',
+};
+
+// Status badge variants
+const STATUS_VARIANTS = {
+  setup: 'default',
+  assigned: 'info',
+  nomination: 'warning',
+  voting: 'success',
+  judging: 'info',
+  completed: 'purple',
+  upcoming: 'default',
+  active: 'success',
+};
+
 export default function ProfileView({ hostProfile, onEdit, hostCompetition }) {
   if (!hostProfile) return null;
 
@@ -242,10 +266,10 @@ export default function ProfileView({ hostProfile, onEdit, hostCompetition }) {
                   </span>
                 </div>
                 <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary, marginBottom: spacing.md }}>
-                  {hostCompetition ? `Season ${hostCompetition.season || '2025'} • ${hostCompetition.status || 'Upcoming'}` : 'Contact admin to be assigned'}
+                  {hostCompetition ? `Season ${hostCompetition.season || '2025'} • ${STATUS_LABELS[hostCompetition.status] || 'Upcoming'}` : 'Contact admin to be assigned'}
                 </p>
-                <Badge variant={hostCompetition ? 'success' : 'warning'} size="md" pill>
-                  ● {hostCompetition?.status?.toUpperCase() || 'PENDING'}
+                <Badge variant={hostCompetition ? (STATUS_VARIANTS[hostCompetition.status] || 'success') : 'warning'} size="md" pill>
+                  ● {hostCompetition ? (STATUS_LABELS[hostCompetition.status] || hostCompetition.status)?.toUpperCase() : 'PENDING'}
                 </Badge>
               </div>
             </div>
