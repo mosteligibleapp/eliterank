@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 
 // Layout components
 import { MainLayout, PageHeader } from './components/layout';
@@ -45,6 +46,9 @@ import {
 } from './constants';
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // View state - 'public' is default, 'login' for auth, 'dashboard' for admin views
   const [currentView, setCurrentView] = useState('public');
 
@@ -117,6 +121,49 @@ export default function App() {
     fetchHostCompetition();
   }, [user?.id]);
 
+  // Handle initial URL on app load - check if /c/:citySlug
+  useEffect(() => {
+    const handleInitialUrl = async () => {
+      const match = location.pathname.match(/^\/c\/([^/]+)\/?$/);
+
+      if (match && supabase) {
+        const slug = match[1];
+        const cityName = slugToCity(slug);
+
+        // Try to find the competition by city name
+        const { data: competitions, error } = await supabase
+          .from('competitions')
+          .select('*')
+          .ilike('city', `%${cityName}%`)
+          .limit(1);
+
+        if (!error && competitions?.[0]) {
+          const competition = competitions[0];
+          setSelectedCompetition({
+            id: competition.id,
+            city: competition.city,
+            season: competition.season || '2026',
+            phase: competition.status === 'active' ? 'voting' : competition.status,
+            status: competition.status,
+            host: null,
+            winners: [],
+            isTeaser: competition.status !== 'active',
+            nomination_start: competition.nomination_start,
+            nomination_end: competition.nomination_end,
+            voting_start: competition.voting_start,
+            voting_end: competition.voting_end,
+            finals_date: competition.finals_date,
+          });
+          setShowPublicSite(true);
+        }
+      }
+
+      setInitialUrlHandled(true);
+    };
+
+    handleInitialUrl();
+  }, []); // Only run once on mount
+
   // Modal management (custom hook)
   const {
     judgeModal,
@@ -142,6 +189,13 @@ export default function App() {
     closeEliteRankCity,
   } = useModals();
 
+  // URL helpers
+  const cityToSlug = (city) => city?.toLowerCase().replace(/\s+/g, '-') || '';
+  const slugToCity = (slug) => slug?.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || '';
+
+  // State to track if we've handled the initial URL
+  const [initialUrlHandled, setInitialUrlHandled] = useState(false);
+
   // Navigation state
   const [activeTab, setActiveTab] = useState('overview');
   const [showPublicSite, setShowPublicSite] = useState(false);
@@ -160,6 +214,21 @@ export default function App() {
     voting_end: null,
     finals_date: null,
   });
+
+  // URL sync: Update URL when competition is opened/closed
+  useEffect(() => {
+    if (!initialUrlHandled) return; // Don't sync until initial URL is handled
+
+    if (showPublicSite && selectedCompetition.city) {
+      const slug = cityToSlug(selectedCompetition.city);
+      const targetPath = `/c/${slug}`;
+      if (location.pathname !== targetPath) {
+        navigate(targetPath, { replace: true });
+      }
+    } else if (!showPublicSite && location.pathname.startsWith('/c/')) {
+      navigate('/', { replace: true });
+    }
+  }, [showPublicSite, selectedCompetition.city, initialUrlHandled, location.pathname, navigate]);
 
   // Data state
   const [nominees, setNominees] = useState(INITIAL_NOMINEES);
@@ -444,11 +513,13 @@ export default function App() {
             events={events}
             competitionRankings={COMPETITION_RANKINGS}
             onViewPublicSite={() => {
-              const cityName = hostCompetition?.name?.split(' ')[0] || 'Your City';
+              const cityName = hostCompetition?.city || hostCompetition?.name?.split(' ')[0] || 'Your City';
               setSelectedCompetition({
+                id: hostCompetition?.id,
                 city: cityName,
                 season: hostCompetition?.season || '2026',
                 phase: hostCompetition?.status || 'voting',
+                status: hostCompetition?.status,
                 host: {
                   name: `${hostProfile.firstName} ${hostProfile.lastName}`.trim() || 'Host',
                   title: 'Competition Host',
@@ -457,9 +528,15 @@ export default function App() {
                   twitter: hostProfile.twitter,
                   linkedin: hostProfile.linkedin,
                 },
-                winners: []
+                winners: [],
+                nomination_start: hostCompetition?.nomination_start,
+                nomination_end: hostCompetition?.nomination_end,
+                voting_start: hostCompetition?.voting_start,
+                voting_end: hostCompetition?.voting_end,
+                finals_date: hostCompetition?.finals_date,
               });
               setShowPublicSite(true);
+              navigate(`/c/${cityToSlug(cityName)}`);
             }}
             onViewEliteRankCity={openEliteRankCity}
           />
@@ -607,7 +684,10 @@ export default function App() {
         {/* Public Site Preview */}
         <PublicSitePage
           isOpen={showPublicSite}
-          onClose={() => setShowPublicSite(false)}
+          onClose={() => {
+            setShowPublicSite(false);
+            navigate('/', { replace: true });
+          }}
           city={selectedCompetition.city}
           season={selectedCompetition.season}
           phase={selectedCompetition.phase}
@@ -689,6 +769,7 @@ export default function App() {
               finals_date: competition.finals_date,
             });
             setShowPublicSite(true);
+            navigate(`/c/${cityToSlug(competition.city)}`);
           }}
         />
       </>
@@ -719,6 +800,7 @@ export default function App() {
             finals_date: competition.finals_date,
           });
           setShowPublicSite(true);
+          navigate(`/c/${cityToSlug(competition.city)}`);
         }}
         onLogin={handleShowLogin}
         onDashboard={isAuthenticated && (userRole === 'host' || userRole === 'super_admin') ? handleGoToDashboard : null}
@@ -731,7 +813,10 @@ export default function App() {
       {/* Public Site Preview for specific competition */}
       <PublicSitePage
         isOpen={showPublicSite}
-        onClose={() => setShowPublicSite(false)}
+        onClose={() => {
+          setShowPublicSite(false);
+          navigate('/', { replace: true });
+        }}
         city={selectedCompetition.city}
         season={selectedCompetition.season}
         phase={selectedCompetition.phase}

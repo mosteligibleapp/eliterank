@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Building, Calendar, Plus, Edit, Trash2, Check, Info, Link, Image, Clock, UserPlus, Vote, Trophy, Save, Loader } from 'lucide-react';
+import { Award, Building, Calendar, Plus, Edit, Trash2, Check, Info, Link, Image, Clock, UserPlus, Vote, Trophy, Save, Loader, AlertCircle, Zap } from 'lucide-react';
 import { Panel, Avatar, Badge, Button } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { formatCurrency, formatEventDateRange } from '../../utils/formatters';
 import { supabase } from '../../lib/supabase';
+import { computeCompetitionPhase, COMPETITION_STATUSES } from '../../utils/competitionPhase';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function SettingsPage({
   judges,
@@ -20,6 +22,8 @@ export default function SettingsPage({
   onShowSponsorInfo,
   onCompetitionUpdate,
 }) {
+  const toast = useToast();
+
   // Timeline editing state
   const [editingTimeline, setEditingTimeline] = useState(false);
   const [savingTimeline, setSavingTimeline] = useState(false);
@@ -93,13 +97,14 @@ export default function SettingsPage({
       if (error) throw error;
 
       setEditingTimeline(false);
+      toast.success('Timeline saved successfully!');
       // Notify parent to refresh competition data
       if (onCompetitionUpdate) {
         onCompetitionUpdate();
       }
     } catch (err) {
       console.error('Error saving timeline:', err);
-      alert('Failed to save timeline. Please try again.');
+      toast.error('Failed to save timeline. Please try again.');
     } finally {
       setSavingTimeline(false);
     }
@@ -117,6 +122,68 @@ export default function SettingsPage({
 
   return (
     <div>
+      {/* Competition Status Banner */}
+      {hostCompetition && (
+        <div style={{
+          padding: spacing.lg,
+          marginBottom: spacing.xl,
+          borderRadius: borderRadius.xl,
+          background: hostCompetition.status === COMPETITION_STATUSES.ACTIVE
+            ? 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))'
+            : hostCompetition.status === COMPETITION_STATUSES.PUBLISH
+              ? 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05))'
+              : 'linear-gradient(135deg, rgba(100,100,100,0.15), rgba(100,100,100,0.05))',
+          border: `1px solid ${
+            hostCompetition.status === COMPETITION_STATUSES.ACTIVE
+              ? 'rgba(34,197,94,0.3)'
+              : hostCompetition.status === COMPETITION_STATUSES.PUBLISH
+                ? 'rgba(251,191,36,0.3)'
+                : 'rgba(100,100,100,0.3)'
+          }`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+              {hostCompetition.status === COMPETITION_STATUSES.ACTIVE ? (
+                <Zap size={24} style={{ color: '#22c55e' }} />
+              ) : (
+                <AlertCircle size={24} style={{ color: hostCompetition.status === COMPETITION_STATUSES.PUBLISH ? '#fbbf24' : colors.text.muted }} />
+              )}
+              <div>
+                <p style={{
+                  fontSize: typography.fontSize.lg,
+                  fontWeight: typography.fontWeight.semibold,
+                  color: hostCompetition.status === COMPETITION_STATUSES.ACTIVE ? '#22c55e' : hostCompetition.status === COMPETITION_STATUSES.PUBLISH ? '#fbbf24' : colors.text.secondary,
+                  marginBottom: spacing.xs,
+                }}>
+                  {hostCompetition.status === COMPETITION_STATUSES.ACTIVE
+                    ? `Competition is LIVE — Current Phase: ${computeCompetitionPhase(hostCompetition).toUpperCase()}`
+                    : hostCompetition.status === COMPETITION_STATUSES.PUBLISH
+                      ? 'Competition is Published (Coming Soon)'
+                      : hostCompetition.status === COMPETITION_STATUSES.COMPLETE
+                        ? 'Competition Complete'
+                        : 'Competition is in Draft Mode'}
+                </p>
+                <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                  {hostCompetition.status === COMPETITION_STATUSES.ACTIVE
+                    ? 'Your timeline dates are active and controlling the competition phases.'
+                    : hostCompetition.status === COMPETITION_STATUSES.PUBLISH
+                      ? 'Visible to public as "Coming Soon". Contact admin to activate when ready.'
+                      : hostCompetition.status === COMPETITION_STATUSES.COMPLETE
+                        ? 'Winners have been announced.'
+                        : 'Timeline dates are saved but not active. Contact admin to publish or activate.'}
+                </p>
+              </div>
+            </div>
+            <Badge
+              variant={hostCompetition.status === COMPETITION_STATUSES.ACTIVE ? 'success' : hostCompetition.status === COMPETITION_STATUSES.PUBLISH ? 'warning' : 'secondary'}
+              size="lg"
+            >
+              {hostCompetition.status?.toUpperCase() || 'DRAFT'}
+            </Badge>
+          </div>
+        </div>
+      )}
+
       {/* Competition Timeline Section */}
       {hostCompetition && (
         <Panel

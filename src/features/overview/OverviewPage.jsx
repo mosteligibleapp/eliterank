@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe } from 'lucide-react';
+import { Globe, Eye } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import RevenueCard from './components/RevenueCard';
 import HostPayoutCard from './components/HostPayoutCard';
@@ -74,16 +74,49 @@ export default function OverviewPage({
       {/* Leaderboard */}
       <Leaderboard contestants={contestants} title={`${cityName} Top Contestants`} />
 
-      {/* Footer */}
+      {/* Footer Actions */}
       <div
         style={{
           marginTop: spacing.xxxl,
           paddingTop: spacing.xl,
           borderTop: `1px solid ${colors.border.light}`,
           display: 'flex',
-          justifyContent: 'center',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: spacing.lg,
         }}
       >
+        {/* Preview My Competition Button */}
+        {hostCompetition && onViewPublicSite && (
+          <button
+            onClick={onViewPublicSite}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.1))',
+              border: `1px solid ${colors.gold.primary}`,
+              borderRadius: borderRadius.pill,
+              padding: `${spacing.lg} ${spacing.xxl}`,
+              color: colors.gold.primary,
+              fontSize: typography.fontSize.md,
+              fontWeight: typography.fontWeight.semibold,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.2))';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.1))';
+            }}
+          >
+            <Eye size={18} />
+            Preview My Competition as Public
+          </button>
+        )}
+
+        {/* View All Competitions */}
         <button
           onClick={onViewEliteRankCity}
           style={{
@@ -91,24 +124,26 @@ export default function OverviewPage({
             alignItems: 'center',
             gap: spacing.sm,
             background: 'transparent',
-            border: `1px solid ${colors.border.gold}`,
+            border: `1px solid ${colors.border.light}`,
             borderRadius: borderRadius.pill,
             padding: `${spacing.md} ${spacing.xl}`,
-            color: colors.gold.primary,
+            color: colors.text.secondary,
             fontSize: typography.fontSize.sm,
             fontWeight: typography.fontWeight.medium,
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
+            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+            e.currentTarget.style.color = colors.text.primary;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = colors.text.secondary;
           }}
         >
           <Globe size={16} />
-          View Elite Rank City - All Competitions
+          View All Competitions
         </button>
       </div>
     </div>

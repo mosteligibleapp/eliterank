@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users, Star,
-  Ticket, Activity, Info, Briefcase, UserPlus, Loader
+  Ticket, Activity, Info, Briefcase, UserPlus, Loader, Search, Filter
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -37,6 +37,8 @@ export default function EliteRankCityModal({
   const [competitions, setCompetitions] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'upcoming', 'complete'
 
   // Fetch competitions and organizations from Supabase
   useEffect(() => {
@@ -103,8 +105,37 @@ export default function EliteRankCityModal({
 
   if (!isOpen) return null;
 
-  // Filter to only show visible competitions (publish, active, complete)
-  const visibleCompetitions = competitions.filter(c => c.visible);
+  // Filter competitions based on visibility, search, and status filter
+  const visibleCompetitions = competitions.filter(c => {
+    // Must be visible (publish, active, or complete status)
+    if (!c.visible) return false;
+
+    // Apply search filter (city name)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      if (!c.city?.toLowerCase().includes(query) && !c.name?.toLowerCase().includes(query)) {
+        return false;
+      }
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'active') {
+        // Show competitions with active timeline phases (nomination, voting, judging)
+        return c.status === COMPETITION_STATUSES.ACTIVE && ['nomination', 'voting', 'judging'].includes(c.phase);
+      }
+      if (statusFilter === 'upcoming') {
+        // Show published (coming soon) competitions
+        return c.status === COMPETITION_STATUSES.PUBLISH;
+      }
+      if (statusFilter === 'complete') {
+        // Show completed competitions
+        return c.status === COMPETITION_STATUSES.COMPLETE || c.phase === 'completed';
+      }
+    }
+
+    return true;
+  });
 
   const handleCompetitionClick = (competition) => {
     if (competition.accessible && onOpenCompetition) {
@@ -137,24 +168,11 @@ export default function EliteRankCityModal({
     const isAccessible = competition.accessible;
     const isPublished = competition.status === COMPETITION_STATUSES.PUBLISH;
 
-    // Get display config based on status/phase
+    // Get display config based on computed phase (uses centralized config for consistency)
     const displayPhase = isAccessible ? competition.phase : competition.status;
     const config = getPhaseDisplayConfig(displayPhase);
 
-    // Map variant to actual colors for badge
-    const statusConfig = {
-      draft: { variant: 'secondary', label: 'DRAFT', icon: null },
-      publish: { variant: 'warning', label: 'COMING SOON', icon: Clock },
-      active: { variant: 'success', label: config.label, icon: null, pulse: config.pulse },
-      complete: { variant: 'gold', label: 'COMPLETE', icon: Trophy },
-      // Timeline phases (when status is active)
-      nomination: { variant: 'warning', label: 'NOMINATIONS OPEN', icon: UserPlus },
-      voting: { variant: 'success', label: 'VOTING LIVE', icon: null, pulse: true },
-      judging: { variant: 'info', label: 'JUDGING', icon: null, pulse: true },
-      completed: { variant: 'gold', label: 'COMPLETE', icon: Trophy },
-    };
-
-    const status = statusConfig[displayPhase] || statusConfig.publish;
+    // The config contains: variant, label, icon (name), pulse, description
     const isClickable = isAccessible || isPublished;
 
     return (
@@ -185,13 +203,12 @@ export default function EliteRankCityModal({
           flexDirection: 'column',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg }}>
-            <Badge variant={status.variant} size="md" pill>
+            <Badge variant={config.variant} size="md" pill>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {status.pulse && (
+                {config.pulse && (
                   <span style={{ width: '8px', height: '8px', background: '#4ade80', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
                 )}
-                {status.icon && <status.icon size={12} />}
-                {status.label}
+                {config.label}
               </span>
             </Badge>
             <OrganizationLogo logo={getOrganizationLogo(competition.organizationId)} size={40} />
@@ -302,6 +319,78 @@ export default function EliteRankCityModal({
             </section>
 
             <section style={{ padding: `0 ${spacing.xxl} ${spacing.xxxl}`, maxWidth: '1400px', margin: '0 auto' }}>
+              {/* Search and Filter */}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: spacing.md,
+                marginBottom: spacing.xl,
+                alignItems: 'center',
+              }}>
+                {/* Search Input */}
+                <div style={{
+                  flex: '1 1 300px',
+                  position: 'relative',
+                }}>
+                  <Search
+                    size={18}
+                    style={{
+                      position: 'absolute',
+                      left: spacing.md,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: colors.text.muted,
+                    }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search by city..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: `${spacing.md} ${spacing.md} ${spacing.md} ${spacing.xxxl}`,
+                      background: colors.background.secondary,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.lg,
+                      color: '#fff',
+                      fontSize: typography.fontSize.md,
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                {/* Status Filter Buttons */}
+                <div style={{ display: 'flex', gap: spacing.sm }}>
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'active', label: 'Live Now' },
+                    { id: 'upcoming', label: 'Coming Soon' },
+                    { id: 'complete', label: 'Completed' },
+                  ].map((filter) => (
+                    <button
+                      key={filter.id}
+                      onClick={() => setStatusFilter(filter.id)}
+                      style={{
+                        padding: `${spacing.sm} ${spacing.lg}`,
+                        background: statusFilter === filter.id
+                          ? 'rgba(212,175,55,0.2)'
+                          : colors.background.secondary,
+                        border: `1px solid ${statusFilter === filter.id ? colors.gold.primary : colors.border.light}`,
+                        borderRadius: borderRadius.lg,
+                        color: statusFilter === filter.id ? colors.gold.primary : colors.text.secondary,
+                        fontSize: typography.fontSize.sm,
+                        fontWeight: typography.fontWeight.medium,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {visibleCompetitions.length > 0 ? (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
@@ -320,10 +409,24 @@ export default function EliteRankCityModal({
               ) : (
                 <div style={{ textAlign: 'center', padding: spacing.xxxl, background: colors.background.card, borderRadius: borderRadius.xxl, border: `1px solid ${colors.border.light}` }}>
                   <Crown size={48} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
-                  <h3 style={{ fontSize: typography.fontSize.xl, color: '#fff', marginBottom: spacing.sm }}>No Competitions Yet</h3>
+                  <h3 style={{ fontSize: typography.fontSize.xl, color: '#fff', marginBottom: spacing.sm }}>
+                    {searchQuery || statusFilter !== 'all' ? 'No Matching Competitions' : 'No Competitions Yet'}
+                  </h3>
                   <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary }}>
-                    Check back soon for upcoming competitions in your city!
+                    {searchQuery || statusFilter !== 'all'
+                      ? 'Try adjusting your search or filter criteria.'
+                      : 'Check back soon for upcoming competitions in your city!'}
                   </p>
+                  {(searchQuery || statusFilter !== 'all') && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}
+                      style={{ marginTop: spacing.lg, width: 'auto' }}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
                 </div>
               )}
             </section>

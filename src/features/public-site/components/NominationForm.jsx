@@ -3,8 +3,10 @@ import { Crown, User, Phone, Mail, Instagram, MapPin, Heart, Users, Check, Chevr
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function NominationForm({ city, competitionId, onSubmit, onClose, userEmail, userInstagram }) {
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     // Step 1: Nominee info
@@ -141,10 +143,13 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
 
       setNomineeId(data.id);
       setIsSuccess(true);
+      toast.success('Nomination submitted successfully!');
       if (onSubmit) onSubmit({ ...formData, nomineeId: data.id });
     } catch (err) {
       console.error('Error submitting nomination:', err);
-      setSubmitError(err.message || 'Failed to submit nomination. Please try again.');
+      const errorMessage = err.message || 'Failed to submit nomination. Please try again.';
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

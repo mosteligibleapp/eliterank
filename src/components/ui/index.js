@@ -7,3 +7,4 @@ export { default as Card, Panel, StatCard } from './Card';
 export { Input, Textarea, Select, FormSection, FormGrid } from './Input';
 export { default as InterestTag, HobbySelector } from './InterestTag';
 export { default as OrganizationLogo } from './OrganizationLogo';
+export { Toast, ToastContainer } from './Toast';
