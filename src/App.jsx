@@ -150,8 +150,15 @@ export default function App() {
     city: 'New York',
     season: '2026',
     phase: 'voting',
+    status: 'active',
     host: null,
-    winners: []
+    winners: [],
+    isTeaser: false,
+    nomination_start: null,
+    nomination_end: null,
+    voting_start: null,
+    voting_end: null,
+    finals_date: null,
   });
 
   // Data state
@@ -671,8 +678,15 @@ export default function App() {
               city: competition.city,
               season: competition.season || '2026',
               phase: competition.phase || 'voting',
+              status: competition.status,
               host: competition.host || null,
               winners: competition.winners || [],
+              isTeaser: competition.isTeaser || false,
+              nomination_start: competition.nomination_start,
+              nomination_end: competition.nomination_end,
+              voting_start: competition.voting_start,
+              voting_end: competition.voting_end,
+              finals_date: competition.finals_date,
             });
             setShowPublicSite(true);
           }}
