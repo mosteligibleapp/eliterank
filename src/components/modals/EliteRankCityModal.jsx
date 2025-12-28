@@ -138,17 +138,28 @@ export default function EliteRankCityModal({
   });
 
   const handleCompetitionClick = (competition) => {
+    console.log('[EliteRankCityModal] Competition clicked:', {
+      id: competition.id,
+      city: competition.city,
+      status: competition.status,
+      accessible: competition.accessible,
+    });
+
     if (competition.accessible && onOpenCompetition) {
       // Full access - open the full competition page
+      console.log('[EliteRankCityModal] Opening accessible competition');
       onOpenCompetition(competition);
     } else if (competition.status === COMPETITION_STATUSES.PUBLISH) {
       // Teaser - open teaser page or handle inline
+      console.log('[EliteRankCityModal] Opening published competition as teaser');
       if (onOpenTeaser) {
         onOpenTeaser(competition);
       } else if (onOpenCompetition) {
         // Fallback: pass competition with teaser flag
         onOpenCompetition({ ...competition, isTeaser: true });
       }
+    } else {
+      console.log('[EliteRankCityModal] Competition not clickable - status:', competition.status);
     }
   };
 
