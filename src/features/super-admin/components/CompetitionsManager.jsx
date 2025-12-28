@@ -2,12 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
   ChevronDown, Check, X, Eye, Building2, Trophy, Vote, Scale,
-  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft, DollarSign, Save, Loader, Upload, Image
+  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft, DollarSign, Save, Loader, Upload, Image, Archive
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useCompetitionManager } from '../hooks';
 import { supabase } from '../../../lib/supabase';
+import { DeleteCompetitionModal } from '../../../components/modals';
+import {
+  getStatusOptions,
+  validateStatusChange,
+  COMPETITION_STATUSES as STATUS_CONSTANTS,
+  computeCompetitionPhase
+} from '../../../utils/competitionPhase';
 
 // Emoji options for new organizations
 const LOGO_OPTIONS = ['👑', '✨', '💪', '⭐', '🏆', '🎭', '💎', '🌟', '🎯', '🔥', '💫', '🎪'];
@@ -52,26 +59,24 @@ const AVAILABLE_CITIES = [
 ];
 
 const statusStyles = {
-  setup: { bg: 'rgba(100,100,100,0.2)', color: colors.text.secondary, label: 'Setup' },
+  // New super admin controlled statuses
   draft: { bg: 'rgba(100,100,100,0.2)', color: colors.text.secondary, label: 'Draft' },
-  upcoming: { bg: 'rgba(100,100,100,0.2)', color: colors.text.secondary, label: 'Upcoming' },
-  assigned: { bg: 'rgba(59,130,246,0.2)', color: '#3b82f6', label: 'Host Assigned' },
+  publish: { bg: 'rgba(212,175,55,0.2)', color: '#d4af37', label: 'Published' },
   active: { bg: 'rgba(34,197,94,0.2)', color: '#22c55e', label: 'Active' },
+  complete: { bg: 'rgba(139,92,246,0.2)', color: '#8b5cf6', label: 'Complete' },
+  archive: { bg: 'rgba(100,100,100,0.2)', color: colors.text.muted, label: 'Archived' },
+  // Timeline phases (displayed when status is active)
   nomination: { bg: 'rgba(212,175,55,0.2)', color: '#d4af37', label: 'Nominations' },
-  voting: { bg: 'rgba(139,92,246,0.2)', color: '#8b5cf6', label: 'Voting' },
+  voting: { bg: 'rgba(34,197,94,0.2)', color: '#22c55e', label: 'Voting' },
   judging: { bg: 'rgba(59,130,246,0.2)', color: '#3b82f6', label: 'Judging' },
-  completed: { bg: 'rgba(34,197,94,0.2)', color: '#22c55e', label: 'Completed' },
+  completed: { bg: 'rgba(139,92,246,0.2)', color: '#8b5cf6', label: 'Completed' },
+  // Legacy fallbacks
+  setup: { bg: 'rgba(100,100,100,0.2)', color: colors.text.secondary, label: 'Setup' },
+  assigned: { bg: 'rgba(59,130,246,0.2)', color: '#3b82f6', label: 'Host Assigned' },
 };
 
-// Available statuses for dropdown
-const COMPETITION_STATUSES = [
-  { id: 'setup', label: 'Setup', description: 'Competition is being configured' },
-  { id: 'assigned', label: 'Host Assigned', description: 'Host has been assigned, awaiting activation' },
-  { id: 'nomination', label: 'Nominations', description: 'Accepting nominations from the public' },
-  { id: 'voting', label: 'Voting', description: 'Public voting is open' },
-  { id: 'judging', label: 'Judging', description: 'Judges are evaluating contestants' },
-  { id: 'completed', label: 'Completed', description: 'Competition has ended' },
-];
+// Available statuses for dropdown (uses utility function)
+const ADMIN_STATUS_OPTIONS = getStatusOptions();
 
 
 const WIZARD_STEPS = [
@@ -114,6 +119,13 @@ export default function CompetitionsManager({ onViewDashboard }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [editStep, setEditStep] = useState(1);
+
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [competitionToDelete, setCompetitionToDelete] = useState(null);
+
+  // Status validation error
+  const [statusError, setStatusError] = useState(null);
 
   const [newTemplate, setNewTemplate] = useState({
     organization: null,
@@ -272,10 +284,30 @@ export default function CompetitionsManager({ onViewDashboard }) {
     await activateCompetition(templateId);
   };
 
-  const handleDelete = async (templateId) => {
-    if (window.confirm('Are you sure you want to delete this competition?')) {
-      await deleteCompetition(templateId);
+  const handleDelete = (template) => {
+    setCompetitionToDelete(template);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirmed = async (competitionId) => {
+    await deleteCompetition(competitionId);
+    setShowDeleteModal(false);
+    setCompetitionToDelete(null);
+  };
+
+  // Handle status change with validation
+  const handleStatusChange = (newStatus) => {
+    setStatusError(null);
+
+    // Validate the status change
+    const validation = validateStatusChange(editingTemplate, newStatus);
+
+    if (!validation.valid) {
+      setStatusError(validation.error);
+      return;
     }
+
+    setEditingTemplate({ ...editingTemplate, status: newStatus });
   };
 
   // Open edit modal with pre-populated data
@@ -1331,7 +1363,11 @@ export default function CompetitionsManager({ onViewDashboard }) {
       ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: spacing.xl }}>
         {templates.map((template) => {
-          const status = statusStyles[template.status];
+          // For active competitions, show the computed phase; otherwise show the status
+          const displayPhase = template.status === STATUS_CONSTANTS.ACTIVE
+            ? computeCompetitionPhase(template)
+            : template.status;
+          const status = statusStyles[displayPhase] || statusStyles.draft;
           const CategoryIcon = getCategoryIcon(template.category);
           const categoryColor = getCategoryColor(template.category);
 
@@ -1348,7 +1384,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
               {/* Card Header */}
               <div style={{
                 padding: spacing.lg,
-                background: template.status === 'active'
+                background: template.status === STATUS_CONSTANTS.ACTIVE
                   ? 'linear-gradient(135deg, rgba(34,197,94,0.1), transparent)'
                   : `linear-gradient(135deg, ${categoryColor}15, transparent)`,
                 borderBottom: `1px solid ${colors.border.light}`,
@@ -1502,7 +1538,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
                     variant="secondary"
                     size="sm"
                     icon={Trash2}
-                    onClick={() => handleDelete(template.id)}
+                    onClick={() => handleDelete(template)}
                     style={{ width: '40px', padding: spacing.sm }}
                   />
                 </div>
@@ -1825,17 +1861,18 @@ export default function CompetitionsManager({ onViewDashboard }) {
                 <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
                   Competition Status
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.sm }}>
-                  {COMPETITION_STATUSES.map((status) => {
-                    const style = statusStyles[status.id] || statusStyles.setup;
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: spacing.sm }}>
+                  {ADMIN_STATUS_OPTIONS.map((status) => {
+                    const style = statusStyles[status.value] || statusStyles.draft;
+                    const isSelected = editingTemplate.status === status.value;
                     return (
                       <div
-                        key={status.id}
-                        onClick={() => setEditingTemplate({ ...editingTemplate, status: status.id })}
+                        key={status.value}
+                        onClick={() => handleStatusChange(status.value)}
                         style={{
                           padding: spacing.md,
-                          background: editingTemplate.status === status.id ? style.bg : colors.background.secondary,
-                          border: `2px solid ${editingTemplate.status === status.id ? style.color : colors.border.light}`,
+                          background: isSelected ? style.bg : colors.background.secondary,
+                          border: `2px solid ${isSelected ? style.color : colors.border.light}`,
                           borderRadius: borderRadius.lg,
                           cursor: 'pointer',
                           transition: 'all 0.2s',
@@ -1844,7 +1881,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
                         <p style={{
                           fontSize: typography.fontSize.sm,
                           fontWeight: typography.fontWeight.semibold,
-                          color: editingTemplate.status === status.id ? style.color : '#fff',
+                          color: isSelected ? style.color : '#fff',
                           marginBottom: spacing.xs,
                         }}>
                           {status.label}
@@ -1856,6 +1893,34 @@ export default function CompetitionsManager({ onViewDashboard }) {
                     );
                   })}
                 </div>
+                {/* Status validation error */}
+                {statusError && (
+                  <div style={{
+                    marginTop: spacing.sm,
+                    padding: spacing.md,
+                    background: 'rgba(239,68,68,0.1)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: borderRadius.md,
+                  }}>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.status.error }}>
+                      {statusError}
+                    </p>
+                  </div>
+                )}
+                {/* Show current timeline phase when active */}
+                {editingTemplate.status === STATUS_CONSTANTS.ACTIVE && (
+                  <div style={{
+                    marginTop: spacing.sm,
+                    padding: spacing.md,
+                    background: 'rgba(34,197,94,0.1)',
+                    border: '1px solid rgba(34,197,94,0.3)',
+                    borderRadius: borderRadius.md,
+                  }}>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.status.success }}>
+                      Current Phase: <strong>{computeCompetitionPhase(editingTemplate)}</strong> (based on timeline dates)
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Competition Timeline */}
@@ -2334,6 +2399,17 @@ export default function CompetitionsManager({ onViewDashboard }) {
           </div>
         </div>
       )}
+
+      {/* Delete Competition Modal */}
+      <DeleteCompetitionModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setCompetitionToDelete(null);
+        }}
+        competition={competitionToDelete}
+        onDeleted={handleDeleteConfirmed}
+      />
     </div>
   );
 }

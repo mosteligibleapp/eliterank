@@ -9,6 +9,7 @@ import AboutTab from './components/AboutTab';
 import NominationTab from './components/NominationTab';
 import WinnersTab from './components/WinnersTab';
 import VoteModal from './components/VoteModal';
+import CompetitionTeaser from './components/CompetitionTeaser';
 
 const VOTING_TABS = [
   { id: 'contestants', label: 'Contestants', icon: Users },
@@ -50,13 +51,30 @@ export default function PublicSitePage({
   onLogin, // Callback to trigger login flow
   userEmail, // User's email for pre-filling forms
   userInstagram, // User's instagram for pre-filling forms
+  user, // Full user object for forms
 }) {
+  // Check if this is a teaser page (publish status)
+  const isTeaser = competition?.isTeaser || competition?.status === 'publish';
+
+  // If teaser mode, render the teaser component
+  if (isOpen && isTeaser) {
+    return (
+      <CompetitionTeaser
+        competition={competition}
+        onClose={onClose}
+        isAuthenticated={isAuthenticated}
+        onLogin={onLogin}
+        user={user}
+      />
+    );
+  }
+
   // Determine phase categories
   const isSetupPhase = phase === 'setup' || phase === 'assigned';
   const isNominationPhase = phase === 'nomination';
   const isVotingPhase = phase === 'voting' || phase === 'active';
   const isJudgingPhase = phase === 'judging';
-  const isCompletedPhase = phase === 'completed';
+  const isCompletedPhase = phase === 'completed' || phase === 'complete';
 
   // Determine which tabs to show based on phase
   let TABS;

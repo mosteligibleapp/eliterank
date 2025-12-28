@@ -689,8 +689,15 @@ export default function App() {
             city: competition.city,
             season: competition.season || '2026',
             phase: competition.phase || 'voting',
+            status: competition.status,
             host: competition.host || null,
             winners: competition.winners || [],
+            isTeaser: competition.isTeaser || false,
+            nomination_start: competition.nomination_start,
+            nomination_end: competition.nomination_end,
+            voting_start: competition.voting_start,
+            voting_end: competition.voting_end,
+            finals_date: competition.finals_date,
           });
           setShowPublicSite(true);
         }}
@@ -721,6 +728,7 @@ export default function App() {
         onLogin={handleShowLogin}
         userEmail={user?.email}
         userInstagram={profile?.instagram}
+        user={user}
       />
     </>
   );

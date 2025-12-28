@@ -1,34 +1,63 @@
 /**
  * Competition Phase Utilities
  *
- * Computes the current phase of a competition based on timeline dates.
- * Timeline dates are the source of truth for phase transitions.
+ * New Status System (controlled by super admin):
+ * - draft: Not viewable on public page
+ * - publish: Viewable with "Coming Soon" teaser, shows Apply to Host / Sponsor forms
+ * - active: Follows timeline dates (nomination → voting → judging → complete)
+ * - complete: Competition over, winners displayed
+ * - archive: Hidden from public but data preserved
+ *
+ * Timeline dates are the source of truth ONLY when status is "active"
  */
+
+// Valid super admin statuses
+export const COMPETITION_STATUSES = {
+  DRAFT: 'draft',
+  PUBLISH: 'publish',
+  ACTIVE: 'active',
+  COMPLETE: 'complete',
+  ARCHIVE: 'archive',
+};
+
+// Timeline-based phases (used when status is "active")
+export const TIMELINE_PHASES = {
+  NOMINATION: 'nomination',
+  VOTING: 'voting',
+  JUDGING: 'judging',
+  COMPLETED: 'completed',
+};
 
 /**
- * Compute the current phase of a competition based on its timeline dates.
+ * Compute the current phase of a competition.
  *
- * Phase priority (in order):
- * 1. If after finals_date → 'completed'
- * 2. If after voting_end and before/at finals_date → 'judging'
- * 3. If between voting_start and voting_end → 'voting'
- * 4. If between nomination_start and nomination_end → 'nomination'
- * 5. If before nomination_start but has a host → 'assigned' (coming soon)
- * 6. If no timeline set → use manual status or 'setup'
+ * If status is "active", compute phase from timeline dates.
+ * Otherwise, return the status directly.
  *
- * @param {Object} competition - Competition object with timeline fields
- * @param {string} competition.nomination_start - ISO date string for nomination start
- * @param {string} competition.nomination_end - ISO date string for nomination end
- * @param {string} competition.voting_start - ISO date string for voting start
- * @param {string} competition.voting_end - ISO date string for voting end
- * @param {string} competition.finals_date - ISO date string for finals
- * @param {string} competition.status - Manual status (fallback if no timeline)
- * @param {string} competition.host_id - Host ID (indicates if host is assigned)
- * @returns {string} The computed phase
+ * @param {Object} competition - Competition object
+ * @returns {string} The current phase/status
  */
 export function computeCompetitionPhase(competition) {
-  if (!competition) return 'setup';
+  if (!competition) return COMPETITION_STATUSES.DRAFT;
 
+  const status = competition.status || COMPETITION_STATUSES.DRAFT;
+
+  // If not "active", the status IS the phase
+  if (status !== COMPETITION_STATUSES.ACTIVE) {
+    return status;
+  }
+
+  // Status is "active" - compute phase from timeline
+  return computeTimelinePhase(competition);
+}
+
+/**
+ * Compute the timeline-based phase for an active competition.
+ *
+ * @param {Object} competition - Competition with timeline fields
+ * @returns {string} The timeline phase
+ */
+export function computeTimelinePhase(competition) {
   const now = new Date();
 
   const nominationStart = competition.nomination_start ? new Date(competition.nomination_start) : null;
@@ -37,86 +66,213 @@ export function computeCompetitionPhase(competition) {
   const votingEnd = competition.voting_end ? new Date(competition.voting_end) : null;
   const finalsDate = competition.finals_date ? new Date(competition.finals_date) : null;
 
-  // Check if we have any timeline data to work with
-  const hasTimelineData = nominationStart || votingStart || finalsDate;
-
-  if (!hasTimelineData) {
-    // No timeline data - use manual status
-    return competition.status || 'setup';
-  }
-
   // Phase 1: Completed - after finals date
   if (finalsDate && now >= finalsDate) {
-    return 'completed';
+    return TIMELINE_PHASES.COMPLETED;
   }
 
   // Phase 2: Judging - after voting ends but before finals
   if (votingEnd && now >= votingEnd) {
-    return 'judging';
+    return TIMELINE_PHASES.JUDGING;
   }
 
   // Phase 3: Voting - between voting start and end
   if (votingStart && now >= votingStart) {
-    // If voting_end is set, we're in voting until then
-    // If not set, we're in voting from start until some other condition
     if (!votingEnd || now < votingEnd) {
-      return 'voting';
+      return TIMELINE_PHASES.VOTING;
     }
   }
 
-  // Phase 4: Nomination - between nomination start and end
+  // Phase 4: Nomination - between nomination start and end (or before voting starts)
   if (nominationStart && now >= nominationStart) {
-    // If voting hasn't started yet, we're in nomination phase
     if (!votingStart || now < votingStart) {
-      // Check if nomination period has ended
-      if (!nominationEnd || now < nominationEnd) {
-        return 'nomination';
-      }
-      // Nomination ended but voting hasn't started - gap period, treat as nomination closed
-      return 'nomination';
+      return TIMELINE_PHASES.NOMINATION;
     }
   }
 
-  // Phase 5: Before nomination starts (upcoming/assigned)
-  if (nominationStart && now < nominationStart) {
-    // Competition has timeline but hasn't started yet
-    return competition.host_id ? 'assigned' : 'setup';
-  }
-
-  // Fallback to manual status
-  return competition.status || 'setup';
+  // Before nomination starts - still show as nomination (upcoming)
+  // This happens when status is active but we haven't reached nomination_start yet
+  return TIMELINE_PHASES.NOMINATION;
 }
 
 /**
- * Check if a competition is viewable (can be clicked to open)
- * Competitions are viewable if they are in nomination, voting, judging, or completed phase
+ * Check if a competition is visible on the public competitions list.
+ * Visible statuses: publish, active, complete
  *
- * @param {string} phase - The computed phase
- * @returns {boolean} Whether the competition is viewable
+ * @param {string} status - The competition status
+ * @returns {boolean}
+ */
+export function isCompetitionVisible(status) {
+  return [
+    COMPETITION_STATUSES.PUBLISH,
+    COMPETITION_STATUSES.ACTIVE,
+    COMPETITION_STATUSES.COMPLETE,
+  ].includes(status);
+}
+
+/**
+ * Check if a competition is fully accessible (not just teaser).
+ * Accessible statuses: active, complete
+ *
+ * @param {string} status - The competition status
+ * @returns {boolean}
+ */
+export function isCompetitionAccessible(status) {
+  return [
+    COMPETITION_STATUSES.ACTIVE,
+    COMPETITION_STATUSES.COMPLETE,
+  ].includes(status);
+}
+
+/**
+ * Legacy function for backward compatibility.
+ * @deprecated Use isCompetitionAccessible instead
  */
 export function isCompetitionViewable(phase) {
-  return ['nomination', 'voting', 'active', 'judging', 'completed'].includes(phase);
+  return isCompetitionAccessible(phase) ||
+    [TIMELINE_PHASES.NOMINATION, TIMELINE_PHASES.VOTING, TIMELINE_PHASES.JUDGING, TIMELINE_PHASES.COMPLETED].includes(phase);
 }
 
 /**
- * Get the display status configuration for a phase
+ * Check if nomination dates are set (required for active status)
  *
- * @param {string} phase - The competition phase
- * @returns {Object} Status configuration with variant, label, icon info
+ * @param {Object} competition - Competition object
+ * @returns {boolean}
+ */
+export function hasNominationDates(competition) {
+  return !!(competition?.nomination_start && competition?.nomination_end);
+}
+
+/**
+ * Validate if a competition can be set to a given status.
+ *
+ * @param {Object} competition - Competition object
+ * @param {string} newStatus - The desired status
+ * @returns {{ valid: boolean, error?: string }}
+ */
+export function validateStatusChange(competition, newStatus) {
+  if (newStatus === COMPETITION_STATUSES.ACTIVE) {
+    if (!hasNominationDates(competition)) {
+      return {
+        valid: false,
+        error: 'Nomination start and end dates must be set before activating a competition.',
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Get the display configuration for a phase/status
+ *
+ * @param {string} phase - The phase or status
+ * @returns {Object} Display configuration
  */
 export function getPhaseDisplayConfig(phase) {
   const configs = {
-    active: { variant: 'success', label: 'LIVE NOW', pulse: true },
-    voting: { variant: 'success', label: 'VOTING', pulse: true },
-    nomination: { variant: 'warning', label: 'NOMINATIONS OPEN', icon: 'UserPlus' },
-    judging: { variant: 'info', label: 'JUDGING', pulse: true },
-    setup: { variant: 'default', label: 'SETUP', icon: 'Clock' },
+    // Super admin statuses
+    [COMPETITION_STATUSES.DRAFT]: {
+      variant: 'secondary',
+      label: 'DRAFT',
+      icon: 'FileEdit',
+      description: 'Not visible to public',
+    },
+    [COMPETITION_STATUSES.PUBLISH]: {
+      variant: 'warning',
+      label: 'COMING SOON',
+      icon: 'Clock',
+      description: 'Visible with teaser page',
+    },
+    [COMPETITION_STATUSES.ACTIVE]: {
+      variant: 'success',
+      label: 'ACTIVE',
+      icon: 'Activity',
+      pulse: true,
+      description: 'Following timeline dates',
+    },
+    [COMPETITION_STATUSES.COMPLETE]: {
+      variant: 'gold',
+      label: 'COMPLETE',
+      icon: 'Trophy',
+      description: 'Winners displayed',
+    },
+    [COMPETITION_STATUSES.ARCHIVE]: {
+      variant: 'secondary',
+      label: 'ARCHIVED',
+      icon: 'Archive',
+      description: 'Hidden from public',
+    },
+
+    // Timeline phases (shown when status is active)
+    [TIMELINE_PHASES.NOMINATION]: {
+      variant: 'warning',
+      label: 'NOMINATIONS OPEN',
+      icon: 'UserPlus',
+      pulse: true,
+    },
+    [TIMELINE_PHASES.VOTING]: {
+      variant: 'success',
+      label: 'VOTING LIVE',
+      icon: 'Vote',
+      pulse: true,
+    },
+    [TIMELINE_PHASES.JUDGING]: {
+      variant: 'info',
+      label: 'JUDGING',
+      icon: 'Award',
+      pulse: true,
+    },
+    [TIMELINE_PHASES.COMPLETED]: {
+      variant: 'gold',
+      label: 'COMPLETE',
+      icon: 'Trophy',
+    },
+
+    // Legacy fallbacks
+    setup: { variant: 'secondary', label: 'SETUP', icon: 'Settings' },
     assigned: { variant: 'warning', label: 'COMING SOON', icon: 'Clock' },
-    upcoming: { variant: 'warning', label: 'COMING SOON', icon: 'Clock' },
-    completed: { variant: 'secondary', label: 'COMPLETED', icon: 'Trophy' },
+    voting: { variant: 'success', label: 'VOTING LIVE', icon: 'Vote', pulse: true },
+    active: { variant: 'success', label: 'ACTIVE', icon: 'Activity', pulse: true },
+    completed: { variant: 'gold', label: 'COMPLETE', icon: 'Trophy' },
   };
 
-  return configs[phase] || configs.setup;
+  return configs[phase] || configs[COMPETITION_STATUSES.DRAFT];
+}
+
+/**
+ * Get status options for super admin dropdown
+ *
+ * @returns {Array<{ value: string, label: string, description: string }>}
+ */
+export function getStatusOptions() {
+  return [
+    {
+      value: COMPETITION_STATUSES.DRAFT,
+      label: 'Draft',
+      description: 'Not visible to public',
+    },
+    {
+      value: COMPETITION_STATUSES.PUBLISH,
+      label: 'Published',
+      description: 'Visible with "Coming Soon" teaser',
+    },
+    {
+      value: COMPETITION_STATUSES.ACTIVE,
+      label: 'Active',
+      description: 'Live - follows timeline dates',
+    },
+    {
+      value: COMPETITION_STATUSES.COMPLETE,
+      label: 'Complete',
+      description: 'Winners displayed',
+    },
+    {
+      value: COMPETITION_STATUSES.ARCHIVE,
+      label: 'Archived',
+      description: 'Hidden but data preserved',
+    },
+  ];
 }
 
 /**

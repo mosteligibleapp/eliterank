@@ -6,7 +6,13 @@ import {
 import { Button, Badge, OrganizationLogo } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
-import { computeCompetitionPhase, isCompetitionViewable } from '../../utils/competitionPhase';
+import {
+  computeCompetitionPhase,
+  isCompetitionVisible,
+  isCompetitionAccessible,
+  getPhaseDisplayConfig,
+  COMPETITION_STATUSES,
+} from '../../utils/competitionPhase';
 
 const TABS = [
   { id: 'competitions', label: 'Competitions', icon: Crown },
@@ -17,6 +23,7 @@ export default function EliteRankCityModal({
   isOpen,
   onClose,
   onOpenCompetition,
+  onOpenTeaser, // New prop for opening teaser page
   isFullPage = false,
   onLogin,
   onDashboard,
@@ -47,39 +54,34 @@ export default function EliteRankCityModal({
 
         if (compsResult.data) {
           setCompetitions(compsResult.data.map(comp => {
-            // Compute the phase from timeline dates (source of truth)
-            const computedPhase = computeCompetitionPhase({
-              nomination_start: comp.nomination_start,
-              nomination_end: comp.nomination_end,
-              voting_start: comp.voting_start,
-              voting_end: comp.voting_end,
-              finals_date: comp.finals_date,
-              status: comp.status,
-              host_id: comp.host_id,
-            });
+            // Compute the phase from status and timeline
+            const computedPhase = computeCompetitionPhase(comp);
 
-            // Competition is viewable if in nomination, voting, judging, or completed
-            const available = isCompetitionViewable(computedPhase);
+            // Check visibility based on status
+            const visible = isCompetitionVisible(comp.status);
+            const accessible = isCompetitionAccessible(comp.status);
 
             return {
               id: comp.id,
               name: `${comp.city} ${comp.season || ''}`.trim(),
               city: comp.city,
               season: comp.season || new Date().getFullYear(),
-              // Use computed phase for display and logic
-              status: computedPhase,
+              // Store both status (super admin controlled) and computed phase
+              status: comp.status || COMPETITION_STATUSES.DRAFT,
               phase: computedPhase,
               contestants: 0,
               votes: 0,
-              available,
+              visible,
+              accessible,
               organizationId: comp.organization_id,
               host: comp.host_id ? { id: comp.host_id } : null,
-              // Timeline data for public site display
+              // Timeline data for display
               nomination_start: comp.nomination_start,
               nomination_end: comp.nomination_end,
               voting_start: comp.voting_start,
               voting_end: comp.voting_end,
               finals_date: comp.finals_date,
+              winner_count: comp.winner_count || 3,
             };
           }));
         }
@@ -101,9 +103,21 @@ export default function EliteRankCityModal({
 
   if (!isOpen) return null;
 
+  // Filter to only show visible competitions (publish, active, complete)
+  const visibleCompetitions = competitions.filter(c => c.visible);
+
   const handleCompetitionClick = (competition) => {
-    if (competition.available && onOpenCompetition) {
+    if (competition.accessible && onOpenCompetition) {
+      // Full access - open the full competition page
       onOpenCompetition(competition);
+    } else if (competition.status === COMPETITION_STATUSES.PUBLISH) {
+      // Teaser - open teaser page or handle inline
+      if (onOpenTeaser) {
+        onOpenTeaser(competition);
+      } else if (onOpenCompetition) {
+        // Fallback: pass competition with teaser flag
+        onOpenCompetition({ ...competition, isTeaser: true });
+      }
     }
   };
 
@@ -118,22 +132,30 @@ export default function EliteRankCityModal({
   };
 
   // Competition Card Component
-  const CompetitionCard = ({ competition, isEnded = false }) => {
+  const CompetitionCard = ({ competition }) => {
     const isHovered = hoveredCard === competition.id;
-    const isAvailable = competition.available;
+    const isAccessible = competition.accessible;
+    const isPublished = competition.status === COMPETITION_STATUSES.PUBLISH;
 
+    // Get display config based on status/phase
+    const displayPhase = isAccessible ? competition.phase : competition.status;
+    const config = getPhaseDisplayConfig(displayPhase);
+
+    // Map variant to actual colors for badge
     const statusConfig = {
-      active: { variant: 'success', label: 'LIVE NOW', icon: null, pulse: true },
-      voting: { variant: 'success', label: 'VOTING', icon: null, pulse: true },
+      draft: { variant: 'secondary', label: 'DRAFT', icon: null },
+      publish: { variant: 'warning', label: 'COMING SOON', icon: Clock },
+      active: { variant: 'success', label: config.label, icon: null, pulse: config.pulse },
+      complete: { variant: 'gold', label: 'COMPLETE', icon: Trophy },
+      // Timeline phases (when status is active)
       nomination: { variant: 'warning', label: 'NOMINATIONS OPEN', icon: UserPlus },
+      voting: { variant: 'success', label: 'VOTING LIVE', icon: null, pulse: true },
       judging: { variant: 'info', label: 'JUDGING', icon: null, pulse: true },
-      setup: { variant: 'default', label: 'SETUP', icon: Clock },
-      assigned: { variant: 'warning', label: 'COMING SOON', icon: Clock },
-      upcoming: { variant: 'warning', label: 'COMING SOON', icon: Clock },
-      completed: { variant: 'secondary', label: 'COMPLETED', icon: Trophy },
+      completed: { variant: 'gold', label: 'COMPLETE', icon: Trophy },
     };
 
-    const status = statusConfig[competition.status] || statusConfig.upcoming;
+    const status = statusConfig[displayPhase] || statusConfig.publish;
+    const isClickable = isAccessible || isPublished;
 
     return (
       <div
@@ -144,14 +166,15 @@ export default function EliteRankCityModal({
           position: 'relative',
           borderRadius: borderRadius.xl,
           overflow: 'hidden',
-          cursor: isAvailable ? 'pointer' : 'default',
-          transform: isHovered && isAvailable ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
+          cursor: isClickable ? 'pointer' : 'default',
+          transform: isHovered && isClickable ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          boxShadow: isHovered && isAvailable
+          boxShadow: isHovered && isClickable
             ? '0 20px 40px rgba(212,175,55,0.3), 0 0 0 2px rgba(212,175,55,0.5)'
             : '0 4px 20px rgba(0,0,0,0.3)',
           background: colors.background.card,
           border: `1px solid ${colors.border.light}`,
+          opacity: isPublished && !isAccessible ? 0.9 : 1,
         }}
       >
         <div style={{
@@ -198,7 +221,7 @@ export default function EliteRankCityModal({
             </div>
           </div>
 
-          {isAvailable ? (
+          {isAccessible ? (
             <div style={{
               marginTop: spacing.lg,
               display: 'flex',
@@ -210,7 +233,22 @@ export default function EliteRankCityModal({
               opacity: isHovered ? 1 : 0.7,
               transition: 'opacity 0.2s',
             }}>
-              {competition.status === 'nomination' ? 'Nominate Now' : 'View Competition'}
+              {competition.phase === 'nomination' ? 'Nominate Now' : 'View Competition'}
+              <ChevronRight size={18} style={{ transform: isHovered ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.2s' }} />
+            </div>
+          ) : isPublished ? (
+            <div style={{
+              marginTop: spacing.lg,
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              color: colors.gold.primary,
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.semibold,
+              opacity: isHovered ? 1 : 0.7,
+              transition: 'opacity 0.2s',
+            }}>
+              Learn More
               <ChevronRight size={18} style={{ transform: isHovered ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.2s' }} />
             </div>
           ) : (
@@ -264,17 +302,17 @@ export default function EliteRankCityModal({
             </section>
 
             <section style={{ padding: `0 ${spacing.xxl} ${spacing.xxxl}`, maxWidth: '1400px', margin: '0 auto' }}>
-              {competitions.length > 0 ? (
+              {visibleCompetitions.length > 0 ? (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
                     <Sparkles size={24} style={{ color: colors.gold.primary }} />
                     <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff' }}>
-                      Active Competitions
+                      Competitions
                     </h3>
-                    <Badge variant="warning" size="sm">{competitions.length}</Badge>
+                    <Badge variant="warning" size="sm">{visibleCompetitions.length}</Badge>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: spacing.xl }}>
-                    {competitions.map((competition) => (
+                    {visibleCompetitions.map((competition) => (
                       <CompetitionCard key={competition.id} competition={competition} />
                     ))}
                   </div>
