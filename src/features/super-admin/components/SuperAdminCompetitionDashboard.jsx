@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, ArrowLeft, Shield, Star, LogOut, BarChart3, UserPlus, FileText, Settings as SettingsIcon,
-  User, TrendingUp, Calendar, Eye, Edit2
+  User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Avatar, StatCard } from '../../../components/ui';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
@@ -14,39 +14,8 @@ import TrafficCard from '../../overview/components/TrafficCard';
 import UpcomingCard from '../../overview/components/UpcomingCard';
 import Leaderboard from '../../overview/components/Leaderboard';
 
-// Mock data for the competition
-const getMockData = () => {
-  return {
-    contestants: [
-      { id: 'c1', name: 'Marcus Thompson', age: 28, occupation: 'Investment Banker', votes: 847, status: 'approved', interests: ['Travel', 'Fine Dining'] },
-      { id: 'c2', name: 'James Wilson', age: 31, occupation: 'Tech Entrepreneur', votes: 623, status: 'approved', interests: ['Startups', 'Golf'] },
-      { id: 'c3', name: 'Michael Chen', age: 27, occupation: 'Architect', votes: 512, status: 'approved', interests: ['Design', 'Photography'] },
-      { id: 'c4', name: 'David Rodriguez', age: 29, occupation: 'Doctor', votes: 445, status: 'pending', interests: ['Medicine', 'Running'] },
-    ],
-    nominees: [
-      { id: 'n1', name: 'Chris Taylor', nominatedBy: 'Anonymous', status: 'new', nominations: 5 },
-      { id: 'n2', name: 'Kevin Park', nominatedBy: 'Sarah M.', status: 'pending', nominations: 3 },
-    ],
-    events: [
-      { id: 'e1', name: 'Opening Gala', date: '2026-02-14', time: '7:00 PM', venue: 'The Plaza', status: 'scheduled' },
-      { id: 'e2', name: 'Talent Showcase', date: '2026-02-28', time: '6:00 PM', venue: 'Lincoln Center', status: 'scheduled' },
-      { id: 'e3', name: 'Final Event', date: '2026-03-15', time: '8:00 PM', venue: 'The Met', status: 'draft' },
-    ],
-    judges: [
-      { id: 'j1', name: 'Sarah Mitchell', role: 'Head Judge', bio: 'Fashion industry veteran' },
-      { id: 'j2', name: 'Robert Chen', role: 'Judge', bio: 'Celebrity matchmaker' },
-    ],
-    sponsors: [
-      { id: 's1', name: 'Luxury Motors', tier: 'platinum', amount: 50000 },
-      { id: 's2', name: 'Elite Fashion', tier: 'gold', amount: 25000 },
-    ],
-    announcements: [
-      { id: 'a1', title: 'Voting is now open!', content: 'Cast your votes for your favorite contestants.', pinned: true, date: '2024-02-01' },
-      { id: 'a2', title: 'Event reminder', content: 'Opening Gala is next week!', pinned: false, date: '2024-02-05' },
-    ],
-    revenue: { total: 125500, paidVotes: 42500, sponsorships: 63000, eventTickets: 20000 },
-  };
-};
+// Import the real data hook
+import { useCompetitionDashboard } from '../hooks';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -58,8 +27,10 @@ const TABS = [
 
 export default function SuperAdminCompetitionDashboard({ competition, onBack, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
-  const [data] = useState(getMockData());
   const [isEditing, setIsEditing] = useState(false);
+
+  // Fetch real data from Supabase
+  const { data, loading, error, refresh } = useCompetitionDashboard(competition?.id);
 
   // Header component matching host dashboard style but with purple admin theme
   const renderHeader = () => (
@@ -379,78 +350,108 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   );
 
   // Nominations tab
-  const renderNominations = () => (
-    <div>
-      {/* Stats Row */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: spacing.xl,
-        marginBottom: spacing.xxxl,
-      }}>
-        {[
-          { label: 'Total Nominees', value: data.nominees.length + data.contestants.length, color: '#8b5cf6' },
-          { label: 'Pending Review', value: data.nominees.filter(n => n.status === 'new').length, color: '#f59e0b' },
-          { label: 'Approved', value: data.contestants.length, color: '#22c55e' },
-          { label: 'This Week', value: 12, color: '#3b82f6' },
-        ].map((stat, i) => (
-          <div key={i} style={{
-            background: colors.background.card,
-            border: `1px solid ${colors.border.light}`,
-            borderRadius: borderRadius.xl,
-            padding: spacing.xl,
-          }}>
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.sm }}>{stat.label}</p>
-            <p style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: stat.color }}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
+  const renderNominations = () => {
+    // Calculate stats
+    const pendingNominees = data.nominees.filter(n => ['pending', 'pending-approval', 'awaiting-profile'].includes(n.status));
+    const approvedCount = data.contestants.length;
+    const totalNominees = data.nominees.length + approvedCount;
 
-      {/* Nominees list */}
-      <div style={{
-        background: colors.background.card,
-        border: `1px solid ${colors.border.light}`,
-        borderRadius: borderRadius.xl,
-        padding: spacing.xl,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl }}>
-          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold }}>
-            Pending Nominations
-          </h3>
-          {isEditing && (
-            <Button size="sm" icon={UserPlus}>Add Nominee</Button>
-          )}
+    // Calculate nominees this week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const thisWeekCount = data.nominees.filter(n => new Date(n.createdAt) >= oneWeekAgo).length;
+
+    return (
+      <div>
+        {/* Stats Row */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: spacing.xl,
+          marginBottom: spacing.xxxl,
+        }}>
+          {[
+            { label: 'Total Nominees', value: totalNominees, color: '#8b5cf6' },
+            { label: 'Pending Review', value: pendingNominees.length, color: '#f59e0b' },
+            { label: 'Approved', value: approvedCount, color: '#22c55e' },
+            { label: 'This Week', value: thisWeekCount, color: '#3b82f6' },
+          ].map((stat, i) => (
+            <div key={i} style={{
+              background: colors.background.card,
+              border: `1px solid ${colors.border.light}`,
+              borderRadius: borderRadius.xl,
+              padding: spacing.xl,
+            }}>
+              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.sm }}>{stat.label}</p>
+              <p style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: stat.color }}>{stat.value}</p>
+            </div>
+          ))}
         </div>
 
-        {data.nominees.map((nominee) => (
-          <div key={nominee.id} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.lg,
-            padding: spacing.lg,
-            background: colors.background.secondary,
-            borderRadius: borderRadius.lg,
-            marginBottom: spacing.md,
-          }}>
-            <Avatar name={nominee.name} size={48} />
-            <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: typography.fontWeight.medium }}>{nominee.name}</p>
-              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                Nominated by {nominee.nominatedBy} • {nominee.nominations} nominations
-              </p>
-            </div>
-            <Badge variant={nominee.status === 'new' ? 'info' : 'warning'} size="sm">
-              {nominee.status}
-            </Badge>
-            <div style={{ display: 'flex', gap: spacing.sm }}>
-              <Button variant="approve" size="sm">Approve</Button>
-              <Button variant="reject" size="sm">Reject</Button>
-            </div>
+        {/* Nominees list */}
+        <div style={{
+          background: colors.background.card,
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.xl,
+          padding: spacing.xl,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl }}>
+            <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold }}>
+              Pending Nominations ({pendingNominees.length})
+            </h3>
+            {isEditing && (
+              <Button size="sm" icon={UserPlus}>Add Nominee</Button>
+            )}
           </div>
-        ))}
+
+          {pendingNominees.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: spacing.xxl,
+              color: colors.text.secondary,
+            }}>
+              <UserPlus size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p>No pending nominations</p>
+            </div>
+          ) : (
+            pendingNominees.map((nominee) => (
+              <div key={nominee.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.lg,
+                padding: spacing.lg,
+                background: colors.background.secondary,
+                borderRadius: borderRadius.lg,
+                marginBottom: spacing.md,
+              }}>
+                <Avatar name={nominee.name} size={48} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: typography.fontWeight.medium }}>{nominee.name}</p>
+                  <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                    {nominee.email} • {nominee.nominatedBy}
+                  </p>
+                </div>
+                <Badge
+                  variant={
+                    nominee.status === 'pending' ? 'warning' :
+                    nominee.status === 'pending-approval' ? 'info' :
+                    'secondary'
+                  }
+                  size="sm"
+                >
+                  {nominee.status}
+                </Badge>
+                <div style={{ display: 'flex', gap: spacing.sm }}>
+                  <Button variant="approve" size="sm">Approve</Button>
+                  <Button variant="reject" size="sm">Reject</Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Community tab
   const renderCommunity = () => (
@@ -463,35 +464,51 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl }}>
           <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold }}>
-            Announcements
+            Announcements ({data.announcements.length})
           </h3>
           {isEditing && (
             <Button size="sm" icon={FileText}>New Announcement</Button>
           )}
         </div>
 
-        {data.announcements.map((announcement) => (
-          <div key={announcement.id} style={{
-            padding: spacing.lg,
-            background: colors.background.secondary,
-            borderRadius: borderRadius.lg,
-            marginBottom: spacing.md,
-            border: announcement.pinned ? '1px solid rgba(212,175,55,0.3)' : 'none',
+        {data.announcements.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: spacing.xxl,
+            color: colors.text.secondary,
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-                  <h4 style={{ fontWeight: typography.fontWeight.semibold }}>{announcement.title}</h4>
-                  {announcement.pinned && <Badge variant="gold" size="sm">Pinned</Badge>}
-                </div>
-                <p style={{ color: colors.text.secondary }}>{announcement.content}</p>
-              </div>
-              {isEditing && (
-                <Button variant="secondary" size="sm" icon={Edit2} />
-              )}
-            </div>
+            <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+            <p>No announcements yet</p>
+            {isEditing && (
+              <Button size="sm" icon={FileText} style={{ marginTop: spacing.lg }}>
+                Create First Announcement
+              </Button>
+            )}
           </div>
-        ))}
+        ) : (
+          data.announcements.map((announcement) => (
+            <div key={announcement.id} style={{
+              padding: spacing.lg,
+              background: colors.background.secondary,
+              borderRadius: borderRadius.lg,
+              marginBottom: spacing.md,
+              border: announcement.pinned ? '1px solid rgba(212,175,55,0.3)' : 'none',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+                    <h4 style={{ fontWeight: typography.fontWeight.semibold }}>{announcement.title}</h4>
+                    {announcement.pinned && <Badge variant="gold" size="sm">Pinned</Badge>}
+                  </div>
+                  <p style={{ color: colors.text.secondary }}>{announcement.content}</p>
+                </div>
+                {isEditing && (
+                  <Button variant="secondary" size="sm" icon={Edit2} />
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -516,27 +533,43 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.lg }}>
-          {data.judges.map((judge) => (
-            <div key={judge.id} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.md,
-              padding: spacing.lg,
-              background: colors.background.secondary,
-              borderRadius: borderRadius.lg,
-            }}>
-              <Avatar name={judge.name} size={48} variant="gold" />
-              <div style={{ flex: 1 }}>
-                <p style={{ fontWeight: typography.fontWeight.medium }}>{judge.name}</p>
-                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>{judge.role}</p>
+        {data.judges.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: spacing.xxl,
+            color: colors.text.secondary,
+          }}>
+            <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+            <p>No judges assigned yet</p>
+            {isEditing && (
+              <Button size="sm" icon={UserPlus} style={{ marginTop: spacing.lg }}>
+                Add First Judge
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.lg }}>
+            {data.judges.map((judge) => (
+              <div key={judge.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.md,
+                padding: spacing.lg,
+                background: colors.background.secondary,
+                borderRadius: borderRadius.lg,
+              }}>
+                <Avatar name={judge.name} size={48} variant="gold" />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: typography.fontWeight.medium }}>{judge.name}</p>
+                  <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>{judge.role}</p>
+                </div>
+                {isEditing && (
+                  <Button variant="secondary" size="sm" icon={Edit2} />
+                )}
               </div>
-              {isEditing && (
-                <Button variant="secondary" size="sm" icon={Edit2} />
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Events */}
@@ -555,41 +588,65 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           )}
         </div>
 
-        {data.events.map((event) => (
-          <div key={event.id} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.lg,
-            padding: spacing.lg,
-            background: colors.background.secondary,
-            borderRadius: borderRadius.lg,
-            marginBottom: spacing.md,
+        {data.events.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: spacing.xxl,
+            color: colors.text.secondary,
           }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              background: 'rgba(59,130,246,0.2)',
-              borderRadius: borderRadius.lg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <Calendar size={24} style={{ color: '#3b82f6' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: typography.fontWeight.medium }}>{event.name}</p>
-              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                {new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} • {event.venue}
-              </p>
-            </div>
-            <Badge variant={event.status === 'scheduled' ? 'success' : 'secondary'} size="sm">
-              {event.status}
-            </Badge>
+            <Calendar size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+            <p>No events scheduled yet</p>
             {isEditing && (
-              <Button variant="secondary" size="sm" icon={Edit2} />
+              <Button size="sm" icon={Calendar} style={{ marginTop: spacing.lg }}>
+                Schedule First Event
+              </Button>
             )}
           </div>
-        ))}
+        ) : (
+          data.events.map((event) => (
+            <div key={event.id} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.lg,
+              padding: spacing.lg,
+              background: colors.background.secondary,
+              borderRadius: borderRadius.lg,
+              marginBottom: spacing.md,
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                background: 'rgba(59,130,246,0.2)',
+                borderRadius: borderRadius.lg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Calendar size={24} style={{ color: '#3b82f6' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: typography.fontWeight.medium }}>{event.name}</p>
+                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                  {new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  {event.venue && ` • ${event.venue}`}
+                </p>
+              </div>
+              <Badge
+                variant={
+                  event.status === 'completed' ? 'success' :
+                  event.status === 'active' ? 'gold' :
+                  'secondary'
+                }
+                size="sm"
+              >
+                {event.status}
+              </Badge>
+              {isEditing && (
+                <Button variant="secondary" size="sm" icon={Edit2} />
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -664,6 +721,48 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   );
 
   const renderContent = () => {
+    // Show loading state
+    if (loading) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.xxxl,
+          gap: spacing.lg,
+        }}>
+          <Loader size={48} style={{ color: '#8b5cf6', animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg }}>
+            Loading competition data...
+          </p>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        </div>
+      );
+    }
+
+    // Show error state
+    if (error) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.xxxl,
+          gap: spacing.lg,
+        }}>
+          <AlertCircle size={48} style={{ color: '#ef4444' }} />
+          <p style={{ color: '#ef4444', fontSize: typography.fontSize.lg }}>
+            Error loading data: {error}
+          </p>
+          <Button onClick={refresh} variant="secondary">
+            Try Again
+          </Button>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'overview': return renderOverview();
       case 'nominations': return renderNominations();
