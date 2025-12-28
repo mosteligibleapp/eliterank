@@ -135,12 +135,15 @@ export function isCompetitionViewable(phase) {
 
 /**
  * Check if nomination dates are set (required for active status)
+ * Handles both snake_case (DB) and camelCase (UI) field names
  *
  * @param {Object} competition - Competition object
  * @returns {boolean}
  */
 export function hasNominationDates(competition) {
-  return !!(competition?.nomination_start && competition?.nomination_end);
+  const nominationStart = competition?.nomination_start || competition?.nominationStart;
+  const nominationEnd = competition?.nomination_end || competition?.nominationEnd;
+  return !!(nominationStart && nominationEnd);
 }
 
 /**
@@ -151,6 +154,23 @@ export function hasNominationDates(competition) {
  * @returns {{ valid: boolean, error?: string }}
  */
 export function validateStatusChange(competition, newStatus) {
+  const currentStatus = competition?.status;
+
+  // Prevent invalid transitions
+  if (currentStatus === COMPETITION_STATUSES.COMPLETE && newStatus === COMPETITION_STATUSES.ACTIVE) {
+    return {
+      valid: false,
+      error: 'Cannot reactivate a completed competition. Create a new season instead.',
+    };
+  }
+
+  if (currentStatus === COMPETITION_STATUSES.ARCHIVE && newStatus !== COMPETITION_STATUSES.DRAFT) {
+    return {
+      valid: false,
+      error: 'Archived competitions can only be moved back to draft status.',
+    };
+  }
+
   if (newStatus === COMPETITION_STATUSES.ACTIVE) {
     if (!hasNominationDates(competition)) {
       return {
@@ -160,7 +180,71 @@ export function validateStatusChange(competition, newStatus) {
     }
   }
 
+  if (newStatus === COMPETITION_STATUSES.PUBLISH) {
+    // Require city and organization for publishing
+    if (!competition?.city) {
+      return {
+        valid: false,
+        error: 'City must be set before publishing a competition.',
+      };
+    }
+  }
+
   return { valid: true };
+}
+
+/**
+ * Validate timeline dates are in logical order.
+ *
+ * @param {Object} competition - Competition object with timeline fields
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
+export function validateTimelineDates(competition) {
+  const errors = [];
+
+  // Handle both camelCase and snake_case field names
+  const nominationStart = competition?.nominationStart || competition?.nomination_start;
+  const nominationEnd = competition?.nominationEnd || competition?.nomination_end;
+  const votingStart = competition?.votingStart || competition?.voting_start;
+  const votingEnd = competition?.votingEnd || competition?.voting_end;
+  const finalsDate = competition?.finalsDate || competition?.finals_date;
+
+  // Parse dates
+  const nomStart = nominationStart ? new Date(nominationStart) : null;
+  const nomEnd = nominationEnd ? new Date(nominationEnd) : null;
+  const voteStart = votingStart ? new Date(votingStart) : null;
+  const voteEnd = votingEnd ? new Date(votingEnd) : null;
+  const finals = finalsDate ? new Date(finalsDate) : null;
+
+  // Nomination end must be after nomination start
+  if (nomStart && nomEnd && nomEnd <= nomStart) {
+    errors.push('Nomination end date must be after nomination start date.');
+  }
+
+  // Voting start should be on or after nomination start (can overlap with nominations)
+  if (nomStart && voteStart && voteStart < nomStart) {
+    errors.push('Voting cannot start before nominations start.');
+  }
+
+  // Voting end must be after voting start
+  if (voteStart && voteEnd && voteEnd <= voteStart) {
+    errors.push('Voting end date must be after voting start date.');
+  }
+
+  // Finals must be after voting ends (if voting end is set)
+  if (voteEnd && finals && finals < voteEnd) {
+    errors.push('Finals date must be on or after voting ends.');
+  }
+
+  // Finals must be after voting starts (if no voting end but voting start is set)
+  if (!voteEnd && voteStart && finals && finals < voteStart) {
+    errors.push('Finals date must be after voting starts.');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
 }
 
 /**

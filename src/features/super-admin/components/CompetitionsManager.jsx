@@ -2,16 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
   ChevronDown, Check, X, Eye, Building2, Trophy, Vote, Scale,
-  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft, DollarSign, Save, Loader, Upload, Image, Archive
+  Heart, Dumbbell, Star, Sparkles, ChevronRight, ChevronLeft, DollarSign, Save, Loader, Upload, Image, Archive, AlertTriangle
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useCompetitionManager } from '../hooks';
 import { supabase } from '../../../lib/supabase';
 import { DeleteCompetitionModal } from '../../../components/modals';
+import { useToast } from '../../../contexts/ToastContext';
 import {
   getStatusOptions,
   validateStatusChange,
+  validateTimelineDates,
   COMPETITION_STATUSES as STATUS_CONSTANTS,
   computeCompetitionPhase
 } from '../../../utils/competitionPhase';
@@ -90,6 +92,9 @@ const WIZARD_STEPS = [
 ];
 
 export default function CompetitionsManager({ onViewDashboard }) {
+  // Toast notifications
+  const toast = useToast();
+
   // Use the Supabase-connected hook
   const {
     templates,
@@ -126,6 +131,12 @@ export default function CompetitionsManager({ onViewDashboard }) {
 
   // Status validation error
   const [statusError, setStatusError] = useState(null);
+
+  // Timeline validation errors
+  const [timelineErrors, setTimelineErrors] = useState([]);
+
+  // Track original template for unsaved changes detection
+  const [originalTemplate, setOriginalTemplate] = useState(null);
 
   const [newTemplate, setNewTemplate] = useState({
     organization: null,
@@ -169,7 +180,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
       setNewOrg({ ...newOrg, logo: data.url });
     } catch (err) {
       console.error('Error uploading logo:', err);
-      alert('Failed to upload logo. Please try again.');
+      toast.error('Failed to upload logo. Please try again.');
     } finally {
       setUploadingLogo(false);
     }
@@ -231,11 +242,11 @@ export default function CompetitionsManager({ onViewDashboard }) {
         setShowNewOrgForm(false);
         setNewOrg({ name: '', logo: '🏆', description: '' });
       } else {
-        alert('Failed to create organization. Check console for details.');
+        toast.error('Failed to create organization. Check console for details.');
       }
     } catch (err) {
       console.error('Error creating organization:', err);
-      alert(`Error creating organization: ${err.message}`);
+      toast.error(`Error creating organization: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -246,15 +257,16 @@ export default function CompetitionsManager({ onViewDashboard }) {
     try {
       const result = await createCompetition(newTemplate, null); // No host assigned initially
       if (result) {
+        toast.success('Competition created successfully!');
         setShowCreateModal(false);
         resetWizard();
       } else {
         // Show error to user
-        alert('Failed to create competition. Check console for details.');
+        toast.error('Failed to create competition. Check console for details.');
       }
     } catch (err) {
       console.error('Error creating competition:', err);
-      alert(`Error creating competition: ${err.message}`);
+      toast.error(`Error creating competition: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -265,16 +277,17 @@ export default function CompetitionsManager({ onViewDashboard }) {
     try {
       const result = await assignHost(templateId, host.id);
       if (result && result.success) {
+        toast.success(`Host "${host.name}" assigned successfully!`);
         setShowAssignModal(false);
         setSelectedTemplate(null);
       } else {
         const errorMsg = result?.error || 'Unknown error';
         console.error('Failed to assign host:', errorMsg);
-        alert(`Failed to assign host: ${errorMsg}`);
+        toast.error(`Failed to assign host: ${errorMsg}`);
       }
     } catch (err) {
       console.error('Error assigning host:', err);
-      alert(`Error assigning host: ${err.message}`);
+      toast.error(`Error assigning host: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -312,22 +325,57 @@ export default function CompetitionsManager({ onViewDashboard }) {
 
   // Open edit modal with pre-populated data
   const handleOpenEdit = (template) => {
-    setEditingTemplate({ ...template });
+    const templateCopy = { ...template };
+    setEditingTemplate(templateCopy);
+    setOriginalTemplate(JSON.stringify(templateCopy)); // Save original for comparison
     setEditStep(1);
+    setStatusError(null);
+    setTimelineErrors([]);
     setShowEditModal(true);
+  };
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = () => {
+    if (!editingTemplate || !originalTemplate) return false;
+    return JSON.stringify(editingTemplate) !== originalTemplate;
+  };
+
+  // Handle close with unsaved changes check
+  const handleCloseEdit = () => {
+    if (hasUnsavedChanges()) {
+      if (!window.confirm('You have unsaved changes. Are you sure you want to close?')) {
+        return;
+      }
+    }
+    setShowEditModal(false);
+    setEditingTemplate(null);
+    setOriginalTemplate(null);
+    setStatusError(null);
+    setTimelineErrors([]);
   };
 
   // Save edited template
   const handleSaveEdit = async () => {
+    // Validate timeline dates first
+    const timelineValidation = validateTimelineDates(editingTemplate);
+    if (!timelineValidation.valid) {
+      setTimelineErrors(timelineValidation.errors);
+      toast.error('Please fix timeline date errors before saving.');
+      return;
+    }
+    setTimelineErrors([]);
+
     setIsSubmitting(true);
     try {
       await updateCompetition(editingTemplate.id, editingTemplate);
+      toast.success(`Competition "${editingTemplate.name || editingTemplate.city}" saved successfully!`);
       setShowEditModal(false);
       setEditingTemplate(null);
+      setOriginalTemplate(null);
       setEditStep(1);
     } catch (err) {
       console.error('Error saving competition:', err);
-      alert(`Error saving competition: ${err.message}`);
+      toast.error(`Error saving competition: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -1844,10 +1892,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
                 </div>
               </div>
               <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingTemplate(null);
-                }}
+                onClick={handleCloseEdit}
                 style={{ background: 'none', border: 'none', color: colors.text.secondary, cursor: 'pointer' }}
               >
                 <X size={24} />
@@ -2064,6 +2109,30 @@ export default function CompetitionsManager({ onViewDashboard }) {
                     </div>
                   </div>
                 </div>
+                {/* Timeline validation errors */}
+                {timelineErrors.length > 0 && (
+                  <div style={{
+                    marginTop: spacing.md,
+                    padding: spacing.md,
+                    background: 'rgba(239,68,68,0.1)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: borderRadius.md,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
+                      <AlertTriangle size={16} style={{ color: colors.status.error }} />
+                      <span style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.status.error }}>
+                        Timeline Errors
+                      </span>
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: spacing.lg }}>
+                      {timelineErrors.map((err, idx) => (
+                        <li key={idx} style={{ fontSize: typography.fontSize.sm, color: colors.status.error, marginBottom: spacing.xs }}>
+                          {err}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               {/* Organization */}
@@ -2378,10 +2447,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
             }}>
               <Button
                 variant="secondary"
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingTemplate(null);
-                }}
+                onClick={handleCloseEdit}
                 style={{ flex: 1 }}
                 disabled={isSubmitting}
               >
