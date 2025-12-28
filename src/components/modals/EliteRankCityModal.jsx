@@ -6,6 +6,7 @@ import {
 import { Button, Badge, OrganizationLogo } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
+import { computeCompetitionPhase, isCompetitionViewable } from '../../utils/competitionPhase';
 
 const TABS = [
   { id: 'competitions', label: 'Competitions', icon: Crown },
@@ -45,27 +46,42 @@ export default function EliteRankCityModal({
         ]);
 
         if (compsResult.data) {
-          setCompetitions(compsResult.data.map(comp => ({
-            id: comp.id,
-            name: `${comp.city} ${comp.season || ''}`.trim(),
-            city: comp.city,
-            season: comp.season || new Date().getFullYear(),
-            status: comp.status || 'upcoming',
-            // Use status as the phase for PublicSitePage consistency
-            phase: comp.status || 'setup',
-            contestants: 0,
-            votes: 0,
-            // Allow viewing competitions that are in nomination, voting, judging, or completed phases
-            available: ['active', 'nomination', 'voting', 'judging', 'completed', 'assigned'].includes(comp.status),
-            organizationId: comp.organization_id,
-            host: comp.host_id ? { id: comp.host_id } : null,
-            // Timeline data for public site display
-            nomination_start: comp.nomination_start,
-            nomination_end: comp.nomination_end,
-            voting_start: comp.voting_start,
-            voting_end: comp.voting_end,
-            finals_date: comp.finals_date,
-          })));
+          setCompetitions(compsResult.data.map(comp => {
+            // Compute the phase from timeline dates (source of truth)
+            const computedPhase = computeCompetitionPhase({
+              nomination_start: comp.nomination_start,
+              nomination_end: comp.nomination_end,
+              voting_start: comp.voting_start,
+              voting_end: comp.voting_end,
+              finals_date: comp.finals_date,
+              status: comp.status,
+              host_id: comp.host_id,
+            });
+
+            // Competition is viewable if in nomination, voting, judging, or completed
+            const available = isCompetitionViewable(computedPhase);
+
+            return {
+              id: comp.id,
+              name: `${comp.city} ${comp.season || ''}`.trim(),
+              city: comp.city,
+              season: comp.season || new Date().getFullYear(),
+              // Use computed phase for display and logic
+              status: computedPhase,
+              phase: computedPhase,
+              contestants: 0,
+              votes: 0,
+              available,
+              organizationId: comp.organization_id,
+              host: comp.host_id ? { id: comp.host_id } : null,
+              // Timeline data for public site display
+              nomination_start: comp.nomination_start,
+              nomination_end: comp.nomination_end,
+              voting_start: comp.voting_start,
+              voting_end: comp.voting_end,
+              finals_date: comp.finals_date,
+            };
+          }));
         }
 
         if (orgsResult.data) {
@@ -182,7 +198,7 @@ export default function EliteRankCityModal({
             </div>
           </div>
 
-          {isAvailable && (
+          {isAvailable ? (
             <div style={{
               marginTop: spacing.lg,
               display: 'flex',
@@ -196,6 +212,24 @@ export default function EliteRankCityModal({
             }}>
               {competition.status === 'nomination' ? 'Nominate Now' : 'View Competition'}
               <ChevronRight size={18} style={{ transform: isHovered ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.2s' }} />
+            </div>
+          ) : (
+            <div style={{
+              marginTop: spacing.lg,
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              color: colors.text.secondary,
+              fontSize: typography.fontSize.sm,
+            }}>
+              <Clock size={14} />
+              {competition.nomination_start ? (
+                <span>
+                  Opens {new Date(competition.nomination_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              ) : (
+                <span>Coming Soon</span>
+              )}
             </div>
           )}
         </div>

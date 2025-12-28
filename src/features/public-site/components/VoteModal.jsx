@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, Sparkles } from 'lucide-react';
+import { DollarSign, Sparkles, LogIn } from 'lucide-react';
 import { Modal, Button, Avatar } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatNumber, formatCurrency } from '../../../utils/formatters';
@@ -12,8 +12,53 @@ export default function VoteModal({
   voteCount,
   onVoteCountChange,
   forceDoubleVoteDay,
+  isAuthenticated = false,
+  onLogin,
 }) {
   if (!contestant) return null;
+
+  // If not authenticated, show login prompt
+  if (!isAuthenticated) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="Sign In Required" maxWidth="400px">
+        <div style={{ textAlign: 'center', padding: spacing.xl }}>
+          <div
+            style={{
+              width: '80px',
+              height: '80px',
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.1))',
+              borderRadius: borderRadius.full,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+              marginBottom: spacing.xl,
+            }}
+          >
+            <LogIn size={36} style={{ color: colors.gold.primary }} />
+          </div>
+
+          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.md }}>
+            Sign In to Vote
+          </h3>
+
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, marginBottom: spacing.xxl, lineHeight: 1.6 }}>
+            Create an account or sign in to vote for <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>{contestant.name}</span> and support your favorite contestant!
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+            <Button fullWidth size="lg" onClick={onLogin}>
+              <LogIn size={18} />
+              Sign In to Vote
+            </Button>
+            <Button variant="secondary" fullWidth size="md" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   const effectiveVotes = forceDoubleVoteDay ? voteCount * 2 : voteCount;
 

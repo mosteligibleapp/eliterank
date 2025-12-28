@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, Sparkles } from 'lucide-react';
+import { Crown, Sparkles, LogIn, Award } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatNumber } from '../../../utils/formatters';
@@ -7,7 +7,7 @@ import { useCountdown } from '../../../hooks';
 import { CONTESTANT_IMAGES, COMPETITION_STAGES } from '../../../constants';
 import ProfileModal from './ProfileModal';
 
-export default function ContestantsTab({ contestants, events, forceDoubleVoteDay, onVote }) {
+export default function ContestantsTab({ contestants, events, forceDoubleVoteDay, onVote, isAuthenticated = false, onLogin, isJudgingPhase = false }) {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -19,9 +19,19 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
     setSelectedIndex(index);
   };
 
+  // Handle vote button click - require authentication
+  const handleVoteClick = (contestant) => {
+    if (isJudgingPhase) return; // Voting disabled during judging
+    if (!isAuthenticated && onLogin) {
+      onLogin();
+    } else {
+      onVote(contestant);
+    }
+  };
+
   const handleVoteFromProfile = (contestant) => {
     setSelectedProfile(null);
-    onVote(contestant);
+    handleVoteClick(contestant);
   };
 
   const getTrendStyle = (trend) => ({
@@ -46,11 +56,14 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
           Meet the Contestants
         </h1>
         <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg, marginBottom: spacing.xxxl }}>
-          Vote for your favorite to help them win New York Most Eligible 2025
+          {isJudgingPhase
+            ? 'Voting has ended. Our judges are now evaluating the finalists!'
+            : 'Vote for your favorite to help them advance to the finals'
+          }
         </p>
 
-        {/* Double Vote Day Alert */}
-        {forceDoubleVoteDay && (
+        {/* Double Vote Day Alert - only show during voting phase */}
+        {forceDoubleVoteDay && !isJudgingPhase && (
           <div
             style={{
               background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(251,191,36,0.1))',
@@ -77,83 +90,120 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
           </div>
         )}
 
-        {/* Countdown Timer */}
-        <div
-          style={{
-            background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))',
-            border: `1px solid ${colors.border.gold}`,
-            borderRadius: borderRadius.xxl,
-            padding: `${spacing.xxl} ${spacing.xxxl}`,
-            maxWidth: '700px',
-            margin: '0 auto',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
-            <div
-              style={{
-                width: '10px',
-                height: '10px',
-                borderRadius: borderRadius.full,
-                background: colors.status.success,
-                boxShadow: '0 0 10px rgba(74,222,128,0.5)',
-              }}
-            />
-            <span
-              style={{
-                color: colors.gold.primary,
-                fontSize: typography.fontSize.md,
-                fontWeight: typography.fontWeight.semibold,
-                textTransform: 'uppercase',
-                letterSpacing: '2px',
-              }}
-            >
-              {currentStage.name} Ends In
-            </span>
+        {/* Show different content based on phase */}
+        {isJudgingPhase ? (
+          /* Judging in Progress Banner */
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))',
+              border: `1px solid rgba(59,130,246,0.3)`,
+              borderRadius: borderRadius.xxl,
+              padding: `${spacing.xxl} ${spacing.xxxl}`,
+              maxWidth: '700px',
+              margin: '0 auto',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.md, marginBottom: spacing.md }}>
+              <Award size={32} style={{ color: colors.status.info }} />
+              <span
+                style={{
+                  color: colors.status.info,
+                  fontSize: typography.fontSize.xl,
+                  fontWeight: typography.fontWeight.bold,
+                  textTransform: 'uppercase',
+                  letterSpacing: '2px',
+                }}
+              >
+                Judging in Progress
+              </span>
+            </div>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>
+              Our panel of judges is evaluating the finalists. Winners will be announced at the Finals Gala!
+            </p>
           </div>
+        ) : (
+          /* Countdown Timer - only during voting */
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))',
+              border: `1px solid ${colors.border.gold}`,
+              borderRadius: borderRadius.xxl,
+              padding: `${spacing.xxl} ${spacing.xxxl}`,
+              maxWidth: '700px',
+              margin: '0 auto',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
+              <div
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: borderRadius.full,
+                  background: colors.status.success,
+                  boxShadow: '0 0 10px rgba(74,222,128,0.5)',
+                }}
+              />
+              <span
+                style={{
+                  color: colors.gold.primary,
+                  fontSize: typography.fontSize.md,
+                  fontWeight: typography.fontWeight.semibold,
+                  textTransform: 'uppercase',
+                  letterSpacing: '2px',
+                }}
+              >
+                {currentStage.name} Ends In
+              </span>
+            </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.lg }}>
-            {[
-              { value: timeLeft.days, label: 'Days' },
-              { value: timeLeft.hours, label: 'Hours' },
-              { value: timeLeft.minutes, label: 'Minutes' },
-              { value: timeLeft.seconds, label: 'Seconds' },
-            ].map((unit) => (
-              <div key={unit.label} style={{ textAlign: 'center' }}>
-                <div
-                  style={{
-                    width: '80px',
-                    height: '80px',
-                    background: 'rgba(0,0,0,0.3)',
-                    borderRadius: borderRadius.xl,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: `1px solid rgba(212,175,55,0.2)`,
-                    marginBottom: spacing.sm,
-                  }}
-                >
-                  <span
+            <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.lg }}>
+              {[
+                { value: timeLeft.days, label: 'Days' },
+                { value: timeLeft.hours, label: 'Hours' },
+                { value: timeLeft.minutes, label: 'Minutes' },
+                { value: timeLeft.seconds, label: 'Seconds' },
+              ].map((unit) => (
+                <div key={unit.label} style={{ textAlign: 'center' }}>
+                  <div
                     style={{
-                      fontSize: typography.fontSize.hero,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.gold.primary,
-                      fontFamily: 'monospace',
+                      width: '80px',
+                      height: '80px',
+                      background: 'rgba(0,0,0,0.3)',
+                      borderRadius: borderRadius.xl,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: `1px solid rgba(212,175,55,0.2)`,
+                      marginBottom: spacing.sm,
                     }}
                   >
-                    {String(unit.value).padStart(2, '0')}
+                    <span
+                      style={{
+                        fontSize: typography.fontSize.hero,
+                        fontWeight: typography.fontWeight.bold,
+                        color: colors.gold.primary,
+                        fontFamily: 'monospace',
+                      }}
+                    >
+                      {String(unit.value).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {unit.label}
                   </span>
                 </div>
-                <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  {unit.label}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.base, marginTop: spacing.lg }}>
-            Vote now to help your favorite advance to the next round!
-          </p>
-        </div>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.base, marginTop: spacing.lg }}>
+              {!isAuthenticated
+                ? 'Sign in to vote for your favorite contestant!'
+                : 'Vote now to help your favorite advance to the next round!'
+              }
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Contestant Grid */}
@@ -262,15 +312,33 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
                   Votes
                 </p>
               </div>
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onVote(contestant);
-                }}
-                size="md"
-              >
-                Vote
-              </Button>
+              {isJudgingPhase ? (
+                <Badge variant="info" size="md">
+                  <Award size={12} /> Judging
+                </Badge>
+              ) : !isAuthenticated ? (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleVoteClick(contestant);
+                  }}
+                  size="md"
+                  variant="secondary"
+                >
+                  <LogIn size={14} />
+                  Sign In
+                </Button>
+              ) : (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleVoteClick(contestant);
+                  }}
+                  size="md"
+                >
+                  Vote
+                </Button>
+              )}
             </div>
           </div>
         ))}

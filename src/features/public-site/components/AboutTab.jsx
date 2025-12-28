@@ -200,8 +200,8 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
         </div>
       )}
 
-      {/* Key Dates Section */}
-      {hasTimelineData && (
+      {/* Key Dates & Timeline Section */}
+      {(hasTimelineData || publicEvents.length > 0) && (
         <div style={{ marginBottom: spacing.xxxl }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xxl }}>
             <div
@@ -217,168 +217,254 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
             >
               <Clock size={24} style={{ color: '#3b82f6' }} />
             </div>
-            <h2 style={{ fontSize: typography.fontSize.xxxl, fontWeight: typography.fontWeight.bold }}>Key Dates</h2>
+            <h2 style={{ fontSize: typography.fontSize.xxxl, fontWeight: typography.fontWeight.bold }}>Key Dates & Events</h2>
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: spacing.xl,
-          }}>
-            {/* Nomination Period */}
-            {competition.nomination_start && (
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.02))',
-                border: '1px solid rgba(212,175,55,0.2)',
-                borderRadius: borderRadius.xxl,
-                padding: spacing.xxl,
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
+          {/* Phase Cards */}
+          {hasTimelineData && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: spacing.xl,
+              marginBottom: spacing.xxl,
+            }}>
+              {/* Nomination Period */}
+              {competition.nomination_start && (
                 <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  width: '100px',
-                  height: '100px',
-                  background: 'radial-gradient(circle at top right, rgba(212,175,55,0.15), transparent)',
-                  borderRadius: '0 0 0 100%',
-                }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                  background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.02))',
+                  border: '1px solid rgba(212,175,55,0.2)',
+                  borderRadius: borderRadius.xxl,
+                  padding: spacing.xxl,
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
                   <div style={{
-                    width: '48px',
-                    height: '48px',
-                    background: 'rgba(212,175,55,0.2)',
-                    borderRadius: borderRadius.lg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <UserPlus size={24} style={{ color: '#d4af37' }} />
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: '100px',
+                    height: '100px',
+                    background: 'radial-gradient(circle at top right, rgba(212,175,55,0.15), transparent)',
+                    borderRadius: '0 0 0 100%',
+                  }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      background: 'rgba(212,175,55,0.2)',
+                      borderRadius: borderRadius.lg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <UserPlus size={24} style={{ color: '#d4af37' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        Nominations
+                      </p>
+                      <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#d4af37' }}>
+                        {(() => {
+                          const status = getDateStatus(competition.nomination_start, competition.nomination_end);
+                          if (status === 'active') return 'Open Now';
+                          if (status === 'upcoming') return 'Coming Soon';
+                          return 'Closed';
+                        })()}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      Nominations
-                    </p>
-                    <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#d4af37' }}>
-                      {(() => {
-                        const status = getDateStatus(competition.nomination_start, competition.nomination_end);
-                        if (status === 'active') return 'Open Now';
-                        if (status === 'upcoming') return 'Coming Soon';
-                        return 'Closed';
-                      })()}
-                    </p>
+                  <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
+                    <p><strong style={{ color: '#fff' }}>Opens:</strong> {formatKeyDate(competition.nomination_start)}</p>
+                    {competition.nomination_end && (
+                      <p><strong style={{ color: '#fff' }}>Closes:</strong> {formatKeyDate(competition.nomination_end)}</p>
+                    )}
                   </div>
                 </div>
-                <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
-                  <p><strong style={{ color: '#fff' }}>Opens:</strong> {formatKeyDate(competition.nomination_start)}</p>
-                  {competition.nomination_end && (
-                    <p><strong style={{ color: '#fff' }}>Closes:</strong> {formatKeyDate(competition.nomination_end)}</p>
-                  )}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Voting Period */}
-            {competition.voting_start && (
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.02))',
-                border: '1px solid rgba(139,92,246,0.2)',
-                borderRadius: borderRadius.xxl,
-                padding: spacing.xxl,
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
+              {/* Voting Period */}
+              {competition.voting_start && (
                 <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  width: '100px',
-                  height: '100px',
-                  background: 'radial-gradient(circle at top right, rgba(139,92,246,0.15), transparent)',
-                  borderRadius: '0 0 0 100%',
-                }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.02))',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                  borderRadius: borderRadius.xxl,
+                  padding: spacing.xxl,
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
                   <div style={{
-                    width: '48px',
-                    height: '48px',
-                    background: 'rgba(139,92,246,0.2)',
-                    borderRadius: borderRadius.lg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Vote size={24} style={{ color: '#8b5cf6' }} />
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: '100px',
+                    height: '100px',
+                    background: 'radial-gradient(circle at top right, rgba(139,92,246,0.15), transparent)',
+                    borderRadius: '0 0 0 100%',
+                  }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      background: 'rgba(139,92,246,0.2)',
+                      borderRadius: borderRadius.lg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Vote size={24} style={{ color: '#8b5cf6' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        Public Voting
+                      </p>
+                      <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#8b5cf6' }}>
+                        {(() => {
+                          const status = getDateStatus(competition.voting_start, competition.voting_end);
+                          if (status === 'active') return 'Live Now';
+                          if (status === 'upcoming') return 'Coming Soon';
+                          return 'Closed';
+                        })()}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      Public Voting
-                    </p>
-                    <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#8b5cf6' }}>
-                      {(() => {
-                        const status = getDateStatus(competition.voting_start, competition.voting_end);
-                        if (status === 'active') return 'Live Now';
-                        if (status === 'upcoming') return 'Coming Soon';
-                        return 'Closed';
-                      })()}
-                    </p>
+                  <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
+                    <p><strong style={{ color: '#fff' }}>Opens:</strong> {formatKeyDate(competition.voting_start)}</p>
+                    {competition.voting_end && (
+                      <p><strong style={{ color: '#fff' }}>Closes:</strong> {formatKeyDate(competition.voting_end)}</p>
+                    )}
                   </div>
                 </div>
-                <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
-                  <p><strong style={{ color: '#fff' }}>Opens:</strong> {formatKeyDate(competition.voting_start)}</p>
-                  {competition.voting_end && (
-                    <p><strong style={{ color: '#fff' }}>Closes:</strong> {formatKeyDate(competition.voting_end)}</p>
-                  )}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Finals Date */}
-            {competition.finals_date && (
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.02))',
-                border: '1px solid rgba(34,197,94,0.2)',
-                borderRadius: borderRadius.xxl,
-                padding: spacing.xxl,
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
+              {/* Finals Date */}
+              {competition.finals_date && (
                 <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  width: '100px',
-                  height: '100px',
-                  background: 'radial-gradient(circle at top right, rgba(34,197,94,0.15), transparent)',
-                  borderRadius: '0 0 0 100%',
-                }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                  background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.02))',
+                  border: '1px solid rgba(34,197,94,0.2)',
+                  borderRadius: borderRadius.xxl,
+                  padding: spacing.xxl,
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
                   <div style={{
-                    width: '48px',
-                    height: '48px',
-                    background: 'rgba(34,197,94,0.2)',
-                    borderRadius: borderRadius.lg,
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: '100px',
+                    height: '100px',
+                    background: 'radial-gradient(circle at top right, rgba(34,197,94,0.15), transparent)',
+                    borderRadius: '0 0 0 100%',
+                  }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      background: 'rgba(34,197,94,0.2)',
+                      borderRadius: borderRadius.lg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Trophy size={24} style={{ color: '#22c55e' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        Finals & Award Ceremony
+                      </p>
+                      <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#22c55e' }}>
+                        {new Date() >= new Date(competition.finals_date) ? 'Completed' : 'Mark Your Calendar'}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
+                    <p><strong style={{ color: '#fff' }}>Date:</strong> {formatKeyDate(competition.finals_date)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Events Timeline */}
+          {publicEvents.length > 0 && (
+            <div style={{ background: colors.background.card, border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.xxl, padding: spacing.xxxl }}>
+              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xl, color: colors.text.primary }}>
+                <Calendar size={20} style={{ display: 'inline', marginRight: spacing.sm, verticalAlign: 'middle' }} />
+                Upcoming Events
+              </h3>
+              {publicEvents.map((event, i, arr) => (
+                <div
+                  key={event.id}
+                  style={{
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Trophy size={24} style={{ color: '#22c55e' }} />
+                    gap: spacing.xl,
+                    position: 'relative',
+                    paddingBottom: i < arr.length - 1 ? spacing.xxxl : '0',
+                  }}
+                >
+                  {i < arr.length - 1 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: '19px',
+                        top: '40px',
+                        width: '2px',
+                        height: 'calc(100% - 20px)',
+                        background: event.status === 'completed' ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)',
+                      }}
+                    />
+                  )}
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: borderRadius.full,
+                      background:
+                        event.status === 'completed'
+                          ? 'rgba(34,197,94,0.2)'
+                          : event.status === 'active'
+                            ? 'rgba(212,175,55,0.2)'
+                            : 'rgba(255,255,255,0.05)',
+                      border: `2px solid ${
+                        event.status === 'completed'
+                          ? colors.status.success
+                          : event.status === 'active'
+                            ? colors.gold.primary
+                            : 'rgba(255,255,255,0.2)'
+                      }`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: event.status === 'active' ? '0 0 20px rgba(212,175,55,0.3)' : 'none',
+                    }}
+                  >
+                    {event.status === 'completed' && <Check size={18} style={{ color: colors.status.success }} />}
+                    {event.status === 'active' && (
+                      <div style={{ width: '12px', height: '12px', borderRadius: borderRadius.full, background: colors.gold.primary }} />
+                    )}
                   </div>
-                  <div>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      Finals & Award Ceremony
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: event.status === 'active' ? colors.gold.primary : colors.text.secondary, fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                      {formatEventDateRange(event)}
+                      {event.time && ` at ${event.time}`}
                     </p>
-                    <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#22c55e' }}>
-                      {new Date() >= new Date(competition.finals_date) ? 'Completed' : 'Mark Your Calendar'}
-                    </p>
+                    <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                      {event.name}
+                    </h4>
+                    {event.location && <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>{event.location}</p>}
                   </div>
+                  <Badge
+                    variant={event.status === 'completed' ? 'success' : event.status === 'active' ? 'gold' : 'default'}
+                    size="md"
+                    uppercase
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    {event.status === 'completed' ? 'COMPLETED' : event.status === 'active' ? 'LIVE NOW' : 'UPCOMING'}
+                  </Badge>
                 </div>
-                <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
-                  <p><strong style={{ color: '#fff' }}>Date:</strong> {formatKeyDate(competition.finals_date)}</p>
-                </div>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -425,100 +511,6 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
               <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, lineHeight: '1.5' }}>
                 {judge.bio}
               </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Timeline Section */}
-      <div style={{ marginBottom: spacing.xxxl }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xxl }}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              background: 'rgba(59,130,246,0.15)',
-              borderRadius: borderRadius.lg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Calendar size={24} style={{ color: colors.status.info }} />
-          </div>
-          <h2 style={{ fontSize: typography.fontSize.xxxl, fontWeight: typography.fontWeight.bold }}>Competition Timeline</h2>
-        </div>
-        <div style={{ background: colors.background.card, border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.xxl, padding: spacing.xxxl }}>
-          {publicEvents.map((event, i, arr) => (
-            <div
-              key={event.id}
-              style={{
-                display: 'flex',
-                gap: spacing.xl,
-                position: 'relative',
-                paddingBottom: i < arr.length - 1 ? spacing.xxxl : '0',
-              }}
-            >
-              {i < arr.length - 1 && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: '19px',
-                    top: '40px',
-                    width: '2px',
-                    height: 'calc(100% - 20px)',
-                    background: event.status === 'completed' ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)',
-                  }}
-                />
-              )}
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: borderRadius.full,
-                  background:
-                    event.status === 'completed'
-                      ? 'rgba(34,197,94,0.2)'
-                      : event.status === 'active'
-                        ? 'rgba(212,175,55,0.2)'
-                        : 'rgba(255,255,255,0.05)',
-                  border: `2px solid ${
-                    event.status === 'completed'
-                      ? colors.status.success
-                      : event.status === 'active'
-                        ? colors.gold.primary
-                        : 'rgba(255,255,255,0.2)'
-                  }`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: event.status === 'active' ? '0 0 20px rgba(212,175,55,0.3)' : 'none',
-                }}
-              >
-                {event.status === 'completed' && <Check size={18} style={{ color: colors.status.success }} />}
-                {event.status === 'active' && (
-                  <div style={{ width: '12px', height: '12px', borderRadius: borderRadius.full, background: colors.gold.primary }} />
-                )}
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ color: event.status === 'active' ? colors.gold.primary : colors.text.secondary, fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
-                  {formatEventDateRange(event)}
-                  {event.time && ` at ${event.time}`}
-                </p>
-                <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
-                  {event.name}
-                </h4>
-                {event.location && <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>{event.location}</p>}
-              </div>
-              <Badge
-                variant={event.status === 'completed' ? 'success' : event.status === 'active' ? 'gold' : 'default'}
-                size="md"
-                uppercase
-                style={{ alignSelf: 'flex-start' }}
-              >
-                {event.status === 'completed' ? 'COMPLETED' : event.status === 'active' ? 'LIVE NOW' : 'UPCOMING'}
-              </Badge>
             </div>
           ))}
         </div>

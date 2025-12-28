@@ -46,6 +46,8 @@ export default function PublicSitePage({
   winners = [],
   forceDoubleVoteDay = true,
   competition = null, // Competition object with timeline data
+  isAuthenticated = false, // Whether user is logged in
+  onLogin, // Callback to trigger login flow
 }) {
   // Determine phase categories
   const isSetupPhase = phase === 'setup' || phase === 'assigned';
@@ -264,6 +266,9 @@ export default function PublicSitePage({
           <NominationTab
             city={city}
             onNominationSubmit={(data) => console.log('Nomination submitted:', data)}
+            isAuthenticated={isAuthenticated}
+            onLogin={onLogin}
+            isSetupPhase={isSetupPhase}
           />
         )}
         {activeTab === 'contestants' && (
@@ -272,6 +277,9 @@ export default function PublicSitePage({
             events={events}
             forceDoubleVoteDay={forceDoubleVoteDay}
             onVote={setSelectedContestant}
+            isAuthenticated={isAuthenticated}
+            onLogin={onLogin}
+            isJudgingPhase={isJudgingPhase}
           />
         )}
         {activeTab === 'events' && <EventsTab events={events} city={city} season={season} phase={phase} />}
@@ -296,6 +304,8 @@ export default function PublicSitePage({
         voteCount={voteCount}
         onVoteCountChange={setVoteCount}
         forceDoubleVoteDay={forceDoubleVoteDay}
+        isAuthenticated={isAuthenticated}
+        onLogin={onLogin}
       />
     </div>
   );

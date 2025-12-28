@@ -602,6 +602,8 @@ export default function App() {
           host={selectedCompetition.host}
           winners={selectedCompetition.winners}
           competition={hostCompetition}
+          isAuthenticated={isAuthenticated}
+          onLogin={handleShowLogin}
         />
 
         {/* Modals */}
@@ -706,6 +708,8 @@ export default function App() {
         host={selectedCompetition.host}
         winners={selectedCompetition.winners}
         competition={selectedCompetition}
+        isAuthenticated={isAuthenticated}
+        onLogin={handleShowLogin}
       />
     </>
   );
