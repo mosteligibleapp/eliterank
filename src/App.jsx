@@ -601,6 +601,7 @@ export default function App() {
           sponsors={sponsors}
           host={selectedCompetition.host}
           winners={selectedCompetition.winners}
+          competition={hostCompetition}
         />
 
         {/* Modals */}
@@ -704,6 +705,7 @@ export default function App() {
         sponsors={sponsors}
         host={selectedCompetition.host}
         winners={selectedCompetition.winners}
+        competition={selectedCompetition}
       />
     </>
   );

@@ -45,6 +45,7 @@ export default function PublicSitePage({
   host,
   winners = [],
   forceDoubleVoteDay = true,
+  competition = null, // Competition object with timeline data
 }) {
   // Determine phase categories
   const isSetupPhase = phase === 'setup' || phase === 'assigned';
@@ -282,6 +283,7 @@ export default function PublicSitePage({
             events={events}
             host={host}
             city={city}
+            competition={competition}
           />
         )}
       </main>

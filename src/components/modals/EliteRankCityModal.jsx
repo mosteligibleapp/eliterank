@@ -59,6 +59,12 @@ export default function EliteRankCityModal({
             available: ['active', 'nomination', 'voting', 'judging', 'completed', 'assigned'].includes(comp.status),
             organizationId: comp.organization_id,
             host: comp.host_id ? { id: comp.host_id } : null,
+            // Timeline data for public site display
+            nomination_start: comp.nomination_start,
+            nomination_end: comp.nomination_end,
+            voting_start: comp.voting_start,
+            voting_end: comp.voting_end,
+            finals_date: comp.finals_date,
           })));
         }
 
