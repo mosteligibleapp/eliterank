@@ -408,11 +408,11 @@ export default function EliteRankCityModal({
             <div
               onClick={(e) => handleCityClick(e, competition.citySlug)}
               style={{
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
                 gap: spacing.xs,
                 cursor: competition.citySlug ? 'pointer' : 'default',
-                marginBottom: spacing.lg,
+                marginBottom: spacing.md,
               }}
             >
               <MapPin size={14} style={{ color: colors.gold.primary }} />
@@ -427,10 +427,10 @@ export default function EliteRankCityModal({
               )}
             </div>
 
-            {/* CTA Button */}
+            {/* CTA Button - Always on new line */}
             {isClickable && (
               <div style={{
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
                 gap: spacing.sm,
                 padding: `${spacing.sm} ${spacing.lg}`,
@@ -441,6 +441,7 @@ export default function EliteRankCityModal({
                 fontSize: typography.fontSize.sm,
                 fontWeight: typography.fontWeight.semibold,
                 transition: 'all 0.2s',
+                width: 'fit-content',
               }}>
                 <Sparkles size={14} />
                 {getCtaText()}
@@ -576,7 +577,14 @@ export default function EliteRankCityModal({
                     </h3>
                     <Badge variant="warning" size="sm">{visibleCompetitions.length}</Badge>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: spacing.xl }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: visibleCompetitions.length === 1
+                      ? 'minmax(300px, 380px)'
+                      : 'repeat(auto-fill, minmax(300px, 380px))',
+                    gap: spacing.xl,
+                    justifyContent: visibleCompetitions.length === 1 ? 'start' : 'start',
+                  }}>
                     {visibleCompetitions.map((competition) => (
                       <CompetitionCard key={competition.id} competition={competition} />
                     ))}
