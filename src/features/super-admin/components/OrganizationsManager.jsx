@@ -107,21 +107,42 @@ export default function OrganizationsManager() {
       const ext = file.name.split('.').pop();
       const filename = `org-logos/${timestamp}.${ext}`;
 
-      const { data, error } = await supabase.storage
-        .from('public')
-        .upload(filename, file);
+      // Try uploading to common bucket names
+      const bucketNames = ['public', 'images', 'assets', 'uploads'];
+      let uploadSuccess = false;
+      let publicUrl = '';
 
-      if (error) throw error;
+      for (const bucketName of bucketNames) {
+        try {
+          const { data, error } = await supabase.storage
+            .from(bucketName)
+            .upload(filename, file, { upsert: true });
 
-      const { data: urlData } = supabase.storage
-        .from('public')
-        .getPublicUrl(filename);
+          if (!error) {
+            const { data: urlData } = supabase.storage
+              .from(bucketName)
+              .getPublicUrl(filename);
+            publicUrl = urlData.publicUrl;
+            uploadSuccess = true;
+            break;
+          }
+        } catch (e) {
+          // Try next bucket
+          continue;
+        }
+      }
 
-      setFormData(prev => ({ ...prev, logo_url: urlData.publicUrl }));
+      if (!uploadSuccess) {
+        // Storage failed - inform user but don't block
+        toast.warning('Logo upload failed. You can create the organization without a logo.');
+        return;
+      }
+
+      setFormData(prev => ({ ...prev, logo_url: publicUrl }));
       toast.success('Logo uploaded successfully');
     } catch (err) {
       console.error('Error uploading logo:', err);
-      toast.error('Failed to upload logo');
+      toast.warning('Logo upload failed. You can create the organization without a logo.');
     } finally {
       setUploadingLogo(false);
     }
