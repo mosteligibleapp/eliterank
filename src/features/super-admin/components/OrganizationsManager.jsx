@@ -85,9 +85,9 @@ export default function OrganizationsManager() {
     }
   };
 
-  // Handle logo upload
+  // Handle logo upload via Vercel Blob
   const handleLogoUpload = async (file) => {
-    if (!file || !supabase) return;
+    if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -107,38 +107,18 @@ export default function OrganizationsManager() {
       const ext = file.name.split('.').pop();
       const filename = `org-logos/${timestamp}.${ext}`;
 
-      // Try uploading to common bucket names
-      const bucketNames = ['public', 'images', 'assets', 'uploads'];
-      let uploadSuccess = false;
-      let publicUrl = '';
+      const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        body: file,
+      });
 
-      for (const bucketName of bucketNames) {
-        try {
-          const { data, error } = await supabase.storage
-            .from(bucketName)
-            .upload(filename, file, { upsert: true });
+      const data = await response.json();
 
-          if (!error) {
-            const { data: urlData } = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(filename);
-            publicUrl = urlData.publicUrl;
-            uploadSuccess = true;
-            break;
-          }
-        } catch (e) {
-          // Try next bucket
-          continue;
-        }
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
       }
 
-      if (!uploadSuccess) {
-        // Storage failed - inform user but don't block
-        toast.warning('Logo upload failed. You can create the organization without a logo.');
-        return;
-      }
-
-      setFormData(prev => ({ ...prev, logo_url: publicUrl }));
+      setFormData(prev => ({ ...prev, logo_url: data.url }));
       toast.success('Logo uploaded successfully');
     } catch (err) {
       console.error('Error uploading logo:', err);
