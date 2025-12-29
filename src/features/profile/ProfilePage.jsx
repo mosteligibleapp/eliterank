@@ -10,6 +10,8 @@ export default function ProfilePage({
   onCancel,
   onChange,
   hostCompetition,
+  userRole = 'fan',
+  isHost = false,
 }) {
   if (isEditing) {
     return (
@@ -22,5 +24,13 @@ export default function ProfilePage({
     );
   }
 
-  return <ProfileView hostProfile={hostProfile} onEdit={onEdit} hostCompetition={hostCompetition} />;
+  return (
+    <ProfileView
+      hostProfile={hostProfile}
+      onEdit={onEdit}
+      hostCompetition={hostCompetition}
+      userRole={userRole}
+      isHost={isHost}
+    />
+  );
 }

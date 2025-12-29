@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, MapPin, Star, FileText, Heart, Camera, Globe, Trophy } from 'lucide-react';
+import { Edit, MapPin, Star, FileText, Heart, Camera, Globe, Trophy, User } from 'lucide-react';
 import { Panel, Button, Badge, InterestTag } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 
@@ -13,6 +13,10 @@ const STATUS_LABELS = {
   completed: 'Completed',
   upcoming: 'Upcoming',
   active: 'Active',
+  live: 'Live',
+  publish: 'Coming Soon',
+  draft: 'Draft',
+  archive: 'Archived',
 };
 
 // Status badge variants
@@ -25,13 +29,29 @@ const STATUS_VARIANTS = {
   completed: 'purple',
   upcoming: 'default',
   active: 'success',
+  live: 'success',
+  publish: 'warning',
+  draft: 'default',
+  archive: 'default',
 };
 
-export default function ProfileView({ hostProfile, onEdit, hostCompetition }) {
+// Role display configuration
+const ROLE_CONFIG = {
+  host: { label: 'Verified Host', icon: Star, variant: 'gold' },
+  super_admin: { label: 'Super Admin', icon: Star, variant: 'gold' },
+  contestant: { label: 'Contestant', icon: Trophy, variant: 'success' },
+  fan: { label: 'Member', icon: User, variant: 'default' },
+};
+
+export default function ProfileView({ hostProfile, onEdit, hostCompetition, userRole = 'fan', isHost = false }) {
   if (!hostProfile) return null;
 
   const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
   const gallery = hostProfile.gallery || [];
+
+  // Determine role badge to display
+  const roleConfig = ROLE_CONFIG[userRole] || ROLE_CONFIG.fan;
+  const RoleIcon = roleConfig.icon;
 
   const socialLinks = [
     { platform: 'Instagram', handle: hostProfile.instagram, icon: '📷', gradient: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCAF45)' },
@@ -39,6 +59,9 @@ export default function ProfileView({ hostProfile, onEdit, hostCompetition }) {
     { platform: 'LinkedIn', handle: hostProfile.linkedin, icon: 'in', background: '#0A66C2' },
     { platform: 'TikTok', handle: hostProfile.tiktok, icon: '♪', gradient: 'linear-gradient(135deg, #00f2ea, #ff0050)' },
   ].filter(link => link.handle);
+
+  // Only show hosting section if user is a host
+  const showHostingSection = isHost || userRole === 'host';
 
   return (
     <div>
@@ -95,15 +118,15 @@ export default function ProfileView({ hostProfile, onEdit, hostCompetition }) {
                   {hostProfile.firstName} {hostProfile.lastName}
                 </h1>
                 <Badge
-                  variant="gold"
+                  variant={roleConfig.variant}
                   size="lg"
-                  icon={Star}
+                  icon={RoleIcon}
                   style={{
                     background: 'transparent',
-                    border: `1px solid rgba(212,175,55,0.5)`,
+                    border: `1px solid ${roleConfig.variant === 'gold' ? 'rgba(212,175,55,0.5)' : 'rgba(255,255,255,0.2)'}`,
                   }}
                 >
-                  Verified Host
+                  {roleConfig.label}
                 </Badge>
               </div>
               <p style={{ color: colors.text.secondary, display: 'flex', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm, fontSize: typography.fontSize.lg }}>
@@ -245,35 +268,37 @@ export default function ProfileView({ hostProfile, onEdit, hostCompetition }) {
             </Panel>
           )}
 
-          {/* Current Competition */}
-          <Panel>
-            <div style={{ padding: spacing.xxl }}>
-              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                <Trophy size={20} style={{ color: colors.gold.primary }} /> Currently Hosting
-              </h3>
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))',
-                  border: `1px solid rgba(212,175,55,0.2)`,
-                  borderRadius: borderRadius.lg,
-                  padding: spacing.lg,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}>
-                  <MapPin size={16} style={{ color: colors.gold.primary }} />
-                  <span style={{ fontWeight: typography.fontWeight.semibold }}>
-                    {hostCompetition?.name || 'No Competition Assigned'}
-                  </span>
+          {/* Current Competition - Only shown for hosts */}
+          {showHostingSection && (
+            <Panel>
+              <div style={{ padding: spacing.xxl }}>
+                <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                  <Trophy size={20} style={{ color: colors.gold.primary }} /> Currently Hosting
+                </h3>
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))',
+                    border: `1px solid rgba(212,175,55,0.2)`,
+                    borderRadius: borderRadius.lg,
+                    padding: spacing.lg,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}>
+                    <MapPin size={16} style={{ color: colors.gold.primary }} />
+                    <span style={{ fontWeight: typography.fontWeight.semibold }}>
+                      {hostCompetition?.name || 'No Competition Assigned'}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary, marginBottom: spacing.md }}>
+                    {hostCompetition ? `Season ${hostCompetition.season || '2025'} • ${STATUS_LABELS[hostCompetition.status] || 'Upcoming'}` : 'Contact admin to be assigned'}
+                  </p>
+                  <Badge variant={hostCompetition ? (STATUS_VARIANTS[hostCompetition.status] || 'success') : 'warning'} size="md" pill>
+                    ● {hostCompetition ? (STATUS_LABELS[hostCompetition.status] || hostCompetition.status)?.toUpperCase() : 'PENDING'}
+                  </Badge>
                 </div>
-                <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary, marginBottom: spacing.md }}>
-                  {hostCompetition ? `Season ${hostCompetition.season || '2025'} • ${STATUS_LABELS[hostCompetition.status] || 'Upcoming'}` : 'Contact admin to be assigned'}
-                </p>
-                <Badge variant={hostCompetition ? (STATUS_VARIANTS[hostCompetition.status] || 'success') : 'warning'} size="md" pill>
-                  ● {hostCompetition ? (STATUS_LABELS[hostCompetition.status] || hostCompetition.status)?.toUpperCase() : 'PENDING'}
-                </Badge>
               </div>
-            </div>
-          </Panel>
+            </Panel>
+          )}
         </div>
       </div>
     </div>

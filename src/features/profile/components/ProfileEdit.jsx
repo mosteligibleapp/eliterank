@@ -138,7 +138,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
               Edit Profile
             </h2>
             <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary }}>
-              Update your public host profile
+              Update your public profile
             </p>
           </div>
         </div>

@@ -610,6 +610,8 @@ export default function App() {
             onCancel={handleCancelProfile}
             onChange={handleProfileChange}
             hostCompetition={hostCompetition}
+            userRole={userRole}
+            isHost={userRole === 'host'}
           />
         );
 
