@@ -48,6 +48,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
   const [formData, setFormData] = useState({
     organization_id: '',
     city_id: '',
+    name: '', // Custom competition name
     season: new Date().getFullYear() + 1,
     has_events: false,
     number_of_winners: 5,
@@ -100,11 +101,9 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       if (!compsError) {
         setCompetitions(compsData || []);
       } else {
-        console.warn('Error fetching competitions:', compsError);
         setCompetitions([]);
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
       toast.error(`Failed to load data: ${err.message}`);
     } finally {
       setLoading(false);
@@ -141,6 +140,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
         .insert({
           organization_id: formData.organization_id,
           city_id: formData.city_id,
+          name: formData.name || null, // Custom competition name
           season: formData.season,
           status: COMPETITION_STATUS.DRAFT,
           entry_type: 'nominations',
@@ -170,7 +170,6 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       resetForm();
       fetchData();
     } catch (err) {
-      console.error('Error creating competition:', err);
       toast.error(`Failed to create competition: ${err.message}`);
     } finally {
       setIsSubmitting(false);
@@ -189,8 +188,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
 
       toast.success(`Status changed to ${STATUS_CONFIG[newStatus].label}`);
       fetchData();
-    } catch (err) {
-      console.error('Error updating status:', err);
+    } catch {
       toast.error('Failed to update status');
     }
   };
@@ -211,8 +209,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       setShowAssignHostModal(false);
       setSelectedCompetition(null);
       fetchData();
-    } catch (err) {
-      console.error('Error assigning host:', err);
+    } catch {
       toast.error('Failed to assign host');
     }
   };
@@ -241,8 +238,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       setShowDeleteModal(false);
       setSelectedCompetition(null);
       fetchData();
-    } catch (err) {
-      console.error('Error deleting competition:', err);
+    } catch {
       toast.error('Failed to delete competition');
     } finally {
       setIsSubmitting(false);
@@ -254,6 +250,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     setFormData({
       organization_id: '',
       city_id: '',
+      name: '',
       season: new Date().getFullYear() + 1,
       has_events: false,
       number_of_winners: 5,
@@ -266,12 +263,13 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
 
   // Get display name for competition
   const getCompetitionName = (comp) => {
+    // Use custom name if set, otherwise generate from org/city
+    if (comp.name) return comp.name;
     const org = organizations.find(o => o.id === comp.organization_id);
     const city = cities.find(c => c.id === comp.city_id);
     const orgName = org?.name || 'Unknown Org';
     const cityName = city?.name || 'Unknown City';
-    const state = city?.state || '';
-    return `${orgName} ${cityName}${state ? `, ${state}` : ''} ${comp.season}`;
+    return `${orgName} ${cityName}`;
   };
 
   // Get host display name
@@ -462,6 +460,21 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                 })}
               </select>
             </div>
+
+            {/* Competition Name */}
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>Competition Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Most Eligible Miami"
+                style={inputStyle}
+              />
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                Custom name for the competition. Leave blank to auto-generate from organization and city.
+              </p>
+            </div>
           </div>
         );
 
@@ -594,6 +607,12 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
               <div style={{ marginBottom: spacing.md }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Organization:</span>
                 <p style={{ fontWeight: typography.fontWeight.medium }}>{selectedOrg?.name || 'Not selected'}</p>
+              </div>
+              <div style={{ marginBottom: spacing.md }}>
+                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Competition Name:</span>
+                <p style={{ fontWeight: typography.fontWeight.medium }}>
+                  {formData.name || `${selectedOrg?.name || ''} ${selectedCity?.name || ''}`.trim() || 'Auto-generated'}
+                </p>
               </div>
               <div style={{ marginBottom: spacing.md }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Location:</span>

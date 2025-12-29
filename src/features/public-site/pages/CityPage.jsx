@@ -63,8 +63,7 @@ export default function CityPage() {
       if (compError) throw compError;
 
       setCompetitions(compData || []);
-    } catch (err) {
-      console.error('Error fetching city:', err);
+    } catch {
       setError('Failed to load city');
     } finally {
       setLoading(false);

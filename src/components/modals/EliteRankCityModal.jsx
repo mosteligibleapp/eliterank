@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users, Star,
-  Ticket, Activity, Info, Briefcase, UserPlus, Loader, Search, Filter, User
+  Ticket, Activity, Info, Briefcase, UserPlus, Loader, Search, Filter, User, ExternalLink
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -15,6 +15,7 @@ import {
   shouldAutoTransitionToLive,
   shouldAutoTransitionToCompleted,
 } from '../../utils/competitionPhase';
+import { getCityImage } from '../../utils/cityImages';
 
 const TABS = [
   { id: 'competitions', label: 'Competitions', icon: Crown },
@@ -123,12 +124,17 @@ export default function EliteRankCityModal({
 
             // Look up city from city_id
             const city = citiesMap[comp.city_id];
-            const cityName = city ? `${city.name}, ${city.state}` : 'Unknown City';
+            const cityName = city?.name || 'Unknown City';
+            const cityState = city?.state || '';
+            const citySlug = city?.slug || '';
 
             return {
               id: comp.id,
-              name: `${cityName} ${comp.season || ''}`.trim(),
+              // Use custom name if set, otherwise generate
+              name: comp.name || `Most Eligible ${cityName}`,
               city: cityName,
+              cityState,
+              citySlug,
               cityId: comp.city_id,
               season: comp.season || new Date().getFullYear(),
               // Store both status (super admin controlled) and computed phase
@@ -219,21 +225,52 @@ export default function EliteRankCityModal({
 
   const getOrganizationLogo = (orgId) => {
     const org = organizations.find(o => o.id === orgId);
-    return org?.logo || null;
+    return org?.logo_url || org?.logo || null;
   };
 
-  // Competition Card Component
+  const getOrganizationSlug = (orgId) => {
+    const org = organizations.find(o => o.id === orgId);
+    return org?.slug || null;
+  };
+
+  // Handle organization click - navigate to org page
+  const handleOrganizationClick = (e, orgId) => {
+    e.stopPropagation();
+    const slug = getOrganizationSlug(orgId);
+    if (slug) {
+      window.location.href = `/org/${slug}`;
+    }
+  };
+
+  // Handle city click - navigate to city page
+  const handleCityClick = (e, citySlug) => {
+    e.stopPropagation();
+    if (citySlug) {
+      window.location.href = `/city/${citySlug}`;
+    }
+  };
+
+  // Competition Card Component - New Design
   const CompetitionCard = ({ competition }) => {
     const isHovered = hoveredCard === competition.id;
     const isAccessible = competition.accessible;
     const isPublished = competition.status === COMPETITION_STATUSES.PUBLISH;
 
-    // Get display config based on computed phase (uses centralized config for consistency)
+    // Get display config based on computed phase
     const displayPhase = isAccessible ? competition.phase : competition.status;
     const config = getPhaseDisplayConfig(displayPhase);
-
-    // The config contains: variant, label, icon (name), pulse, description
     const isClickable = isAccessible || isPublished;
+
+    // Get city background image
+    const cityImage = getCityImage(competition.city);
+
+    // CTA text based on status/phase
+    const getCtaText = () => {
+      if (isPublished) return 'Learn More';
+      if (competition.phase === 'nomination') return 'Nominate Now';
+      if (competition.phase === 'voting') return 'Vote Now';
+      return 'View Competition';
+    };
 
     return (
       <div
@@ -245,108 +282,187 @@ export default function EliteRankCityModal({
           borderRadius: borderRadius.xl,
           overflow: 'hidden',
           cursor: isClickable ? 'pointer' : 'default',
-          transform: isHovered && isClickable ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
+          transform: isHovered && isClickable ? 'translateY(-4px)' : 'translateY(0)',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           boxShadow: isHovered && isClickable
-            ? '0 20px 40px rgba(212,175,55,0.3), 0 0 0 2px rgba(212,175,55,0.5)'
+            ? '0 20px 40px rgba(0,0,0,0.4), 0 0 0 2px rgba(212,175,55,0.5)'
             : '0 4px 20px rgba(0,0,0,0.3)',
-          background: colors.background.card,
-          border: `1px solid ${colors.border.light}`,
-          opacity: isPublished && !isAccessible ? 0.9 : 1,
+          minHeight: '280px',
         }}
       >
+        {/* Background Image */}
         <div style={{
-          background: `linear-gradient(135deg, ${colors.gold.primary}15, transparent)`,
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `url(${cityImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: isHovered ? 'brightness(0.5)' : 'brightness(0.4)',
+          transition: 'filter 0.3s',
+        }} />
+
+        {/* Gradient Overlay */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.3) 100%)',
+        }} />
+
+        {/* Content */}
+        <div style={{
+          position: 'relative',
           padding: spacing.xl,
-          minHeight: '200px',
+          height: '100%',
+          minHeight: '280px',
           display: 'flex',
           flexDirection: 'column',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg }}>
+          {/* Top Row: Status Badge + Organization Logo */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            {/* Status Badge */}
             <Badge variant={config.variant} size="md" pill>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {config.pulse && (
-                  <span style={{ width: '8px', height: '8px', background: '#4ade80', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    background: '#4ade80',
+                    borderRadius: '50%',
+                    animation: 'pulse 2s infinite',
+                  }} />
                 )}
                 {config.label}
               </span>
             </Badge>
-            <OrganizationLogo logo={getOrganizationLogo(competition.organizationId)} size={40} />
+
+            {/* Organization Logo */}
+            <div
+              onClick={(e) => handleOrganizationClick(e, competition.organizationId)}
+              style={{
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: borderRadius.md,
+                background: 'rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(10px)',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            >
+              <OrganizationLogo logo={getOrganizationLogo(competition.organizationId)} size={44} />
+            </div>
           </div>
 
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm }}>
-              <MapPin size={14} style={{ color: colors.gold.primary }} />
-              <span style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, textTransform: 'uppercase', letterSpacing: '2px' }}>
-                {competition.city}
-              </span>
-            </div>
-
+          {/* Main Content - Bottom Aligned */}
+          <div style={{ marginTop: 'auto' }}>
+            {/* Organization Name - Clickable */}
             {competition.organizationId && (
-              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>
-                {getOrganizationName(competition.organizationId)}
-              </p>
+              <div
+                onClick={(e) => handleOrganizationClick(e, competition.organizationId)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: spacing.xs,
+                  marginBottom: spacing.xs,
+                  cursor: 'pointer',
+                }}
+              >
+                <span style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.gold.primary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  fontWeight: typography.fontWeight.medium,
+                }}>
+                  {getOrganizationName(competition.organizationId)}
+                </span>
+                <ExternalLink size={10} style={{ color: colors.gold.primary, opacity: 0.7 }} />
+              </div>
             )}
 
-            <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#fff', marginBottom: spacing.sm }}>
+            {/* Competition Name */}
+            <h3 style={{
+              fontSize: typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: '#fff',
+              marginBottom: spacing.sm,
+              lineHeight: 1.2,
+            }}>
               {competition.name}
             </h3>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+            {/* Season */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.xs,
+              marginBottom: spacing.sm,
+            }}>
               <Calendar size={14} style={{ color: colors.text.secondary }} />
-              <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Season {competition.season}</span>
+              <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                Season {competition.season}
+              </span>
             </div>
-          </div>
 
-          {isAccessible ? (
-            <div style={{
-              marginTop: spacing.lg,
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              color: colors.gold.primary,
-              fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.semibold,
-              opacity: isHovered ? 1 : 0.7,
-              transition: 'opacity 0.2s',
-            }}>
-              {competition.phase === 'nomination' ? 'Nominate Now' : 'View Competition'}
-              <ChevronRight size={18} style={{ transform: isHovered ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.2s' }} />
+            {/* Location - Clickable */}
+            <div
+              onClick={(e) => handleCityClick(e, competition.citySlug)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+                cursor: competition.citySlug ? 'pointer' : 'default',
+                marginBottom: spacing.lg,
+              }}
+            >
+              <MapPin size={14} style={{ color: colors.gold.primary }} />
+              <span style={{
+                fontSize: typography.fontSize.sm,
+                color: colors.gold.primary,
+              }}>
+                {competition.city}{competition.cityState ? `, ${competition.cityState}` : ''}
+              </span>
+              {competition.citySlug && (
+                <ExternalLink size={10} style={{ color: colors.gold.primary, opacity: 0.7 }} />
+              )}
             </div>
-          ) : isPublished ? (
-            <div style={{
-              marginTop: spacing.lg,
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              color: colors.gold.primary,
-              fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.semibold,
-              opacity: isHovered ? 1 : 0.7,
-              transition: 'opacity 0.2s',
-            }}>
-              Learn More
-              <ChevronRight size={18} style={{ transform: isHovered ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.2s' }} />
-            </div>
-          ) : (
-            <div style={{
-              marginTop: spacing.lg,
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              color: colors.text.secondary,
-              fontSize: typography.fontSize.sm,
-            }}>
-              <Clock size={14} />
-              {competition.nomination_start ? (
+
+            {/* CTA Button */}
+            {isClickable && (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: spacing.sm,
+                padding: `${spacing.sm} ${spacing.lg}`,
+                background: isHovered ? colors.gold.primary : 'rgba(212,175,55,0.2)',
+                border: `1px solid ${colors.gold.primary}`,
+                borderRadius: borderRadius.lg,
+                color: isHovered ? '#000' : colors.gold.primary,
+                fontSize: typography.fontSize.sm,
+                fontWeight: typography.fontWeight.semibold,
+                transition: 'all 0.2s',
+              }}>
+                <Sparkles size={14} />
+                {getCtaText()}
+              </div>
+            )}
+
+            {/* Coming Soon Date */}
+            {!isClickable && competition.nomination_start && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.sm,
+                color: colors.text.secondary,
+                fontSize: typography.fontSize.sm,
+              }}>
+                <Clock size={14} />
                 <span>
                   Opens {new Date(competition.nomination_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
-              ) : (
-                <span>Coming Soon</span>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
