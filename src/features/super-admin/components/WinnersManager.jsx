@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Trophy, Search, X, Loader, User, AlertCircle, Check, Crown, Instagram
+  Trophy, Search, X, Loader, User, AlertCircle, Check, Crown
 } from 'lucide-react';
 import { Button, Badge, Avatar } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -49,7 +49,7 @@ export default function WinnersManager({ competition, onUpdate }) {
         // Fetch winner profiles
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, email, first_name, last_name, instagram_handle, avatar_url')
+          .select('id, email, first_name, last_name, avatar_url')
           .in('id', winnerIds);
 
         if (profilesError) throw profilesError;
@@ -88,7 +88,7 @@ export default function WinnersManager({ competition, onUpdate }) {
       // This works around RLS and query syntax issues
       const { data, error: fetchError } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, instagram_handle, avatar_url')
+        .select('id, email, first_name, last_name, avatar_url')
         .limit(100);
 
       if (fetchError) {
@@ -115,15 +115,13 @@ export default function WinnersManager({ competition, onUpdate }) {
         const email = (p.email || '').toLowerCase();
         const firstName = (p.first_name || '').toLowerCase();
         const lastName = (p.last_name || '').toLowerCase();
-        const instagram = (p.instagram_handle || '').toLowerCase();
         const fullName = `${firstName} ${lastName}`.toLowerCase();
 
         return (
           email.includes(searchTerm) ||
           firstName.includes(searchTerm) ||
           lastName.includes(searchTerm) ||
-          fullName.includes(searchTerm) ||
-          instagram.includes(searchTerm)
+          fullName.includes(searchTerm)
         );
       }).slice(0, 10);
 
@@ -397,21 +395,12 @@ export default function WinnersManager({ competition, onUpdate }) {
                     <p style={{ fontWeight: typography.fontWeight.medium, color: colors.text.primary }}>
                       {getProfileName(profile)}
                     </p>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.md,
+                    <p style={{
                       color: colors.text.secondary,
                       fontSize: typography.fontSize.sm,
                     }}>
-                      <span>{profile.email}</span>
-                      {profile.instagram_handle && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-                          <Instagram size={12} />
-                          @{profile.instagram_handle.replace('@', '')}
-                        </span>
-                      )}
-                    </div>
+                      {profile.email}
+                    </p>
                   </div>
                   <div style={{
                     padding: spacing.sm,
@@ -490,21 +479,12 @@ export default function WinnersManager({ competition, onUpdate }) {
                 <p style={{ fontWeight: typography.fontWeight.medium }}>
                   {getProfileName(winner)}
                 </p>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md,
+                <p style={{
                   color: colors.text.secondary,
                   fontSize: typography.fontSize.sm,
                 }}>
-                  <span>{winner.email}</span>
-                  {winner.instagram_handle && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-                      <Instagram size={12} />
-                      @{winner.instagram_handle.replace('@', '')}
-                    </span>
-                  )}
-                </div>
+                  {winner.email}
+                </p>
               </div>
 
               <Badge variant="gold" size="sm">Winner</Badge>

@@ -133,7 +133,7 @@ export default function CompetitionPage() {
       if (compData.winners && compData.winners.length > 0) {
         const { data: winnerProfiles, error: winnersError } = await supabase
           .from('profiles')
-          .select('id, email, first_name, last_name, instagram_handle, avatar_url')
+          .select('id, email, first_name, last_name, avatar_url')
           .in('id', compData.winners);
 
         if (!winnersError && winnerProfiles) {
@@ -707,20 +707,6 @@ function WinnersTab({ winners }) {
             }}>
               {getProfileName(winner)}
             </h3>
-
-            {/* Instagram handle */}
-            {winner.instagram_handle && (
-              <p style={{
-                fontSize: typography.fontSize.sm,
-                color: colors.text.secondary,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: spacing.xs,
-              }}>
-                @{winner.instagram_handle.replace('@', '')}
-              </p>
-            )}
 
             {/* Winner badge */}
             <div style={{
