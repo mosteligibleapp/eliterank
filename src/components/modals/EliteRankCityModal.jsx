@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users, Star,
-  Ticket, Activity, Info, Briefcase, UserPlus, Loader, Search, Filter, User, ExternalLink
+  Ticket, Activity, Info, Briefcase, UserPlus, Loader, User, ExternalLink
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -42,7 +42,6 @@ export default function EliteRankCityModal({
   const [organizations, setOrganizations] = useState([]);
   const [cities, setCities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'upcoming', 'complete'
 
   // Fetch competitions, organizations, and cities from Supabase
@@ -174,18 +173,10 @@ export default function EliteRankCityModal({
 
   if (!isOpen) return null;
 
-  // Filter competitions based on visibility, search, and status filter
+  // Filter competitions based on visibility and status filter
   const visibleCompetitions = competitions.filter(c => {
     // Must be visible (publish, active, or complete status)
     if (!c.visible) return false;
-
-    // Apply search filter (city name)
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      if (!c.city?.toLowerCase().includes(query) && !c.name?.toLowerCase().includes(query)) {
-        return false;
-      }
-    }
 
     // Apply status filter
     if (statusFilter !== 'all') {
@@ -285,7 +276,7 @@ export default function EliteRankCityModal({
           transform: isHovered && isClickable ? 'translateY(-4px)' : 'translateY(0)',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           boxShadow: isHovered && isClickable
-            ? '0 20px 40px rgba(0,0,0,0.4), 0 0 0 2px rgba(212,175,55,0.5)'
+            ? '0 20px 40px rgba(0,0,0,0.4)'
             : '0 4px 20px rgba(0,0,0,0.3)',
           minHeight: '280px',
         }}
@@ -496,47 +487,15 @@ export default function EliteRankCityModal({
             </section>
 
             <section style={{ padding: `0 ${spacing.xxl} ${spacing.xxxl}`, maxWidth: '1400px', margin: '0 auto' }}>
-              {/* Search and Filter */}
+              {/* Status Filter */}
               <div style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: spacing.md,
                 marginBottom: spacing.xl,
                 alignItems: 'center',
+                justifyContent: 'flex-end',
               }}>
-                {/* Search Input */}
-                <div style={{
-                  flex: '1 1 300px',
-                  position: 'relative',
-                }}>
-                  <Search
-                    size={18}
-                    style={{
-                      position: 'absolute',
-                      left: spacing.md,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: colors.text.muted,
-                    }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search by city..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: `${spacing.md} ${spacing.md} ${spacing.md} ${spacing.xxxl}`,
-                      background: colors.background.secondary,
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.lg,
-                      color: '#fff',
-                      fontSize: typography.fontSize.md,
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
                 {/* Status Filter Buttons */}
                 <div style={{ display: 'flex', gap: spacing.sm }}>
                   {[
@@ -580,10 +539,9 @@ export default function EliteRankCityModal({
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: visibleCompetitions.length === 1
-                      ? 'minmax(300px, 380px)'
-                      : 'repeat(auto-fill, minmax(300px, 380px))',
+                      ? 'minmax(300px, 400px)'
+                      : 'repeat(auto-fill, minmax(320px, 1fr))',
                     gap: spacing.xl,
-                    justifyContent: visibleCompetitions.length === 1 ? 'start' : 'start',
                   }}>
                     {visibleCompetitions.map((competition) => (
                       <CompetitionCard key={competition.id} competition={competition} />
@@ -594,21 +552,21 @@ export default function EliteRankCityModal({
                 <div style={{ textAlign: 'center', padding: spacing.xxxl, background: colors.background.card, borderRadius: borderRadius.xxl, border: `1px solid ${colors.border.light}` }}>
                   <Crown size={48} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
                   <h3 style={{ fontSize: typography.fontSize.xl, color: '#fff', marginBottom: spacing.sm }}>
-                    {searchQuery || statusFilter !== 'all' ? 'No Matching Competitions' : 'No Competitions Yet'}
+                    {statusFilter !== 'all' ? 'No Matching Competitions' : 'No Competitions Yet'}
                   </h3>
                   <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary }}>
-                    {searchQuery || statusFilter !== 'all'
-                      ? 'Try adjusting your search or filter criteria.'
+                    {statusFilter !== 'all'
+                      ? 'Try adjusting your filter criteria.'
                       : 'Check back soon for upcoming competitions in your city!'}
                   </p>
-                  {(searchQuery || statusFilter !== 'all') && (
+                  {statusFilter !== 'all' && (
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}
+                      onClick={() => setStatusFilter('all')}
                       style={{ marginTop: spacing.lg, width: 'auto' }}
                     >
-                      Clear Filters
+                      Clear Filter
                     </Button>
                   )}
                 </div>
