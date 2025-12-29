@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Crown, Trophy, Sparkles, Loader } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
-import { ProfileViewModal } from '../../../components/modals';
 
-export default function WinnersTab({ city, season, winners = [], competitionId }) {
+export default function WinnersTab({ city, season, winners = [], competitionId, onViewProfile }) {
   const [loadedWinners, setLoadedWinners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProfile, setSelectedProfile] = useState(null);
 
   // Fetch winners from competition if competitionId is provided
   useEffect(() => {
@@ -138,7 +136,7 @@ export default function WinnersTab({ city, season, winners = [], competitionId }
           marginBottom: spacing.xxxl,
         }}>
           <div
-            onClick={() => setSelectedProfile(grandWinner)}
+            onClick={() => onViewProfile?.(grandWinner)}
             style={{
               background: colors.background.card,
               border: `2px solid ${colors.gold.primary}`,
@@ -291,7 +289,7 @@ export default function WinnersTab({ city, season, winners = [], competitionId }
             {runnerUps.map((winner, index) => (
               <div
                 key={winner.id}
-                onClick={() => setSelectedProfile(winner)}
+                onClick={() => onViewProfile?.(winner)}
                 style={{
                   background: colors.background.card,
                   border: `1px solid rgba(212,175,55,0.3)`,
@@ -423,14 +421,6 @@ export default function WinnersTab({ city, season, winners = [], competitionId }
         </p>
       </div>
 
-      {/* Profile View Modal */}
-      <ProfileViewModal
-        isOpen={!!selectedProfile}
-        onClose={() => setSelectedProfile(null)}
-        profileId={selectedProfile?.id}
-        profile={selectedProfile}
-        role="winner"
-      />
     </div>
   );
 }

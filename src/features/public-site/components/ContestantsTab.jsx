@@ -5,19 +5,10 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { formatNumber } from '../../../utils/formatters';
 import { useCountdown } from '../../../hooks';
 import { CONTESTANT_IMAGES, COMPETITION_STAGES } from '../../../constants';
-import ProfileModal from './ProfileModal';
 
-export default function ContestantsTab({ contestants, events, forceDoubleVoteDay, onVote, isAuthenticated = false, onLogin, isJudgingPhase = false }) {
-  const [selectedProfile, setSelectedProfile] = useState(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
+export default function ContestantsTab({ contestants, events, forceDoubleVoteDay, onVote, isAuthenticated = false, onLogin, isJudgingPhase = false, onViewProfile }) {
   const currentStage = COMPETITION_STAGES.find((s) => s.status === 'active') || COMPETITION_STAGES[1];
   const timeLeft = useCountdown(currentStage.endDate);
-
-  const handleViewProfile = (contestant, index) => {
-    setSelectedProfile(contestant);
-    setSelectedIndex(index);
-  };
 
   // Handle vote button click - require authentication
   const handleVoteClick = (contestant) => {
@@ -27,11 +18,6 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
     } else {
       onVote(contestant);
     }
-  };
-
-  const handleVoteFromProfile = (contestant) => {
-    setSelectedProfile(null);
-    handleVoteClick(contestant);
   };
 
   const getTrendStyle = (trend) => ({
@@ -211,7 +197,7 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
         {contestants.map((contestant, index) => (
           <div
             key={contestant.id}
-            onClick={() => handleViewProfile(contestant, index)}
+            onClick={() => onViewProfile?.(contestant)}
             style={{
               background: colors.background.card,
               border: index < 3 ? `2px solid rgba(212,175,55,0.4)` : `1px solid ${colors.border.light}`,
@@ -353,17 +339,6 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
           </div>
         ))}
       </div>
-
-      {/* Profile Modal */}
-      <ProfileModal
-        isOpen={!!selectedProfile}
-        onClose={() => setSelectedProfile(null)}
-        profile={selectedProfile}
-        type="contestant"
-        onVote={handleVoteFromProfile}
-        rank={selectedIndex + 1}
-        imageIndex={selectedIndex}
-      />
     </div>
   );
 }

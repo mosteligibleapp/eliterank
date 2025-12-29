@@ -11,6 +11,7 @@ import NominationTab from './components/NominationTab';
 import WinnersTab from './components/WinnersTab';
 import VoteModal from './components/VoteModal';
 import CompetitionTeaser from './components/CompetitionTeaser';
+import PublicProfileView from './components/PublicProfileView';
 
 const VOTING_TABS = [
   { id: 'contestants', label: 'Contestants', icon: Users },
@@ -241,6 +242,21 @@ export default function PublicSitePage({
   const [selectedContestant, setSelectedContestant] = useState(null);
   const [voteCount, setVoteCount] = useState(1);
 
+  // State for viewing profiles in full-page mode
+  const [viewingProfile, setViewingProfile] = useState(null);
+  const [viewingProfileRole, setViewingProfileRole] = useState('fan');
+
+  // Handler for viewing a profile
+  const handleViewProfile = (profile, role = 'fan') => {
+    setViewingProfile(profile);
+    setViewingProfileRole(role);
+  };
+
+  const handleCloseProfile = () => {
+    setViewingProfile(null);
+    setViewingProfileRole('fan');
+  };
+
   // Reset active tab when phase or city changes
   useEffect(() => {
     // Determine correct default tab based on phase
@@ -418,6 +434,7 @@ export default function PublicSitePage({
             season={season}
             winners={winners}
             competitionId={competition?.id}
+            onViewProfile={(profile) => handleViewProfile(profile, 'winner')}
           />
         )}
         {activeTab === 'nominate' && (
@@ -440,6 +457,7 @@ export default function PublicSitePage({
             isAuthenticated={isAuthenticated}
             onLogin={onLogin}
             isJudgingPhase={isJudgingPhase}
+            onViewProfile={(profile) => handleViewProfile(profile, 'contestant')}
           />
         )}
         {activeTab === 'events' && (
@@ -462,6 +480,7 @@ export default function PublicSitePage({
             host={displayHost}
             city={city}
             competition={competition}
+            onViewProfile={handleViewProfile}
           />
         )}
       </main>
@@ -477,6 +496,15 @@ export default function PublicSitePage({
         isAuthenticated={isAuthenticated}
         onLogin={onLogin}
       />
+
+      {/* Full-page Profile View */}
+      {viewingProfile && (
+        <PublicProfileView
+          profile={viewingProfile}
+          role={viewingProfileRole}
+          onBack={handleCloseProfile}
+        />
+      )}
     </div>
   );
 }
