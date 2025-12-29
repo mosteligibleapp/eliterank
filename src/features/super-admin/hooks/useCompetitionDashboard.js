@@ -93,10 +93,10 @@ export function useCompetitionDashboard(competitionId) {
           .eq('competition_id', competitionId)
           .order('sort_order'),
 
-        // Get competition info with host
+        // Get competition info
         supabase
           .from('competitions')
-          .select('*, cities(*), organizations(*)')
+          .select('*')
           .eq('id', competitionId)
           .single(),
 
