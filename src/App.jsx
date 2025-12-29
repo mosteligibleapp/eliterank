@@ -199,6 +199,7 @@ export default function App() {
   // Navigation state
   const [activeTab, setActiveTab] = useState('overview');
   const [showPublicSite, setShowPublicSite] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
   const [selectedCompetition, setSelectedCompetition] = useState({
     id: null,
     city: 'New York',
@@ -483,6 +484,11 @@ export default function App() {
   // Navigate to login
   const handleShowLogin = useCallback(() => {
     setCurrentView('login');
+  }, []);
+
+  // Navigate to user profile (for non-host authenticated users)
+  const handleShowProfile = useCallback(() => {
+    setShowUserProfile(true);
   }, []);
 
   // Navigate back to public
@@ -802,6 +808,7 @@ export default function App() {
         }}
         onLogin={handleShowLogin}
         onDashboard={isAuthenticated && (userRole === 'host' || userRole === 'super_admin') ? handleGoToDashboard : null}
+        onProfile={isAuthenticated ? handleShowProfile : null}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
         userName={profile?.first_name || user?.email?.split('@')[0]}
@@ -832,6 +839,57 @@ export default function App() {
         userInstagram={profile?.instagram}
         user={user}
       />
+
+      {/* User Profile Modal */}
+      {showUserProfile && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: '#0a0a0f',
+            zIndex: 200,
+            overflow: 'auto',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+              <button
+                onClick={() => setShowUserProfile(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                ← Back to Competitions
+              </button>
+            </div>
+            <ProfilePage
+              hostProfile={isEditingProfile ? editingProfileData : hostProfile}
+              isEditing={isEditingProfile}
+              onEdit={handleEditProfile}
+              onSave={handleSaveProfile}
+              onCancel={handleCancelProfile}
+              onChange={handleProfileChange}
+              hostCompetition={null}
+              userRole={userRole}
+              isHost={userRole === 'host'}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }

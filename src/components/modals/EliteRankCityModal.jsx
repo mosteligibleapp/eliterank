@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users, Star,
-  Ticket, Activity, Info, Briefcase, UserPlus, Loader, Search, Filter
+  Ticket, Activity, Info, Briefcase, UserPlus, Loader, Search, Filter, User
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -29,6 +29,7 @@ export default function EliteRankCityModal({
   isFullPage = false,
   onLogin,
   onDashboard,
+  onProfile, // New prop for opening profile page
   isAuthenticated = false,
   userRole = 'fan',
   userName,
@@ -634,6 +635,9 @@ export default function EliteRankCityModal({
                 </span>
                 {onDashboard && (
                   <Button variant="secondary" size="sm" onClick={onDashboard}>Dashboard</Button>
+                )}
+                {onProfile && (
+                  <Button variant="secondary" size="sm" onClick={onProfile} icon={User}>Profile</Button>
                 )}
                 <Button variant="secondary" size="sm" onClick={onLogout}>Logout</Button>
               </>
