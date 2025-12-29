@@ -266,10 +266,12 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
 
   // Get display name for competition
   const getCompetitionName = (comp) => {
-    const org = comp.organization?.name || 'Unknown Org';
-    const city = comp.city?.name || 'Unknown City';
-    const state = comp.city?.state || '';
-    return `${org} ${city}${state ? `, ${state}` : ''} ${comp.season}`;
+    const org = organizations.find(o => o.id === comp.organization_id);
+    const city = cities.find(c => c.id === comp.city_id);
+    const orgName = org?.name || 'Unknown Org';
+    const cityName = city?.name || 'Unknown City';
+    const state = city?.state || '';
+    return `${orgName} ${cityName}${state ? `, ${state}` : ''} ${comp.season}`;
   };
 
   // Get host display name
@@ -693,6 +695,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
         competitions.map(comp => {
           const statusConfig = STATUS_CONFIG[comp.status] || STATUS_CONFIG[COMPETITION_STATUS.DRAFT];
           const hostName = getHostName(comp.host);
+          const org = organizations.find(o => o.id === comp.organization_id);
+          const city = cities.find(c => c.id === comp.city_id);
 
           return (
             <div key={comp.id} style={cardStyle}>
@@ -709,10 +713,10 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                   overflow: 'hidden',
                   flexShrink: 0,
                 }}>
-                  {comp.organization?.logo_url ? (
+                  {org?.logo_url ? (
                     <img
-                      src={comp.organization.logo_url}
-                      alt={comp.organization.name}
+                      src={org.logo_url}
+                      alt={org.name}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
@@ -740,7 +744,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, marginBottom: spacing.sm }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
                       <MapPin size={14} />
-                      {comp.city?.name}, {comp.city?.state}
+                      {city?.name || 'No City'}, {city?.state || ''}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
                       <Calendar size={14} />
