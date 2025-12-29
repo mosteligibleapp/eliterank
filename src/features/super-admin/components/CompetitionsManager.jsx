@@ -807,7 +807,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                       variant="secondary"
                       size="sm"
                       icon={Eye}
-                      onClick={() => onViewDashboard(comp)}
+                      onClick={() => onViewDashboard({ ...comp, name: getCompetitionName(comp) })}
                     />
                   )}
                   {onOpenAdvancedSettings && (
@@ -815,7 +815,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                       variant="secondary"
                       size="sm"
                       icon={Settings}
-                      onClick={() => onOpenAdvancedSettings(comp)}
+                      onClick={() => onOpenAdvancedSettings({ ...comp, name: getCompetitionName(comp) })}
                     />
                   )}
                   <Button

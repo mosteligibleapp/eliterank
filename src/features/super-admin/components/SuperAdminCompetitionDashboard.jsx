@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Crown, ArrowLeft, Shield, Star, LogOut, BarChart3, UserPlus, FileText, Settings as SettingsIcon,
-  User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle
+  User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, Archive, RotateCcw, ExternalLink,
+  UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Button, Badge, Avatar, StatCard } from '../../../components/ui';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
@@ -32,7 +33,19 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   const [assignedHost, setAssignedHost] = useState(null);
 
   // Fetch real data from Supabase
-  const { data, loading, error, refresh, approveNominee, rejectNominee } = useCompetitionDashboard(competition?.id);
+  const { data, loading, error, refresh, approveNominee, rejectNominee, archiveNominee, restoreNominee } = useCompetitionDashboard(competition?.id);
+
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState({
+    withProfile: true,
+    external: true,
+    archived: false,
+    contestants: true,
+  });
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   // Fetch host data if competition has host_id
   useEffect(() => {
@@ -386,107 +399,311 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
 
   // Nominations tab
   const renderNominations = () => {
+    // Categorize nominees
+    const activeNominees = data.nominees.filter(n => !['approved', 'rejected', 'archived'].includes(n.status));
+    const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
+    const externalNominees = activeNominees.filter(n => !n.hasProfile);
+    const archivedNominees = data.nominees.filter(n => n.status === 'archived');
+    const approvedContestants = data.contestants;
+
     // Calculate stats
-    const pendingNominees = data.nominees.filter(n => ['pending', 'pending-approval', 'awaiting-profile'].includes(n.status));
-    const approvedCount = data.contestants.length;
-    const totalNominees = data.nominees.length + approvedCount;
+    const totalNominees = data.nominees.length;
+    const pendingCount = activeNominees.length;
+    const approvedCount = approvedContestants.length;
 
     // Calculate nominees this week
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const thisWeekCount = data.nominees.filter(n => new Date(n.createdAt) >= oneWeekAgo).length;
 
+    // Section header component
+    const SectionHeader = ({ title, count, icon: Icon, iconColor, sectionKey, badge }) => (
+      <button
+        onClick={() => toggleSection(sectionKey)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: spacing.lg,
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: '#fff',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+          <Icon size={20} style={{ color: iconColor }} />
+          <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold }}>
+            {title}
+          </h3>
+          <Badge variant={badge || 'secondary'} size="sm">{count}</Badge>
+        </div>
+        {expandedSections[sectionKey] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      </button>
+    );
+
+    // Nominee row component
+    const NomineeRow = ({ nominee, showActions = true, showProfileLink = false, isArchived = false }) => (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spacing.lg,
+        padding: spacing.lg,
+        background: colors.background.secondary,
+        borderRadius: borderRadius.lg,
+        marginBottom: spacing.sm,
+        opacity: isArchived ? 0.7 : 1,
+      }}>
+        <Avatar name={nominee.name} size={48} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+            <p style={{ fontWeight: typography.fontWeight.medium }}>{nominee.name}</p>
+            {nominee.age && (
+              <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                ({nominee.age})
+              </span>
+            )}
+            {showProfileLink && nominee.hasProfile && (
+              <Badge variant="info" size="sm" style={{ cursor: 'pointer' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <ExternalLink size={10} /> View Profile
+                </span>
+              </Badge>
+            )}
+          </div>
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+            {nominee.nominatedBy === 'self' ? 'Self-nominated' :
+              nominee.nominatorName ? `Nominated by ${nominee.nominatorName}` : 'Third-party nomination'}
+            {nominee.email && ` • ${nominee.email}`}
+          </p>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>
+            {nominee.instagram && `@${nominee.instagram.replace('@', '')} • `}
+            {nominee.city || 'No city'} • Status: {nominee.status}
+          </p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: spacing.xs }}>
+          <Badge
+            variant={nominee.nominatedBy === 'self' ? 'gold' : 'secondary'}
+            size="sm"
+          >
+            {nominee.nominatedBy === 'self' ? 'Self' : 'Third Party'}
+          </Badge>
+          {nominee.profileComplete && (
+            <Badge variant="success" size="sm">Profile Complete</Badge>
+          )}
+        </div>
+        {showActions && !isArchived && (
+          <div style={{ display: 'flex', gap: spacing.sm }}>
+            <Button variant="approve" size="sm" onClick={() => approveNominee(nominee)}>
+              <CheckCircle size={14} />
+            </Button>
+            <Button variant="reject" size="sm" onClick={() => rejectNominee(nominee.id)}>
+              <XCircle size={14} />
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => archiveNominee(nominee.id)}>
+              <Archive size={14} />
+            </Button>
+          </div>
+        )}
+        {isArchived && (
+          <Button variant="secondary" size="sm" onClick={() => restoreNominee(nominee.id)}>
+            <RotateCcw size={14} style={{ marginRight: spacing.xs }} /> Restore
+          </Button>
+        )}
+      </div>
+    );
+
+    // Contestant row component
+    const ContestantRow = ({ contestant }) => (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spacing.lg,
+        padding: spacing.lg,
+        background: 'rgba(34,197,94,0.1)',
+        border: '1px solid rgba(34,197,94,0.2)',
+        borderRadius: borderRadius.lg,
+        marginBottom: spacing.sm,
+      }}>
+        <Avatar name={contestant.name} size={48} avatarUrl={contestant.avatarUrl} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+            <p style={{ fontWeight: typography.fontWeight.medium }}>{contestant.name}</p>
+            {contestant.age && (
+              <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                ({contestant.age})
+              </span>
+            )}
+            <Badge variant="success" size="sm">Competing</Badge>
+          </div>
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+            {contestant.occupation || 'No occupation'} • {contestant.instagram && `@${contestant.instagram.replace('@', '')}`}
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold }}>
+              {contestant.votes || 0}
+            </p>
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>votes</p>
+          </div>
+          <Badge variant="gold" size="sm">#{contestant.rank}</Badge>
+        </div>
+      </div>
+    );
+
     return (
       <div>
         {/* Stats Row */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: spacing.xl,
-          marginBottom: spacing.xxxl,
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: spacing.lg,
+          marginBottom: spacing.xxl,
         }}>
           {[
             { label: 'Total Nominees', value: totalNominees, color: '#8b5cf6' },
-            { label: 'Pending Review', value: pendingNominees.length, color: '#f59e0b' },
+            { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
+            { label: 'External', value: externalNominees.length, color: '#f59e0b' },
             { label: 'Approved', value: approvedCount, color: '#22c55e' },
-            { label: 'This Week', value: thisWeekCount, color: '#3b82f6' },
+            { label: 'Archived', value: archivedNominees.length, color: '#6b7280' },
           ].map((stat, i) => (
             <div key={i} style={{
               background: colors.background.card,
               border: `1px solid ${colors.border.light}`,
               borderRadius: borderRadius.xl,
-              padding: spacing.xl,
+              padding: spacing.lg,
             }}>
-              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.sm }}>{stat.label}</p>
-              <p style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: stat.color }}>{stat.value}</p>
+              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, marginBottom: spacing.xs }}>{stat.label}</p>
+              <p style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: stat.color }}>{stat.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Nominees list */}
+        {/* Contestants (Approved to Compete) */}
+        <div style={{
+          background: colors.background.card,
+          border: `1px solid rgba(34,197,94,0.3)`,
+          borderRadius: borderRadius.xl,
+          marginBottom: spacing.lg,
+          overflow: 'hidden',
+        }}>
+          <SectionHeader
+            title="Contestants"
+            count={approvedContestants.length}
+            icon={Crown}
+            iconColor="#22c55e"
+            sectionKey="contestants"
+            badge="success"
+          />
+          {expandedSections.contestants && (
+            <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
+              {approvedContestants.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+                  <Crown size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
+                  <p>No contestants yet. Approve nominees to add them.</p>
+                </div>
+              ) : (
+                approvedContestants.map((contestant) => (
+                  <ContestantRow key={contestant.id} contestant={contestant} />
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Nominees with Existing Profile */}
         <div style={{
           background: colors.background.card,
           border: `1px solid ${colors.border.light}`,
           borderRadius: borderRadius.xl,
-          padding: spacing.xl,
+          marginBottom: spacing.lg,
+          overflow: 'hidden',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl }}>
-            <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold }}>
-              Pending Nominations ({pendingNominees.length})
-            </h3>
-            {isEditing && (
-              <Button size="sm" icon={UserPlus}>Add Nominee</Button>
-            )}
-          </div>
-
-          {pendingNominees.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: spacing.xxl,
-              color: colors.text.secondary,
-            }}>
-              <UserPlus size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No pending nominations</p>
+          <SectionHeader
+            title="Nominees with Profile"
+            count={nomineesWithProfile.length}
+            icon={UserCheck}
+            iconColor="#3b82f6"
+            sectionKey="withProfile"
+            badge="info"
+          />
+          {expandedSections.withProfile && (
+            <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
+              {nomineesWithProfile.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+                  <UserCheck size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
+                  <p>No nominees with linked profiles</p>
+                </div>
+              ) : (
+                nomineesWithProfile.map((nominee) => (
+                  <NomineeRow key={nominee.id} nominee={nominee} showProfileLink={true} />
+                ))
+              )}
             </div>
-          ) : (
-            pendingNominees.map((nominee) => (
-              <div key={nominee.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.lg,
-                padding: spacing.lg,
-                background: colors.background.secondary,
-                borderRadius: borderRadius.lg,
-                marginBottom: spacing.md,
-              }}>
-                <Avatar name={nominee.name} size={48} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                    <p style={{ fontWeight: typography.fontWeight.medium }}>{nominee.name}</p>
-                    {nominee.age && (
-                      <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-                        ({nominee.age})
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                    {nominee.nominatedBy === 'Self' ? 'Self-nominated' : `Nominated by ${nominee.nominatedBy}`}
-                    {nominee.email && ` • ${nominee.email}`}
-                    {nominee.instagram && ` • ${nominee.instagram}`}
-                  </p>
+          )}
+        </div>
+
+        {/* External Nominees (No Profile) */}
+        <div style={{
+          background: colors.background.card,
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.xl,
+          marginBottom: spacing.lg,
+          overflow: 'hidden',
+        }}>
+          <SectionHeader
+            title="External Nominees"
+            count={externalNominees.length}
+            icon={Users}
+            iconColor="#f59e0b"
+            sectionKey="external"
+            badge="warning"
+          />
+          {expandedSections.external && (
+            <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
+              {externalNominees.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+                  <Users size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
+                  <p>No external nominees</p>
                 </div>
-                <Badge
-                  variant={nominee.nominatedBy === 'Self' ? 'gold' : 'secondary'}
-                  size="sm"
-                >
-                  {nominee.nominatedBy === 'Self' ? 'Self' : 'Nominated'}
-                </Badge>
-                <div style={{ display: 'flex', gap: spacing.sm }}>
-                  <Button variant="approve" size="sm" onClick={() => approveNominee(nominee)}>Approve</Button>
-                  <Button variant="reject" size="sm" onClick={() => rejectNominee(nominee.id)}>Reject</Button>
+              ) : (
+                externalNominees.map((nominee) => (
+                  <NomineeRow key={nominee.id} nominee={nominee} />
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Archived Nominees */}
+        <div style={{
+          background: colors.background.card,
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.xl,
+          overflow: 'hidden',
+        }}>
+          <SectionHeader
+            title="Archived"
+            count={archivedNominees.length}
+            icon={Archive}
+            iconColor="#6b7280"
+            sectionKey="archived"
+          />
+          {expandedSections.archived && (
+            <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
+              {archivedNominees.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+                  <Archive size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
+                  <p>No archived nominees</p>
                 </div>
-              </div>
-            ))
+              ) : (
+                archivedNominees.map((nominee) => (
+                  <NomineeRow key={nominee.id} nominee={nominee} showActions={false} isArchived={true} />
+                ))
+              )}
+            </div>
           )}
         </div>
       </div>

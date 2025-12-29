@@ -121,21 +121,37 @@ export function useCompetitionDashboard(competitionId) {
         instagram: c.instagram,
       }));
 
-      // Transform nominees
+      // Transform nominees - include all fields for categorization
       const nominees = (nomineesResult.data || []).map((n) => ({
         id: n.id,
         name: n.name,
         email: n.email,
         phone: n.phone,
         instagram: n.instagram,
-        nominatedBy: n.nominated_by === 'self' ? 'Self' : (n.nominator_anonymous ? 'Anonymous' : 'Someone'),
+        occupation: n.occupation,
+        bio: n.bio,
+        interests: n.interests || [],
+        // Nomination source info
+        nominatedBy: n.nominated_by, // 'self' or 'third_party'
+        nominatorId: n.nominator_id,
+        nominatorName: n.nominator_name,
+        nominatorEmail: n.nominator_email,
+        // Profile link info
+        userId: n.user_id, // If not null, they have a profile
+        hasProfile: !!n.user_id,
+        // Status and completion
         status: n.status,
         age: n.age,
         city: n.city,
         livesNearCity: n.lives_near_city,
         isSingle: n.is_single,
         profileComplete: n.profile_complete,
+        // Tracking
+        inviteToken: n.invite_token,
+        inviteSentAt: n.invite_sent_at,
+        convertedToContestantId: n.converted_to_contestant_id,
         createdAt: n.created_at,
+        updatedAt: n.updated_at,
       }));
 
       // Transform judges
@@ -287,6 +303,48 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  // Archive a nominee - updates status to 'archived'
+  const archiveNominee = useCallback(async (nomineeId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error: updateError } = await supabase
+        .from('nominees')
+        .update({ status: 'archived' })
+        .eq('id', nomineeId);
+
+      if (updateError) throw updateError;
+
+      // Refresh data to show updated list
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error archiving nominee:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  // Restore an archived nominee to pending
+  const restoreNominee = useCallback(async (nomineeId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error: updateError } = await supabase
+        .from('nominees')
+        .update({ status: 'pending' })
+        .eq('id', nomineeId);
+
+      if (updateError) throw updateError;
+
+      // Refresh data to show updated list
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error restoring nominee:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   return {
     data,
     loading,
@@ -294,6 +352,8 @@ export function useCompetitionDashboard(competitionId) {
     refresh,
     approveNominee,
     rejectNominee,
+    archiveNominee,
+    restoreNominee,
   };
 }
 
