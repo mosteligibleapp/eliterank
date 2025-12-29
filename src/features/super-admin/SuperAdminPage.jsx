@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
-import { Crown, MapPin, Users, Settings, ArrowLeft, Shield } from 'lucide-react';
+import { Crown, MapPin, Users, Settings, ArrowLeft, Shield, Building2 } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import CompetitionsManager from './components/CompetitionsManager';
 import HostsManager from './components/HostsManager';
 import CitiesManager from './components/CitiesManager';
+import OrganizationsManager from './components/OrganizationsManager';
+import AdvancedSettingsPanel from './components/AdvancedSettingsPanel';
 import SuperAdminCompetitionDashboard from './components/SuperAdminCompetitionDashboard';
 
 const TABS = [
+  { id: 'organizations', label: 'Organizations', icon: Building2 },
+  { id: 'cities', label: 'Cities', icon: MapPin },
   { id: 'competitions', label: 'Competitions', icon: Crown },
   { id: 'hosts', label: 'Hosts', icon: Users },
-  { id: 'cities', label: 'Cities', icon: MapPin },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export default function SuperAdminPage({ onLogout }) {
-  const [activeTab, setActiveTab] = useState('competitions');
+  const [activeTab, setActiveTab] = useState('organizations');
   const [viewingCompetition, setViewingCompetition] = useState(null);
+  const [settingsCompetition, setSettingsCompetition] = useState(null);
 
   const handleViewCompetition = (competition) => {
     setViewingCompetition(competition);
@@ -24,6 +28,14 @@ export default function SuperAdminPage({ onLogout }) {
 
   const handleBackToCompetitions = () => {
     setViewingCompetition(null);
+  };
+
+  const handleOpenAdvancedSettings = (competition) => {
+    setSettingsCompetition(competition);
+  };
+
+  const handleCloseAdvancedSettings = () => {
+    setSettingsCompetition(null);
   };
 
   // If viewing a competition, show the competition dashboard
@@ -39,12 +51,19 @@ export default function SuperAdminPage({ onLogout }) {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'competitions':
-        return <CompetitionsManager onViewDashboard={handleViewCompetition} />;
-      case 'hosts':
-        return <HostsManager />;
+      case 'organizations':
+        return <OrganizationsManager />;
       case 'cities':
         return <CitiesManager />;
+      case 'competitions':
+        return (
+          <CompetitionsManager
+            onViewDashboard={handleViewCompetition}
+            onOpenAdvancedSettings={handleOpenAdvancedSettings}
+          />
+        );
+      case 'hosts':
+        return <HostsManager />;
       case 'settings':
         return (
           <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
@@ -138,6 +157,15 @@ export default function SuperAdminPage({ onLogout }) {
       <main style={{ maxWidth: '1400px', margin: '0 auto', padding: spacing.xxl }}>
         {renderContent()}
       </main>
+
+      {/* Advanced Settings Panel */}
+      {settingsCompetition && (
+        <AdvancedSettingsPanel
+          competition={settingsCompetition}
+          onClose={handleCloseAdvancedSettings}
+          onSave={handleCloseAdvancedSettings}
+        />
+      )}
     </div>
   );
 }
