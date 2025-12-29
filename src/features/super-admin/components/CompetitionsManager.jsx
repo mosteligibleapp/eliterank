@@ -694,7 +694,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       ) : (
         competitions.map(comp => {
           const statusConfig = STATUS_CONFIG[comp.status] || STATUS_CONFIG[COMPETITION_STATUS.DRAFT];
-          const hostName = getHostName(comp.host);
+          const host = hosts.find(h => h.id === comp.host_id);
+          const hostName = getHostName(host);
           const org = organizations.find(o => o.id === comp.organization_id);
           const city = cities.find(c => c.id === comp.city_id);
 
@@ -788,7 +789,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: spacing.sm }}>
-                  {!comp.host && (
+                  {!comp.host_id && (
                     <Button
                       variant="primary"
                       size="sm"
