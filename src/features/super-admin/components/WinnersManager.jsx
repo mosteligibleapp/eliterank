@@ -79,26 +79,58 @@ export default function WinnersManager({ competition, onUpdate }) {
     }
 
     setSearching(true);
+    setError(null);
 
     try {
       const searchTerm = query.toLowerCase().trim();
 
-      // Search by name, email, or instagram
-      const { data, error } = await supabase
+      // Fetch profiles and filter client-side for more reliable search
+      // This works around RLS and query syntax issues
+      const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('id, email, first_name, last_name, instagram_handle, avatar_url')
-        .or(`email.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,instagram_handle.ilike.%${searchTerm}%`)
-        .limit(10);
+        .limit(100);
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Supabase error:', fetchError);
+        setError(`Search error: ${fetchError.message}`);
+        setSearchResults([]);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setSearchResults([]);
+        return;
+      }
 
       // Filter out already selected winners
       const winnerIds = winners.map(w => w.id);
-      const filtered = data.filter(p => !winnerIds.includes(p.id));
+
+      // Client-side search filtering
+      const filtered = data.filter(p => {
+        // Skip already selected winners
+        if (winnerIds.includes(p.id)) return false;
+
+        // Search across multiple fields
+        const email = (p.email || '').toLowerCase();
+        const firstName = (p.first_name || '').toLowerCase();
+        const lastName = (p.last_name || '').toLowerCase();
+        const instagram = (p.instagram_handle || '').toLowerCase();
+        const fullName = `${firstName} ${lastName}`.toLowerCase();
+
+        return (
+          email.includes(searchTerm) ||
+          firstName.includes(searchTerm) ||
+          lastName.includes(searchTerm) ||
+          fullName.includes(searchTerm) ||
+          instagram.includes(searchTerm)
+        );
+      }).slice(0, 10);
 
       setSearchResults(filtered);
     } catch (err) {
       console.error('Error searching profiles:', err);
+      setError('Failed to search profiles');
     } finally {
       setSearching(false);
     }
