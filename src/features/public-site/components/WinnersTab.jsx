@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Crown, Trophy, Sparkles, Loader } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
+import { ProfileViewModal } from '../../../components/modals';
 
 export default function WinnersTab({ city, season, winners = [], competitionId }) {
   const [loadedWinners, setLoadedWinners] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProfile, setSelectedProfile] = useState(null);
 
   // Fetch winners from competition if competitionId is provided
   useEffect(() => {
@@ -135,13 +137,26 @@ export default function WinnersTab({ city, season, winners = [], competitionId }
           margin: '0 auto',
           marginBottom: spacing.xxxl,
         }}>
-          <div style={{
-            background: colors.background.card,
-            border: `2px solid ${colors.gold.primary}`,
-            borderRadius: borderRadius.xxl,
-            overflow: 'hidden',
-            position: 'relative',
-          }}>
+          <div
+            onClick={() => setSelectedProfile(grandWinner)}
+            style={{
+              background: colors.background.card,
+              border: `2px solid ${colors.gold.primary}`,
+              borderRadius: borderRadius.xxl,
+              overflow: 'hidden',
+              position: 'relative',
+              cursor: 'pointer',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 12px 40px rgba(212,175,55,0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
             {/* Crown Badge */}
             <div style={{
               position: 'absolute',
@@ -276,12 +291,23 @@ export default function WinnersTab({ city, season, winners = [], competitionId }
             {runnerUps.map((winner, index) => (
               <div
                 key={winner.id}
+                onClick={() => setSelectedProfile(winner)}
                 style={{
                   background: colors.background.card,
                   border: `1px solid rgba(212,175,55,0.3)`,
                   borderRadius: borderRadius.xxl,
                   overflow: 'hidden',
                   position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(212,175,55,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 {/* Rank Badge */}
@@ -396,6 +422,15 @@ export default function WinnersTab({ city, season, winners = [], competitionId }
           See you next season!
         </p>
       </div>
+
+      {/* Profile View Modal */}
+      <ProfileViewModal
+        isOpen={!!selectedProfile}
+        onClose={() => setSelectedProfile(null)}
+        profileId={selectedProfile?.id}
+        profile={selectedProfile}
+        role="winner"
+      />
     </div>
   );
 }

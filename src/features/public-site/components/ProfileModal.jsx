@@ -46,7 +46,7 @@ export default function ProfileModal({
   };
 
   const badgeConfig = getBadgeConfig();
-  const profileImage = profile.image || profile.avatar || PROFILE_IMAGES[imageIndex % PROFILE_IMAGES.length];
+  const profileImage = profile.image || profile.avatar || profile.avatarUrl || profile.avatar_url || PROFILE_IMAGES[imageIndex % PROFILE_IMAGES.length];
 
   // Build social links
   const socialLinks = [];

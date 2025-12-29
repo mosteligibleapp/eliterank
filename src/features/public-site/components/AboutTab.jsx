@@ -97,6 +97,14 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
               cursor: 'pointer',
               transition: 'all 0.3s',
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 12px 40px rgba(139,92,246,0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             {/* Host Avatar */}
             <div style={{
@@ -500,8 +508,18 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
                 cursor: 'pointer',
                 transition: 'all 0.3s',
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(212,175,55,0.2)';
+                e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = colors.border.light;
+              }}
             >
-              <Avatar name={judge.name} size={100} style={{ margin: '0 auto 16px' }} />
+              <Avatar name={judge.name} src={judge.avatarUrl || judge.avatar_url} size={100} style={{ margin: '0 auto 16px' }} />
               <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
                 {judge.name}
               </h3>

@@ -8,3 +8,4 @@ export { default as ApproveNomineeModal } from './ApproveNomineeModal';
 export { default as EliteRankCityModal } from './EliteRankCityModal';
 export { default as DeleteCompetitionModal } from './DeleteCompetitionModal';
 export { default as HostAssignmentModal } from './HostAssignmentModal';
+export { default as ProfileViewModal } from './ProfileViewModal';

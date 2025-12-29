@@ -221,6 +221,16 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
               transition: 'all 0.3s',
               position: 'relative',
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = index < 3
+                ? '0 12px 40px rgba(212,175,55,0.3)'
+                : '0 8px 24px rgba(0,0,0,0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             {/* Rank Badge */}
             <div
@@ -268,7 +278,7 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
               }}
             >
               <img
-                src={CONTESTANT_IMAGES[index] || CONTESTANT_IMAGES[0]}
+                src={contestant.avatarUrl || contestant.avatar_url || CONTESTANT_IMAGES[index] || CONTESTANT_IMAGES[0]}
                 alt={contestant.name}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 onError={(e) => {
