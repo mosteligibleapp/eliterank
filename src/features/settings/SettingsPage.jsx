@@ -19,6 +19,7 @@ export default function SettingsPage({
   onEditSponsor,
   onDeleteSponsor,
   onEditEvent,
+  onAddEvent,
   onShowSponsorInfo,
   onCompetitionUpdate,
 }) {
@@ -721,7 +722,17 @@ export default function SettingsPage({
       </Panel>
 
       {/* Event Timeline Section */}
-      <Panel title="Event Timeline" icon={Calendar}>
+      <Panel
+        title="Event Timeline"
+        icon={Calendar}
+        action={
+          onAddEvent && (
+            <Button size="sm" icon={Plus} onClick={onAddEvent}>
+              Add Event
+            </Button>
+          )
+        }
+      >
         <div style={{ padding: spacing.xl }}>
           {events.map((event, i) => (
             <div

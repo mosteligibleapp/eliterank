@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Crown, ArrowLeft, Shield, Star, LogOut, BarChart3, UserPlus, FileText, Settings as SettingsIcon,
   User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, Archive, RotateCcw, ExternalLink,
-  UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp
+  UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus
 } from 'lucide-react';
 import { Button, Badge, Avatar, StatCard } from '../../../components/ui';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
+import { EventModal } from '../../../components/modals';
 
 // Import host dashboard components for reuse
 import RevenueCard from '../../overview/components/RevenueCard';
@@ -33,6 +34,9 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   const [isEditing, setIsEditing] = useState(false);
   const [assignedHost, setAssignedHost] = useState(null);
 
+  // Event modal state
+  const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
+
   // Fetch real data from Supabase
   const { data, loading, error, refresh, approveNominee, rejectNominee, archiveNominee, restoreNominee } = useCompetitionDashboard(competition?.id);
 
@@ -46,6 +50,23 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // Event modal handlers
+  const openEventModal = (event = null) => {
+    setEventModal({ isOpen: true, event });
+  };
+
+  const closeEventModal = () => {
+    setEventModal({ isOpen: false, event: null });
+  };
+
+  const handleSaveEvent = (eventData) => {
+    // For now, just log and close - real implementation would save to database
+    console.log('Saving event:', eventData);
+    // TODO: Implement database save for events
+    closeEventModal();
+    refresh();
   };
 
   // Fetch host data if competition has host_id
@@ -844,9 +865,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold }}>
             Events ({data.events.length})
           </h3>
-          {isEditing && (
-            <Button size="sm" icon={Calendar}>Add Event</Button>
-          )}
+          <Button size="sm" icon={Plus} onClick={() => openEventModal(null)}>Add Event</Button>
         </div>
 
         {data.events.length === 0 ? (
@@ -858,7 +877,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
             <Calendar size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
             <p>No events scheduled yet</p>
             {isEditing && (
-              <Button size="sm" icon={Calendar} style={{ marginTop: spacing.lg }}>
+              <Button size="sm" icon={Plus} style={{ marginTop: spacing.lg }} onClick={() => openEventModal(null)}>
                 Schedule First Event
               </Button>
             )}
@@ -902,9 +921,12 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
               >
                 {event.status}
               </Badge>
-              {isEditing && (
-                <Button variant="secondary" size="sm" icon={Edit2} />
-              )}
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={Edit2}
+                onClick={() => openEventModal(event)}
+              />
             </div>
           ))
         )}
@@ -1046,6 +1068,14 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
       }}>
         {renderContent()}
       </main>
+
+      {/* Event Modal */}
+      <EventModal
+        isOpen={eventModal.isOpen}
+        onClose={closeEventModal}
+        event={eventModal.event}
+        onSave={handleSaveEvent}
+      />
     </div>
   );
 }

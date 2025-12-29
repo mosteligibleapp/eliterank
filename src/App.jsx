@@ -896,6 +896,7 @@ export default function App() {
               onEditSponsor={openSponsorModal}
               onDeleteSponsor={handleDeleteSponsor}
               onEditEvent={openEventModal}
+              onAddEvent={() => openEventModal(null)}
               onCompetitionUpdate={refreshHostCompetition}
             />
           </Suspense>
