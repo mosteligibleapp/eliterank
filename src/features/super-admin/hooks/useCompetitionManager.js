@@ -52,34 +52,21 @@ export function useCompetitionManager() {
       // Transform data to match expected format
       const transformed = (data || []).map(comp => ({
         id: comp.id,
-        name: comp.city || 'Unnamed Competition',
-        city: comp.city,
+        name: `Competition ${comp.season}`,
         season: comp.season,
-        status: comp.status || 'upcoming',
-        phase: comp.phase,
+        status: comp.status || 'draft',
         // Form fields
-        category: comp.category,
-        contestantType: comp.contestant_type,
-        hasHost: comp.has_host ?? true,
-        hasEvents: comp.has_events ?? true,
+        hasEvents: comp.has_events ?? false,
         numberOfWinners: comp.number_of_winners || 5,
-        selectionCriteria: comp.selection_criteria,
-        voteWeight: comp.vote_weight || 50,
-        judgeWeight: comp.judge_weight || 50,
-        maxContestants: comp.total_contestants || 30,
-        votePrice: comp.vote_price || 1.00,
-        hostPayoutPercentage: comp.host_payout_percentage || 20,
+        selectionCriteria: comp.selection_criteria || 'votes',
+        entryType: comp.entry_type || 'nominations',
+        description: comp.description || '',
+        rulesDocUrl: comp.rules_doc_url,
         // IDs for related data
         hostId: comp.host_id,
         organizationId: comp.organization_id,
-        organization: null, // Will be populated separately if needed
+        cityId: comp.city_id,
         assignedHost: comp.host_id ? hostsMap[comp.host_id] || null : null,
-        // Dates
-        nominationStart: comp.nomination_start,
-        nominationEnd: comp.nomination_end,
-        votingStart: comp.voting_start,
-        votingEnd: comp.voting_end,
-        finalsDate: comp.finals_date,
       }));
 
       setCompetitions(transformed);
@@ -154,28 +141,19 @@ export function useCompetitionManager() {
     }
 
     try {
-      // Build insert object with only columns that exist in the table
+      // Build insert object with current schema columns
       const insertData = {
         host_id: hostId,
-        organization_id: templateData.organization?.id || null,
-        city: templateData.city,
+        organization_id: templateData.organizationId || templateData.organization?.id || null,
+        city_id: templateData.cityId || null,
         season: templateData.season || new Date().getFullYear(),
-        status: 'draft', // New competitions start as draft
-        total_contestants: templateData.maxContestants || 30,
-        vote_price: templateData.votePrice || 1.00,
-        host_payout_percentage: templateData.hostPayoutPercentage || 20,
+        status: 'draft',
+        entry_type: templateData.entryType || 'nominations',
+        has_events: templateData.hasEvents ?? false,
+        number_of_winners: templateData.numberOfWinners || 5,
+        selection_criteria: templateData.selectionCriteria || 'votes',
+        description: templateData.description || '',
       };
-
-      // Add optional columns if they exist in the database
-      // These will fail gracefully if columns don't exist
-      if (templateData.category) insertData.category = templateData.category;
-      if (templateData.contestantType) insertData.contestant_type = templateData.contestantType;
-      if (templateData.hasHost !== undefined) insertData.has_host = templateData.hasHost;
-      if (templateData.hasEvents !== undefined) insertData.has_events = templateData.hasEvents;
-      if (templateData.numberOfWinners) insertData.number_of_winners = templateData.numberOfWinners;
-      if (templateData.selectionCriteria) insertData.selection_criteria = templateData.selectionCriteria;
-      if (templateData.voteWeight !== undefined) insertData.vote_weight = templateData.voteWeight;
-      if (templateData.judgeWeight !== undefined) insertData.judge_weight = templateData.judgeWeight;
 
       const { data, error } = await supabase
         .from('competitions')
@@ -205,30 +183,19 @@ export function useCompetitionManager() {
     try {
       const dbUpdates = {};
       // Basic fields
-      if (updates.city) dbUpdates.city = updates.city;
       if (updates.season) dbUpdates.season = updates.season;
       if (updates.status) dbUpdates.status = updates.status;
-      if (updates.phase) dbUpdates.phase = updates.phase;
+      if (updates.organizationId) dbUpdates.organization_id = updates.organizationId;
       if (updates.organization?.id) dbUpdates.organization_id = updates.organization.id;
+      if (updates.cityId) dbUpdates.city_id = updates.cityId;
       if (updates.hostId) dbUpdates.host_id = updates.hostId;
       // Form fields
-      if (updates.category) dbUpdates.category = updates.category;
-      if (updates.contestantType) dbUpdates.contestant_type = updates.contestantType;
-      if (updates.hasHost !== undefined) dbUpdates.has_host = updates.hasHost;
       if (updates.hasEvents !== undefined) dbUpdates.has_events = updates.hasEvents;
       if (updates.numberOfWinners) dbUpdates.number_of_winners = updates.numberOfWinners;
       if (updates.selectionCriteria) dbUpdates.selection_criteria = updates.selectionCriteria;
-      if (updates.voteWeight !== undefined) dbUpdates.vote_weight = updates.voteWeight;
-      if (updates.judgeWeight !== undefined) dbUpdates.judge_weight = updates.judgeWeight;
-      if (updates.maxContestants) dbUpdates.total_contestants = updates.maxContestants;
-      if (updates.votePrice) dbUpdates.vote_price = updates.votePrice;
-      if (updates.hostPayoutPercentage) dbUpdates.host_payout_percentage = updates.hostPayoutPercentage;
-      // Timeline fields (allow null to clear dates)
-      if (updates.nominationStart !== undefined) dbUpdates.nomination_start = updates.nominationStart || null;
-      if (updates.nominationEnd !== undefined) dbUpdates.nomination_end = updates.nominationEnd || null;
-      if (updates.votingStart !== undefined) dbUpdates.voting_start = updates.votingStart || null;
-      if (updates.votingEnd !== undefined) dbUpdates.voting_end = updates.votingEnd || null;
-      if (updates.finalsDate !== undefined) dbUpdates.finals_date = updates.finalsDate || null;
+      if (updates.entryType) dbUpdates.entry_type = updates.entryType;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.rulesDocUrl !== undefined) dbUpdates.rules_doc_url = updates.rulesDocUrl;
 
       const { data, error } = await supabase
         .from('competitions')

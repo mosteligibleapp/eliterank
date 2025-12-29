@@ -87,13 +87,6 @@ export function useCompetitionDashboard(competitionId) {
           .from('votes')
           .select('amount_paid')
           .eq('competition_id', competitionId),
-
-        // Get competition for total_revenue
-        supabase
-          .from('competitions')
-          .select('total_revenue, total_votes')
-          .eq('id', competitionId)
-          .maybeSingle(),
       ]);
 
       // Check for errors
@@ -105,7 +98,6 @@ export function useCompetitionDashboard(competitionId) {
         eventsResult.error,
         announcementsResult.error,
         votesResult.error,
-        competitionResult.error,
       ].filter(Boolean);
 
       if (errors.length > 0) {
@@ -197,7 +189,7 @@ export function useCompetitionDashboard(competitionId) {
         (sum, v) => sum + (parseFloat(v.amount_paid) || 0),
         0
       );
-      const totalRevenue = parseFloat(competitionResult.data?.total_revenue) || paidVotes + sponsorshipTotal;
+      const totalRevenue = paidVotes + sponsorshipTotal;
 
       const revenue = {
         total: totalRevenue,

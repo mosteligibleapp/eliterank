@@ -36,11 +36,12 @@ export default function EliteRankCityModal({
   const [hoveredCard, setHoveredCard] = useState(null);
   const [competitions, setCompetitions] = useState([]);
   const [organizations, setOrganizations] = useState([]);
+  const [cities, setCities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'upcoming', 'complete'
 
-  // Fetch competitions and organizations from Supabase
+  // Fetch competitions, organizations, and cities from Supabase
   useEffect(() => {
     const fetchData = async () => {
       if (!supabase) {
@@ -49,10 +50,21 @@ export default function EliteRankCityModal({
       }
 
       try {
-        const [compsResult, orgsResult] = await Promise.all([
+        const [compsResult, orgsResult, citiesResult] = await Promise.all([
           supabase.from('competitions').select('*').order('created_at', { ascending: false }),
           supabase.from('organizations').select('*').order('name'),
+          supabase.from('cities').select('*').order('name'),
         ]);
+
+        // Store cities for lookup
+        const citiesData = citiesResult.data || [];
+        setCities(citiesData);
+
+        // Create lookup map for cities
+        const citiesMap = citiesData.reduce((acc, city) => {
+          acc[city.id] = city;
+          return acc;
+        }, {});
 
         if (compsResult.data) {
           setCompetitions(compsResult.data.map(comp => {
@@ -63,10 +75,15 @@ export default function EliteRankCityModal({
             const visible = isCompetitionVisible(comp.status);
             const accessible = isCompetitionAccessible(comp.status);
 
+            // Look up city from city_id
+            const city = citiesMap[comp.city_id];
+            const cityName = city ? `${city.name}, ${city.state}` : 'Unknown City';
+
             return {
               id: comp.id,
-              name: `${comp.city} ${comp.season || ''}`.trim(),
-              city: comp.city,
+              name: `${cityName} ${comp.season || ''}`.trim(),
+              city: cityName,
+              cityId: comp.city_id,
               season: comp.season || new Date().getFullYear(),
               // Store both status (super admin controlled) and computed phase
               status: comp.status || COMPETITION_STATUSES.DRAFT,
@@ -77,13 +94,13 @@ export default function EliteRankCityModal({
               accessible,
               organizationId: comp.organization_id,
               host: comp.host_id ? { id: comp.host_id } : null,
-              // Timeline data for display
+              // Timeline data for display (now from competition_settings, but keep for backward compat)
               nomination_start: comp.nomination_start,
               nomination_end: comp.nomination_end,
               voting_start: comp.voting_start,
               voting_end: comp.voting_end,
               finals_date: comp.finals_date,
-              winner_count: comp.winner_count || 3,
+              winner_count: comp.number_of_winners || 3,
             };
           }));
         }
