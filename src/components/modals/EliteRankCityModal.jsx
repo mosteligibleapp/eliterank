@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users, Star,
-  Ticket, Activity, Info, Briefcase, UserPlus, Loader, User, ExternalLink
+  Ticket, Activity, Info, Briefcase, UserPlus, Loader, User, ExternalLink, Megaphone, Award, Building, Heart
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -19,6 +19,9 @@ import { getCityImage } from '../../utils/cityImages';
 
 const TABS = [
   { id: 'competitions', label: 'Competitions', icon: Crown },
+  { id: 'events', label: 'Events', icon: Calendar },
+  { id: 'announcements', label: 'Announcements', icon: Megaphone },
+  { id: 'opportunities', label: 'Opportunities', icon: Briefcase },
   { id: 'about', label: 'About', icon: Info },
 ];
 
@@ -41,6 +44,8 @@ export default function EliteRankCityModal({
   const [competitions, setCompetitions] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [cities, setCities] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'upcoming', 'complete'
   const [cityFilter, setCityFilter] = useState('all'); // 'all' or city id
@@ -54,13 +59,15 @@ export default function EliteRankCityModal({
       }
 
       try {
-        // Fetch competitions with settings for timeline dates
-        const [compsResult, orgsResult, citiesResult, settingsResult, profilesResult] = await Promise.all([
+        // Fetch competitions with settings for timeline dates, plus events and announcements
+        const [compsResult, orgsResult, citiesResult, settingsResult, profilesResult, eventsResult, announcementsResult] = await Promise.all([
           supabase.from('competitions').select('*').order('created_at', { ascending: false }),
           supabase.from('organizations').select('*').order('name'),
           supabase.from('cities').select('*').order('name'),
           supabase.from('competition_settings').select('*'),
           supabase.from('profiles').select('id, email, first_name, last_name, avatar_url, bio, instagram'),
+          supabase.from('events').select('*').order('date', { ascending: true }),
+          supabase.from('announcements').select('*').order('published_at', { ascending: false }),
         ]);
 
         // Create lookup map for profiles (hosts)
@@ -177,6 +184,34 @@ export default function EliteRankCityModal({
 
         if (orgsResult.data) {
           setOrganizations(orgsResult.data);
+        }
+
+        // Process events with competition info
+        if (eventsResult.data) {
+          const eventsWithCompInfo = eventsResult.data.map(event => {
+            const comp = compsResult.data?.find(c => c.id === event.competition_id);
+            const cityInfo = comp?.city_id ? citiesMap[comp.city_id] : null;
+            return {
+              ...event,
+              competitionName: comp?.name || `Most Eligible ${cityInfo?.name || 'Unknown'}`,
+              cityName: cityInfo?.name || comp?.city || 'Unknown City',
+            };
+          });
+          setEvents(eventsWithCompInfo);
+        }
+
+        // Process announcements with competition info
+        if (announcementsResult.data) {
+          const announcementsWithCompInfo = announcementsResult.data.map(announcement => {
+            const comp = compsResult.data?.find(c => c.id === announcement.competition_id);
+            const cityInfo = comp?.city_id ? citiesMap[comp.city_id] : null;
+            return {
+              ...announcement,
+              competitionName: comp?.name || `Most Eligible ${cityInfo?.name || 'Unknown'}`,
+              cityName: cityInfo?.name || comp?.city || 'Unknown City',
+            };
+          });
+          setAnnouncements(announcementsWithCompInfo);
         }
       } catch {
         // Silent fail - will show empty state
@@ -656,6 +691,338 @@ export default function EliteRankCityModal({
               )}
             </section>
           </>
+        );
+
+      case 'events':
+        // Sort events chronologically with upcoming first
+        const now = new Date();
+        const upcomingEvents = events.filter(e => new Date(e.date) >= now).sort((a, b) => new Date(a.date) - new Date(b.date));
+        const pastEvents = events.filter(e => new Date(e.date) < now).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        return (
+          <section style={{ padding: `${spacing.xxxl} ${spacing.xxl}`, maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
+              <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #3b82f6, #60a5fa)', borderRadius: borderRadius.xl, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', marginBottom: spacing.xl }}>
+                <Calendar size={40} style={{ color: '#fff' }} />
+              </div>
+              <h2 style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: '#fff', marginBottom: spacing.lg }}>Events</h2>
+              <p style={{ fontSize: typography.fontSize.xl, color: colors.text.secondary, maxWidth: '700px', margin: '0 auto', lineHeight: 1.6 }}>
+                Attend exclusive events across all Elite Rank competitions
+              </p>
+            </div>
+
+            {/* Upcoming Events */}
+            {upcomingEvents.length > 0 && (
+              <div style={{ marginBottom: spacing.xxxl }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
+                  <Sparkles size={24} style={{ color: colors.gold.primary }} />
+                  <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff' }}>Upcoming Events</h3>
+                  <Badge variant="success" size="sm">{upcomingEvents.length}</Badge>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: spacing.xl }}>
+                  {upcomingEvents.map(event => (
+                    <div key={event.id} style={{
+                      background: colors.background.card,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.xl,
+                      padding: spacing.xl,
+                      transition: 'all 0.2s',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md }}>
+                        <Badge variant="info" size="sm">{event.cityName}</Badge>
+                        <span style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary, fontWeight: typography.fontWeight.medium }}>
+                          {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: '#fff', marginBottom: spacing.sm }}>{event.name}</h4>
+                      {event.location && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.sm }}>
+                          <MapPin size={14} />
+                          {event.location}
+                        </div>
+                      )}
+                      {event.time && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                          <Clock size={14} />
+                          {event.time}
+                        </div>
+                      )}
+                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.md }}>{event.competitionName}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Past Events */}
+            {pastEvents.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
+                  <Clock size={24} style={{ color: colors.text.secondary }} />
+                  <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.text.secondary }}>Past Events</h3>
+                  <Badge variant="default" size="sm">{pastEvents.length}</Badge>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: spacing.xl }}>
+                  {pastEvents.slice(0, 6).map(event => (
+                    <div key={event.id} style={{
+                      background: colors.background.card,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.xl,
+                      padding: spacing.xl,
+                      opacity: 0.7,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md }}>
+                        <Badge variant="default" size="sm">{event.cityName}</Badge>
+                        <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                          {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: '#fff', marginBottom: spacing.sm }}>{event.name}</h4>
+                      {event.location && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                          <MapPin size={14} />
+                          {event.location}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {events.length === 0 && (
+              <div style={{ textAlign: 'center', padding: spacing.xxxl, background: colors.background.card, borderRadius: borderRadius.xxl, border: `1px solid ${colors.border.light}` }}>
+                <Calendar size={48} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
+                <h3 style={{ fontSize: typography.fontSize.xl, color: '#fff', marginBottom: spacing.sm }}>No Events Yet</h3>
+                <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary }}>
+                  Check back soon for upcoming events across all competitions!
+                </p>
+              </div>
+            )}
+          </section>
+        );
+
+      case 'announcements':
+        return (
+          <section style={{ padding: `${spacing.xxxl} ${spacing.xxl}`, maxWidth: '1000px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
+              <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #f59e0b, #fbbf24)', borderRadius: borderRadius.xl, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', marginBottom: spacing.xl }}>
+                <Megaphone size={40} style={{ color: '#0a0a0f' }} />
+              </div>
+              <h2 style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: '#fff', marginBottom: spacing.lg }}>Announcements</h2>
+              <p style={{ fontSize: typography.fontSize.xl, color: colors.text.secondary, maxWidth: '700px', margin: '0 auto', lineHeight: 1.6 }}>
+                Stay updated with the latest news from all Elite Rank competitions
+              </p>
+            </div>
+
+            {announcements.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
+                {announcements.map(announcement => (
+                  <div key={announcement.id} style={{
+                    background: colors.background.card,
+                    border: announcement.pinned ? `2px solid ${colors.gold.primary}` : `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.xl,
+                    padding: spacing.xxl,
+                    position: 'relative',
+                  }}>
+                    {announcement.pinned && (
+                      <Badge variant="gold" size="sm" style={{ position: 'absolute', top: spacing.lg, right: spacing.lg }}>
+                        Pinned
+                      </Badge>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md }}>
+                      <Badge variant="info" size="sm">{announcement.cityName}</Badge>
+                      <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                        {new Date(announcement.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff', marginBottom: spacing.md }}>
+                      {announcement.title}
+                    </h3>
+                    <p style={{ fontSize: typography.fontSize.md, color: colors.text.light, lineHeight: 1.7, marginBottom: spacing.md }}>
+                      {announcement.content}
+                    </p>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>{announcement.competitionName}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: spacing.xxxl, background: colors.background.card, borderRadius: borderRadius.xxl, border: `1px solid ${colors.border.light}` }}>
+                <Megaphone size={48} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
+                <h3 style={{ fontSize: typography.fontSize.xl, color: '#fff', marginBottom: spacing.sm }}>No Announcements Yet</h3>
+                <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary }}>
+                  Check back soon for news and updates!
+                </p>
+              </div>
+            )}
+          </section>
+        );
+
+      case 'opportunities':
+        const opportunityCards = [
+          {
+            id: 'compete',
+            icon: Trophy,
+            title: 'Compete',
+            subtitle: 'Become a Contestant',
+            description: 'Get nominated to compete in your city\'s Most Eligible competition. Build your profile, gain votes, and compete for the title.',
+            color: '#d4af37',
+            gradient: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
+            cta: 'Get Nominated',
+            features: ['Build your public profile', 'Compete for votes', 'Attend exclusive events', 'Win prizes and recognition'],
+          },
+          {
+            id: 'judge',
+            icon: Award,
+            title: 'Judge',
+            subtitle: 'Become a Judge',
+            description: 'Join our panel of distinguished judges and help select the most eligible contestants in your city.',
+            color: '#8b5cf6',
+            gradient: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.05))',
+            cta: 'Apply to Judge',
+            features: ['Evaluate top contestants', 'VIP event access', 'Network with influencers', 'Shape the competition'],
+          },
+          {
+            id: 'host',
+            icon: Crown,
+            title: 'Host',
+            subtitle: 'Host a Competition',
+            description: 'Lead your city\'s Most Eligible competition. Organize events, manage contestants, and build your community.',
+            color: '#ec4899',
+            gradient: 'linear-gradient(135deg, rgba(236,72,153,0.2), rgba(236,72,153,0.05))',
+            cta: 'Apply to Host',
+            features: ['Run your own competition', 'Build a local community', 'Earn revenue share', 'Full platform support'],
+          },
+          {
+            id: 'sponsor',
+            icon: Building,
+            title: 'Sponsor',
+            subtitle: 'Become a Sponsor',
+            description: 'Partner with Elite Rank to reach an engaged audience of ambitious professionals in major cities.',
+            color: '#22c55e',
+            gradient: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))',
+            cta: 'Become a Sponsor',
+            features: ['Brand visibility at events', 'Access to contestants', 'Content partnerships', 'Custom activations'],
+          },
+        ];
+
+        return (
+          <section style={{ padding: `${spacing.xxxl} ${spacing.xxl}`, maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
+              <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #d4af37, #f4d03f)', borderRadius: borderRadius.xl, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', marginBottom: spacing.xl }}>
+                <Briefcase size={40} style={{ color: '#0a0a0f' }} />
+              </div>
+              <h2 style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: '#fff', marginBottom: spacing.lg }}>Opportunities</h2>
+              <p style={{ fontSize: typography.fontSize.xl, color: colors.text.secondary, maxWidth: '700px', margin: '0 auto', lineHeight: 1.6 }}>
+                Join Elite Rank as a contestant, judge, host, or sponsor
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.xl }}>
+              {opportunityCards.map(opp => {
+                const IconComponent = opp.icon;
+                return (
+                  <div key={opp.id} style={{
+                    background: opp.gradient,
+                    border: `1px solid ${opp.color}40`,
+                    borderRadius: borderRadius.xxl,
+                    padding: spacing.xxl,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.3s',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = `0 12px 40px ${opp.color}30`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                  >
+                    <div style={{
+                      width: '56px',
+                      height: '56px',
+                      background: `${opp.color}30`,
+                      borderRadius: borderRadius.lg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: spacing.lg,
+                    }}>
+                      <IconComponent size={28} style={{ color: opp.color }} />
+                    </div>
+
+                    <p style={{ fontSize: typography.fontSize.xs, color: opp.color, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: spacing.xs }}>
+                      {opp.subtitle}
+                    </p>
+                    <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#fff', marginBottom: spacing.md }}>
+                      {opp.title}
+                    </h3>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.6, marginBottom: spacing.lg }}>
+                      {opp.description}
+                    </p>
+
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: spacing.xl, flex: 1 }}>
+                      {opp.features.map((feature, i) => (
+                        <li key={i} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: spacing.sm,
+                          fontSize: typography.fontSize.sm,
+                          color: colors.text.light,
+                          marginBottom: spacing.sm,
+                        }}>
+                          <Heart size={12} style={{ color: opp.color }} />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Button
+                      variant="secondary"
+                      style={{
+                        width: '100%',
+                        borderColor: opp.color,
+                        color: opp.color,
+                      }}
+                      onClick={() => {
+                        if (opp.id === 'compete') {
+                          // Navigate to competitions to get nominated
+                          setActiveTab('competitions');
+                        } else if (onLogin && !isAuthenticated) {
+                          onLogin();
+                        }
+                      }}
+                    >
+                      {opp.cta}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Contact Section */}
+            <div style={{
+              marginTop: spacing.xxxl,
+              padding: spacing.xxl,
+              background: colors.background.card,
+              border: `1px solid ${colors.border.gold}`,
+              borderRadius: borderRadius.xxl,
+              textAlign: 'center',
+            }}>
+              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: '#fff', marginBottom: spacing.md }}>
+                Have Questions?
+              </h3>
+              <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, marginBottom: spacing.lg }}>
+                Reach out to learn more about opportunities with Elite Rank
+              </p>
+              <Button variant="primary" onClick={() => window.location.href = 'mailto:hello@eliterank.com'}>
+                Contact Us
+              </Button>
+            </div>
+          </section>
         );
 
       case 'about':
