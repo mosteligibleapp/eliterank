@@ -12,6 +12,7 @@ export default function EventModal({
   onSave,
 }) {
   const { form, updateField, getFormData } = useModalForm(INITIAL_STATE, event, isOpen);
+  const isEditing = !!event?.id;
 
   const handleSave = () => {
     onSave(getFormData());
@@ -27,15 +28,15 @@ export default function EventModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Edit Event"
+      title={isEditing ? 'Edit Event' : 'Add Event'}
       maxWidth="500px"
       footer={
         <>
           <Button variant="secondary" onClick={onClose} style={{ width: 'auto' }}>
             Cancel
           </Button>
-          <Button onClick={handleSave} icon={Check}>
-            Save Changes
+          <Button onClick={handleSave} icon={Check} disabled={!form.name}>
+            {isEditing ? 'Save Changes' : 'Add Event'}
           </Button>
         </>
       }

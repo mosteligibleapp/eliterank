@@ -6,7 +6,7 @@ import {
   Pin, MapPin, Clock, Sparkles
 } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../components/ui';
-import { HostAssignmentModal } from '../../components/modals';
+import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
 import { formatRelativeTime, formatEventDateRange } from '../../utils/formatters';
@@ -96,6 +96,11 @@ export default function CompetitionDashboard({
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
+
+  // Entity modals
+  const [judgeModal, setJudgeModal] = useState({ isOpen: false, judge: null });
+  const [sponsorModal, setSponsorModal] = useState({ isOpen: false, sponsor: null });
+  const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
 
   // Processing states
   const [processingId, setProcessingId] = useState(null);
@@ -613,8 +618,9 @@ export default function CompetitionDashboard({
   // ============================================================================
 
   const renderCommunity = () => {
-    const hostName = data.host?.name || 'Host';
-    const hostAvatar = data.host?.avatar;
+    // For superadmin, show as "EliteRank"; for hosts, show their name
+    const authorName = isSuperAdmin ? 'EliteRank' : (data.host?.name || 'Host');
+    const authorAvatar = isSuperAdmin ? null : data.host?.avatar;
 
     const handleCreateAnnouncement = async () => {
       if (!announcementForm.title.trim() || !announcementForm.content.trim()) return;
@@ -702,7 +708,7 @@ export default function CompetitionDashboard({
                 }}
                 onClick={() => setShowAnnouncementForm(true)}
               >
-                <Avatar name={hostName} avatarUrl={hostAvatar} size={44} />
+                <Avatar name={authorName} avatarUrl={authorAvatar} size={44} />
                 <div style={{ flex: 1 }}>
                   <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg }}>
                     Share an update with your audience...
@@ -734,10 +740,10 @@ export default function CompetitionDashboard({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.md, marginBottom: spacing.md }}>
-                    <Avatar name={hostName} avatarUrl={hostAvatar} size={44} />
+                    <Avatar name={authorName} avatarUrl={authorAvatar} size={44} />
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
-                        <span style={{ fontWeight: typography.fontWeight.semibold }}>{hostName}</span>
+                        <span style={{ fontWeight: typography.fontWeight.semibold }}>{authorName}</span>
                         {post.pinned && <Badge variant="gold" size="sm">Pinned</Badge>}
                         <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
                           • {formatRelativeTime(post.publishedAt)}
@@ -873,7 +879,7 @@ export default function CompetitionDashboard({
         <Panel
           title={`Judges (${data.judges.length})`}
           icon={User}
-          action={<Button size="sm" icon={Plus} onClick={() => addJudge({ name: 'New Judge', title: 'Judge' })}>Add Judge</Button>}
+          action={<Button size="sm" icon={Plus} onClick={() => setJudgeModal({ isOpen: true, judge: null })}>Add Judge</Button>}
         >
           <div style={{ padding: spacing.xl }}>
             {data.judges.length === 0 ? (
@@ -921,7 +927,7 @@ export default function CompetitionDashboard({
         <Panel
           title={`Sponsors (${data.sponsors.length})`}
           icon={Star}
-          action={<Button size="sm" icon={Plus} onClick={() => addSponsor({ name: 'New Sponsor', tier: 'gold', amount: 0 })}>Add Sponsor</Button>}
+          action={<Button size="sm" icon={Plus} onClick={() => setSponsorModal({ isOpen: true, sponsor: null })}>Add Sponsor</Button>}
         >
           <div style={{ padding: spacing.xl }}>
             {data.sponsors.length === 0 ? (
@@ -977,7 +983,7 @@ export default function CompetitionDashboard({
         <Panel
           title={`Events (${data.events.length})`}
           icon={Calendar}
-          action={<Button size="sm" icon={Plus} onClick={() => addEvent({ name: 'New Event', status: 'upcoming' })}>Add Event</Button>}
+          action={<Button size="sm" icon={Plus} onClick={() => setEventModal({ isOpen: true, event: null })}>Add Event</Button>}
         >
           <div style={{ padding: spacing.xl }}>
             {data.events.length === 0 ? (
@@ -1303,6 +1309,45 @@ export default function CompetitionDashboard({
           setShowHostAssignment(false);
         }}
         currentHostId={data.host?.id}
+      />
+      <JudgeModal
+        isOpen={judgeModal.isOpen}
+        onClose={() => setJudgeModal({ isOpen: false, judge: null })}
+        judge={judgeModal.judge}
+        onSave={async (judgeData) => {
+          if (judgeModal.judge) {
+            await updateJudge(judgeModal.judge.id, judgeData);
+          } else {
+            await addJudge(judgeData);
+          }
+          setJudgeModal({ isOpen: false, judge: null });
+        }}
+      />
+      <SponsorModal
+        isOpen={sponsorModal.isOpen}
+        onClose={() => setSponsorModal({ isOpen: false, sponsor: null })}
+        sponsor={sponsorModal.sponsor}
+        onSave={async (sponsorData) => {
+          if (sponsorModal.sponsor) {
+            await updateSponsor(sponsorModal.sponsor.id, sponsorData);
+          } else {
+            await addSponsor(sponsorData);
+          }
+          setSponsorModal({ isOpen: false, sponsor: null });
+        }}
+      />
+      <EventModal
+        isOpen={eventModal.isOpen}
+        onClose={() => setEventModal({ isOpen: false, event: null })}
+        event={eventModal.event}
+        onSave={async (eventData) => {
+          if (eventModal.event) {
+            await updateEvent(eventModal.event.id, eventData);
+          } else {
+            await addEvent(eventData);
+          }
+          setEventModal({ isOpen: false, event: null });
+        }}
       />
     </>
   );

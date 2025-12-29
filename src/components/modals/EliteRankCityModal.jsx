@@ -129,11 +129,11 @@ export default function EliteRankCityModal({
             const visible = isCompetitionVisible(comp.status);
             const accessible = isCompetitionAccessible(comp.status);
 
-            // Look up city from city_id
-            const city = citiesMap[comp.city_id];
-            const cityName = city?.name || 'Unknown City';
-            const cityState = city?.state || '';
-            const citySlug = city?.slug || '';
+            // Get city - either from direct city field or lookup from city_id
+            const cityFromLookup = citiesMap[comp.city_id];
+            const cityName = comp.city || cityFromLookup?.name || 'Unknown City';
+            const cityState = cityFromLookup?.state || '';
+            const citySlug = cityFromLookup?.slug || cityName.toLowerCase().replace(/\s+/g, '-');
 
             // Get host profile if host_id exists
             const hostProfile = comp.host_id ? profilesMap[comp.host_id] : null;
