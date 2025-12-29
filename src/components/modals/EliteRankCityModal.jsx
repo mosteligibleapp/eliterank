@@ -43,6 +43,7 @@ export default function EliteRankCityModal({
   const [cities, setCities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'upcoming', 'complete'
+  const [cityFilter, setCityFilter] = useState('all'); // 'all' or city id
 
   // Fetch competitions, organizations, and cities from Supabase
   useEffect(() => {
@@ -173,10 +174,20 @@ export default function EliteRankCityModal({
 
   if (!isOpen) return null;
 
-  // Filter competitions based on visibility and status filter
+  // Get cities that have visible competitions
+  const availableCities = cities.filter(city =>
+    competitions.some(c => c.visible && c.cityId === city.id)
+  );
+
+  // Filter competitions based on visibility, city, and status filter
   const visibleCompetitions = competitions.filter(c => {
     // Must be visible (publish, active, or complete status)
     if (!c.visible) return false;
+
+    // Apply city filter
+    if (cityFilter !== 'all' && c.cityId !== cityFilter) {
+      return false;
+    }
 
     // Apply status filter
     if (statusFilter !== 'all') {
@@ -487,15 +498,57 @@ export default function EliteRankCityModal({
             </section>
 
             <section style={{ padding: `0 ${spacing.xxl} ${spacing.xxxl}`, maxWidth: '1400px', margin: '0 auto' }}>
-              {/* Status Filter */}
+              {/* Filters */}
               <div style={{
                 display: 'flex',
-                flexWrap: 'wrap',
+                flexDirection: 'column',
                 gap: spacing.md,
                 marginBottom: spacing.xl,
                 alignItems: 'center',
-                justifyContent: 'flex-end',
               }}>
+                {/* City Filter */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' }}>
+                  <button
+                    onClick={() => setCityFilter('all')}
+                    style={{
+                      padding: `${spacing.sm} ${spacing.lg}`,
+                      background: cityFilter === 'all'
+                        ? 'rgba(212,175,55,0.2)'
+                        : colors.background.secondary,
+                      border: `1px solid ${cityFilter === 'all' ? colors.gold.primary : colors.border.light}`,
+                      borderRadius: borderRadius.lg,
+                      color: cityFilter === 'all' ? colors.gold.primary : colors.text.secondary,
+                      fontSize: typography.fontSize.sm,
+                      fontWeight: typography.fontWeight.medium,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    All Cities
+                  </button>
+                  {availableCities.map((city) => (
+                    <button
+                      key={city.id}
+                      onClick={() => setCityFilter(city.id)}
+                      style={{
+                        padding: `${spacing.sm} ${spacing.lg}`,
+                        background: cityFilter === city.id
+                          ? 'rgba(212,175,55,0.2)'
+                          : colors.background.secondary,
+                        border: `1px solid ${cityFilter === city.id ? colors.gold.primary : colors.border.light}`,
+                        borderRadius: borderRadius.lg,
+                        color: cityFilter === city.id ? colors.gold.primary : colors.text.secondary,
+                        fontSize: typography.fontSize.sm,
+                        fontWeight: typography.fontWeight.medium,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {city.name}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Status Filter Buttons */}
                 <div style={{ display: 'flex', gap: spacing.sm }}>
                   {[
@@ -552,21 +605,21 @@ export default function EliteRankCityModal({
                 <div style={{ textAlign: 'center', padding: spacing.xxxl, background: colors.background.card, borderRadius: borderRadius.xxl, border: `1px solid ${colors.border.light}` }}>
                   <Crown size={48} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
                   <h3 style={{ fontSize: typography.fontSize.xl, color: '#fff', marginBottom: spacing.sm }}>
-                    {statusFilter !== 'all' ? 'No Matching Competitions' : 'No Competitions Yet'}
+                    {(statusFilter !== 'all' || cityFilter !== 'all') ? 'No Matching Competitions' : 'No Competitions Yet'}
                   </h3>
                   <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary }}>
-                    {statusFilter !== 'all'
+                    {(statusFilter !== 'all' || cityFilter !== 'all')
                       ? 'Try adjusting your filter criteria.'
                       : 'Check back soon for upcoming competitions in your city!'}
                   </p>
-                  {statusFilter !== 'all' && (
+                  {(statusFilter !== 'all' || cityFilter !== 'all') && (
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => setStatusFilter('all')}
+                      onClick={() => { setStatusFilter('all'); setCityFilter('all'); }}
                       style={{ marginTop: spacing.lg, width: 'auto' }}
                     >
-                      Clear Filter
+                      Clear Filters
                     </Button>
                   )}
                 </div>
