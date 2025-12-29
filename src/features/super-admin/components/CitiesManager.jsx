@@ -116,7 +116,7 @@ export default function CitiesManager() {
       fetchCities();
     } catch (err) {
       console.error('Error creating city:', err);
-      toast.error('Failed to create city');
+      toast.error(`Failed to create city: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }

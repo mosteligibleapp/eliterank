@@ -165,7 +165,7 @@ export default function OrganizationsManager() {
       fetchOrganizations();
     } catch (err) {
       console.error('Error creating organization:', err);
-      toast.error('Failed to create organization');
+      toast.error(`Failed to create organization: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
