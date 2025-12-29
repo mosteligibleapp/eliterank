@@ -281,6 +281,7 @@ export default function PublicSitePage({
             city={city}
             season={season}
             winners={winners}
+            competitionId={competition?.id}
           />
         )}
         {activeTab === 'nominate' && (

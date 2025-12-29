@@ -1,47 +1,103 @@
-import React, { useState } from 'react';
-import { Crown, Trophy, Star, Instagram, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Crown, Trophy, Sparkles, Loader } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
-import { formatNumber } from '../../../utils/formatters';
-import ProfileModal from './ProfileModal';
+import { supabase } from '../../../lib/supabase';
 
-// Winner images - professional headshots
-const WINNER_IMAGES = [
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=500&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=500&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=500&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&crop=face',
-];
+export default function WinnersTab({ city, season, winners = [], competitionId }) {
+  const [loadedWinners, setLoadedWinners] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-// Medal colors for top 5
-const MEDAL_STYLES = {
-  1: { bg: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000' },
-  2: { bg: 'linear-gradient(135deg, #C0C0C0, #A8A8A8)', color: '#000' },
-  3: { bg: 'linear-gradient(135deg, #CD7F32, #B8860B)', color: '#000' },
-  4: { bg: 'rgba(0,0,0,0.7)', color: '#fff' },
-  5: { bg: 'rgba(0,0,0,0.7)', color: '#fff' },
-};
+  // Fetch winners from competition if competitionId is provided
+  useEffect(() => {
+    const fetchWinners = async () => {
+      // If winners already provided as profiles, use them
+      if (winners.length > 0 && winners[0]?.first_name) {
+        setLoadedWinners(winners);
+        setLoading(false);
+        return;
+      }
 
-export default function WinnersTab({ city, season, winners = [] }) {
-  const [selectedProfile, setSelectedProfile] = useState(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+      // If competitionId provided, fetch from database
+      if (competitionId && supabase) {
+        try {
+          // Get competition with winners
+          const { data: compData, error: compError } = await supabase
+            .from('competitions')
+            .select('winners')
+            .eq('id', competitionId)
+            .single();
 
-  const handleViewProfile = (winner, index) => {
-    setSelectedProfile(winner);
-    setSelectedIndex(index);
+          if (compError || !compData?.winners?.length) {
+            setLoadedWinners([]);
+            setLoading(false);
+            return;
+          }
+
+          // Fetch winner profiles
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, email, first_name, last_name, avatar_url')
+            .in('id', compData.winners);
+
+          if (profilesError || !profiles) {
+            setLoadedWinners([]);
+            setLoading(false);
+            return;
+          }
+
+          // Maintain order from winner IDs
+          const orderedWinners = compData.winners
+            .map(id => profiles.find(p => p.id === id))
+            .filter(Boolean);
+
+          setLoadedWinners(orderedWinners);
+        } catch (err) {
+          console.error('Error fetching winners:', err);
+          setLoadedWinners([]);
+        }
+      } else {
+        setLoadedWinners([]);
+      }
+      setLoading(false);
+    };
+
+    fetchWinners();
+  }, [competitionId, winners]);
+
+  const getProfileName = (profile) => {
+    if (!profile) return 'Unknown';
+    const firstName = profile.first_name || '';
+    const lastName = profile.last_name || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || profile.email || 'Unknown';
   };
 
-  // If no winners provided, use placeholder data
-  const displayWinners = winners.length > 0 ? winners : [
-    { rank: 1, name: 'Sarah Mitchell', votes: 28450, occupation: 'Marketing Executive', instagram: '@sarahmitchell' },
-    { rank: 2, name: 'James Rodriguez', votes: 24320, occupation: 'Tech Entrepreneur', instagram: '@jamesrodriguez' },
-    { rank: 3, name: 'Emily Chen', votes: 21890, occupation: 'Fashion Designer', instagram: '@emilychen' },
-    { rank: 4, name: 'Michael Thompson', votes: 19750, occupation: 'Investment Banker', instagram: '@michaelthompson' },
-    { rank: 5, name: 'Olivia Williams', votes: 18420, occupation: 'Attorney', instagram: '@oliviawilliams' },
-  ];
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
+        <Loader size={48} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary, marginBottom: spacing.lg }} />
+        <p style={{ color: colors.text.secondary }}>Loading winners...</p>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
-  const grandWinner = displayWinners[0];
-  const runnerUps = displayWinners.slice(1, 5);
+  if (!loadedWinners || loadedWinners.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
+        <Trophy size={64} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
+        <h2 style={{ fontSize: typography.fontSize.xl, marginBottom: spacing.md, color: '#fff' }}>
+          Winners
+        </h2>
+        <p style={{ color: colors.text.secondary }}>
+          No winners have been announced yet.
+        </p>
+      </div>
+    );
+  }
+
+  const grandWinner = loadedWinners[0];
+  const runnerUps = loadedWinners.slice(1);
 
   return (
     <div>
@@ -72,25 +128,20 @@ export default function WinnersTab({ city, season, winners = [] }) {
         </p>
       </div>
 
-      {/* Grand Winner Card - Photo Focused */}
+      {/* Grand Winner Card */}
       {grandWinner && (
         <div style={{
           maxWidth: '400px',
           margin: '0 auto',
           marginBottom: spacing.xxxl,
         }}>
-          <div
-            onClick={() => handleViewProfile(grandWinner, 0)}
-            style={{
-              background: colors.background.card,
-              border: `2px solid ${colors.gold.primary}`,
-              borderRadius: borderRadius.xxl,
-              overflow: 'hidden',
-              position: 'relative',
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-            }}
-          >
+          <div style={{
+            background: colors.background.card,
+            border: `2px solid ${colors.gold.primary}`,
+            borderRadius: borderRadius.xxl,
+            overflow: 'hidden',
+            position: 'relative',
+          }}>
             {/* Crown Badge */}
             <div style={{
               position: 'absolute',
@@ -124,20 +175,29 @@ export default function WinnersTab({ city, season, winners = [] }) {
               </span>
             </div>
 
-            {/* Profile Image */}
+            {/* Profile Image/Avatar */}
             <div style={{
               width: '100%',
               aspectRatio: '4/5',
-              background: '#1a1a24',
+              background: grandWinner.avatar_url
+                ? `url(${grandWinner.avatar_url}) center/cover`
+                : 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
               position: 'relative',
               overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-              <img
-                src={WINNER_IMAGES[0]}
-                alt={grandWinner.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
+              {!grandWinner.avatar_url && (
+                <span style={{
+                  fontSize: '120px',
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.gold.primary,
+                  opacity: 0.5,
+                }}>
+                  {getProfileName(grandWinner).charAt(0).toUpperCase()}
+                </span>
+              )}
               <div style={{
                 position: 'absolute',
                 bottom: 0,
@@ -162,11 +222,8 @@ export default function WinnersTab({ city, season, winners = [] }) {
                   color: '#fff',
                   marginBottom: spacing.xs,
                 }}>
-                  {grandWinner.name}
+                  {getProfileName(grandWinner)}
                 </h2>
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: typography.fontSize.md }}>
-                  {grandWinner.occupation}
-                </p>
               </div>
             </div>
 
@@ -175,79 +232,56 @@ export default function WinnersTab({ city, season, winners = [] }) {
               padding: `${spacing.lg} ${spacing.xl}`,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'center',
               background: colors.background.cardHover,
             }}>
-              <div>
-                <p style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-                  {formatNumber(grandWinner.votes)}
-                </p>
-                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Total Votes
-                </p>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.sm,
+                color: colors.gold.primary,
+              }}>
+                <Trophy size={20} />
+                <span style={{ fontWeight: typography.fontWeight.semibold }}>Grand Champion</span>
               </div>
-              {grandWinner.instagram && (
-                <a
-                  href={`https://instagram.com/${grandWinner.instagram.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.sm,
-                    color: colors.text.light,
-                    textDecoration: 'none',
-                    padding: `${spacing.sm} ${spacing.md}`,
-                    background: 'rgba(255,255,255,0.1)',
-                    borderRadius: borderRadius.md,
-                  }}
-                >
-                  <Instagram size={18} />
-                  <span style={{ fontSize: typography.fontSize.sm }}>{grandWinner.instagram}</span>
-                </a>
-              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Runner Ups - Photo Cards */}
-      <div style={{ marginBottom: spacing.xxxl }}>
-        <h3 style={{
-          fontSize: typography.fontSize.xl,
-          fontWeight: typography.fontWeight.semibold,
-          color: '#fff',
-          marginBottom: spacing.xl,
-          textAlign: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: spacing.sm,
-        }}>
-          <Sparkles size={24} style={{ color: colors.gold.primary }} />
-          Top 5 Finalists
-        </h3>
+      {/* Runner Ups */}
+      {runnerUps.length > 0 && (
+        <div style={{ marginBottom: spacing.xxxl }}>
+          <h3 style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.semibold,
+            color: '#fff',
+            marginBottom: spacing.xl,
+            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.sm,
+          }}>
+            <Sparkles size={24} style={{ color: colors.gold.primary }} />
+            Other Winners
+          </h3>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-          gap: spacing.xl,
-        }}>
-          {runnerUps.map((winner, index) => {
-            const medalStyle = MEDAL_STYLES[winner.rank];
-
-            return (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+            gap: spacing.xl,
+            justifyContent: 'center',
+          }}>
+            {runnerUps.map((winner, index) => (
               <div
-                key={winner.rank}
-                onClick={() => handleViewProfile(winner, index + 1)}
+                key={winner.id}
                 style={{
                   background: colors.background.card,
-                  border: winner.rank <= 3 ? `2px solid rgba(212,175,55,0.4)` : `1px solid ${colors.border.light}`,
+                  border: `1px solid rgba(212,175,55,0.3)`,
                   borderRadius: borderRadius.xxl,
                   overflow: 'hidden',
                   position: 'relative',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
                 }}
               >
                 {/* Rank Badge */}
@@ -258,33 +292,39 @@ export default function WinnersTab({ city, season, winners = [] }) {
                   width: '32px',
                   height: '32px',
                   borderRadius: borderRadius.md,
-                  background: medalStyle?.bg || 'rgba(0,0,0,0.7)',
+                  background: 'rgba(212,175,55,0.2)',
                   backdropFilter: 'blur(8px)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: typography.fontSize.md,
-                  fontWeight: typography.fontWeight.bold,
-                  color: medalStyle?.color || '#fff',
                   zIndex: 2,
                 }}>
-                  {winner.rank}
+                  <Crown size={18} style={{ color: colors.gold.primary }} />
                 </div>
 
-                {/* Profile Image */}
+                {/* Profile Image/Avatar */}
                 <div style={{
                   width: '100%',
                   aspectRatio: '4/5',
-                  background: '#1a1a24',
+                  background: winner.avatar_url
+                    ? `url(${winner.avatar_url}) center/cover`
+                    : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
                   position: 'relative',
                   overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}>
-                  <img
-                    src={WINNER_IMAGES[index + 1] || WINNER_IMAGES[0]}
-                    alt={winner.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
+                  {!winner.avatar_url && (
+                    <span style={{
+                      fontSize: '80px',
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.gold.primary,
+                      opacity: 0.3,
+                    }}>
+                      {getProfileName(winner).charAt(0).toUpperCase()}
+                    </span>
+                  )}
                   <div style={{
                     position: 'absolute',
                     bottom: 0,
@@ -294,11 +334,8 @@ export default function WinnersTab({ city, season, winners = [] }) {
                     background: 'linear-gradient(transparent, rgba(0,0,0,0.95))',
                   }}>
                     <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, marginBottom: '2px', color: '#fff' }}>
-                      {winner.name}
+                      {getProfileName(winner)}
                     </h3>
-                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: typography.fontSize.sm }}>
-                      {winner.occupation}
-                    </p>
                   </div>
                 </div>
 
@@ -307,79 +344,29 @@ export default function WinnersTab({ city, season, winners = [] }) {
                   padding: `${spacing.md} ${spacing.lg}`,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
+                  justifyContent: 'center',
                   background: colors.background.cardHover,
                 }}>
-                  <div>
-                    <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: winner.rank <= 3 ? colors.gold.primary : '#fff' }}>
-                      {formatNumber(winner.votes)}
-                    </p>
-                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Votes
-                    </p>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    padding: `${spacing.xs} ${spacing.md}`,
+                    background: 'rgba(212,175,55,0.15)',
+                    borderRadius: borderRadius.pill,
+                    color: colors.gold.primary,
+                    fontSize: typography.fontSize.xs,
+                    fontWeight: typography.fontWeight.medium,
+                  }}>
+                    <Trophy size={12} />
+                    Winner
                   </div>
-                  {winner.instagram && (
-                    <a
-                      href={`https://instagram.com/${winner.instagram.replace('@', '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: colors.text.muted }}
-                    >
-                      <Instagram size={18} />
-                    </a>
-                  )}
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Season Stats */}
-      <div style={{
-        background: colors.background.card,
-        border: `1px solid ${colors.border.light}`,
-        borderRadius: borderRadius.xxl,
-        padding: spacing.xxl,
-        marginBottom: spacing.xxxl,
-      }}>
-        <h3 style={{
-          fontSize: typography.fontSize.xl,
-          fontWeight: typography.fontWeight.semibold,
-          color: '#fff',
-          marginBottom: spacing.xl,
-          textAlign: 'center',
-        }}>
-          Season {season} by the Numbers
-        </h3>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-          gap: spacing.lg,
-        }}>
-          {[
-            { value: '18', label: 'Contestants' },
-            { value: '89K+', label: 'Total Votes' },
-            { value: '12', label: 'Events' },
-            { value: '5', label: 'Winners' },
-          ].map((stat, i) => (
-            <div key={i} style={{ textAlign: 'center' }}>
-              <p style={{
-                fontSize: typography.fontSize.hero,
-                fontWeight: typography.fontWeight.bold,
-                color: colors.gold.primary,
-                marginBottom: spacing.xs,
-              }}>
-                {stat.value}
-              </p>
-              <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                {stat.label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Thank You Message */}
       <div style={{
@@ -409,16 +396,6 @@ export default function WinnersTab({ city, season, winners = [] }) {
           See you next season!
         </p>
       </div>
-
-      {/* Profile Modal */}
-      <ProfileModal
-        isOpen={!!selectedProfile}
-        onClose={() => setSelectedProfile(null)}
-        profile={selectedProfile}
-        type="contestant"
-        rank={selectedProfile?.rank}
-        imageIndex={selectedIndex}
-      />
     </div>
   );
 }
