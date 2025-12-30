@@ -259,6 +259,23 @@ export default function useCompetition(competitionId = null) {
   }, [isDemoMode]);
 
   // CRUD operations for events
+  const addEvent = useCallback(async (data) => {
+    if (isDemoMode) {
+      const newEvent = { id: Date.now(), created_at: new Date().toISOString(), ...data };
+      setEvents((prev) => [...prev, newEvent].sort((a, b) => new Date(a.date) - new Date(b.date)));
+      return { data: newEvent, error: null };
+    }
+
+    const { data: result, error } = await supabase
+      .from('events')
+      .insert({ ...data, competition_id: competitionId })
+      .select()
+      .single();
+
+    if (!error) setEvents((prev) => [...prev, result].sort((a, b) => new Date(a.date) - new Date(b.date)));
+    return { data: result, error };
+  }, [isDemoMode, competitionId]);
+
   const updateEvent = useCallback(async (id, updates) => {
     if (isDemoMode) {
       setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
@@ -267,6 +284,17 @@ export default function useCompetition(competitionId = null) {
 
     const { error } = await supabase.from('events').update(updates).eq('id', id);
     if (!error) setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
+    return { error };
+  }, [isDemoMode]);
+
+  const deleteEvent = useCallback(async (id) => {
+    if (isDemoMode) {
+      setEvents((prev) => prev.filter((e) => e.id !== id));
+      return { error: null };
+    }
+
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    if (!error) setEvents((prev) => prev.filter((e) => e.id !== id));
     return { error };
   }, [isDemoMode]);
 
@@ -347,7 +375,9 @@ export default function useCompetition(competitionId = null) {
     updateSponsor,
     deleteSponsor,
     // Event actions
+    addEvent,
     updateEvent,
+    deleteEvent,
     // Announcement actions
     addAnnouncement,
     updateAnnouncement,

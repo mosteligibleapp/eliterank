@@ -372,14 +372,79 @@ export default function App() {
   // ============================================
   // Event Handlers
   // ============================================
-  const handleSaveEvent = useCallback((eventData) => {
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === eventModal.event.id ? { ...e, ...eventData } : e
-      )
-    );
+  const handleSaveEvent = useCallback(async (eventData) => {
+    const competitionId = hostCompetition?.id;
+
+    if (eventModal.event) {
+      // Editing existing event
+      const eventId = eventModal.event.id;
+
+      // Update local state
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === eventId ? { ...e, ...eventData } : e
+        )
+      );
+
+      // Persist to Supabase
+      if (supabase && competitionId) {
+        const { error } = await supabase
+          .from('events')
+          .update({
+            name: eventData.name,
+            date: eventData.date,
+            end_date: eventData.endDate || null,
+            time: eventData.time || null,
+            status: eventData.status,
+            location: eventData.location || null,
+          })
+          .eq('id', eventId);
+
+        if (error) {
+          console.error('Error updating event:', error.message);
+        }
+      }
+    } else {
+      // Adding new event
+      const newEventId = `e${Date.now()}`;
+      const newEvent = {
+        id: newEventId,
+        date: new Date().toISOString().split('T')[0],
+        ...eventData,
+      };
+
+      // Update local state
+      setEvents((prev) => [...prev, newEvent]);
+
+      // Persist to Supabase
+      if (supabase && competitionId) {
+        const { data, error } = await supabase
+          .from('events')
+          .insert({
+            competition_id: competitionId,
+            name: eventData.name,
+            date: eventData.date,
+            end_date: eventData.endDate || null,
+            time: eventData.time || null,
+            status: eventData.status || 'upcoming',
+            location: eventData.location || null,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error adding event:', error.message);
+        } else if (data) {
+          // Update local state with the real ID from Supabase
+          setEvents((prev) =>
+            prev.map((e) => (e.id === newEventId ? { ...e, id: data.id } : e))
+          );
+        }
+      }
+    }
+
     closeEventModal();
-  }, [eventModal.event, closeEventModal]);
+  }, [eventModal.event, closeEventModal, hostCompetition]);
 
   // ============================================
   // Announcement Handlers
@@ -579,6 +644,7 @@ export default function App() {
             onAddSponsor={() => openSponsorModal(null)}
             onEditSponsor={openSponsorModal}
             onDeleteSponsor={handleDeleteSponsor}
+            onAddEvent={() => openEventModal(null)}
             onEditEvent={openEventModal}
             onCompetitionUpdate={async () => {
               // Refresh host competition from Supabase

@@ -295,6 +295,83 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  // Add a new event
+  const addEvent = useCallback(async (eventData) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error: insertError } = await supabase
+        .from('events')
+        .insert({
+          competition_id: competitionId,
+          name: eventData.name,
+          date: eventData.date,
+          end_date: eventData.endDate || null,
+          time: eventData.time || null,
+          status: eventData.status || 'upcoming',
+          location: eventData.location || null,
+        });
+
+      if (insertError) throw insertError;
+
+      // Refresh data to show updated list
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding event:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  // Update an existing event
+  const updateEvent = useCallback(async (eventId, eventData) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({
+          name: eventData.name,
+          date: eventData.date,
+          end_date: eventData.endDate || null,
+          time: eventData.time || null,
+          status: eventData.status,
+          location: eventData.location || null,
+        })
+        .eq('id', eventId);
+
+      if (updateError) throw updateError;
+
+      // Refresh data to show updated list
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating event:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  // Delete an event
+  const deleteEvent = useCallback(async (eventId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (deleteError) throw deleteError;
+
+      // Refresh data to show updated list
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error deleting event:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   return {
     data,
     loading,
@@ -302,6 +379,9 @@ export function useCompetitionDashboard(competitionId) {
     refresh,
     approveNominee,
     rejectNominee,
+    addEvent,
+    updateEvent,
+    deleteEvent,
   };
 }
 
