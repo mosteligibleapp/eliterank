@@ -394,23 +394,26 @@ export default function EliteRankCityModal({
   };
 
   // ============================================
-  // FILTER BAR - Clean, minimal
+  // FILTER BAR - Centered, clean design
   // ============================================
   const FilterBar = () => (
     <div style={{
       display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      alignItems: isMobile ? 'stretch' : 'center',
+      flexDirection: 'column',
+      alignItems: 'center',
       gap: spacing.md,
-      marginBottom: spacing.xl,
-      padding: isMobile ? `0 ${spacing.lg}` : 0,
+      marginBottom: spacing.xxl,
+      padding: isMobile ? `0 ${spacing.md}` : 0,
     }}>
-      {/* Status Pills */}
+      {/* Status Pills - Centered */}
       <div style={{
-        display: 'flex',
+        display: 'inline-flex',
         gap: spacing.sm,
+        padding: spacing.xs,
+        background: 'rgba(255,255,255,0.03)',
+        borderRadius: borderRadius.xl,
         overflowX: 'auto',
-        paddingBottom: isMobile ? spacing.sm : 0,
+        maxWidth: '100%',
         ...styleHelpers.hideScrollbar,
       }}>
         {[
@@ -425,10 +428,10 @@ export default function EliteRankCityModal({
             style={{
               ...styleHelpers.flexCenter,
               gap: spacing.xs,
-              padding: `${spacing.sm} ${spacing.lg}`,
+              padding: `${spacing.sm} ${isMobile ? spacing.md : spacing.lg}`,
               background: statusFilter === filter.id ? colors.gold.muted : 'transparent',
-              border: statusFilter === filter.id ? `1.5px solid ${colors.gold.primary}` : `1px solid ${colors.border.primary}`,
-              borderRadius: borderRadius.pill,
+              border: statusFilter === filter.id ? `1.5px solid ${colors.gold.primary}` : '1.5px solid transparent',
+              borderRadius: borderRadius.lg,
               color: statusFilter === filter.id ? colors.gold.primary : colors.text.secondary,
               fontSize: typography.fontSize.sm,
               fontWeight: typography.fontWeight.medium,
@@ -438,12 +441,12 @@ export default function EliteRankCityModal({
               flexShrink: 0,
             }}
           >
-            {filter.dot && statusFilter === filter.id && (
+            {filter.dot && (
               <span style={{
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: colors.status.success,
+                background: statusFilter === filter.id ? colors.status.success : colors.status.success,
                 animation: 'pulse 2s infinite',
               }} />
             )}
@@ -452,7 +455,7 @@ export default function EliteRankCityModal({
         ))}
       </div>
 
-      {/* City Filter */}
+      {/* City Filter - Only shows when multiple cities */}
       {availableCities.length > 1 && (
         <select
           value={cityFilter}
@@ -466,7 +469,7 @@ export default function EliteRankCityModal({
             fontSize: typography.fontSize.sm,
             cursor: 'pointer',
             outline: 'none',
-            minWidth: '140px',
+            minWidth: '160px',
           }}
         >
           <option value="all">All Cities</option>
