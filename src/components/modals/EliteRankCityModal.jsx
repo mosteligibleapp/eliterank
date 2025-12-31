@@ -64,11 +64,12 @@ export default function EliteRankCityModal({
       }
 
       try {
-        const [compsResult, orgsResult, citiesResult, settingsResult, profilesResult, eventsResult, announcementsResult] = await Promise.all([
+        const [compsResult, orgsResult, citiesResult, settingsResult, votingRoundsResult, profilesResult, eventsResult, announcementsResult] = await Promise.all([
           supabase.from('competitions').select('*').order('created_at', { ascending: false }),
           supabase.from('organizations').select('*').order('name'),
           supabase.from('cities').select('*').order('name'),
           supabase.from('competition_settings').select('*'),
+          supabase.from('voting_rounds').select('*').order('round_order'),
           supabase.from('profiles').select('id, email, first_name, last_name, avatar_url, bio, instagram'),
           supabase.from('events').select('*').order('date', { ascending: true }),
           supabase.from('announcements').select('*').order('published_at', { ascending: false }),
@@ -79,6 +80,12 @@ export default function EliteRankCityModal({
         setCities(citiesData);
         const citiesMap = citiesData.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
         const settingsMap = (settingsResult.data || []).reduce((acc, s) => { acc[s.competition_id] = s; return acc; }, {});
+        // Group voting rounds by competition_id
+        const votingRoundsMap = (votingRoundsResult.data || []).reduce((acc, r) => {
+          if (!acc[r.competition_id]) acc[r.competition_id] = [];
+          acc[r.competition_id].push(r);
+          return acc;
+        }, {});
 
         // Auto-transitions
         const toTransition = [];
@@ -101,7 +108,18 @@ export default function EliteRankCityModal({
 
         if (compsResult.data) {
           setCompetitions(compsResult.data.map(comp => {
-            const computedPhase = computeCompetitionPhase(comp);
+            // Merge settings and voting rounds for phase calculation
+            const settings = settingsMap[comp.id] || {};
+            const compWithSettings = {
+              ...comp,
+              nomination_start: settings.nomination_start || comp.nomination_start,
+              nomination_end: settings.nomination_end || comp.nomination_end,
+              voting_start: settings.voting_start || comp.voting_start,
+              voting_end: settings.voting_end || comp.voting_end,
+              finals_date: settings.finale_date || comp.finals_date,
+              voting_rounds: votingRoundsMap[comp.id] || [],
+            };
+            const computedPhase = computeCompetitionPhase(compWithSettings);
             const visible = isCompetitionVisible(comp.status);
             const accessible = isCompetitionAccessible(comp.status);
             const cityFromLookup = citiesMap[comp.city_id];
@@ -128,11 +146,12 @@ export default function EliteRankCityModal({
                 avatar: hostProfile.avatar_url,
               } : null,
               winners: comp.winners || [],
-              nomination_start: comp.nomination_start,
-              nomination_end: comp.nomination_end,
-              voting_start: comp.voting_start,
-              voting_end: comp.voting_end,
-              finals_date: comp.finals_date,
+              nomination_start: compWithSettings.nomination_start,
+              nomination_end: compWithSettings.nomination_end,
+              voting_start: compWithSettings.voting_start,
+              voting_end: compWithSettings.voting_end,
+              finals_date: compWithSettings.finals_date,
+              voting_rounds: compWithSettings.voting_rounds,
             };
           }));
         }
