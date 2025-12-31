@@ -124,6 +124,7 @@ const createSafeCompetition = (competition = {}) => ({
   season: competition.season ?? String(new Date().getFullYear()),
   phase: competition.phase ?? 'voting',
   status: competition.status ?? 'draft',
+  host_id: competition.host_id ?? null,
   host: competition.host ?? null,
   winners: Array.isArray(competition.winners) ? competition.winners : [],
   isTeaser: competition.isTeaser ?? false,
