@@ -7,7 +7,7 @@ import {
 import { Button, Badge, Avatar, StatCard } from '../../../components/ui';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
-import { EventModal } from '../../../components/modals';
+import { EventModal, AddPersonModal } from '../../../components/modals';
 
 // Import host dashboard components for reuse
 import RevenueCard from '../../overview/components/RevenueCard';
@@ -37,8 +37,15 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   // Event modal state
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
 
+  // Add person modal state (for nominees and contestants)
+  const [addPersonModal, setAddPersonModal] = useState({ isOpen: false, type: 'nominee' });
+
   // Fetch real data from Supabase
-  const { data, loading, error, refresh, approveNominee, rejectNominee, archiveNominee, restoreNominee } = useCompetitionDashboard(competition?.id);
+  const {
+    data, loading, error, refresh,
+    addNominee, approveNominee, rejectNominee, archiveNominee, restoreNominee,
+    addContestant,
+  } = useCompetitionDashboard(competition?.id);
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -67,6 +74,26 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
     // TODO: Implement database save for events
     closeEventModal();
     refresh();
+  };
+
+  // Add person modal handlers
+  const openAddPersonModal = (type) => {
+    setAddPersonModal({ isOpen: true, type });
+  };
+
+  const closeAddPersonModal = () => {
+    setAddPersonModal({ isOpen: false, type: 'nominee' });
+  };
+
+  const handleAddPerson = async (personData) => {
+    const { type } = addPersonModal;
+    if (type === 'contestant') {
+      const result = await addContestant(personData);
+      if (!result.success) throw new Error(result.error);
+    } else {
+      const result = await addNominee(personData);
+      if (!result.success) throw new Error(result.error);
+    }
   };
 
   // Fetch host data if competition has host_id
@@ -614,20 +641,29 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           marginBottom: spacing.lg,
           overflow: 'hidden',
         }}>
-          <SectionHeader
-            title="Contestants"
-            count={approvedContestants.length}
-            icon={Crown}
-            iconColor="#22c55e"
-            sectionKey="contestants"
-            badge="success"
-          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: spacing.lg }}>
+            <SectionHeader
+              title="Contestants"
+              count={approvedContestants.length}
+              icon={Crown}
+              iconColor="#22c55e"
+              sectionKey="contestants"
+              badge="success"
+            />
+            <Button
+              size="sm"
+              icon={Plus}
+              onClick={() => openAddPersonModal('contestant')}
+            >
+              Add Contestant
+            </Button>
+          </div>
           {expandedSections.contestants && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
               {approvedContestants.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
                   <Crown size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                  <p>No contestants yet. Approve nominees to add them.</p>
+                  <p>No contestants yet. Approve nominees or add manually.</p>
                 </div>
               ) : (
                 approvedContestants.map((contestant) => (
@@ -646,14 +682,24 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           marginBottom: spacing.lg,
           overflow: 'hidden',
         }}>
-          <SectionHeader
-            title="Nominees with Profile"
-            count={nomineesWithProfile.length}
-            icon={UserCheck}
-            iconColor="#3b82f6"
-            sectionKey="withProfile"
-            badge="info"
-          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: spacing.lg }}>
+            <SectionHeader
+              title="Nominees with Profile"
+              count={nomineesWithProfile.length}
+              icon={UserCheck}
+              iconColor="#3b82f6"
+              sectionKey="withProfile"
+              badge="info"
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={Plus}
+              onClick={() => openAddPersonModal('nominee')}
+            >
+              Add Nominee
+            </Button>
+          </div>
           {expandedSections.withProfile && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
               {nomineesWithProfile.length === 0 ? (
@@ -1075,6 +1121,15 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         onClose={closeEventModal}
         event={eventModal.event}
         onSave={handleSaveEvent}
+      />
+
+      {/* Add Person Modal (Nominee/Contestant) */}
+      <AddPersonModal
+        isOpen={addPersonModal.isOpen}
+        onClose={closeAddPersonModal}
+        onAdd={handleAddPerson}
+        type={addPersonModal.type}
+        competitionId={competition?.id}
       />
     </div>
   );

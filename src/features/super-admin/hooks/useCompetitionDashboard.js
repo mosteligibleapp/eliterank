@@ -330,6 +330,44 @@ export function useCompetitionDashboard(competitionId) {
 
       if (updateError) throw updateError;
 
+      // Find profile to link to contestant
+      let linkedUserId = nominee.userId || null;
+
+      if (!linkedUserId) {
+        // Try to find profile by email first
+        if (nominee.email) {
+          const { data: profileByEmail } = await supabase
+            .from('profiles')
+            .select('id')
+            .ilike('email', nominee.email)
+            .limit(1)
+            .maybeSingle();
+
+          if (profileByEmail?.id) {
+            linkedUserId = profileByEmail.id;
+          }
+        }
+
+        // If not found by email, try instagram
+        if (!linkedUserId && nominee.instagram) {
+          const normalizedInstagram = nominee.instagram.replace('@', '').toLowerCase();
+          const { data: profileByInstagram } = await supabase
+            .from('profiles')
+            .select('id, instagram')
+            .not('instagram', 'is', null)
+            .limit(100); // Get profiles with instagram set
+
+          if (profileByInstagram) {
+            const match = profileByInstagram.find(p =>
+              p.instagram && p.instagram.replace('@', '').toLowerCase() === normalizedInstagram
+            );
+            if (match) {
+              linkedUserId = match.id;
+            }
+          }
+        }
+      }
+
       const contestantData = {
         competition_id: competitionId,
         name: nominee.name,
@@ -340,7 +378,7 @@ export function useCompetitionDashboard(competitionId) {
         city: nominee.city,
         status: 'active',
         votes: 0,
-        user_id: nominee.userId,
+        user_id: linkedUserId,
       };
 
       const { error: insertError } = await supabase
@@ -348,6 +386,36 @@ export function useCompetitionDashboard(competitionId) {
         .insert(contestantData);
 
       if (insertError) throw insertError;
+
+      // Update profile's competition count if linked
+      if (linkedUserId) {
+        try {
+          const { error: rpcError } = await supabase.rpc('increment_profile_competitions', {
+            p_user_id: linkedUserId,
+          });
+
+          if (rpcError) {
+            // Fallback to manual update
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('total_competitions')
+              .eq('id', linkedUserId)
+              .maybeSingle();
+
+            if (profile) {
+              await supabase
+                .from('profiles')
+                .update({
+                  total_competitions: (profile.total_competitions || 0) + 1,
+                })
+                .eq('id', linkedUserId);
+            }
+          }
+        } catch (profileErr) {
+          console.warn('Error updating profile competition count:', profileErr);
+          // Non-critical, don't fail the approval
+        }
+      }
 
       await fetchDashboardData();
       return { success: true };
@@ -407,6 +475,104 @@ export function useCompetitionDashboard(competitionId) {
       return { success: true };
     } catch (err) {
       console.error('Error restoring nominee:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  /**
+   * Manually add a nominee (by admin/host)
+   * Can be linked to an existing profile or created with manual data
+   */
+  const addNominee = useCallback(async (nomineeData) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error: insertError } = await supabase
+        .from('nominees')
+        .insert({
+          competition_id: competitionId,
+          name: nomineeData.name,
+          email: nomineeData.email,
+          phone: nomineeData.phone,
+          instagram: nomineeData.instagram,
+          age: nomineeData.age,
+          city: nomineeData.city,
+          bio: nomineeData.bio,
+          user_id: nomineeData.userId || null,
+          nominated_by: 'admin',
+          status: 'pending',
+        });
+
+      if (insertError) throw insertError;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding nominee:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  /**
+   * Manually add a contestant directly (skip nomination process)
+   * Can be linked to an existing profile or created with manual data
+   */
+  const addContestant = useCallback(async (contestantData) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const linkedUserId = contestantData.userId || null;
+
+      const { error: insertError } = await supabase
+        .from('contestants')
+        .insert({
+          competition_id: competitionId,
+          name: contestantData.name,
+          email: contestantData.email,
+          phone: contestantData.phone,
+          instagram: contestantData.instagram,
+          age: contestantData.age,
+          city: contestantData.city,
+          avatar_url: contestantData.avatarUrl || null,
+          status: 'active',
+          votes: 0,
+          user_id: linkedUserId,
+        });
+
+      if (insertError) throw insertError;
+
+      // Update profile's competition count if linked
+      if (linkedUserId) {
+        try {
+          const { error: rpcError } = await supabase.rpc('increment_profile_competitions', {
+            p_user_id: linkedUserId,
+          });
+
+          if (rpcError) {
+            // Fallback to manual update
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('total_competitions')
+              .eq('id', linkedUserId)
+              .maybeSingle();
+
+            if (profile) {
+              await supabase
+                .from('profiles')
+                .update({
+                  total_competitions: (profile.total_competitions || 0) + 1,
+                })
+                .eq('id', linkedUserId);
+            }
+          }
+        } catch (profileErr) {
+          console.warn('Error updating profile competition count:', profileErr);
+        }
+      }
+
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding contestant:', err);
       return { success: false, error: err.message };
     }
   }, [competitionId, fetchDashboardData]);
@@ -891,10 +1057,13 @@ export function useCompetitionDashboard(competitionId) {
     error,
     refresh,
     // Nominee operations
+    addNominee,
     approveNominee,
     rejectNominee,
     archiveNominee,
     restoreNominee,
+    // Contestant operations
+    addContestant,
     // Judge operations
     addJudge,
     updateJudge,

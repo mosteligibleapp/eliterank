@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Crown, Users, Calendar, Sparkles, Award, UserPlus, Trophy, Clock, ChevronLeft, Home } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, shadows, gradients, components, styleHelpers } from '../../styles/theme';
@@ -150,6 +150,87 @@ export default function PublicSitePage({
 
     fetchCompetitionData();
   }, [competition?.id, competition?.host_id]);
+
+  // Real-time subscription for contestant vote updates
+  useEffect(() => {
+    const competitionId = competition?.id;
+    if (!competitionId || !supabase) return;
+
+    const channel = supabase
+      .channel(`competition-${competitionId}-votes`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'contestants',
+          filter: `competition_id=eq.${competitionId}`,
+        },
+        (payload) => {
+          // Update the specific contestant in state with new vote count
+          setFetchedData((prev) => {
+            const updatedContestants = prev.contestants
+              .map((c) =>
+                c.id === payload.new.id
+                  ? { ...c, votes: payload.new.votes }
+                  : c
+              )
+              .sort((a, b) => (b.votes || 0) - (a.votes || 0)) // Re-sort by votes
+              .map((c, idx) => ({ ...c, rank: idx + 1 })); // Update ranks
+
+            return {
+              ...prev,
+              contestants: updatedContestants,
+            };
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [competition?.id]);
+
+  // Callback to refresh contestant data after voting
+  const handleVoteSuccess = useCallback(async () => {
+    const competitionId = competition?.id;
+    if (!competitionId || !supabase) return;
+
+    try {
+      const { data: contestantsData } = await supabase
+        .from('contestants')
+        .select('*')
+        .eq('competition_id', competitionId)
+        .order('votes', { ascending: false });
+
+      if (contestantsData) {
+        setFetchedData((prev) => ({
+          ...prev,
+          contestants: contestantsData.map((c, idx) => ({
+            ...c,
+            id: c.id,
+            name: c.name,
+            age: c.age,
+            occupation: c.occupation,
+            bio: c.bio,
+            votes: c.votes || 0,
+            rank: idx + 1,
+            avatarUrl: c.avatar_url,
+            avatar_url: c.avatar_url,
+            instagram: c.instagram,
+            twitter: c.twitter,
+            linkedin: c.linkedin,
+            city: c.city,
+            hobbies: c.hobbies || [],
+            gallery: c.gallery || [],
+          })),
+        }));
+      }
+    } catch (error) {
+      console.error('Error refreshing contestant data:', error);
+    }
+  }, [competition?.id]);
 
   // Use fetched data or fall back to props
   const displayContestants = fetchedData.contestants.length > 0 ? fetchedData.contestants : contestants;
@@ -488,6 +569,9 @@ export default function PublicSitePage({
         forceDoubleVoteDay={forceDoubleVoteDay}
         isAuthenticated={isAuthenticated}
         onLogin={onLogin}
+        competitionId={competition?.id}
+        user={user}
+        onVoteSuccess={handleVoteSuccess}
       />
 
       {/* Full-page Profile View */}
