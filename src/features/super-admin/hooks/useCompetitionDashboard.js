@@ -568,6 +568,28 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  /**
+   * Remove a contestant from the competition
+   * This deletes the contestant record (they can be re-added from nominees)
+   */
+  const deleteContestant = useCallback(async (contestantId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('contestants')
+        .delete()
+        .eq('id', contestantId);
+
+      if (deleteError) throw deleteError;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error removing contestant:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   // ============================================================================
   // JUDGE OPERATIONS
   // ============================================================================
@@ -1055,6 +1077,7 @@ export function useCompetitionDashboard(competitionId) {
     restoreNominee,
     // Contestant operations
     addContestant,
+    deleteContestant,
     // Judge operations
     addJudge,
     updateJudge,

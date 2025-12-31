@@ -61,6 +61,7 @@ export default function CompetitionDashboard({
     restoreNominee,
     // Contestant operations
     addContestant,
+    deleteContestant,
     // Judge operations
     addJudge,
     updateJudge,
@@ -548,6 +549,20 @@ export default function CompetitionDashboard({
           <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>votes</p>
         </div>
         <Badge variant="gold" size="sm">#{contestant.rank}</Badge>
+        <Button
+          variant="reject"
+          size="sm"
+          onClick={() => {
+            if (window.confirm(`Remove ${contestant.name} from contestants?`)) {
+              setProcessingId(contestant.id);
+              deleteContestant(contestant.id).then(() => setProcessingId(null));
+            }
+          }}
+          disabled={processingId === contestant.id}
+          title="Remove contestant"
+        >
+          <Trash2 size={14} />
+        </Button>
       </div>
     );
 

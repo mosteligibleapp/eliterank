@@ -73,6 +73,16 @@ export async function getTodaysVote(userId, competitionId) {
 }
 
 /**
+ * Helper to add timeout to a promise
+ */
+function withTimeout(promise, ms, errorMessage = 'Operation timed out') {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(errorMessage)), ms)
+  );
+  return Promise.race([promise, timeout]);
+}
+
+/**
  * Submit a free daily vote
  * @param {Object} params - Vote parameters
  * @param {string} params.userId - The user's ID
@@ -94,20 +104,25 @@ export async function submitFreeVote({
   }
 
   if (!userId || !competitionId || !contestantId) {
+    console.error('Missing vote params:', { userId: !!userId, competitionId: !!competitionId, contestantId: !!contestantId });
     return { success: false, error: 'Missing required parameters' };
   }
 
   const voteValue = isDoubleVoteDay ? 2 : 1;
 
   try {
-    // 1. Check if already voted today (prevent race condition)
-    const alreadyVoted = await hasUsedFreeVoteToday(userId, competitionId);
+    // 1. Check if already voted today (prevent race condition) - with timeout
+    const alreadyVoted = await withTimeout(
+      hasUsedFreeVoteToday(userId, competitionId),
+      10000,
+      'Checking vote status timed out'
+    );
     if (alreadyVoted) {
       return { success: false, error: 'You have already used your free vote today' };
     }
 
-    // 2. Insert the vote record
-    const { error: voteError } = await supabase
+    // 2. Insert the vote record - with timeout
+    const insertPromise = supabase
       .from('votes')
       .insert({
         voter_id: userId,
@@ -120,13 +135,20 @@ export async function submitFreeVote({
         is_double_vote: isDoubleVoteDay,
       });
 
+    const insertResult = await withTimeout(insertPromise, 15000, 'Vote submission timed out');
+    const voteError = insertResult?.error;
+
     if (voteError) {
       console.error('Vote insert error:', voteError);
       // Check for unique constraint violation
       if (voteError.code === '23505') {
         return { success: false, error: 'You have already used your free vote today' };
       }
-      return { success: false, error: voteError.message };
+      // Check for RLS policy violation
+      if (voteError.code === '42501' || voteError.message?.includes('policy')) {
+        return { success: false, error: 'Permission denied. Please try logging in again.' };
+      }
+      return { success: false, error: voteError.message || 'Failed to submit vote' };
     }
 
     // 3. Increment contestant's vote count using RPC (atomic operation)
