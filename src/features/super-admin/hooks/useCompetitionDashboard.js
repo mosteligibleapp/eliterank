@@ -49,10 +49,10 @@ export function useCompetitionDashboard(competitionId) {
           .eq('competition_id', competitionId)
           .order('votes', { ascending: false }),
 
-        // Nominees ordered by creation date - join to profiles for canonical data
+        // Nominees ordered by creation date - join to profiles via user_id for canonical data
         supabase
           .from('nominees')
-          .select('*, profile:profiles(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests, gallery)')
+          .select('*, profile:profiles!nominees_user_id_fkey(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests, gallery)')
           .eq('competition_id', competitionId)
           .order('created_at', { ascending: false }),
 
