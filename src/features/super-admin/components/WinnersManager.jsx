@@ -7,7 +7,7 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { supabase } from '../../../lib/supabase';
 import { COMPETITION_STATUS } from '../../../types/competition';
 
-export default function WinnersManager({ competition, onUpdate }) {
+export default function WinnersManager({ competition, onUpdate, allowEdit = false }) {
   const [winners, setWinners] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -18,6 +18,8 @@ export default function WinnersManager({ competition, onUpdate }) {
 
   const maxWinners = competition?.number_of_winners || 5;
   const isCompleted = competition?.status === COMPETITION_STATUS.COMPLETED;
+  // Allow editing if explicitly allowed or if competition is completed
+  const canEdit = allowEdit || isCompleted;
 
   // Load existing winners on mount
   useEffect(() => {
@@ -198,8 +200,8 @@ export default function WinnersManager({ competition, onUpdate }) {
     return fullName || profile.email || 'Unknown';
   };
 
-  // Don't show if competition is not completed
-  if (!isCompleted) {
+  // Show locked state only if editing is not allowed
+  if (!canEdit) {
     return (
       <div style={{
         background: colors.background.card,

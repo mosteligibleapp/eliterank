@@ -605,8 +605,8 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
 
     return (
       <div>
-        {/* Winners Manager - Only for completed competitions */}
-        <WinnersManager competition={competition} onUpdate={refresh} />
+        {/* Winners Manager - always accessible for superadmin */}
+        <WinnersManager competition={competition} onUpdate={refresh} allowEdit={true} />
 
         {/* Stats Row */}
         <div style={{

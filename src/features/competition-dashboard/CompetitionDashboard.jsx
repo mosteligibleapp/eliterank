@@ -6,7 +6,7 @@ import {
   Pin, MapPin, Clock, Sparkles
 } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../components/ui';
-import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal } from '../../components/modals';
+import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, AddPersonModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
 import { formatRelativeTime, formatEventDateRange } from '../../utils/formatters';
@@ -46,10 +46,13 @@ export default function CompetitionDashboard({
     error,
     refresh,
     // Nominee operations
+    addNominee,
     approveNominee,
     rejectNominee,
     archiveNominee,
     restoreNominee,
+    // Contestant operations
+    addContestant,
     // Judge operations
     addJudge,
     updateJudge,
@@ -97,6 +100,28 @@ export default function CompetitionDashboard({
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
+
+  // Add person modal state (for manual nominee/contestant entry)
+  const [addPersonModal, setAddPersonModal] = useState({ isOpen: false, type: 'nominee' });
+
+  const openAddPersonModal = (type) => {
+    setAddPersonModal({ isOpen: true, type });
+  };
+
+  const closeAddPersonModal = () => {
+    setAddPersonModal({ isOpen: false, type: 'nominee' });
+  };
+
+  const handleAddPerson = async (personData) => {
+    const { type } = addPersonModal;
+    if (type === 'contestant') {
+      const result = await addContestant(personData);
+      if (!result.success) throw new Error(result.error);
+    } else {
+      const result = await addNominee(personData);
+      if (!result.success) throw new Error(result.error);
+    }
+  };
 
   // Entity modals
   const [judgeModal, setJudgeModal] = useState({ isOpen: false, judge: null });
@@ -505,8 +530,8 @@ export default function CompetitionDashboard({
 
     return (
       <div>
-        {/* Winners Manager */}
-        <WinnersManager competition={competition} onUpdate={refresh} />
+        {/* Winners Manager - always accessible for host/superadmin */}
+        <WinnersManager competition={competition} onUpdate={refresh} allowEdit={true} />
 
         {/* Stats Row */}
         <div style={{
@@ -536,13 +561,18 @@ export default function CompetitionDashboard({
           marginBottom: spacing.lg,
           overflow: 'hidden',
         }}>
-          <SectionHeader title="Contestants" count={approvedContestants.length} icon={Crown} iconColor="#22c55e" sectionKey="contestants" badge="success" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: spacing.lg }}>
+            <SectionHeader title="Contestants" count={approvedContestants.length} icon={Crown} iconColor="#22c55e" sectionKey="contestants" badge="success" />
+            <Button size="sm" icon={Plus} onClick={() => openAddPersonModal('contestant')}>
+              Add Contestant
+            </Button>
+          </div>
           {expandedSections.contestants && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
               {approvedContestants.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
                   <Crown size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                  <p>No contestants yet. Approve nominees to add them.</p>
+                  <p>No contestants yet. Approve nominees or add manually.</p>
                 </div>
               ) : approvedContestants.map(c => <ContestantRow key={c.id} contestant={c} />)}
             </div>
@@ -557,7 +587,12 @@ export default function CompetitionDashboard({
           marginBottom: spacing.lg,
           overflow: 'hidden',
         }}>
-          <SectionHeader title="Nominees with Profile" count={nomineesWithProfile.length} icon={UserCheck} iconColor="#3b82f6" sectionKey="withProfile" badge="info" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: spacing.lg }}>
+            <SectionHeader title="Nominees with Profile" count={nomineesWithProfile.length} icon={UserCheck} iconColor="#3b82f6" sectionKey="withProfile" badge="info" />
+            <Button size="sm" variant="secondary" icon={Plus} onClick={() => openAddPersonModal('nominee')}>
+              Add Nominee
+            </Button>
+          </div>
           {expandedSections.withProfile && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
               {nomineesWithProfile.length === 0 ? (
@@ -1305,6 +1340,12 @@ export default function CompetitionDashboard({
           }
           setEventModal({ isOpen: false, event: null });
         }}
+      />
+      <AddPersonModal
+        isOpen={addPersonModal.isOpen}
+        onClose={closeAddPersonModal}
+        onAdd={handleAddPerson}
+        type={addPersonModal.type}
       />
     </>
   );
