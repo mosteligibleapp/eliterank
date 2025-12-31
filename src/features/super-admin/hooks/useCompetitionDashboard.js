@@ -493,13 +493,12 @@ export function useCompetitionDashboard(competitionId) {
           competition_id: competitionId,
           name: nomineeData.name,
           email: nomineeData.email,
-          phone: nomineeData.phone,
           instagram: nomineeData.instagram,
           age: nomineeData.age,
           city: nomineeData.city,
           bio: nomineeData.bio,
           user_id: nomineeData.userId || null,
-          nominated_by: 'admin',
+          nominated_by: 'third_party', // Admin-added nominees are treated as third-party nominations
           status: 'pending',
         });
 
@@ -528,10 +527,9 @@ export function useCompetitionDashboard(competitionId) {
           competition_id: competitionId,
           name: contestantData.name,
           email: contestantData.email,
-          phone: contestantData.phone,
           instagram: contestantData.instagram,
           age: contestantData.age,
-          city: contestantData.city,
+          bio: contestantData.bio,
           avatar_url: contestantData.avatarUrl || null,
           status: 'active',
           votes: 0,
