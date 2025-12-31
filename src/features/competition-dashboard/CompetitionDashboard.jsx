@@ -8,6 +8,7 @@ import {
 import { Button, Badge, Avatar, Panel } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, AddPersonModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
+import { useToast } from '../../contexts/ToastContext';
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
 import { formatRelativeTime, formatEventDateRange } from '../../utils/formatters';
 import WinnersManager from '../super-admin/components/WinnersManager';
@@ -34,6 +35,7 @@ export default function CompetitionDashboard({
   onViewPublicSite,
   currentUserId,
 }) {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [showHostAssignment, setShowHostAssignment] = useState(false);
   const isSuperAdmin = role === 'superadmin';
@@ -114,12 +116,25 @@ export default function CompetitionDashboard({
 
   const handleAddPerson = async (personData) => {
     const { type } = addPersonModal;
-    if (type === 'contestant') {
-      const result = await addContestant(personData);
-      if (!result.success) throw new Error(result.error);
-    } else {
-      const result = await addNominee(personData);
-      if (!result.success) throw new Error(result.error);
+    try {
+      if (type === 'contestant') {
+        const result = await addContestant(personData);
+        if (!result.success) {
+          toast.error(result.error || 'Failed to add contestant');
+          throw new Error(result.error);
+        }
+        toast.success(`${personData.name} added as contestant`);
+      } else {
+        const result = await addNominee(personData);
+        if (!result.success) {
+          toast.error(result.error || 'Failed to add nominee');
+          throw new Error(result.error);
+        }
+        toast.success(`${personData.name} added as nominee`);
+      }
+    } catch (err) {
+      console.error('Error adding person:', err);
+      throw err;
     }
   };
 
