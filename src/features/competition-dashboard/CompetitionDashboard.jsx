@@ -11,6 +11,7 @@ import { colors, gradients, spacing, borderRadius, typography, transitions } fro
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
 import { formatRelativeTime, formatEventDateRange } from '../../utils/formatters';
 import WinnersManager from '../super-admin/components/WinnersManager';
+import TimelineSettings from './components/TimelineSettings';
 
 // Reusable components from overview
 import CurrentPhaseCard from '../overview/components/CurrentPhaseCard';
@@ -819,59 +820,15 @@ export default function CompetitionDashboard({
   // ============================================================================
 
   const renderSettings = () => {
-    // Event status based on date
-    const getEventStatus = (event) => {
-      if (!event.date) return 'upcoming';
-      const eventDate = new Date(event.date);
-      const now = new Date();
-      if (event.endDate) {
-        const endDate = new Date(event.endDate);
-        if (now > endDate) return 'completed';
-        if (now >= eventDate && now <= endDate) return 'active';
-      } else {
-        if (now > eventDate) return 'completed';
-        if (now.toDateString() === eventDate.toDateString()) return 'active';
-      }
-      return 'upcoming';
-    };
-
     return (
       <div>
-        {/* Timeline Section */}
-        <Panel title="Competition Timeline" icon={Calendar}>
+        {/* Timeline & Status Settings */}
+        <Panel title="Timeline & Status" icon={Calendar}>
           <div style={{ padding: spacing.xl }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.lg }}>
-              {[
-                { label: 'Nominations Start', key: 'nominationStart', value: competition?.nominationStart },
-                { label: 'Nominations End', key: 'nominationEnd', value: competition?.nominationEnd },
-                { label: 'Voting Start', key: 'votingStart', value: competition?.votingStart },
-                { label: 'Voting End', key: 'votingEnd', value: competition?.votingEnd },
-                { label: 'Finals Date', key: 'finalsDate', value: competition?.finalsDate },
-              ].map((item) => (
-                <div key={item.key}>
-                  <label style={{ display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>
-                    {item.label}
-                  </label>
-                  <input
-                    type="datetime-local"
-                    defaultValue={item.value ? new Date(item.value).toISOString().slice(0, 16) : ''}
-                    onBlur={(e) => {
-                      const newValue = e.target.value ? new Date(e.target.value).toISOString() : null;
-                      updateTimeline({ ...competition, [item.key]: newValue });
-                    }}
-                    style={{
-                      width: '100%',
-                      background: colors.background.secondary,
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.md,
-                      padding: spacing.md,
-                      color: '#fff',
-                      fontSize: typography.fontSize.md,
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+            <TimelineSettings
+              competition={competition}
+              onSave={fetchDashboardData}
+            />
           </div>
         </Panel>
 

@@ -17,6 +17,7 @@ import TrafficCard from '../../overview/components/TrafficCard';
 import UpcomingCard from '../../overview/components/UpcomingCard';
 import Leaderboard from '../../overview/components/Leaderboard';
 import WinnersManager from './WinnersManager';
+import TimelineSettings from '../../competition-dashboard/components/TimelineSettings';
 
 // Import the real data hook
 import { useCompetitionDashboard } from '../hooks';
@@ -844,6 +845,23 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   // Settings tab
   const renderSettings = () => (
     <div>
+      {/* Timeline & Status Settings */}
+      <div style={{
+        background: colors.background.card,
+        border: `1px solid ${colors.border.light}`,
+        borderRadius: borderRadius.xl,
+        padding: spacing.xl,
+        marginBottom: spacing.xl,
+      }}>
+        <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg }}>
+          Timeline & Status
+        </h3>
+        <TimelineSettings
+          competition={competition}
+          onSave={fetchDashboardData}
+        />
+      </div>
+
       {/* Judges */}
       <div style={{
         background: colors.background.card,
