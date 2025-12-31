@@ -51,7 +51,7 @@ export default function useCompetition(competitionId = null) {
     setError(null);
 
     try {
-      // Fetch all data in parallel
+      // Fetch all data in parallel - join profiles for canonical user data
       const [
         competitionRes,
         contestantsRes,
@@ -62,9 +62,9 @@ export default function useCompetition(competitionId = null) {
         announcementsRes,
       ] = await Promise.all([
         supabase.from('competitions').select('*').eq('id', competitionId).maybeSingle(),
-        supabase.from('contestants').select('*').eq('competition_id', competitionId).order('rank'),
-        supabase.from('nominees').select('*').eq('competition_id', competitionId).order('created_at', { ascending: false }),
-        supabase.from('judges').select('*').eq('competition_id', competitionId).order('sort_order'),
+        supabase.from('contestants').select('*, profile:profiles(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests, gallery)').eq('competition_id', competitionId).order('votes', { ascending: false }),
+        supabase.from('nominees').select('*, profile:profiles(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests, gallery)').eq('competition_id', competitionId).order('created_at', { ascending: false }),
+        supabase.from('judges').select('*, profile:profiles(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests)').eq('competition_id', competitionId).order('sort_order'),
         supabase.from('sponsors').select('*').eq('competition_id', competitionId).order('sort_order'),
         supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
         supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
@@ -74,9 +74,45 @@ export default function useCompetition(competitionId = null) {
       if (!competitionRes.data) throw new Error('Competition not found');
 
       setCompetition(competitionRes.data);
-      setContestants(contestantsRes.data || []);
-      setNominees(nomineesRes.data || []);
-      setJudges(judgesRes.data || []);
+      // Transform contestants with profile data
+      setContestants((contestantsRes.data || []).map((c, idx) => ({
+        ...c,
+        name: c.name || (c.profile ? `${c.profile.first_name || ''} ${c.profile.last_name || ''}`.trim() : ''),
+        email: c.email || c.profile?.email,
+        avatarUrl: c.avatar_url || c.profile?.avatar_url,
+        avatar_url: c.avatar_url || c.profile?.avatar_url,
+        instagram: c.instagram || c.profile?.instagram,
+        bio: c.bio || c.profile?.bio,
+        city: c.profile?.city,
+        interests: c.profile?.interests || [],
+        gallery: c.profile?.gallery || [],
+        rank: idx + 1,
+      })));
+      // Transform nominees with profile data
+      setNominees((nomineesRes.data || []).map((n) => ({
+        ...n,
+        name: n.name || (n.profile ? `${n.profile.first_name || ''} ${n.profile.last_name || ''}`.trim() : ''),
+        email: n.email || n.profile?.email,
+        avatarUrl: n.profile?.avatar_url,
+        avatar_url: n.profile?.avatar_url,
+        instagram: n.instagram || n.profile?.instagram,
+        bio: n.bio || n.profile?.bio,
+        city: n.city || n.profile?.city,
+        interests: n.profile?.interests || [],
+        gallery: n.profile?.gallery || [],
+      })));
+      // Transform judges with profile data
+      setJudges((judgesRes.data || []).map((j) => ({
+        ...j,
+        name: j.name || (j.profile ? `${j.profile.first_name || ''} ${j.profile.last_name || ''}`.trim() : ''),
+        avatarUrl: j.avatar_url || j.profile?.avatar_url,
+        avatar_url: j.avatar_url || j.profile?.avatar_url,
+        instagram: j.profile?.instagram,
+        bio: j.bio || j.profile?.bio,
+        city: j.profile?.city,
+        interests: j.profile?.interests || [],
+        email: j.profile?.email,
+      })));
       setSponsors(sponsorsRes.data || []);
       setEvents(eventsRes.data || []);
       setAnnouncements(announcementsRes.data || []);
@@ -162,21 +198,20 @@ export default function useCompetition(competitionId = null) {
     // Update nominee status
     await updateNominee(nomineeId, { status: 'approved' });
 
-    // Add as contestant
+    // Add as contestant - use available fields only
     const contestantData = {
       name: nominee.name,
       email: nominee.email,
       age: nominee.age,
-      occupation: nominee.occupation,
       bio: nominee.bio,
       instagram: nominee.instagram,
-      interests: nominee.interests,
+      avatar_url: nominee.avatarUrl || nominee.avatar_url,
+      user_id: nominee.user_id,
       votes: 0,
-      rank: contestants.length + 1,
     };
 
     return addContestant(contestantData);
-  }, [nominees, contestants, updateNominee, addContestant]);
+  }, [nominees, updateNominee, addContestant]);
 
   // CRUD operations for judges
   const addJudge = useCallback(async (data) => {

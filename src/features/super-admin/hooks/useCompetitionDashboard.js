@@ -41,26 +41,25 @@ export function useCompetitionDashboard(competitionId) {
         announcementsResult,
         rulesResult,
         competitionResult,
-        profilesResult,
       ] = await Promise.all([
-        // Contestants ordered by votes (for leaderboard)
+        // Contestants ordered by votes (for leaderboard) - join to profiles for canonical data
         supabase
           .from('contestants')
-          .select('*')
+          .select('*, profile:profiles(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests, gallery)')
           .eq('competition_id', competitionId)
           .order('votes', { ascending: false }),
 
-        // Nominees ordered by creation date
+        // Nominees ordered by creation date - join to profiles for canonical data
         supabase
           .from('nominees')
-          .select('*')
+          .select('*, profile:profiles(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests, gallery)')
           .eq('competition_id', competitionId)
           .order('created_at', { ascending: false }),
 
-        // Judges ordered by sort_order
+        // Judges ordered by sort_order - join to profiles
         supabase
           .from('judges')
-          .select('*')
+          .select('*, profile:profiles(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests)')
           .eq('competition_id', competitionId)
           .order('sort_order'),
 
@@ -99,11 +98,6 @@ export function useCompetitionDashboard(competitionId) {
           .select('*')
           .eq('id', competitionId)
           .single(),
-
-        // Fetch all profiles to match by email for third-party nominations
-        supabase
-          .from('profiles')
-          .select('id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery'),
       ]);
 
       // Check for errors
@@ -116,7 +110,6 @@ export function useCompetitionDashboard(competitionId) {
         announcementsResult.error,
         rulesResult.error,
         competitionResult.error,
-        profilesResult?.error,
       ].filter(Boolean);
 
       if (errors.length > 0) {
@@ -124,103 +117,103 @@ export function useCompetitionDashboard(competitionId) {
         setError(errors[0]?.message || 'Error fetching data');
       }
 
-      // Create a map of emails to profile IDs for quick lookup
-      const emailToProfileMap = new Map();
-      const profilesById = new Map();
-      (profilesResult?.data || []).forEach((profile) => {
-        profilesById.set(profile.id, profile);
-        if (profile.email) {
-          emailToProfileMap.set(profile.email.toLowerCase(), profile.id);
-        }
-      });
-
-      // Get host profile if exists
       const competition = competitionResult.data;
+
+      // Fetch host profile separately if needed
       let host = null;
-      if (competition?.host_id && profilesById.has(competition.host_id)) {
-        const hostProfile = profilesById.get(competition.host_id);
-        host = {
-          id: hostProfile.id,
-          name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || hostProfile.email,
-          firstName: hostProfile.first_name,
-          lastName: hostProfile.last_name,
-          email: hostProfile.email,
-          bio: hostProfile.bio,
-          avatar: hostProfile.avatar_url,
-          instagram: hostProfile.instagram,
-          city: hostProfile.city,
-          gallery: hostProfile.gallery || [],
-        };
+      if (competition?.host_id) {
+        const { data: hostProfile } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email, bio, avatar_url, instagram, city, gallery')
+          .eq('id', competition.host_id)
+          .maybeSingle();
+
+        if (hostProfile) {
+          host = {
+            id: hostProfile.id,
+            name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || hostProfile.email,
+            firstName: hostProfile.first_name,
+            lastName: hostProfile.last_name,
+            email: hostProfile.email,
+            bio: hostProfile.bio,
+            avatar: hostProfile.avatar_url,
+            instagram: hostProfile.instagram,
+            city: hostProfile.city,
+            gallery: hostProfile.gallery || [],
+          };
+        }
       }
 
-      // Transform contestants for leaderboard
-      const contestants = (contestantsResult.data || []).map((c, index) => ({
-        id: c.id,
-        name: c.name,
-        age: c.age,
-        votes: c.votes || 0,
-        status: c.status,
-        trend: c.trend || 'same',
-        rank: index + 1,
-        avatarUrl: c.avatar_url,
-        instagram: c.instagram,
-        userId: c.user_id,
-      }));
+      // Transform contestants for leaderboard - use profile data when available
+      const contestants = (contestantsResult.data || []).map((c, index) => {
+        const profile = c.profile;
+        return {
+          id: c.id,
+          name: c.name || (profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''),
+          age: c.age,
+          votes: c.votes || 0,
+          status: c.status,
+          trend: c.trend || 'same',
+          rank: index + 1,
+          avatarUrl: c.avatar_url || profile?.avatar_url,
+          instagram: c.instagram || profile?.instagram,
+          bio: c.bio || profile?.bio,
+          city: profile?.city,
+          interests: profile?.interests || [],
+          gallery: profile?.gallery || [],
+          userId: c.user_id,
+          email: c.email || profile?.email,
+        };
+      });
 
-      // Transform nominees - include all fields for categorization
+      // Transform nominees - use profile data when available
       const nominees = (nomineesResult.data || []).map((n) => {
-        let hasProfile = !!n.user_id;
-        let matchedProfileId = n.user_id;
-
-        if (!hasProfile && n.email) {
-          const emailLower = n.email.toLowerCase();
-          if (emailToProfileMap.has(emailLower)) {
-            hasProfile = true;
-            matchedProfileId = emailToProfileMap.get(emailLower);
-          }
-        }
-
-        if (n.nominated_by === 'self' && !hasProfile) {
-          hasProfile = true;
-        }
+        const profile = n.profile;
+        const hasProfile = !!n.user_id || !!profile;
 
         return {
           id: n.id,
-          name: n.name,
-          email: n.email,
-          phone: n.phone,
-          instagram: n.instagram,
-          bio: n.bio,
+          name: n.name || (profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''),
+          email: n.email || profile?.email,
+          instagram: n.instagram || profile?.instagram,
+          bio: n.bio || profile?.bio,
+          avatarUrl: profile?.avatar_url,
+          city: n.city || profile?.city,
+          interests: profile?.interests || [],
+          gallery: profile?.gallery || [],
           nominatedBy: n.nominated_by,
           nominatorId: n.nominator_id,
           nominatorName: n.nominator_name,
           nominatorEmail: n.nominator_email,
-          userId: matchedProfileId,
+          userId: n.user_id,
           hasProfile,
           status: n.status,
           age: n.age,
-          city: n.city,
           livesNearCity: n.lives_near_city,
           isSingle: n.is_single,
-          profileComplete: n.profile_complete,
-          inviteToken: n.invite_token,
-          inviteSentAt: n.invite_sent_at,
           convertedToContestantId: n.converted_to_contestant_id,
           createdAt: n.created_at,
           updatedAt: n.updated_at,
         };
       });
 
-      // Transform judges
-      const judges = (judgesResult.data || []).map((j) => ({
-        id: j.id,
-        userId: j.user_id,
-        name: j.name,
-        title: j.title || 'Judge',
-        bio: j.bio,
-        avatarUrl: j.avatar_url,
-        sortOrder: j.sort_order,
-      }));
+      // Transform judges - use profile data when available
+      const judges = (judgesResult.data || []).map((j) => {
+        const profile = j.profile;
+        return {
+          id: j.id,
+          userId: j.user_id,
+          name: j.name || (profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''),
+          title: j.title || 'Judge',
+          bio: j.bio || profile?.bio,
+          avatarUrl: j.avatar_url || profile?.avatar_url,
+          instagram: profile?.instagram,
+          city: profile?.city,
+          interests: profile?.interests || [],
+          email: profile?.email,
+          sortOrder: j.sort_order,
+        };
+      });
 
       // Transform sponsors
       const sponsors = (sponsorsResult.data || []).map((s) => ({
@@ -372,10 +365,10 @@ export function useCompetitionDashboard(competitionId) {
         competition_id: competitionId,
         name: nominee.name,
         email: nominee.email,
-        phone: nominee.phone,
         instagram: nominee.instagram,
         age: nominee.age,
-        city: nominee.city,
+        bio: nominee.bio,
+        avatar_url: nominee.avatarUrl,
         status: 'active',
         votes: 0,
         user_id: linkedUserId,
