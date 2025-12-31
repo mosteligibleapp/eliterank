@@ -1,18 +1,21 @@
 import React from 'react';
-import { ArrowLeft, MapPin, FileText, Heart, Camera, Globe, Trophy, Crown, Award, Star, Instagram, Twitter, Linkedin } from 'lucide-react';
+import { ArrowLeft, MapPin, FileText, Heart, Camera, Globe, Trophy, Crown, Award, Star, Instagram, Twitter, Linkedin, ChevronLeft } from 'lucide-react';
 import { Panel, Button, Badge, InterestTag } from '../../../components/ui';
-import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
+import { colors, spacing, borderRadius, typography, transitions, gradients, components, styleHelpers } from '../../../styles/theme';
+import { useResponsive } from '../../../hooks/useResponsive';
 
 // Role display configuration
 const ROLE_CONFIG = {
-  winner: { label: 'Winner', icon: Trophy, variant: 'gold', color: '#d4af37' },
-  contestant: { label: 'Contestant', icon: Star, variant: 'success', color: '#22c55e' },
-  judge: { label: 'Judge', icon: Award, variant: 'gold', color: '#d4af37' },
-  host: { label: 'Host', icon: Crown, variant: 'warning', color: '#8b5cf6' },
-  fan: { label: 'Member', icon: Star, variant: 'default', color: '#9ca3af' },
+  winner: { label: 'Winner', icon: Trophy, variant: 'gold', color: colors.gold.primary },
+  contestant: { label: 'Contestant', icon: Star, variant: 'success', color: colors.status.success },
+  judge: { label: 'Judge', icon: Award, variant: 'gold', color: colors.gold.primary },
+  host: { label: 'Host', icon: Crown, variant: 'purple', color: colors.accent.purple },
+  fan: { label: 'Member', icon: Star, variant: 'default', color: colors.text.tertiary },
 };
 
 export default function PublicProfileView({ profile, role = 'fan', onBack }) {
+  const { isMobile, isTablet } = useResponsive();
+
   if (!profile) return null;
 
   // Get profile data with fallbacks
@@ -54,7 +57,7 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
       handle: profile.twitter.startsWith('@') ? profile.twitter : `@${profile.twitter}`,
       icon: Twitter,
       url: `https://twitter.com/${profile.twitter.replace('@', '')}`,
-      background: '#000',
+      background: colors.background.elevated,
     });
   }
   if (profile.linkedin) {
@@ -68,239 +71,331 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: '#0a0a0f',
-        zIndex: 1000,
-        overflow: 'auto',
-      }}
-    >
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: spacing.xxl }}>
-        {/* Back Button */}
-        <div style={{ marginBottom: spacing.xl }}>
-          <Button
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: colors.background.primary,
+      zIndex: 1000,
+      overflow: 'auto',
+      fontFamily: typography.fontFamily.sans,
+    }}>
+      {/* Sticky Header */}
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        background: 'rgba(10, 10, 12, 0.95)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: `1px solid ${colors.border.secondary}`,
+      }}>
+        <div style={{
+          maxWidth: '800px',
+          margin: '0 auto',
+          padding: isMobile ? `${spacing.md} ${spacing.lg}` : `${spacing.lg} ${spacing.xxl}`,
+          ...styleHelpers.flexBetween,
+        }}>
+          <button
             onClick={onBack}
-            variant="secondary"
-            icon={ArrowLeft}
             style={{
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.2)',
+              ...styleHelpers.flexCenter,
+              gap: spacing.sm,
+              background: 'none',
+              border: 'none',
+              color: colors.text.primary,
+              cursor: 'pointer',
+              padding: spacing.sm,
+              marginLeft: `-${spacing.sm}`,
             }}
           >
-            Back to Competition
-          </Button>
-        </div>
+            <ChevronLeft size={24} />
+            {!isMobile && <span style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium }}>Back</span>}
+          </button>
 
+          <Badge variant={roleConfig.variant} size="sm" pill>
+            <RoleIcon size={12} />
+            {roleConfig.label}
+          </Badge>
+        </div>
+      </header>
+
+      <div style={{
+        maxWidth: '800px',
+        margin: '0 auto',
+        padding: isMobile ? spacing.lg : spacing.xxl,
+        paddingBottom: isMobile ? '100px' : spacing.xxxl,
+      }}>
         {/* Hero Section */}
-        <Panel style={{ marginBottom: spacing.xxl }}>
-          <div
-            style={{
-              height: '200px',
-              background: coverImage
-                ? `url(${coverImage}) center/cover`
-                : gradients.cover,
-              position: 'relative',
-              borderRadius: `${borderRadius.xxl} ${borderRadius.xxl} 0 0`,
-            }}
-          />
-          <div style={{ padding: `0 ${spacing.xxxl} ${spacing.xxxl}`, marginTop: '-60px' }}>
-            <div style={{ display: 'flex', gap: spacing.xxl, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{
+          background: colors.background.card,
+          borderRadius: borderRadius.xl,
+          overflow: 'hidden',
+          marginBottom: spacing.xl,
+          border: `1px solid ${colors.border.primary}`,
+        }}>
+          {/* Cover */}
+          <div style={{
+            height: isMobile ? '120px' : '180px',
+            background: coverImage
+              ? `url(${coverImage}) center/cover`
+              : `linear-gradient(135deg, ${roleConfig.color}40, ${roleConfig.color}10)`,
+          }} />
+
+          {/* Profile Info */}
+          <div style={{
+            padding: isMobile ? spacing.lg : spacing.xl,
+            paddingTop: 0,
+            marginTop: isMobile ? '-40px' : '-50px',
+          }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: isMobile ? spacing.md : spacing.xl,
+              alignItems: isMobile ? 'center' : 'flex-end',
+            }}>
               {/* Avatar */}
-              <div
-                style={{
-                  width: '140px',
-                  height: '140px',
-                  borderRadius: borderRadius.xxl,
-                  background: avatarUrl
-                    ? `url(${avatarUrl}) center/cover`
-                    : `linear-gradient(135deg, ${roleConfig.color}66, ${roleConfig.color}33)`,
-                  border: '4px solid #1a1a24',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '42px',
-                  fontWeight: typography.fontWeight.semibold,
-                  color: roleConfig.color,
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                }}
-              >
+              <div style={{
+                width: isMobile ? '80px' : '100px',
+                height: isMobile ? '80px' : '100px',
+                borderRadius: borderRadius.xl,
+                background: avatarUrl
+                  ? `url(${avatarUrl}) center/cover`
+                  : `linear-gradient(135deg, ${roleConfig.color}60, ${roleConfig.color}30)`,
+                border: `4px solid ${colors.background.card}`,
+                ...styleHelpers.flexCenter,
+                fontSize: isMobile ? typography.fontSize['2xl'] : typography.fontSize['3xl'],
+                fontWeight: typography.fontWeight.bold,
+                color: roleConfig.color,
+                flexShrink: 0,
+              }}>
                 {!avatarUrl && initials}
               </div>
 
-              {/* Name and Info */}
-              <div style={{ flex: 1, paddingBottom: spacing.sm }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
-                  <h1 style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: '#fff' }}>
-                    {fullName}
-                  </h1>
-                  <Badge
-                    variant={roleConfig.variant}
-                    size="lg"
-                    icon={RoleIcon}
-                    style={{
-                      background: 'transparent',
-                      border: `1px solid ${roleConfig.color}80`,
-                    }}
-                  >
-                    {roleConfig.label}
-                  </Badge>
-                </div>
-                {city && (
-                  <p style={{ color: colors.text.secondary, display: 'flex', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm, fontSize: typography.fontSize.lg }}>
-                    <MapPin size={18} /> {city}
-                  </p>
-                )}
-                {profile.occupation && (
-                  <p style={{ color: colors.text.muted, marginTop: spacing.xs, fontSize: typography.fontSize.md }}>
-                    {profile.occupation}
-                  </p>
-                )}
-                {profile.age && (
-                  <p style={{ color: colors.text.muted, marginTop: spacing.xs, fontSize: typography.fontSize.md }}>
-                    {profile.age} years old
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </Panel>
+              {/* Name and Details */}
+              <div style={{
+                flex: 1,
+                textAlign: isMobile ? 'center' : 'left',
+                paddingBottom: spacing.sm,
+              }}>
+                <h1 style={{
+                  fontSize: isMobile ? typography.fontSize['2xl'] : typography.fontSize['3xl'],
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.text.primary,
+                  marginBottom: spacing.xs,
+                }}>
+                  {fullName}
+                </h1>
 
-        <div style={{ display: 'grid', gridTemplateColumns: socialLinks.length > 0 ? '2fr 1fr' : '1fr', gap: spacing.xxl }}>
-          {/* Left Column */}
-          <div>
-            {/* Bio Section */}
-            <Panel style={{ marginBottom: spacing.xl }}>
-              <div style={{ padding: spacing.xxl }}>
-                <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                  <FileText size={20} style={{ color: roleConfig.color }} /> About
-                </h3>
-                <p style={{ color: colors.text.light, fontSize: typography.fontSize.lg, lineHeight: '1.7' }}>
-                  {bio || 'No bio added yet.'}
-                </p>
-              </div>
-            </Panel>
-
-            {/* Interests Section */}
-            {hobbies && hobbies.length > 0 && (
-              <Panel style={{ marginBottom: spacing.xl }}>
-                <div style={{ padding: spacing.xxl }}>
-                  <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                    <Heart size={20} style={{ color: roleConfig.color }} /> Interests
-                  </h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.md }}>
-                    {hobbies.map((hobby) => (
-                      <InterestTag key={hobby} size="lg">
-                        {hobby}
-                      </InterestTag>
-                    ))}
-                  </div>
-                </div>
-              </Panel>
-            )}
-
-            {/* Photo Gallery */}
-            <Panel>
-              <div style={{ padding: spacing.xxl }}>
-                <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                  <Camera size={20} style={{ color: roleConfig.color }} /> Gallery
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
-                  {gallery.length > 0 ? (
-                    gallery.map((imageUrl, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          aspectRatio: '1',
-                          background: `url(${imageUrl}) center/cover`,
-                          borderRadius: borderRadius.lg,
-                        }}
-                      />
-                    ))
-                  ) : (
-                    // Show placeholders if no gallery images
-                    [1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        style={{
-                          aspectRatio: '1',
-                          background: `linear-gradient(135deg, ${roleConfig.color}22, ${roleConfig.color}11)`,
-                          borderRadius: borderRadius.lg,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Camera size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                      </div>
-                    ))
+                <div style={{
+                  ...styleHelpers.flexStart,
+                  gap: spacing.md,
+                  justifyContent: isMobile ? 'center' : 'flex-start',
+                  flexWrap: 'wrap',
+                  color: colors.text.secondary,
+                  fontSize: typography.fontSize.sm,
+                }}>
+                  {city && (
+                    <span style={{ ...styleHelpers.flexStart, gap: spacing.xs }}>
+                      <MapPin size={14} /> {city}
+                    </span>
+                  )}
+                  {profile.occupation && (
+                    <span>{profile.occupation}</span>
+                  )}
+                  {profile.age && (
+                    <span>{profile.age} years old</span>
                   )}
                 </div>
               </div>
-            </Panel>
-          </div>
-
-          {/* Right Column - Social Links */}
-          {socialLinks.length > 0 && (
-            <div>
-              <Panel>
-                <div style={{ padding: spacing.xxl }}>
-                  <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                    <Globe size={20} style={{ color: roleConfig.color }} /> Connect
-                  </h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-                    {socialLinks.map((link) => {
-                      const IconComponent = link.icon;
-                      return (
-                        <a
-                          key={link.platform}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: spacing.md,
-                            padding: spacing.md,
-                            background: 'rgba(255,255,255,0.03)',
-                            borderRadius: borderRadius.lg,
-                            textDecoration: 'none',
-                            color: colors.text.primary,
-                            transition: 'all 0.2s',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '40px',
-                              height: '40px',
-                              background: link.gradient || link.background,
-                              borderRadius: borderRadius.md,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#fff',
-                            }}
-                          >
-                            <IconComponent size={18} />
-                          </div>
-                          <div>
-                            <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.md }}>
-                              {link.platform}
-                            </p>
-                            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.base }}>
-                              {link.handle}
-                            </p>
-                          </div>
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Panel>
             </div>
-          )}
+          </div>
+        </div>
+
+        {/* Bio */}
+        {bio && (
+          <div style={{
+            background: colors.background.card,
+            borderRadius: borderRadius.xl,
+            padding: isMobile ? spacing.lg : spacing.xl,
+            marginBottom: spacing.lg,
+            border: `1px solid ${colors.border.primary}`,
+          }}>
+            <h3 style={{
+              ...styleHelpers.flexStart,
+              gap: spacing.sm,
+              fontSize: typography.fontSize.md,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.primary,
+              marginBottom: spacing.md,
+            }}>
+              <FileText size={18} style={{ color: roleConfig.color }} />
+              About
+            </h3>
+            <p style={{
+              color: colors.text.secondary,
+              fontSize: typography.fontSize.md,
+              lineHeight: typography.lineHeight.relaxed,
+            }}>
+              {bio}
+            </p>
+          </div>
+        )}
+
+        {/* Interests */}
+        {hobbies && hobbies.length > 0 && (
+          <div style={{
+            background: colors.background.card,
+            borderRadius: borderRadius.xl,
+            padding: isMobile ? spacing.lg : spacing.xl,
+            marginBottom: spacing.lg,
+            border: `1px solid ${colors.border.primary}`,
+          }}>
+            <h3 style={{
+              ...styleHelpers.flexStart,
+              gap: spacing.sm,
+              fontSize: typography.fontSize.md,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.primary,
+              marginBottom: spacing.md,
+            }}>
+              <Heart size={18} style={{ color: roleConfig.color }} />
+              Interests
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
+              {hobbies.map((hobby) => (
+                <span
+                  key={hobby}
+                  style={{
+                    padding: `${spacing.xs} ${spacing.md}`,
+                    background: `${roleConfig.color}15`,
+                    border: `1px solid ${roleConfig.color}30`,
+                    borderRadius: borderRadius.pill,
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                  }}
+                >
+                  {hobby}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Social Links */}
+        {socialLinks.length > 0 && (
+          <div style={{
+            background: colors.background.card,
+            borderRadius: borderRadius.xl,
+            padding: isMobile ? spacing.lg : spacing.xl,
+            marginBottom: spacing.lg,
+            border: `1px solid ${colors.border.primary}`,
+          }}>
+            <h3 style={{
+              ...styleHelpers.flexStart,
+              gap: spacing.sm,
+              fontSize: typography.fontSize.md,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.primary,
+              marginBottom: spacing.md,
+            }}>
+              <Globe size={18} style={{ color: roleConfig.color }} />
+              Connect
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {socialLinks.map((link) => {
+                const IconComponent = link.icon;
+                return (
+                  <a
+                    key={link.platform}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      ...styleHelpers.flexStart,
+                      gap: spacing.md,
+                      padding: spacing.md,
+                      background: colors.background.tertiary,
+                      borderRadius: borderRadius.lg,
+                      textDecoration: 'none',
+                      color: colors.text.primary,
+                      transition: `all ${transitions.fast}`,
+                    }}
+                  >
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      background: link.gradient || link.background,
+                      borderRadius: borderRadius.md,
+                      ...styleHelpers.flexCenter,
+                      color: '#fff',
+                    }}>
+                      <IconComponent size={18} />
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.sm }}>
+                        {link.platform}
+                      </p>
+                      <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs }}>
+                        {link.handle}
+                      </p>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Gallery */}
+        <div style={{
+          background: colors.background.card,
+          borderRadius: borderRadius.xl,
+          padding: isMobile ? spacing.lg : spacing.xl,
+          border: `1px solid ${colors.border.primary}`,
+        }}>
+          <h3 style={{
+            ...styleHelpers.flexStart,
+            gap: spacing.sm,
+            fontSize: typography.fontSize.md,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            marginBottom: spacing.md,
+          }}>
+            <Camera size={18} style={{ color: roleConfig.color }} />
+            Photos
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+            gap: spacing.sm,
+          }}>
+            {gallery.length > 0 ? (
+              gallery.map((imageUrl, index) => (
+                <div
+                  key={index}
+                  style={{
+                    aspectRatio: '1',
+                    background: `url(${imageUrl}) center/cover`,
+                    borderRadius: borderRadius.lg,
+                  }}
+                />
+              ))
+            ) : (
+              [1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    aspectRatio: '1',
+                    background: colors.background.tertiary,
+                    borderRadius: borderRadius.lg,
+                    ...styleHelpers.flexCenter,
+                  }}
+                >
+                  <Camera size={24} style={{ color: colors.text.muted }} />
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
