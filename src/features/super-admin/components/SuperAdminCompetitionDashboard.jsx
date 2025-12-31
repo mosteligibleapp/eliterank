@@ -4,7 +4,7 @@ import {
   User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, Plus
 } from 'lucide-react';
 import { Button, Badge, Avatar, StatCard } from '../../../components/ui';
-import { EventModal } from '../../../components/modals';
+import { EventModal, ContestantModal } from '../../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
 
 // Import host dashboard components for reuse
@@ -30,9 +30,10 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
+  const [contestantModal, setContestantModal] = useState({ isOpen: false, contestant: null });
 
   // Fetch real data from Supabase
-  const { data, loading, error, refresh, approveNominee, rejectNominee, addEvent, updateEvent, deleteEvent } = useCompetitionDashboard(competition?.id);
+  const { data, loading, error, refresh, addContestant, approveNominee, rejectNominee, addEvent, updateEvent, deleteEvent } = useCompetitionDashboard(competition?.id);
 
   // Event modal handlers
   const openEventModal = useCallback((event = null) => {
@@ -45,14 +46,26 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
 
   const handleSaveEvent = useCallback(async (eventData) => {
     if (eventModal.event) {
-      // Editing existing event
       await updateEvent(eventModal.event.id, eventData);
     } else {
-      // Adding new event
       await addEvent(eventData);
     }
     closeEventModal();
   }, [eventModal.event, addEvent, updateEvent, closeEventModal]);
+
+  // Contestant modal handlers
+  const openContestantModal = useCallback(() => {
+    setContestantModal({ isOpen: true, contestant: null });
+  }, []);
+
+  const closeContestantModal = useCallback(() => {
+    setContestantModal({ isOpen: false, contestant: null });
+  }, []);
+
+  const handleSaveContestant = useCallback(async (contestantData) => {
+    await addContestant(contestantData);
+    closeContestantModal();
+  }, [addContestant, closeContestantModal]);
 
   // Header component matching host dashboard style but with purple admin theme
   const renderHeader = () => (
@@ -366,8 +379,13 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         </div>
       </div>
 
-      {/* Leaderboard */}
-      <Leaderboard contestants={data.contestants} title={`${competition.city} Top Contestants`} />
+      {/* Leaderboard with Add Contestant button */}
+      <div style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', right: spacing.xl, top: spacing.lg, zIndex: 1 }}>
+          <Button size="sm" icon={Plus} onClick={openContestantModal}>Add Contestant</Button>
+        </div>
+        <Leaderboard contestants={data.contestants} title={`${competition.city} Top Contestants`} />
+      </div>
     </div>
   );
 
@@ -819,6 +837,14 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         onClose={closeEventModal}
         event={eventModal.event}
         onSave={handleSaveEvent}
+      />
+
+      {/* Contestant Modal */}
+      <ContestantModal
+        isOpen={contestantModal.isOpen}
+        onClose={closeContestantModal}
+        contestant={contestantModal.contestant}
+        onSave={handleSaveContestant}
       />
     </div>
   );

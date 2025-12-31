@@ -233,6 +233,34 @@ export function useCompetitionDashboard(competitionId) {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Add a contestant manually
+  const addContestant = useCallback(async (contestantData) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error: insertError } = await supabase
+        .from('contestants')
+        .insert({
+          competition_id: competitionId,
+          name: contestantData.name,
+          age: contestantData.age ? parseInt(contestantData.age) : null,
+          occupation: contestantData.occupation || null,
+          bio: contestantData.bio || null,
+          instagram: contestantData.instagram || null,
+          status: 'active',
+          votes: 0,
+        });
+
+      if (insertError) throw insertError;
+
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding contestant:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   // Approve a nominee - updates status and creates a contestant record
   const approveNominee = useCallback(async (nominee) => {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
@@ -377,6 +405,7 @@ export function useCompetitionDashboard(competitionId) {
     loading,
     error,
     refresh,
+    addContestant,
     approveNominee,
     rejectNominee,
     addEvent,

@@ -1,4 +1,5 @@
 // Modals barrel export
+export { default as ContestantModal } from './ContestantModal';
 export { default as JudgeModal } from './JudgeModal';
 export { default as SponsorModal } from './SponsorModal';
 export { default as EventModal } from './EventModal';
