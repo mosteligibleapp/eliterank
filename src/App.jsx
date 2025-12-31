@@ -764,6 +764,7 @@ export default function App() {
               onLogin={handleShowLogin}
               userEmail={user?.email}
               userInstagram={profile?.instagram}
+              user={user}
             />
           </Suspense>
         )}
