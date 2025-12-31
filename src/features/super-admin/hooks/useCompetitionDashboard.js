@@ -341,7 +341,7 @@ export function useCompetitionDashboard(competitionId) {
             .select('id')
             .ilike('email', nominee.email)
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (profileByEmail?.id) {
             linkedUserId = profileByEmail.id;
@@ -400,7 +400,7 @@ export function useCompetitionDashboard(competitionId) {
               .from('profiles')
               .select('total_competitions')
               .eq('id', linkedUserId)
-              .single();
+              .maybeSingle();
 
             if (profile) {
               await supabase
