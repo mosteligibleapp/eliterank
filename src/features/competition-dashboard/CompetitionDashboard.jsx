@@ -5,7 +5,7 @@ import {
   UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Edit, Trash2,
   Pin, MapPin, Clock, Sparkles
 } from 'lucide-react';
-import { Button, Badge, Avatar, Panel } from '../../components/ui';
+import { Button, Badge, Avatar, Panel, Modal, Input, Textarea } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, AddPersonModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useToast } from '../../contexts/ToastContext';
@@ -18,6 +18,18 @@ import TimelineSettings from './components/TimelineSettings';
 import CurrentPhaseCard from '../overview/components/CurrentPhaseCard';
 import UpcomingCard from '../overview/components/UpcomingCard';
 import Leaderboard from '../overview/components/Leaderboard';
+
+// Helper function to determine event status based on dates
+const getEventStatus = (event) => {
+  if (!event.date) return 'upcoming';
+  const now = new Date();
+  const eventDate = new Date(event.date);
+  const endDate = event.endDate ? new Date(event.endDate) : eventDate;
+
+  if (now > endDate) return 'completed';
+  if (now >= eventDate && now <= endDate) return 'active';
+  return 'upcoming';
+};
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -142,6 +154,8 @@ export default function CompetitionDashboard({
   const [judgeModal, setJudgeModal] = useState({ isOpen: false, judge: null });
   const [sponsorModal, setSponsorModal] = useState({ isOpen: false, sponsor: null });
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
+  const [ruleModal, setRuleModal] = useState({ isOpen: false, rule: null });
+  const [ruleForm, setRuleForm] = useState({ sectionTitle: '', sectionContent: '' });
 
   // Processing states
   const [processingId, setProcessingId] = useState(null);
@@ -943,44 +957,131 @@ export default function CompetitionDashboard({
                 <p>No sponsors yet</p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gap: spacing.md }}>
-                {data.sponsors.map((sponsor) => (
-                  <div key={sponsor.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.lg,
-                    padding: spacing.lg,
-                    background: colors.background.secondary,
-                    borderRadius: borderRadius.lg,
-                  }}>
-                    {sponsor.logoUrl ? (
-                      <img src={sponsor.logoUrl} alt={sponsor.name} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain' }} />
-                    ) : (
-                      <div style={{ width: 48, height: 48, background: 'rgba(212,175,55,0.2)', borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Star size={24} style={{ color: colors.gold.primary }} />
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: spacing.lg,
+              }}>
+                {data.sponsors.map((sponsor) => {
+                  const tierColors = {
+                    platinum: { bg: 'rgba(200,200,200,0.1)', border: 'rgba(200,200,200,0.3)', text: '#c0c0c0' },
+                    gold: { bg: 'rgba(212,175,55,0.1)', border: 'rgba(212,175,55,0.3)', text: colors.gold.primary },
+                    silver: { bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.3)', text: '#8b5cf6' },
+                  };
+                  const tierStyle = tierColors[sponsor.tier?.toLowerCase()] || tierColors.gold;
+
+                  return (
+                    <div key={sponsor.id} style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      background: colors.background.secondary,
+                      border: `1px solid ${tierStyle.border}`,
+                      borderRadius: borderRadius.xl,
+                      overflow: 'hidden',
+                    }}>
+                      {/* Logo Area */}
+                      <div style={{
+                        height: '100px',
+                        background: sponsor.logoUrl ? '#fff' : tierStyle.bg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: spacing.md,
+                      }}>
+                        {sponsor.logoUrl ? (
+                          <img
+                            src={sponsor.logoUrl}
+                            alt={sponsor.name}
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '80px',
+                              objectFit: 'contain',
+                            }}
+                          />
+                        ) : (
+                          <Star size={40} style={{ color: tierStyle.text, opacity: 0.5 }} />
+                        )}
                       </div>
-                    )}
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontWeight: typography.fontWeight.medium }}>{sponsor.name}</p>
-                      <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                        {sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)} Tier • ${sponsor.amount.toLocaleString()}
-                      </p>
+
+                      {/* Info Area */}
+                      <div style={{ padding: spacing.lg }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{
+                              fontWeight: typography.fontWeight.semibold,
+                              fontSize: typography.fontSize.lg,
+                              marginBottom: spacing.xs,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}>
+                              {sponsor.name}
+                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+                              <Badge
+                                variant={sponsor.tier?.toLowerCase() === 'platinum' ? 'secondary' : sponsor.tier?.toLowerCase() === 'gold' ? 'gold' : 'info'}
+                                size="sm"
+                              >
+                                {sponsor.tier}
+                              </Badge>
+                              <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                                ${sponsor.amount?.toLocaleString() || 0}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: spacing.xs }}>
+                            <button
+                              onClick={() => setSponsorModal({ isOpen: true, sponsor })}
+                              style={{
+                                padding: spacing.sm,
+                                background: 'transparent',
+                                border: `1px solid ${colors.border.light}`,
+                                borderRadius: borderRadius.md,
+                                color: colors.text.secondary,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button
+                              onClick={() => deleteSponsor(sponsor.id)}
+                              style={{
+                                padding: spacing.sm,
+                                background: 'transparent',
+                                border: `1px solid rgba(239,68,68,0.3)`,
+                                borderRadius: borderRadius.md,
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {sponsor.websiteUrl && (
+                          <a
+                            href={sponsor.websiteUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: spacing.xs,
+                              color: colors.text.muted,
+                              fontSize: typography.fontSize.sm,
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <ExternalLink size={12} />
+                            Website
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <button
-                      onClick={() => deleteSponsor(sponsor.id)}
-                      style={{
-                        padding: spacing.sm,
-                        background: 'transparent',
-                        border: `1px solid rgba(239,68,68,0.3)`,
-                        borderRadius: borderRadius.md,
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1057,7 +1158,10 @@ export default function CompetitionDashboard({
         <Panel
           title={`Rules (${data.rules.length})`}
           icon={FileText}
-          action={<Button size="sm" icon={Plus} onClick={() => addRule({ sectionTitle: 'New Rule Section', sectionContent: '' })}>Add Rule</Button>}
+          action={<Button size="sm" icon={Plus} onClick={() => {
+            setRuleForm({ sectionTitle: '', sectionContent: '' });
+            setRuleModal({ isOpen: true, rule: null });
+          }}>Add Rule</Button>}
         >
           <div style={{ padding: spacing.xl }}>
             {data.rules.length === 0 ? (
@@ -1075,21 +1179,39 @@ export default function CompetitionDashboard({
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm }}>
                       <h4 style={{ fontWeight: typography.fontWeight.semibold }}>{rule.sectionTitle}</h4>
-                      <button
-                        onClick={() => deleteRule(rule.id)}
-                        style={{
-                          padding: spacing.sm,
-                          background: 'transparent',
-                          border: `1px solid rgba(239,68,68,0.3)`,
-                          borderRadius: borderRadius.md,
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div style={{ display: 'flex', gap: spacing.sm }}>
+                        <button
+                          onClick={() => {
+                            setRuleForm({ sectionTitle: rule.sectionTitle, sectionContent: rule.sectionContent });
+                            setRuleModal({ isOpen: true, rule });
+                          }}
+                          style={{
+                            padding: spacing.sm,
+                            background: 'transparent',
+                            border: `1px solid ${colors.border.light}`,
+                            borderRadius: borderRadius.md,
+                            color: colors.text.secondary,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => deleteRule(rule.id)}
+                          style={{
+                            padding: spacing.sm,
+                            background: 'transparent',
+                            border: `1px solid rgba(239,68,68,0.3)`,
+                            borderRadius: borderRadius.md,
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>{rule.sectionContent || 'No content'}</p>
+                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, whiteSpace: 'pre-wrap' }}>{rule.sectionContent || 'No content'}</p>
                   </div>
                 ))}
               </div>
@@ -1362,6 +1484,47 @@ export default function CompetitionDashboard({
         onAdd={handleAddPerson}
         type={addPersonModal.type}
       />
+      {/* Rule Modal */}
+      <Modal
+        isOpen={ruleModal.isOpen}
+        onClose={() => setRuleModal({ isOpen: false, rule: null })}
+        title={ruleModal.rule ? 'Edit Rule' : 'Add Rule'}
+        maxWidth="500px"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRuleModal({ isOpen: false, rule: null })} style={{ width: 'auto' }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (ruleModal.rule) {
+                  await updateRule(ruleModal.rule.id, ruleForm);
+                } else {
+                  await addRule(ruleForm);
+                }
+                setRuleModal({ isOpen: false, rule: null });
+              }}
+              disabled={!ruleForm.sectionTitle.trim()}
+            >
+              {ruleModal.rule ? 'Save Changes' : 'Add Rule'}
+            </Button>
+          </>
+        }
+      >
+        <Input
+          label="Rule Section Title"
+          value={ruleForm.sectionTitle}
+          onChange={(e) => setRuleForm(prev => ({ ...prev, sectionTitle: e.target.value }))}
+          placeholder="e.g., Eligibility Requirements"
+        />
+        <Textarea
+          label="Rule Content"
+          value={ruleForm.sectionContent}
+          onChange={(e) => setRuleForm(prev => ({ ...prev, sectionContent: e.target.value }))}
+          placeholder="Describe the rule details..."
+          rows={5}
+        />
+      </Modal>
     </>
   );
 }
