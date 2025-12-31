@@ -120,7 +120,6 @@ export default function AddPersonModal({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      icon={Icon}
       maxWidth="500px"
       footer={
         <>
