@@ -14,7 +14,7 @@ export async function hasUsedFreeVoteToday(userId, competitionId) {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from('votes')
       .select('id')
       .eq('voter_id', userId)
@@ -24,8 +24,10 @@ export async function hasUsedFreeVoteToday(userId, competitionId) {
       .lte('created_at', `${today}T23:59:59.999Z`)
       .limit(1);
 
+    // Handle RLS errors (406) or other errors - assume not voted to allow attempt
     if (error) {
-      console.error('Error checking daily vote:', error);
+      console.error('Error checking daily vote:', error, 'status:', status);
+      // If it's an RLS error, we can't know if they voted - let the insert fail if duplicate
       return false;
     }
 
@@ -50,7 +52,8 @@ export async function getTodaysVote(userId, competitionId) {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const { data, error } = await supabase
+    // Use maybeSingle() instead of single() to avoid errors when no rows found
+    const { data, error, status } = await supabase
       .from('votes')
       .select('contestant_id')
       .eq('voter_id', userId)
@@ -58,10 +61,11 @@ export async function getTodaysVote(userId, competitionId) {
       .eq('amount_paid', 0)
       .gte('created_at', `${today}T00:00:00.000Z`)
       .lte('created_at', `${today}T23:59:59.999Z`)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error getting today\'s vote:', error);
+    // Handle any errors including RLS (406)
+    if (error) {
+      console.error('Error getting today\'s vote:', error, 'status:', status);
       return null;
     }
 
