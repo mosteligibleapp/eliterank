@@ -28,6 +28,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 // Supabase client
 import { supabase } from './lib/supabase';
 
+// Phase utilities
+import { computeCompetitionPhase, COMPETITION_STATUSES } from './utils/competitionPhase';
+
 // Hooks
 import { useSupabaseAuth } from './hooks';
 
@@ -463,8 +466,8 @@ export default function App() {
               createSafeCompetition({
                 ...competition,
                 city: competitionCityName,
-                phase: competition.status === 'live' ? 'voting' : competition.status,
-                isTeaser: competition.status !== 'live',
+                phase: computeCompetitionPhase(competition),
+                isTeaser: competition.status !== COMPETITION_STATUSES.LIVE,
               })
             );
             setShowPublicSite(true);

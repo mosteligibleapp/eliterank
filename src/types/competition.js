@@ -9,13 +9,10 @@
 // STATUS CONSTANTS
 // =============================================================================
 
-export const COMPETITION_STATUS = {
-  DRAFT: 'draft',       // Only super admin can see
-  PUBLISH: 'publish',   // Public can see interest form
-  LIVE: 'live',         // Following competition timeline
-  ARCHIVE: 'archive',   // Hidden, data preserved
-  COMPLETED: 'completed', // After finale date passes
-};
+// Re-export from competitionPhase.js for backwards compatibility
+// COMPETITION_STATUSES is the single source of truth
+import { COMPETITION_STATUSES } from '../utils/competitionPhase';
+export const COMPETITION_STATUS = COMPETITION_STATUSES;
 
 export const STATUS_CONFIG = {
   [COMPETITION_STATUS.DRAFT]: {

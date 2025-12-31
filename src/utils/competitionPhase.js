@@ -459,3 +459,19 @@ export function shouldAutoTransitionToCompleted(competition, settings = null) {
   // If finale date has passed, should transition to completed
   return now >= endDate;
 }
+
+/**
+ * Get UI permissions based on the current phase.
+ * Use this to determine what actions are allowed in the UI.
+ *
+ * @param {string} phase - The current phase (from computeCompetitionPhase)
+ * @returns {Object} Permission flags for UI controls
+ */
+export function getPhasePermissions(phase) {
+  return {
+    allowVoting: phase === TIMELINE_PHASES.VOTING,
+    allowNominations: phase === TIMELINE_PHASES.NOMINATION,
+    showResults: phase === TIMELINE_PHASES.COMPLETED || phase === 'completed',
+    isActive: phase !== COMPETITION_STATUSES.DRAFT && phase !== COMPETITION_STATUSES.ARCHIVE,
+  };
+}

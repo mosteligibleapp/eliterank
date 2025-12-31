@@ -4,6 +4,7 @@ import { Button, Badge, OrganizationLogo } from '../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, shadows, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
+import { COMPETITION_STATUSES } from '../../utils/competitionPhase';
 import ContestantsTab from './components/ContestantsTab';
 import EventsTab from './components/EventsTab';
 import AnnouncementsTab from './components/AnnouncementsTab';
@@ -241,7 +242,7 @@ export default function PublicSitePage({
   const displayHost = fetchedData.host || host;
 
   // Check if teaser page
-  const isTeaser = competition?.isTeaser === true || competition?.status === 'publish';
+  const isTeaser = competition?.isTeaser === true || competition?.status === COMPETITION_STATUSES.PUBLISH;
 
   if (isOpen && isTeaser) {
     return (
