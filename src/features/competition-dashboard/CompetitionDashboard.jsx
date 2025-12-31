@@ -11,6 +11,7 @@ import { colors, gradients, spacing, borderRadius, typography, transitions } fro
 import { useToast } from '../../contexts/ToastContext';
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
 import { formatRelativeTime, formatEventDateRange } from '../../utils/formatters';
+import { computeEventStatus, formatDateForDisplay } from '../../utils/dateUtils';
 import WinnersManager from '../super-admin/components/WinnersManager';
 import TimelineSettings from './components/TimelineSettings';
 
@@ -21,14 +22,7 @@ import Leaderboard from '../overview/components/Leaderboard';
 
 // Helper function to determine event status based on dates
 const getEventStatus = (event) => {
-  if (!event.date) return 'upcoming';
-  const now = new Date();
-  const eventDate = new Date(event.date);
-  const endDate = event.endDate ? new Date(event.endDate) : eventDate;
-
-  if (now > endDate) return 'completed';
-  if (now >= eventDate && now <= endDate) return 'active';
-  return 'upcoming';
+  return computeEventStatus(event.date, event.endDate || event.end_date);
 };
 
 const TABS = [
@@ -1126,13 +1120,32 @@ export default function CompetitionDashboard({
                       <div style={{ flex: 1 }}>
                         <p style={{ fontWeight: typography.fontWeight.medium }}>{event.name}</p>
                         <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                          {event.date ? new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set'}
-                          {event.location && ` • ${event.location}`}
+                          {event.date ? formatDateForDisplay(event.date) : 'No date set'}
+                          {(event.endDate || event.end_date) && ` — ${formatDateForDisplay(event.endDate || event.end_date)}`}
                         </p>
+                        {event.location && (
+                          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>
+                            <MapPin size={12} style={{ display: 'inline', marginRight: spacing.xs }} />
+                            {event.location}
+                          </p>
+                        )}
                       </div>
                       <Badge variant={status === 'active' ? 'gold' : status === 'completed' ? 'success' : 'secondary'} size="sm">
                         {status}
                       </Badge>
+                      <button
+                        onClick={() => setEventModal({ isOpen: true, event })}
+                        style={{
+                          padding: spacing.sm,
+                          background: 'transparent',
+                          border: `1px solid ${colors.border.light}`,
+                          borderRadius: borderRadius.md,
+                          color: colors.text.secondary,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Edit size={14} />
+                      </button>
                       <button
                         onClick={() => deleteEvent(event.id)}
                         style={{
