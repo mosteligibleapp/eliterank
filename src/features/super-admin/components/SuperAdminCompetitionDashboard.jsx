@@ -470,7 +470,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
       <button
         onClick={() => toggleSection(sectionKey)}
         style={{
-          width: '100%',
+          flex: 1,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
