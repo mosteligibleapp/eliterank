@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, User, Check, Loader, Crown, UserPlus } from 'lucide-react';
+import { Search, User, Check, Loader } from 'lucide-react';
 import { Modal, Button, Avatar, Badge } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
@@ -22,7 +22,6 @@ export default function AddPersonModal({
 
   const isContestant = type === 'contestant';
   const title = isContestant ? 'Add Contestant' : 'Add Nominee';
-  const Icon = isContestant ? Crown : UserPlus;
 
   // Reset state when modal opens/closes
   useEffect(() => {
