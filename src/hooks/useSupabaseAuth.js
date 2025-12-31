@@ -119,7 +119,7 @@ export default function useSupabaseAuth() {
         bio: 'Award-winning event host with 10+ years of experience.',
         city: 'New York',
         is_host: true,
-        hobbies: ['Travel', 'Fine Dining', 'Golf'],
+        interests: ['Travel', 'Fine Dining', 'Golf'],
       };
       setUser(demoUser);
       setProfile(demoProfile);

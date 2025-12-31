@@ -101,17 +101,15 @@ export default function PublicSitePage({
           name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || 'Host',
           first_name: hostProfile.first_name,
           last_name: hostProfile.last_name,
-          title: hostProfile.occupation || 'Competition Host',
+          title: 'Competition Host',
           bio: hostProfile.bio || '',
           avatar: hostProfile.avatar_url,
           avatar_url: hostProfile.avatar_url,
           instagram: hostProfile.instagram,
           twitter: hostProfile.twitter,
-          linkedin: hostProfile.linkedin,
           city: hostProfile.city,
-          hobbies: hostProfile.hobbies || [],
+          interests: hostProfile.interests || [],
           gallery: hostProfile.gallery || [],
-          occupation: hostProfile.occupation,
         } : null;
 
         setFetchedData({

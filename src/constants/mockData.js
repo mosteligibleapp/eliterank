@@ -8,9 +8,7 @@ export const DEFAULT_HOST_PROFILE = {
   city: '',
   instagram: '',
   twitter: '',
-  linkedin: '',
-  tiktok: '',
-  hobbies: [],
+  interests: [],
 };
 
 // Empty initial states - data comes from Supabase

@@ -198,17 +198,17 @@ export default function ProfileView({ hostProfile, onEdit, hostCompetition, user
             </div>
           </Panel>
 
-          {/* Hobbies Section */}
-          {hostProfile.hobbies && hostProfile.hobbies.length > 0 && (
+          {/* Interests Section */}
+          {hostProfile.interests && hostProfile.interests.length > 0 && (
             <Panel style={{ marginBottom: spacing.xl }}>
               <div style={{ padding: spacing.xxl }}>
                 <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
                   <Heart size={20} style={{ color: colors.gold.primary }} /> Interests
                 </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.md }}>
-                  {hostProfile.hobbies.map((hobby) => (
-                    <InterestTag key={hobby} size="lg">
-                      {hobby}
+                  {hostProfile.interests.map((interest) => (
+                    <InterestTag key={interest} size="lg">
+                      {interest}
                     </InterestTag>
                   ))}
                 </div>

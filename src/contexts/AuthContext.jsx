@@ -47,9 +47,7 @@ export function AuthProvider({ children }) {
         city: profile.city || '',
         instagram: profile.instagram || '',
         twitter: profile.twitter || '',
-        linkedin: profile.linkedin || '',
-        tiktok: profile.tiktok || '',
-        hobbies: profile.hobbies || [],
+        interests: profile.interests || [],
       };
     }
     // Fallback to demo profile
@@ -89,9 +87,7 @@ export function AuthProvider({ children }) {
       city: updates.city,
       instagram: updates.instagram,
       twitter: updates.twitter,
-      linkedin: updates.linkedin,
-      tiktok: updates.tiktok,
-      hobbies: updates.hobbies,
+      interests: updates.interests,
     };
     // Remove undefined values
     Object.keys(dbUpdates).forEach((key) => {

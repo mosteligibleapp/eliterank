@@ -17,8 +17,8 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
     onChange({ ...hostProfile, [field]: value });
   };
 
-  const handleHobbiesChange = (hobbies) => {
-    onChange({ ...hostProfile, hobbies });
+  const handleInterestsChange = (interests) => {
+    onChange({ ...hostProfile, interests });
   };
 
   // Upload image to Vercel Blob
@@ -344,12 +344,12 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         </FormGrid>
       </FormSection>
 
-      {/* Hobbies Selection */}
-      <FormSection title="Hobbies & Interests" icon={Heart}>
+      {/* Interests Selection */}
+      <FormSection title="Interests" icon={Heart}>
         <HobbySelector
           hobbies={ALL_HOBBIES}
-          selected={hostProfile.hobbies}
-          onChange={handleHobbiesChange}
+          selected={hostProfile.interests || []}
+          onChange={handleInterestsChange}
           max={MAX_HOBBIES}
         />
       </FormSection>
