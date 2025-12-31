@@ -19,6 +19,156 @@ import {
 } from '../../../utils/competitionPhase';
 
 /**
+ * Parse a typed date string into an ISO date string
+ * Supports formats like:
+ * - "Jan 15, 2025 6:00 PM"
+ * - "1/15/2025 6pm"
+ * - "2025-01-15 18:00"
+ * - "January 15 2025 6:00pm"
+ */
+function parseTypedDate(input) {
+  if (!input || !input.trim()) return null;
+
+  const str = input.trim();
+
+  // Try direct ISO parse first
+  let date = new Date(str);
+  if (!isNaN(date.getTime())) {
+    return date.toISOString();
+  }
+
+  // Normalize common patterns
+  let normalized = str
+    .replace(/\s+/g, ' ')
+    .replace(/,/g, '')
+    .toLowerCase();
+
+  // Month name mappings
+  const months = {
+    jan: 0, january: 0,
+    feb: 1, february: 1,
+    mar: 2, march: 2,
+    apr: 3, april: 3,
+    may: 4,
+    jun: 5, june: 5,
+    jul: 6, july: 6,
+    aug: 7, august: 7,
+    sep: 8, sept: 8, september: 8,
+    oct: 9, october: 9,
+    nov: 10, november: 10,
+    dec: 11, december: 11,
+  };
+
+  // Pattern: "Jan 15 2025 6:00 PM" or "January 15 2025 6pm"
+  const monthNamePattern = /^(\w+)\s+(\d{1,2})\s+(\d{4})\s*(.*)$/;
+  let match = normalized.match(monthNamePattern);
+  if (match) {
+    const monthStr = match[1];
+    const day = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    const timeStr = match[4];
+    const month = months[monthStr];
+
+    if (month !== undefined && day >= 1 && day <= 31) {
+      const { hours, minutes } = parseTime(timeStr);
+      date = new Date(year, month, day, hours, minutes);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+  }
+
+  // Pattern: "1/15/2025 6:00 PM" or "01/15/2025 6pm"
+  const slashPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(.*)$/;
+  match = normalized.match(slashPattern);
+  if (match) {
+    const month = parseInt(match[1], 10) - 1;
+    const day = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    const timeStr = match[4];
+
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+      const { hours, minutes } = parseTime(timeStr);
+      date = new Date(year, month, day, hours, minutes);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+  }
+
+  // Pattern: "2025-01-15 6:00 PM"
+  const dashPattern = /^(\d{4})-(\d{1,2})-(\d{1,2})\s*(.*)$/;
+  match = normalized.match(dashPattern);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+    const timeStr = match[4];
+
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+      const { hours, minutes } = parseTime(timeStr);
+      date = new Date(year, month, day, hours, minutes);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Parse time string like "6pm", "6:00 PM", "18:00"
+ */
+function parseTime(timeStr) {
+  if (!timeStr || !timeStr.trim()) {
+    return { hours: 0, minutes: 0 };
+  }
+
+  const str = timeStr.trim().toLowerCase();
+
+  // Check for AM/PM
+  const isPM = str.includes('pm');
+  const isAM = str.includes('am');
+  const cleanTime = str.replace(/[ap]m/g, '').trim();
+
+  // Parse hours:minutes or just hours
+  const timeParts = cleanTime.split(':');
+  let hours = parseInt(timeParts[0], 10) || 0;
+  const minutes = parseInt(timeParts[1], 10) || 0;
+
+  // Convert to 24-hour format
+  if (isPM && hours < 12) hours += 12;
+  if (isAM && hours === 12) hours = 0;
+
+  return { hours, minutes };
+}
+
+/**
+ * Format an ISO date for display
+ */
+function formatDateForDisplay(isoDate) {
+  if (!isoDate) return '';
+
+  const date = new Date(isoDate);
+  if (isNaN(date.getTime())) return '';
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+
+  const minuteStr = minutes.toString().padStart(2, '0');
+
+  return `${month} ${day}, ${year} ${hours}:${minuteStr} ${ampm}`;
+}
+
+/**
  * TimelineSettings - Manages competition status, timeline dates, and voting rounds
  * Used by both Host and SuperAdmin dashboards
  */
@@ -27,8 +177,15 @@ export default function TimelineSettings({ competition, onSave }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Settings state
+  // Settings state (stores ISO strings for DB)
   const [settings, setSettings] = useState({
+    nomination_start: '',
+    nomination_end: '',
+    finale_date: '',
+  });
+
+  // Display values (what user sees/types)
+  const [displayValues, setDisplayValues] = useState({
     nomination_start: '',
     nomination_end: '',
     finale_date: '',
@@ -37,11 +194,17 @@ export default function TimelineSettings({ competition, onSave }) {
   // Voting rounds state
   const [votingRounds, setVotingRounds] = useState([]);
 
+  // Voting round display values
+  const [roundDisplayValues, setRoundDisplayValues] = useState([]);
+
   // Status state
   const [status, setStatus] = useState(competition?.status || COMPETITION_STATUS.DRAFT);
 
   // Validation errors
   const [errors, setErrors] = useState([]);
+
+  // Parse error indicators
+  const [parseErrors, setParseErrors] = useState({});
 
   // Fetch settings on mount
   useEffect(() => {
@@ -80,9 +243,19 @@ export default function TimelineSettings({ competition, onSave }) {
           nomination_end: settingsResult.data.nomination_end || '',
           finale_date: settingsResult.data.finale_date || '',
         });
+        setDisplayValues({
+          nomination_start: formatDateForDisplay(settingsResult.data.nomination_start),
+          nomination_end: formatDateForDisplay(settingsResult.data.nomination_end),
+          finale_date: formatDateForDisplay(settingsResult.data.finale_date),
+        });
       }
 
-      setVotingRounds(roundsResult.data || []);
+      const rounds = roundsResult.data || [];
+      setVotingRounds(rounds);
+      setRoundDisplayValues(rounds.map(r => ({
+        start_date: formatDateForDisplay(r.start_date),
+        end_date: formatDateForDisplay(r.end_date),
+      })));
       setStatus(competition.status);
     } catch (err) {
       console.error('Error fetching settings:', err);
@@ -104,6 +277,13 @@ export default function TimelineSettings({ competition, onSave }) {
   // Validate dates
   const validateDates = () => {
     const validationErrors = [];
+
+    // Check for parse errors
+    const hasParseErrors = Object.values(parseErrors).some(Boolean);
+    if (hasParseErrors) {
+      validationErrors.push('Please fix invalid date formats before saving');
+    }
+
     const nomStart = settings.nomination_start ? new Date(settings.nomination_start) : null;
     const nomEnd = settings.nomination_end ? new Date(settings.nomination_end) : null;
     const finale = settings.finale_date ? new Date(settings.finale_date) : null;
@@ -218,10 +398,12 @@ export default function TimelineSettings({ competition, onSave }) {
         round_order: prev.length + 1,
       }
     ]);
+    setRoundDisplayValues(prev => [...prev, { start_date: '', end_date: '' }]);
   };
 
   const removeVotingRound = (index) => {
     setVotingRounds(prev => prev.filter((_, i) => i !== index));
+    setRoundDisplayValues(prev => prev.filter((_, i) => i !== index));
   };
 
   const updateVotingRound = (index, field, value) => {
@@ -232,10 +414,49 @@ export default function TimelineSettings({ competition, onSave }) {
     );
   };
 
-  const formatDateForInput = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toISOString().slice(0, 16);
+  const updateRoundDisplayValue = (index, field, value) => {
+    setRoundDisplayValues(prev =>
+      prev.map((disp, i) =>
+        i === index ? { ...disp, [field]: value } : disp
+      )
+    );
+  };
+
+  // Handle date input blur - parse and validate
+  const handleDateBlur = (field, displayValue) => {
+    if (!displayValue.trim()) {
+      setSettings(prev => ({ ...prev, [field]: '' }));
+      setParseErrors(prev => ({ ...prev, [field]: false }));
+      return;
+    }
+
+    const parsed = parseTypedDate(displayValue);
+    if (parsed) {
+      setSettings(prev => ({ ...prev, [field]: parsed }));
+      setDisplayValues(prev => ({ ...prev, [field]: formatDateForDisplay(parsed) }));
+      setParseErrors(prev => ({ ...prev, [field]: false }));
+    } else {
+      setParseErrors(prev => ({ ...prev, [field]: true }));
+    }
+  };
+
+  // Handle voting round date blur
+  const handleRoundDateBlur = (index, field, displayValue) => {
+    const errorKey = `round_${index}_${field}`;
+    if (!displayValue.trim()) {
+      updateVotingRound(index, field, '');
+      setParseErrors(prev => ({ ...prev, [errorKey]: false }));
+      return;
+    }
+
+    const parsed = parseTypedDate(displayValue);
+    if (parsed) {
+      updateVotingRound(index, field, parsed);
+      updateRoundDisplayValue(index, field, formatDateForDisplay(parsed));
+      setParseErrors(prev => ({ ...prev, [errorKey]: false }));
+    } else {
+      setParseErrors(prev => ({ ...prev, [errorKey]: true }));
+    }
   };
 
   // Styles
@@ -362,24 +583,47 @@ export default function TimelineSettings({ competition, onSave }) {
           <Calendar size={18} />
           Nomination Period
         </h4>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
+          Enter dates like: Jan 15, 2025 6:00 PM or 1/15/2025 6pm
+        </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
           <div>
             <label style={labelStyle}>Start Date</label>
             <input
-              type="datetime-local"
-              value={formatDateForInput(settings.nomination_start)}
-              onChange={(e) => setSettings(prev => ({ ...prev, nomination_start: e.target.value }))}
-              style={inputStyle}
+              type="text"
+              placeholder="Jan 15, 2025 6:00 PM"
+              value={displayValues.nomination_start}
+              onChange={(e) => setDisplayValues(prev => ({ ...prev, nomination_start: e.target.value }))}
+              onBlur={(e) => handleDateBlur('nomination_start', e.target.value)}
+              style={{
+                ...inputStyle,
+                borderColor: parseErrors.nomination_start ? '#ef4444' : colors.border.light,
+              }}
             />
+            {parseErrors.nomination_start && (
+              <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.xs }}>
+                Invalid date format
+              </p>
+            )}
           </div>
           <div>
             <label style={labelStyle}>End Date</label>
             <input
-              type="datetime-local"
-              value={formatDateForInput(settings.nomination_end)}
-              onChange={(e) => setSettings(prev => ({ ...prev, nomination_end: e.target.value }))}
-              style={inputStyle}
+              type="text"
+              placeholder="Jan 31, 2025 11:59 PM"
+              value={displayValues.nomination_end}
+              onChange={(e) => setDisplayValues(prev => ({ ...prev, nomination_end: e.target.value }))}
+              onBlur={(e) => handleDateBlur('nomination_end', e.target.value)}
+              style={{
+                ...inputStyle,
+                borderColor: parseErrors.nomination_end ? '#ef4444' : colors.border.light,
+              }}
             />
+            {parseErrors.nomination_end && (
+              <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.xs }}>
+                Invalid date format
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -450,24 +694,44 @@ export default function TimelineSettings({ competition, onSave }) {
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px', gap: spacing.sm }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: spacing.sm }}>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
                     <input
-                      type="datetime-local"
-                      value={formatDateForInput(round.start_date)}
-                      onChange={(e) => updateVotingRound(index, 'start_date', e.target.value)}
-                      style={{ ...inputStyle, fontSize: typography.fontSize.sm, padding: spacing.sm }}
+                      type="text"
+                      placeholder="Feb 1, 2025 12:00 AM"
+                      value={roundDisplayValues[index]?.start_date || ''}
+                      onChange={(e) => updateRoundDisplayValue(index, 'start_date', e.target.value)}
+                      onBlur={(e) => handleRoundDateBlur(index, 'start_date', e.target.value)}
+                      style={{
+                        ...inputStyle,
+                        fontSize: typography.fontSize.sm,
+                        padding: spacing.sm,
+                        borderColor: parseErrors[`round_${index}_start_date`] ? '#ef4444' : colors.border.light,
+                      }}
                     />
+                    {parseErrors[`round_${index}_start_date`] && (
+                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
+                    )}
                   </div>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>End</label>
                     <input
-                      type="datetime-local"
-                      value={formatDateForInput(round.end_date)}
-                      onChange={(e) => updateVotingRound(index, 'end_date', e.target.value)}
-                      style={{ ...inputStyle, fontSize: typography.fontSize.sm, padding: spacing.sm }}
+                      type="text"
+                      placeholder="Feb 14, 2025 11:59 PM"
+                      value={roundDisplayValues[index]?.end_date || ''}
+                      onChange={(e) => updateRoundDisplayValue(index, 'end_date', e.target.value)}
+                      onBlur={(e) => handleRoundDateBlur(index, 'end_date', e.target.value)}
+                      style={{
+                        ...inputStyle,
+                        fontSize: typography.fontSize.sm,
+                        padding: spacing.sm,
+                        borderColor: parseErrors[`round_${index}_end_date`] ? '#ef4444' : colors.border.light,
+                      }}
                     />
+                    {parseErrors[`round_${index}_end_date`] && (
+                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
+                    )}
                   </div>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Advance</label>
@@ -494,11 +758,22 @@ export default function TimelineSettings({ competition, onSave }) {
         </h4>
         <div>
           <input
-            type="datetime-local"
-            value={formatDateForInput(settings.finale_date)}
-            onChange={(e) => setSettings(prev => ({ ...prev, finale_date: e.target.value }))}
-            style={{ ...inputStyle, maxWidth: '300px' }}
+            type="text"
+            placeholder="Mar 15, 2025 7:00 PM"
+            value={displayValues.finale_date}
+            onChange={(e) => setDisplayValues(prev => ({ ...prev, finale_date: e.target.value }))}
+            onBlur={(e) => handleDateBlur('finale_date', e.target.value)}
+            style={{
+              ...inputStyle,
+              maxWidth: '300px',
+              borderColor: parseErrors.finale_date ? '#ef4444' : colors.border.light,
+            }}
           />
+          {parseErrors.finale_date && (
+            <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.xs }}>
+              Invalid date format
+            </p>
+          )}
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
             Competition will transition to completed after this date
           </p>
