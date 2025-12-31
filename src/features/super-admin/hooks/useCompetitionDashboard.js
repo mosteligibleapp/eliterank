@@ -492,14 +492,13 @@ export function useCompetitionDashboard(competitionId) {
         .insert({
           competition_id: competitionId,
           name: nomineeData.name,
-          email: nomineeData.email || null,
-          phone: nomineeData.phone || null,
+          email: nomineeData.email,
           instagram: nomineeData.instagram,
           age: nomineeData.age,
           city: nomineeData.city,
           bio: nomineeData.bio,
           user_id: nomineeData.userId || null,
-          nominated_by: 'admin', // Admin/host added nominee
+          nominated_by: 'admin',
           status: 'pending',
         });
 
@@ -528,10 +527,8 @@ export function useCompetitionDashboard(competitionId) {
           competition_id: competitionId,
           name: contestantData.name,
           email: contestantData.email,
-          phone: contestantData.phone || null,
           instagram: contestantData.instagram,
           age: contestantData.age,
-          city: contestantData.city,
           bio: contestantData.bio,
           avatar_url: contestantData.avatarUrl || null,
           status: 'active',
