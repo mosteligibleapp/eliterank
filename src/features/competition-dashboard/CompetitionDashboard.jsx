@@ -827,7 +827,7 @@ export default function CompetitionDashboard({
           <div style={{ padding: spacing.xl }}>
             <TimelineSettings
               competition={competition}
-              onSave={fetchDashboardData}
+              onSave={refresh}
             />
           </div>
         </Panel>

@@ -858,7 +858,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         </h3>
         <TimelineSettings
           competition={competition}
-          onSave={fetchDashboardData}
+          onSave={refresh}
         />
       </div>
 
