@@ -507,6 +507,11 @@ export const styleHelpers = {
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
+  flexEnd: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
   flexColumn: {
     display: 'flex',
     flexDirection: 'column',

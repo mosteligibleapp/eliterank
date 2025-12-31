@@ -876,14 +876,19 @@ export default function EliteRankCityModal({
       background: colors.background.primary,
       zIndex: isFullPage ? undefined : 1000,
       overflow: 'auto',
+      overflowX: 'hidden',
       fontFamily: typography.fontFamily.sans,
+      // Prevent layout shifts on mobile by using fixed positioning context
+      WebkitOverflowScrolling: 'touch',
     }}>
       {/* Header */}
       <header style={{
-        position: 'sticky',
+        position: 'fixed',
         top: 0,
+        left: 0,
+        right: 0,
         zIndex: 100,
-        background: 'rgba(10, 10, 12, 0.9)',
+        background: 'rgba(10, 10, 12, 0.95)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderBottom: `1px solid ${colors.border.secondary}`,
@@ -891,19 +896,23 @@ export default function EliteRankCityModal({
         <div style={{
           maxWidth: '1400px',
           margin: '0 auto',
-          padding: `${spacing.md} ${isMobile ? spacing.lg : spacing.xxl}`,
-          ...styleHelpers.flexBetween,
+          padding: `${spacing.md} ${isMobile ? spacing.md : spacing.xxl}`,
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr auto' : '1fr auto 1fr',
+          alignItems: 'center',
+          gap: spacing.md,
         }}>
-          {/* Logo */}
+          {/* Logo - Left */}
           <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
             <div style={{
-              width: isMobile ? '32px' : '40px',
-              height: isMobile ? '32px' : '40px',
+              width: isMobile ? '32px' : '36px',
+              height: isMobile ? '32px' : '36px',
               background: gradients.gold,
               borderRadius: borderRadius.lg,
               ...styleHelpers.flexCenter,
+              flexShrink: 0,
             }}>
-              <Crown size={isMobile ? 18 : 24} style={{ color: colors.text.inverse }} />
+              <Crown size={isMobile ? 18 : 20} style={{ color: colors.text.inverse }} />
             </div>
             <span style={{
               fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
@@ -914,9 +923,15 @@ export default function EliteRankCityModal({
             </span>
           </div>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Center */}
           {!isMobile && (
-            <nav style={{ ...styleHelpers.flexStart, gap: spacing.xs }}>
+            <nav style={{
+              ...styleHelpers.flexCenter,
+              gap: spacing.xs,
+              background: 'rgba(255,255,255,0.03)',
+              borderRadius: borderRadius.xl,
+              padding: spacing.xs,
+            }}>
               {TABS.map(tab => (
                 <button
                   key={tab.id}
@@ -924,7 +939,7 @@ export default function EliteRankCityModal({
                   style={{
                     ...styleHelpers.flexCenter,
                     gap: spacing.sm,
-                    padding: `${spacing.sm} ${spacing.lg}`,
+                    padding: `${spacing.sm} ${spacing.md}`,
                     background: activeTab === tab.id ? colors.gold.muted : 'transparent',
                     border: 'none',
                     borderRadius: borderRadius.lg,
@@ -933,6 +948,7 @@ export default function EliteRankCityModal({
                     fontWeight: typography.fontWeight.medium,
                     cursor: 'pointer',
                     transition: `all ${transitions.fast}`,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   <tab.icon size={16} />
@@ -942,8 +958,8 @@ export default function EliteRankCityModal({
             </nav>
           )}
 
-          {/* Auth Actions */}
-          <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
+          {/* Auth Actions - Right */}
+          <div style={{ ...styleHelpers.flexEnd, gap: spacing.sm }}>
             {isAuthenticated ? (
               <>
                 {!isMobile && onDashboard && <Button variant="ghost" size="sm" onClick={onDashboard}>Dashboard</Button>}
@@ -969,54 +985,85 @@ export default function EliteRankCityModal({
         </div>
       </header>
 
-      {/* Main Content */}
-      <main>{renderContent()}</main>
+      {/* Header Spacer - prevents content from being hidden behind fixed header */}
+      <div style={{ height: isMobile ? '60px' : '64px' }} />
 
-      {/* Mobile Bottom Navigation */}
+      {/* Main Content - with proper spacing for fixed header/footer */}
+      <main style={{
+        minHeight: isMobile ? 'calc(100vh - 60px - 56px)' : 'auto',
+        paddingBottom: isMobile ? '72px' : 0, // Extra padding for bottom nav
+      }}>
+        {renderContent()}
+      </main>
+
+      {/* Mobile Bottom Navigation - Fixed app-style tab bar */}
       {isMobile && (
         <nav style={{
           position: 'fixed',
           bottom: 0,
           left: 0,
           right: 0,
-          height: components.bottomBar.height,
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: 'rgba(10, 10, 12, 0.95)',
+          zIndex: 100,
+          background: 'rgba(10, 10, 12, 0.98)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderTop: `1px solid ${colors.border.secondary}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-around',
-          zIndex: 100,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}>
-          {TABS.slice(0, 5).map(tab => {
-            const Icon = tab.mobileIcon || tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  ...styleHelpers.flexColumn,
-                  ...styleHelpers.flexCenter,
-                  gap: '2px',
-                  padding: spacing.sm,
-                  background: 'none',
-                  border: 'none',
-                  color: isActive ? colors.gold.primary : colors.text.muted,
-                  cursor: 'pointer',
-                  transition: `all ${transitions.fast}`,
-                  flex: 1,
-                }}
-              >
-                <Icon size={22} />
-                <span style={{ fontSize: '10px', fontWeight: isActive ? typography.fontWeight.semibold : typography.fontWeight.normal }}>
-                  {tab.label}
-                </span>
-              </button>
-            );
-          })}
+          <div style={{
+            display: 'flex',
+            alignItems: 'stretch',
+            justifyContent: 'space-around',
+            height: '56px',
+          }}>
+            {TABS.map(tab => {
+              const Icon = tab.mobileIcon || tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '3px',
+                    padding: `${spacing.xs} ${spacing.sm}`,
+                    background: 'none',
+                    border: 'none',
+                    color: isActive ? colors.gold.primary : colors.text.muted,
+                    cursor: 'pointer',
+                    transition: `color ${transitions.fast}`,
+                    flex: 1,
+                    minWidth: 0,
+                    position: 'relative',
+                  }}
+                >
+                  {/* Active indicator line */}
+                  {isActive && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: '20%',
+                      right: '20%',
+                      height: '2px',
+                      background: colors.gold.primary,
+                      borderRadius: '0 0 2px 2px',
+                    }} />
+                  )}
+                  <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: isActive ? typography.fontWeight.semibold : typography.fontWeight.normal,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </nav>
       )}
 
