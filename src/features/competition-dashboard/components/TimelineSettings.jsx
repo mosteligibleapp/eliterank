@@ -479,17 +479,20 @@ export default function TimelineSettings({ competition, onSave }) {
         </div>
       </div>
 
-      {/* Voting Rounds */}
+      {/* Voting / Judging Rounds */}
       <div style={sectionStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
           <h4 style={{ fontSize: typography.fontSize.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
             <Vote size={18} />
-            Voting Rounds
+            Voting & Judging Periods
           </h4>
           <Button variant="secondary" size="sm" icon={Plus} onClick={addVotingRound}>
             Add Round
           </Button>
         </div>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
+          Configure voting rounds and judging periods. Each round has start/end dates and determines how many contestants advance.
+        </p>
 
         {votingRounds.length === 0 ? (
           <div style={{
@@ -500,8 +503,8 @@ export default function TimelineSettings({ competition, onSave }) {
             color: colors.text.secondary,
           }}>
             <Vote size={32} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-            <p>No voting rounds configured</p>
-            <p style={{ fontSize: typography.fontSize.sm }}>Add a round to define the voting schedule</p>
+            <p>No voting/judging periods configured</p>
+            <p style={{ fontSize: typography.fontSize.sm }}>Add a round to define the voting and judging schedule</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
