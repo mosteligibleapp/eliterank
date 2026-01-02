@@ -53,6 +53,7 @@ export function computeCompetitionPhase(competition) {
 
 /**
  * Compute the timeline-based phase for an active competition.
+ * Judging phase requires manual trigger (judging_started = true).
  *
  * @param {Object} competition - Competition with timeline fields
  * @returns {string} The timeline phase
@@ -61,7 +62,6 @@ export function computeTimelinePhase(competition) {
   const now = new Date();
 
   const nominationStart = competition.nomination_start ? new Date(competition.nomination_start) : null;
-  const nominationEnd = competition.nomination_end ? new Date(competition.nomination_end) : null;
   const votingStart = competition.voting_start ? new Date(competition.voting_start) : null;
   const votingEnd = competition.voting_end ? new Date(competition.voting_end) : null;
   const finalsDate = competition.finals_date ? new Date(competition.finals_date) : null;
@@ -71,27 +71,23 @@ export function computeTimelinePhase(competition) {
     return TIMELINE_PHASES.COMPLETED;
   }
 
-  // Phase 2: Judging - after voting ends but before finals
-  if (votingEnd && now >= votingEnd) {
+  // Phase 2: Judging - ONLY when manually started by host/admin
+  // This prevents automatic transition to judging when voting ends
+  if (competition.judging_started) {
     return TIMELINE_PHASES.JUDGING;
   }
 
-  // Phase 3: Voting - between voting start and end
+  // Phase 3: Voting - after voting starts (continues until judging is manually started)
   if (votingStart && now >= votingStart) {
-    if (!votingEnd || now < votingEnd) {
-      return TIMELINE_PHASES.VOTING;
-    }
+    return TIMELINE_PHASES.VOTING;
   }
 
-  // Phase 4: Nomination - between nomination start and end (or before voting starts)
+  // Phase 4: Nomination - between nomination start and voting start
   if (nominationStart && now >= nominationStart) {
-    if (!votingStart || now < votingStart) {
-      return TIMELINE_PHASES.NOMINATION;
-    }
+    return TIMELINE_PHASES.NOMINATION;
   }
 
   // Before nomination starts - still show as nomination (upcoming)
-  // This happens when status is active but we haven't reached nomination_start yet
   return TIMELINE_PHASES.NOMINATION;
 }
 

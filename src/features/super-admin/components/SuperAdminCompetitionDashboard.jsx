@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import {
   Crown, ArrowLeft, Shield, Star, LogOut, BarChart3, UserPlus, FileText, Settings as SettingsIcon,
-  User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, Plus
+  User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, Plus, Award
 } from 'lucide-react';
 import { Button, Badge, Avatar, StatCard } from '../../../components/ui';
 import { EventModal, ContestantModal } from '../../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
+import { computeCompetitionPhase, TIMELINE_PHASES } from '../../../utils/competitionPhase';
 
 // Import host dashboard components for reuse
 import RevenueCard from '../../overview/components/RevenueCard';
@@ -33,7 +34,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   const [contestantModal, setContestantModal] = useState({ isOpen: false, contestant: null });
 
   // Fetch real data from Supabase
-  const { data, loading, error, refresh, addContestant, approveNominee, rejectNominee, addEvent, updateEvent, deleteEvent } = useCompetitionDashboard(competition?.id);
+  const { data, loading, error, refresh, addContestant, approveNominee, rejectNominee, addEvent, updateEvent, deleteEvent, startJudging } = useCompetitionDashboard(competition?.id);
 
   // Event modal handlers
   const openEventModal = useCallback((event = null) => {
@@ -334,7 +335,22 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         gap: spacing.xl,
         marginBottom: spacing.xxxl,
       }}>
-        <CurrentPhaseCard events={data.events} />
+        <div style={{ position: 'relative' }}>
+          <CurrentPhaseCard events={data.events} />
+          {/* Start Judging button - only show during voting phase */}
+          {computeCompetitionPhase(competition) === TIMELINE_PHASES.VOTING && !competition.judging_started && (
+            <div style={{ marginTop: spacing.md }}>
+              <Button
+                size="sm"
+                icon={Award}
+                onClick={startJudging}
+                style={{ width: '100%' }}
+              >
+                Start Judging Period
+              </Button>
+            </div>
+          )}
+        </div>
         <TrafficCard />
         <UpcomingCard events={data.events} />
       </div>

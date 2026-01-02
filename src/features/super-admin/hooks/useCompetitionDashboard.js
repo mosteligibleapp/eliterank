@@ -400,6 +400,26 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  // Start judging period manually
+  const startJudging = useCallback(async () => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error: updateError } = await supabase
+        .from('competitions')
+        .update({ judging_started: true })
+        .eq('id', competitionId);
+
+      if (updateError) throw updateError;
+
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error starting judging:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   return {
     data,
     loading,
@@ -411,6 +431,7 @@ export function useCompetitionDashboard(competitionId) {
     addEvent,
     updateEvent,
     deleteEvent,
+    startJudging,
   };
 }
 
