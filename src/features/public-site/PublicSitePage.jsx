@@ -469,6 +469,7 @@ export default function PublicSitePage({
             onLogin={onLogin}
             userEmail={userEmail}
             userInstagram={userInstagram}
+            formConfig={competition?.nomination_form_config}
           />
         )}
         {activeTab === 'contestants' && (

@@ -328,8 +328,6 @@ export default function CompetitionPage() {
               marginBottom: -1,
             }}>
               {TABS.filter(tab => {
-                // Hide Events tab if competition doesn't have events
-                if (tab.id === 'events' && !competition.has_events) return false;
                 // Only show Winners tab for completed competitions with winners
                 if (tab.id === 'winners' && (competition.status !== COMPETITION_STATUS.COMPLETED || winners.length === 0)) return false;
                 return true;
@@ -391,8 +389,8 @@ export default function CompetitionPage() {
                 </h3>
                 <ul style={{ color: colors.text.secondary, paddingLeft: spacing.lg }}>
                   <li style={{ marginBottom: spacing.sm }}>{competition.number_of_winners} winners will be selected</li>
-                  <li style={{ marginBottom: spacing.sm }}>Winner selection by {competition.selection_criteria === 'votes' ? 'public votes' : 'public votes and judges'}</li>
-                  {competition.has_events && <li style={{ marginBottom: spacing.sm }}>Exclusive events throughout the competition</li>}
+                  <li style={{ marginBottom: spacing.sm }}>Winner selection by public votes</li>
+                  <li style={{ marginBottom: spacing.sm }}>Exclusive events throughout the competition</li>
                 </ul>
               </div>
 
@@ -504,51 +502,20 @@ function AboutTab({ competition, organization }) {
         </p>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.lg }}>
-        <div style={{
-          background: colors.background.card,
-          border: `1px solid ${colors.border.light}`,
-          borderRadius: borderRadius.xl,
-          padding: spacing.xl,
-        }}>
-          <Trophy size={24} style={{ color: colors.gold.primary, marginBottom: spacing.md }} />
-          <h4 style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginBottom: spacing.xs }}>
-            Winners
-          </h4>
-          <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold }}>
-            {competition.number_of_winners}
-          </p>
-        </div>
-
-        <div style={{
-          background: colors.background.card,
-          border: `1px solid ${colors.border.light}`,
-          borderRadius: borderRadius.xl,
-          padding: spacing.xl,
-        }}>
-          <Vote size={24} style={{ color: colors.gold.primary, marginBottom: spacing.md }} />
-          <h4 style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginBottom: spacing.xs }}>
-            Selection
-          </h4>
-          <p style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.medium }}>
-            {competition.selection_criteria === 'votes' ? 'Public Votes' : 'Votes + Judges'}
-          </p>
-        </div>
-
-        <div style={{
-          background: colors.background.card,
-          border: `1px solid ${colors.border.light}`,
-          borderRadius: borderRadius.xl,
-          padding: spacing.xl,
-        }}>
-          <PartyPopper size={24} style={{ color: colors.gold.primary, marginBottom: spacing.md }} />
-          <h4 style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginBottom: spacing.xs }}>
-            Events
-          </h4>
-          <p style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.medium }}>
-            {competition.has_events ? 'Yes' : 'No'}
-          </p>
-        </div>
+      <div style={{
+        background: colors.background.card,
+        border: `1px solid ${colors.border.light}`,
+        borderRadius: borderRadius.xl,
+        padding: spacing.xl,
+        display: 'inline-block',
+      }}>
+        <Trophy size={24} style={{ color: colors.gold.primary, marginBottom: spacing.md }} />
+        <h4 style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginBottom: spacing.xs }}>
+          Winners
+        </h4>
+        <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold }}>
+          {competition.number_of_winners}
+        </p>
       </div>
 
       {/* Prizes */}

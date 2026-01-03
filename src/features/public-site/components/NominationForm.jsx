@@ -1,13 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Crown, User, Phone, Mail, Instagram, MapPin, Heart, Users, Check, ChevronRight, Sparkles, AlertCircle, Share2, Copy, EyeOff, Bell } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../../contexts/ToastContext';
 
-export default function NominationForm({ city, competitionId, onSubmit, onClose, userEmail, userInstagram }) {
+// Default form fields config (used when no config is provided)
+const DEFAULT_FORM_FIELDS = [
+  { key: 'nomineeName', label: "Nominee's Full Name", type: 'text', required: true, enabled: true },
+  { key: 'nomineeAge', label: 'Age', type: 'number', required: true, enabled: true, min: 21, max: 45, description: 'Must be between 21-45' },
+  { key: 'livesNearCity', label: 'Do they live within 100 miles of the city?', type: 'boolean', required: true, enabled: true },
+  { key: 'isSingle', label: 'Are they single (not married or engaged)?', type: 'boolean', required: true, enabled: true },
+  { key: 'email', label: 'Email Address', type: 'email', required: true, enabled: true },
+  { key: 'phone', label: 'Phone Number', type: 'phone', required: true, enabled: true },
+  { key: 'instagram', label: 'Instagram Handle', type: 'text', required: true, enabled: true },
+];
+
+export default function NominationForm({ city, competitionId, onSubmit, onClose, userEmail, userInstagram, formConfig }) {
   const toast = useToast();
   const [step, setStep] = useState(1);
+
+  // Parse and merge form config with defaults
+  const formFields = useMemo(() => {
+    if (!formConfig) return DEFAULT_FORM_FIELDS;
+
+    try {
+      const config = typeof formConfig === 'string' ? JSON.parse(formConfig) : formConfig;
+      if (config.fields && Array.isArray(config.fields)) {
+        return config.fields;
+      }
+    } catch (e) {
+      console.error('Failed to parse form config:', e);
+    }
+    return DEFAULT_FORM_FIELDS;
+  }, [formConfig]);
+
+  // Helper to get field config
+  const getField = (key) => formFields.find(f => f.key === key) || { enabled: false, required: false, label: '' };
+  const isFieldEnabled = (key) => getField(key).enabled !== false;
+  const isFieldRequired = (key) => getField(key).required !== false;
+  const getFieldLabel = (key, fallback) => getField(key).label || fallback;
+
   const [formData, setFormData] = useState({
     // Step 1: Nominee info
     nomineeName: '',
@@ -45,23 +78,41 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
 
   const validateStep = () => {
     const newErrors = {};
+    const ageField = getField('nomineeAge');
 
     if (step === 1) {
-      if (!formData.nomineeName.trim()) newErrors.nomineeName = 'Full name is required';
-      if (!formData.nomineeAge || formData.nomineeAge < 21 || formData.nomineeAge > 45) {
-        newErrors.nomineeAge = 'Age must be between 21-45';
+      // Validate enabled fields only
+      if (isFieldEnabled('nomineeName') && isFieldRequired('nomineeName') && !formData.nomineeName.trim()) {
+        newErrors.nomineeName = 'Full name is required';
       }
-      if (formData.livesNearCity === null) newErrors.livesNearCity = 'Please select an option';
-      if (formData.isSingle === null) newErrors.isSingle = 'Please select an option';
+      if (isFieldEnabled('nomineeAge') && isFieldRequired('nomineeAge')) {
+        const minAge = ageField.min || 21;
+        const maxAge = ageField.max || 45;
+        if (!formData.nomineeAge || formData.nomineeAge < minAge || formData.nomineeAge > maxAge) {
+          newErrors.nomineeAge = `Age must be between ${minAge}-${maxAge}`;
+        }
+      }
+      if (isFieldEnabled('livesNearCity') && isFieldRequired('livesNearCity') && formData.livesNearCity === null) {
+        newErrors.livesNearCity = 'Please select an option';
+      }
+      if (isFieldEnabled('isSingle') && isFieldRequired('isSingle') && formData.isSingle === null) {
+        newErrors.isSingle = 'Please select an option';
+      }
     }
 
     if (step === 2) {
       if (formData.nominationType === null) newErrors.nominationType = 'Please select an option';
 
       if (formData.nominationType === 'self') {
-        if (!formData.email.includes('@')) newErrors.email = 'Valid email is required';
-        if (!formData.phone || formData.phone.length < 10) newErrors.phone = 'Phone number is required';
-        if (!formData.instagram.trim()) newErrors.instagram = 'Instagram handle is required';
+        if (isFieldEnabled('email') && isFieldRequired('email') && !formData.email.includes('@')) {
+          newErrors.email = 'Valid email is required';
+        }
+        if (isFieldEnabled('phone') && isFieldRequired('phone') && (!formData.phone || formData.phone.length < 10)) {
+          newErrors.phone = 'Phone number is required';
+        }
+        if (isFieldEnabled('instagram') && isFieldRequired('instagram') && !formData.instagram.trim()) {
+          newErrors.instagram = 'Instagram handle is required';
+        }
       }
 
       if (formData.nominationType === 'other') {
@@ -405,101 +456,109 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
             Nominee Information
           </h3>
 
-          <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>Nominee's Full Name *</label>
-            <input
-              type="text"
-              value={formData.nomineeName}
-              onChange={(e) => updateField('nomineeName', e.target.value)}
-              placeholder="Enter full name"
-              style={{
-                ...inputStyle,
-                borderColor: errors.nomineeName ? colors.status.error : colors.border.light,
-              }}
-            />
-            {errors.nomineeName && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                {errors.nomineeName}
-              </p>
-            )}
-          </div>
-
-          <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>Age *</label>
-            <input
-              type="number"
-              value={formData.nomineeAge}
-              onChange={(e) => updateField('nomineeAge', parseInt(e.target.value) || '')}
-              placeholder="Must be 21-45"
-              min="21"
-              max="45"
-              style={{
-                ...inputStyle,
-                borderColor: errors.nomineeAge ? colors.status.error : colors.border.light,
-              }}
-            />
-            {errors.nomineeAge && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                {errors.nomineeAge}
-              </p>
-            )}
-          </div>
-
-          <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>Do they live within 100 miles of {city}? *</label>
-            <div style={{ display: 'flex', gap: spacing.md }}>
-              <button
-                type="button"
-                onClick={() => updateField('livesNearCity', true)}
-                style={optionButtonStyle(formData.livesNearCity === true)}
-              >
-                <MapPin size={24} />
-                Yes
-              </button>
-              <button
-                type="button"
-                onClick={() => updateField('livesNearCity', false)}
-                style={optionButtonStyle(formData.livesNearCity === false)}
-              >
-                <MapPin size={24} style={{ opacity: 0.5 }} />
-                No
-              </button>
+          {isFieldEnabled('nomineeName') && (
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>{getFieldLabel('nomineeName', "Nominee's Full Name")} {isFieldRequired('nomineeName') && '*'}</label>
+              <input
+                type="text"
+                value={formData.nomineeName}
+                onChange={(e) => updateField('nomineeName', e.target.value)}
+                placeholder="Enter full name"
+                style={{
+                  ...inputStyle,
+                  borderColor: errors.nomineeName ? colors.status.error : colors.border.light,
+                }}
+              />
+              {errors.nomineeName && (
+                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                  {errors.nomineeName}
+                </p>
+              )}
             </div>
-            {errors.livesNearCity && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                {errors.livesNearCity}
-              </p>
-            )}
-          </div>
+          )}
 
-          <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>Are they single (not married or engaged)? *</label>
-            <div style={{ display: 'flex', gap: spacing.md }}>
-              <button
-                type="button"
-                onClick={() => updateField('isSingle', true)}
-                style={optionButtonStyle(formData.isSingle === true)}
-              >
-                <Heart size={24} />
-                Yes
-              </button>
-              <button
-                type="button"
-                onClick={() => updateField('isSingle', false)}
-                style={optionButtonStyle(formData.isSingle === false)}
-              >
-                <Users size={24} />
-                No
-              </button>
+          {isFieldEnabled('nomineeAge') && (
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>{getFieldLabel('nomineeAge', 'Age')} {isFieldRequired('nomineeAge') && '*'}</label>
+              <input
+                type="number"
+                value={formData.nomineeAge}
+                onChange={(e) => updateField('nomineeAge', parseInt(e.target.value) || '')}
+                placeholder={`Must be ${getField('nomineeAge').min || 21}-${getField('nomineeAge').max || 45}`}
+                min={getField('nomineeAge').min || 21}
+                max={getField('nomineeAge').max || 45}
+                style={{
+                  ...inputStyle,
+                  borderColor: errors.nomineeAge ? colors.status.error : colors.border.light,
+                }}
+              />
+              {errors.nomineeAge && (
+                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                  {errors.nomineeAge}
+                </p>
+              )}
             </div>
-            {errors.isSingle && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                {errors.isSingle}
-              </p>
-            )}
-          </div>
+          )}
 
-          {formData.isSingle === false && (
+          {isFieldEnabled('livesNearCity') && (
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>{getFieldLabel('livesNearCity', `Do they live within 100 miles of ${city}?`).replace('{city}', city).replace('the city', city)} {isFieldRequired('livesNearCity') && '*'}</label>
+              <div style={{ display: 'flex', gap: spacing.md }}>
+                <button
+                  type="button"
+                  onClick={() => updateField('livesNearCity', true)}
+                  style={optionButtonStyle(formData.livesNearCity === true)}
+                >
+                  <MapPin size={24} />
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('livesNearCity', false)}
+                  style={optionButtonStyle(formData.livesNearCity === false)}
+                >
+                  <MapPin size={24} style={{ opacity: 0.5 }} />
+                  No
+                </button>
+              </div>
+              {errors.livesNearCity && (
+                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                  {errors.livesNearCity}
+                </p>
+              )}
+            </div>
+          )}
+
+          {isFieldEnabled('isSingle') && (
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>{getFieldLabel('isSingle', 'Are they single (not married or engaged)?')} {isFieldRequired('isSingle') && '*'}</label>
+              <div style={{ display: 'flex', gap: spacing.md }}>
+                <button
+                  type="button"
+                  onClick={() => updateField('isSingle', true)}
+                  style={optionButtonStyle(formData.isSingle === true)}
+                >
+                  <Heart size={24} />
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('isSingle', false)}
+                  style={optionButtonStyle(formData.isSingle === false)}
+                >
+                  <Users size={24} />
+                  No
+                </button>
+              </div>
+              {errors.isSingle && (
+                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                  {errors.isSingle}
+                </p>
+              )}
+            </div>
+          )}
+
+          {isFieldEnabled('isSingle') && formData.isSingle === false && (
             <div style={{
               padding: spacing.lg,
               background: 'rgba(248,113,113,0.1)',
@@ -564,92 +623,98 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
                 Your Contact Information
               </h4>
 
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Email Address *</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={18} style={{
-                    position: 'absolute',
-                    left: spacing.md,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: colors.text.muted
-                  }} />
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => updateField('email', e.target.value)}
-                    placeholder="you@example.com"
-                    style={{
-                      ...inputStyle,
-                      paddingLeft: '44px',
-                      borderColor: errors.email ? colors.status.error : colors.border.light,
-                    }}
-                  />
+              {isFieldEnabled('email') && (
+                <div style={{ marginBottom: spacing.lg }}>
+                  <label style={labelStyle}>{getFieldLabel('email', 'Email Address')} {isFieldRequired('email') && '*'}</label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={18} style={{
+                      position: 'absolute',
+                      left: spacing.md,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: colors.text.muted
+                    }} />
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => updateField('email', e.target.value)}
+                      placeholder="you@example.com"
+                      style={{
+                        ...inputStyle,
+                        paddingLeft: '44px',
+                        borderColor: errors.email ? colors.status.error : colors.border.light,
+                      }}
+                    />
+                  </div>
+                  {errors.email && (
+                    <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                      {errors.email}
+                    </p>
+                  )}
                 </div>
-                {errors.email && (
-                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                    {errors.email}
-                  </p>
-                )}
-              </div>
+              )}
 
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Phone Number *</label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={18} style={{
-                    position: 'absolute',
-                    left: spacing.md,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: colors.text.muted
-                  }} />
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => updateField('phone', e.target.value)}
-                    placeholder="(555) 555-5555"
-                    style={{
-                      ...inputStyle,
-                      paddingLeft: '44px',
-                      borderColor: errors.phone ? colors.status.error : colors.border.light,
-                    }}
-                  />
+              {isFieldEnabled('phone') && (
+                <div style={{ marginBottom: spacing.lg }}>
+                  <label style={labelStyle}>{getFieldLabel('phone', 'Phone Number')} {isFieldRequired('phone') && '*'}</label>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={18} style={{
+                      position: 'absolute',
+                      left: spacing.md,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: colors.text.muted
+                    }} />
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => updateField('phone', e.target.value)}
+                      placeholder="(555) 555-5555"
+                      style={{
+                        ...inputStyle,
+                        paddingLeft: '44px',
+                        borderColor: errors.phone ? colors.status.error : colors.border.light,
+                      }}
+                    />
+                  </div>
+                  {errors.phone && (
+                    <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                      {errors.phone}
+                    </p>
+                  )}
                 </div>
-                {errors.phone && (
-                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                    {errors.phone}
-                  </p>
-                )}
-              </div>
+              )}
 
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Instagram Handle *</label>
-                <div style={{ position: 'relative' }}>
-                  <Instagram size={18} style={{
-                    position: 'absolute',
-                    left: spacing.md,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: colors.text.muted
-                  }} />
-                  <input
-                    type="text"
-                    value={formData.instagram}
-                    onChange={(e) => updateField('instagram', e.target.value)}
-                    placeholder="@yourusername"
-                    style={{
-                      ...inputStyle,
-                      paddingLeft: '44px',
-                      borderColor: errors.instagram ? colors.status.error : colors.border.light,
-                    }}
-                  />
+              {isFieldEnabled('instagram') && (
+                <div style={{ marginBottom: spacing.lg }}>
+                  <label style={labelStyle}>{getFieldLabel('instagram', 'Instagram Handle')} {isFieldRequired('instagram') && '*'}</label>
+                  <div style={{ position: 'relative' }}>
+                    <Instagram size={18} style={{
+                      position: 'absolute',
+                      left: spacing.md,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: colors.text.muted
+                    }} />
+                    <input
+                      type="text"
+                      value={formData.instagram}
+                      onChange={(e) => updateField('instagram', e.target.value)}
+                      placeholder="@yourusername"
+                      style={{
+                        ...inputStyle,
+                        paddingLeft: '44px',
+                        borderColor: errors.instagram ? colors.status.error : colors.border.light,
+                      }}
+                    />
+                  </div>
+                  {errors.instagram && (
+                    <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+                      {errors.instagram}
+                    </p>
+                  )}
                 </div>
-                {errors.instagram && (
-                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                    {errors.instagram}
-                  </p>
-                )}
-              </div>
+              )}
             </>
           )}
 

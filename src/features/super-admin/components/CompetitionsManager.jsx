@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
-  ChevronRight, ChevronLeft, Vote, Trophy, Building2, X, Loader,
-  Settings, Eye, Archive, AlertTriangle, PartyPopper, Activity
+  ChevronRight, ChevronLeft, Building2, X, Loader,
+  Settings, Eye, Archive, AlertTriangle, Activity
 } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -11,8 +11,6 @@ import { useToast } from '../../../contexts/ToastContext';
 import {
   COMPETITION_STATUS,
   STATUS_CONFIG,
-  SELECTION_CRITERIA,
-  SELECTION_CRITERIA_CONFIG,
   DEFAULT_COMPETITION,
   generateCompetitionUrl,
 } from '../../../types/competition';
@@ -50,9 +48,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     city_id: '',
     name: '', // Custom competition name
     season: new Date().getFullYear() + 1,
-    has_events: false,
     number_of_winners: 5,
-    selection_criteria: SELECTION_CRITERIA.VOTES,
     host_id: '',
     description: '',
   });
@@ -144,9 +140,9 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
           season: formData.season,
           status: COMPETITION_STATUS.DRAFT,
           entry_type: 'nominations',
-          has_events: formData.has_events,
+          has_events: true, // Always enable events
           number_of_winners: formData.number_of_winners,
-          selection_criteria: formData.selection_criteria,
+          selection_criteria: 'votes', // Default to public votes
           host_id: formData.host_id || null,
           description: formData.description || '',
         })
@@ -252,13 +248,58 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       city_id: '',
       name: '',
       season: new Date().getFullYear() + 1,
-      has_events: false,
       number_of_winners: 5,
-      selection_criteria: SELECTION_CRITERIA.VOTES,
       host_id: '',
       description: '',
     });
     setCurrentStep(1);
+  };
+
+  // Open edit modal with competition data
+  const openEditModal = (comp) => {
+    setSelectedCompetition(comp);
+    setFormData({
+      organization_id: comp.organization_id,
+      city_id: comp.city_id,
+      name: comp.name || '',
+      season: comp.season,
+      number_of_winners: comp.number_of_winners,
+      host_id: comp.host_id || '',
+      description: comp.description || '',
+    });
+    setShowEditModal(true);
+  };
+
+  // Update competition
+  const handleUpdate = async () => {
+    if (!selectedCompetition) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({
+          name: formData.name || null,
+          season: formData.season,
+          number_of_winners: formData.number_of_winners,
+          host_id: formData.host_id || null,
+          description: formData.description || '',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedCompetition.id);
+
+      if (error) throw error;
+
+      toast.success('Competition updated successfully');
+      setShowEditModal(false);
+      setSelectedCompetition(null);
+      resetForm();
+      fetchData();
+    } catch (err) {
+      toast.error(`Failed to update competition: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Get display name for competition
@@ -485,43 +526,6 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
               Competition Details
             </h4>
 
-            {/* Include Events */}
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>Include Events?</label>
-              <div style={{ display: 'flex', gap: spacing.md }}>
-                <button
-                  onClick={() => setFormData(prev => ({ ...prev, has_events: true }))}
-                  style={{
-                    flex: 1,
-                    padding: spacing.md,
-                    background: formData.has_events ? 'rgba(212,175,55,0.2)' : colors.background.secondary,
-                    border: `1px solid ${formData.has_events ? colors.gold.primary : colors.border.light}`,
-                    borderRadius: borderRadius.lg,
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <PartyPopper size={20} style={{ marginBottom: spacing.xs }} />
-                  <div>Yes</div>
-                </button>
-                <button
-                  onClick={() => setFormData(prev => ({ ...prev, has_events: false }))}
-                  style={{
-                    flex: 1,
-                    padding: spacing.md,
-                    background: !formData.has_events ? 'rgba(212,175,55,0.2)' : colors.background.secondary,
-                    border: `1px solid ${!formData.has_events ? colors.gold.primary : colors.border.light}`,
-                    borderRadius: borderRadius.lg,
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <X size={20} style={{ marginBottom: spacing.xs }} />
-                  <div>No</div>
-                </button>
-              </div>
-            </div>
-
             {/* Number of Winners */}
             <div style={{ marginBottom: spacing.lg }}>
               <label style={labelStyle}>Number of Winners</label>
@@ -534,39 +538,6 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                   <option key={num} value={num}>{num}</option>
                 ))}
               </select>
-            </div>
-
-            {/* Selection Criteria */}
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>Winner Selection Criteria</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-                {Object.entries(SELECTION_CRITERIA_CONFIG).map(([key, config]) => (
-                  <div
-                    key={key}
-                    onClick={() => setFormData(prev => ({ ...prev, selection_criteria: key }))}
-                    style={{
-                      padding: spacing.md,
-                      background: formData.selection_criteria === key
-                        ? 'rgba(212,175,55,0.2)'
-                        : colors.background.secondary,
-                      border: `1px solid ${formData.selection_criteria === key ? colors.gold.primary : colors.border.light}`,
-                      borderRadius: borderRadius.lg,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                    }}
-                  >
-                    {key === 'votes' ? <Vote size={20} /> : <Trophy size={20} />}
-                    <div>
-                      <p style={{ fontWeight: typography.fontWeight.medium }}>{config.label}</p>
-                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                        {config.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
 
             {/* Assign Host (optional) */}
@@ -625,18 +596,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                 <p style={{ fontWeight: typography.fontWeight.medium }}>{formData.season}</p>
               </div>
               <div style={{ marginBottom: spacing.md }}>
-                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Events:</span>
-                <p style={{ fontWeight: typography.fontWeight.medium }}>{formData.has_events ? 'Yes' : 'No'}</p>
-              </div>
-              <div style={{ marginBottom: spacing.md }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Winners:</span>
                 <p style={{ fontWeight: typography.fontWeight.medium }}>{formData.number_of_winners}</p>
-              </div>
-              <div style={{ marginBottom: spacing.md }}>
-                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Selection:</span>
-                <p style={{ fontWeight: typography.fontWeight.medium }}>
-                  {SELECTION_CRITERIA_CONFIG[formData.selection_criteria]?.label}
-                </p>
               </div>
               <div>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Host:</span>
@@ -837,6 +798,12 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                       onClick={() => onOpenAdvancedSettings({ ...comp, name: getCompetitionName(comp) })}
                     />
                   )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={Edit2}
+                    onClick={() => openEditModal(comp)}
+                  />
                   <Button
                     variant="secondary"
                     size="sm"
@@ -1126,6 +1093,123 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                   {isSubmitting ? 'Deleting...' : 'Delete'}
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Competition Modal */}
+      {showEditModal && selectedCompetition && (
+        <div style={modalOverlayStyle} onClick={() => { setShowEditModal(false); setSelectedCompetition(null); resetForm(); }}>
+          <div style={{ ...modalStyle, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              padding: spacing.xl,
+              borderBottom: `1px solid ${colors.border.light}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold }}>
+                Edit Competition
+              </h3>
+              <button
+                onClick={() => { setShowEditModal(false); setSelectedCompetition(null); resetForm(); }}
+                style={{ background: 'none', border: 'none', color: colors.text.secondary, cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: spacing.xl }}>
+              {/* Competition Name */}
+              <div style={{ marginBottom: spacing.lg }}>
+                <label style={labelStyle}>Competition Name</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Most Eligible Miami"
+                  style={inputStyle}
+                />
+                <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                  Leave blank to auto-generate from organization and city.
+                </p>
+              </div>
+
+              {/* Season */}
+              <div style={{ marginBottom: spacing.lg }}>
+                <label style={labelStyle}>Season</label>
+                <input
+                  type="number"
+                  value={formData.season}
+                  onChange={(e) => setFormData(prev => ({ ...prev, season: parseInt(e.target.value) }))}
+                  style={inputStyle}
+                />
+              </div>
+
+              {/* Number of Winners */}
+              <div style={{ marginBottom: spacing.lg }}>
+                <label style={labelStyle}>Number of Winners</label>
+                <select
+                  value={formData.number_of_winners}
+                  onChange={(e) => setFormData(prev => ({ ...prev, number_of_winners: parseInt(e.target.value) }))}
+                  style={selectStyle}
+                >
+                  {[1, 3, 5, 10, 15, 20].map(num => (
+                    <option key={num} value={num}>{num}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Assign Host */}
+              <div style={{ marginBottom: spacing.lg }}>
+                <label style={labelStyle}>Host</label>
+                <select
+                  value={formData.host_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, host_id: e.target.value }))}
+                  style={selectStyle}
+                >
+                  <option value="">No host assigned</option>
+                  {hosts.map(host => (
+                    <option key={host.id} value={host.id}>
+                      {getHostName(host) || host.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div style={{ marginBottom: spacing.lg }}>
+                <label style={labelStyle}>Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Competition description..."
+                  rows={3}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
+              </div>
+            </div>
+
+            <div style={{
+              padding: spacing.xl,
+              borderTop: `1px solid ${colors.border.light}`,
+              display: 'flex',
+              gap: spacing.md,
+              justifyContent: 'flex-end',
+            }}>
+              <Button
+                variant="secondary"
+                onClick={() => { setShowEditModal(false); setSelectedCompetition(null); resetForm(); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdate}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </Button>
             </div>
           </div>
         </div>
