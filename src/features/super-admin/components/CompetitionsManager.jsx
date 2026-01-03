@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
-  ChevronRight, ChevronLeft, Vote, Trophy, Building2, X, Loader,
-  Settings, Eye, Archive, AlertTriangle, PartyPopper, Activity
+  ChevronRight, ChevronLeft, Building2, X, Loader,
+  Settings, Eye, Archive, AlertTriangle, Activity
 } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -11,8 +11,6 @@ import { useToast } from '../../../contexts/ToastContext';
 import {
   COMPETITION_STATUS,
   STATUS_CONFIG,
-  SELECTION_CRITERIA,
-  SELECTION_CRITERIA_CONFIG,
   DEFAULT_COMPETITION,
   generateCompetitionUrl,
 } from '../../../types/competition';
@@ -50,9 +48,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     city_id: '',
     name: '', // Custom competition name
     season: new Date().getFullYear() + 1,
-    has_events: false,
     number_of_winners: 5,
-    selection_criteria: SELECTION_CRITERIA.VOTES,
     host_id: '',
     description: '',
   });
@@ -144,9 +140,9 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
           season: formData.season,
           status: COMPETITION_STATUS.DRAFT,
           entry_type: 'nominations',
-          has_events: formData.has_events,
+          has_events: true, // Always enable events
           number_of_winners: formData.number_of_winners,
-          selection_criteria: formData.selection_criteria,
+          selection_criteria: 'votes', // Default to public votes
           host_id: formData.host_id || null,
           description: formData.description || '',
         })
@@ -252,9 +248,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       city_id: '',
       name: '',
       season: new Date().getFullYear() + 1,
-      has_events: false,
       number_of_winners: 5,
-      selection_criteria: SELECTION_CRITERIA.VOTES,
       host_id: '',
       description: '',
     });
@@ -485,43 +479,6 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
               Competition Details
             </h4>
 
-            {/* Include Events */}
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>Include Events?</label>
-              <div style={{ display: 'flex', gap: spacing.md }}>
-                <button
-                  onClick={() => setFormData(prev => ({ ...prev, has_events: true }))}
-                  style={{
-                    flex: 1,
-                    padding: spacing.md,
-                    background: formData.has_events ? 'rgba(212,175,55,0.2)' : colors.background.secondary,
-                    border: `1px solid ${formData.has_events ? colors.gold.primary : colors.border.light}`,
-                    borderRadius: borderRadius.lg,
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <PartyPopper size={20} style={{ marginBottom: spacing.xs }} />
-                  <div>Yes</div>
-                </button>
-                <button
-                  onClick={() => setFormData(prev => ({ ...prev, has_events: false }))}
-                  style={{
-                    flex: 1,
-                    padding: spacing.md,
-                    background: !formData.has_events ? 'rgba(212,175,55,0.2)' : colors.background.secondary,
-                    border: `1px solid ${!formData.has_events ? colors.gold.primary : colors.border.light}`,
-                    borderRadius: borderRadius.lg,
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <X size={20} style={{ marginBottom: spacing.xs }} />
-                  <div>No</div>
-                </button>
-              </div>
-            </div>
-
             {/* Number of Winners */}
             <div style={{ marginBottom: spacing.lg }}>
               <label style={labelStyle}>Number of Winners</label>
@@ -534,39 +491,6 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                   <option key={num} value={num}>{num}</option>
                 ))}
               </select>
-            </div>
-
-            {/* Selection Criteria */}
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>Winner Selection Criteria</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-                {Object.entries(SELECTION_CRITERIA_CONFIG).map(([key, config]) => (
-                  <div
-                    key={key}
-                    onClick={() => setFormData(prev => ({ ...prev, selection_criteria: key }))}
-                    style={{
-                      padding: spacing.md,
-                      background: formData.selection_criteria === key
-                        ? 'rgba(212,175,55,0.2)'
-                        : colors.background.secondary,
-                      border: `1px solid ${formData.selection_criteria === key ? colors.gold.primary : colors.border.light}`,
-                      borderRadius: borderRadius.lg,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                    }}
-                  >
-                    {key === 'votes' ? <Vote size={20} /> : <Trophy size={20} />}
-                    <div>
-                      <p style={{ fontWeight: typography.fontWeight.medium }}>{config.label}</p>
-                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                        {config.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
 
             {/* Assign Host (optional) */}
@@ -625,18 +549,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                 <p style={{ fontWeight: typography.fontWeight.medium }}>{formData.season}</p>
               </div>
               <div style={{ marginBottom: spacing.md }}>
-                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Events:</span>
-                <p style={{ fontWeight: typography.fontWeight.medium }}>{formData.has_events ? 'Yes' : 'No'}</p>
-              </div>
-              <div style={{ marginBottom: spacing.md }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Winners:</span>
                 <p style={{ fontWeight: typography.fontWeight.medium }}>{formData.number_of_winners}</p>
-              </div>
-              <div style={{ marginBottom: spacing.md }}>
-                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Selection:</span>
-                <p style={{ fontWeight: typography.fontWeight.medium }}>
-                  {SELECTION_CRITERIA_CONFIG[formData.selection_criteria]?.label}
-                </p>
               </div>
               <div>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Host:</span>
