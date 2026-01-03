@@ -194,41 +194,136 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
 
       {/* Contestant Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: spacing.xl }}>
-        {contestants.map((contestant, index) => (
+        {contestants.map((contestant, index) => {
+          const isEliminated = contestant.advancement_status === 'eliminated' || contestant.eliminated_in_round;
+          const isAdvancing = contestant.advancement_status === 'advancing';
+          const isWinner = contestant.advancement_status === 'winner';
+          const isRunnerUp = contestant.advancement_status === 'runner_up';
+
+          return (
           <div
             key={contestant.id}
             onClick={() => onViewProfile?.(contestant)}
             style={{
               background: colors.background.card,
-              border: index < 3 ? `2px solid rgba(212,175,55,0.4)` : `1px solid ${colors.border.light}`,
+              border: isEliminated
+                ? `1px solid ${colors.border.light}`
+                : isAdvancing || isWinner
+                  ? `2px solid rgba(212,175,55,0.6)`
+                  : index < 3
+                    ? `2px solid rgba(212,175,55,0.4)`
+                    : `1px solid ${colors.border.light}`,
               borderRadius: borderRadius.xxl,
               overflow: 'hidden',
               cursor: 'pointer',
               transition: 'all 0.3s',
               position: 'relative',
+              opacity: isEliminated ? 0.6 : 1,
+              filter: isEliminated ? 'grayscale(50%)' : 'none',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = index < 3
-                ? '0 12px 40px rgba(212,175,55,0.3)'
-                : '0 8px 24px rgba(0,0,0,0.4)';
+              e.currentTarget.style.boxShadow = isEliminated
+                ? '0 4px 12px rgba(0,0,0,0.2)'
+                : (isAdvancing || isWinner || index < 3)
+                  ? '0 12px 40px rgba(212,175,55,0.3)'
+                  : '0 8px 24px rgba(0,0,0,0.4)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = 'none';
             }}
           >
+            {/* Eliminated Badge */}
+            {isEliminated && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  background: 'rgba(107, 114, 128, 0.9)',
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  textAlign: 'center',
+                  zIndex: 10,
+                }}
+              >
+                <span style={{
+                  color: '#fff',
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.medium,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                }}>
+                  Eliminated{contestant.eliminated_in_round ? ` in Round ${contestant.eliminated_in_round}` : ''}
+                </span>
+              </div>
+            )}
+
+            {/* Advancing Badge */}
+            {isAdvancing && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  background: 'linear-gradient(135deg, rgba(212,175,55,0.9), rgba(251,191,36,0.9))',
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  textAlign: 'center',
+                  zIndex: 10,
+                }}
+              >
+                <span style={{
+                  color: '#0a0a0f',
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.bold,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                }}>
+                  Advancing
+                </span>
+              </div>
+            )}
+
+            {/* Winner Badge */}
+            {isWinner && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  textAlign: 'center',
+                  zIndex: 10,
+                }}
+              >
+                <span style={{
+                  color: '#0a0a0f',
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.bold,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                }}>
+                  Winner
+                </span>
+              </div>
+            )}
+
             {/* Rank Badge */}
             <div
               style={{
                 position: 'absolute',
-                top: spacing.md,
+                top: isEliminated || isAdvancing || isWinner ? spacing.xxl : spacing.md,
                 left: spacing.md,
                 width: '32px',
                 height: '32px',
                 borderRadius: borderRadius.md,
-                background:
-                  index === 0
+                background: isEliminated
+                  ? 'rgba(107, 114, 128, 0.7)'
+                  : index === 0
                     ? 'linear-gradient(135deg, #d4af37, #f4d03f)'
                     : index === 1
                       ? 'linear-gradient(135deg, #c0c0c0, #e8e8e8)'
@@ -241,7 +336,7 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
                 justifyContent: 'center',
                 fontSize: typography.fontSize.md,
                 fontWeight: typography.fontWeight.bold,
-                color: index < 3 ? '#0a0a0f' : '#fff',
+                color: isEliminated ? '#fff' : index < 3 ? '#0a0a0f' : '#fff',
                 zIndex: 2,
               }}
             >
@@ -312,6 +407,10 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
                 <Badge variant="info" size="md">
                   <Award size={12} /> Judging
                 </Badge>
+              ) : isEliminated ? (
+                <Badge variant="secondary" size="md">
+                  Eliminated
+                </Badge>
               ) : !isAuthenticated ? (
                 <Button
                   onClick={(e) => {
@@ -337,7 +436,8 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
