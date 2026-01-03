@@ -382,7 +382,7 @@ export default function TimelineSettings({ competition, onSave }) {
       if (onSave) onSave();
     } catch (err) {
       console.error('Error saving settings:', err);
-      toast.error('Failed to save settings');
+      toast.error(`Failed to save settings: ${err.message || err.code || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
