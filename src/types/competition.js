@@ -308,7 +308,56 @@ export const DEFAULT_VOTING_ROUND = {
   round_order: 1,
   start_date: null,
   end_date: null,
-  contestants_advance: 10,
+  contestants_advance: null, // Optional - null means no limit
+  votes_accumulate: false, // Default: votes reset each round
+};
+
+export const DEFAULT_NOMINATION_PERIOD = {
+  title: 'Nominations',
+  period_order: 1,
+  start_date: null,
+  end_date: null,
+  max_submissions: null, // Optional limit on submissions
+};
+
+// =============================================================================
+// ADVANCEMENT STATUS
+// =============================================================================
+
+export const ADVANCEMENT_STATUS = {
+  ACTIVE: 'active',
+  ADVANCING: 'advancing',
+  ELIMINATED: 'eliminated',
+  WINNER: 'winner',
+  RUNNER_UP: 'runner_up',
+};
+
+export const ADVANCEMENT_STATUS_CONFIG = {
+  [ADVANCEMENT_STATUS.ACTIVE]: {
+    label: 'Active',
+    color: '#22c55e',
+    bg: 'rgba(34, 197, 94, 0.2)',
+  },
+  [ADVANCEMENT_STATUS.ADVANCING]: {
+    label: 'Advancing',
+    color: '#d4af37',
+    bg: 'rgba(212, 175, 55, 0.2)',
+  },
+  [ADVANCEMENT_STATUS.ELIMINATED]: {
+    label: 'Eliminated',
+    color: '#6b7280',
+    bg: 'rgba(107, 114, 128, 0.2)',
+  },
+  [ADVANCEMENT_STATUS.WINNER]: {
+    label: 'Winner',
+    color: '#d4af37',
+    bg: 'rgba(212, 175, 55, 0.3)',
+  },
+  [ADVANCEMENT_STATUS.RUNNER_UP]: {
+    label: 'Runner Up',
+    color: '#c0c0c0',
+    bg: 'rgba(192, 192, 192, 0.2)',
+  },
 };
 
 export const DEFAULT_PRIZE = {

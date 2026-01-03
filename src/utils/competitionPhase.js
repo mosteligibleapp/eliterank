@@ -57,6 +57,7 @@ export function computeCompetitionPhase(competition) {
  * Supports:
  * - Flat fields on competition (nomination_start, voting_start, etc.)
  * - Nested settings object (competition.settings.nomination_start, etc.)
+ * - nomination_periods array (new flexible timeline)
  * - voting_rounds array (takes precedence for voting phase)
  *
  * @param {Object} competition - Competition with timeline fields
@@ -74,8 +75,35 @@ export function computeTimelinePhase(competition) {
     return value ? new Date(value) : null;
   };
 
-  const nominationStart = getDate('nomination_start');
-  const nominationEnd = getDate('nomination_end');
+  // Get nomination dates - from nomination_periods array or legacy flat fields
+  let nominationStart = null;
+  let nominationEnd = null;
+
+  const nominationPeriods = competition.nomination_periods || [];
+  if (nominationPeriods.length > 0) {
+    // Sort periods by order
+    const sortedPeriods = [...nominationPeriods].sort((a, b) => (a.period_order || 0) - (b.period_order || 0));
+
+    // Check if currently in any nomination period
+    for (const period of sortedPeriods) {
+      const periodStart = period.start_date ? new Date(period.start_date) : null;
+      const periodEnd = period.end_date ? new Date(period.end_date) : null;
+      if (periodStart && periodEnd && now >= periodStart && now < periodEnd) {
+        return TIMELINE_PHASES.NOMINATION;
+      }
+    }
+
+    // Get overall nomination window from first and last period
+    const firstPeriod = sortedPeriods[0];
+    const lastPeriod = sortedPeriods[sortedPeriods.length - 1];
+    nominationStart = firstPeriod?.start_date ? new Date(firstPeriod.start_date) : null;
+    nominationEnd = lastPeriod?.end_date ? new Date(lastPeriod.end_date) : null;
+  } else {
+    // Fall back to legacy flat fields
+    nominationStart = getDate('nomination_start');
+    nominationEnd = getDate('nomination_end');
+  }
+
   const finalsDate = getDate('finale_date', 'finals_date') || getDate('finals_date');
 
   // Get voting dates - from voting_rounds if available, otherwise from flat fields
@@ -179,11 +207,20 @@ export function isCompetitionViewable(phase) {
 /**
  * Check if nomination dates are set (required for active status)
  * Handles both snake_case (DB) and camelCase (UI) field names
+ * Also checks for nomination_periods array
  *
  * @param {Object} competition - Competition object
  * @returns {boolean}
  */
 export function hasNominationDates(competition) {
+  // Check for new nomination_periods array first
+  const nominationPeriods = competition?.nomination_periods || [];
+  if (nominationPeriods.length > 0) {
+    // Check if at least one period has dates
+    return nominationPeriods.some(p => p.start_date || p.end_date);
+  }
+
+  // Fall back to legacy flat fields
   const nominationStart = competition?.nomination_start || competition?.nominationStart;
   const nominationEnd = competition?.nomination_end || competition?.nominationEnd;
   return !!(nominationStart && nominationEnd);
