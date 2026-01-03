@@ -1,9 +1,9 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { Modal, Button, Input, Select, FormGrid } from '../ui';
+import { Modal, Button, Input, FormGrid } from '../ui';
 import { useModalForm } from '../../hooks';
 
-const INITIAL_STATE = { name: '', date: '', endDate: '', time: '', status: 'upcoming', location: '' };
+const INITIAL_STATE = { name: '', date: '', endDate: '', time: '', location: '' };
 
 export default function EventModal({
   isOpen,
@@ -15,14 +15,9 @@ export default function EventModal({
   const isEditing = !!event?.id;
 
   const handleSave = () => {
+    // Status is auto-calculated based on date, not stored
     onSave(getFormData());
   };
-
-  const statusOptions = [
-    { value: 'upcoming', label: 'Upcoming' },
-    { value: 'active', label: 'Active / Live' },
-    { value: 'completed', label: 'Completed' },
-  ];
 
   return (
     <Modal
@@ -68,19 +63,13 @@ export default function EventModal({
           value={form.time}
           onChange={(e) => updateField('time', e.target.value)}
         />
-        <Select
-          label="Status"
-          value={form.status}
-          onChange={(e) => updateField('status', e.target.value)}
-          options={statusOptions}
+        <Input
+          label="Location (Optional)"
+          value={form.location}
+          onChange={(e) => updateField('location', e.target.value)}
+          placeholder="e.g., The Plaza Hotel"
         />
       </FormGrid>
-      <Input
-        label="Location (Optional)"
-        value={form.location}
-        onChange={(e) => updateField('location', e.target.value)}
-        placeholder="e.g., The Plaza Hotel"
-      />
     </Modal>
   );
 }

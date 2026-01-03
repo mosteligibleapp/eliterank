@@ -6,7 +6,7 @@ import {
   Pin, MapPin, Clock, Sparkles, TrendingUp, Hash, Award, Scale
 } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../components/ui';
-import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, AddPersonModal } from '../../components/modals';
+import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, RuleModal, AddPersonModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useToast } from '../../contexts/ToastContext';
 import { supabase } from '../../lib/supabase';
@@ -193,6 +193,7 @@ export default function CompetitionDashboard({
   const [judgeModal, setJudgeModal] = useState({ isOpen: false, judge: null });
   const [sponsorModal, setSponsorModal] = useState({ isOpen: false, sponsor: null });
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
+  const [ruleModal, setRuleModal] = useState({ isOpen: false, rule: null });
 
   // Processing states
   const [processingId, setProcessingId] = useState(null);
@@ -1456,7 +1457,7 @@ export default function CompetitionDashboard({
         <Panel
           title={`Rules (${data.rules.length})`}
           icon={FileText}
-          action={<Button size="sm" icon={Plus} onClick={() => addRule({ sectionTitle: 'New Rule Section', sectionContent: '' })}>Add Rule</Button>}
+          action={<Button size="sm" icon={Plus} onClick={() => setRuleModal({ isOpen: true, rule: null })}>Add Rule</Button>}
         >
           <div style={{ padding: spacing.xl }}>
             {data.rules.length === 0 ? (
@@ -1474,15 +1475,29 @@ export default function CompetitionDashboard({
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm }}>
                       <h4 style={{ fontWeight: typography.fontWeight.semibold }}>{rule.sectionTitle}</h4>
-                      <button
-                        onClick={() => deleteRule(rule.id)}
-                        style={{
-                          padding: spacing.sm,
-                          background: 'transparent',
-                          border: `1px solid rgba(239,68,68,0.3)`,
-                          borderRadius: borderRadius.md,
-                          color: '#ef4444',
-                          cursor: 'pointer',
+                      <div style={{ display: 'flex', gap: spacing.sm }}>
+                        <button
+                          onClick={() => setRuleModal({ isOpen: true, rule })}
+                          style={{
+                            padding: spacing.sm,
+                            background: 'transparent',
+                            border: `1px solid ${colors.border.light}`,
+                            borderRadius: borderRadius.md,
+                            color: colors.text.secondary,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => deleteRule(rule.id)}
+                          style={{
+                            padding: spacing.sm,
+                            background: 'transparent',
+                            border: `1px solid rgba(239,68,68,0.3)`,
+                            borderRadius: borderRadius.md,
+                            color: '#ef4444',
+                            cursor: 'pointer',
                         }}
                       >
                         <Trash2 size={14} />
@@ -1754,6 +1769,19 @@ export default function CompetitionDashboard({
             await addEvent(eventData);
           }
           setEventModal({ isOpen: false, event: null });
+        }}
+      />
+      <RuleModal
+        isOpen={ruleModal.isOpen}
+        onClose={() => setRuleModal({ isOpen: false, rule: null })}
+        rule={ruleModal.rule}
+        onSave={async (ruleData) => {
+          if (ruleModal.rule) {
+            await updateRule(ruleModal.rule.id, ruleData);
+          } else {
+            await addRule(ruleData);
+          }
+          setRuleModal({ isOpen: false, rule: null });
         }}
       />
       <AddPersonModal

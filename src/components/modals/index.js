@@ -2,6 +2,7 @@
 export { default as JudgeModal } from './JudgeModal';
 export { default as SponsorModal } from './SponsorModal';
 export { default as EventModal } from './EventModal';
+export { default as RuleModal } from './RuleModal';
 export { default as AnnouncementModal } from './AnnouncementModal';
 export { default as ConvertNomineeModal } from './ConvertNomineeModal';
 export { default as ApproveNomineeModal } from './ApproveNomineeModal';
