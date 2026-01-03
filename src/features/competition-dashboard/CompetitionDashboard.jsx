@@ -3,7 +3,7 @@ import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, UserPlus, FileText, Settings as SettingsIcon,
   User, Calendar, Eye, Loader, AlertCircle, Archive, RotateCcw, ExternalLink,
   UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Edit, Trash2,
-  Pin, MapPin, Clock, Sparkles
+  Pin, MapPin, Clock, Sparkles, Trophy as TrophyIcon
 } from 'lucide-react';
 import { Button, Badge, Avatar, Panel, Modal, Input, Textarea } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, AddPersonModal } from '../../components/modals';
@@ -14,6 +14,7 @@ import { formatRelativeTime, formatEventDateRange } from '../../utils/formatters
 import { computeEventStatus, formatDateForDisplay } from '../../utils/dateUtils';
 import WinnersManager from '../super-admin/components/WinnersManager';
 import TimelineSettings from './components/TimelineSettings';
+import AdvancementManager from './components/AdvancementManager';
 
 // Reusable components from overview
 import CurrentPhaseCard from '../overview/components/CurrentPhaseCard';
@@ -28,6 +29,7 @@ const getEventStatus = (event) => {
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'nominations', label: 'Nominations', icon: UserPlus },
+  { id: 'advancement', label: 'Advancement', icon: TrophyIcon },
   { id: 'community', label: 'Community', icon: FileText },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
   { id: 'profile', label: 'Host Profile', icon: User },
@@ -889,6 +891,25 @@ export default function CompetitionDashboard({
   };
 
   // ============================================================================
+  // ADVANCEMENT TAB
+  // ============================================================================
+
+  const renderAdvancement = () => {
+    return (
+      <div>
+        <Panel title="Round Advancement" icon={TrophyIcon}>
+          <div style={{ padding: spacing.xl }}>
+            <AdvancementManager
+              competition={competition}
+              onSave={refresh}
+            />
+          </div>
+        </Panel>
+      </div>
+    );
+  };
+
+  // ============================================================================
   // SETTINGS TAB
   // ============================================================================
 
@@ -1438,6 +1459,7 @@ export default function CompetitionDashboard({
     switch (activeTab) {
       case 'overview': return renderOverview();
       case 'nominations': return renderNominations();
+      case 'advancement': return renderAdvancement();
       case 'community': return renderCommunity();
       case 'settings': return renderSettings();
       case 'profile': return renderHostProfile();
