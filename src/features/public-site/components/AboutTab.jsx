@@ -9,6 +9,13 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
   const otherSponsors = sponsors.filter((s) => s.tier !== 'Platinum');
   const publicEvents = events.filter((e) => e.publicVisible !== false);
 
+  // Get timeline data - prefer new flexible arrays, fall back to legacy fields
+  const nominationPeriods = competition?.nomination_periods || [];
+  const votingRounds = competition?.voting_rounds || [];
+  const settings = Array.isArray(competition?.settings) ? competition.settings[0] : competition?.settings;
+  const finaleTitle = settings?.finale_title || 'Finals';
+  const finaleDate = settings?.finale_date || competition?.finals_date;
+
   // Helper to format dates for display
   const formatKeyDate = (dateStr) => {
     if (!dateStr) return null;
@@ -37,8 +44,11 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
     return 'active';
   };
 
-  // Check if we have any timeline data
+  // Check if we have any timeline data (new or legacy)
   const hasTimelineData = competition && (
+    nominationPeriods.length > 0 ||
+    votingRounds.length > 0 ||
+    finaleDate ||
     competition.nomination_start ||
     competition.voting_start ||
     competition.finals_date
@@ -227,8 +237,60 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
               gap: spacing.xl,
               marginBottom: spacing.xxl,
             }}>
-              {/* Nomination Period */}
-              {competition.nomination_start && (
+              {/* Nomination/Application Periods - New flexible format */}
+              {nominationPeriods.length > 0 ? (
+                nominationPeriods.map((period, index) => (
+                  <div key={period.id || index} style={{
+                    background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.02))',
+                    border: '1px solid rgba(212,175,55,0.2)',
+                    borderRadius: borderRadius.xxl,
+                    padding: spacing.xxl,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '100px',
+                      height: '100px',
+                      background: 'radial-gradient(circle at top right, rgba(212,175,55,0.15), transparent)',
+                      borderRadius: '0 0 0 100%',
+                    }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        background: 'rgba(212,175,55,0.2)',
+                        borderRadius: borderRadius.lg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <UserPlus size={24} style={{ color: '#d4af37' }} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                          {period.title || 'Nominations'}
+                        </p>
+                        <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#d4af37' }}>
+                          {(() => {
+                            const status = getDateStatus(period.start_date, period.end_date);
+                            if (status === 'active') return 'Open Now';
+                            if (status === 'upcoming') return 'Coming Soon';
+                            return 'Closed';
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
+                      {period.start_date && <p><strong style={{ color: '#fff' }}>Opens:</strong> {formatKeyDate(period.start_date)}</p>}
+                      {period.end_date && <p><strong style={{ color: '#fff' }}>Closes:</strong> {formatKeyDate(period.end_date)}</p>}
+                    </div>
+                  </div>
+                ))
+              ) : competition.nomination_start && (
+                /* Legacy fallback for old data */
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.02))',
                   border: '1px solid rgba(212,175,55,0.2)',
@@ -281,8 +343,63 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
                 </div>
               )}
 
-              {/* Voting Period */}
-              {competition.voting_start && (
+              {/* Voting Rounds - New flexible format */}
+              {votingRounds.length > 0 ? (
+                votingRounds.map((round, index) => (
+                  <div key={round.id || index} style={{
+                    background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.02))',
+                    border: '1px solid rgba(139,92,246,0.2)',
+                    borderRadius: borderRadius.xxl,
+                    padding: spacing.xxl,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '100px',
+                      height: '100px',
+                      background: 'radial-gradient(circle at top right, rgba(139,92,246,0.15), transparent)',
+                      borderRadius: '0 0 0 100%',
+                    }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        background: 'rgba(139,92,246,0.2)',
+                        borderRadius: borderRadius.lg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Vote size={24} style={{ color: '#8b5cf6' }} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                          {round.title || `Round ${index + 1}`}
+                        </p>
+                        <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#8b5cf6' }}>
+                          {(() => {
+                            const status = getDateStatus(round.start_date, round.end_date);
+                            if (status === 'active') return 'Live Now';
+                            if (status === 'upcoming') return 'Coming Soon';
+                            return 'Closed';
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
+                      {round.start_date && <p><strong style={{ color: '#fff' }}>Opens:</strong> {formatKeyDate(round.start_date)}</p>}
+                      {round.end_date && <p><strong style={{ color: '#fff' }}>Closes:</strong> {formatKeyDate(round.end_date)}</p>}
+                      {round.contestants_advance && (
+                        <p><strong style={{ color: '#fff' }}>Top {round.contestants_advance}</strong> advance</p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : competition.voting_start && (
+                /* Legacy fallback */
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.02))',
                   border: '1px solid rgba(139,92,246,0.2)',
@@ -335,8 +452,8 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
                 </div>
               )}
 
-              {/* Finals Date */}
-              {competition.finals_date && (
+              {/* Finals/End Date - Use custom title */}
+              {finaleDate && (
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.02))',
                   border: '1px solid rgba(34,197,94,0.2)',
@@ -368,15 +485,15 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
                     </div>
                     <div>
                       <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                        Finals & Award Ceremony
+                        {finaleTitle}
                       </p>
                       <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#22c55e' }}>
-                        {new Date() >= new Date(competition.finals_date) ? 'Completed' : 'Mark Your Calendar'}
+                        {new Date() >= new Date(finaleDate) ? 'Completed' : 'Mark Your Calendar'}
                       </p>
                     </div>
                   </div>
                   <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
-                    <p><strong style={{ color: '#fff' }}>Date:</strong> {formatKeyDate(competition.finals_date)}</p>
+                    <p><strong style={{ color: '#fff' }}>Date:</strong> {formatKeyDate(finaleDate)}</p>
                   </div>
                 </div>
               )}

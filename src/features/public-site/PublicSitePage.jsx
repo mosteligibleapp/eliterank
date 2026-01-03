@@ -83,13 +83,16 @@ export default function PublicSitePage({
       }
 
       try {
-        const [contestantsResult, eventsResult, announcementsResult, judgesResult, sponsorsResult, hostResult] = await Promise.all([
+        const [contestantsResult, eventsResult, announcementsResult, judgesResult, sponsorsResult, hostResult, nominationPeriodsResult, votingRoundsResult, settingsResult] = await Promise.all([
           supabase.from('contestants').select('*, profile:profiles(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests, gallery)').eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
           supabase.from('judges').select('*, profile:profiles(id, first_name, last_name, email, avatar_url, bio, instagram, city, interests)').eq('competition_id', competitionId).order('sort_order'),
           supabase.from('sponsors').select('*').eq('competition_id', competitionId).order('sort_order'),
           competition?.host_id ? supabase.from('profiles').select('*').eq('id', competition.host_id).single() : Promise.resolve({ data: null }),
+          supabase.from('nomination_periods').select('*').eq('competition_id', competitionId).order('period_order'),
+          supabase.from('voting_rounds').select('*').eq('competition_id', competitionId).order('round_order'),
+          supabase.from('competition_settings').select('*').eq('competition_id', competitionId).maybeSingle(),
         ]);
 
         const hostProfile = hostResult.data;
@@ -159,6 +162,9 @@ export default function PublicSitePage({
             id: s.id, name: s.name, tier: s.tier, logo: s.logo_url, website: s.website,
           })),
           host: transformedHost,
+          nomination_periods: nominationPeriodsResult.data || [],
+          voting_rounds: votingRoundsResult.data || [],
+          settings: settingsResult.data || null,
           loading: false,
         });
       } catch (error) {
@@ -523,7 +529,12 @@ export default function PublicSitePage({
             events={displayEvents}
             host={displayHost}
             city={city}
-            competition={competition}
+            competition={{
+              ...competition,
+              nomination_periods: fetchedData.nomination_periods || [],
+              voting_rounds: fetchedData.voting_rounds || [],
+              settings: fetchedData.settings,
+            }}
             onViewProfile={handleViewProfile}
           />
         )}
