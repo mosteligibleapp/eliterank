@@ -295,6 +295,7 @@ export function useCompetitionDashboard(competitionId) {
           rulesDocUrl: competition.rules_doc_url,
           description: competition.description,
           winners: competition.winners || [],
+          nominationFormConfig: competition.nomination_form_config,
         } : null,
       });
     } catch (err) {
