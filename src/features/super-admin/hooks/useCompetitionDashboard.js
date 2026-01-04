@@ -43,10 +43,10 @@ export function useCompetitionDashboard(competitionId) {
         competitionResult,
         profilesResult,
       ] = await Promise.all([
-        // Contestants ordered by votes (for leaderboard)
+        // Contestants ordered by votes (for leaderboard) - join with profiles for full data
         supabase
           .from('contestants')
-          .select('*')
+          .select('*, profile:profiles!user_id(*)')
           .eq('competition_id', competitionId)
           .order('votes', { ascending: false }),
 
@@ -57,10 +57,10 @@ export function useCompetitionDashboard(competitionId) {
           .eq('competition_id', competitionId)
           .order('created_at', { ascending: false }),
 
-        // Judges ordered by sort_order
+        // Judges ordered by sort_order - join with profiles for full data
         supabase
           .from('judges')
-          .select('*')
+          .select('*, profile:profiles!user_id(*)')
           .eq('competition_id', competitionId)
           .order('sort_order'),
 

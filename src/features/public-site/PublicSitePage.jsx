@@ -89,7 +89,7 @@ export default function PublicSitePage({
           supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
-          supabase.from('judges').select('*').eq('competition_id', competitionId).order('sort_order'),
+          supabase.from('judges').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('sort_order'),
           supabase.from('sponsors').select('*').eq('competition_id', competitionId).order('sort_order'),
           competition?.host_id ? supabase.from('profiles').select('*').eq('id', competition.host_id).single() : Promise.resolve({ data: null }),
           supabase.from('voting_rounds').select('*').eq('competition_id', competitionId).order('round_order'),
@@ -148,13 +148,25 @@ export default function PublicSitePage({
           announcements: (announcementsResult.data || []).map(a => ({
             id: a.id, title: a.title, content: a.content, date: a.published_at, pinned: a.pinned,
           })),
-          judges: (judgesResult.data || []).map(j => ({
-            ...j, // Pass through all fields for full profile view
-            id: j.id, name: j.name, title: j.title, bio: j.bio,
-            avatarUrl: j.avatar_url, avatar_url: j.avatar_url,
-            instagram: j.instagram, twitter: j.twitter, linkedin: j.linkedin,
-            city: j.city, hobbies: j.interests || [], gallery: j.gallery || [],
-          })),
+          judges: (judgesResult.data || []).map(j => {
+            // Merge profile data with judge data (profile has more fields)
+            const profile = j.profile || {};
+            return {
+              ...j,
+              id: j.id,
+              name: j.name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+              title: j.title || profile.occupation,
+              bio: j.bio || profile.bio,
+              avatarUrl: j.avatar_url || profile.avatar_url,
+              avatar_url: j.avatar_url || profile.avatar_url,
+              instagram: j.instagram || profile.instagram,
+              twitter: j.twitter || profile.twitter,
+              linkedin: j.linkedin || profile.linkedin,
+              city: j.city || profile.city,
+              hobbies: j.interests || profile.interests || [],
+              gallery: j.gallery || profile.gallery || [],
+            };
+          }),
           sponsors: (sponsorsResult.data || []).map(s => ({
             id: s.id, name: s.name, tier: s.tier, logo: s.logo_url, website: s.website,
           })),
