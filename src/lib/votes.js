@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 
 /**
  * Check if user has used their free vote today for this competition
+ * Uses RPC function (SECURITY DEFINER) to bypass RLS issues
  * @param {string} userId - The user's ID
  * @param {string} competitionId - The competition ID
  * @returns {Promise<boolean>} - True if already voted today
@@ -12,6 +13,21 @@ export async function hasUsedFreeVoteToday(userId, competitionId) {
   }
 
   try {
+    // Try RPC function first (bypasses RLS)
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('has_voted_today', {
+      p_user_id: userId,
+      p_competition_id: competitionId,
+    });
+
+    if (!rpcError && rpcResult !== null) {
+      return rpcResult;
+    }
+
+    // Fallback to direct query if RPC doesn't exist
+    if (rpcError) {
+      console.warn('RPC has_voted_today not available, using fallback:', rpcError.message);
+    }
+
     const today = new Date().toISOString().split('T')[0];
 
     const { data, error } = await supabase
@@ -25,7 +41,9 @@ export async function hasUsedFreeVoteToday(userId, competitionId) {
       .limit(1);
 
     if (error) {
-      console.error('Error checking daily vote:', error);
+      // 406/403 errors often mean RLS policies don't allow the query
+      // In this case, assume user hasn't voted (they'll get proper error on insert if they have)
+      console.warn('Could not check daily vote status (RLS may need updating):', error.code, error.message);
       return false;
     }
 

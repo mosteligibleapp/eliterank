@@ -22,10 +22,11 @@ export const COMPETITION_STATUSES = {
 
 // Timeline-based phases (used when status is "live")
 export const TIMELINE_PHASES = {
-  NOMINATION: 'nomination',
-  VOTING: 'voting',
-  JUDGING: 'judging',
-  COMPLETED: 'completed',
+  NOMINATION: 'nomination',   // During any active prospecting period
+  VOTING: 'voting',           // During an active voting round
+  JUDGING: 'judging',         // During an active judging round
+  BETWEEN_ROUNDS: 'between',  // Between rounds/periods
+  COMPLETED: 'completed',     // After finale date
 };
 
 /**
@@ -55,9 +56,9 @@ export function computeCompetitionPhase(competition) {
  * Compute the timeline-based phase for an active competition.
  *
  * Supports:
- * - Flat fields on competition (nomination_start, voting_start, etc.)
- * - Nested settings object (competition.settings.nomination_start, etc.)
- * - voting_rounds array (takes precedence for voting phase)
+ * - nomination_periods array (multiple prospecting periods with custom names)
+ * - voting_rounds array with round_type ('voting' or 'judging')
+ * - Flat fields fallback for backwards compatibility
  *
  * @param {Object} competition - Competition with timeline fields
  * @returns {string} The timeline phase
@@ -74,65 +75,90 @@ export function computeTimelinePhase(competition) {
     return value ? new Date(value) : null;
   };
 
-  const nominationStart = getDate('nomination_start');
-  const nominationEnd = getDate('nomination_end');
   const finalsDate = getDate('finale_date', 'finals_date') || getDate('finals_date');
-
-  // Get voting dates - from voting_rounds if available, otherwise from flat fields
-  let votingStart = null;
-  let votingEnd = null;
-
-  const votingRounds = competition.voting_rounds || [];
-  if (votingRounds.length > 0) {
-    // Sort rounds by order
-    const sortedRounds = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
-
-    // Check if currently in any voting round
-    for (const round of sortedRounds) {
-      const roundStart = round.start_date ? new Date(round.start_date) : null;
-      const roundEnd = round.end_date ? new Date(round.end_date) : null;
-      if (roundStart && roundEnd && now >= roundStart && now < roundEnd) {
-        return TIMELINE_PHASES.VOTING;
-      }
-    }
-
-    // Get overall voting window from first and last round
-    const firstRound = sortedRounds[0];
-    const lastRound = sortedRounds[sortedRounds.length - 1];
-    votingStart = firstRound?.start_date ? new Date(firstRound.start_date) : null;
-    votingEnd = lastRound?.end_date ? new Date(lastRound.end_date) : null;
-  } else {
-    // Fall back to flat fields or settings
-    votingStart = getDate('voting_start');
-    votingEnd = getDate('voting_end');
-  }
 
   // Phase 1: Completed - after finals date
   if (finalsDate && now >= finalsDate) {
     return TIMELINE_PHASES.COMPLETED;
   }
 
-  // Phase 2: Judging - after voting ends but before finals
-  if (votingEnd && now >= votingEnd) {
-    return TIMELINE_PHASES.JUDGING;
-  }
+  // Get nomination periods (new system)
+  const nominationPeriods = competition.nomination_periods || [];
 
-  // Phase 3: Voting - between voting start and end (if not using rounds)
-  if (votingStart && now >= votingStart) {
-    if (!votingEnd || now < votingEnd) {
+  // Get voting/judging rounds
+  const votingRounds = competition.voting_rounds || [];
+  const sortedRounds = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+
+  // Check if currently in any voting or judging round
+  for (const round of sortedRounds) {
+    const roundStart = round.start_date ? new Date(round.start_date) : null;
+    const roundEnd = round.end_date ? new Date(round.end_date) : null;
+    if (roundStart && roundEnd && now >= roundStart && now < roundEnd) {
+      // Return phase based on round_type
+      if (round.round_type === 'judging') {
+        return TIMELINE_PHASES.JUDGING;
+      }
       return TIMELINE_PHASES.VOTING;
     }
   }
 
-  // Phase 4: Nomination - between nomination start and end (or before voting starts)
-  if (nominationStart && now >= nominationStart) {
-    if (!votingStart || now < votingStart) {
-      return TIMELINE_PHASES.NOMINATION;
+  // Check if currently in any nomination/prospecting period (new system)
+  if (nominationPeriods.length > 0) {
+    const sortedPeriods = [...nominationPeriods].sort((a, b) => (a.period_order || 0) - (b.period_order || 0));
+
+    for (const period of sortedPeriods) {
+      const periodStart = period.start_date ? new Date(period.start_date) : null;
+      const periodEnd = period.end_date ? new Date(period.end_date) : null;
+      if (periodStart && periodEnd && now >= periodStart && now < periodEnd) {
+        return TIMELINE_PHASES.NOMINATION;
+      }
+    }
+
+    // Get overall nomination window
+    const firstPeriod = sortedPeriods[0];
+    const lastPeriod = sortedPeriods[sortedPeriods.length - 1];
+    const nomStart = firstPeriod?.start_date ? new Date(firstPeriod.start_date) : null;
+    const nomEnd = lastPeriod?.end_date ? new Date(lastPeriod.end_date) : null;
+
+    // If before first nomination period starts
+    if (nomStart && now < nomStart) {
+      return TIMELINE_PHASES.NOMINATION; // Show as upcoming nominations
+    }
+
+    // If after all nomination periods but before first round
+    if (nomEnd && now >= nomEnd) {
+      const firstRound = sortedRounds[0];
+      const firstRoundStart = firstRound?.start_date ? new Date(firstRound.start_date) : null;
+      if (firstRoundStart && now < firstRoundStart) {
+        return TIMELINE_PHASES.BETWEEN_ROUNDS;
+      }
+    }
+  } else {
+    // Fallback to flat fields for backwards compatibility
+    const nominationStart = getDate('nomination_start');
+    const nominationEnd = getDate('nomination_end');
+
+    if (nominationStart && nominationEnd) {
+      if (now >= nominationStart && now < nominationEnd) {
+        return TIMELINE_PHASES.NOMINATION;
+      }
+      if (now < nominationStart) {
+        return TIMELINE_PHASES.NOMINATION; // Upcoming
+      }
     }
   }
 
-  // Before nomination starts - still show as nomination (upcoming)
-  // This happens when status is active but we haven't reached nomination_start yet
+  // Check if between rounds (after all nomination periods and rounds)
+  if (sortedRounds.length > 0) {
+    const lastRound = sortedRounds[sortedRounds.length - 1];
+    const lastRoundEnd = lastRound?.end_date ? new Date(lastRound.end_date) : null;
+    if (lastRoundEnd && now >= lastRoundEnd) {
+      // After last round but before finale
+      return TIMELINE_PHASES.BETWEEN_ROUNDS;
+    }
+  }
+
+  // Default to nomination phase if nothing else matches
   return TIMELINE_PHASES.NOMINATION;
 }
 
@@ -178,12 +204,20 @@ export function isCompetitionViewable(phase) {
 
 /**
  * Check if nomination dates are set (required for active status)
- * Handles both snake_case (DB) and camelCase (UI) field names
+ * Supports both nomination_periods array and flat fields
  *
  * @param {Object} competition - Competition object
  * @returns {boolean}
  */
 export function hasNominationDates(competition) {
+  // Check for nomination_periods first (new system)
+  const periods = competition?.nomination_periods || [];
+  if (periods.length > 0) {
+    const firstPeriod = periods[0];
+    return !!(firstPeriod?.start_date && firstPeriod?.end_date);
+  }
+
+  // Fall back to flat fields
   const nominationStart = competition?.nomination_start || competition?.nominationStart;
   const nominationEnd = competition?.nomination_end || competition?.nominationEnd;
   return !!(nominationStart && nominationEnd);
@@ -350,6 +384,11 @@ export function getPhaseDisplayConfig(phase) {
       icon: 'Award',
       pulse: true,
     },
+    [TIMELINE_PHASES.BETWEEN_ROUNDS]: {
+      variant: 'secondary',
+      label: 'BETWEEN ROUNDS',
+      icon: 'Clock',
+    },
     [TIMELINE_PHASES.COMPLETED]: {
       variant: 'gold',
       label: 'COMPLETED',
@@ -511,8 +550,10 @@ export function shouldAutoTransitionToCompleted(competition, settings = null) {
 export function getPhasePermissions(phase) {
   return {
     allowVoting: phase === TIMELINE_PHASES.VOTING,
+    allowJudging: phase === TIMELINE_PHASES.JUDGING,
     allowNominations: phase === TIMELINE_PHASES.NOMINATION,
     showResults: phase === TIMELINE_PHASES.COMPLETED || phase === 'completed',
     isActive: phase !== COMPETITION_STATUSES.DRAFT && phase !== COMPETITION_STATUSES.ARCHIVE,
+    isBetweenRounds: phase === TIMELINE_PHASES.BETWEEN_ROUNDS,
   };
 }

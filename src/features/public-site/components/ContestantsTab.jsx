@@ -4,11 +4,13 @@ import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatNumber } from '../../../utils/formatters';
 import { useCountdown } from '../../../hooks';
-import { CONTESTANT_IMAGES, COMPETITION_STAGES } from '../../../constants';
+import { CONTESTANT_IMAGES } from '../../../constants';
 
-export default function ContestantsTab({ contestants, events, forceDoubleVoteDay, onVote, isAuthenticated = false, onLogin, isJudgingPhase = false, onViewProfile }) {
-  const currentStage = COMPETITION_STAGES.find((s) => s.status === 'active') || COMPETITION_STAGES[1];
-  const timeLeft = useCountdown(currentStage.endDate);
+export default function ContestantsTab({ contestants, events, forceDoubleVoteDay, onVote, isAuthenticated = false, onLogin, isJudgingPhase = false, onViewProfile, currentRound }) {
+  // Use currentRound end date if available, otherwise show no countdown
+  const roundEndDate = currentRound?.endDate ? new Date(currentRound.endDate) : null;
+  const timeLeft = useCountdown(roundEndDate);
+  const hasActiveRound = currentRound?.isActive && roundEndDate;
 
   // Handle vote button click - require authentication
   const handleVoteClick = (contestant) => {
@@ -108,87 +110,77 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
               Our panel of judges is evaluating the finalists. Winners will be announced at the Finals Gala!
             </p>
           </div>
-        ) : (
-          /* Countdown Timer - only during voting */
+        ) : hasActiveRound ? (
+          /* Compact Countdown Timer - only during active voting round */
           <div
             style={{
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))',
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.03))',
               border: `1px solid ${colors.border.gold}`,
-              borderRadius: borderRadius.xxl,
-              padding: `${spacing.xxl} ${spacing.xxxl}`,
-              maxWidth: '700px',
+              borderRadius: borderRadius.xl,
+              padding: `${spacing.md} ${spacing.xl}`,
+              maxWidth: '400px',
               margin: '0 auto',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
               <div
                 style={{
-                  width: '10px',
-                  height: '10px',
+                  width: '6px',
+                  height: '6px',
                   borderRadius: borderRadius.full,
                   background: colors.status.success,
-                  boxShadow: '0 0 10px rgba(74,222,128,0.5)',
+                  boxShadow: '0 0 6px rgba(74,222,128,0.5)',
                 }}
               />
               <span
                 style={{
                   color: colors.gold.primary,
-                  fontSize: typography.fontSize.md,
-                  fontWeight: typography.fontWeight.semibold,
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.medium,
                   textTransform: 'uppercase',
-                  letterSpacing: '2px',
+                  letterSpacing: '1px',
                 }}
               >
-                {currentStage.name} Ends In
+                {currentRound?.title || 'Voting'} Ends In
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.lg }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.md }}>
               {[
-                { value: timeLeft.days, label: 'Days' },
-                { value: timeLeft.hours, label: 'Hours' },
-                { value: timeLeft.minutes, label: 'Minutes' },
-                { value: timeLeft.seconds, label: 'Seconds' },
-              ].map((unit) => (
-                <div key={unit.label} style={{ textAlign: 'center' }}>
-                  <div
+                { value: timeLeft.days, label: 'D' },
+                { value: timeLeft.hours, label: 'H' },
+                { value: timeLeft.minutes, label: 'M' },
+                { value: timeLeft.seconds, label: 'S' },
+              ].map((unit, idx) => (
+                <div key={unit.label} style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+                  <span
                     style={{
-                      width: '80px',
-                      height: '80px',
-                      background: 'rgba(0,0,0,0.3)',
-                      borderRadius: borderRadius.xl,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: `1px solid rgba(212,175,55,0.2)`,
-                      marginBottom: spacing.sm,
+                      fontSize: typography.fontSize.xl,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.gold.primary,
+                      fontFamily: 'monospace',
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: typography.fontSize.hero,
-                        fontWeight: typography.fontWeight.bold,
-                        color: colors.gold.primary,
-                        fontFamily: 'monospace',
-                      }}
-                    >
-                      {String(unit.value).padStart(2, '0')}
-                    </span>
-                  </div>
-                  <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {String(unit.value).padStart(2, '0')}
+                  </span>
+                  <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
                     {unit.label}
                   </span>
+                  {idx < 3 && (
+                    <span style={{ color: colors.text.muted, fontSize: typography.fontSize.md, marginLeft: spacing.xs }}>:</span>
+                  )}
                 </div>
               ))}
             </div>
-
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.base, marginTop: spacing.lg }}>
-              {!isAuthenticated
-                ? 'Sign in to vote for your favorite contestant!'
-                : 'Vote now to help your favorite advance to the next round!'
-              }
-            </p>
           </div>
+        ) : (
+          /* No active round - simple message */
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.base, textAlign: 'center' }}>
+            {!isAuthenticated
+              ? 'Sign in to vote for your favorite contestant!'
+              : 'Vote now to help your favorite advance to the next round!'
+            }
+          </p>
         )}
       </div>
 

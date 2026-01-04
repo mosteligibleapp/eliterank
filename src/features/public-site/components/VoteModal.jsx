@@ -21,7 +21,7 @@ export default function VoteModal({
   onVoteSuccess,
 }) {
   const userId = user?.id;
-  const { showToast } = useToast();
+  const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [freeVoteUsed, setFreeVoteUsed] = useState(false);
   const [votedContestantId, setVotedContestantId] = useState(null);
@@ -71,17 +71,17 @@ export default function VoteModal({
 
       if (result.success) {
         const voteText = result.votesAdded > 1 ? `${result.votesAdded} votes` : '1 vote';
-        showToast(`Vote submitted! You gave ${contestant.name} ${voteText}`, 'success');
+        toast.success(`Vote submitted! You gave ${contestant.name} ${voteText}`);
         setFreeVoteUsed(true);
         setVotedContestantId(contestant.id);
         onVoteSuccess?.();
         onClose();
       } else {
-        showToast(result.error || 'Failed to submit vote', 'error');
+        toast.error(result.error || 'Failed to submit vote');
       }
     } catch (err) {
       console.error('Error submitting vote:', err);
-      showToast('An unexpected error occurred', 'error');
+      toast.error('An unexpected error occurred');
     }
 
     setIsSubmitting(false);

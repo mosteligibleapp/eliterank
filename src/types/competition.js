@@ -215,48 +215,89 @@ export function calculateVotePrice(voteCount, useBundler = false, basePricePerVo
 
 /**
  * Get the current competition phase based on dates
+ * Supports both nomination_periods array and flat nomination fields
  */
-export function getCurrentPhase(settings) {
+export function getCurrentPhase(settings, nominationPeriods = []) {
   if (!settings) return null;
 
   const now = new Date();
-  const nominationStart = settings.nomination_start ? new Date(settings.nomination_start) : null;
-  const nominationEnd = settings.nomination_end ? new Date(settings.nomination_end) : null;
   const finaleDate = settings.finale_date ? new Date(settings.finale_date) : null;
-
-  // Check voting rounds
-  const votingRounds = settings.voting_rounds || [];
-  const sortedRounds = [...votingRounds].sort((a, b) => a.round_order - b.round_order);
 
   // After finale
   if (finaleDate && now >= finaleDate) {
     return { phase: 'completed', label: 'Completed' };
   }
 
-  // Check if in any voting round
+  // Check voting/judging rounds
+  const votingRounds = settings.voting_rounds || [];
+  const sortedRounds = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+
+  // Check if in any voting or judging round
   for (const round of sortedRounds) {
-    const roundStart = new Date(round.start_date);
-    const roundEnd = new Date(round.end_date);
-    if (now >= roundStart && now < roundEnd) {
-      return { phase: 'voting', label: round.title, round };
+    const roundStart = round.start_date ? new Date(round.start_date) : null;
+    const roundEnd = round.end_date ? new Date(round.end_date) : null;
+    if (roundStart && roundEnd && now >= roundStart && now < roundEnd) {
+      const phase = round.round_type === 'judging' ? 'judging' : 'voting';
+      return { phase, label: round.title, round };
     }
   }
 
-  // Check if in nomination period
-  if (nominationStart && nominationEnd) {
-    if (now >= nominationStart && now < nominationEnd) {
-      return { phase: 'nomination', label: 'Nominations Open' };
+  // Check nomination periods (new system)
+  const periods = nominationPeriods.length > 0 ? nominationPeriods : [];
+  if (periods.length > 0) {
+    const sortedPeriods = [...periods].sort((a, b) => (a.period_order || 0) - (b.period_order || 0));
+
+    for (const period of sortedPeriods) {
+      const periodStart = period.start_date ? new Date(period.start_date) : null;
+      const periodEnd = period.end_date ? new Date(period.end_date) : null;
+      if (periodStart && periodEnd && now >= periodStart && now < periodEnd) {
+        return { phase: 'nomination', label: period.title || 'Nominations Open', period };
+      }
     }
-    if (now < nominationStart) {
+
+    const firstPeriod = sortedPeriods[0];
+    const firstStart = firstPeriod?.start_date ? new Date(firstPeriod.start_date) : null;
+    if (firstStart && now < firstStart) {
       return { phase: 'upcoming', label: 'Coming Soon' };
     }
+
+    const lastPeriod = sortedPeriods[sortedPeriods.length - 1];
+    const lastEnd = lastPeriod?.end_date ? new Date(lastPeriod.end_date) : null;
+    if (lastEnd && now >= lastEnd) {
+      const firstRound = sortedRounds[0];
+      if (firstRound && now < new Date(firstRound.start_date)) {
+        return { phase: 'between', label: 'Nominations Closed' };
+      }
+    }
+  } else {
+    // Fallback to flat fields
+    const nominationStart = settings.nomination_start ? new Date(settings.nomination_start) : null;
+    const nominationEnd = settings.nomination_end ? new Date(settings.nomination_end) : null;
+
+    if (nominationStart && nominationEnd) {
+      if (now >= nominationStart && now < nominationEnd) {
+        return { phase: 'nomination', label: 'Nominations Open' };
+      }
+      if (now < nominationStart) {
+        return { phase: 'upcoming', label: 'Coming Soon' };
+      }
+    }
+
+    // Between nomination end and first voting round
+    if (nominationEnd && now >= nominationEnd) {
+      const firstRound = sortedRounds[0];
+      if (firstRound && now < new Date(firstRound.start_date)) {
+        return { phase: 'between', label: 'Nominations Closed' };
+      }
+    }
   }
 
-  // Between nomination end and first voting round
-  if (nominationEnd && now >= nominationEnd) {
-    const firstRound = sortedRounds[0];
-    if (firstRound && now < new Date(firstRound.start_date)) {
-      return { phase: 'between', label: 'Nominations Closed' };
+  // Check if after last round
+  if (sortedRounds.length > 0) {
+    const lastRound = sortedRounds[sortedRounds.length - 1];
+    const lastRoundEnd = lastRound?.end_date ? new Date(lastRound.end_date) : null;
+    if (lastRoundEnd && now >= lastRoundEnd) {
+      return { phase: 'between', label: 'Awaiting Finals' };
     }
   }
 
@@ -306,9 +347,38 @@ export const DEFAULT_COMPETITION_SETTINGS = {
 export const DEFAULT_VOTING_ROUND = {
   title: '',
   round_order: 1,
+  round_type: 'voting', // 'voting' or 'judging'
   start_date: null,
   end_date: null,
   contestants_advance: 10,
+};
+
+export const DEFAULT_NOMINATION_PERIOD = {
+  title: '',
+  period_order: 1,
+  start_date: null,
+  end_date: null,
+  max_submissions: null, // null = unlimited
+};
+
+export const ROUND_TYPES = {
+  VOTING: 'voting',
+  JUDGING: 'judging',
+};
+
+export const ROUND_TYPE_CONFIG = {
+  voting: {
+    label: 'Public Voting',
+    description: 'Public can vote for contestants',
+    icon: 'Vote',
+    color: '#22c55e',
+  },
+  judging: {
+    label: 'Judging',
+    description: 'Judges score contestants',
+    icon: 'Award',
+    color: '#8b5cf6',
+  },
 };
 
 export const DEFAULT_PRIZE = {

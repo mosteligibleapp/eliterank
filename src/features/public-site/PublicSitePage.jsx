@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Crown, Users, Calendar, Sparkles, Award, UserPlus, Trophy, Clock, ChevronLeft, Home } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, shadows, gradients, components, styleHelpers } from '../../styles/theme';
@@ -49,7 +49,7 @@ export default function PublicSitePage({
   sponsors = [],
   host,
   winners = [],
-  forceDoubleVoteDay = true,
+  forceDoubleVoteDay: forceDoubleVoteDayProp,
   competition = null,
   isAuthenticated = false,
   onLogin,
@@ -70,6 +70,7 @@ export default function PublicSitePage({
     judges: [],
     sponsors: [],
     host: null,
+    votingRounds: [],
     loading: true,
   });
 
@@ -83,13 +84,14 @@ export default function PublicSitePage({
       }
 
       try {
-        const [contestantsResult, eventsResult, announcementsResult, judgesResult, sponsorsResult, hostResult] = await Promise.all([
+        const [contestantsResult, eventsResult, announcementsResult, judgesResult, sponsorsResult, hostResult, votingRoundsResult] = await Promise.all([
           supabase.from('contestants').select('*').eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
           supabase.from('judges').select('*').eq('competition_id', competitionId).order('sort_order'),
           supabase.from('sponsors').select('*').eq('competition_id', competitionId).order('sort_order'),
           competition?.host_id ? supabase.from('profiles').select('*').eq('id', competition.host_id).single() : Promise.resolve({ data: null }),
+          supabase.from('voting_rounds').select('*').eq('competition_id', competitionId).order('round_order'),
         ]);
 
         const hostProfile = hostResult.data;
@@ -126,6 +128,7 @@ export default function PublicSitePage({
           events: (eventsResult.data || []).map(e => ({
             id: e.id, name: e.name, date: e.date, endDate: e.end_date, time: e.time,
             location: e.location, status: e.status, featured: e.featured,
+            isDoubleVoteDay: e.is_double_vote_day,
           })),
           announcements: (announcementsResult.data || []).map(a => ({
             id: a.id, title: a.title, content: a.content, date: a.published_at, pinned: a.pinned,
@@ -141,6 +144,15 @@ export default function PublicSitePage({
             id: s.id, name: s.name, tier: s.tier, logo: s.logo_url, website: s.website,
           })),
           host: transformedHost,
+          votingRounds: (votingRoundsResult.data || []).map(r => ({
+            id: r.id,
+            title: r.title,
+            roundOrder: r.round_order,
+            roundType: r.round_type || 'voting',
+            startDate: r.start_date,
+            endDate: r.end_date,
+            contestantsAdvance: r.contestants_advance,
+          })),
           loading: false,
         });
       } catch (error) {
@@ -240,6 +252,65 @@ export default function PublicSitePage({
   const displayJudges = fetchedData.judges.length > 0 ? fetchedData.judges : judges;
   const displaySponsors = fetchedData.sponsors.length > 0 ? fetchedData.sponsors : sponsors;
   const displayHost = fetchedData.host || host;
+
+  // Compute if today is a double vote day based on events
+  const isDoubleVoteDay = useMemo(() => {
+    // If explicitly forced via prop, use that
+    if (forceDoubleVoteDayProp !== undefined) {
+      return forceDoubleVoteDayProp;
+    }
+
+    // Check if any event is marked as double vote day AND is today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return displayEvents.some(event => {
+      if (!event.isDoubleVoteDay || !event.date) return false;
+
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+
+      return eventDate.getTime() === today.getTime();
+    });
+  }, [displayEvents, forceDoubleVoteDayProp]);
+
+  // Compute current voting/judging round and its end date
+  const currentRound = useMemo(() => {
+    const rounds = fetchedData.votingRounds;
+    if (!rounds || rounds.length === 0) return null;
+
+    const now = new Date();
+
+    // Find the active round (current time is between start and end)
+    const activeRound = rounds.find(round => {
+      if (!round.startDate || !round.endDate) return false;
+      const start = new Date(round.startDate);
+      const end = new Date(round.endDate);
+      return now >= start && now < end;
+    });
+
+    if (activeRound) {
+      return {
+        ...activeRound,
+        isActive: true,
+      };
+    }
+
+    // If no active round, find the next upcoming round
+    const upcomingRounds = rounds
+      .filter(round => round.startDate && new Date(round.startDate) > now)
+      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+    if (upcomingRounds.length > 0) {
+      return {
+        ...upcomingRounds[0],
+        isActive: false,
+        isUpcoming: true,
+      };
+    }
+
+    return null;
+  }, [fetchedData.votingRounds]);
 
   // Check if teaser page
   const isTeaser = competition?.isTeaser === true || competition?.status === COMPETITION_STATUSES.PUBLISH;
@@ -476,12 +547,13 @@ export default function PublicSitePage({
           <ContestantsTab
             contestants={displayContestants}
             events={displayEvents}
-            forceDoubleVoteDay={forceDoubleVoteDay}
+            forceDoubleVoteDay={isDoubleVoteDay}
             onVote={setSelectedContestant}
             isAuthenticated={isAuthenticated}
             onLogin={onLogin}
             isJudgingPhase={isJudgingPhase}
             onViewProfile={(profile) => handleViewProfile(profile, 'contestant')}
+            currentRound={currentRound}
           />
         )}
         {activeTab === 'events' && (
@@ -568,7 +640,7 @@ export default function PublicSitePage({
         contestant={selectedContestant}
         voteCount={voteCount}
         onVoteCountChange={setVoteCount}
-        forceDoubleVoteDay={forceDoubleVoteDay}
+        forceDoubleVoteDay={isDoubleVoteDay}
         isAuthenticated={isAuthenticated}
         onLogin={onLogin}
         competitionId={competition?.id}
