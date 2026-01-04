@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "codesign": {
+      "type": "http",
+      "url": "http://localhost:${CODESIGN_MCP_PORT:-37053}",
+      "headers": {
+        "Authorization": "Bearer ${CODESIGN_MCP_TOKEN}"
+      }
+    }
+  }
+}
