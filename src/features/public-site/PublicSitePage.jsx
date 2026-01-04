@@ -111,7 +111,7 @@ export default function PublicSitePage({
           twitter: hostProfile.twitter,
           linkedin: hostProfile.linkedin,
           city: hostProfile.city,
-          hobbies: hostProfile.hobbies || [],
+          hobbies: hostProfile.interests || [],
           gallery: hostProfile.gallery || [],
           occupation: hostProfile.occupation,
         } : null;
@@ -123,7 +123,7 @@ export default function PublicSitePage({
             votes: c.votes || 0, rank: idx + 1,
             avatarUrl: c.avatar_url, avatar_url: c.avatar_url,
             instagram: c.instagram, twitter: c.twitter, linkedin: c.linkedin,
-            city: c.city, hobbies: c.hobbies || [], gallery: c.gallery || [],
+            city: c.city, hobbies: c.interests || [], gallery: c.gallery || [],
           })),
           events: (eventsResult.data || []).map(e => ({
             id: e.id, name: e.name, date: e.date, endDate: e.end_date, time: e.time,
@@ -138,7 +138,7 @@ export default function PublicSitePage({
             id: j.id, name: j.name, title: j.title, bio: j.bio,
             avatarUrl: j.avatar_url, avatar_url: j.avatar_url,
             instagram: j.instagram, twitter: j.twitter, linkedin: j.linkedin,
-            city: j.city, hobbies: j.hobbies || [], gallery: j.gallery || [],
+            city: j.city, hobbies: j.interests || [], gallery: j.gallery || [],
           })),
           sponsors: (sponsorsResult.data || []).map(s => ({
             id: s.id, name: s.name, tier: s.tier, logo: s.logo_url, website: s.website,
@@ -235,7 +235,7 @@ export default function PublicSitePage({
             twitter: c.twitter,
             linkedin: c.linkedin,
             city: c.city,
-            hobbies: c.hobbies || [],
+            hobbies: c.interests || [],
             gallery: c.gallery || [],
           })),
         }));

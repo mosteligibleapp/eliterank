@@ -49,7 +49,7 @@ export function AuthProvider({ children }) {
         twitter: profile.twitter || '',
         linkedin: profile.linkedin || '',
         tiktok: profile.tiktok || '',
-        hobbies: profile.hobbies || [],
+        hobbies: profile.interests || [],
       };
     }
     // Fallback to demo profile
@@ -91,7 +91,7 @@ export function AuthProvider({ children }) {
       twitter: updates.twitter,
       linkedin: updates.linkedin,
       tiktok: updates.tiktok,
-      hobbies: updates.hobbies,
+      interests: updates.hobbies,
     };
     // Remove undefined values
     Object.keys(dbUpdates).forEach((key) => {
