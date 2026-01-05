@@ -31,8 +31,8 @@ export function AuthProvider({ children }) {
   // Combined auth - either Supabase or mock
   const isAuthenticated = supabaseAuthenticated || !!mockUser;
 
-  // Check if user is super admin
-  const isSuperAdmin = mockUser?.role === USER_ROLES.SUPER_ADMIN;
+  // Check if user is super admin (check both mock user and Supabase profile)
+  const isSuperAdmin = mockUser?.role === USER_ROLES.SUPER_ADMIN || profile?.is_super_admin === true;
 
   // Check if user is host
   const isHost = mockUser?.role === USER_ROLES.HOST || (profile && !isSuperAdmin);

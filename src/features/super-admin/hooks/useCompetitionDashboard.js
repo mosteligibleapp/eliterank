@@ -813,6 +813,7 @@ export function useCompetitionDashboard(competitionId) {
           content: announcementData.content,
           type: announcementData.type || 'announcement',
           pinned: announcementData.pinned ?? false,
+          is_ai_generated: announcementData.isAiGenerated ?? false,
           published_at: new Date().toISOString(),
         });
 

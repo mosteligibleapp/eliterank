@@ -58,6 +58,60 @@ After a user signs up, make them a super admin:
 SELECT set_super_admin('user@email.com');
 ```
 
+### 6. Deploy Edge Functions (for AI Posts)
+
+The AI-powered news post generation uses Supabase Edge Functions.
+
+#### Prerequisites
+- Install Supabase CLI: `npm install -g supabase`
+- Login: `supabase login`
+
+#### Set Up Secrets
+```bash
+# Set your Anthropic API key
+supabase secrets set ANTHROPIC_API_KEY=your-anthropic-api-key
+
+# Link to your project
+supabase link --project-ref your-project-id
+```
+
+#### Deploy Functions
+```bash
+# Deploy the AI post generation function
+supabase functions deploy generate-ai-post
+
+# Deploy the scheduled event checker
+supabase functions deploy check-competition-events
+```
+
+#### Set Up 24-Hour Cron Job
+Run this SQL to schedule the event checker to run daily:
+
+```sql
+-- Enable pg_cron extension (run once)
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Schedule the check-competition-events function to run daily at midnight UTC
+SELECT cron.schedule(
+  'check-competition-events-daily',
+  '0 0 * * *',  -- Every day at midnight UTC
+  $$
+  SELECT net.http_post(
+    url := 'https://your-project-id.supabase.co/functions/v1/check-competition-events',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('supabase.service_role_key')
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Alternatively, use the Supabase Dashboard:
+1. Go to **Database > Extensions** and enable `pg_cron`
+2. Go to **SQL Editor** and run the schedule command above
+
 ## Database Schema
 
 ### Core Tables

@@ -7,7 +7,7 @@ import {
 import { Button, Badge, Avatar, StatCard } from '../../../components/ui';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
-import { EventModal, AddPersonModal } from '../../../components/modals';
+import { EventModal, AddPersonModal, AnnouncementModal } from '../../../components/modals';
 
 // Import host dashboard components for reuse
 import RevenueCard from '../../overview/components/RevenueCard';
@@ -41,11 +41,15 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   // Add person modal state (for nominees and contestants)
   const [addPersonModal, setAddPersonModal] = useState({ isOpen: false, type: 'nominee' });
 
+  // Announcement modal state
+  const [announcementModal, setAnnouncementModal] = useState({ isOpen: false, announcement: null });
+
   // Fetch real data from Supabase
   const {
     data, loading, error, refresh,
     addNominee, approveNominee, rejectNominee, archiveNominee, restoreNominee,
     addContestant,
+    addAnnouncement, updateAnnouncement, deleteAnnouncement,
   } = useCompetitionDashboard(competition?.id);
 
   // Collapsible sections state
@@ -94,6 +98,32 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
     } else {
       const result = await addNominee(personData);
       if (!result.success) throw new Error(result.error);
+    }
+  };
+
+  // Announcement modal handlers
+  const openAnnouncementModal = (announcement = null) => {
+    setAnnouncementModal({ isOpen: true, announcement });
+  };
+
+  const closeAnnouncementModal = () => {
+    setAnnouncementModal({ isOpen: false, announcement: null });
+  };
+
+  const handleSaveAnnouncement = async (announcementData) => {
+    try {
+      if (announcementModal.announcement) {
+        // Editing existing announcement
+        const result = await updateAnnouncement(announcementModal.announcement.id, announcementData);
+        if (!result.success) throw new Error(result.error);
+      } else {
+        // Creating new announcement
+        const result = await addAnnouncement(announcementData);
+        if (!result.success) throw new Error(result.error);
+      }
+      closeAnnouncementModal();
+    } catch (err) {
+      console.error('Error saving announcement:', err);
     }
   };
 
@@ -796,7 +826,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
             Announcements ({data.announcements.length})
           </h3>
           {isEditing && (
-            <Button size="sm" icon={FileText}>New Announcement</Button>
+            <Button size="sm" icon={FileText} onClick={() => openAnnouncementModal()}>New Announcement</Button>
           )}
         </div>
 
@@ -809,7 +839,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
             <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
             <p>No announcements yet</p>
             {isEditing && (
-              <Button size="sm" icon={FileText} style={{ marginTop: spacing.lg }}>
+              <Button size="sm" icon={FileText} style={{ marginTop: spacing.lg }} onClick={() => openAnnouncementModal()}>
                 Create First Announcement
               </Button>
             )}
@@ -832,7 +862,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
                   <p style={{ color: colors.text.secondary }}>{announcement.content}</p>
                 </div>
                 {isEditing && (
-                  <Button variant="secondary" size="sm" icon={Edit2} />
+                  <Button variant="secondary" size="sm" icon={Edit2} onClick={() => openAnnouncementModal(announcement)} />
                 )}
               </div>
             </div>
@@ -1147,6 +1177,17 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         onClose={closeAddPersonModal}
         onAdd={handleAddPerson}
         type={addPersonModal.type}
+        competitionId={competition?.id}
+      />
+
+      {/* Announcement Modal */}
+      <AnnouncementModal
+        isOpen={announcementModal.isOpen}
+        onClose={closeAnnouncementModal}
+        announcement={announcementModal.announcement}
+        onSave={handleSaveAnnouncement}
+        isSuperAdmin={true}
+        contestants={data.contestants}
         competitionId={competition?.id}
       />
     </div>

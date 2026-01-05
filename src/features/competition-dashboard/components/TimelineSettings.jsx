@@ -218,11 +218,12 @@ export default function TimelineSettings({ competition, onSave }) {
 
     setLoading(true);
     try {
-      const [settingsResult, roundsResult, periodsResult] = await Promise.all([
+      const [compResult, roundsResult, periodsResult] = await Promise.all([
+        // finale_date is now on the competitions table directly
         supabase
-          .from('competition_settings')
-          .select('*')
-          .eq('competition_id', competition.id)
+          .from('competitions')
+          .select('finale_date')
+          .eq('id', competition.id)
           .single(),
         supabase
           .from('voting_rounds')
@@ -236,19 +237,19 @@ export default function TimelineSettings({ competition, onSave }) {
           .order('period_order'),
       ]);
 
-      if (settingsResult.error && settingsResult.error.code !== 'PGRST116') {
-        throw settingsResult.error;
+      if (compResult.error && compResult.error.code !== 'PGRST116') {
+        throw compResult.error;
       }
 
       if (roundsResult.error) throw roundsResult.error;
       if (periodsResult.error) throw periodsResult.error;
 
-      if (settingsResult.data) {
+      if (compResult.data) {
         setSettings({
-          finale_date: settingsResult.data.finale_date || '',
+          finale_date: compResult.data.finale_date || '',
         });
         setDisplayValues({
-          finale_date: formatDateForDisplay(settingsResult.data.finale_date),
+          finale_date: formatDateForDisplay(compResult.data.finale_date),
         });
       }
 
@@ -362,27 +363,17 @@ export default function TimelineSettings({ competition, onSave }) {
 
     setSaving(true);
     try {
-      // Update competition status
+      // Update competition status and finale_date (consolidated schema)
       const { error: compError } = await supabase
         .from('competitions')
         .update({
           status,
+          finale_date: settings.finale_date || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', competition.id);
 
       if (compError) throw compError;
-
-      // Update or insert settings (only finale_date now)
-      const { error: settingsError } = await supabase
-        .from('competition_settings')
-        .upsert({
-          competition_id: competition.id,
-          finale_date: settings.finale_date || null,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'competition_id' });
-
-      if (settingsError) throw settingsError;
 
       // Delete existing nomination periods and re-insert
       await supabase
