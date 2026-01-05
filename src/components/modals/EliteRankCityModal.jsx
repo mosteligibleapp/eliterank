@@ -712,84 +712,195 @@ export default function EliteRankCityModal({
         );
 
       case 'opportunities':
-        const opportunities = [
-          { id: 'compete', icon: Trophy, title: 'Compete', desc: 'Get nominated and compete for the title', color: colors.gold.primary, features: ['Build your profile', 'Gain votes', 'Win prizes'] },
-          { id: 'judge', icon: Award, title: 'Judge', desc: 'Join our panel of distinguished judges', color: colors.accent.purple, features: ['Evaluate contestants', 'VIP access', 'Shape outcomes'] },
-          { id: 'host', icon: Crown, title: 'Host', desc: 'Lead your city\'s competition', color: colors.accent.pink, features: ['Build community', 'Revenue share', 'Full support'] },
-          { id: 'sponsor', icon: Building, title: 'Sponsor', desc: 'Partner with Elite Rank', color: colors.status.success, features: ['Brand visibility', 'Event access', 'Activations'] },
+        const joinOptions = [
+          {
+            id: 'compete',
+            icon: Trophy,
+            title: 'Compete',
+            desc: "You've got what it takes. Enter a competition, rally your network, and let the crowd decide. Every vote you earn puts money in your pocket.",
+            color: colors.gold.primary,
+            hoverBg: `${colors.gold.primary}08`,
+            benefits: ['Keep 60% of every paid vote', 'Win the title + bonus pool', 'Build your personal brand'],
+            cta: 'Apply to compete',
+            action: () => setActiveTab('competitions'),
+          },
+          {
+            id: 'vote',
+            icon: Heart,
+            title: 'Vote',
+            desc: "Know someone who deserves the spotlight? Back them with your vote. Follow their journey. Be part of their rise.",
+            color: colors.accent.pink,
+            hoverBg: `${colors.accent.pink}08`,
+            benefits: ['Vote free once per day', 'Power votes to boost your pick', 'Nominate someone you believe in'],
+            cta: 'Browse competitions',
+            action: () => setActiveTab('competitions'),
+          },
+          {
+            id: 'partner',
+            icon: Building,
+            title: 'Partner',
+            desc: "Host a competition as a category expert, sponsor a competition by contributing prizes for the winners, or bring EliteRank to your organization and launch a competition for your community. Let's build something together.",
+            color: '#10b981',
+            hoverBg: 'rgba(16, 185, 129, 0.08)',
+            benefits: ['Host competitions to earn', 'Sponsor for brand visibility', 'Launch to engage and grow'],
+            cta: 'Start a conversation',
+            action: () => window.location.href = 'mailto:hello@eliterank.com?subject=Partnership%20Inquiry',
+          },
         ];
 
         return (
           <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '1000px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                background: gradients.gold,
-                borderRadius: borderRadius.xl,
-                ...styleHelpers.flexCenter,
-                margin: '0 auto',
-                marginBottom: spacing.lg,
+            {/* Hero Section */}
+            <div style={{ textAlign: 'center', marginBottom: spacing.xxxl, padding: isMobile ? `${spacing.xl} 0` : `${spacing.xxl} 0` }}>
+              <h2 style={{
+                fontSize: isMobile ? typography.fontSize['3xl'] : typography.fontSize['4xl'],
+                fontWeight: typography.fontWeight.bold,
+                color: colors.text.primary,
+                marginBottom: spacing.md,
+                lineHeight: typography.lineHeight.tight,
               }}>
-                <Briefcase size={32} style={{ color: '#000' }} />
-              </div>
-              <h2 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>Join Elite Rank</h2>
-              <p style={{ color: colors.text.secondary }}>Multiple ways to get involved</p>
+                Rank Is <span style={{ color: colors.gold.primary }}>Earned</span>
+              </h2>
+              <p style={{
+                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                color: colors.text.secondary,
+                lineHeight: typography.lineHeight.relaxed,
+                maxWidth: '600px',
+                margin: '0 auto',
+              }}>
+                Competitors enter the ranks. Voters decide who rises. Partners make the elite shine.
+              </p>
             </div>
 
+            {/* Three Cards */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
               gap: spacing.lg,
+              marginBottom: spacing.xxxl,
             }}>
-              {opportunities.map(opp => (
-                <div key={opp.id} style={{
-                  background: colors.background.card,
-                  border: `1px solid ${colors.border.primary}`,
-                  borderRadius: borderRadius.xl,
-                  padding: spacing.xl,
-                  transition: `all ${transitions.normal}`,
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = opp.color; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = colors.border.primary; e.currentTarget.style.transform = 'translateY(0)'; }}
-                onClick={() => opp.id === 'compete' ? setActiveTab('competitions') : (onLogin && !isAuthenticated && onLogin())}
+              {joinOptions.map(option => (
+                <div
+                  key={option.id}
+                  style={{
+                    background: colors.background.card,
+                    border: `1px solid ${colors.border.primary}`,
+                    borderRadius: borderRadius.xl,
+                    padding: spacing.xl,
+                    transition: `all ${transitions.normal}`,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = option.color;
+                    e.currentTarget.style.background = option.hoverBg;
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = colors.border.primary;
+                    e.currentTarget.style.background = colors.background.card;
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                  onClick={option.action}
                 >
+                  {/* Icon */}
                   <div style={{
                     width: '48px',
                     height: '48px',
-                    background: `${opp.color}20`,
+                    background: `${option.color}15`,
                     borderRadius: borderRadius.lg,
                     ...styleHelpers.flexCenter,
                     marginBottom: spacing.lg,
                   }}>
-                    <opp.icon size={24} style={{ color: opp.color }} />
+                    <option.icon size={24} style={{ color: option.color }} />
                   </div>
-                  <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.xs }}>{opp.title}</h3>
-                  <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.md }}>{opp.desc}</p>
-                  <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-                    {opp.features.map((f, i) => (
-                      <li key={i} style={{ ...styleHelpers.flexStart, gap: spacing.sm, fontSize: typography.fontSize.sm, color: colors.text.tertiary, marginBottom: spacing.xs }}>
-                        <Heart size={12} style={{ color: opp.color }} />
-                        {f}
+
+                  {/* Title */}
+                  <h3 style={{
+                    fontSize: typography.fontSize.xl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.text.primary,
+                    marginBottom: spacing.sm,
+                  }}>
+                    {option.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                    lineHeight: typography.lineHeight.relaxed,
+                    marginBottom: spacing.lg,
+                  }}>
+                    {option.desc}
+                  </p>
+
+                  {/* Benefits */}
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', marginBottom: spacing.lg, flex: 1 }}>
+                    {option.benefits.map((benefit, i) => (
+                      <li key={i} style={{
+                        ...styleHelpers.flexStart,
+                        gap: spacing.sm,
+                        fontSize: typography.fontSize.sm,
+                        color: colors.text.tertiary,
+                        marginBottom: spacing.xs,
+                      }}>
+                        <div style={{
+                          width: '6px',
+                          height: '6px',
+                          background: option.color,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                        }} />
+                        {benefit}
                       </li>
                     ))}
                   </ul>
+
+                  {/* Arrow CTA */}
+                  <div style={{
+                    ...styleHelpers.flexStart,
+                    gap: spacing.sm,
+                    color: option.color,
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.medium,
+                    marginTop: 'auto',
+                  }}>
+                    {option.cta}
+                    <ArrowRight size={16} style={{ transition: 'transform 0.2s' }} />
+                  </div>
                 </div>
               ))}
             </div>
 
+            {/* Have Questions - Link to FAQ */}
             <div style={{
-              marginTop: spacing.xxxl,
               padding: spacing.xl,
               background: colors.background.card,
-              border: `1px solid ${colors.gold.primary}40`,
+              border: `1px solid ${colors.border.primary}`,
               borderRadius: borderRadius.xl,
               textAlign: 'center',
             }}>
               <h3 style={{ fontSize: typography.fontSize.lg, color: colors.text.primary, marginBottom: spacing.sm }}>Have Questions?</h3>
-              <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>We'd love to hear from you</p>
-              <Button variant="primary" onClick={() => window.location.href = 'mailto:hello@eliterank.com'}>Contact Us</Button>
+              <p style={{ color: colors.text.secondary, marginBottom: spacing.md }}>Check out our FAQ for answers to common questions</p>
+              <button
+                onClick={() => setActiveTab('about')}
+                style={{
+                  ...styleHelpers.flexCenter,
+                  gap: spacing.sm,
+                  background: 'none',
+                  border: 'none',
+                  color: colors.gold.primary,
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: typography.fontWeight.medium,
+                  cursor: 'pointer',
+                  margin: '0 auto',
+                }}
+              >
+                View FAQ
+                <ArrowRight size={16} />
+              </button>
             </div>
           </div>
         );
