@@ -798,7 +798,8 @@ export default function EliteRankCityModal({
         const faqs = [
           { q: 'What is EliteRank?', a: 'EliteRank is a social competition platform where public voting determines who ranks at the top across categories that matter. Competitors enter bracket-style tournaments, rally support from their networks, and advance through rounds based on votes. You keep the money you raise — winners take home the title plus a bonus pool.' },
           { q: 'How do I enter an EliteRank competition?', a: 'You can enter two ways: apply directly or accept a nomination from someone in your network. Once entered, you create a competitor profile and start competing when voting opens.' },
-          { q: 'How do competitors make money?', a: 'Paid votes cost money. Competitors keep 60% of the revenue from votes cast for them. Win or lose, you walk away with what your network put behind you. Winners also receive a bonus pool (10% of total vote revenue) on top of their personal earnings.' },
+          { q: 'Is voting free?', a: 'Everyone gets one free vote per day. Want to show more support? Paid votes let you vote as many times as you want — and that money goes directly to the competitor you\'re backing.' },
+          { q: 'How do competitors make money?', a: 'Every paid vote puts money in competitors\' pockets. Competitors keep 60% of the revenue from paid votes cast for them. Free votes count toward rankings but don\'t generate earnings. Win or lose, you walk away with what your supporters put behind you. Winners also receive a bonus pool (10% of total paid vote revenue) on top of their personal earnings.' },
           { q: 'What do EliteRank winners receive?', a: 'Winners receive their personal vote earnings, the bonus pool, the official EliteRank title for their category, recognition across our platform and partner channels, and more.' },
           { q: 'Someone nominated me to compete — what does this mean?', a: "Someone in your network believes you deserve recognition. A nomination is an invitation to compete — accept and create your profile, or decline. There's no obligation, but accepting enters you into a bracket where public votes determine who advances and you keep the money raised for you." },
           { q: 'How is EliteRank different from other competitions?', a: "EliteRank is crowd-determined and crowd-funded. Your ranking comes from real votes, not a panel — and those votes translate to real money. Think of it as a public referendum on who's most exceptional, where supporters put their money where their mouth is." },
@@ -860,7 +861,7 @@ export default function EliteRankCityModal({
               }}>
                 {[
                   { step: '1', title: 'Enter', desc: 'Apply directly or accept a nomination to compete' },
-                  { step: '2', title: 'Compete', desc: 'Rally your network, promote your profile, and gather paid votes each round' },
+                  { step: '2', title: 'Compete', desc: 'Rally your network, promote your profile, and gather votes each round' },
                   { step: '3', title: 'Win', desc: 'Keep what you raised, plus winners take home the bonus pool, the title, exposure and more' },
                 ].map(item => (
                   <div key={item.step} style={{
@@ -900,6 +901,7 @@ export default function EliteRankCityModal({
               <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.gold.primary, marginBottom: spacing.lg, textAlign: 'center' }}>The Money</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
                 {[
+                  { highlight: 'Free daily vote', detail: 'Everyone can vote once per day for free — all votes count toward rankings' },
                   { highlight: 'You keep what you raise', detail: '60% of every paid vote for you goes directly to you' },
                   { highlight: 'Winners get more', detail: 'The bonus pool (10% of all paid votes) goes to the champion' },
                   { highlight: 'Everyone earns', detail: "Even if you don't win, you walk away with what your supporters put behind you" },
