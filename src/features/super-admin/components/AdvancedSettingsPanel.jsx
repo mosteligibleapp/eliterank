@@ -35,21 +35,22 @@ export default function AdvancedSettingsPanel({ competition, onClose, onSave }) 
 
     setLoading(true);
     try {
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('competition_settings')
+      // Settings are now on the competitions table directly
+      const { data: compData, error: compError } = await supabase
+        .from('competitions')
         .select('price_per_vote, use_price_bundler, allow_manual_votes')
-        .eq('competition_id', competition.id)
+        .eq('id', competition.id)
         .single();
 
-      if (settingsError && settingsError.code !== 'PGRST116') {
-        throw settingsError;
+      if (compError && compError.code !== 'PGRST116') {
+        throw compError;
       }
 
-      if (settingsData) {
+      if (compData) {
         setSettings({
-          price_per_vote: settingsData.price_per_vote || 1.00,
-          use_price_bundler: settingsData.use_price_bundler || false,
-          allow_manual_votes: settingsData.allow_manual_votes || false,
+          price_per_vote: compData.price_per_vote || 1.00,
+          use_price_bundler: compData.use_price_bundler || false,
+          allow_manual_votes: compData.allow_manual_votes || false,
         });
       }
     } catch (err) {
@@ -64,17 +65,18 @@ export default function AdvancedSettingsPanel({ competition, onClose, onSave }) 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error: settingsError } = await supabase
-        .from('competition_settings')
-        .upsert({
-          competition_id: competition.id,
+      // Settings are now stored directly on the competitions table
+      const { error: updateError } = await supabase
+        .from('competitions')
+        .update({
           price_per_vote: settings.price_per_vote,
           use_price_bundler: settings.use_price_bundler,
           allow_manual_votes: settings.allow_manual_votes,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'competition_id' });
+        })
+        .eq('id', competition.id);
 
-      if (settingsError) throw settingsError;
+      if (updateError) throw updateError;
 
       toast.success('Settings saved successfully');
       if (onSave) onSave();

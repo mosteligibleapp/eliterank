@@ -130,7 +130,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
         return;
       }
 
-      // Create competition
+      // Create competition with settings included (consolidated schema)
       const { data, error } = await supabase
         .from('competitions')
         .insert({
@@ -145,21 +145,15 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
           selection_criteria: 'votes', // Default to public votes
           host_id: formData.host_id || null,
           description: formData.description || '',
+          // Settings fields (now on competitions table)
+          price_per_vote: 1.00,
+          use_price_bundler: false,
+          allow_manual_votes: false,
         })
         .select()
         .single();
 
       if (error) throw error;
-
-      // Create default competition settings
-      await supabase
-        .from('competition_settings')
-        .insert({
-          competition_id: data.id,
-          price_per_vote: 1.00,
-          use_price_bundler: false,
-          allow_manual_votes: false,
-        });
 
       toast.success('Competition created successfully');
       setShowCreateModal(false);
@@ -216,13 +210,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
 
     setIsSubmitting(true);
     try {
-      // Delete related settings first
-      await supabase
-        .from('competition_settings')
-        .delete()
-        .eq('competition_id', selectedCompetition.id);
-
-      // Delete competition
+      // Delete competition (related data cascades automatically)
       const { error } = await supabase
         .from('competitions')
         .delete()
