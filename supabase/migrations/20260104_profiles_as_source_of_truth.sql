@@ -1,13 +1,13 @@
 -- ============================================================================
 -- Migration: Profiles as Source of Truth
 --
--- This migration refactors the data model so that profiles table is the
--- single source of truth for all user identity data. Contestants, judges,
--- and hosts all reference profiles rather than duplicating data.
+-- Architecture:
+-- - profiles = Person's identity + lifetime aggregate stats (competition-agnostic)
+-- - contestants = Their role + performance in a SPECIFIC competition
+-- - judges = Their role in a SPECIFIC competition
 --
--- ACTUAL TABLE COLUMNS:
--- contestants: id, competition_id, user_id, name, email, age, occupation, bio, avatar_url, instagram, interests, status, votes, rank, trend
--- judges: id, competition_id, user_id, name, title, bio, avatar_url, sort_order
+-- This migration links existing contestants/judges to their profiles by email.
+-- No stub/placeholder profiles are created - only real profiles.
 -- ============================================================================
 
 -- ============================================================================
@@ -17,141 +17,27 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS age INTEGER;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS occupation TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS linkedin TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS tiktok TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone TEXT;
 
 -- ============================================================================
--- STEP 2: Create stub profiles for contestants without user accounts
+-- STEP 2: Link contestants to existing profiles by email match
 -- ============================================================================
-
--- Insert profiles for contestants who don't have a linked user_id (with email)
-INSERT INTO profiles (id, email, first_name, last_name, bio, avatar_url, instagram, interests, age, occupation, created_at, updated_at)
-SELECT
-    gen_random_uuid() as id,
-    c.email,
-    SPLIT_PART(c.name, ' ', 1) as first_name,
-    CASE
-        WHEN POSITION(' ' IN c.name) > 0
-        THEN SUBSTRING(c.name FROM POSITION(' ' IN c.name) + 1)
-        ELSE ''
-    END as last_name,
-    c.bio,
-    c.avatar_url,
-    c.instagram,
-    c.interests,
-    c.age,
-    c.occupation,
-    c.created_at,
-    NOW() as updated_at
-FROM contestants c
-WHERE c.user_id IS NULL
-  AND c.email IS NOT NULL
-ON CONFLICT (email) DO NOTHING;
-
--- Update contestants to link to the newly created profiles
 UPDATE contestants c
 SET user_id = p.id
 FROM profiles p
 WHERE c.user_id IS NULL
   AND c.email IS NOT NULL
-  AND c.email = p.email;
-
--- For contestants without email, create profiles
-INSERT INTO profiles (id, first_name, last_name, bio, avatar_url, instagram, interests, age, occupation, created_at, updated_at)
-SELECT
-    gen_random_uuid() as id,
-    SPLIT_PART(c.name, ' ', 1) as first_name,
-    CASE
-        WHEN POSITION(' ' IN c.name) > 0
-        THEN SUBSTRING(c.name FROM POSITION(' ' IN c.name) + 1)
-        ELSE ''
-    END as last_name,
-    c.bio,
-    c.avatar_url,
-    c.instagram,
-    c.interests,
-    c.age,
-    c.occupation,
-    c.created_at,
-    NOW() as updated_at
-FROM contestants c
-WHERE c.user_id IS NULL
-  AND (c.email IS NULL OR c.email = '');
-
--- Link remaining orphan contestants by matching on name
-WITH new_profiles AS (
-    SELECT p.id as profile_id, c.id as contestant_id
-    FROM contestants c
-    JOIN profiles p ON (
-        SPLIT_PART(c.name, ' ', 1) = p.first_name
-        AND (
-            CASE
-                WHEN POSITION(' ' IN c.name) > 0
-                THEN SUBSTRING(c.name FROM POSITION(' ' IN c.name) + 1)
-                ELSE ''
-            END
-        ) = COALESCE(p.last_name, '')
-        AND c.created_at::date = p.created_at::date
-    )
-    WHERE c.user_id IS NULL
-)
-UPDATE contestants c
-SET user_id = np.profile_id
-FROM new_profiles np
-WHERE c.id = np.contestant_id;
+  AND c.email != ''
+  AND LOWER(TRIM(c.email)) = LOWER(TRIM(p.email));
 
 -- ============================================================================
--- STEP 3: Create stub profiles for judges without user accounts
--- Judges table only has: id, competition_id, user_id, name, title, bio, avatar_url, sort_order
--- ============================================================================
-
-INSERT INTO profiles (id, first_name, last_name, bio, avatar_url, occupation, created_at, updated_at)
-SELECT
-    gen_random_uuid() as id,
-    SPLIT_PART(j.name, ' ', 1) as first_name,
-    CASE
-        WHEN POSITION(' ' IN j.name) > 0
-        THEN SUBSTRING(j.name FROM POSITION(' ' IN j.name) + 1)
-        ELSE ''
-    END as last_name,
-    j.bio,
-    j.avatar_url,
-    j.title as occupation,
-    j.created_at,
-    NOW() as updated_at
-FROM judges j
-WHERE j.user_id IS NULL;
-
--- Link orphan judges by matching on name
-WITH new_judge_profiles AS (
-    SELECT p.id as profile_id, j.id as judge_id
-    FROM judges j
-    JOIN profiles p ON (
-        SPLIT_PART(j.name, ' ', 1) = p.first_name
-        AND (
-            CASE
-                WHEN POSITION(' ' IN j.name) > 0
-                THEN SUBSTRING(j.name FROM POSITION(' ' IN j.name) + 1)
-                ELSE ''
-            END
-        ) = COALESCE(p.last_name, '')
-        AND j.created_at::date = p.created_at::date
-    )
-    WHERE j.user_id IS NULL
-)
-UPDATE judges j
-SET user_id = njp.profile_id
-FROM new_judge_profiles njp
-WHERE j.id = njp.judge_id;
-
--- ============================================================================
--- STEP 4: Add helpful indexes
+-- STEP 3: Add indexes for performance
 -- ============================================================================
 CREATE INDEX IF NOT EXISTS idx_contestants_user_id ON contestants(user_id);
 CREATE INDEX IF NOT EXISTS idx_judges_user_id ON judges(user_id);
-CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
 
 -- ============================================================================
--- STEP 5: Create views for backward compatibility
--- These views present contestants/judges with their profile data merged
+-- STEP 4: Create helper views for querying with profile data merged
 -- ============================================================================
 
 -- View for contestants with full profile data
@@ -166,21 +52,30 @@ SELECT
     c.trend,
     c.created_at,
     c.updated_at,
-    -- Profile data (prefer contestant data, fall back to profile)
+    c.eliminated_in_round,
+    c.advancement_status,
+    c.current_round,
+    -- Identity: prefer contestant data, fall back to profile
     COALESCE(c.name, CONCAT(p.first_name, ' ', p.last_name)) as name,
     COALESCE(c.age, p.age) as age,
-    COALESCE(c.occupation, p.occupation) as occupation,
+    p.occupation,
     COALESCE(c.bio, p.bio) as bio,
     COALESCE(c.avatar_url, p.avatar_url) as avatar_url,
     COALESCE(c.instagram, p.instagram) as instagram,
     p.twitter,
     p.linkedin,
-    p.city,
-    COALESCE(c.interests, p.interests) as interests,
+    COALESCE(c.city, p.city) as city,
+    p.interests,
     p.gallery,
     p.cover_image,
     p.tiktok,
-    COALESCE(c.email, p.email) as email
+    COALESCE(c.email, p.email) as email,
+    COALESCE(c.phone, p.phone) as phone,
+    -- Lifetime stats from profile
+    p.total_votes_received,
+    p.total_competitions,
+    p.wins,
+    p.best_placement
 FROM contestants c
 LEFT JOIN profiles p ON c.user_id = p.id;
 
@@ -193,7 +88,7 @@ SELECT
     j.title,
     j.sort_order,
     j.created_at,
-    -- Profile data
+    -- Identity: prefer judge data, fall back to profile
     COALESCE(j.name, CONCAT(p.first_name, ' ', p.last_name)) as name,
     COALESCE(j.bio, p.bio) as bio,
     COALESCE(j.avatar_url, p.avatar_url) as avatar_url,
