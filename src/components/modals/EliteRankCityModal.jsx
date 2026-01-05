@@ -517,14 +517,14 @@ export default function EliteRankCityModal({
                 lineHeight: typography.lineHeight.tight,
                 marginBottom: spacing.md,
               }}>
-                Discover the Most Eligible
+                America's Arena for Excellence
               </h1>
               <p style={{
                 fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
                 color: colors.text.secondary,
                 lineHeight: typography.lineHeight.relaxed,
               }}>
-                Vote for your favorites and be part of the most exciting social competition.
+                Social competitions where top talent is discovered, celebrated, and rewarded.
               </p>
             </div>
 
@@ -795,8 +795,26 @@ export default function EliteRankCityModal({
         );
 
       case 'about':
+        const faqs = [
+          { q: 'What is EliteRank?', a: 'EliteRank is a social competition platform where public voting determines who ranks at the top across categories that matter. Competitors enter bracket-style tournaments, rally support from their networks, and advance through rounds based on votes. You keep the money you raise — winners take home the title plus a bonus pool.' },
+          { q: 'How do I enter an EliteRank competition?', a: 'You can enter two ways: apply directly or accept a nomination from someone in your network. Once entered, you create a competitor profile and start competing when voting opens.' },
+          { q: 'Is voting free?', a: 'Everyone gets one free vote per day. Want to show more support? Paid votes let you vote as many times as you want — and that money goes directly to the competitor you\'re backing.' },
+          { q: 'How do competitors make money?', a: 'Every paid vote puts money in competitors\' pockets. Competitors keep 60% of the revenue from paid votes cast for them. Free votes count toward rankings but don\'t generate earnings. Win or lose, you walk away with what your supporters put behind you. Winners also receive a bonus pool (10% of total paid vote revenue) on top of their personal earnings.' },
+          { q: 'What do EliteRank winners receive?', a: 'Winners receive their personal vote earnings, the bonus pool, the official EliteRank title for their category, recognition across our platform and partner channels, and more.' },
+          { q: 'Someone nominated me to compete — what does this mean?', a: "Someone in your network believes you deserve recognition. A nomination is an invitation to compete — accept and create your profile, or decline. There's no obligation, but accepting enters you into a bracket where public votes determine who advances and you keep the money raised for you." },
+          { q: 'How is EliteRank different from other competitions?', a: "EliteRank is crowd-determined and crowd-funded. Your ranking comes from real votes, not a panel — and those votes translate to real money. Think of it as a public referendum on who's most exceptional, where supporters put their money where their mouth is." },
+          { q: 'Is EliteRank free to enter?', a: 'Yes. There is no cost at all to enter and compete.' },
+        ];
+
+        const categories = [
+          { title: 'Dating & Social', items: ['Most Eligible Bachelor', 'Most Eligible Bachelorette'] },
+          { title: 'Business & Leadership', items: ['Top Founder Under 30', 'Rising Executive'] },
+          { title: 'Cultural Moments', items: ["America's 250 Elite (2026 Semiquincentennial)"] },
+        ];
+
         return (
-          <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '800px', margin: '0 auto' }}>
+          <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '900px', margin: '0 auto' }}>
+            {/* Hero Section */}
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
               <div style={{
                 width: '64px',
@@ -809,12 +827,16 @@ export default function EliteRankCityModal({
               }}>
                 <Crown size={32} style={{ color: '#000' }} />
               </div>
-              <h2 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>About Elite Rank</h2>
-              <p style={{ color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed }}>
-                America's premier social competition platform connecting ambitious professionals through city-based competitions and exclusive events.
+              <h2 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.lg }}>About EliteRank</h2>
+              <p style={{ color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed, fontSize: typography.fontSize.md, marginBottom: spacing.lg }}>
+                EliteRank is a social competition platform where public voting determines who ranks at the top across categories that matter — from dating to founders to cultural moments. Competitors keep the money they raise through votes, making every campaign a chance to earn while building your personal brand.
+              </p>
+              <p style={{ color: colors.text.tertiary, lineHeight: typography.lineHeight.relaxed, fontSize: typography.fontSize.sm, fontStyle: 'italic' }}>
+                Think American Idol meets GoFundMe — bracket-style tournaments where your network becomes your campaign team, the crowd decides who rises, and every vote puts money in your pocket.
               </p>
             </div>
 
+            {/* Mission Section */}
             <div style={{
               background: colors.background.card,
               border: `1px solid ${colors.gold.primary}40`,
@@ -824,38 +846,201 @@ export default function EliteRankCityModal({
               marginBottom: spacing.xxxl,
             }}>
               <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.gold.primary, marginBottom: spacing.md }}>Our Mission</h3>
-              <p style={{ color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed }}>
-                To celebrate and elevate exceptional individuals in every major city.
+              <p style={{ color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed, fontSize: typography.fontSize.lg }}>
+                To spotlight and reward exceptional people backed by public opinion.
               </p>
             </div>
 
+            {/* How It Works */}
+            <div style={{ marginBottom: spacing.xxxl }}>
+              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.xl, textAlign: 'center' }}>How It Works</h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+                gap: spacing.lg,
+              }}>
+                {[
+                  { step: '1', title: 'Enter', desc: 'Apply directly or accept a nomination to compete' },
+                  { step: '2', title: 'Compete', desc: 'Rally your network, promote your profile, and gather votes each round' },
+                  { step: '3', title: 'Win', desc: 'Keep what you raised, plus winners take home the bonus pool, the title, exposure and more' },
+                ].map(item => (
+                  <div key={item.step} style={{
+                    background: colors.background.card,
+                    border: `1px solid ${colors.border.primary}`,
+                    borderRadius: borderRadius.xl,
+                    padding: spacing.xl,
+                    textAlign: 'center',
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      background: colors.gold.primary,
+                      borderRadius: borderRadius.full,
+                      ...styleHelpers.flexCenter,
+                      margin: '0 auto',
+                      marginBottom: spacing.md,
+                      fontSize: typography.fontSize.xl,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.text.inverse,
+                    }}>{item.step}</div>
+                    <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.sm }}>{item.title}</h4>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed }}>{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* The Money Section */}
+            <div style={{
+              background: `linear-gradient(135deg, ${colors.gold.primary}15, ${colors.gold.primary}05)`,
+              border: `1px solid ${colors.gold.primary}40`,
+              borderRadius: borderRadius.xl,
+              padding: spacing.xl,
+              marginBottom: spacing.xxxl,
+            }}>
+              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.gold.primary, marginBottom: spacing.lg, textAlign: 'center' }}>The Money</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+                {[
+                  { highlight: 'Free daily vote', detail: 'Everyone can vote once per day for free — all votes count toward rankings' },
+                  { highlight: 'You keep what you raise', detail: '60% of every paid vote for you goes directly to you' },
+                  { highlight: 'Winners get more', detail: 'The bonus pool (10% of all paid votes) goes to the champion' },
+                  { highlight: 'Everyone earns', detail: "Even if you don't win, you walk away with what your supporters put behind you" },
+                ].map((item, i) => (
+                  <div key={i} style={{ ...styleHelpers.flexStart, gap: spacing.md, alignItems: 'flex-start' }}>
+                    <div style={{ width: '8px', height: '8px', background: colors.gold.primary, borderRadius: '50%', marginTop: '8px', flexShrink: 0 }} />
+                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>
+                      <strong style={{ color: colors.text.primary }}>{item.highlight}</strong> — {item.detail}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color: colors.text.tertiary, fontSize: typography.fontSize.sm, marginTop: spacing.lg, textAlign: 'center', fontStyle: 'italic' }}>
+                This isn't just a competition. It's a way to earn based on your likability and persuasion skills.
+              </p>
+            </div>
+
+            {/* Competition Categories */}
+            <div style={{ marginBottom: spacing.xxxl }}>
+              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.xl, textAlign: 'center' }}>Competition Categories</h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+                gap: spacing.lg,
+              }}>
+                {categories.map((cat, i) => (
+                  <div key={i} style={{
+                    background: colors.background.card,
+                    border: `1px solid ${colors.border.primary}`,
+                    borderRadius: borderRadius.xl,
+                    padding: spacing.lg,
+                  }}>
+                    <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.gold.primary, marginBottom: spacing.md }}>{cat.title}</h4>
+                    <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                      {cat.items.map((item, j) => (
+                        <li key={j} style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.xs }}>• {item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginTop: spacing.lg, textAlign: 'center' }}>
+                More coming soon. New competitions launch around major cultural moments and categories people care about.
+              </p>
+            </div>
+
+            {/* FAQ Section */}
+            <div style={{ marginBottom: spacing.xxxl }}>
+              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.xl, textAlign: 'center' }}>FAQ</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+                {faqs.map((faq, i) => (
+                  <div key={i} style={{
+                    background: colors.background.card,
+                    border: `1px solid ${colors.border.primary}`,
+                    borderRadius: borderRadius.lg,
+                    padding: spacing.lg,
+                  }}>
+                    <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.sm }}>{faq.q}</h4>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed }}>{faq.a}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Why Compete & Who Competes */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
               gap: spacing.lg,
+              marginBottom: spacing.xxxl,
             }}>
-              {[
-                { step: '1', title: 'Compete', desc: 'Get nominated and compete' },
-                { step: '2', title: 'Vote', desc: 'Public votes for favorites' },
-                { step: '3', title: 'Win', desc: 'Winners crowned at finale' },
-              ].map(item => (
-                <div key={item.step} style={{ textAlign: 'center', padding: spacing.lg }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    background: colors.gold.primary,
-                    borderRadius: borderRadius.full,
-                    ...styleHelpers.flexCenter,
-                    margin: '0 auto',
-                    marginBottom: spacing.md,
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.bold,
-                    color: colors.text.inverse,
-                  }}>{item.step}</div>
-                  <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.xs }}>{item.title}</h4>
-                  <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>{item.desc}</p>
-                </div>
-              ))}
+              <div style={{
+                background: colors.background.card,
+                border: `1px solid ${colors.border.primary}`,
+                borderRadius: borderRadius.xl,
+                padding: spacing.xl,
+              }}>
+                <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.gold.primary, marginBottom: spacing.md }}>Why Compete?</h4>
+                <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed }}>
+                  This isn't about a trophy. It's about proving publicly that people believe in you — and getting paid to do it. Every vote is someone putting money behind your name. Win or lose, you build your brand and walk away with earnings.
+                </p>
+              </div>
+              <div style={{
+                background: colors.background.card,
+                border: `1px solid ${colors.border.primary}`,
+                borderRadius: borderRadius.xl,
+                padding: spacing.xl,
+              }}>
+                <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.gold.primary, marginBottom: spacing.md }}>Who Competes?</h4>
+                <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed }}>
+                  Anyone confident enough to put themselves forward and ambitious enough to rally support. If you've ever been told you're exceptional, EliteRank is where you prove it and profit from it.
+                </p>
+              </div>
+            </div>
+
+            {/* CTA Section */}
+            <div style={{
+              background: `linear-gradient(135deg, ${colors.gold.primary}20, ${colors.gold.primary}05)`,
+              border: `1px solid ${colors.gold.primary}60`,
+              borderRadius: borderRadius.xl,
+              padding: spacing.xxl,
+              textAlign: 'center',
+              marginBottom: spacing.xxxl,
+            }}>
+              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.lg }}>Ready to Compete?</h3>
+              <div style={{ ...styleHelpers.flexCenter, flexWrap: 'wrap', gap: spacing.md }}>
+                <Button variant="primary" size="md" onClick={() => setActiveTab('competitions')}>Enter a Competition</Button>
+                <Button variant="outline" size="md" onClick={() => setActiveTab('competitions')}>Nominate Someone</Button>
+              </div>
+              <button
+                onClick={() => setActiveTab('competitions')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: colors.text.secondary,
+                  fontSize: typography.fontSize.sm,
+                  marginTop: spacing.lg,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                See Current Competitions
+              </button>
+            </div>
+
+            {/* For Partners */}
+            <div style={{
+              background: colors.background.card,
+              border: `1px solid ${colors.border.primary}`,
+              borderRadius: borderRadius.xl,
+              padding: spacing.xl,
+              textAlign: 'center',
+            }}>
+              <Building size={32} style={{ color: colors.gold.primary, marginBottom: spacing.md }} />
+              <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.sm }}>For Partners & Brands</h4>
+              <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed, marginBottom: spacing.lg }}>
+                Host a competition on EliteRank. Bring your audience, we bring the infrastructure. Sponsors, media partners, and organizations can co-create categories or power competitions around cultural moments.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => window.location.href = 'mailto:hello@eliterank.com'}>Contact Us</Button>
             </div>
           </div>
         );
