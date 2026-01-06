@@ -1188,7 +1188,9 @@ export default function CompetitionDashboard({
         if (!supabaseUrl) throw new Error('Supabase not configured');
 
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Not authenticated');
+        if (!session) {
+          throw new Error('AI Draft requires Supabase login. Please sign in with your Supabase account (not demo/mock login).');
+        }
 
         const response = await fetch(`${supabaseUrl}/functions/v1/generate-ai-post`, {
           method: 'POST',
