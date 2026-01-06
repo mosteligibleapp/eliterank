@@ -4,11 +4,11 @@ import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../../contexts/ToastContext';
-import { useAuthContext } from '../../../contexts/AuthContext';
+import { useAuthContextSafe } from '../../../contexts/AuthContext';
 
 export default function NominationForm({ city, competitionId, onSubmit, onClose }) {
   const toast = useToast();
-  const { user, profile, updateProfile } = useAuthContext();
+  const { user, profile, updateProfile } = useAuthContextSafe();
   const fileInputRef = useRef(null);
 
   // Flow state

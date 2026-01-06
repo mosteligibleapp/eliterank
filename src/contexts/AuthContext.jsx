@@ -131,4 +131,27 @@ export function useAuthContext() {
   return context;
 }
 
+// Safe version that returns null values instead of throwing
+export function useAuthContextSafe() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    return {
+      user: null,
+      profile: null,
+      hostProfile: null,
+      fullName: null,
+      isAuthenticated: false,
+      isSuperAdmin: false,
+      isHost: false,
+      loading: false,
+      login: () => {},
+      logout: () => {},
+      signIn: () => {},
+      signUp: () => {},
+      updateProfile: () => {},
+    };
+  }
+  return context;
+}
+
 export default AuthContext;
