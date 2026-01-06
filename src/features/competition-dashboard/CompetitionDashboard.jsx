@@ -3,7 +3,7 @@ import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, UserPlus, FileText, Settings as SettingsIcon,
   User, Calendar, Eye, Loader, AlertCircle, Archive, RotateCcw, ExternalLink,
   UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Edit, Trash2,
-  Pin, MapPin, Clock, Sparkles, TrendingUp, Hash, Award, Scale, Check
+  Pin, MapPin, Clock, Sparkles, TrendingUp, Hash, Award, Scale, Check, Wand2
 } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, RuleModal, AddPersonModal } from '../../components/modals';
@@ -119,6 +119,13 @@ export default function CompetitionDashboard({
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
+
+  // AI Draft state (super admin only)
+  const [isAiMode, setIsAiMode] = useState(false);
+  const [aiTopicType, setAiTopicType] = useState('company_update');
+  const [aiBulletPoints, setAiBulletPoints] = useState(['', '', '']);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   // Add person modal state (for manual nominee/contestant entry)
   const [addPersonModal, setAddPersonModal] = useState({ isOpen: false, type: 'nominee' });
@@ -1166,6 +1173,64 @@ export default function CompetitionDashboard({
       setAnnouncementForm({ title: '', content: '' });
     };
 
+    // AI Draft generation (super admin only)
+    const handleGenerateAiDraft = async () => {
+      setIsGeneratingAi(true);
+      setAiError(null);
+
+      try {
+        const validBullets = aiBulletPoints.filter(bp => bp.trim() !== '');
+        if (validBullets.length < 2) {
+          throw new Error('Please enter at least 2 bullet points');
+        }
+
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (!supabaseUrl) throw new Error('Supabase not configured');
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/generate-ai-post`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            mode: 'editorial',
+            topicType: aiTopicType,
+            bulletPoints: validBullets,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || 'Failed to generate draft');
+        }
+
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Failed to generate draft');
+
+        // Populate form with generated content
+        setAnnouncementForm({ title: result.title, content: result.content });
+        setIsAiMode(false); // Switch back to manual mode to edit
+
+      } catch (error) {
+        console.error('Error generating AI draft:', error);
+        setAiError(error.message);
+      } finally {
+        setIsGeneratingAi(false);
+      }
+    };
+
+    const AI_TOPIC_TYPES = [
+      { value: 'partnership', label: 'Partnership' },
+      { value: 'feature_launch', label: 'Feature Launch' },
+      { value: 'winner_spotlight', label: 'Winner Spotlight' },
+      { value: 'company_update', label: 'Company Update' },
+      { value: 'competition_highlight', label: 'Competition Highlight' },
+    ];
+
     const sortedAnnouncements = [...data.announcements].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -1179,35 +1244,187 @@ export default function CompetitionDashboard({
           <div style={{ padding: spacing.xl }}>
             {showAnnouncementForm || editingAnnouncement ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
-                <input
-                  type="text"
-                  placeholder="Announcement title..."
-                  value={announcementForm.title}
-                  onChange={(e) => setAnnouncementForm(prev => ({ ...prev, title: e.target.value }))}
-                  style={{
-                    background: colors.background.secondary,
-                    border: `1px solid ${colors.border.light}`,
+                {/* AI Draft Toggle - Super Admin Only */}
+                {isSuperAdmin && !editingAnnouncement && (
+                  <div style={{
+                    display: 'flex',
+                    gap: spacing.sm,
+                    padding: spacing.xs,
+                    background: 'rgba(255,255,255,0.03)',
                     borderRadius: borderRadius.lg,
-                    padding: spacing.md,
-                    color: '#fff',
-                    fontSize: typography.fontSize.lg,
-                  }}
-                />
-                <textarea
-                  placeholder="Write your announcement..."
-                  value={announcementForm.content}
-                  onChange={(e) => setAnnouncementForm(prev => ({ ...prev, content: e.target.value }))}
-                  rows={4}
-                  style={{
-                    background: colors.background.secondary,
-                    border: `1px solid ${colors.border.light}`,
+                    border: `1px solid ${colors.border.lighter}`,
+                    marginBottom: spacing.sm,
+                  }}>
+                    <button
+                      onClick={() => setIsAiMode(false)}
+                      style={{
+                        flex: 1,
+                        padding: `${spacing.sm} ${spacing.md}`,
+                        borderRadius: borderRadius.md,
+                        border: 'none',
+                        background: !isAiMode ? 'rgba(212,175,55,0.2)' : 'transparent',
+                        color: !isAiMode ? colors.gold.primary : colors.text.secondary,
+                        fontWeight: typography.fontWeight.medium,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: spacing.sm,
+                        fontSize: typography.fontSize.sm,
+                      }}
+                    >
+                      <FileText size={14} /> Manual
+                    </button>
+                    <button
+                      onClick={() => setIsAiMode(true)}
+                      style={{
+                        flex: 1,
+                        padding: `${spacing.sm} ${spacing.md}`,
+                        borderRadius: borderRadius.md,
+                        border: 'none',
+                        background: isAiMode ? 'rgba(139,92,246,0.2)' : 'transparent',
+                        color: isAiMode ? '#a78bfa' : colors.text.secondary,
+                        fontWeight: typography.fontWeight.medium,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: spacing.sm,
+                        fontSize: typography.fontSize.sm,
+                      }}
+                    >
+                      <Wand2 size={14} /> AI Draft
+                    </button>
+                  </div>
+                )}
+
+                {/* AI Draft Interface */}
+                {isAiMode && isSuperAdmin && !editingAnnouncement ? (
+                  <div style={{
+                    padding: spacing.lg,
+                    background: 'rgba(139,92,246,0.05)',
                     borderRadius: borderRadius.lg,
-                    padding: spacing.md,
-                    color: '#fff',
-                    fontSize: typography.fontSize.md,
-                    resize: 'vertical',
-                  }}
-                />
+                    border: '1px solid rgba(139,92,246,0.2)',
+                  }}>
+                    {/* Topic Type */}
+                    <div style={{ marginBottom: spacing.lg }}>
+                      <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                        Topic Type
+                      </label>
+                      <select
+                        value={aiTopicType}
+                        onChange={(e) => setAiTopicType(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: spacing.md,
+                          background: colors.background.secondary,
+                          border: `1px solid ${colors.border.light}`,
+                          borderRadius: borderRadius.md,
+                          color: '#fff',
+                          fontSize: typography.fontSize.base,
+                        }}
+                      >
+                        {AI_TOPIC_TYPES.map(t => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Bullet Points */}
+                    <div style={{ marginBottom: spacing.lg }}>
+                      <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                        Key Points (2-4 bullet points)
+                      </label>
+                      {aiBulletPoints.map((point, idx) => (
+                        <input
+                          key={idx}
+                          type="text"
+                          placeholder={`Point ${idx + 1}...`}
+                          value={point}
+                          onChange={(e) => {
+                            const newPoints = [...aiBulletPoints];
+                            newPoints[idx] = e.target.value;
+                            setAiBulletPoints(newPoints);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: spacing.md,
+                            marginBottom: spacing.sm,
+                            background: colors.background.secondary,
+                            border: `1px solid ${colors.border.light}`,
+                            borderRadius: borderRadius.md,
+                            color: '#fff',
+                            fontSize: typography.fontSize.base,
+                          }}
+                        />
+                      ))}
+                      {aiBulletPoints.length < 4 && (
+                        <button
+                          onClick={() => setAiBulletPoints([...aiBulletPoints, ''])}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#a78bfa',
+                            fontSize: typography.fontSize.sm,
+                            cursor: 'pointer',
+                            padding: spacing.sm,
+                          }}
+                        >
+                          + Add another point
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Generate Button */}
+                    <Button
+                      onClick={handleGenerateAiDraft}
+                      disabled={isGeneratingAi || aiBulletPoints.filter(p => p.trim()).length < 2}
+                      icon={isGeneratingAi ? Loader : Wand2}
+                      style={{ width: '100%', background: 'rgba(139,92,246,0.8)' }}
+                    >
+                      {isGeneratingAi ? 'Generating...' : 'Generate Draft'}
+                    </Button>
+
+                    {aiError && (
+                      <p style={{ marginTop: spacing.md, color: '#ef4444', fontSize: typography.fontSize.sm }}>
+                        {aiError}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Announcement title..."
+                      value={announcementForm.title}
+                      onChange={(e) => setAnnouncementForm(prev => ({ ...prev, title: e.target.value }))}
+                      style={{
+                        background: colors.background.secondary,
+                        border: `1px solid ${colors.border.light}`,
+                        borderRadius: borderRadius.lg,
+                        padding: spacing.md,
+                        color: '#fff',
+                        fontSize: typography.fontSize.lg,
+                      }}
+                    />
+                    <textarea
+                      placeholder="Write your announcement..."
+                      value={announcementForm.content}
+                      onChange={(e) => setAnnouncementForm(prev => ({ ...prev, content: e.target.value }))}
+                      rows={4}
+                      style={{
+                        background: colors.background.secondary,
+                        border: `1px solid ${colors.border.light}`,
+                        borderRadius: borderRadius.lg,
+                        padding: spacing.md,
+                        color: '#fff',
+                        fontSize: typography.fontSize.md,
+                        resize: 'vertical',
+                      }}
+                    />
+                  </>
+                )}
+
                 <div style={{ display: 'flex', gap: spacing.md, justifyContent: 'flex-end' }}>
                   <Button
                     variant="secondary"
@@ -1215,13 +1432,18 @@ export default function CompetitionDashboard({
                       setShowAnnouncementForm(false);
                       setEditingAnnouncement(null);
                       setAnnouncementForm({ title: '', content: '' });
+                      setIsAiMode(false);
+                      setAiBulletPoints(['', '', '']);
+                      setAiError(null);
                     }}
                   >
                     Cancel
                   </Button>
-                  <Button onClick={editingAnnouncement ? handleUpdateAnnouncement : handleCreateAnnouncement}>
-                    {editingAnnouncement ? 'Update' : 'Post'}
-                  </Button>
+                  {(!isAiMode || editingAnnouncement) && (
+                    <Button onClick={editingAnnouncement ? handleUpdateAnnouncement : handleCreateAnnouncement}>
+                      {editingAnnouncement ? 'Update' : 'Post'}
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
