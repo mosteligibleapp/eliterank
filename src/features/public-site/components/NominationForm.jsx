@@ -238,15 +238,30 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         status: 'pending',
       };
 
-      const { error } = await supabase
+      // Insert nominee and get the ID back
+      const { data: insertedNominee, error } = await supabase
         .from('nominees')
-        .insert(nomineeData);
+        .insert(nomineeData)
+        .select('id')
+        .single();
 
       if (error) {
         if (error.code === '23505') {
           throw new Error('This person has already been nominated for this competition.');
         }
         throw error;
+      }
+
+      // Auto-send invite via edge function
+      if (insertedNominee?.id) {
+        try {
+          await supabase.functions.invoke('send-nomination-invite', {
+            body: { nominee_id: insertedNominee.id },
+          });
+        } catch (inviteErr) {
+          // Don't fail the nomination if invite fails - it can be resent later
+          console.error('Failed to send invite:', inviteErr);
+        }
       }
 
       setIsSuccess(true);

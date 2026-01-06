@@ -45,6 +45,7 @@ const PublicSitePage = lazy(() => import('./features/public-site/PublicSitePage'
 const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 const SuperAdminPage = lazy(() => import('./features/super-admin/SuperAdminPage'));
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
+const ClaimNominationPage = lazy(() => import('./features/public-site/pages/ClaimNominationPage'));
 
 // Shared competition dashboard for both host and superadmin
 import { CompetitionDashboard } from './features/competition-dashboard';
@@ -352,6 +353,9 @@ export default function App() {
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [initialUrlHandled, setInitialUrlHandled] = useState(false);
 
+  // Claim nomination state
+  const [claimToken, setClaimToken] = useState(null);
+
   // Selected competition for public site view
   const [selectedCompetition, setSelectedCompetition] = useState(
     createSafeCompetition({ city: 'New York', season: '2026', phase: 'voting' })
@@ -411,9 +415,17 @@ export default function App() {
   // URL HANDLING
   // ===========================================================================
 
-  // Handle initial URL on app load (e.g., /c/:citySlug)
+  // Handle initial URL on app load (e.g., /c/:citySlug or /claim/:token)
   useEffect(() => {
     const handleInitialUrl = async () => {
+      // Check for claim nomination URL
+      const claimMatch = location.pathname.match(/^\/claim\/([^/]+)\/?$/);
+      if (claimMatch) {
+        setClaimToken(claimMatch[1]);
+        setInitialUrlHandled(true);
+        return;
+      }
+
       const match = location.pathname.match(/^\/c\/([^/]+)\/?$/);
 
       if (match && supabase) {
@@ -637,6 +649,30 @@ export default function App() {
 
   if (authLoading) {
     return <LoadingScreen message="Loading..." />;
+  }
+
+  // ===========================================================================
+  // RENDER: CLAIM NOMINATION PAGE
+  // ===========================================================================
+
+  if (claimToken) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingScreen message="Loading nomination..." />}>
+          <ClaimNominationPage
+            token={claimToken}
+            onClose={() => {
+              setClaimToken(null);
+              navigate('/', { replace: true });
+            }}
+            onSuccess={() => {
+              setClaimToken(null);
+              navigate('/', { replace: true });
+            }}
+          />
+        </Suspense>
+      </ErrorBoundary>
+    );
   }
 
   // ===========================================================================

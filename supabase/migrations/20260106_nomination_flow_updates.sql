@@ -6,6 +6,7 @@
 --   - Adds nomination_reason and claimed_at to nominees
 --   - Updates status enums for nominees and contestants
 --   - Adds converted_to_contestant boolean flag
+--   - Adds invite_token for magic link claims
 -- =============================================================================
 
 -- =============================================================================
@@ -29,8 +30,15 @@ ALTER TABLE nominees ADD COLUMN IF NOT EXISTS converted_to_contestant BOOLEAN DE
 -- Add phone column to nominees if not exists
 ALTER TABLE nominees ADD COLUMN IF NOT EXISTS phone TEXT;
 
+-- Add invite tracking columns for magic link
+ALTER TABLE nominees ADD COLUMN IF NOT EXISTS invite_token UUID DEFAULT gen_random_uuid();
+ALTER TABLE nominees ADD COLUMN IF NOT EXISTS invite_sent_at TIMESTAMPTZ;
+
 -- Make email nullable for nominees (contact can be email OR phone)
 ALTER TABLE nominees ALTER COLUMN email DROP NOT NULL;
+
+-- Create unique index on invite_token for fast lookups
+CREATE UNIQUE INDEX IF NOT EXISTS idx_nominees_invite_token ON nominees(invite_token) WHERE invite_token IS NOT NULL;
 
 -- =============================================================================
 -- STEP 4: Update nominees status constraint

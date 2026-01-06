@@ -203,6 +203,8 @@ export function useCompetitionDashboard(competitionId) {
           status: n.status,
           age: n.age,
           city: n.city,
+          inviteToken: n.invite_token,
+          inviteSentAt: n.invite_sent_at,
           claimedAt: n.claimed_at,
           convertedToContestant: n.converted_to_contestant,
           convertedToContestantId: n.converted_to_contestant_id,
