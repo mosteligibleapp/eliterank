@@ -49,9 +49,13 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
     isSingle: null,
     // Step 2: Nomination type & contact
     nominationType: null, // 'self' or 'other'
+    // Self-nomination contact (for the nominee themselves)
     email: userEmail || '',
     phone: '',
     instagram: userInstagram || '',
+    // Third-party nomination: nominee's contact info
+    nomineeEmail: '',
+    nomineePhone: '',
     stayAnonymous: null,
     // Step 3: Updates opt-in (only for "other" nominations)
     wantsUpdates: null,
@@ -116,6 +120,12 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
       }
 
       if (formData.nominationType === 'other') {
+        // Require at least one contact method for the nominee
+        const hasEmail = formData.nomineeEmail && formData.nomineeEmail.includes('@');
+        const hasPhone = formData.nomineePhone && formData.nomineePhone.length >= 10;
+        if (!hasEmail && !hasPhone) {
+          newErrors.nomineeContact = 'Please provide at least an email or phone number for the nominee';
+        }
         if (formData.stayAnonymous === null) newErrors.stayAnonymous = 'Please select an option';
       }
     }
@@ -164,9 +174,9 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
         is_single: formData.isSingle,
         nominated_by: isSelfNomination ? 'self' : 'third_party',
         status: 'pending',
-        // Self-nomination contact info
-        email: isSelfNomination ? formData.email : null,
-        phone: isSelfNomination ? formData.phone : null,
+        // Contact info - self-nomination uses their own, third-party uses nominee's
+        email: isSelfNomination ? formData.email : (formData.nomineeEmail || null),
+        phone: isSelfNomination ? formData.phone : (formData.nomineePhone || null),
         instagram: isSelfNomination ? formData.instagram : null,
         // Third-party nomination info
         nominator_anonymous: !isSelfNomination ? formData.stayAnonymous : null,
@@ -712,6 +722,87 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
                       {errors.instagram}
                     </p>
                   )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Nominating someone else: Nominee contact info */}
+          {formData.nominationType === 'other' && (
+            <>
+              <h4 style={{
+                fontSize: typography.fontSize.lg,
+                fontWeight: typography.fontWeight.medium,
+                color: '#fff',
+                marginBottom: spacing.md
+              }}>
+                Nominee's Contact Information
+              </h4>
+              <p style={{
+                fontSize: typography.fontSize.sm,
+                color: colors.text.secondary,
+                marginBottom: spacing.lg
+              }}>
+                Please provide at least an email or phone number so we can contact the nominee.
+              </p>
+
+              <div style={{ marginBottom: spacing.lg }}>
+                <label style={labelStyle}>Nominee's Email</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={18} style={{
+                    position: 'absolute',
+                    left: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: colors.text.muted
+                  }} />
+                  <input
+                    type="email"
+                    value={formData.nomineeEmail}
+                    onChange={(e) => updateField('nomineeEmail', e.target.value)}
+                    placeholder="nominee@example.com"
+                    style={{
+                      ...inputStyle,
+                      paddingLeft: '44px',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: spacing.lg }}>
+                <label style={labelStyle}>Nominee's Phone Number</label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={18} style={{
+                    position: 'absolute',
+                    left: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: colors.text.muted
+                  }} />
+                  <input
+                    type="tel"
+                    value={formData.nomineePhone}
+                    onChange={(e) => updateField('nomineePhone', e.target.value)}
+                    placeholder="(555) 555-5555"
+                    style={{
+                      ...inputStyle,
+                      paddingLeft: '44px',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {errors.nomineeContact && (
+                <div style={{
+                  padding: spacing.md,
+                  background: 'rgba(239,68,68,0.1)',
+                  border: `1px solid ${colors.status.error}`,
+                  borderRadius: borderRadius.lg,
+                  marginBottom: spacing.lg,
+                }}>
+                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm }}>
+                    {errors.nomineeContact}
+                  </p>
                 </div>
               )}
             </>
