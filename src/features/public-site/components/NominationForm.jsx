@@ -1,194 +1,246 @@
-import React, { useState, useMemo } from 'react';
-import { Crown, User, Phone, Mail, Instagram, MapPin, Heart, Users, Check, ChevronRight, Sparkles, AlertCircle, Share2, Copy, EyeOff, Bell } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Crown, User, Users, Mail, Phone, Camera, Check, Share2, Copy, UserPlus } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../../contexts/ToastContext';
+import { useAuthContext } from '../../../contexts/AuthContext';
 
-// Default form fields config (used when no config is provided)
-const DEFAULT_FORM_FIELDS = [
-  { key: 'nomineeName', label: "Nominee's Full Name", type: 'text', required: true, enabled: true },
-  { key: 'nomineeAge', label: 'Age', type: 'number', required: true, enabled: true, min: 21, max: 45, description: 'Must be between 21-45' },
-  { key: 'livesNearCity', label: 'Do they live within 100 miles of the city?', type: 'boolean', required: true, enabled: true },
-  { key: 'isSingle', label: 'Are they single (not married or engaged)?', type: 'boolean', required: true, enabled: true },
-  { key: 'email', label: 'Email Address', type: 'email', required: true, enabled: true },
-  { key: 'phone', label: 'Phone Number', type: 'phone', required: true, enabled: true },
-  { key: 'instagram', label: 'Instagram Handle', type: 'text', required: true, enabled: true },
-];
-
-export default function NominationForm({ city, competitionId, onSubmit, onClose, userEmail, userInstagram, formConfig }) {
+export default function NominationForm({ city, competitionId, onSubmit, onClose }) {
   const toast = useToast();
-  const [step, setStep] = useState(1);
+  const { user, profile, updateProfile } = useAuthContext();
+  const fileInputRef = useRef(null);
 
-  // Parse and merge form config with defaults
-  const formFields = useMemo(() => {
-    if (!formConfig) return DEFAULT_FORM_FIELDS;
+  // Flow state
+  const [step, setStep] = useState(1); // 1 = choose type, 2 = form
+  const [nominationType, setNominationType] = useState(null); // 'self' or 'other'
 
-    try {
-      const config = typeof formConfig === 'string' ? JSON.parse(formConfig) : formConfig;
-      if (config.fields && Array.isArray(config.fields)) {
-        return config.fields;
-      }
-    } catch (e) {
-      console.error('Failed to parse form config:', e);
-    }
-    return DEFAULT_FORM_FIELDS;
-  }, [formConfig]);
-
-  // Helper to get field config
-  const getField = (key) => formFields.find(f => f.key === key) || { enabled: false, required: false, label: '' };
-  const isFieldEnabled = (key) => getField(key).enabled !== false;
-  const isFieldRequired = (key) => getField(key).required !== false;
-  const getFieldLabel = (key, fallback) => getField(key).label || fallback;
-
-  const [formData, setFormData] = useState({
-    // Step 1: Nominee info
-    nomineeName: '',
-    nomineeAge: '',
-    livesNearCity: null,
-    isSingle: null,
-    // Step 2: Nomination type & contact
-    nominationType: null, // 'self' or 'other'
-    // Self-nomination contact (for the nominee themselves)
-    email: userEmail || '',
-    phone: '',
-    instagram: userInstagram || '',
-    // Third-party nomination: nominee's contact info
-    nomineeEmail: '',
-    nomineePhone: '',
-    stayAnonymous: null,
-    // Step 3: Updates opt-in (only for "other" nominations)
-    wantsUpdates: null,
+  // Self-nomination state
+  const [selfData, setSelfData] = useState({
+    photo: profile?.avatar_url || null,
+    firstName: profile?.first_name || '',
+    lastName: profile?.last_name || '',
+    email: profile?.email || user?.email || '',
+    phone: profile?.phone || '',
+    city: profile?.city || city || '',
+    agreeToUpdates: true,
   });
+  const [photoFile, setPhotoFile] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Third-party nomination state
+  const [thirdPartyData, setThirdPartyData] = useState({
+    firstName: '',
+    lastName: '',
+    contactType: 'email', // 'email' or 'phone'
+    contactValue: '',
+    reason: '',
+    isAnonymous: false,
+    notifyMe: true,
+  });
+
+  // Shared state
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [nomineeId, setNomineeId] = useState(null);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const updateField = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: null }));
+  // Photo upload handler
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    // Preview immediately
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setSelfData(prev => ({ ...prev, photo: e.target.result }));
+    };
+    reader.readAsDataURL(file);
+    setPhotoFile(file);
+  };
+
+  // Upload photo to storage and update profile
+  const uploadPhoto = async () => {
+    if (!photoFile || !user) return profile?.avatar_url;
+
+    setUploadingPhoto(true);
+    try {
+      const fileExt = photoFile.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, photoFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar
+      await updateProfile({ avatar_url: publicUrl });
+
+      return publicUrl;
+    } catch (err) {
+      console.error('Error uploading photo:', err);
+      toast.error('Failed to upload photo');
+      return profile?.avatar_url;
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
-  // Calculate total steps based on nomination type
-  const getTotalSteps = () => {
-    if (formData.nominationType === 'other') return 3;
-    return 2; // self-nomination only needs 2 steps
-  };
-
-  const validateStep = () => {
+  // Validation
+  const validateSelfNomination = () => {
     const newErrors = {};
-    const ageField = getField('nomineeAge');
 
-    if (step === 1) {
-      // Validate enabled fields only
-      if (isFieldEnabled('nomineeName') && isFieldRequired('nomineeName') && !formData.nomineeName.trim()) {
-        newErrors.nomineeName = 'Full name is required';
-      }
-      if (isFieldEnabled('nomineeAge') && isFieldRequired('nomineeAge')) {
-        const minAge = ageField.min || 21;
-        const maxAge = ageField.max || 45;
-        if (!formData.nomineeAge || formData.nomineeAge < minAge || formData.nomineeAge > maxAge) {
-          newErrors.nomineeAge = `Age must be between ${minAge}-${maxAge}`;
-        }
-      }
-      if (isFieldEnabled('livesNearCity') && isFieldRequired('livesNearCity') && formData.livesNearCity === null) {
-        newErrors.livesNearCity = 'Please select an option';
-      }
-      if (isFieldEnabled('isSingle') && isFieldRequired('isSingle') && formData.isSingle === null) {
-        newErrors.isSingle = 'Please select an option';
-      }
+    if (!selfData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
     }
-
-    if (step === 2) {
-      if (formData.nominationType === null) newErrors.nominationType = 'Please select an option';
-
-      if (formData.nominationType === 'self') {
-        if (isFieldEnabled('email') && isFieldRequired('email') && !formData.email.includes('@')) {
-          newErrors.email = 'Valid email is required';
-        }
-        if (isFieldEnabled('phone') && isFieldRequired('phone') && (!formData.phone || formData.phone.length < 10)) {
-          newErrors.phone = 'Phone number is required';
-        }
-        if (isFieldEnabled('instagram') && isFieldRequired('instagram') && !formData.instagram.trim()) {
-          newErrors.instagram = 'Instagram handle is required';
-        }
-      }
-
-      if (formData.nominationType === 'other') {
-        // Require at least one contact method for the nominee
-        const hasEmail = formData.nomineeEmail && formData.nomineeEmail.includes('@');
-        const hasPhone = formData.nomineePhone && formData.nomineePhone.length >= 10;
-        if (!hasEmail && !hasPhone) {
-          newErrors.nomineeContact = 'Please provide at least an email or phone number for the nominee';
-        }
-        if (formData.stayAnonymous === null) newErrors.stayAnonymous = 'Please select an option';
-      }
+    if (!selfData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
     }
-
-    if (step === 3 && formData.nominationType === 'other') {
-      if (formData.wantsUpdates === null) newErrors.wantsUpdates = 'Please select an option';
+    if (!selfData.email && !selfData.phone) {
+      newErrors.contact = 'Please provide an email or phone number';
+    }
+    if (selfData.email && !selfData.email.includes('@')) {
+      newErrors.email = 'Please enter a valid email';
+    }
+    if (!selfData.photo && !photoFile) {
+      newErrors.photo = 'Please upload a photo';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validateStep()) {
-      const totalSteps = getTotalSteps();
-      if (step < totalSteps) {
-        setStep(step + 1);
-      } else {
-        handleSubmit();
-      }
+  const validateThirdParty = () => {
+    const newErrors = {};
+
+    if (!thirdPartyData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
     }
+    if (!thirdPartyData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+    if (!thirdPartyData.contactValue.trim()) {
+      newErrors.contactValue = `${thirdPartyData.contactType === 'email' ? 'Email' : 'Phone number'} is required`;
+    }
+    if (thirdPartyData.contactType === 'email' && !thirdPartyData.contactValue.includes('@')) {
+      newErrors.contactValue = 'Please enter a valid email';
+    }
+    if (thirdPartyData.contactType === 'phone' && thirdPartyData.contactValue.length < 10) {
+      newErrors.contactValue = 'Please enter a valid phone number';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleBack = () => {
-    if (step > 1) setStep(step - 1);
-  };
+  // Submit self-nomination (directly to contestants)
+  const handleSelfSubmit = async () => {
+    if (!validateSelfNomination()) return;
 
-  const handleSubmit = async () => {
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      if (!competitionId) {
-        throw new Error('Competition ID is required');
+      // Upload photo if new one selected
+      let avatarUrl = selfData.photo;
+      if (photoFile) {
+        avatarUrl = await uploadPhoto();
       }
 
-      const isSelfNomination = formData.nominationType === 'self';
+      // Update profile with any new info
+      const profileUpdates = {};
+      if (selfData.firstName !== profile?.first_name) profileUpdates.first_name = selfData.firstName;
+      if (selfData.lastName !== profile?.last_name) profileUpdates.last_name = selfData.lastName;
+      if (selfData.phone && selfData.phone !== profile?.phone) profileUpdates.phone = selfData.phone;
+      if (selfData.city && selfData.city !== profile?.city) profileUpdates.city = selfData.city;
 
-      // Build the nominee record
-      const nomineeData = {
+      if (Object.keys(profileUpdates).length > 0) {
+        await updateProfile(profileUpdates);
+      }
+
+      // Insert directly to contestants
+      const contestantData = {
         competition_id: competitionId,
-        name: formData.nomineeName,
-        age: parseInt(formData.nomineeAge),
-        city: city,
-        lives_near_city: formData.livesNearCity,
-        is_single: formData.isSingle,
-        nominated_by: isSelfNomination ? 'self' : 'third_party',
-        status: 'pending',
-        // Contact info - self-nomination uses their own, third-party uses nominee's
-        email: isSelfNomination ? formData.email : (formData.nomineeEmail || null),
-        phone: isSelfNomination ? formData.phone : (formData.nomineePhone || null),
-        instagram: isSelfNomination ? formData.instagram : null,
-        // Third-party nomination info
-        nominator_anonymous: !isSelfNomination ? formData.stayAnonymous : null,
-        nominator_wants_updates: !isSelfNomination ? formData.wantsUpdates : null,
+        user_id: user.id,
+        name: `${selfData.firstName} ${selfData.lastName}`.trim(),
+        email: selfData.email,
+        phone: selfData.phone || null,
+        city: selfData.city || city,
+        avatar_url: avatarUrl,
+        status: 'active',
+        votes: 0,
       };
 
-      // Insert into Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
+        .from('contestants')
+        .insert(contestantData);
+
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error('You have already entered this competition.');
+        }
+        throw error;
+      }
+
+      setIsSuccess(true);
+      toast.success("You're in! Good luck!");
+      if (onSubmit) onSubmit({ type: 'self' });
+    } catch (err) {
+      console.error('Error submitting self-nomination:', err);
+      setSubmitError(err.message || 'Failed to submit. Please try again.');
+      toast.error(err.message || 'Failed to submit');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Submit third-party nomination (to nominees table)
+  const handleThirdPartySubmit = async () => {
+    if (!validateThirdParty()) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const nomineeData = {
+        competition_id: competitionId,
+        name: `${thirdPartyData.firstName} ${thirdPartyData.lastName}`.trim(),
+        email: thirdPartyData.contactType === 'email' ? thirdPartyData.contactValue : null,
+        phone: thirdPartyData.contactType === 'phone' ? thirdPartyData.contactValue : null,
+        nominated_by: 'third_party',
+        nominator_id: user?.id || null,
+        nominator_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null,
+        nominator_email: user?.email || null,
+        nomination_reason: thirdPartyData.reason || null,
+        nominator_anonymous: thirdPartyData.isAnonymous,
+        nominator_wants_updates: thirdPartyData.notifyMe,
+        status: 'pending',
+      };
+
+      const { error } = await supabase
         .from('nominees')
-        .insert(nomineeData)
-        .select()
-        .single();
+        .insert(nomineeData);
 
       if (error) {
         if (error.code === '23505') {
@@ -197,26 +249,35 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
         throw error;
       }
 
-      if (!data) {
-        throw new Error('Failed to create nomination. Please try again.');
-      }
-
-      setNomineeId(data.id);
       setIsSuccess(true);
-      toast.success('Nomination submitted successfully!');
-      if (onSubmit) onSubmit({ ...formData, nomineeId: data.id });
+      toast.success('Nomination sent!');
+      if (onSubmit) onSubmit({ type: 'third_party' });
     } catch (err) {
       console.error('Error submitting nomination:', err);
-      const errorMessage = err.message || 'Failed to submit nomination. Please try again.';
-      setSubmitError(errorMessage);
-      toast.error(errorMessage);
+      setSubmitError(err.message || 'Failed to submit. Please try again.');
+      toast.error(err.message || 'Failed to submit');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Handlers
+  const handleNominateAnother = () => {
+    setIsSuccess(false);
+    setThirdPartyData({
+      firstName: '',
+      lastName: '',
+      contactType: 'email',
+      contactValue: '',
+      reason: '',
+      isAnonymous: false,
+      notifyMe: true,
+    });
+    setErrors({});
+    setSubmitError(null);
+  };
+
   const getShareableLink = () => {
-    // Generate a shareable link for the competition/nominee
     const baseUrl = window.location.origin;
     return `${baseUrl}/c/${city.toLowerCase().replace(/\s+/g, '-')}`;
   };
@@ -234,9 +295,9 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
   const handleShare = async () => {
     const shareData = {
       title: `Most Eligible ${city}`,
-      text: formData.nominationType === 'self'
-        ? `I just entered to be Most Eligible ${city}! Support me by voting!`
-        : `I just nominated someone for Most Eligible ${city}! Check it out!`,
+      text: nominationType === 'self'
+        ? `I just entered Most Eligible ${city}! Support me by voting!`
+        : `I just nominated someone for Most Eligible ${city}!`,
       url: getShareableLink(),
     };
 
@@ -244,15 +305,14 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
       try {
         await navigator.share(shareData);
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          handleCopyLink();
-        }
+        if (err.name !== 'AbortError') handleCopyLink();
       }
     } else {
       handleCopyLink();
     }
   };
 
+  // Styles
   const inputStyle = {
     width: '100%',
     padding: spacing.md,
@@ -274,7 +334,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
 
   const optionButtonStyle = (isSelected) => ({
     flex: 1,
-    padding: spacing.lg,
+    padding: spacing.xl,
     background: isSelected ? 'rgba(212,175,55,0.15)' : colors.background.secondary,
     border: `2px solid ${isSelected ? colors.gold.primary : colors.border.light}`,
     borderRadius: borderRadius.lg,
@@ -289,24 +349,17 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
     gap: spacing.sm,
   });
 
-  const progressStyle = {
+  const checkboxStyle = {
     display: 'flex',
+    alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.xxl,
+    cursor: 'pointer',
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
   };
 
-  const progressDotStyle = (stepNum) => ({
-    flex: 1,
-    height: '4px',
-    background: stepNum <= step ? colors.gold.primary : colors.border.light,
-    borderRadius: '2px',
-    transition: 'background 0.3s',
-  });
-
-  // Success screen
-  if (isSuccess) {
-    const isSelfNomination = formData.nominationType === 'self';
-
+  // Success Screen - Self Nomination
+  if (isSuccess && nominationType === 'self') {
     return (
       <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
         <div style={{
@@ -329,7 +382,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
           color: '#fff',
           marginBottom: spacing.md
         }}>
-          Congrats!
+          You're in! 🎉
         </h2>
 
         <p style={{
@@ -339,48 +392,9 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
           margin: `0 auto ${spacing.xl}`,
           lineHeight: 1.6,
         }}>
-          Your nomination has been recorded.
+          Share with your friends and start collecting votes!
         </p>
 
-        {isSelfNomination ? (
-          <>
-            <p style={{
-              fontSize: typography.fontSize.md,
-              color: colors.text.primary,
-              marginBottom: spacing.lg,
-              lineHeight: 1.6,
-            }}>
-              Share the news on socials to get your supporters engaged early!
-            </p>
-
-            <div style={{
-              padding: spacing.lg,
-              background: 'rgba(212,175,55,0.1)',
-              border: `1px solid ${colors.border.gold}`,
-              borderRadius: borderRadius.lg,
-              marginBottom: spacing.xl,
-            }}>
-              <p style={{
-                fontSize: typography.fontSize.sm,
-                color: colors.gold.primary,
-                fontWeight: typography.fontWeight.medium,
-              }}>
-                You will be contacted within 24 hours regarding next steps.
-              </p>
-            </div>
-          </>
-        ) : (
-          <p style={{
-            fontSize: typography.fontSize.md,
-            color: colors.text.primary,
-            marginBottom: spacing.xl,
-            lineHeight: 1.6,
-          }}>
-            Share the nomination link with your network.
-          </p>
-        )}
-
-        {/* Shareable link section */}
         <div style={{
           background: colors.background.card,
           border: `1px solid ${colors.border.light}`,
@@ -395,11 +409,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
           }}>
             Share this link:
           </p>
-          <div style={{
-            display: 'flex',
-            gap: spacing.sm,
-            alignItems: 'center',
-          }}>
+          <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
             <div style={{
               flex: 1,
               padding: spacing.md,
@@ -422,9 +432,6 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
                 borderRadius: borderRadius.md,
                 color: copied ? colors.status.success : colors.text.secondary,
                 cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
               }}
             >
               {copied ? <Check size={18} /> : <Copy size={18} />}
@@ -437,513 +444,502 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose,
             Back to Competition
           </Button>
           <Button onClick={handleShare} icon={Share2} style={{ flex: 1 }}>
-            Share
+            Share My Profile
           </Button>
         </div>
       </div>
     );
   }
 
-  return (
-    <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-      {/* Progress */}
-      <div style={progressStyle}>
-        {Array.from({ length: getTotalSteps() }, (_, i) => i + 1).map(num => (
-          <div key={num} style={progressDotStyle(num)} />
-        ))}
-      </div>
-
-      {/* Step 1: Nominee Eligibility Info */}
-      {step === 1 && (
-        <div>
-          <h3 style={{
-            fontSize: typography.fontSize.xl,
-            fontWeight: typography.fontWeight.semibold,
-            color: '#fff',
-            marginBottom: spacing.lg
-          }}>
-            Nominee Information
-          </h3>
-
-          {isFieldEnabled('nomineeName') && (
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>{getFieldLabel('nomineeName', "Nominee's Full Name")} {isFieldRequired('nomineeName') && '*'}</label>
-              <input
-                type="text"
-                value={formData.nomineeName}
-                onChange={(e) => updateField('nomineeName', e.target.value)}
-                placeholder="Enter full name"
-                style={{
-                  ...inputStyle,
-                  borderColor: errors.nomineeName ? colors.status.error : colors.border.light,
-                }}
-              />
-              {errors.nomineeName && (
-                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                  {errors.nomineeName}
-                </p>
-              )}
-            </div>
-          )}
-
-          {isFieldEnabled('nomineeAge') && (
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>{getFieldLabel('nomineeAge', 'Age')} {isFieldRequired('nomineeAge') && '*'}</label>
-              <input
-                type="number"
-                value={formData.nomineeAge}
-                onChange={(e) => updateField('nomineeAge', parseInt(e.target.value) || '')}
-                placeholder={`Must be ${getField('nomineeAge').min || 21}-${getField('nomineeAge').max || 45}`}
-                min={getField('nomineeAge').min || 21}
-                max={getField('nomineeAge').max || 45}
-                style={{
-                  ...inputStyle,
-                  borderColor: errors.nomineeAge ? colors.status.error : colors.border.light,
-                }}
-              />
-              {errors.nomineeAge && (
-                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                  {errors.nomineeAge}
-                </p>
-              )}
-            </div>
-          )}
-
-          {isFieldEnabled('livesNearCity') && (
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>{getFieldLabel('livesNearCity', `Do they live within 100 miles of ${city}?`).replace('{city}', city).replace('the city', city)} {isFieldRequired('livesNearCity') && '*'}</label>
-              <div style={{ display: 'flex', gap: spacing.md }}>
-                <button
-                  type="button"
-                  onClick={() => updateField('livesNearCity', true)}
-                  style={optionButtonStyle(formData.livesNearCity === true)}
-                >
-                  <MapPin size={24} />
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateField('livesNearCity', false)}
-                  style={optionButtonStyle(formData.livesNearCity === false)}
-                >
-                  <MapPin size={24} style={{ opacity: 0.5 }} />
-                  No
-                </button>
-              </div>
-              {errors.livesNearCity && (
-                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                  {errors.livesNearCity}
-                </p>
-              )}
-            </div>
-          )}
-
-          {isFieldEnabled('isSingle') && (
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>{getFieldLabel('isSingle', 'Are they single (not married or engaged)?')} {isFieldRequired('isSingle') && '*'}</label>
-              <div style={{ display: 'flex', gap: spacing.md }}>
-                <button
-                  type="button"
-                  onClick={() => updateField('isSingle', true)}
-                  style={optionButtonStyle(formData.isSingle === true)}
-                >
-                  <Heart size={24} />
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateField('isSingle', false)}
-                  style={optionButtonStyle(formData.isSingle === false)}
-                >
-                  <Users size={24} />
-                  No
-                </button>
-              </div>
-              {errors.isSingle && (
-                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                  {errors.isSingle}
-                </p>
-              )}
-            </div>
-          )}
-
-          {isFieldEnabled('isSingle') && formData.isSingle === false && (
-            <div style={{
-              padding: spacing.lg,
-              background: 'rgba(248,113,113,0.1)',
-              border: `1px solid ${colors.status.error}`,
-              borderRadius: borderRadius.lg,
-            }}>
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm }}>
-                Unfortunately, contestants must be single to participate.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step 2: Nomination Type & Contact */}
-      {step === 2 && (
-        <div>
-          <h3 style={{
-            fontSize: typography.fontSize.xl,
-            fontWeight: typography.fontWeight.semibold,
-            color: '#fff',
-            marginBottom: spacing.lg
-          }}>
-            Who Are You Nominating?
-          </h3>
-
-          <div style={{ marginBottom: spacing.xl }}>
-            <div style={{ display: 'flex', gap: spacing.md }}>
-              <button
-                type="button"
-                onClick={() => updateField('nominationType', 'self')}
-                style={optionButtonStyle(formData.nominationType === 'self')}
-              >
-                <User size={24} />
-                Myself
-              </button>
-              <button
-                type="button"
-                onClick={() => updateField('nominationType', 'other')}
-                style={optionButtonStyle(formData.nominationType === 'other')}
-              >
-                <Users size={24} />
-                Someone Else
-              </button>
-            </div>
-            {errors.nominationType && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                {errors.nominationType}
-              </p>
-            )}
-          </div>
-
-          {/* Self-nomination: Contact info */}
-          {formData.nominationType === 'self' && (
-            <>
-              <h4 style={{
-                fontSize: typography.fontSize.lg,
-                fontWeight: typography.fontWeight.medium,
-                color: '#fff',
-                marginBottom: spacing.md
-              }}>
-                Your Contact Information
-              </h4>
-
-              {isFieldEnabled('email') && (
-                <div style={{ marginBottom: spacing.lg }}>
-                  <label style={labelStyle}>{getFieldLabel('email', 'Email Address')} {isFieldRequired('email') && '*'}</label>
-                  <div style={{ position: 'relative' }}>
-                    <Mail size={18} style={{
-                      position: 'absolute',
-                      left: spacing.md,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: colors.text.muted
-                    }} />
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => updateField('email', e.target.value)}
-                      placeholder="you@example.com"
-                      style={{
-                        ...inputStyle,
-                        paddingLeft: '44px',
-                        borderColor: errors.email ? colors.status.error : colors.border.light,
-                      }}
-                    />
-                  </div>
-                  {errors.email && (
-                    <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                      {errors.email}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {isFieldEnabled('phone') && (
-                <div style={{ marginBottom: spacing.lg }}>
-                  <label style={labelStyle}>{getFieldLabel('phone', 'Phone Number')} {isFieldRequired('phone') && '*'}</label>
-                  <div style={{ position: 'relative' }}>
-                    <Phone size={18} style={{
-                      position: 'absolute',
-                      left: spacing.md,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: colors.text.muted
-                    }} />
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => updateField('phone', e.target.value)}
-                      placeholder="(555) 555-5555"
-                      style={{
-                        ...inputStyle,
-                        paddingLeft: '44px',
-                        borderColor: errors.phone ? colors.status.error : colors.border.light,
-                      }}
-                    />
-                  </div>
-                  {errors.phone && (
-                    <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                      {errors.phone}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {isFieldEnabled('instagram') && (
-                <div style={{ marginBottom: spacing.lg }}>
-                  <label style={labelStyle}>{getFieldLabel('instagram', 'Instagram Handle')} {isFieldRequired('instagram') && '*'}</label>
-                  <div style={{ position: 'relative' }}>
-                    <Instagram size={18} style={{
-                      position: 'absolute',
-                      left: spacing.md,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: colors.text.muted
-                    }} />
-                    <input
-                      type="text"
-                      value={formData.instagram}
-                      onChange={(e) => updateField('instagram', e.target.value)}
-                      placeholder="@yourusername"
-                      style={{
-                        ...inputStyle,
-                        paddingLeft: '44px',
-                        borderColor: errors.instagram ? colors.status.error : colors.border.light,
-                      }}
-                    />
-                  </div>
-                  {errors.instagram && (
-                    <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                      {errors.instagram}
-                    </p>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Nominating someone else: Nominee contact info */}
-          {formData.nominationType === 'other' && (
-            <>
-              <h4 style={{
-                fontSize: typography.fontSize.lg,
-                fontWeight: typography.fontWeight.medium,
-                color: '#fff',
-                marginBottom: spacing.md
-              }}>
-                Nominee's Contact Information
-              </h4>
-              <p style={{
-                fontSize: typography.fontSize.sm,
-                color: colors.text.secondary,
-                marginBottom: spacing.lg
-              }}>
-                Please provide at least an email or phone number so we can contact the nominee.
-              </p>
-
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Nominee's Email</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={18} style={{
-                    position: 'absolute',
-                    left: spacing.md,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: colors.text.muted
-                  }} />
-                  <input
-                    type="email"
-                    value={formData.nomineeEmail}
-                    onChange={(e) => updateField('nomineeEmail', e.target.value)}
-                    placeholder="nominee@example.com"
-                    style={{
-                      ...inputStyle,
-                      paddingLeft: '44px',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Nominee's Phone Number</label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={18} style={{
-                    position: 'absolute',
-                    left: spacing.md,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: colors.text.muted
-                  }} />
-                  <input
-                    type="tel"
-                    value={formData.nomineePhone}
-                    onChange={(e) => updateField('nomineePhone', e.target.value)}
-                    placeholder="(555) 555-5555"
-                    style={{
-                      ...inputStyle,
-                      paddingLeft: '44px',
-                    }}
-                  />
-                </div>
-              </div>
-
-              {errors.nomineeContact && (
-                <div style={{
-                  padding: spacing.md,
-                  background: 'rgba(239,68,68,0.1)',
-                  border: `1px solid ${colors.status.error}`,
-                  borderRadius: borderRadius.lg,
-                  marginBottom: spacing.lg,
-                }}>
-                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm }}>
-                    {errors.nomineeContact}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Nominating someone else: Anonymous option */}
-          {formData.nominationType === 'other' && (
-            <div style={{ marginBottom: spacing.lg }}>
-              <label style={labelStyle}>Do you wish to stay anonymous? *</label>
-              <div style={{ display: 'flex', gap: spacing.md }}>
-                <button
-                  type="button"
-                  onClick={() => updateField('stayAnonymous', true)}
-                  style={optionButtonStyle(formData.stayAnonymous === true)}
-                >
-                  <EyeOff size={24} />
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateField('stayAnonymous', false)}
-                  style={optionButtonStyle(formData.stayAnonymous === false)}
-                >
-                  <User size={24} />
-                  No
-                </button>
-              </div>
-              {errors.stayAnonymous && (
-                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                  {errors.stayAnonymous}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step 3: Updates opt-in (ONLY for "other" nominations) */}
-      {step === 3 && formData.nominationType === 'other' && (
-        <div>
-          <h3 style={{
-            fontSize: typography.fontSize.xl,
-            fontWeight: typography.fontWeight.semibold,
-            color: '#fff',
-            marginBottom: spacing.lg
-          }}>
-            Stay Updated
-          </h3>
-
-          <div style={{ marginBottom: spacing.lg }}>
-            <label style={labelStyle}>
-              Do you want to receive competition updates to see how your nominee is performing? *
-            </label>
-            <div style={{ display: 'flex', gap: spacing.md }}>
-              <button
-                type="button"
-                onClick={() => updateField('wantsUpdates', true)}
-                style={optionButtonStyle(formData.wantsUpdates === true)}
-              >
-                <Bell size={24} />
-                Yes
-              </button>
-              <button
-                type="button"
-                onClick={() => updateField('wantsUpdates', false)}
-                style={optionButtonStyle(formData.wantsUpdates === false)}
-              >
-                <Bell size={24} style={{ opacity: 0.5 }} />
-                No
-              </button>
-            </div>
-            {errors.wantsUpdates && (
-              <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-                {errors.wantsUpdates}
-              </p>
-            )}
-          </div>
-
-          <div style={{
-            padding: spacing.lg,
-            background: 'rgba(212,175,55,0.1)',
-            border: `1px solid ${colors.border.gold}`,
-            borderRadius: borderRadius.lg,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-              <Sparkles size={18} style={{ color: colors.gold.primary }} />
-              <span style={{
-                fontSize: typography.fontSize.md,
-                color: colors.gold.primary,
-                fontWeight: typography.fontWeight.semibold
-              }}>
-                Ready to Submit
-              </span>
-            </div>
-            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-              By submitting, you confirm that all information provided is accurate.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {submitError && (
+  // Success Screen - Third Party
+  if (isSuccess && nominationType === 'other') {
+    return (
+      <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
         <div style={{
+          width: '80px',
+          height: '80px',
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
+          borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
-          gap: spacing.sm,
-          padding: spacing.md,
-          background: 'rgba(239,68,68,0.1)',
-          border: `1px solid ${colors.status.error}`,
-          borderRadius: borderRadius.lg,
-          marginTop: spacing.lg,
+          justifyContent: 'center',
+          margin: '0 auto',
+          marginBottom: spacing.xl,
         }}>
-          <AlertCircle size={18} style={{ color: colors.status.error, flexShrink: 0 }} />
-          <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm }}>
-            {submitError}
+          <Check size={40} style={{ color: colors.gold.primary }} />
+        </div>
+
+        <h2 style={{
+          fontSize: typography.fontSize.xxl,
+          fontWeight: typography.fontWeight.bold,
+          color: '#fff',
+          marginBottom: spacing.md
+        }}>
+          Nomination Sent! 🎉
+        </h2>
+
+        <p style={{
+          fontSize: typography.fontSize.lg,
+          color: colors.text.secondary,
+          maxWidth: '400px',
+          margin: `0 auto ${spacing.xl}`,
+          lineHeight: 1.6,
+        }}>
+          We'll reach out to let them know they've been nominated.
+          {thirdPartyData.notifyMe && " You'll be notified when they enter!"}
+        </p>
+
+        <div style={{ display: 'flex', gap: spacing.md }}>
+          <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>
+            Done
+          </Button>
+          <Button onClick={handleNominateAnother} icon={UserPlus} style={{ flex: 1 }}>
+            Nominate Someone Else
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 1: Choose nomination type
+  if (step === 1) {
+    return (
+      <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+        <h3 style={{
+          fontSize: typography.fontSize.xl,
+          fontWeight: typography.fontWeight.semibold,
+          color: '#fff',
+          marginBottom: spacing.md,
+          textAlign: 'center'
+        }}>
+          Who are you nominating?
+        </h3>
+
+        <p style={{
+          fontSize: typography.fontSize.md,
+          color: colors.text.secondary,
+          marginBottom: spacing.xl,
+          textAlign: 'center'
+        }}>
+          Enter yourself or nominate someone you know
+        </p>
+
+        <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.xl }}>
+          <button
+            type="button"
+            onClick={() => {
+              setNominationType('self');
+              setStep(2);
+            }}
+            style={optionButtonStyle(false)}
+          >
+            <User size={32} />
+            <span style={{ fontSize: typography.fontSize.lg }}>Myself</span>
+            <span style={{ fontSize: typography.fontSize.sm, opacity: 0.7 }}>Enter the competition</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setNominationType('other');
+              setStep(2);
+            }}
+            style={optionButtonStyle(false)}
+          >
+            <Users size={32} />
+            <span style={{ fontSize: typography.fontSize.lg }}>Someone Else</span>
+            <span style={{ fontSize: typography.fontSize.sm, opacity: 0.7 }}>Nominate a friend</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Self-nomination form
+  if (step === 2 && nominationType === 'self') {
+    return (
+      <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+        <h3 style={{
+          fontSize: typography.fontSize.xl,
+          fontWeight: typography.fontWeight.semibold,
+          color: '#fff',
+          marginBottom: spacing.xl,
+          textAlign: 'center'
+        }}>
+          Enter Most Eligible {city}
+        </h3>
+
+        {/* Photo Upload */}
+        <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handlePhotoSelect}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: '120px',
+              height: '120px',
+              borderRadius: '50%',
+              background: selfData.photo ? `url(${selfData.photo}) center/cover` : colors.background.secondary,
+              border: `2px dashed ${errors.photo ? colors.status.error : colors.border.light}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              margin: '0 auto',
+              transition: 'all 0.2s',
+            }}
+          >
+            {!selfData.photo && (
+              <Camera size={32} style={{ color: colors.text.muted }} />
+            )}
+          </div>
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: errors.photo ? colors.status.error : colors.text.muted,
+            marginTop: spacing.sm
+          }}>
+            {selfData.photo ? 'Click to change photo' : 'Upload your photo *'}
           </p>
         </div>
-      )}
 
-      {/* Navigation */}
-      <div style={{ display: 'flex', gap: spacing.md, marginTop: spacing.xxl }}>
-        {step > 1 && (
-          <Button variant="secondary" onClick={handleBack} style={{ flex: 1 }}>
+        {/* Name Fields */}
+        <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>First Name *</label>
+            <input
+              type="text"
+              value={selfData.firstName}
+              onChange={(e) => setSelfData(prev => ({ ...prev, firstName: e.target.value }))}
+              placeholder="First name"
+              style={{
+                ...inputStyle,
+                borderColor: errors.firstName ? colors.status.error : colors.border.light,
+              }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Last Name *</label>
+            <input
+              type="text"
+              value={selfData.lastName}
+              onChange={(e) => setSelfData(prev => ({ ...prev, lastName: e.target.value }))}
+              placeholder="Last name"
+              style={{
+                ...inputStyle,
+                borderColor: errors.lastName ? colors.status.error : colors.border.light,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Contact Fields */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>Email</label>
+          <div style={{ position: 'relative' }}>
+            <Mail size={18} style={{
+              position: 'absolute',
+              left: spacing.md,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: colors.text.muted
+            }} />
+            <input
+              type="email"
+              value={selfData.email}
+              onChange={(e) => setSelfData(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="your@email.com"
+              style={{
+                ...inputStyle,
+                paddingLeft: '44px',
+                borderColor: errors.email ? colors.status.error : colors.border.light,
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>Phone Number</label>
+          <div style={{ position: 'relative' }}>
+            <Phone size={18} style={{
+              position: 'absolute',
+              left: spacing.md,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: colors.text.muted
+            }} />
+            <input
+              type="tel"
+              value={selfData.phone}
+              onChange={(e) => setSelfData(prev => ({ ...prev, phone: e.target.value }))}
+              placeholder="(555) 555-5555"
+              style={{
+                ...inputStyle,
+                paddingLeft: '44px',
+              }}
+            />
+          </div>
+          {errors.contact && (
+            <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+              {errors.contact}
+            </p>
+          )}
+        </div>
+
+        {/* City */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>City</label>
+          <input
+            type="text"
+            value={selfData.city}
+            onChange={(e) => setSelfData(prev => ({ ...prev, city: e.target.value }))}
+            placeholder="Your city"
+            style={inputStyle}
+          />
+        </div>
+
+        {/* Agreement Checkbox */}
+        <label style={{ ...checkboxStyle, marginBottom: spacing.lg }}>
+          <input
+            type="checkbox"
+            checked={selfData.agreeToUpdates}
+            onChange={(e) => setSelfData(prev => ({ ...prev, agreeToUpdates: e.target.checked }))}
+            style={{ width: '18px', height: '18px', accentColor: colors.gold.primary }}
+          />
+          <span>I agree to receive competition updates</span>
+        </label>
+
+        {/* Error Message */}
+        {submitError && (
+          <div style={{
+            padding: spacing.md,
+            background: 'rgba(239,68,68,0.1)',
+            border: `1px solid ${colors.status.error}`,
+            borderRadius: borderRadius.lg,
+            marginBottom: spacing.lg,
+          }}>
+            <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm }}>
+              {submitError}
+            </p>
+          </div>
+        )}
+
+        {/* Eligibility Attestation */}
+        <p style={{
+          fontSize: typography.fontSize.xs,
+          color: colors.text.muted,
+          textAlign: 'center',
+          marginBottom: spacing.lg,
+        }}>
+          By submitting, I confirm I am at least 21 years old, single, and live within 100 miles of {city}.
+        </p>
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: spacing.md }}>
+          <Button variant="secondary" onClick={() => setStep(1)} style={{ flex: 1 }}>
             Back
           </Button>
-        )}
-        <Button
-          onClick={handleNext}
-          disabled={isSubmitting || (step === 1 && formData.isSingle === false)}
-          style={{ flex: 1 }}
-        >
-          {isSubmitting ? (
-            'Submitting...'
-          ) : step === getTotalSteps() ? (
-            <>Submit Nomination</>
-          ) : (
-            <>Continue <ChevronRight size={18} /></>
-          )}
-        </Button>
+          <Button
+            onClick={handleSelfSubmit}
+            disabled={isSubmitting || uploadingPhoto}
+            style={{ flex: 1 }}
+          >
+            {isSubmitting || uploadingPhoto ? 'Submitting...' : 'Enter Competition'}
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Step 2: Third-party nomination form
+  if (step === 2 && nominationType === 'other') {
+    return (
+      <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+        <h3 style={{
+          fontSize: typography.fontSize.xl,
+          fontWeight: typography.fontWeight.semibold,
+          color: '#fff',
+          marginBottom: spacing.xl,
+          textAlign: 'center'
+        }}>
+          Nominate Someone
+        </h3>
+
+        {/* Name Fields */}
+        <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Their First Name *</label>
+            <input
+              type="text"
+              value={thirdPartyData.firstName}
+              onChange={(e) => setThirdPartyData(prev => ({ ...prev, firstName: e.target.value }))}
+              placeholder="First name"
+              style={{
+                ...inputStyle,
+                borderColor: errors.firstName ? colors.status.error : colors.border.light,
+              }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Their Last Name *</label>
+            <input
+              type="text"
+              value={thirdPartyData.lastName}
+              onChange={(e) => setThirdPartyData(prev => ({ ...prev, lastName: e.target.value }))}
+              placeholder="Last name"
+              style={{
+                ...inputStyle,
+                borderColor: errors.lastName ? colors.status.error : colors.border.light,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Contact Type Toggle */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>How can we reach them? *</label>
+          <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.sm }}>
+            <button
+              type="button"
+              onClick={() => setThirdPartyData(prev => ({ ...prev, contactType: 'email', contactValue: '' }))}
+              style={{
+                flex: 1,
+                padding: spacing.sm,
+                background: thirdPartyData.contactType === 'email' ? 'rgba(212,175,55,0.15)' : 'transparent',
+                border: `1px solid ${thirdPartyData.contactType === 'email' ? colors.gold.primary : colors.border.light}`,
+                borderRadius: borderRadius.md,
+                color: thirdPartyData.contactType === 'email' ? colors.gold.primary : colors.text.secondary,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.xs,
+              }}
+            >
+              <Mail size={16} />
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => setThirdPartyData(prev => ({ ...prev, contactType: 'phone', contactValue: '' }))}
+              style={{
+                flex: 1,
+                padding: spacing.sm,
+                background: thirdPartyData.contactType === 'phone' ? 'rgba(212,175,55,0.15)' : 'transparent',
+                border: `1px solid ${thirdPartyData.contactType === 'phone' ? colors.gold.primary : colors.border.light}`,
+                borderRadius: borderRadius.md,
+                color: thirdPartyData.contactType === 'phone' ? colors.gold.primary : colors.text.secondary,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.xs,
+              }}
+            >
+              <Phone size={16} />
+              Phone
+            </button>
+          </div>
+          <input
+            type={thirdPartyData.contactType === 'email' ? 'email' : 'tel'}
+            value={thirdPartyData.contactValue}
+            onChange={(e) => setThirdPartyData(prev => ({ ...prev, contactValue: e.target.value }))}
+            placeholder={thirdPartyData.contactType === 'email' ? 'their@email.com' : '(555) 555-5555'}
+            style={{
+              ...inputStyle,
+              borderColor: errors.contactValue ? colors.status.error : colors.border.light,
+            }}
+          />
+          {errors.contactValue && (
+            <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
+              {errors.contactValue}
+            </p>
+          )}
+        </div>
+
+        {/* Nomination Reason */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>
+            Why are you nominating them? <span style={{ opacity: 0.6 }}>(optional)</span>
+          </label>
+          <textarea
+            value={thirdPartyData.reason}
+            onChange={(e) => setThirdPartyData(prev => ({ ...prev, reason: e.target.value.slice(0, 140) }))}
+            placeholder="They're amazing because..."
+            maxLength={140}
+            rows={3}
+            style={{
+              ...inputStyle,
+              resize: 'none',
+            }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: spacing.xs }}>
+            <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+              They'll see this when we notify them
+            </span>
+            <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+              {thirdPartyData.reason.length}/140
+            </span>
+          </div>
+        </div>
+
+        {/* Checkboxes */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={{ ...checkboxStyle, marginBottom: spacing.md }}>
+            <input
+              type="checkbox"
+              checked={thirdPartyData.isAnonymous}
+              onChange={(e) => setThirdPartyData(prev => ({ ...prev, isAnonymous: e.target.checked }))}
+              style={{ width: '18px', height: '18px', accentColor: colors.gold.primary }}
+            />
+            <span>Keep my identity anonymous</span>
+          </label>
+
+          <label style={checkboxStyle}>
+            <input
+              type="checkbox"
+              checked={thirdPartyData.notifyMe}
+              onChange={(e) => setThirdPartyData(prev => ({ ...prev, notifyMe: e.target.checked }))}
+              style={{ width: '18px', height: '18px', accentColor: colors.gold.primary }}
+            />
+            <span>Notify me when they enter</span>
+          </label>
+        </div>
+
+        {/* Error Message */}
+        {submitError && (
+          <div style={{
+            padding: spacing.md,
+            background: 'rgba(239,68,68,0.1)',
+            border: `1px solid ${colors.status.error}`,
+            borderRadius: borderRadius.lg,
+            marginBottom: spacing.lg,
+          }}>
+            <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm }}>
+              {submitError}
+            </p>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: spacing.md }}>
+          <Button variant="secondary" onClick={() => setStep(1)} style={{ flex: 1 }}>
+            Back
+          </Button>
+          <Button
+            onClick={handleThirdPartySubmit}
+            disabled={isSubmitting}
+            style={{ flex: 1 }}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Nomination'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
