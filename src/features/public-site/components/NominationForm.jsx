@@ -255,7 +255,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
       // Auto-send invite via edge function
       if (insertedNominee?.id) {
         try {
-          await supabase.functions.invoke('send-nomination-invite', {
+          await supabase.functions.invoke('smooth-api', {
             body: { nominee_id: insertedNominee.id },
           });
         } catch (inviteErr) {
