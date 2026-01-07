@@ -155,3 +155,113 @@ export function useCompetitions(filters = {}) {
     ttl: 30000,
   });
 }
+
+/**
+ * Hook for fetching voting rounds (cached for 5 minutes)
+ */
+export function useVotingRounds(competitionId) {
+  return useCachedQuery({
+    table: 'voting_rounds',
+    select: '*',
+    eq: competitionId ? { competition_id: competitionId } : undefined,
+    order: { column: 'round_order', ascending: true },
+    ttl: 300000, // 5 minutes
+    enabled: !!competitionId,
+  });
+}
+
+/**
+ * Hook for fetching events (cached for 2 minutes)
+ */
+export function useEvents(competitionId) {
+  return useCachedQuery({
+    table: 'events',
+    select: '*',
+    eq: competitionId ? { competition_id: competitionId } : undefined,
+    order: { column: 'date', ascending: true },
+    ttl: 120000, // 2 minutes
+    enabled: !!competitionId,
+  });
+}
+
+/**
+ * Hook for fetching announcements (cached for 1 minute)
+ */
+export function useAnnouncements(competitionId) {
+  return useCachedQuery({
+    table: 'announcements',
+    select: '*',
+    eq: competitionId ? { competition_id: competitionId } : undefined,
+    order: { column: 'published_at', ascending: false },
+    ttl: 60000, // 1 minute
+    enabled: !!competitionId,
+  });
+}
+
+/**
+ * Hook for fetching sponsors (cached for 5 minutes)
+ */
+export function useSponsors(competitionId) {
+  return useCachedQuery({
+    table: 'sponsors',
+    select: '*',
+    eq: competitionId ? { competition_id: competitionId } : undefined,
+    order: { column: 'sort_order', ascending: true },
+    ttl: 300000, // 5 minutes
+    enabled: !!competitionId,
+  });
+}
+
+/**
+ * Hook for fetching competition settings (cached for 5 minutes)
+ */
+export function useCompetitionSettings(competitionId) {
+  return useCachedQuery({
+    table: 'competition_settings',
+    select: '*',
+    eq: competitionId ? { competition_id: competitionId } : undefined,
+    single: true,
+    ttl: 300000, // 5 minutes
+    enabled: !!competitionId,
+  });
+}
+
+/**
+ * Hook for fetching competition rules (cached for 10 minutes)
+ */
+export function useCompetitionRules(competitionId) {
+  return useCachedQuery({
+    table: 'competition_rules',
+    select: '*',
+    eq: competitionId ? { competition_id: competitionId } : undefined,
+    order: { column: 'sort_order', ascending: true },
+    ttl: 600000, // 10 minutes
+    enabled: !!competitionId,
+  });
+}
+
+/**
+ * Hook for fetching all profiles (cached for 2 minutes)
+ * Useful for admin dashboards
+ */
+export function useProfiles() {
+  return useCachedQuery({
+    table: 'profiles',
+    select: 'id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery',
+    ttl: 120000, // 2 minutes
+  });
+}
+
+/**
+ * Hook for fetching a single profile by ID (cached for 2 minutes)
+ */
+export function useProfile(profileId) {
+  return useCachedQuery({
+    table: 'profiles',
+    select: '*',
+    eq: profileId ? { id: profileId } : undefined,
+    single: true,
+    ttl: 120000, // 2 minutes
+    enabled: !!profileId,
+  });
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Crown, MapPin, Calendar, Users, Loader, ChevronLeft, Trophy,
@@ -13,6 +13,7 @@ import {
   getCurrentPhase,
 } from '../../../types/competition';
 import InterestForm from '../components/InterestForm';
+import { useOrganizations, useCities } from '../../../hooks/useCachedQuery';
 
 // Tab definitions
 const TABS = [
@@ -29,8 +30,11 @@ export default function CompetitionPage() {
   const { orgSlug, competitionSlug } = useParams();
   const navigate = useNavigate();
 
+  // Use cached hooks for organizations and cities
+  const { data: cachedOrganizations, loading: orgsLoading } = useOrganizations();
+  const { data: cachedCities, loading: citiesLoading } = useCities();
+
   const [competition, setCompetition] = useState(null);
-  const [organization, setOrganization] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('about');
@@ -45,11 +49,20 @@ export default function CompetitionPage() {
     return { citySlug, season };
   };
 
+  // Find organization and city from cached data
+  const { citySlug, season } = useMemo(() => parseCompetitionSlug(competitionSlug), [competitionSlug]);
+  const organization = useMemo(() => {
+    return (cachedOrganizations || []).find(org => org.slug === orgSlug) || null;
+  }, [cachedOrganizations, orgSlug]);
+  const cityData = useMemo(() => {
+    return (cachedCities || []).find(city => city.slug === citySlug) || null;
+  }, [cachedCities, citySlug]);
+
   useEffect(() => {
-    if (orgSlug && competitionSlug) {
+    if (orgSlug && competitionSlug && !orgsLoading && !citiesLoading) {
       fetchCompetition();
     }
-  }, [orgSlug, competitionSlug]);
+  }, [orgSlug, competitionSlug, orgsLoading, citiesLoading, organization, cityData]);
 
   const fetchCompetition = async () => {
     if (!supabase) return;
@@ -58,43 +71,20 @@ export default function CompetitionPage() {
     setError(null);
 
     try {
-      const { citySlug, season } = parseCompetitionSlug(competitionSlug);
-
-      // Fetch organization by slug
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('slug', orgSlug)
-        .single();
-
-      if (orgError) {
-        if (orgError.code === 'PGRST116') {
-          setError('Organization not found');
-        } else {
-          throw orgError;
-        }
+      // Check if organization and city were found in cache
+      if (!organization) {
+        setError('Organization not found');
+        setLoading(false);
         return;
       }
 
-      setOrganization(orgData);
-
-      // Fetch city by slug
-      const { data: cityData, error: cityError } = await supabase
-        .from('cities')
-        .select('*')
-        .eq('slug', citySlug)
-        .single();
-
-      if (cityError) {
-        if (cityError.code === 'PGRST116') {
-          setError('City not found');
-        } else {
-          throw cityError;
-        }
+      if (!cityData) {
+        setError('City not found');
+        setLoading(false);
         return;
       }
 
-      // Fetch competition
+      // Fetch competition (organization and city already from cache)
       const { data: compData, error: compError } = await supabase
         .from('competitions')
         .select(`
@@ -104,7 +94,7 @@ export default function CompetitionPage() {
           prizes:competition_prizes(*),
           rules:competition_rules(*)
         `)
-        .eq('organization_id', orgData.id)
+        .eq('organization_id', organization.id)
         .eq('city_id', cityData.id)
         .eq('season', season)
         .single();
@@ -160,7 +150,7 @@ export default function CompetitionPage() {
 
   const phaseInfo = getCurrentPhaseInfo();
 
-  if (loading) {
+  if (loading || orgsLoading || citiesLoading) {
     return (
       <div style={{
         minHeight: '100vh',

@@ -5,6 +5,7 @@ import { colors, spacing, borderRadius, typography, transitions, shadows, gradie
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
 import { COMPETITION_STATUSES } from '../../utils/competitionPhase';
+import { useSponsors, useVotingRounds, useProfile } from '../../hooks/useCachedQuery';
 import ContestantsTab from './components/ContestantsTab';
 import EventsTab from './components/EventsTab';
 import AnnouncementsTab from './components/AnnouncementsTab';
@@ -62,60 +63,82 @@ export default function PublicSitePage({
 }) {
   const { isMobile, isTablet } = useResponsive();
 
-  // State for fetched data
+  // Use cached hooks for static data
+  const competitionId = competition?.id;
+  const { data: cachedSponsors, loading: sponsorsLoading } = useSponsors(competitionId);
+  const { data: cachedVotingRounds, loading: votingRoundsLoading } = useVotingRounds(competitionId);
+  const { data: cachedHostProfile, loading: hostLoading } = useProfile(competition?.host_id);
+
+  // State for fetched data (contestants, events, announcements, judges need real-time updates)
   const [fetchedData, setFetchedData] = useState({
     contestants: [],
     events: [],
     announcements: [],
     judges: [],
-    sponsors: [],
-    host: null,
-    votingRounds: [],
     loading: true,
   });
 
-  // Fetch competition data
+  // Transform cached host profile
+  const transformedHost = useMemo(() => {
+    if (!cachedHostProfile) return null;
+    const hostProfile = cachedHostProfile;
+    return {
+      ...hostProfile,
+      id: hostProfile.id,
+      name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || 'Host',
+      first_name: hostProfile.first_name,
+      last_name: hostProfile.last_name,
+      title: hostProfile.occupation || 'Competition Host',
+      bio: hostProfile.bio || '',
+      avatar: hostProfile.avatar_url,
+      avatar_url: hostProfile.avatar_url,
+      instagram: hostProfile.instagram,
+      twitter: hostProfile.twitter,
+      linkedin: hostProfile.linkedin,
+      city: hostProfile.city,
+      hobbies: hostProfile.interests || [],
+      gallery: hostProfile.gallery || [],
+      occupation: hostProfile.occupation,
+    };
+  }, [cachedHostProfile]);
+
+  // Transform cached sponsors
+  const transformedSponsors = useMemo(() => {
+    return (cachedSponsors || []).map(s => ({
+      id: s.id, name: s.name, tier: s.tier, logo: s.logo_url, website: s.website,
+    }));
+  }, [cachedSponsors]);
+
+  // Transform cached voting rounds
+  const transformedVotingRounds = useMemo(() => {
+    return (cachedVotingRounds || []).map(r => ({
+      id: r.id,
+      title: r.title,
+      roundOrder: r.round_order,
+      roundType: r.round_type || 'voting',
+      startDate: r.start_date,
+      endDate: r.end_date,
+      contestantsAdvance: r.contestants_advance,
+    }));
+  }, [cachedVotingRounds]);
+
+  // Fetch dynamic competition data (contestants, events, announcements, judges)
   useEffect(() => {
     const fetchCompetitionData = async () => {
-      const competitionId = competition?.id;
       if (!competitionId || !supabase) {
         setFetchedData(prev => ({ ...prev, loading: false }));
         return;
       }
 
       try {
-        const [contestantsResult, eventsResult, announcementsResult, judgesResult, sponsorsResult, hostResult, votingRoundsResult] = await Promise.all([
+        // Fetch only dynamic data - sponsors, host, and voting rounds come from cached hooks
+        const [contestantsResult, eventsResult, announcementsResult, judgesResult] = await Promise.all([
           // Join with profiles to get full profile data when contestant is linked to a user
           supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
           supabase.from('judges').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('sort_order'),
-          supabase.from('sponsors').select('*').eq('competition_id', competitionId).order('sort_order'),
-          competition?.host_id ? supabase.from('profiles').select('*').eq('id', competition.host_id).single() : Promise.resolve({ data: null }),
-          supabase.from('voting_rounds').select('*').eq('competition_id', competitionId).order('round_order'),
         ]);
-
-        const hostProfile = hostResult.data;
-        const transformedHost = hostProfile ? {
-          // Pass through all original fields for full profile view
-          ...hostProfile,
-          // Add transformed/aliased fields for component compatibility
-          id: hostProfile.id,
-          name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || 'Host',
-          first_name: hostProfile.first_name,
-          last_name: hostProfile.last_name,
-          title: hostProfile.occupation || 'Competition Host',
-          bio: hostProfile.bio || '',
-          avatar: hostProfile.avatar_url,
-          avatar_url: hostProfile.avatar_url,
-          instagram: hostProfile.instagram,
-          twitter: hostProfile.twitter,
-          linkedin: hostProfile.linkedin,
-          city: hostProfile.city,
-          hobbies: hostProfile.interests || [],
-          gallery: hostProfile.gallery || [],
-          occupation: hostProfile.occupation,
-        } : null;
 
         setFetchedData({
           contestants: (contestantsResult.data || []).map((c, idx) => {
@@ -167,19 +190,6 @@ export default function PublicSitePage({
               gallery: j.gallery || profile.gallery || [],
             };
           }),
-          sponsors: (sponsorsResult.data || []).map(s => ({
-            id: s.id, name: s.name, tier: s.tier, logo: s.logo_url, website: s.website,
-          })),
-          host: transformedHost,
-          votingRounds: (votingRoundsResult.data || []).map(r => ({
-            id: r.id,
-            title: r.title,
-            roundOrder: r.round_order,
-            roundType: r.round_type || 'voting',
-            startDate: r.start_date,
-            endDate: r.end_date,
-            contestantsAdvance: r.contestants_advance,
-          })),
           loading: false,
         });
       } catch (error) {
@@ -189,7 +199,7 @@ export default function PublicSitePage({
     };
 
     fetchCompetitionData();
-  }, [competition?.id, competition?.host_id]);
+  }, [competitionId]);
 
   // Real-time subscription for contestant vote updates
   useEffect(() => {
@@ -275,13 +285,13 @@ export default function PublicSitePage({
     }
   }, [competition?.id]);
 
-  // Use fetched data or fall back to props
+  // Use fetched data or fall back to props (sponsors, host, votingRounds come from cached hooks)
   const displayContestants = fetchedData.contestants.length > 0 ? fetchedData.contestants : contestants;
   const displayEvents = fetchedData.events.length > 0 ? fetchedData.events : events;
   const displayAnnouncements = fetchedData.announcements.length > 0 ? fetchedData.announcements : announcements;
   const displayJudges = fetchedData.judges.length > 0 ? fetchedData.judges : judges;
-  const displaySponsors = fetchedData.sponsors.length > 0 ? fetchedData.sponsors : sponsors;
-  const displayHost = fetchedData.host || host;
+  const displaySponsors = transformedSponsors.length > 0 ? transformedSponsors : sponsors;
+  const displayHost = transformedHost || host;
 
   // Compute if today is a double vote day based on events
   const isDoubleVoteDay = useMemo(() => {
@@ -306,7 +316,7 @@ export default function PublicSitePage({
 
   // Compute current voting/judging round and its end date
   const currentRound = useMemo(() => {
-    const rounds = fetchedData.votingRounds;
+    const rounds = transformedVotingRounds;
     if (!rounds || rounds.length === 0) return null;
 
     const now = new Date();
@@ -340,7 +350,7 @@ export default function PublicSitePage({
     }
 
     return null;
-  }, [fetchedData.votingRounds]);
+  }, [transformedVotingRounds]);
 
   // Check if teaser page
   const isTeaser = competition?.isTeaser === true || competition?.status === COMPETITION_STATUSES.PUBLISH;

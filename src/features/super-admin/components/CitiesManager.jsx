@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   MapPin, Plus, Edit2, Trash2, X, Loader, ChevronRight, Crown
 } from 'lucide-react';
@@ -7,12 +7,18 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { generateCitySlug, US_STATES } from '../../../types/competition';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../../contexts/ToastContext';
+import { useCities, useOrganizations } from '../../../hooks/useCachedQuery';
+import { invalidateTable } from '../../../lib/queryCache';
 
 export default function CitiesManager() {
   const toast = useToast();
 
+  // Use cached hooks for cities and organizations
+  const { data: cachedCities, loading: citiesLoading, refetch: refetchCities } = useCities();
+  const { data: cachedOrganizations, loading: orgsLoading } = useOrganizations();
+
   // State
-  const [cities, setCities] = useState([]);
+  const [citiesWithCounts, setCitiesWithCounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -27,12 +33,18 @@ export default function CitiesManager() {
     state: '',
   });
 
-  // Fetch cities on mount
-  useEffect(() => {
-    fetchCities();
-  }, []);
+  // Create organizations map for quick lookup
+  const orgsMap = useMemo(() => {
+    return (cachedOrganizations || []).reduce((acc, org) => {
+      acc[org.id] = org.name;
+      return acc;
+    }, {});
+  }, [cachedOrganizations]);
 
-  // Fetch competitions for a city with organization names
+  // Use cities from cache alias
+  const cities = citiesWithCounts;
+
+  // Fetch competitions for a city with organization names (uses cached orgsMap)
   const fetchCityCompetitions = async (cityId) => {
     if (!supabase) return [];
 
@@ -47,26 +59,7 @@ export default function CitiesManager() {
       if (error) throw error;
       if (!competitions || competitions.length === 0) return [];
 
-      // Get unique organization IDs
-      const orgIds = [...new Set(competitions.map(c => c.organization_id).filter(Boolean))];
-
-      // Fetch organization names
-      let orgsMap = {};
-      if (orgIds.length > 0) {
-        const { data: orgsData } = await supabase
-          .from('organizations')
-          .select('id, name')
-          .in('id', orgIds);
-
-        if (orgsData) {
-          orgsMap = orgsData.reduce((acc, org) => {
-            acc[org.id] = org.name;
-            return acc;
-          }, {});
-        }
-      }
-
-      // Attach organization names to competitions
+      // Attach organization names from cached orgsMap
       return competitions.map(comp => ({
         ...comp,
         organizationName: comp.organization_id ? orgsMap[comp.organization_id] || 'Unknown' : 'No Organization',
@@ -92,34 +85,37 @@ export default function CitiesManager() {
     }
   };
 
-  // Fetch cities with competition counts
+  // Update cities with competition counts when cached cities change
+  useEffect(() => {
+    const updateCitiesWithCounts = async () => {
+      if (citiesLoading || !cachedCities) return;
+
+      setLoading(true);
+      try {
+        // Get competition counts for each city
+        const citiesData = await Promise.all(
+          (cachedCities || []).map(async (city) => {
+            const count = await getCompetitionCount(city.id);
+            return { ...city, competitionCount: count };
+          })
+        );
+
+        setCitiesWithCounts(citiesData);
+      } catch (err) {
+        console.error('Error fetching cities:', err);
+        toast.error(`Failed to load cities: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    updateCitiesWithCounts();
+  }, [cachedCities, citiesLoading]);
+
+  // Refresh cities and invalidate cache
   const fetchCities = async () => {
-    if (!supabase) return;
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('cities')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-
-      // Get competition counts for each city
-      const citiesWithCounts = await Promise.all(
-        (data || []).map(async (city) => {
-          const count = await getCompetitionCount(city.id);
-          return { ...city, competitionCount: count };
-        })
-      );
-
-      setCities(citiesWithCounts);
-    } catch (err) {
-      console.error('Error fetching cities:', err);
-      toast.error(`Failed to load cities: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+    invalidateTable('cities');
+    refetchCities();
   };
 
   // Create city
@@ -328,7 +324,7 @@ export default function CitiesManager() {
     fontWeight: typography.fontWeight.medium,
   };
 
-  if (loading) {
+  if (loading || citiesLoading || orgsLoading) {
     return (
       <div style={{ padding: spacing.xl, textAlign: 'center' }}>
         <Loader size={24} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />

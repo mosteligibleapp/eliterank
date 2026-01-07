@@ -9,6 +9,12 @@ import { colors, spacing, borderRadius, typography, shadows, transitions, gradie
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
 import {
+  useCities,
+  useOrganizations,
+  useProfiles,
+  useVotingRounds,
+} from '../../hooks/useCachedQuery';
+import {
   computeCompetitionPhase,
   isCompetitionVisible,
   isCompetitionAccessible,
@@ -46,8 +52,6 @@ export default function EliteRankCityModal({
   const [activeTab, setActiveTab] = useState('competitions');
   const [hoveredCard, setHoveredCard] = useState(null);
   const [competitions, setCompetitions] = useState([]);
-  const [organizations, setOrganizations] = useState([]);
-  const [cities, setCities] = useState([]);
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,30 +59,38 @@ export default function EliteRankCityModal({
   const [cityFilter, setCityFilter] = useState('all');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  // Fetch data from Supabase
+  // Use cached hooks for static data (cities, organizations, profiles)
+  const { data: cachedCities, loading: citiesLoading } = useCities();
+  const { data: cachedOrganizations, loading: orgsLoading } = useOrganizations();
+  const { data: cachedProfiles, loading: profilesLoading } = useProfiles();
+
+  // Memoize maps for quick lookups
+  const cities = cachedCities || [];
+  const organizations = cachedOrganizations || [];
+  const profilesMap = useMemo(() => {
+    return (cachedProfiles || []).reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
+  }, [cachedProfiles]);
+  const citiesMap = useMemo(() => {
+    return cities.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
+  }, [cities]);
+
+  // Fetch dynamic data (competitions, settings, voting rounds, events, announcements)
   useEffect(() => {
     const fetchData = async () => {
-      if (!supabase) {
-        setLoading(false);
+      if (!supabase || citiesLoading || orgsLoading || profilesLoading) {
         return;
       }
 
       try {
-        const [compsResult, orgsResult, citiesResult, settingsResult, votingRoundsResult, profilesResult, eventsResult, announcementsResult] = await Promise.all([
+        // Fetch only dynamic data - static data comes from cached hooks
+        const [compsResult, settingsResult, votingRoundsResult, eventsResult, announcementsResult] = await Promise.all([
           supabase.from('competitions').select('*').order('created_at', { ascending: false }),
-          supabase.from('organizations').select('*').order('name'),
-          supabase.from('cities').select('*').order('name'),
           supabase.from('competition_settings').select('*'),
           supabase.from('voting_rounds').select('*').order('round_order'),
-          supabase.from('profiles').select('id, email, first_name, last_name, avatar_url, bio, instagram'),
           supabase.from('events').select('*').order('date', { ascending: true }),
           supabase.from('announcements').select('*').order('published_at', { ascending: false }),
         ]);
 
-        const profilesMap = (profilesResult.data || []).reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
-        const citiesData = citiesResult.data || [];
-        setCities(citiesData);
-        const citiesMap = citiesData.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
         const settingsMap = (settingsResult.data || []).reduce((acc, s) => { acc[s.competition_id] = s; return acc; }, {});
         // Group voting rounds by competition_id
         const votingRoundsMap = (votingRoundsResult.data || []).reduce((acc, r) => {
@@ -156,8 +168,6 @@ export default function EliteRankCityModal({
           }));
         }
 
-        if (orgsResult.data) setOrganizations(orgsResult.data);
-
         if (eventsResult.data) {
           setEvents(eventsResult.data.map(event => {
             const comp = compsResult.data?.find(c => c.id === event.competition_id);
@@ -180,8 +190,8 @@ export default function EliteRankCityModal({
       }
     };
 
-    if (isOpen) fetchData();
-  }, [isOpen]);
+    if (isOpen && !citiesLoading && !orgsLoading && !profilesLoading) fetchData();
+  }, [isOpen, citiesLoading, orgsLoading, profilesLoading, citiesMap, profilesMap]);
 
   // Memoized values
   const availableCities = useMemo(() =>

@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useProfiles } from '../../../hooks/useCachedQuery';
 
 /**
  * Hook to fetch all dashboard data for a specific competition
@@ -7,6 +8,9 @@ import { supabase } from '../../../lib/supabase';
  * Provides CRUD operations for all entities
  */
 export function useCompetitionDashboard(competitionId) {
+  // Use cached profiles to avoid refetching on every dashboard load
+  const { data: cachedProfiles, loading: profilesLoading } = useProfiles();
+
   const [data, setData] = useState({
     contestants: [],
     nominees: [],
@@ -21,9 +25,22 @@ export function useCompetitionDashboard(competitionId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Memoize profile maps for quick lookups
+  const { emailToProfileMap, profilesById } = useMemo(() => {
+    const emailToProfileMap = new Map();
+    const profilesById = new Map();
+    (cachedProfiles || []).forEach((profile) => {
+      profilesById.set(profile.id, profile);
+      if (profile.email) {
+        emailToProfileMap.set(profile.email.toLowerCase(), profile.id);
+      }
+    });
+    return { emailToProfileMap, profilesById };
+  }, [cachedProfiles]);
+
   const fetchDashboardData = useCallback(async () => {
-    if (!competitionId) {
-      setLoading(false);
+    if (!competitionId || profilesLoading) {
+      if (!competitionId) setLoading(false);
       return;
     }
 
@@ -31,7 +48,7 @@ export function useCompetitionDashboard(competitionId) {
     setError(null);
 
     try {
-      // Fetch all data in parallel for better performance
+      // Fetch competition-specific data in parallel (profiles come from cache)
       const [
         contestantsResult,
         nomineesResult,
@@ -41,7 +58,6 @@ export function useCompetitionDashboard(competitionId) {
         announcementsResult,
         rulesResult,
         competitionResult,
-        profilesResult,
       ] = await Promise.all([
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
         supabase
@@ -99,11 +115,6 @@ export function useCompetitionDashboard(competitionId) {
           .select('*')
           .eq('id', competitionId)
           .single(),
-
-        // Fetch all profiles to match by email for third-party nominations
-        supabase
-          .from('profiles')
-          .select('id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery'),
       ]);
 
       // Check for errors
@@ -116,23 +127,12 @@ export function useCompetitionDashboard(competitionId) {
         announcementsResult.error,
         rulesResult.error,
         competitionResult.error,
-        profilesResult?.error,
       ].filter(Boolean);
 
       if (errors.length > 0) {
         console.error('Errors fetching dashboard data:', errors);
         setError(errors[0]?.message || 'Error fetching data');
       }
-
-      // Create a map of emails to profile IDs for quick lookup
-      const emailToProfileMap = new Map();
-      const profilesById = new Map();
-      (profilesResult?.data || []).forEach((profile) => {
-        profilesById.set(profile.id, profile);
-        if (profile.email) {
-          emailToProfileMap.set(profile.email.toLowerCase(), profile.id);
-        }
-      });
 
       // Get host profile if exists
       const competition = competitionResult.data;
@@ -306,12 +306,14 @@ export function useCompetitionDashboard(competitionId) {
     } finally {
       setLoading(false);
     }
-  }, [competitionId]);
+  }, [competitionId, profilesLoading, emailToProfileMap, profilesById]);
 
-  // Initial fetch
+  // Initial fetch - wait for profiles to be loaded
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    if (!profilesLoading) {
+      fetchDashboardData();
+    }
+  }, [fetchDashboardData, profilesLoading]);
 
   // Refresh function for manual refetch
   const refresh = useCallback(() => {
