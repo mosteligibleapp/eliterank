@@ -335,6 +335,18 @@ export function useCompetitionDashboard(competitionId) {
 
       if (updateError) throw updateError;
 
+      // Send invite email if not already sent (for third-party nominations)
+      if (nominee.nominatedBy === 'third_party' || nominee.nominated_by === 'third_party') {
+        try {
+          await supabase.functions.invoke('send-nomination-invite', {
+            body: { nominee_id: nominee.id },
+          });
+        } catch (inviteErr) {
+          // Don't fail approval if invite fails - can be resent later
+          console.warn('Failed to send invite on approval:', inviteErr);
+        }
+      }
+
       // Find profile to link to contestant
       let linkedUserId = nominee.userId || null;
 
@@ -483,6 +495,28 @@ export function useCompetitionDashboard(competitionId) {
       return { success: false, error: err.message };
     }
   }, [competitionId, fetchDashboardData]);
+
+  /**
+   * Resend invitation email to a nominee
+   * Uses force_resend to bypass the already-sent check
+   */
+  const resendInvite = useCallback(async (nomineeId) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-nomination-invite', {
+        body: { nominee_id: nomineeId, force_resend: true },
+      });
+
+      if (error) throw error;
+
+      await fetchDashboardData();
+      return { success: true, data };
+    } catch (err) {
+      console.error('Error resending invite:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
 
   /**
    * Manually add a nominee (by admin/host)
@@ -1066,6 +1100,7 @@ export function useCompetitionDashboard(competitionId) {
     rejectNominee,
     archiveNominee,
     restoreNominee,
+    resendInvite,
     // Contestant operations
     addContestant,
     // Judge operations
