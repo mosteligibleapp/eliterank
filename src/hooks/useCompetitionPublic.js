@@ -9,6 +9,9 @@ import {
 /**
  * Fetch public competition data by org slug, city slug, and optional year
  *
+ * This hook is designed to work with the existing EliteRank schema.
+ * It fetches data using separate queries (not nested joins) for compatibility.
+ *
  * @param {string} orgSlug - Organization slug (e.g., 'most-eligible')
  * @param {string} citySlug - City slug (e.g., 'chicago')
  * @param {string|number} year - Optional year (e.g., '2026')
@@ -30,10 +33,17 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
 
   const isDemoMode = !isSupabaseConfigured();
 
+  // Convert city slug to a searchable format
+  const citySearchTerm = useMemo(() => {
+    if (!citySlug) return '';
+    // Convert 'new-york' to 'new york' for ilike search
+    return citySlug.replace(/-/g, ' ');
+  }, [citySlug]);
+
   // Fetch competition data
   const fetchCompetition = useCallback(async () => {
-    if (!orgSlug || !citySlug) {
-      setError(new Error('Missing org or city slug'));
+    if (!citySlug) {
+      setError(new Error('Missing city slug'));
       setLoading(false);
       return;
     }
@@ -47,176 +57,144 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
     setError(null);
 
     try {
-      // First, get the organization by slug
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('slug', orgSlug)
-        .single();
-
-      if (orgError) throw orgError;
-      if (!orgData) throw new Error('Organization not found');
-
-      setOrganization(orgData);
-
-      // Build competition query
-      let query = supabase
+      // Step 1: Find the competition by city name
+      // Try to match city name in competitions table
+      let competitionQuery = supabase
         .from('competitions')
-        .select(
-          `
-          *,
-          contestants (
-            id,
-            user_id,
-            name,
-            email,
-            age,
-            bio,
-            avatar_url,
-            instagram,
-            status,
-            votes,
-            rank,
-            trend,
-            city,
-            slug,
-            profile_views,
-            external_shares,
-            eliminated_in_round,
-            advancement_status,
-            current_round,
-            created_at,
-            updated_at
-          ),
-          sponsors (
-            id,
-            name,
-            tier,
-            amount,
-            logo_url,
-            website_url,
-            sort_order
-          ),
-          events (
-            id,
-            name,
-            date,
-            end_date,
-            time,
-            location,
-            status,
-            public_visible,
-            is_double_vote_day,
-            sort_order
-          ),
-          competition_rules (
-            id,
-            section_title,
-            section_content,
-            sort_order
-          ),
-          voting_rounds (
-            id,
-            title,
-            round_order,
-            start_date,
-            end_date,
-            contestants_advance,
-            votes_accumulate,
-            round_type
-          ),
-          nomination_periods (
-            id,
-            title,
-            period_order,
-            start_date,
-            end_date,
-            max_submissions
-          ),
-          announcements (
-            id,
-            type,
-            title,
-            content,
-            pinned,
-            published_at,
-            is_ai_generated
-          )
-        `
-        )
-        .eq('organization_id', orgData.id)
-        .ilike('city', citySlug);
+        .select('*')
+        .ilike('city', `%${citySearchTerm}%`);
 
-      // Filter by year if provided
+      // Filter by year/season if provided
       if (year) {
-        // Assuming slug format is 'city-year' or filtering by season field
-        query = query.or(`slug.ilike.%${year}%,season.eq.${year}`);
+        competitionQuery = competitionQuery.eq('season', String(year));
       }
 
       // Order by most recent and get first match
-      query = query
+      competitionQuery = competitionQuery
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      const { data: compData, error: compError } = await query;
+      const { data: compData, error: compError } = await competitionQuery;
 
       if (compError) throw compError;
-      if (!compData) throw new Error('Competition not found');
 
-      // Set all state
-      setCompetition(compData);
-      setContestants(compData.contestants || []);
-      setSponsors(
-        (compData.sponsors || []).sort(
-          (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
-        )
-      );
-      setEvents(
-        (compData.events || [])
-          .filter((e) => e.public_visible !== false)
-          .sort((a, b) => new Date(a.date) - new Date(b.date))
-      );
-      setRules(
-        (compData.competition_rules || []).sort(
-          (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
-        )
-      );
-      setVotingRounds(
-        (compData.voting_rounds || []).sort(
-          (a, b) => (a.round_order || 0) - (b.round_order || 0)
-        )
-      );
-      setNominationPeriods(
-        (compData.nomination_periods || []).sort(
-          (a, b) => (a.period_order || 0) - (b.period_order || 0)
-        )
-      );
-      setAnnouncements(
-        (compData.announcements || [])
-          .filter((a) => a.published_at)
-          .sort((a, b) => {
-            // Pinned first, then by date
-            if (a.pinned && !b.pinned) return -1;
-            if (!a.pinned && b.pinned) return 1;
-            return new Date(b.published_at) - new Date(a.published_at);
-          })
-      );
+      const foundCompetition = compData?.[0];
+      if (!foundCompetition) {
+        throw new Error(`Competition not found for ${citySlug}`);
+      }
 
-      // Fetch vote revenue separately (aggregate)
-      const { data: voteData } = await supabase
-        .from('votes')
-        .select('amount_paid')
-        .eq('competition_id', compData.id);
+      setCompetition(foundCompetition);
 
-      setVotes(voteData || []);
+      // Step 2: Fetch related data in parallel
+      const competitionId = foundCompetition.id;
+
+      const [
+        contestantsRes,
+        sponsorsRes,
+        eventsRes,
+        announcementsRes,
+        votingRoundsRes,
+        votesRes,
+      ] = await Promise.all([
+        // Contestants
+        supabase
+          .from('contestants')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('rank', { ascending: true, nullsFirst: false }),
+
+        // Sponsors
+        supabase
+          .from('sponsors')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('sort_order', { ascending: true }),
+
+        // Events (public only)
+        supabase
+          .from('events')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('date', { ascending: true }),
+
+        // Announcements
+        supabase
+          .from('announcements')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('pinned', { ascending: false })
+          .order('published_at', { ascending: false }),
+
+        // Voting rounds
+        supabase
+          .from('voting_rounds')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('round_order', { ascending: true }),
+
+        // Votes for prize pool calculation
+        supabase
+          .from('votes')
+          .select('amount_paid')
+          .eq('competition_id', competitionId),
+      ]);
+
+      // Set state from results (handle errors gracefully)
+      setContestants(contestantsRes.data || []);
+      setSponsors(sponsorsRes.data || []);
+      setEvents((eventsRes.data || []).filter(e => e.public_visible !== false));
+      setAnnouncements((announcementsRes.data || []).filter(a => a.published_at));
+      setVotingRounds(votingRoundsRes.data || []);
+      setVotes(votesRes.data || []);
+
+      // Optional: Try to fetch organization if org_id exists
+      if (foundCompetition.organization_id) {
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', foundCompetition.organization_id)
+          .single();
+
+        if (orgData) {
+          setOrganization(orgData);
+        }
+      }
+
+      // Optional: Try to fetch rules if table exists
+      try {
+        const { data: rulesData } = await supabase
+          .from('competition_rules')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('sort_order', { ascending: true });
+
+        setRules(rulesData || []);
+      } catch {
+        // Table may not exist, that's ok
+        setRules([]);
+      }
+
+      // Optional: Try to fetch nomination periods if table exists
+      try {
+        const { data: periodsData } = await supabase
+          .from('nomination_periods')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('period_order', { ascending: true });
+
+        setNominationPeriods(periodsData || []);
+      } catch {
+        // Table may not exist, that's ok
+        setNominationPeriods([]);
+      }
+
     } catch (err) {
       console.error('Error fetching competition:', err);
       setError(err);
     } finally {
       setLoading(false);
     }
-  }, [orgSlug, citySlug, year, isDemoMode]);
+  }, [citySlug, citySearchTerm, year, isDemoMode]);
 
   // Initial fetch
   useEffect(() => {
@@ -251,15 +229,16 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
       description:
         competition?.about_description ||
         organization?.default_about_description ||
+        competition?.description ||
         '',
       traits:
         competition?.about_traits || organization?.default_about_traits || [],
       ageRange:
-        competition?.about_age_range || organization?.default_age_range || '',
+        competition?.about_age_range || organization?.default_age_range || '21-35',
       requirement:
         competition?.about_requirement ||
         organization?.default_requirement ||
-        '',
+        'Single',
     };
   }, [competition, organization]);
 
@@ -284,11 +263,8 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
   // Get host info
   const host = useMemo(() => {
     if (!competition?.host_id) return null;
-    // Host data should be joined or fetched separately
-    // For now, return basic structure
     return {
       id: competition.host_id,
-      // Additional host data would come from profiles table
     };
   }, [competition]);
 
@@ -307,10 +283,7 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
           filter: `competition_id=eq.${competition.id}`,
         },
         (payload) => {
-          // Add new vote to state
           setVotes((prev) => [...prev, payload.new]);
-
-          // Update contestant vote count
           setContestants((prev) =>
             prev.map((c) => {
               if (c.id === payload.new.contestant_id) {
