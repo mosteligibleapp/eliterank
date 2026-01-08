@@ -1,6 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,23 +44,13 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
 
-    // SMTP Configuration (uses Supabase SMTP settings)
-    const smtpHost = Deno.env.get('SMTP_HOST')
-    const smtpPort = parseInt(Deno.env.get('SMTP_PORT') || '587')
-    const smtpUser = Deno.env.get('SMTP_USER')
-    const smtpPass = Deno.env.get('SMTP_PASS')
-    const smtpFrom = Deno.env.get('SMTP_FROM') || 'info@eliterank.co'
-    const smtpFromName = Deno.env.get('SMTP_FROM_NAME') || 'EliteRank'
-
-    if (!smtpHost || !smtpUser || !smtpPass) {
-      return new Response(
-        JSON.stringify({ error: 'SMTP not configured. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS secrets.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Create Supabase client with service role
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // Create Supabase client with service role (required for auth.admin)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
 
     // Fetch nominee with competition data
     const { data: nominee, error: fetchError } = await supabase
@@ -106,93 +95,80 @@ serve(async (req) => {
       )
     }
 
-    const claimUrl = `${appUrl}/claim/${nomineeData.invite_token}`
     const competition = nomineeData.competition
     const competitionName = `Most Eligible ${competition.city} ${competition.season}`
 
-    // Build nominator attribution
-    const nominatorText = nomineeData.nominator_anonymous
-      ? 'Someone'
-      : (nomineeData.nominator_name || 'Someone')
+    // Build the redirect URL to the claim page with the invite token
+    const redirectUrl = `${appUrl}/claim/${nomineeData.invite_token}`
 
-    // Create SMTP client
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtpHost,
-        port: smtpPort,
-        tls: smtpPort === 465,
-        auth: {
-          username: smtpUser,
-          password: smtpPass,
+    // Check if user already exists
+    const { data: existingUsers } = await supabase.auth.admin.listUsers()
+    const existingUser = existingUsers?.users?.find(u => u.email === nomineeData.email)
+
+    let inviteResult
+
+    if (existingUser) {
+      // User already has an account - send a magic link instead
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: nomineeData.email,
+        options: {
+          redirectTo: redirectUrl,
         },
-      },
-    })
-
-    // Build email HTML
-    const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; background-color: #0a0a0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <div style="max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-    <div style="background: linear-gradient(135deg, #1a1a2e, #0a0a0f); border: 1px solid #2a2a3e; border-radius: 16px; overflow: hidden;">
-      <!-- Header -->
-      <div style="background: linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05)); padding: 32px; text-align: center; border-bottom: 1px solid #2a2a3e;">
-        <div style="font-size: 48px; margin-bottom: 16px;">👑</div>
-        <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">You've Been Nominated!</h1>
-        <p style="margin: 8px 0 0; color: #d4af37; font-size: 16px;">${competitionName}</p>
-      </div>
-
-      <!-- Content -->
-      <div style="padding: 32px;">
-        <p style="color: #9ca3af; font-size: 14px; margin: 0 0 8px;">
-          ${nominatorText} thinks you're Most Eligible material
-        </p>
-        ${nomineeData.nomination_reason ? `
-        <div style="background: #1a1a2e; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-          <p style="color: #ffffff; font-size: 16px; font-style: italic; margin: 0; line-height: 1.5;">
-            "${nomineeData.nomination_reason}"
-          </p>
-        </div>
-        ` : ''}
-
-        <a href="${claimUrl}" style="display: block; background: linear-gradient(135deg, #d4af37, #f4d03f); color: #0a0a0f; text-decoration: none; padding: 16px 24px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; margin-bottom: 24px;">
-          Claim My Spot →
-        </a>
-
-        <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
-          Not interested? Simply ignore this email.
-        </p>
-      </div>
-    </div>
-
-    <p style="color: #4b5563; font-size: 11px; text-align: center; margin-top: 24px;">
-      © ${new Date().getFullYear()} EliteRank. All rights reserved.
-    </p>
-  </div>
-</body>
-</html>
-    `
-
-    try {
-      // Send email via SMTP
-      await client.send({
-        from: `${smtpFromName} <${smtpFrom}>`,
-        to: nomineeData.email,
-        subject: `👑 You've been nominated for ${competitionName}!`,
-        html: emailHtml,
       })
 
-      await client.close()
-    } catch (smtpError) {
-      console.error('SMTP error:', smtpError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to send email via SMTP', details: String(smtpError) }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      if (error) {
+        console.error('Magic link error:', error)
+        return new Response(
+          JSON.stringify({ error: 'Failed to send magic link', details: error.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Send the magic link email using Supabase's built-in email
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: nomineeData.email,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            nomination_invite: true,
+            nominee_name: nomineeData.name,
+            competition_name: competitionName,
+          },
+        },
+      })
+
+      if (otpError) {
+        console.error('OTP error:', otpError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to send login email', details: otpError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      inviteResult = { method: 'magic_link' }
+    } else {
+      // New user - send invite email
+      const { data, error } = await supabase.auth.admin.inviteUserByEmail(nomineeData.email, {
+        redirectTo: redirectUrl,
+        data: {
+          full_name: nomineeData.name,
+          nomination_invite: true,
+          nominee_id: nomineeData.id,
+          competition_id: competition.id,
+          competition_name: competitionName,
+        },
+      })
+
+      if (error) {
+        console.error('Invite error:', error)
+        return new Response(
+          JSON.stringify({ error: 'Failed to send invite', details: error.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      inviteResult = { method: 'invite', user_id: data.user?.id }
     }
 
     // Update nominee with invite_sent_at
@@ -208,7 +184,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        sent_via: 'email',
+        sent_via: 'supabase_auth',
+        ...inviteResult,
         nominee_id: nominee_id,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
