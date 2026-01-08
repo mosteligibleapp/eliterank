@@ -19,7 +19,7 @@ import React, {
   lazy,
   Suspense
 } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
 
 // =============================================================================
 // CORE IMPORTS
@@ -46,6 +46,7 @@ const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 const SuperAdminPage = lazy(() => import('./features/super-admin/SuperAdminPage'));
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
 const ClaimNominationPage = lazy(() => import('./features/public-site/pages/ClaimNominationPage'));
+const CompetitionLayout = lazy(() => import('./pages/competition/CompetitionLayout'));
 
 // Shared competition dashboard for both host and superadmin
 import { CompetitionDashboard } from './features/competition-dashboard';
@@ -647,6 +648,28 @@ export default function App() {
 
   if (authLoading) {
     return <LoadingScreen message="Loading..." />;
+  }
+
+  // ===========================================================================
+  // RENDER: NEW PUBLIC COMPETITION PAGES (/c/:org/:city routes)
+  // ===========================================================================
+
+  // Check if we're on a new-style competition route: /c/:orgSlug/:citySlug
+  // These routes have the format /c/org-name/city-name or /c/org-name/city-name/2026
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const isNewCompetitionRoute = pathParts[0] === 'c' && pathParts.length >= 3;
+
+  if (isNewCompetitionRoute) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingScreen message="Loading competition..." />}>
+          <Routes>
+            <Route path="/c/:orgSlug/:citySlug/:year/*" element={<CompetitionLayout />} />
+            <Route path="/c/:orgSlug/:citySlug/*" element={<CompetitionLayout />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
+    );
   }
 
   // ===========================================================================
