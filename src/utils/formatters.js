@@ -117,3 +117,66 @@ export function truncateText(text, maxLength = 100) {
   if (!text || text.length <= maxLength) return text;
   return text.slice(0, maxLength).trim() + '...';
 }
+
+/**
+ * Format date with time
+ * @param {string|Date} date
+ * @returns {string}
+ */
+export function formatDateTime(date) {
+  if (!date) return '';
+
+  const d = new Date(date);
+
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Format countdown for display
+ * @param {object} timeRemaining - From getTimeRemaining()
+ * @returns {string}
+ */
+export function formatCountdown(timeRemaining) {
+  if (!timeRemaining || timeRemaining.expired) {
+    return 'Ended';
+  }
+
+  const { days, hours, minutes } = timeRemaining;
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
+
+/**
+ * Format contestant name for URL slug
+ * @param {string} name
+ * @returns {string}
+ */
+export function slugify(name) {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/**
+ * Get ordinal suffix for number (1st, 2nd, 3rd, etc.)
+ * @param {number} n
+ * @returns {string}
+ */
+export function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
