@@ -34,7 +34,7 @@ serve(async (req) => {
   }
 
   try {
-    const { nominee_id } = await req.json()
+    const { nominee_id, force_resend } = await req.json()
 
     if (!nominee_id) {
       return new Response(
@@ -84,8 +84,8 @@ serve(async (req) => {
       )
     }
 
-    // Check if already sent
-    if (nominee.invite_sent_at) {
+    // Check if already sent (unless force_resend is true)
+    if (nominee.invite_sent_at && !force_resend) {
       return new Response(
         JSON.stringify({ message: 'Invite already sent', sent_at: nominee.invite_sent_at }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
