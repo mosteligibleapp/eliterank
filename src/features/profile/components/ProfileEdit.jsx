@@ -1,10 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { Edit, User, FileText, Globe, Heart, Camera, Save, Plus, X, Loader } from 'lucide-react';
+import { Edit, User, FileText, Globe, Heart, Camera, Save, Plus, X, Loader, ChevronLeft } from 'lucide-react';
 import { Button, Input, Textarea, FormSection, FormGrid, HobbySelector } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { ALL_HOBBIES, MAX_HOBBIES } from '../../../constants';
+import { useResponsive } from '../../../hooks/useResponsive';
 
 export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, userId }) {
+  const { isMobile, isSmall } = useResponsive();
+
   if (!hostProfile) return null;
 
   const [uploading, setUploading] = useState({ cover: false, avatar: false, gallery: null });
@@ -133,31 +136,66 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
       <div
         style={{
           display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: spacing.xxl,
-          padding: spacing.xl,
+          alignItems: isMobile ? 'stretch' : 'center',
+          gap: isMobile ? spacing.md : 0,
+          marginBottom: isMobile ? spacing.lg : spacing.xxl,
+          padding: isMobile ? spacing.md : spacing.xl,
           background: colors.background.card,
           border: `1px solid ${colors.border.light}`,
           borderRadius: borderRadius.xl,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-          <Edit size={24} style={{ color: colors.gold.primary }} />
+          {isMobile && (
+            <button
+              onClick={onCancel}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: colors.text.primary,
+                cursor: 'pointer',
+                padding: spacing.xs,
+                marginLeft: `-${spacing.xs}`,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+          <Edit size={isMobile ? 20 : 24} style={{ color: colors.gold.primary }} />
           <div>
-            <h2 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.semibold }}>
+            <h2 style={{
+              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xxl,
+              fontWeight: typography.fontWeight.semibold
+            }}>
               Edit Profile
             </h2>
-            <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary }}>
-              Update your public profile
-            </p>
+            {!isMobile && (
+              <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary }}>
+                Update your public profile
+              </p>
+            )}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: spacing.md }}>
-          <Button variant="secondary" onClick={onCancel} style={{ width: 'auto' }}>
-            Cancel
-          </Button>
-          <Button onClick={onSave} icon={Save}>
+        <div style={{
+          display: 'flex',
+          gap: spacing.sm,
+          ...(isMobile && { marginTop: spacing.sm })
+        }}>
+          {!isMobile && (
+            <Button variant="secondary" onClick={onCancel} size={isMobile ? 'sm' : 'md'}>
+              Cancel
+            </Button>
+          )}
+          <Button
+            onClick={onSave}
+            icon={Save}
+            size={isMobile ? 'md' : 'md'}
+            fullWidth={isMobile}
+          >
             Save Changes
           </Button>
         </div>
@@ -168,14 +206,14 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         style={{
           background: colors.background.card,
           border: `1px solid ${colors.border.light}`,
-          borderRadius: borderRadius.xxl,
+          borderRadius: isMobile ? borderRadius.xl : borderRadius.xxl,
           overflow: 'hidden',
-          marginBottom: spacing.xl,
+          marginBottom: isMobile ? spacing.md : spacing.xl,
         }}
       >
         <div
           style={{
-            height: '180px',
+            height: isMobile ? '120px' : '180px',
             background: hostProfile.coverImage ? `url(${hostProfile.coverImage}) center/cover` : gradients.cover,
             position: 'relative',
             display: 'flex',
@@ -183,7 +221,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             justifyContent: 'center',
           }}
         >
-          {!hostProfile.coverImage && (
+          {!hostProfile.coverImage && !isMobile && (
             <div style={{ textAlign: 'center' }}>
               <div
                 style={{
@@ -208,43 +246,51 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             disabled={uploading.cover}
             style={{
               position: 'absolute',
-              bottom: spacing.lg,
-              right: spacing.lg,
+              bottom: isMobile ? spacing.sm : spacing.lg,
+              right: isMobile ? spacing.sm : spacing.lg,
               display: 'flex',
               alignItems: 'center',
-              gap: spacing.sm,
-              padding: `${spacing.sm} ${spacing.lg}`,
+              gap: spacing.xs,
+              padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.lg}`,
               background: 'rgba(0,0,0,0.5)',
               backdropFilter: 'blur(8px)',
               border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: borderRadius.sm,
-              fontSize: typography.fontSize.base,
+              fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.base,
               color: '#fff',
               cursor: uploading.cover ? 'wait' : 'pointer',
             }}
           >
-            {uploading.cover ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={16} />}
-            {uploading.cover ? 'Uploading...' : 'Change Cover'}
+            {uploading.cover ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={14} />}
+            {uploading.cover ? 'Uploading...' : (isMobile ? 'Change' : 'Change Cover')}
           </button>
         </div>
-        <div style={{ padding: `0 ${spacing.xxl} ${spacing.xxl}`, marginTop: '-48px' }}>
-          <div style={{ display: 'flex', gap: spacing.xl, alignItems: 'flex-end' }}>
+        <div style={{
+          padding: isMobile ? `0 ${spacing.md} ${spacing.md}` : `0 ${spacing.xxl} ${spacing.xxl}`,
+          marginTop: isMobile ? '-36px' : '-48px'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: isMobile ? spacing.md : spacing.xl,
+            alignItems: isMobile ? 'center' : 'flex-end'
+          }}>
             <div
               style={{
-                width: '120px',
-                height: '120px',
+                width: isMobile ? '80px' : '120px',
+                height: isMobile ? '80px' : '120px',
                 borderRadius: borderRadius.xxl,
                 background: hostProfile.avatarUrl
                   ? `url(${hostProfile.avatarUrl}) center/cover`
                   : 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
-                border: '4px solid #1a1a24',
+                border: isMobile ? '3px solid #1a1a24' : '4px solid #1a1a24',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '36px',
+                fontSize: isMobile ? '28px' : '36px',
                 fontWeight: typography.fontWeight.semibold,
                 color: colors.gold.primary,
                 position: 'relative',
+                flexShrink: 0,
               }}
             >
               {!hostProfile.avatarUrl && initials}
@@ -253,10 +299,10 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
                 disabled={uploading.avatar}
                 style={{
                   position: 'absolute',
-                  bottom: '-8px',
-                  right: '-8px',
-                  width: '36px',
-                  height: '36px',
+                  bottom: '-6px',
+                  right: '-6px',
+                  width: isMobile ? '28px' : '36px',
+                  height: isMobile ? '28px' : '36px',
                   background: colors.gold.primary,
                   borderRadius: borderRadius.md,
                   display: 'flex',
@@ -267,16 +313,29 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
                   border: 'none',
                 }}
               >
-                {uploading.avatar ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={16} />}
+                {uploading.avatar ? <Loader size={isMobile ? 12 : 16} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={isMobile ? 12 : 16} />}
               </button>
             </div>
-            <div style={{ paddingBottom: spacing.sm }}>
-              <h2 style={{ fontSize: typography.fontSize.xxxl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+            <div style={{ paddingBottom: isMobile ? 0 : spacing.sm, minWidth: 0 }}>
+              <h2 style={{
+                fontSize: isMobile ? typography.fontSize.xl : typography.fontSize.xxxl,
+                fontWeight: typography.fontWeight.semibold,
+                marginBottom: spacing.xs,
+                wordBreak: 'break-word',
+              }}>
                 {hostProfile.firstName} {hostProfile.lastName}
               </h2>
-              <p style={{ color: colors.text.secondary, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                {hostProfile.city}
-              </p>
+              {hostProfile.city && (
+                <p style={{
+                  color: colors.text.secondary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                }}>
+                  {hostProfile.city}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -356,10 +415,18 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
 
       {/* Photo Gallery Upload */}
       <FormSection title="Photo Gallery" icon={Camera}>
-        <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary, marginBottom: spacing.lg }}>
+        <p style={{
+          fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.base,
+          color: colors.text.secondary,
+          marginBottom: spacing.md
+        }}>
           Upload up to 6 photos to showcase your hosting experience
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+          gap: isMobile ? spacing.sm : spacing.md
+        }}>
           {[0, 1, 2, 3, 4, 5].map((index) => {
             const imageUrl = gallery[index];
             const isUploading = uploading.gallery === index;
@@ -392,8 +459,8 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
               >
                 {isUploading ? (
                   <>
-                    <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite', marginBottom: spacing.xs }} />
-                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Uploading...</span>
+                    <Loader size={isMobile ? 20 : 24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite', marginBottom: spacing.xs }} />
+                    <span style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>Uploading...</span>
                   </>
                 ) : imageUrl ? (
                   <button
@@ -403,10 +470,10 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
                     }}
                     style={{
                       position: 'absolute',
-                      top: spacing.sm,
-                      right: spacing.sm,
-                      width: '28px',
-                      height: '28px',
+                      top: spacing.xs,
+                      right: spacing.xs,
+                      width: isMobile ? '24px' : '28px',
+                      height: isMobile ? '24px' : '28px',
                       background: 'rgba(0,0,0,0.7)',
                       border: 'none',
                       borderRadius: borderRadius.full,
@@ -417,12 +484,12 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
                       color: '#fff',
                     }}
                   >
-                    <X size={16} />
+                    <X size={isMobile ? 14 : 16} />
                   </button>
                 ) : (
                   <>
-                    <Plus size={24} style={{ color: colors.text.secondary, marginBottom: spacing.xs }} />
-                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Add Photo</span>
+                    <Plus size={isMobile ? 20 : 24} style={{ color: colors.text.secondary, marginBottom: spacing.xs }} />
+                    <span style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>Add Photo</span>
                   </>
                 )}
               </div>
@@ -436,10 +503,11 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         onClick={onSave}
         icon={Save}
         fullWidth
-        size="xl"
+        size={isMobile ? 'lg' : 'xl'}
         style={{
-          padding: spacing.lg,
-          fontSize: typography.fontSize.lg,
+          padding: isMobile ? spacing.md : spacing.lg,
+          fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+          marginBottom: isMobile ? spacing.xxl : 0,
         }}
       >
         Save Profile

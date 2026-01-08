@@ -1,5 +1,6 @@
 import React from 'react';
 import { colors, borderRadius, spacing, typography } from '../../styles/theme';
+import { useResponsive } from '../../hooks/useResponsive';
 
 export function Input({
   label,
@@ -11,15 +12,17 @@ export function Input({
   style = {},
   ...props
 }) {
+  const { isMobile } = useResponsive();
+
   const containerStyle = {
-    marginBottom: spacing.lg,
+    marginBottom: isMobile ? spacing.md : spacing.lg,
   };
 
   const labelStyle = {
     display: 'block',
-    fontSize: typography.fontSize.base,
+    fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.base,
     color: colors.text.secondary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   };
 
   const inputStyle = {
@@ -27,9 +30,9 @@ export function Input({
     background: 'rgba(255,255,255,0.05)',
     border: `1px solid ${error ? colors.status.error : colors.border.light}`,
     color: colors.text.primary,
-    padding: `${spacing.md} ${spacing.lg}`,
+    padding: isMobile ? `${spacing.sm} ${spacing.md}` : `${spacing.md} ${spacing.lg}`,
     borderRadius: borderRadius.lg,
-    fontSize: typography.fontSize.md,
+    fontSize: isMobile ? '16px' : typography.fontSize.md, // 16px prevents iOS zoom on focus
     outline: 'none',
     boxSizing: 'border-box',
     ...style,
@@ -69,15 +72,17 @@ export function Textarea({
   style = {},
   ...props
 }) {
+  const { isMobile } = useResponsive();
+
   const containerStyle = {
-    marginBottom: spacing.lg,
+    marginBottom: isMobile ? spacing.md : spacing.lg,
   };
 
   const labelStyle = {
     display: 'block',
-    fontSize: typography.fontSize.base,
+    fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.base,
     color: colors.text.secondary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   };
 
   const textareaStyle = {
@@ -85,9 +90,9 @@ export function Textarea({
     background: 'rgba(255,255,255,0.05)',
     border: `1px solid ${error ? colors.status.error : colors.border.light}`,
     color: colors.text.primary,
-    padding: `${spacing.md} ${spacing.lg}`,
+    padding: isMobile ? `${spacing.sm} ${spacing.md}` : `${spacing.md} ${spacing.lg}`,
     borderRadius: borderRadius.lg,
-    fontSize: typography.fontSize.md,
+    fontSize: isMobile ? '16px' : typography.fontSize.md, // 16px prevents iOS zoom on focus
     outline: 'none',
     resize: 'none',
     minHeight: `${rows * 24}px`,
@@ -98,9 +103,9 @@ export function Textarea({
 
   const countStyle = {
     textAlign: 'right',
-    fontSize: typography.fontSize.sm,
+    fontSize: typography.fontSize.xs,
     color: colors.text.secondary,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   };
 
   return (
@@ -171,28 +176,30 @@ export function Select({
 }
 
 export function FormSection({ title, icon: Icon, children }) {
+  const { isMobile } = useResponsive();
+
   const sectionStyle = {
     background: colors.background.card,
     border: `1px solid ${colors.border.light}`,
-    borderRadius: borderRadius.xxl,
-    padding: spacing.xxl,
-    marginBottom: spacing.xl,
+    borderRadius: isMobile ? borderRadius.xl : borderRadius.xxl,
+    padding: isMobile ? spacing.md : spacing.xxl,
+    marginBottom: isMobile ? spacing.md : spacing.xl,
   };
 
   const titleStyle = {
-    fontSize: typography.fontSize.xl,
+    fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
     fontWeight: typography.fontWeight.semibold,
-    marginBottom: spacing.xl,
+    marginBottom: isMobile ? spacing.md : spacing.xl,
     display: 'flex',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
   };
 
   return (
     <div style={sectionStyle}>
       {title && (
         <h3 style={titleStyle}>
-          {Icon && <Icon size={20} style={{ color: colors.gold.primary }} />}
+          {Icon && <Icon size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} />}
           {title}
         </h3>
       )}
@@ -202,12 +209,14 @@ export function FormSection({ title, icon: Icon, children }) {
 }
 
 export function FormGrid({ children, columns = 2 }) {
+  const { isMobile } = useResponsive();
+
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(auto-fit, minmax(${columns === 2 ? '200px' : '150px'}, 1fr))`,
-        gap: spacing.lg,
+        gridTemplateColumns: isMobile ? '1fr' : `repeat(auto-fit, minmax(${columns === 2 ? '200px' : '150px'}, 1fr))`,
+        gap: isMobile ? spacing.md : spacing.lg,
       }}
     >
       {children}
