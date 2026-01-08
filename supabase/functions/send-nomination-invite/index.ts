@@ -115,8 +115,8 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           sender: {
-            name: 'Most Eligible',
-            email: 'hello@eliterank.app'
+            name: 'EliteRank',
+            email: 'info@eliterank.co'
           },
           to: [{ email: nomineeData.email, name: nomineeData.name }],
           subject: `👑 You've been nominated for ${competitionName}!`,
