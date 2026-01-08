@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,10 +24,6 @@ interface NomineeData {
   }
 }
 
-// Brevo API endpoint
-const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
-const BREVO_SMS_URL = 'https://api.brevo.com/v3/transactionalSMS/sms'
-
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -46,12 +43,19 @@ serve(async (req) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const brevoApiKey = Deno.env.get('BREVO_API_KEY')
-    const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.app'
+    const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
 
-    if (!brevoApiKey) {
+    // SMTP Configuration (uses Supabase SMTP settings)
+    const smtpHost = Deno.env.get('SMTP_HOST')
+    const smtpPort = parseInt(Deno.env.get('SMTP_PORT') || '587')
+    const smtpUser = Deno.env.get('SMTP_USER')
+    const smtpPass = Deno.env.get('SMTP_PASS')
+    const smtpFrom = Deno.env.get('SMTP_FROM') || 'info@eliterank.co'
+    const smtpFromName = Deno.env.get('SMTP_FROM_NAME') || 'EliteRank'
+
+    if (!smtpHost || !smtpUser || !smtpPass) {
       return new Response(
-        JSON.stringify({ error: 'BREVO_API_KEY not configured' }),
+        JSON.stringify({ error: 'SMTP not configured. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS secrets.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -93,6 +97,15 @@ serve(async (req) => {
     }
 
     const nomineeData = nominee as unknown as NomineeData
+
+    // Must have email to send invite
+    if (!nomineeData.email) {
+      return new Response(
+        JSON.stringify({ error: 'Nominee does not have an email address' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const claimUrl = `${appUrl}/claim/${nomineeData.invite_token}`
     const competition = nomineeData.competition
     const competitionName = `Most Eligible ${competition.city} ${competition.season}`
@@ -102,25 +115,21 @@ serve(async (req) => {
       ? 'Someone'
       : (nomineeData.nominator_name || 'Someone')
 
-    let sentVia: 'email' | 'sms' | null = null
-
-    // Send email if available
-    if (nomineeData.email) {
-      const emailResponse = await fetch(BREVO_API_URL, {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'api-key': brevoApiKey,
-          'content-type': 'application/json',
+    // Create SMTP client
+    const client = new SMTPClient({
+      connection: {
+        hostname: smtpHost,
+        port: smtpPort,
+        tls: smtpPort === 465,
+        auth: {
+          username: smtpUser,
+          password: smtpPass,
         },
-        body: JSON.stringify({
-          sender: {
-            name: 'EliteRank',
-            email: 'info@eliterank.co'
-          },
-          to: [{ email: nomineeData.email, name: nomineeData.name }],
-          subject: `👑 You've been nominated for ${competitionName}!`,
-          htmlContent: `
+      },
+    })
+
+    // Build email HTML
+    const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -166,49 +175,22 @@ serve(async (req) => {
   </div>
 </body>
 </html>
-          `,
-        }),
+    `
+
+    try {
+      // Send email via SMTP
+      await client.send({
+        from: `${smtpFromName} <${smtpFrom}>`,
+        to: nomineeData.email,
+        subject: `👑 You've been nominated for ${competitionName}!`,
+        html: emailHtml,
       })
 
-      if (emailResponse.ok) {
-        sentVia = 'email'
-      } else {
-        const errorData = await emailResponse.text()
-        console.error('Brevo email error:', errorData)
-      }
-    }
-
-    // Send SMS if email not available or failed, and phone is available
-    if (!sentVia && nomineeData.phone) {
-      const smsMessage = `👑 ${nominatorText} nominated you for ${competitionName}! Claim your spot: ${claimUrl}`
-
-      const smsResponse = await fetch(BREVO_SMS_URL, {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'api-key': brevoApiKey,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'transactional',
-          unicodeEnabled: true,
-          sender: 'EliteRank',
-          recipient: nomineeData.phone,
-          content: smsMessage,
-        }),
-      })
-
-      if (smsResponse.ok) {
-        sentVia = 'sms'
-      } else {
-        const errorData = await smsResponse.text()
-        console.error('Brevo SMS error:', errorData)
-      }
-    }
-
-    if (!sentVia) {
+      await client.close()
+    } catch (smtpError) {
+      console.error('SMTP error:', smtpError)
       return new Response(
-        JSON.stringify({ error: 'Failed to send invite via email or SMS' }),
+        JSON.stringify({ error: 'Failed to send email via SMTP', details: String(smtpError) }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -226,7 +208,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        sent_via: sentVia,
+        sent_via: 'email',
         nominee_id: nominee_id,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

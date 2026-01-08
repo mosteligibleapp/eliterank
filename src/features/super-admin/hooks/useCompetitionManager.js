@@ -18,11 +18,11 @@ export function useCompetitionManager() {
     }
 
     try {
-      // Fetch competitions and settings
-      const [compsResult, settingsResult] = await Promise.all([
-        supabase.from('competitions').select('*').order('created_at', { ascending: false }),
-        supabase.from('competition_settings').select('*'),
-      ]);
+      // Fetch competitions (settings are now part of the competitions table)
+      const compsResult = await supabase
+        .from('competitions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (compsResult.error) {
         setCompetitions([]);
@@ -31,23 +31,16 @@ export function useCompetitionManager() {
 
       let data = compsResult.data;
 
-      // Create lookup map for settings
-      const settingsMap = (settingsResult.data || []).reduce((acc, s) => {
-        acc[s.competition_id] = s;
-        return acc;
-      }, {});
-
       // Check for auto-transitions and update if needed
       const competitionsToTransition = [];
       for (const comp of (data || [])) {
-        const settings = settingsMap[comp.id];
-
+        // Settings are now directly on the competition object
         // Check if should transition from publish to live
-        if (shouldAutoTransitionToLive(comp, settings)) {
+        if (shouldAutoTransitionToLive(comp, comp)) {
           competitionsToTransition.push({ id: comp.id, newStatus: 'live' });
         }
         // Check if should transition from live to completed
-        else if (shouldAutoTransitionToCompleted(comp, settings)) {
+        else if (shouldAutoTransitionToCompleted(comp, comp)) {
           competitionsToTransition.push({ id: comp.id, newStatus: 'completed' });
         }
       }

@@ -213,17 +213,14 @@ export function useSponsors(competitionId) {
 }
 
 /**
- * Hook for fetching competition settings (cached for 5 minutes)
+ * Hook for fetching competition settings
+ * @deprecated Competition settings have been merged into the competitions table.
+ * Use the competitions query directly to access settings fields.
  */
 export function useCompetitionSettings(competitionId) {
-  return useCachedQuery({
-    table: 'competition_settings',
-    select: '*',
-    eq: competitionId ? { competition_id: competitionId } : undefined,
-    single: true,
-    ttl: 300000, // 5 minutes
-    enabled: !!competitionId,
-  });
+  // Return empty data since competition_settings table no longer exists
+  // Settings are now directly on the competitions table
+  return { data: null, loading: false, error: null, refetch: () => {} };
 }
 
 /**

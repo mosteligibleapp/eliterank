@@ -84,12 +84,11 @@ export default function CompetitionPage() {
         return;
       }
 
-      // Fetch competition (organization and city already from cache)
+      // Fetch competition (organization and city already from cache, settings now on competitions table)
       const { data: compData, error: compError } = await supabase
         .from('competitions')
         .select(`
           *,
-          settings:competition_settings(*),
           voting_rounds:voting_rounds(*),
           prizes:competition_prizes(*),
           rules:competition_rules(*)

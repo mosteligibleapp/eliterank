@@ -83,15 +83,14 @@ export default function EliteRankCityModal({
 
       try {
         // Fetch only dynamic data - static data comes from cached hooks
-        const [compsResult, settingsResult, votingRoundsResult, eventsResult, announcementsResult] = await Promise.all([
+        // Note: competition_settings has been merged into competitions table
+        const [compsResult, votingRoundsResult, eventsResult, announcementsResult] = await Promise.all([
           supabase.from('competitions').select('*').order('created_at', { ascending: false }),
-          supabase.from('competition_settings').select('*'),
           supabase.from('voting_rounds').select('*').order('round_order'),
           supabase.from('events').select('*').order('date', { ascending: true }),
           supabase.from('announcements').select('*').order('published_at', { ascending: false }),
         ]);
 
-        const settingsMap = (settingsResult.data || []).reduce((acc, s) => { acc[s.competition_id] = s; return acc; }, {});
         // Group voting rounds by competition_id
         const votingRoundsMap = (votingRoundsResult.data || []).reduce((acc, r) => {
           if (!acc[r.competition_id]) acc[r.competition_id] = [];
@@ -99,13 +98,12 @@ export default function EliteRankCityModal({
           return acc;
         }, {});
 
-        // Auto-transitions
+        // Auto-transitions (settings are now directly on competition)
         const toTransition = [];
         for (const comp of (compsResult.data || [])) {
-          const settings = settingsMap[comp.id];
-          if (shouldAutoTransitionToLive(comp, settings)) {
+          if (shouldAutoTransitionToLive(comp, comp)) {
             toTransition.push({ id: comp.id, newStatus: 'live' });
-          } else if (shouldAutoTransitionToCompleted(comp, settings)) {
+          } else if (shouldAutoTransitionToCompleted(comp, comp)) {
             toTransition.push({ id: comp.id, newStatus: 'completed' });
           }
         }
@@ -120,15 +118,9 @@ export default function EliteRankCityModal({
 
         if (compsResult.data) {
           setCompetitions(compsResult.data.map(comp => {
-            // Merge settings and voting rounds for phase calculation
-            const settings = settingsMap[comp.id] || {};
+            // Settings are now directly on the competition object
             const compWithSettings = {
               ...comp,
-              nomination_start: settings.nomination_start || comp.nomination_start,
-              nomination_end: settings.nomination_end || comp.nomination_end,
-              voting_start: settings.voting_start || comp.voting_start,
-              voting_end: settings.voting_end || comp.voting_end,
-              finals_date: settings.finale_date || comp.finals_date,
               voting_rounds: votingRoundsMap[comp.id] || [],
             };
             const computedPhase = computeCompetitionPhase(compWithSettings);

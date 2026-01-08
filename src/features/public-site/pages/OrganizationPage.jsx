@@ -48,13 +48,12 @@ export default function OrganizationPage() {
 
       setOrganization(orgData);
 
-      // Fetch visible competitions for this organization
+      // Fetch visible competitions for this organization (settings now on competitions table)
       const { data: compData, error: compError } = await supabase
         .from('competitions')
         .select(`
           *,
-          city:cities(*),
-          settings:competition_settings(*)
+          city:cities(*)
         `)
         .eq('organization_id', orgData.id)
         .in('status', [COMPETITION_STATUS.PUBLISH, COMPETITION_STATUS.LIVE, COMPETITION_STATUS.COMPLETED])

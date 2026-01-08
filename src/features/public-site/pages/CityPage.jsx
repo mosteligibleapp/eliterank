@@ -48,13 +48,12 @@ export default function CityPage() {
 
       setCity(cityData);
 
-      // Fetch visible competitions for this city
+      // Fetch visible competitions for this city (settings are now on competitions table)
       const { data: compData, error: compError } = await supabase
         .from('competitions')
         .select(`
           *,
-          organization:organizations(*),
-          settings:competition_settings(*)
+          organization:organizations(*)
         `)
         .eq('city_id', cityData.id)
         .in('status', [COMPETITION_STATUS.PUBLISH, COMPETITION_STATUS.LIVE, COMPETITION_STATUS.COMPLETED])
