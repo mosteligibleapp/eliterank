@@ -231,10 +231,8 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         nominated_by: 'third_party',
         nominator_id: user?.id || null,
         nominator_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null,
-        nominator_email: user?.email || null,
         nomination_reason: thirdPartyData.reason || null,
         nominator_anonymous: thirdPartyData.isAnonymous,
-        nominator_wants_updates: thirdPartyData.notifyMe,
         status: 'pending',
       };
 

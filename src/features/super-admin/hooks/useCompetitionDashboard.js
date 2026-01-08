@@ -169,10 +169,11 @@ export function useCompetitionDashboard(competitionId) {
 
       // Transform nominees - include all fields for categorization
       const nominees = (nomineesResult.data || []).map((n) => {
-        let hasProfile = !!n.user_id;
-        let matchedProfileId = n.user_id;
+        let hasProfile = false;
+        let matchedProfileId = null;
 
-        if (!hasProfile && n.email) {
+        // Check if nominee's email matches an existing profile
+        if (n.email) {
           const emailLower = n.email.toLowerCase();
           if (emailToProfileMap.has(emailLower)) {
             hasProfile = true;
@@ -180,36 +181,24 @@ export function useCompetitionDashboard(competitionId) {
           }
         }
 
-        if (n.nominated_by === 'self' && !hasProfile) {
-          hasProfile = true;
-        }
-
         return {
           id: n.id,
           name: n.name,
           email: n.email,
           phone: n.phone,
-          instagram: n.instagram,
-          bio: n.bio,
           nominatedBy: n.nominated_by,
           nominatorId: n.nominator_id,
           nominatorName: n.nominator_name,
-          nominatorEmail: n.nominator_email,
           nominationReason: n.nomination_reason,
           nominatorAnonymous: n.nominator_anonymous,
-          nominatorWantsUpdates: n.nominator_wants_updates,
-          userId: matchedProfileId,
+          matchedProfileId,
           hasProfile,
           status: n.status,
-          age: n.age,
-          city: n.city,
           inviteToken: n.invite_token,
           inviteSentAt: n.invite_sent_at,
           claimedAt: n.claimed_at,
           convertedToContestant: n.converted_to_contestant,
-          convertedToContestantId: n.converted_to_contestant_id,
           createdAt: n.created_at,
-          updatedAt: n.updated_at,
         };
       });
 
@@ -365,24 +354,6 @@ export function useCompetitionDashboard(competitionId) {
           }
         }
 
-        // If not found by email, try instagram
-        if (!linkedUserId && nominee.instagram) {
-          const normalizedInstagram = nominee.instagram.replace('@', '').toLowerCase();
-          const { data: profileByInstagram } = await supabase
-            .from('profiles')
-            .select('id, instagram')
-            .not('instagram', 'is', null)
-            .limit(100); // Get profiles with instagram set
-
-          if (profileByInstagram) {
-            const match = profileByInstagram.find(p =>
-              p.instagram && p.instagram.replace('@', '').toLowerCase() === normalizedInstagram
-            );
-            if (match) {
-              linkedUserId = match.id;
-            }
-          }
-        }
       }
 
       const contestantData = {
@@ -390,9 +361,6 @@ export function useCompetitionDashboard(competitionId) {
         name: nominee.name,
         email: nominee.email,
         phone: nominee.phone,
-        instagram: nominee.instagram,
-        age: nominee.age,
-        city: nominee.city,
         status: 'active',
         votes: 0,
         user_id: linkedUserId,
@@ -531,13 +499,9 @@ export function useCompetitionDashboard(competitionId) {
         .insert({
           competition_id: competitionId,
           name: nomineeData.name,
-          email: nomineeData.email,
-          instagram: nomineeData.instagram,
-          age: nomineeData.age,
-          city: nomineeData.city,
-          bio: nomineeData.bio,
-          user_id: nomineeData.userId || null,
-          nominated_by: 'admin',
+          email: nomineeData.email || null,
+          phone: nomineeData.phone || null,
+          nominated_by: 'self',
           status: 'pending',
         });
 
