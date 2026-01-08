@@ -47,6 +47,7 @@ const SuperAdminPage = lazy(() => import('./features/super-admin/SuperAdminPage'
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
 const ClaimNominationPage = lazy(() => import('./features/public-site/pages/ClaimNominationPage'));
 const CompetitionLayout = lazy(() => import('./pages/competition/CompetitionLayout'));
+const LegacyCompetitionRedirect = lazy(() => import('./pages/competition/CompetitionRedirect').then(m => ({ default: m.CompetitionRedirect })));
 
 // Shared competition dashboard for both host and superadmin
 import { CompetitionDashboard } from './features/competition-dashboard';
@@ -420,7 +421,8 @@ export default function App() {
   // URL HANDLING
   // ===========================================================================
 
-  // Handle initial URL on app load (e.g., /c/:citySlug or /claim/:token)
+  // Handle initial URL on app load (e.g., /claim/:token)
+  // Note: /c/* routes are now handled by the Routes component in render
   useEffect(() => {
     const handleInitialUrl = async () => {
       // Check for claim nomination URL
@@ -431,72 +433,10 @@ export default function App() {
         return;
       }
 
-      const match = location.pathname.match(/^\/c\/([^/]+)\/?$/);
-
-      if (match && supabase) {
-        const slug = match[1];
-        const cityName = slugToCity(slug);
-
-        try {
-          // First, find the city by name to get city_id
-          const { data: cities } = await supabase
-            .from('cities')
-            .select('id, name')
-            .ilike('name', `%${cityName}%`)
-            .limit(1);
-
-          let competitions = [];
-
-          if (cities?.length) {
-            // Found city, search by city_id with voting rounds (settings are now on competitions table)
-            const { data } = await supabase
-              .from('competitions')
-              .select('*, voting_rounds(*)')
-              .eq('city_id', cities[0].id)
-              .limit(1);
-            competitions = data || [];
-          }
-
-          // Fallback: search by competition name if no city match
-          if (!competitions?.length) {
-            const { data } = await supabase
-              .from('competitions')
-              .select('*, voting_rounds(*)')
-              .ilike('name', `%${cityName}%`)
-              .limit(1);
-            competitions = data || [];
-          }
-
-          if (competitions?.[0]) {
-            // Get city name for the competition
-            let competitionCityName = cityName;
-            if (competitions[0].city_id) {
-              const { data: cityData } = await supabase
-                .from('cities')
-                .select('name')
-                .eq('id', competitions[0].city_id)
-                .single();
-              if (cityData) competitionCityName = cityData.name;
-            }
-            const competition = competitions[0];
-            // Settings are now directly on the competition object
-            const competitionWithSettings = {
-              ...competition,
-              voting_rounds: competition.voting_rounds || [],
-            };
-            setSelectedCompetition(
-              createSafeCompetition({
-                ...competitionWithSettings,
-                city: competitionCityName,
-                phase: computeCompetitionPhase(competitionWithSettings),
-                isTeaser: competition.status !== COMPETITION_STATUSES.LIVE,
-              })
-            );
-            setShowPublicSite(true);
-          }
-        } catch {
-          // Silent fail for URL parsing
-        }
+      // Competition routes (/c/*) are now handled by Routes - skip them here
+      if (location.pathname.startsWith('/c/') || location.pathname === '/c') {
+        setInitialUrlHandled(true);
+        return;
       }
 
       setInitialUrlHandled(true);
@@ -505,20 +445,8 @@ export default function App() {
     handleInitialUrl();
   }, []); // Only run once on mount
 
-  // Sync URL with public site state
-  useEffect(() => {
-    if (!initialUrlHandled) return;
-
-    if (showPublicSite && selectedCompetition.city) {
-      const slug = cityToSlug(selectedCompetition.city);
-      const targetPath = `/c/${slug}`;
-      if (location.pathname !== targetPath) {
-        navigate(targetPath, { replace: true });
-      }
-    } else if (!showPublicSite && location.pathname.startsWith('/c/')) {
-      navigate('/', { replace: true });
-    }
-  }, [showPublicSite, selectedCompetition.city, initialUrlHandled, location.pathname, navigate]);
+  // Note: URL routing for /c/* paths is now handled declaratively via Routes
+  // No need to sync URL with showPublicSite state anymore
 
   // ===========================================================================
   // NAVIGATION HANDLERS
@@ -570,12 +498,12 @@ export default function App() {
 
   const handleOpenCompetition = useCallback((competition) => {
     setShowUserProfile(false);
-    setSelectedCompetition(createSafeCompetition(competition));
-    setShowPublicSite(true);
-
-    const slug = cityToSlug(competition?.city);
-    if (slug) {
-      navigate(`/c/${slug}`);
+    // Navigate to the new competition page format
+    // Uses organization slug if available, otherwise defaults to 'most-eligible'
+    const orgSlug = competition?.organization?.slug || 'most-eligible';
+    const citySlug = cityToSlug(competition?.city);
+    if (citySlug) {
+      navigate(`/c/${orgSlug}/${citySlug}`);
     }
   }, [navigate]);
 
@@ -651,21 +579,23 @@ export default function App() {
   }
 
   // ===========================================================================
-  // RENDER: NEW PUBLIC COMPETITION PAGES (/c/:org/:city routes)
+  // RENDER: PUBLIC COMPETITION PAGES (all /c/ routes)
   // ===========================================================================
 
-  // Check if we're on a new-style competition route: /c/:orgSlug/:citySlug
-  // These routes have the format /c/org-name/city-name or /c/org-name/city-name/2026
-  const pathParts = location.pathname.split('/').filter(Boolean);
-  const isNewCompetitionRoute = pathParts[0] === 'c' && pathParts.length >= 3;
+  // Route all /c/* paths through the new competition system
+  const isCompetitionRoute = location.pathname.startsWith('/c/') || location.pathname === '/c';
 
-  if (isNewCompetitionRoute) {
+  if (isCompetitionRoute) {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingScreen message="Loading competition..." />}>
           <Routes>
+            {/* New format: /c/:org/:city/:year */}
             <Route path="/c/:orgSlug/:citySlug/:year/*" element={<CompetitionLayout />} />
+            {/* New format: /c/:org/:city */}
             <Route path="/c/:orgSlug/:citySlug/*" element={<CompetitionLayout />} />
+            {/* Legacy format: /c/:city -> redirect to /c/most-eligible/:city */}
+            <Route path="/c/:citySlug" element={<LegacyCompetitionRedirect />} />
           </Routes>
         </Suspense>
       </ErrorBoundary>
@@ -853,26 +783,7 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Public Site for Selected Competition */}
-      {showPublicSite && (
-        <Suspense fallback={<LoadingScreen message="Loading competition..." />}>
-          <PublicSitePage
-            isOpen={showPublicSite}
-            onClose={handleClosePublicSite}
-            city={selectedCompetition.city}
-            season={selectedCompetition.season}
-            phase={selectedCompetition.phase}
-            host={selectedCompetition.host}
-            winners={selectedCompetition.winners}
-            competition={selectedCompetition}
-            isAuthenticated={isAuthenticated}
-            onLogin={handleShowLogin}
-            userEmail={user?.email}
-            userInstagram={profile?.instagram}
-            user={user}
-          />
-        </Suspense>
-      )}
+      {/* Competition pages are now handled by /c/* routes above */}
 
       {/* User Profile Modal */}
       {showUserProfile && (
