@@ -90,6 +90,7 @@ export default function CompetitionPage() {
         .select(`
           *,
           voting_rounds:voting_rounds(*),
+          nomination_periods:nomination_periods(*),
           prizes:competition_prizes(*),
           rules:competition_rules(*)
         `)
@@ -144,7 +145,8 @@ export default function CompetitionPage() {
   // Get current phase for live competitions
   const getCurrentPhaseInfo = () => {
     if (!competition || competition.status !== COMPETITION_STATUS.LIVE) return null;
-    return getCurrentPhase(competition.settings?.[0]);
+    // Settings are now on the competition object directly (consolidated schema)
+    return getCurrentPhase(competition, competition.nomination_periods || []);
   };
 
   const phaseInfo = getCurrentPhaseInfo();

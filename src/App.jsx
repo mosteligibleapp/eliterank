@@ -378,7 +378,11 @@ export default function App() {
       try {
         const { data, error } = await supabase
           .from('competitions')
-          .select('*')
+          .select(`
+            *,
+            voting_rounds:voting_rounds(*),
+            nomination_periods:nomination_periods(*)
+          `)
           .eq('host_id', user.id)
           .limit(1);
 
@@ -776,7 +780,7 @@ export default function App() {
                 city: cityName,
                 season: hostCompetition?.season,
                 status: hostCompetition?.status,
-                phase: hostCompetition?.status || 'voting',
+                phase: computeCompetitionPhase(hostCompetition),
               })
             );
             setShowPublicSite(true);
