@@ -19,10 +19,12 @@ export default function Modal({
     background: colors.background.overlay,
     backdropFilter: 'blur(8px)',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
     zIndex: 50,
-    padding: spacing.xl,
+    padding: spacing.lg,
+    paddingTop: spacing.xl,
+    overflowY: 'auto',
   };
 
   const modalStyle = {
@@ -31,8 +33,7 @@ export default function Modal({
     borderRadius: borderRadius.xxl,
     width: '100%',
     maxWidth,
-    maxHeight: '90vh',
-    overflow: 'hidden',
+    marginBottom: spacing.xl,
   };
 
   const headerBaseStyle = {
@@ -62,8 +63,6 @@ export default function Modal({
 
   const bodyStyle = {
     padding: spacing.xxl,
-    maxHeight: '60vh',
-    overflowY: 'auto',
   };
 
   const footerStyle = {
