@@ -42,6 +42,7 @@
   --font-size-xl: 1.125rem;
   --font-size-2xl: 1.25rem;
   --font-size-3xl: 1.5rem;
+  --font-size-4xl: 2rem;
 
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
@@ -370,6 +371,50 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+}
+
+/* Voting Countdown Section */
+.voting-countdown-section {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-lg) 0;
+  margin: var(--spacing-md) 0;
+  background: rgba(var(--color-primary-rgb), 0.05);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.15);
+}
+
+.voting-countdown-section .countdown-large {
+  padding: 0;
+}
+
+.voting-countdown-section .countdown-number {
+  font-size: var(--font-size-4xl);
+}
+
+@media (max-width: 600px) {
+  .voting-countdown-section .countdown-number {
+    font-size: var(--font-size-2xl);
+  }
+}
+
+/* Voting Footer - Timeline & Rules */
+.voting-footer {
+  margin-top: var(--spacing-2xl);
+  padding-top: var(--spacing-xl);
+  border-top: 1px solid var(--color-border);
+}
+
+.voting-footer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .voting-footer-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* =====================

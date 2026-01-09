@@ -4,7 +4,9 @@ import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
 import { DailyVoteStatus } from '../components/DailyVoteStatus';
 import { CountdownDisplay } from '../components/CountdownDisplay';
-import { AlertTriangle } from 'lucide-react';
+import { Timeline } from '../components/Timeline';
+import { RulesAccordion } from '../components/RulesAccordion';
+import { AlertTriangle, Clock } from 'lucide-react';
 
 /**
  * Voting phase view (Round 1, Round 2, Resurrection, Finals)
@@ -14,6 +16,7 @@ export function VotingPhase() {
   const {
     phase,
     competition,
+    countdown,
     topThree,
     openVoteModal,
   } = usePublicCompetition();
@@ -33,7 +36,11 @@ export function VotingPhase() {
             {phase?.label}
           </span>
           <h1 className="voting-title">{competition?.name}</h1>
-          <CountdownDisplay label="Voting ends in" />
+        </div>
+
+        {/* Countdown Timer - Prominent */}
+        <div className="voting-countdown-section">
+          <CountdownDisplay label="Round ends in" large />
         </div>
 
         {/* Elimination warning for applicable rounds */}
@@ -77,8 +84,16 @@ export function VotingPhase() {
             }}
           />
 
-          <ActivityFeedCompact limit={4} />
+          <ActivityFeedCompact limit={5} />
         </aside>
+      </section>
+
+      {/* Timeline & Rules */}
+      <section className="voting-footer">
+        <div className="voting-footer-grid">
+          <Timeline />
+          <RulesAccordion />
+        </div>
       </section>
     </div>
   );
