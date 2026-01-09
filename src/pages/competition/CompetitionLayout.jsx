@@ -249,7 +249,7 @@ function PhaseContent({ phase }) {
 }
 
 /**
- * View Navigation - tabs for main/leaderboard/activity
+ * View Navigation - tabs for main/leaderboard
  */
 function ViewNavigation({ currentView }) {
   const { orgSlug, citySlug, year } = usePublicCompetition();
