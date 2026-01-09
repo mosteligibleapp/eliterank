@@ -4,6 +4,7 @@ import { WinnersPodium } from '../components/WinnersPodium';
 import { PrizePool } from '../components/PrizePool';
 import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
+import { CompetitionHeader } from '../components/CompetitionHeader';
 import { formatNumber } from '../../../utils/formatters';
 
 /**
@@ -19,15 +20,12 @@ export function ResultsPhase() {
 
   return (
     <div className="phase-view phase-results">
-      {/* Hero */}
-      <section className="phase-hero results-hero">
-        <span className="phase-badge phase-badge-complete">
-          <Trophy size={14} />
-          Competition Complete
-        </span>
-        <h1 className="phase-title">{competition?.name}</h1>
-        <h2 className="phase-subtitle">{competition?.city} {competition?.season ? `- ${competition.season}` : ''}</h2>
-      </section>
+      {/* Competition Header - Consistent across all phases */}
+      <CompetitionHeader
+        badge="Competition Complete"
+        badgeIcon={Trophy}
+        badgeVariant="complete"
+      />
 
       {/* Winners Podium */}
       <section className="phase-section">

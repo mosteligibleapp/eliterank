@@ -4,25 +4,23 @@ import { PrizePool } from '../components/PrizePool';
 import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
+import { CompetitionHeader } from '../components/CompetitionHeader';
 
 /**
  * Between rounds phase view
  * Shows between voting rounds
  */
 export function BetweenRoundsPhase() {
-  const { competition, phase } = usePublicCompetition();
+  const { phase } = usePublicCompetition();
 
   return (
     <div className="phase-view phase-between-rounds">
-      {/* Hero */}
-      <section className="phase-hero">
-        <span className="phase-badge">
-          <Clock size={14} />
-          Between Rounds
-        </span>
-        <h1 className="phase-title">{competition?.name}</h1>
-        <h2 className="phase-subtitle">{competition?.city}</h2>
-      </section>
+      {/* Competition Header - Consistent across all phases */}
+      <CompetitionHeader
+        badge="Between Rounds"
+        badgeIcon={Clock}
+        badgeVariant="default"
+      />
 
       {/* Next Round Countdown */}
       <section className="phase-section between-rounds-countdown">

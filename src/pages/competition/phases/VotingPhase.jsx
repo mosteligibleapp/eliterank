@@ -6,6 +6,7 @@ import { DailyVoteStatus } from '../components/DailyVoteStatus';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
+import { CompetitionHeader } from '../components/CompetitionHeader';
 
 /**
  * Voting phase view (Round 1, Round 2, Resurrection, Finals)
@@ -14,7 +15,6 @@ import { RulesAccordion } from '../components/RulesAccordion';
 export function VotingPhase() {
   const {
     phase,
-    competition,
     topThree,
     openVoteModal,
   } = usePublicCompetition();
@@ -26,28 +26,24 @@ export function VotingPhase() {
   return (
     <div className={`phase-view phase-voting ${isResurrection ? 'phase-resurrection' : ''} ${isFinals ? 'phase-finals' : ''}`}>
 
-      {/* Phase Header */}
-      <section className="voting-header">
-        <div className="voting-header-content">
-          <span className="phase-badge phase-badge-live">
-            <span className="badge-dot" />
-            {phase?.label}
-          </span>
-          <h1 className="voting-title">{competition?.name}</h1>
+      {/* Competition Header - Consistent across all phases */}
+      <CompetitionHeader
+        badge={phase?.label}
+        badgeVariant="live"
+      />
+
+      {/* Phase-specific banners */}
+      {isResurrection && (
+        <div className="resurrection-banner">
+          <span>Eliminated contestants compete for 5 wildcard Finals spots</span>
         </div>
+      )}
 
-        {isResurrection && (
-          <div className="resurrection-banner">
-            <span>Eliminated contestants compete for 5 wildcard Finals spots</span>
-          </div>
-        )}
-
-        {isFinals && (
-          <div className="finals-banner">
-            <span>The final battle for the crown</span>
-          </div>
-        )}
-      </section>
+      {isFinals && (
+        <div className="finals-banner">
+          <span>The final battle for the crown</span>
+        </div>
+      )}
 
       {/* Main Content Grid */}
       <section className="voting-grid">

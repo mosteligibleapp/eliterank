@@ -8,6 +8,7 @@ import { HostSection } from '../components/HostSection';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
 import { CountdownDisplay } from '../components/CountdownDisplay';
+import { CompetitionHeader } from '../components/CompetitionHeader';
 import { InterestModal } from '../components/InterestModal';
 import { INTEREST_TYPE } from '../../../types/competition';
 
@@ -16,7 +17,7 @@ import { INTEREST_TYPE } from '../../../types/competition';
  * Shows before nominations open
  */
 export function ComingSoonPhase() {
-  const { competition, about, sponsors } = usePublicCompetition();
+  const { competition, sponsors } = usePublicCompetition();
   const [activeModal, setActiveModal] = useState(null);
 
   const openModal = (type) => setActiveModal(type);
@@ -27,15 +28,11 @@ export function ComingSoonPhase() {
 
   return (
     <div className="phase-view phase-coming-soon">
-      {/* Hero */}
-      <section className="phase-hero">
-        <span className="phase-tag">Season {competition?.season || '2026'}</span>
-        <h1 className="phase-title">{competition?.name || 'Most Eligible'}</h1>
-        <h2 className="phase-subtitle">{competition?.city}</h2>
-        {about?.description && (
-          <p className="phase-description">{about.description}</p>
-        )}
-      </section>
+      {/* Competition Header - Consistent across all phases */}
+      <CompetitionHeader
+        badge="Coming Soon"
+        badgeVariant="default"
+      />
 
       {/* Who Competes - Prominent */}
       <section className="phase-section">

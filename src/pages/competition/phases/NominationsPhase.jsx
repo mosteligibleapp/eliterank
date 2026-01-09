@@ -8,6 +8,7 @@ import { HostSection } from '../components/HostSection';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
 import { CountdownDisplay } from '../components/CountdownDisplay';
+import { CompetitionHeader } from '../components/CompetitionHeader';
 import { formatNumber } from '../../../utils/formatters';
 import NominationForm from '../../../features/public-site/components/NominationForm';
 
@@ -16,7 +17,7 @@ import NominationForm from '../../../features/public-site/components/NominationF
  * Shows while nominations are open
  */
 export function NominationsPhase() {
-  const { competition, about, prizePool, contestants, refetch } = usePublicCompetition();
+  const { competition, prizePool, contestants, refetch } = usePublicCompetition();
   const [showNominationModal, setShowNominationModal] = useState(false);
   const [nominateOther, setNominateOther] = useState(false);
 
@@ -42,18 +43,11 @@ export function NominationsPhase() {
 
   return (
     <div className="phase-view phase-nominations">
-      {/* Hero */}
-      <section className="phase-hero">
-        <span className="phase-badge phase-badge-active">
-          <span className="badge-dot" />
-          Nominations Open
-        </span>
-        <h1 className="phase-title">Are You {competition?.city}'s</h1>
-        <h2 className="phase-subtitle phase-subtitle-highlight">Most Eligible?</h2>
-        {about?.description && (
-          <p className="phase-description">{about.description}</p>
-        )}
-      </section>
+      {/* Competition Header - Consistent across all phases */}
+      <CompetitionHeader
+        badge="Nominations Open"
+        badgeVariant="active"
+      />
 
       {/* Who Competes */}
       <section className="phase-section">
