@@ -9,11 +9,20 @@ export function RulesAccordion() {
   const { rules } = usePublicCompetition();
   const [expandedIndex, setExpandedIndex] = useState(null);
 
-  if (!rules?.length) return null;
-
   const toggle = (index) => {
     setExpandedIndex(expandedIndex === index ? null : index);
   };
+
+  if (!rules?.length) {
+    return (
+      <div className="rules-accordion">
+        <h4 className="section-label">Rules</h4>
+        <div className="rules-empty">
+          <p>Rules coming soon</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rules-accordion">

@@ -1,17 +1,38 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Clock } from 'lucide-react';
+import { Clock, Calendar } from 'lucide-react';
 
 /**
  * Countdown timer display
  *
  * @param {string} label - What we're counting down to
  * @param {boolean} large - Large display variant
+ * @param {boolean} showPlaceholder - Show placeholder when no countdown data
  */
-export function CountdownDisplay({ label, large = false }) {
+export function CountdownDisplay({ label, large = false, showPlaceholder = true }) {
   const { countdown } = usePublicCompetition();
 
+  // If no countdown data, show placeholder
   if (!countdown || countdown.isExpired) {
-    return null;
+    if (!showPlaceholder) return null;
+
+    if (large) {
+      return (
+        <div className="countdown countdown-large countdown-placeholder">
+          {label && <div className="countdown-label">{label}</div>}
+          <div className="countdown-values">
+            <Calendar size={24} className="countdown-icon" />
+            <span className="countdown-tba">Date TBA</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="countdown countdown-compact countdown-placeholder">
+        <Calendar size={14} className="countdown-icon" />
+        <span className="countdown-value">TBA</span>
+      </div>
+    );
   }
 
   const { days, hours, minutes, seconds, urgency } = countdown;

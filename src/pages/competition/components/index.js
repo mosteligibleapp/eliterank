@@ -9,3 +9,4 @@ export { LeaderboardCompact } from './LeaderboardCompact';
 export { ActivityFeedCompact } from './ActivityFeedCompact';
 export { DailyVoteStatus } from './DailyVoteStatus';
 export { WinnersPodium } from './WinnersPodium';
+export { InterestModal } from './InterestModal';

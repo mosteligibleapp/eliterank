@@ -13,13 +13,17 @@ export function HostSection() {
   const host = competition?.host;
   const hostName = host ? `${host.first_name || ''} ${host.last_name || ''}`.trim() : null;
 
+  // Don't render anything if no host AND no sponsors
+  if (!host && (!sponsors || sponsors.length === 0)) {
+    return null;
+  }
+
   return (
     <div className="host-section">
-      {/* Host Card */}
-      <div className="host-card">
-        <h4 className="section-label">Your Host</h4>
-
-        {host ? (
+      {/* Host Card - only show if host is assigned */}
+      {host && (
+        <div className="host-card">
+          <h4 className="section-label">Your Host</h4>
           <button
             className="host-info host-info-clickable"
             onClick={() => setShowHostModal(true)}
@@ -42,17 +46,8 @@ export function HostSection() {
               )}
             </div>
           </button>
-        ) : (
-          <div className="host-info">
-            <div className="host-avatar-placeholder">
-              <User size={24} />
-            </div>
-            <div className="host-details">
-              <span className="host-name">Official Host</span>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Host Profile Modal */}
       {showHostModal && host && (

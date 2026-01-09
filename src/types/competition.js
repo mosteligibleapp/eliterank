@@ -76,24 +76,29 @@ export const INTEREST_TYPE = {
   SPONSORING: 'sponsoring',
   COMPETING: 'competing',
   JUDGING: 'judging',
+  FAN: 'fan',
 };
 
 export const INTEREST_TYPE_CONFIG = {
   [INTEREST_TYPE.HOSTING]: {
-    label: 'Hosting',
-    description: 'I want to host this competition',
+    label: 'Host a Competition',
+    description: 'Organize and run a competition in your city',
   },
   [INTEREST_TYPE.SPONSORING]: {
-    label: 'Sponsoring',
-    description: 'I want to sponsor this competition',
+    label: 'Become a Sponsor',
+    description: 'Support the competition and gain brand visibility',
   },
   [INTEREST_TYPE.COMPETING]: {
-    label: 'Competing',
-    description: 'I want to compete in this competition',
+    label: 'Enter the Arena',
+    description: 'Compete and show your city you\'re the most eligible',
   },
   [INTEREST_TYPE.JUDGING]: {
     label: 'Judging',
-    description: 'I want to be a judge for this competition',
+    description: 'Help evaluate and score contestants',
+  },
+  [INTEREST_TYPE.FAN]: {
+    label: 'Get Updates',
+    description: 'Stay informed about competition news and events',
   },
 };
 

@@ -81,7 +81,16 @@ export function Timeline() {
     .filter(item => item.date) // Only include items with dates
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  if (timelineItems.length === 0) return null;
+  if (timelineItems.length === 0) {
+    return (
+      <div className="timeline">
+        <h4 className="section-label">Timeline</h4>
+        <div className="timeline-empty">
+          <p>Timeline coming soon</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="timeline">
