@@ -14,6 +14,10 @@ import VotingPhase from './phases/VotingPhase';
 import BetweenRoundsPhase from './phases/BetweenRoundsPhase';
 import ResultsPhase from './phases/ResultsPhase';
 
+// View components for different pages
+import LeaderboardView from './views/LeaderboardView';
+import ActivityView from './views/ActivityView';
+
 /**
  * Inner layout component (has access to context)
  */
@@ -147,9 +151,15 @@ function CompetitionLayoutInner() {
         />
       )}
 
-      {/* Page content - render appropriate phase view */}
+      {/* Page content - render appropriate view based on URL */}
       <main className="competition-main">
-        <PhaseContent phase={phase} />
+        {phase?.isVoting && isLeaderboardView ? (
+          <LeaderboardView />
+        ) : phase?.isVoting && isActivityView ? (
+          <ActivityView />
+        ) : (
+          <PhaseContent phase={phase} />
+        )}
       </main>
 
       {/* Modals rendered at layout level */}

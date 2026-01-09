@@ -80,7 +80,7 @@ export function ActivityFeedCompact({ limit = 4 }) {
         className="activity-view-all"
         onClick={() => navigate(`${basePath}/activity`)}
       >
-        News & Timeline
+        View All Activity
       </button>
     </div>
   );
