@@ -4,7 +4,6 @@ import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
-import { RulesAccordion } from '../components/RulesAccordion';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 
 /**
@@ -62,11 +61,10 @@ export function VotingPhase() {
         </aside>
       </section>
 
-      {/* Timeline & Rules */}
+      {/* Timeline */}
       <section className="voting-footer">
         <div className="voting-footer-grid">
           <Timeline />
-          <RulesAccordion />
         </div>
       </section>
     </div>

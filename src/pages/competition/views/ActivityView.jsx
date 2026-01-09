@@ -1,4 +1,5 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
+import { RulesAccordion } from '../components/RulesAccordion';
 import {
   TrendingUp,
   TrendingDown,
@@ -92,6 +93,11 @@ export function ActivityView() {
               <p className="empty-state">No upcoming events</p>
             )}
           </section>
+
+          {/* Competition Rules */}
+          <section className="activity-section">
+            <RulesAccordion />
+          </section>
         </div>
 
         {/* Sidebar */}
@@ -162,9 +168,6 @@ export function ActivityView() {
         </aside>
       </div>
 
-      <p className="placeholder-note">
-        Phase 5: Enhance activity feed with real-time animations
-      </p>
     </div>
   );
 }
