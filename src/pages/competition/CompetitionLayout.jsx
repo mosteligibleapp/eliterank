@@ -1,9 +1,9 @@
-import { useParams, useLocation, Link } from 'react-router-dom';
+import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   PublicCompetitionProvider,
   usePublicCompetition,
 } from '../../contexts/PublicCompetitionContext';
-import { AlertCircle, Loader, X } from 'lucide-react';
+import { AlertCircle, Loader, X, ArrowLeft } from 'lucide-react';
 
 // Phase view components
 import ComingSoonPhase from './phases/ComingSoonPhase';
@@ -102,14 +102,27 @@ function CompetitionLayoutInner() {
 }
 
 /**
- * Competition Header - minimal branding bar
+ * Competition Header - minimal branding bar with back button
  */
 function CompetitionHeader() {
   const { competition, organization, phase } = usePublicCompetition();
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate('/');
+  };
 
   return (
     <header className="competition-header">
       <div className="competition-header-inner">
+        <button
+          onClick={handleBack}
+          className="competition-back-btn"
+          aria-label="Back to competitions"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
         <div className="competition-branding">
           {organization?.logo && (
             <img
