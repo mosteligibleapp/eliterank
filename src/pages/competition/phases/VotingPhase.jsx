@@ -2,7 +2,6 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { PrizePool } from '../components/PrizePool';
 import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
-import { DailyVoteStatus } from '../components/DailyVoteStatus';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
@@ -15,8 +14,6 @@ import { CompetitionHeader } from '../components/CompetitionHeader';
 export function VotingPhase() {
   const {
     phase,
-    topThree,
-    openVoteModal,
   } = usePublicCompetition();
 
   // Determine phase-specific styling
@@ -59,16 +56,7 @@ export function VotingPhase() {
             <CountdownDisplay label="Round ends in" large />
           </div>
 
-          <PrizePool compact />
-
-          <DailyVoteStatus
-            hasVote={true}
-            onUseVote={() => {
-              if (topThree?.[0]) {
-                openVoteModal(topThree[0]);
-              }
-            }}
-          />
+          <PrizePool compact collapsible />
 
           <ActivityFeedCompact limit={5} />
         </aside>

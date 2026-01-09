@@ -3,11 +3,11 @@ import { Crown } from 'lucide-react';
 
 /**
  * Full leaderboard page - clean grid of contestant cards
+ * Tap any card to vote directly
  */
 export function LeaderboardView() {
   const {
     contestants,
-    openContestantProfile,
     openVoteModal,
   } = usePublicCompetition();
 
@@ -19,6 +19,7 @@ export function LeaderboardView() {
           <div
             key={contestant.id}
             className={`contestant-card ${contestant.displayRank === 1 ? 'is-leader' : ''}`}
+            onClick={() => openVoteModal(contestant)}
           >
             {/* Rank badge */}
             <div className={`contestant-rank ${contestant.displayRank <= 3 ? 'top-three' : ''}`}>
@@ -30,10 +31,7 @@ export function LeaderboardView() {
             </div>
 
             {/* Photo - prominent */}
-            <div
-              className="contestant-photo"
-              onClick={() => openContestantProfile(contestant)}
-            >
+            <div className="contestant-photo">
               {contestant.avatar_url ? (
                 <img
                   src={contestant.avatar_url}
@@ -53,17 +51,6 @@ export function LeaderboardView() {
                 {(contestant.votes || 0).toLocaleString()}
               </span>
             </div>
-
-            {/* Vote button */}
-            <button
-              className="contestant-vote-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                openVoteModal(contestant);
-              }}
-            >
-              Vote
-            </button>
           </div>
         ))}
       </div>

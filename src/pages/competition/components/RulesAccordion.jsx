@@ -1,13 +1,34 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { generateStandardRules } from '../../../utils/generateStandardRules';
 
 /**
- * Rules accordion - expandable sections
+ * Rules accordion - auto-generated from competition configuration
+ * Rules are derived from how the competition was set up (rounds, eligibility, etc.)
  */
 export function RulesAccordion() {
-  const { rules, phase } = usePublicCompetition();
+  const {
+    competition,
+    about,
+    votingRounds,
+    events,
+    phase,
+  } = usePublicCompetition();
+
   const [expandedIndex, setExpandedIndex] = useState(null);
+
+  // Generate rules from competition configuration
+  const rules = useMemo(() => {
+    if (!competition) return [];
+
+    return generateStandardRules({
+      competition,
+      about,
+      votingRounds,
+      events,
+    });
+  }, [competition, about, votingRounds, events]);
 
   const toggle = (index) => {
     setExpandedIndex(expandedIndex === index ? null : index);

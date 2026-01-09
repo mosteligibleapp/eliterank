@@ -556,6 +556,27 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-sm);
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: default;
+  color: inherit;
+}
+
+.prize-pool-collapsible .prize-pool-header {
+  cursor: pointer;
+}
+
+.prize-pool-collapsible .prize-pool-header:hover {
+  opacity: 0.8;
+}
+
+.prize-pool-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-text-muted);
 }
 
 .prize-pool-label {
@@ -798,6 +819,373 @@
   overflow: hidden;
 }
 
+/* =====================
+   HERO PODIUM - Image-Focused Top 3
+   ===================== */
+.hero-podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: linear-gradient(180deg, rgba(var(--color-primary-rgb), 0.08), transparent);
+}
+
+@media (max-width: 500px) {
+  .hero-podium {
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm);
+  }
+}
+
+/* Hero Card - Each top 3 contestant */
+.hero-card {
+  position: relative;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hero-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.hero-card:hover .hero-vote-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Gold card (1st place) - Slightly larger */
+.hero-card-gold {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.hero-card-silver {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.hero-card-bronze {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+/* Hero Image Container */
+.hero-image-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 130%; /* 10:13 aspect ratio for portrait */
+  background: var(--color-bg-tertiary);
+  overflow: hidden;
+}
+
+.hero-card-gold .hero-image-wrap {
+  padding-bottom: 140%; /* Taller for 1st place */
+}
+
+.hero-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.hero-card:hover .hero-image {
+  transform: scale(1.05);
+}
+
+.hero-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  background: var(--color-bg-tertiary);
+}
+
+/* Rank Badge - Overlaid on image */
+.hero-rank-badge {
+  position: absolute;
+  top: var(--spacing-sm);
+  left: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.hero-rank-badge.gold {
+  background: rgba(212, 175, 55, 0.9);
+  color: #000;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
+}
+
+.hero-rank-badge.silver {
+  background: rgba(192, 192, 192, 0.9);
+  color: #000;
+}
+
+.hero-rank-badge.bronze {
+  background: rgba(205, 127, 50, 0.9);
+  color: #000;
+}
+
+/* Vote Button - Appears on hover */
+.hero-vote-btn {
+  position: absolute;
+  bottom: var(--spacing-sm);
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  padding: var(--spacing-sm) var(--spacing-xl);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  color: #000;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 2;
+}
+
+.hero-vote-btn:hover {
+  background: #e5c04d;
+  transform: translateX(-50%) translateY(0) scale(1.05);
+}
+
+/* Always show vote btn on touch devices */
+@media (hover: none) {
+  .hero-vote-btn {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Hero Info - Below image */
+.hero-info {
+  padding: var(--spacing-sm);
+  text-align: center;
+  background: var(--color-bg-secondary);
+}
+
+.hero-name {
+  display: block;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.hero-votes {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+
+/* =====================
+   PORTRAIT GRID - All Contestants
+   ===================== */
+.portrait-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .portrait-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+}
+
+/* Portrait Card */
+.portrait-card {
+  position: relative;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-tertiary);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.portrait-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.portrait-card:hover .portrait-vote-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* At risk styling */
+.portrait-card.at-risk {
+  box-shadow: inset 0 0 0 2px rgba(var(--color-error-rgb), 0.5);
+}
+
+/* Portrait Image Container */
+.portrait-image-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 120%; /* Portrait aspect ratio */
+  background: var(--color-bg-tertiary);
+  overflow: hidden;
+}
+
+.portrait-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.portrait-card:hover .portrait-image {
+  transform: scale(1.05);
+}
+
+.portrait-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+}
+
+/* Rank badge */
+.portrait-rank {
+  position: absolute;
+  top: var(--spacing-xs);
+  left: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+/* Top 3 rank badge colors */
+.portrait-rank.gold {
+  background: rgba(212, 175, 55, 0.95);
+  color: #000;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
+}
+
+.portrait-rank.silver {
+  background: rgba(192, 192, 192, 0.95);
+  color: #000;
+}
+
+.portrait-rank.bronze {
+  background: rgba(205, 127, 50, 0.95);
+  color: #000;
+}
+
+/* Danger indicator */
+.portrait-danger {
+  position: absolute;
+  bottom: var(--spacing-xs);
+  left: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  background: rgba(var(--color-error-rgb), 0.9);
+  border-radius: var(--radius-md);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  color: #fff;
+}
+
+/* Vote Button - Appears on hover */
+.portrait-vote-btn {
+  position: absolute;
+  bottom: var(--spacing-sm);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  padding: var(--spacing-xs) var(--spacing-lg);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  color: #000;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 2;
+}
+
+.portrait-vote-btn:hover {
+  background: #e5c04d;
+}
+
+/* Always show on touch devices */
+@media (hover: none) {
+  .portrait-vote-btn {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Portrait Info - Below image */
+.portrait-info {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  text-align: center;
+}
+
+.portrait-name {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.portrait-votes {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-primary);
+}
+
+/* =====================
+   LEGACY: Top 3 Spotlight Section (kept for backwards compat)
+   ===================== */
 /* Top 3 Spotlight Section */
 .leaderboard-top3 {
   display: flex;
@@ -2046,7 +2434,8 @@
   padding: 0 0 var(--spacing-md);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
-  line-height: 1.6;
+  line-height: 1.8;
+  white-space: pre-line;
 }
 
 /* Button Styles */
@@ -2900,6 +3289,104 @@
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   margin-top: var(--spacing-md);
+}
+
+/* Share Section */
+.vote-modal-share {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.share-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.share-buttons {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.share-btn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  transform: scale(1.05);
+}
+
+/* Native share button - wider with text */
+.share-btn-native {
+  width: auto;
+  padding: 0 var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #000;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+}
+
+.share-btn-native:hover {
+  background: #e5c04d;
+  border-color: #e5c04d;
+  color: #000;
+}
+
+/* Platform colors on hover */
+.share-btn-twitter:hover {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.share-btn-facebook:hover {
+  background: #1877f2;
+  border-color: #1877f2;
+  color: #fff;
+}
+
+.share-btn-sms:hover {
+  background: #34c759;
+  border-color: #34c759;
+  color: #fff;
+}
+
+.share-btn-email:hover {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.share-btn-copy:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #000;
+}
+
+.share-btn-copy.copied {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #fff;
 }
 
 /* Button full width */
