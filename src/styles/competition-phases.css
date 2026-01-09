@@ -980,20 +980,19 @@
 }
 
 /* =====================
-   PORTRAIT GRID - Remaining Contestants
+   PORTRAIT GRID - All Contestants
    ===================== */
 .portrait-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
-  border-top: 1px solid var(--color-border);
 }
 
-@media (max-width: 500px) {
+@media (max-width: 768px) {
   .portrait-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
     padding: var(--spacing-sm);
   }
 }
@@ -1060,19 +1059,40 @@
   color: var(--color-text-muted);
 }
 
-/* Subtle rank badge */
+/* Rank badge */
 .portrait-rank {
   position: absolute;
   top: var(--spacing-xs);
   left: var(--spacing-xs);
-  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-secondary);
+}
+
+/* Top 3 rank badge colors */
+.portrait-rank.gold {
+  background: rgba(212, 175, 55, 0.95);
+  color: #000;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
+}
+
+.portrait-rank.silver {
+  background: rgba(192, 192, 192, 0.95);
+  color: #000;
+}
+
+.portrait-rank.bronze {
+  background: rgba(205, 127, 50, 0.95);
+  color: #000;
 }
 
 /* Danger indicator */
