@@ -1,9 +1,16 @@
-import { useParams, Outlet, useLocation, Link } from 'react-router-dom';
+import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   PublicCompetitionProvider,
   usePublicCompetition,
 } from '../../contexts/PublicCompetitionContext';
-import { AlertCircle, Loader, X } from 'lucide-react';
+import { AlertCircle, Loader, X, ArrowLeft } from 'lucide-react';
+
+// Phase view components
+import ComingSoonPhase from './phases/ComingSoonPhase';
+import NominationsPhase from './phases/NominationsPhase';
+import VotingPhase from './phases/VotingPhase';
+import BetweenRoundsPhase from './phases/BetweenRoundsPhase';
+import ResultsPhase from './phases/ResultsPhase';
 
 /**
  * Inner layout component (has access to context)
@@ -60,15 +67,27 @@ function CompetitionLayoutInner() {
     );
   }
 
+  const navigate = useNavigate();
+
   // Determine current view from URL
   const isLeaderboardView = location.pathname.endsWith('/leaderboard');
   const isActivityView = location.pathname.endsWith('/activity');
   const isContestantView = location.pathname.includes('/e/');
 
+  const handleBack = () => {
+    navigate('/');
+  };
+
   return (
     <div className="competition-layout">
-      {/* Competition Header - shows on all views */}
-      <CompetitionHeader />
+      {/* Floating Back Button */}
+      <button
+        className="competition-back-btn"
+        onClick={handleBack}
+        aria-label="Back to explore"
+      >
+        <ArrowLeft size={20} />
+      </button>
 
       {/* View Navigation - only during voting phases */}
       {phase?.isVoting && !isContestantView && (
@@ -83,9 +102,9 @@ function CompetitionLayoutInner() {
         />
       )}
 
-      {/* Page content via nested routes */}
+      {/* Page content - render appropriate phase view */}
       <main className="competition-main">
-        <Outlet />
+        <PhaseContent phase={phase} />
       </main>
 
       {/* Modals rendered at layout level */}
@@ -95,14 +114,27 @@ function CompetitionLayoutInner() {
 }
 
 /**
- * Competition Header - minimal branding bar
+ * Competition Header - minimal branding bar with back button
  */
 function CompetitionHeader() {
   const { competition, organization, phase } = usePublicCompetition();
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate('/');
+  };
 
   return (
     <header className="competition-header">
       <div className="competition-header-inner">
+        <button
+          onClick={handleBack}
+          className="competition-back-btn"
+          aria-label="Back to competitions"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
         <div className="competition-branding">
           {organization?.logo && (
             <img
@@ -126,6 +158,39 @@ function CompetitionHeader() {
       </div>
     </header>
   );
+}
+
+/**
+ * Phase Content - renders the appropriate phase view
+ */
+function PhaseContent({ phase }) {
+  const phaseName = phase?.phase || 'unknown';
+
+  // Map phase to component
+  switch (phaseName) {
+    case 'coming-soon':
+      return <ComingSoonPhase />;
+
+    case 'nominations':
+      return <NominationsPhase />;
+
+    case 'results':
+      return <ResultsPhase />;
+
+    case 'between-rounds':
+      return <BetweenRoundsPhase />;
+
+    // All voting phases (round1, round2, resurrection, finals, etc.)
+    default:
+      if (phase?.isVoting || phaseName.startsWith('round') || phaseName === 'finals' || phaseName === 'resurrection') {
+        return <VotingPhase />;
+      }
+      // Fallback for unknown phases - show voting or coming soon based on isPublic
+      if (phase?.isPublic) {
+        return <VotingPhase />;
+      }
+      return <ComingSoonPhase />;
+  }
 }
 
 /**

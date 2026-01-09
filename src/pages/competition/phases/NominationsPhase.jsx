@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { ArrowRight, Users, Clock } from 'lucide-react';
+import { ArrowRight, Users, Clock, X } from 'lucide-react';
 import { PrizePool } from '../components/PrizePool';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { AboutSection } from '../components/AboutSection';
@@ -8,13 +9,33 @@ import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { formatNumber } from '../../../utils/formatters';
+import NominationForm from '../../../features/public-site/components/NominationForm';
 
 /**
  * Nominations phase view
  * Shows while nominations are open
  */
 export function NominationsPhase() {
-  const { competition, about, prizePool, contestants } = usePublicCompetition();
+  const { competition, about, prizePool, contestants, refetch } = usePublicCompetition();
+  const [showNominationModal, setShowNominationModal] = useState(false);
+  const [nominateOther, setNominateOther] = useState(false);
+
+  const handleOpenNomination = (forOther = false) => {
+    setNominateOther(forOther);
+    setShowNominationModal(true);
+  };
+
+  const handleCloseNomination = () => {
+    setShowNominationModal(false);
+    setNominateOther(false);
+  };
+
+  const handleNominationSubmit = () => {
+    setShowNominationModal(false);
+    setNominateOther(false);
+    // Refresh data to show updated nomination count
+    refetch?.();
+  };
 
   // Nomination count (contestants in nomination status)
   const nominationCount = contestants?.length || 0;
@@ -42,12 +63,20 @@ export function NominationsPhase() {
       {/* Main CTA */}
       <section className="phase-cta-main">
         <span className="cta-label">Think you qualify?</span>
-        <button className="btn btn-primary btn-large">
+        <button
+          className="btn btn-primary btn-large"
+          onClick={() => handleOpenNomination(false)}
+        >
           Start Your Nomination
           <ArrowRight size={18} />
         </button>
         <span className="cta-alt">
-          or <a href="#nominate-other">nominate someone you know</a>
+          or <button
+            className="link-button"
+            onClick={() => handleOpenNomination(true)}
+          >
+            nominate someone you know
+          </button>
         </span>
       </section>
 
@@ -93,6 +122,26 @@ export function NominationsPhase() {
         <Timeline />
         <RulesAccordion />
       </section>
+
+      {/* Nomination Modal */}
+      {showNominationModal && (
+        <div className="modal-overlay" onClick={handleCloseNomination}>
+          <div
+            className="modal-container modal-nomination"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button className="modal-close" onClick={handleCloseNomination}>
+              <X size={18} />
+            </button>
+            <NominationForm
+              city={competition?.city}
+              competitionId={competition?.id}
+              onSubmit={handleNominationSubmit}
+              onClose={handleCloseNomination}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

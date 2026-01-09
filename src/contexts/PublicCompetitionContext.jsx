@@ -43,6 +43,7 @@ export function PublicCompetitionProvider({
     rules,
     announcements,
     votingRounds,
+    nominationPeriods,
     loading: competitionLoading,
     error: competitionError,
     refetch: refetchCompetition,
@@ -139,6 +140,7 @@ export function PublicCompetitionProvider({
       rules,
       announcements,
       votingRounds,
+      nominationPeriods,
 
       // Leaderboard
       contestants: leaderboardData.contestants,
@@ -190,6 +192,7 @@ export function PublicCompetitionProvider({
       rules,
       announcements,
       votingRounds,
+      nominationPeriods,
       leaderboardData,
       activityData,
       selectedContestant,
