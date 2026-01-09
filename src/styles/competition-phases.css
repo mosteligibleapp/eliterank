@@ -2635,7 +2635,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--spacing-xl) var(--spacing-lg);
-  padding-top: 80px; /* Space for nav */
+  padding-top: 0; /* Header handles top spacing */
 }
 
 .contestant-grid {
@@ -3436,7 +3436,7 @@
 /* View Navigation Bar */
 .competition-view-nav {
   position: fixed;
-  top: 0;
+  top: 76px; /* Below back button and profile icon */
   left: 0;
   right: 0;
   z-index: 90;
@@ -3478,7 +3478,7 @@
 
 /* Adjust main content for nav */
 .competition-layout .competition-main {
-  padding-top: 60px;
+  padding-top: 140px; /* Space for back button + nav bar */
 }
 
 .competition-loading,

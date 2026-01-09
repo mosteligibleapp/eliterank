@@ -4,7 +4,7 @@ import {
   PublicCompetitionProvider,
   usePublicCompetition,
 } from '../../contexts/PublicCompetitionContext';
-import { AlertCircle, Loader, X, ArrowLeft, Share2, Copy, Check, Mail, MessageCircle } from 'lucide-react';
+import { AlertCircle, Loader, X, ArrowLeft } from 'lucide-react';
 import { useSupabaseAuth } from '../../hooks';
 import { ProfileIcon } from '../../components/ui';
 
@@ -18,6 +18,10 @@ import ResultsPhase from './phases/ResultsPhase';
 // View components for different pages
 import LeaderboardView from './views/LeaderboardView';
 import ActivityView from './views/ActivityView';
+
+// Shared components
+import { CompetitionHeader } from './components/CompetitionHeader';
+import VoteModal from '../../features/public-site/components/VoteModal';
 
 /**
  * Inner layout component (has access to context)
@@ -154,6 +158,13 @@ function CompetitionLayoutInner() {
 
       {/* Page content - render appropriate view based on URL */}
       <main className="competition-main">
+        {/* Persistent Competition Header - shown on all voting views */}
+        {phase?.isVoting && !isContestantView && (isLeaderboardView || isActivityView) && (
+          <CompetitionHeader
+            badge={phase?.label}
+            badgeVariant="live"
+          />
+        )}
         {phase?.isVoting && isLeaderboardView ? (
           <LeaderboardView />
         ) : phase?.isVoting && isActivityView ? (
@@ -166,53 +177,6 @@ function CompetitionLayoutInner() {
       {/* Modals rendered at layout level */}
       <ContestantModals />
     </div>
-  );
-}
-
-/**
- * Competition Header - minimal branding bar with back button
- */
-function CompetitionHeader() {
-  const { competition, organization, phase } = usePublicCompetition();
-  const navigate = useNavigate();
-
-  const handleBack = () => {
-    navigate('/');
-  };
-
-  return (
-    <header className="competition-header">
-      <div className="competition-header-inner">
-        <button
-          onClick={handleBack}
-          className="competition-back-btn"
-          aria-label="Back to competitions"
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <div className="competition-branding">
-          {organization?.logo && (
-            <img
-              src={organization.logo}
-              alt={organization.name}
-              className="competition-org-logo"
-            />
-          )}
-          <div className="competition-title">
-            <h1>{competition?.city || 'Competition'}</h1>
-            <span className="competition-location">
-              {organization?.name || 'Most Eligible'}
-            </span>
-          </div>
-        </div>
-
-        <div className="competition-phase-badge" data-phase={phase?.phase}>
-          <span className="phase-indicator" />
-          <span className="phase-label">{phase?.label || 'Loading'}</span>
-        </div>
-      </div>
-    </header>
   );
 }
 
@@ -292,65 +256,24 @@ function ContestantModals() {
     showVoteModal,
     closeModals,
     switchToVote,
-    orgSlug,
-    citySlug,
-    year,
     competition,
+    phase,
   } = usePublicCompetition();
 
-  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useSupabaseAuth();
+  const [voteCount, setVoteCount] = useState(1);
+
+  // Build current round info for VoteModal
+  const currentRound = phase?.currentRound
+    ? { ...phase.currentRound, isActive: phase.isVoting }
+    : { isActive: phase?.isVoting ?? false };
+
+  const handleLogin = () => {
+    navigate('/?login=true');
+  };
 
   if (!selectedContestant) return null;
-
-  // Build share URL and text
-  const basePath = year
-    ? `/c/${orgSlug}/${citySlug}/${year}`
-    : `/c/${orgSlug}/${citySlug}`;
-  const shareUrl = `${window.location.origin}${basePath}`;
-  const contestantName = selectedContestant.name?.split(' ')[0] || 'this contestant';
-  const cityName = competition?.city || 'the competition';
-  const shareTitle = `Vote for ${contestantName}!`;
-  const shareText = `Help ${contestantName} win ${cityName}'s Most Eligible! Cast your vote now.`;
-
-  // Native share (AirDrop, Messages, etc.)
-  const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch (err) {
-        // User cancelled or error - silently ignore
-      }
-    }
-  };
-
-  // Copy link to clipboard
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = shareUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  // Social share URLs
-  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
-  const emailUrl = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(`${shareText}\n\n${shareUrl}`)}`;
-  const smsUrl = `sms:?body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
 
   return (
     <>
@@ -397,144 +320,19 @@ function ContestantModals() {
         </div>
       )}
 
-      {/* Vote Modal */}
-      {showVoteModal && (
-        <div className="modal-overlay" onClick={closeModals}>
-          <div
-            className="modal-container modal-vote"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button className="modal-close" onClick={closeModals}>
-              <X size={18} />
-              <span className="sr-only">Close</span>
-            </button>
-
-            <div className="vote-modal-content">
-              <div className="vote-modal-header">
-                {selectedContestant.avatar_url ? (
-                  <img
-                    src={selectedContestant.avatar_url}
-                    alt={selectedContestant.name}
-                    className="vote-modal-avatar"
-                  />
-                ) : (
-                  <div className="vote-modal-avatar-placeholder">
-                    {selectedContestant.name?.charAt(0)}
-                  </div>
-                )}
-                <h2>Vote for {selectedContestant.name?.split(' ')[0]}</h2>
-                <p className="vote-modal-rank">
-                  #{selectedContestant.rank || selectedContestant.displayRank} ·{' '}
-                  {(selectedContestant.votes || 0).toLocaleString()} votes
-                </p>
-              </div>
-
-              {/* Free daily vote */}
-              <button className="vote-option vote-option-free" disabled>
-                <span className="vote-option-label">Free Daily Vote</span>
-                <span className="vote-option-status">Coming Soon</span>
-              </button>
-
-              {/* Paid vote packs */}
-              <div className="vote-packs">
-                {[
-                  { votes: 10, price: 5 },
-                  { votes: 25, price: 10, popular: true },
-                  { votes: 100, price: 35 },
-                ].map((pack) => (
-                  <button
-                    key={pack.votes}
-                    className={`vote-option vote-option-pack ${pack.popular ? 'popular' : ''}`}
-                    disabled
-                  >
-                    <span className="vote-option-votes">{pack.votes} votes</span>
-                    <span className="vote-option-pool">
-                      +${(pack.price * 0.5).toFixed(0)} to pool
-                    </span>
-                    <span className="vote-option-price">${pack.price}</span>
-                    <span className="vote-option-status">Coming Soon</span>
-                  </button>
-                ))}
-              </div>
-
-              <p className="vote-modal-note">
-                50% of vote purchases go to the prize pool
-              </p>
-
-              {/* Share Section */}
-              <div className="vote-modal-share">
-                <p className="share-label">Share & help {contestantName} win</p>
-                <div className="share-buttons">
-                  {/* Native Share (mobile - AirDrop, Messages, etc) */}
-                  {typeof navigator !== 'undefined' && navigator.share && (
-                    <button
-                      className="share-btn share-btn-native"
-                      onClick={handleNativeShare}
-                      aria-label="Share"
-                    >
-                      <Share2 size={18} />
-                      <span>Share</span>
-                    </button>
-                  )}
-
-                  {/* Twitter/X */}
-                  <a
-                    href={twitterUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="share-btn share-btn-twitter"
-                    aria-label="Share on X"
-                  >
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                    </svg>
-                  </a>
-
-                  {/* Facebook */}
-                  <a
-                    href={facebookUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="share-btn share-btn-facebook"
-                    aria-label="Share on Facebook"
-                  >
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                    </svg>
-                  </a>
-
-                  {/* Text/SMS */}
-                  <a
-                    href={smsUrl}
-                    className="share-btn share-btn-sms"
-                    aria-label="Share via text"
-                  >
-                    <MessageCircle size={18} />
-                  </a>
-
-                  {/* Email */}
-                  <a
-                    href={emailUrl}
-                    className="share-btn share-btn-email"
-                    aria-label="Share via email"
-                  >
-                    <Mail size={18} />
-                  </a>
-
-                  {/* Copy Link */}
-                  <button
-                    className={`share-btn share-btn-copy ${copied ? 'copied' : ''}`}
-                    onClick={handleCopyLink}
-                    aria-label="Copy link"
-                  >
-                    {copied ? <Check size={18} /> : <Copy size={18} />}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Vote Modal - Functional voting */}
+      <VoteModal
+        isOpen={showVoteModal}
+        onClose={closeModals}
+        contestant={selectedContestant}
+        voteCount={voteCount}
+        onVoteCountChange={setVoteCount}
+        isAuthenticated={isAuthenticated}
+        onLogin={handleLogin}
+        competitionId={competition?.id}
+        user={user}
+        currentRound={currentRound}
+      />
     </>
   );
 }
