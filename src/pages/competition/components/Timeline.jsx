@@ -3,13 +3,43 @@ import { Check, Circle } from 'lucide-react';
 import { formatDate } from '../../../utils/formatters';
 
 /**
- * Competition timeline showing events and rounds
+ * Competition timeline showing nomination periods, events, and voting rounds
  */
 export function Timeline() {
-  const { events, votingRounds, phase } = usePublicCompetition();
+  const { competition, events, votingRounds, nominationPeriods, phase } = usePublicCompetition();
 
-  // Combine events and voting rounds into timeline
+  // Build nomination items from nominationPeriods or fallback to competition dates
+  const nominationItems = [];
+
+  if (nominationPeriods?.length > 0) {
+    // Use nomination_periods table data
+    nominationPeriods.forEach(np => {
+      nominationItems.push({
+        id: `nom-${np.id}`,
+        type: 'nomination',
+        date: np.start_date,
+        endDate: np.end_date,
+        title: np.title || 'Nominations',
+        subtitle: np.max_submissions ? `Max ${np.max_submissions} submissions` : null,
+        status: getPeriodStatus(np.start_date, np.end_date),
+      });
+    });
+  } else if (competition?.nomination_start || competition?.nomination_end) {
+    // Fallback to competition-level nomination dates
+    nominationItems.push({
+      id: 'nom-main',
+      type: 'nomination',
+      date: competition.nomination_start,
+      endDate: competition.nomination_end,
+      title: 'Nominations',
+      subtitle: 'Submit your nomination',
+      status: getPeriodStatus(competition.nomination_start, competition.nomination_end),
+    });
+  }
+
+  // Combine all timeline items
   const timelineItems = [
+    ...nominationItems,
     ...(events || []).map(e => ({
       id: e.id,
       type: 'event',
@@ -24,11 +54,16 @@ export function Timeline() {
       type: 'round',
       date: r.start_date,
       endDate: r.end_date,
-      title: r.title,
-      subtitle: `${r.contestants_advance || 'Top'} advance`,
+      title: r.title || `Round ${r.round_order}`,
+      subtitle: r.contestants_advance
+        ? `Top ${r.contestants_advance} advance`
+        : (r.round_type === 'finals' ? 'Final round' : null),
       status: getRoundStatus(r, phase),
+      roundType: r.round_type,
     })),
-  ].sort((a, b) => new Date(a.date) - new Date(b.date));
+  ]
+    .filter(item => item.date) // Only include items with dates
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   if (timelineItems.length === 0) return null;
 
@@ -54,11 +89,19 @@ export function Timeline() {
               )}
             </div>
             <div className="timeline-content">
-              <span className="timeline-date">{formatDate(item.date)}</span>
+              <span className="timeline-date">
+                {formatDate(item.date)}
+                {item.endDate && item.endDate !== item.date && (
+                  <> - {formatDate(item.endDate)}</>
+                )}
+              </span>
               <span className="timeline-title">
                 {item.title}
                 {item.isDoubleVote && (
                   <span className="timeline-badge">2x Votes</span>
+                )}
+                {item.roundType === 'finals' && (
+                  <span className="timeline-badge timeline-badge-finals">Finals</span>
                 )}
               </span>
               {item.subtitle && (
@@ -70,6 +113,18 @@ export function Timeline() {
       </div>
     </div>
   );
+}
+
+function getPeriodStatus(startDate, endDate) {
+  const now = new Date();
+  const start = startDate ? new Date(startDate) : null;
+  const end = endDate ? new Date(endDate) : null;
+
+  if (!start && !end) return 'upcoming';
+  if (end && now > end) return 'complete';
+  if (start && end && now >= start && now <= end) return 'active';
+  if (start && !end && now >= start) return 'active';
+  return 'upcoming';
 }
 
 function getEventStatus(startDate, endDate) {
