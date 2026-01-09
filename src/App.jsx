@@ -41,7 +41,6 @@ import { EliteRankCityModal } from './components/modals';
 // LAZY-LOADED FEATURE PAGES (Code Splitting)
 // =============================================================================
 
-const PublicSitePage = lazy(() => import('./features/public-site/PublicSitePage'));
 const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 const SuperAdminPage = lazy(() => import('./features/super-admin/SuperAdminPage'));
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
@@ -117,29 +116,6 @@ const buildCompetitionName = (competition) => {
 
   return `${city} Most Eligible ${season}`.trim();
 };
-
-/**
- * Create safe competition object with defaults
- * @param {Object} competition - Raw competition data
- * @returns {Object} Competition with safe defaults
- */
-const createSafeCompetition = (competition = {}) => ({
-  id: competition.id ?? null,
-  city: competition.city ?? 'Unknown City',
-  season: competition.season ?? String(new Date().getFullYear()),
-  phase: competition.phase ?? 'voting',
-  status: competition.status ?? 'draft',
-  host_id: competition.host_id ?? null,
-  host: competition.host ?? null,
-  winners: Array.isArray(competition.winners) ? competition.winners : [],
-  isTeaser: competition.isTeaser ?? false,
-  organization: competition.organization ?? null,
-  nomination_start: competition.nomination_start ?? null,
-  nomination_end: competition.nomination_end ?? null,
-  voting_start: competition.voting_start ?? null,
-  voting_end: competition.voting_end ?? null,
-  finals_date: competition.finals_date ?? null,
-});
 
 // =============================================================================
 // UI COMPONENTS
@@ -350,17 +326,10 @@ export default function App() {
   // ===========================================================================
 
   const [currentView, setCurrentView] = useState(VIEW.PUBLIC);
-  const [showPublicSite, setShowPublicSite] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
-  const [initialUrlHandled, setInitialUrlHandled] = useState(false);
 
   // Claim nomination state
   const [claimToken, setClaimToken] = useState(null);
-
-  // Selected competition for public site view
-  const [selectedCompetition, setSelectedCompetition] = useState(
-    createSafeCompetition({ city: 'New York', season: '2026', phase: 'voting' })
-  );
 
   // ===========================================================================
   // HOST COMPETITION (from database)
@@ -420,105 +389,59 @@ export default function App() {
   // URL HANDLING
   // ===========================================================================
 
-  // Handle initial URL on app load (e.g., /c/:citySlug or /claim/:token)
+  // Handle initial URL on app load (e.g., /claim/:token or legacy /c/:citySlug)
   useEffect(() => {
     const handleInitialUrl = async () => {
       // Check for claim nomination URL
       const claimMatch = location.pathname.match(/^\/claim\/([^/]+)\/?$/);
       if (claimMatch) {
         setClaimToken(claimMatch[1]);
-        setInitialUrlHandled(true);
         return;
       }
 
-      const match = location.pathname.match(/^\/c\/([^/]+)\/?$/);
-
-      if (match && supabase) {
-        const slug = match[1];
-        const cityName = slugToCity(slug);
+      // Check for legacy /c/:citySlug format (single segment after /c/)
+      // Redirect to new format: /c/:orgSlug/:citySlug
+      const legacyMatch = location.pathname.match(/^\/c\/([^/]+)\/?$/);
+      if (legacyMatch && supabase) {
+        const citySlug = legacyMatch[1];
 
         try {
-          // First, find the city by name to get city_id
-          const { data: cities } = await supabase
-            .from('cities')
-            .select('id, name')
-            .ilike('name', `%${cityName}%`)
+          // Look up the competition to get org slug and year
+          const cityName = slugToCity(citySlug);
+
+          // Find competition by city name
+          const { data: competitions } = await supabase
+            .from('competitions')
+            .select(`
+              id, city, season, status,
+              organization:organizations(slug)
+            `)
+            .or(`city.ilike.%${cityName}%,name.ilike.%${cityName}%`)
+            .order('created_at', { ascending: false })
             .limit(1);
 
-          let competitions = [];
-
-          if (cities?.length) {
-            // Found city, search by city_id with voting rounds (settings are now on competitions table)
-            const { data } = await supabase
-              .from('competitions')
-              .select('*, voting_rounds(*)')
-              .eq('city_id', cities[0].id)
-              .limit(1);
-            competitions = data || [];
-          }
-
-          // Fallback: search by competition name if no city match
-          if (!competitions?.length) {
-            const { data } = await supabase
-              .from('competitions')
-              .select('*, voting_rounds(*)')
-              .ilike('name', `%${cityName}%`)
-              .limit(1);
-            competitions = data || [];
-          }
-
           if (competitions?.[0]) {
-            // Get city name for the competition
-            let competitionCityName = cityName;
-            if (competitions[0].city_id) {
-              const { data: cityData } = await supabase
-                .from('cities')
-                .select('name')
-                .eq('id', competitions[0].city_id)
-                .single();
-              if (cityData) competitionCityName = cityData.name;
-            }
-            const competition = competitions[0];
-            // Settings are now directly on the competition object
-            const competitionWithSettings = {
-              ...competition,
-              voting_rounds: competition.voting_rounds || [],
-            };
-            setSelectedCompetition(
-              createSafeCompetition({
-                ...competitionWithSettings,
-                city: competitionCityName,
-                phase: computeCompetitionPhase(competitionWithSettings),
-                isTeaser: competition.status !== COMPETITION_STATUSES.LIVE,
-              })
-            );
-            setShowPublicSite(true);
+            const comp = competitions[0];
+            const orgSlug = comp.organization?.slug || 'most-eligible';
+            const city = comp.city?.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '') || citySlug;
+            const year = comp.season || '';
+
+            // Redirect to new URL format
+            const newPath = year ? `/c/${orgSlug}/${city}/${year}` : `/c/${orgSlug}/${city}`;
+            navigate(newPath, { replace: true });
+            return;
           }
         } catch {
-          // Silent fail for URL parsing
+          // Silent fail - will fall through to default handling
         }
-      }
 
-      setInitialUrlHandled(true);
+        // Default redirect if no competition found
+        navigate(`/c/most-eligible/${citySlug}`, { replace: true });
+      }
     };
 
     handleInitialUrl();
   }, []); // Only run once on mount
-
-  // Sync URL with public site state
-  useEffect(() => {
-    if (!initialUrlHandled) return;
-
-    if (showPublicSite && selectedCompetition.city) {
-      const slug = cityToSlug(selectedCompetition.city);
-      const targetPath = `/c/${slug}`;
-      if (location.pathname !== targetPath) {
-        navigate(targetPath, { replace: true });
-      }
-    } else if (!showPublicSite && location.pathname.startsWith('/c/')) {
-      navigate('/', { replace: true });
-    }
-  }, [showPublicSite, selectedCompetition.city, initialUrlHandled, location.pathname, navigate]);
 
   // ===========================================================================
   // NAVIGATION HANDLERS
@@ -535,7 +458,6 @@ export default function App() {
   const handleLogout = useCallback(async () => {
     await signOut();
     setCurrentView(VIEW.PUBLIC);
-    setShowPublicSite(false);
     setShowUserProfile(false);
     setIsEditingProfile(false);
     setEditingProfileData(null);
@@ -555,7 +477,6 @@ export default function App() {
 
   const handleShowProfile = useCallback(() => {
     setShowUserProfile(true);
-    setShowPublicSite(false);
   }, []);
 
   const handleCloseProfile = useCallback(() => {
@@ -570,18 +491,18 @@ export default function App() {
 
   const handleOpenCompetition = useCallback((competition) => {
     setShowUserProfile(false);
-    setSelectedCompetition(createSafeCompetition(competition));
-    setShowPublicSite(true);
 
-    const slug = cityToSlug(competition?.city);
-    if (slug) {
-      navigate(`/c/${slug}`);
+    // Build new URL format: /c/:orgSlug/:citySlug/:year
+    const orgSlug = competition?.organization?.slug || competition?.orgSlug || 'most-eligible';
+    const citySlug = competition?.city
+      ? competition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
+      : '';
+    const year = competition?.season || '';
+
+    if (citySlug) {
+      const path = year ? `/c/${orgSlug}/${citySlug}/${year}` : `/c/${orgSlug}/${citySlug}`;
+      navigate(path);
     }
-  }, [navigate]);
-
-  const handleClosePublicSite = useCallback(() => {
-    setShowPublicSite(false);
-    navigate('/', { replace: true });
   }, [navigate]);
 
   // ===========================================================================
@@ -796,38 +717,16 @@ export default function App() {
           onLogout={handleLogout}
           currentUserId={user?.id}
           onViewPublicSite={() => {
-            const cityName = hostCompetition?.city || 'Your City';
-            setSelectedCompetition(
-              createSafeCompetition({
-                id: hostCompetition?.id,
-                city: cityName,
-                season: hostCompetition?.season,
-                status: hostCompetition?.status,
-                phase: computeCompetitionPhase(hostCompetition),
-              })
-            );
-            setShowPublicSite(true);
-            navigate(`/c/${cityToSlug(cityName)}`);
+            // Navigate to new public page format
+            const orgSlug = hostCompetition?.organization?.slug || 'most-eligible';
+            const citySlug = hostCompetition?.city
+              ? hostCompetition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
+              : 'competition';
+            const year = hostCompetition?.season || '';
+            const path = year ? `/c/${orgSlug}/${citySlug}/${year}` : `/c/${orgSlug}/${citySlug}`;
+            window.open(path, '_blank');
           }}
         />
-
-        {/* Public Site Preview */}
-        {showPublicSite && (
-          <Suspense fallback={<LoadingScreen message="Loading preview..." />}>
-            <PublicSitePage
-              isOpen={showPublicSite}
-              onClose={handleClosePublicSite}
-              city={selectedCompetition.city}
-              season={selectedCompetition.season}
-              phase={selectedCompetition.phase}
-              competition={hostCompetition}
-              isAuthenticated={isAuthenticated}
-              onLogin={handleShowLogin}
-              userEmail={user?.email}
-              userInstagram={profile?.instagram}
-            />
-          </Suspense>
-        )}
       </ErrorBoundary>
     );
   }
@@ -852,27 +751,6 @@ export default function App() {
         userName={userName}
         onLogout={handleLogout}
       />
-
-      {/* Public Site for Selected Competition */}
-      {showPublicSite && (
-        <Suspense fallback={<LoadingScreen message="Loading competition..." />}>
-          <PublicSitePage
-            isOpen={showPublicSite}
-            onClose={handleClosePublicSite}
-            city={selectedCompetition.city}
-            season={selectedCompetition.season}
-            phase={selectedCompetition.phase}
-            host={selectedCompetition.host}
-            winners={selectedCompetition.winners}
-            competition={selectedCompetition}
-            isAuthenticated={isAuthenticated}
-            onLogin={handleShowLogin}
-            userEmail={user?.email}
-            userInstagram={profile?.instagram}
-            user={user}
-          />
-        </Suspense>
-      )}
 
       {/* User Profile Modal */}
       {showUserProfile && (
