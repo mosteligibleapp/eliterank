@@ -4,6 +4,8 @@ import {
   usePublicCompetition,
 } from '../../contexts/PublicCompetitionContext';
 import { AlertCircle, Loader, X, ArrowLeft } from 'lucide-react';
+import { useSupabaseAuth } from '../../hooks';
+import { ProfileIcon } from '../../components/ui';
 
 // Phase view components
 import ComingSoonPhase from './phases/ComingSoonPhase';
@@ -18,6 +20,36 @@ import ResultsPhase from './phases/ResultsPhase';
 function CompetitionLayoutInner() {
   const { loading, error, competition, phase } = usePublicCompetition();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Auth state for profile icon
+  const {
+    user,
+    profile,
+    isAuthenticated,
+    signOut,
+  } = useSupabaseAuth();
+
+  // Check if user has dashboard access
+  const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
+
+  // Navigation handlers for profile icon
+  const handleLogin = () => {
+    // Navigate to home with login state
+    navigate('/?login=true');
+  };
+
+  const handleProfile = () => {
+    navigate('/?profile=true');
+  };
+
+  const handleDashboard = () => {
+    navigate('/?dashboard=true');
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   // Loading state
   if (loading) {
@@ -67,8 +99,6 @@ function CompetitionLayoutInner() {
     );
   }
 
-  const navigate = useNavigate();
-
   // Determine current view from URL
   const isLeaderboardView = location.pathname.endsWith('/leaderboard');
   const isActivityView = location.pathname.endsWith('/activity');
@@ -88,6 +118,21 @@ function CompetitionLayoutInner() {
       >
         <ArrowLeft size={20} />
       </button>
+
+      {/* Floating Profile Icon - top right */}
+      <div className="competition-profile-btn">
+        <ProfileIcon
+          isAuthenticated={isAuthenticated}
+          user={user}
+          profile={profile}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
+          onProfile={handleProfile}
+          onDashboard={hasDashboardAccess ? handleDashboard : null}
+          hasDashboardAccess={hasDashboardAccess}
+          size={40}
+        />
+      </div>
 
       {/* View Navigation - only during voting phases */}
       {phase?.isVoting && !isContestantView && (

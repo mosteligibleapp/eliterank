@@ -2416,6 +2416,13 @@
   color: var(--color-primary);
 }
 
+.competition-profile-btn {
+  position: fixed;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: 100;
+}
+
 .competition-loading,
 .competition-error {
   display: flex;

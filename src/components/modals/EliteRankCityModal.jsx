@@ -4,7 +4,8 @@ import {
   Activity, Info, Briefcase, Loader, User, Megaphone, Award, Building, Heart,
   Home, Search, Bell, Menu, ArrowRight, Play
 } from 'lucide-react';
-import { Button, Badge, OrganizationLogo } from '../ui';
+import { Button, Badge, OrganizationLogo, ProfileIcon } from '../ui';
+import { useSupabaseAuth } from '../../hooks';
 import { colors, spacing, borderRadius, typography, shadows, transitions, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
@@ -49,6 +50,12 @@ export default function EliteRankCityModal({
   onLogout,
 }) {
   const { isMobile, isTablet, width } = useResponsive();
+
+  // Get user and profile data for ProfileIcon
+  const { user, profile } = useSupabaseAuth();
+
+  // Check if user has dashboard access
+  const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
   const [activeTab, setActiveTab] = useState('competitions');
   const [hoveredCard, setHoveredCard] = useState(null);
   const [competitions, setCompetitions] = useState([]);
@@ -1242,15 +1249,17 @@ export default function EliteRankCityModal({
 
           {/* Auth Actions */}
           <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
-            {isAuthenticated ? (
-              <>
-                {!isMobile && onDashboard && <Button variant="ghost" size="sm" onClick={onDashboard}>Dashboard</Button>}
-                {onProfile && <Button variant="ghost" size="sm" onClick={onProfile} icon={User} iconOnly={isMobile} />}
-                {!isMobile && <Button variant="ghost" size="sm" onClick={onLogout}>Logout</Button>}
-              </>
-            ) : (
-              onLogin && <Button variant="primary" size="sm" onClick={onLogin}>Sign In</Button>
-            )}
+            <ProfileIcon
+              isAuthenticated={isAuthenticated}
+              user={user}
+              profile={profile}
+              onLogin={onLogin}
+              onLogout={onLogout}
+              onProfile={onProfile}
+              onDashboard={hasDashboardAccess ? onDashboard : null}
+              hasDashboardAccess={hasDashboardAccess}
+              size={isMobile ? 36 : 40}
+            />
             {!isFullPage && (
               <button onClick={onClose} style={{
                 background: 'none',
