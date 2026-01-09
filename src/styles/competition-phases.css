@@ -2413,7 +2413,8 @@
   padding: 0 0 var(--spacing-md);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
-  line-height: 1.6;
+  line-height: 1.8;
+  white-space: pre-line;
 }
 
 /* Button Styles */
