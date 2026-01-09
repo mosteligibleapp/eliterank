@@ -180,53 +180,6 @@ function CompetitionLayoutInner() {
 }
 
 /**
- * Competition Header - minimal branding bar with back button
- */
-function CompetitionHeader() {
-  const { competition, organization, phase } = usePublicCompetition();
-  const navigate = useNavigate();
-
-  const handleBack = () => {
-    navigate('/');
-  };
-
-  return (
-    <header className="competition-header">
-      <div className="competition-header-inner">
-        <button
-          onClick={handleBack}
-          className="competition-back-btn"
-          aria-label="Back to competitions"
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <div className="competition-branding">
-          {organization?.logo && (
-            <img
-              src={organization.logo}
-              alt={organization.name}
-              className="competition-org-logo"
-            />
-          )}
-          <div className="competition-title">
-            <h1>{competition?.city || 'Competition'}</h1>
-            <span className="competition-location">
-              {organization?.name || 'Most Eligible'}
-            </span>
-          </div>
-        </div>
-
-        <div className="competition-phase-badge" data-phase={phase?.phase}>
-          <span className="phase-indicator" />
-          <span className="phase-label">{phase?.label || 'Loading'}</span>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-/**
  * Phase Content - renders the appropriate phase view
  */
 function PhaseContent({ phase }) {
