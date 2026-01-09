@@ -37,6 +37,21 @@ export function Timeline() {
     });
   }
 
+  // Build finale item from competition record
+  const finaleItems = [];
+  const finaleDate = competition?.finale_date || competition?.finals_date;
+  if (finaleDate) {
+    finaleItems.push({
+      id: 'finale',
+      type: 'finale',
+      date: finaleDate,
+      title: 'Finals Event',
+      subtitle: 'Live finale & winner announcement',
+      status: getFinaleStatus(finaleDate),
+      isFinale: true,
+    });
+  }
+
   // Combine all timeline items
   const timelineItems = [
     ...nominationItems,
@@ -61,6 +76,7 @@ export function Timeline() {
       status: getRoundStatus(r, phase),
       roundType: r.round_type,
     })),
+    ...finaleItems,
   ]
     .filter(item => item.date) // Only include items with dates
     .sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -103,6 +119,9 @@ export function Timeline() {
                 {item.roundType === 'finals' && (
                   <span className="timeline-badge timeline-badge-finals">Finals</span>
                 )}
+                {item.isFinale && (
+                  <span className="timeline-badge timeline-badge-finals">Finale</span>
+                )}
               </span>
               {item.subtitle && (
                 <span className="timeline-subtitle">{item.subtitle}</span>
@@ -144,6 +163,19 @@ function getRoundStatus(round, phase) {
 
   if (now > end) return 'complete';
   if (now >= start && now <= end) return 'active';
+  return 'upcoming';
+}
+
+function getFinaleStatus(finaleDate) {
+  const now = new Date();
+  const finale = new Date(finaleDate);
+
+  // Consider finale "active" on the day of the event
+  const finaleDay = new Date(finale.getFullYear(), finale.getMonth(), finale.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (today > finaleDay) return 'complete';
+  if (today.getTime() === finaleDay.getTime()) return 'active';
   return 'upcoming';
 }
 
