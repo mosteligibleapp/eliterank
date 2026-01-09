@@ -373,6 +373,26 @@
   gap: var(--spacing-md);
 }
 
+/* Sidebar Countdown */
+.sidebar-countdown {
+  background: rgba(var(--color-primary-rgb), 0.05);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.15);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+}
+
+.sidebar-countdown .countdown-large {
+  padding: 0;
+}
+
+.sidebar-countdown .countdown-number {
+  font-size: var(--font-size-2xl);
+}
+
+.sidebar-countdown .countdown-label {
+  margin-bottom: var(--spacing-xs);
+}
+
 /* Voting Countdown Section */
 .voting-countdown-section {
   display: flex;
@@ -1637,6 +1657,19 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
+}
+
+/* Rules Elimination Warning */
+.rules-elimination-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(var(--color-warning-rgb), 0.1);
+  border-radius: var(--radius-md);
+  color: var(--color-warning);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .rules-list {

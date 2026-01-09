@@ -6,7 +6,6 @@ import { DailyVoteStatus } from '../components/DailyVoteStatus';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
-import { AlertTriangle, Clock } from 'lucide-react';
 
 /**
  * Voting phase view (Round 1, Round 2, Resurrection, Finals)
@@ -16,7 +15,6 @@ export function VotingPhase() {
   const {
     phase,
     competition,
-    countdown,
     topThree,
     openVoteModal,
   } = usePublicCompetition();
@@ -37,19 +35,6 @@ export function VotingPhase() {
           </span>
           <h1 className="voting-title">{competition?.name}</h1>
         </div>
-
-        {/* Countdown Timer - Prominent */}
-        <div className="voting-countdown-section">
-          <CountdownDisplay label="Round ends in" large />
-        </div>
-
-        {/* Elimination warning for applicable rounds */}
-        {(phase?.phase === 'round1' || phase?.phase === 'round2') && (
-          <div className="elimination-warning">
-            <AlertTriangle size={16} />
-            <span>Bottom {phase?.phase === 'round1' ? '20%' : '25%'} eliminated when round ends</span>
-          </div>
-        )}
 
         {isResurrection && (
           <div className="resurrection-banner">
@@ -73,6 +58,11 @@ export function VotingPhase() {
 
         {/* Sidebar */}
         <aside className="voting-sidebar">
+          {/* Countdown Timer */}
+          <div className="sidebar-countdown">
+            <CountdownDisplay label="Round ends in" large />
+          </div>
+
           <PrizePool compact />
 
           <DailyVoteStatus
