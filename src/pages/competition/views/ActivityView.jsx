@@ -10,12 +10,12 @@ import {
   Share2,
   Clock,
   Info,
-  CheckCircle,
+  Heart,
 } from 'lucide-react';
 
 // Map icon names to components
 const iconComponents = {
-  vote: CheckCircle,
+  vote: Heart,
   'trending-up': TrendingUp,
   'trending-down': TrendingDown,
   crown: Crown,
@@ -39,7 +39,13 @@ export function ActivityView() {
     announcements,
     events,
     prizePool,
+    contestants,
   } = usePublicCompetition();
+
+  // Find contestant by ID for avatar
+  const getContestant = (contestantId) => {
+    return contestants?.find(c => c.id === contestantId);
+  };
 
   return (
     <div className="activity-view">
@@ -113,13 +119,22 @@ export function ActivityView() {
               {activities?.map((activity) => {
                 const IconComponent =
                   iconComponents[activity.typeInfo?.icon] || Info;
+                const contestant = activity.contestant_id ? getContestant(activity.contestant_id) : null;
 
                 return (
                   <div
                     key={activity.id}
                     className={`activity-item ${activity.typeInfo?.colorClass || ''}`}
                   >
-                    <IconComponent size={16} className="activity-icon" />
+                    {contestant?.avatar_url ? (
+                      <div className="activity-avatar">
+                        <img src={contestant.avatar_url} alt="" />
+                      </div>
+                    ) : (
+                      <div className="activity-icon-wrap">
+                        <IconComponent size={16} className="activity-icon" />
+                      </div>
+                    )}
                     <div className="activity-content">
                       <span className="activity-message">{activity.message}</span>
                       <span className="activity-time">{activity.timeAgo}</span>

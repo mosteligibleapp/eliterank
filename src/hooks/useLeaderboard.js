@@ -16,7 +16,7 @@ export function useLeaderboard(competitionId, options = {}) {
   const [contestants, setContestants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortBy, setSortBy] = useState('rank'); // 'rank', 'votes', 'recent'
+  const [sortBy, setSortBy] = useState('votes'); // 'votes', 'rank', 'recent'
 
   const isDemoMode = !isSupabaseConfigured();
 

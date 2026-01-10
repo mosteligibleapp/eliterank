@@ -58,14 +58,9 @@ export function VotingPhase() {
           <PrizePool compact collapsible />
 
           <ActivityFeedCompact limit={5} />
-        </aside>
-      </section>
 
-      {/* Timeline */}
-      <section className="voting-footer">
-        <div className="voting-footer-grid">
           <Timeline />
-        </div>
+        </aside>
       </section>
     </div>
   );
