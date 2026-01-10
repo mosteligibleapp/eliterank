@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Sparkles, LogIn, Check, Clock, Loader } from 'lucide-react';
+import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle } from 'lucide-react';
 import { Modal, Button, Avatar } from '../../../components/ui';
-import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { colors, spacing, borderRadius, typography, gradients, shadows } from '../../../styles/theme';
 import { formatNumber, formatCurrency } from '../../../utils/formatters';
 import { VOTE_PRESETS } from '../../../constants';
 import { hasUsedFreeVoteToday, submitFreeVote, getTodaysVote, getTimeUntilReset } from '../../../lib/votes';
@@ -28,6 +28,17 @@ export default function VoteModal({
   const [freeVoteUsed, setFreeVoteUsed] = useState(false);
   const [votedContestantId, setVotedContestantId] = useState(null);
   const [checkingVoteStatus, setCheckingVoteStatus] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [votesAdded, setVotesAdded] = useState(1);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Reset success state when modal opens/closes or contestant changes
+  useEffect(() => {
+    if (!isOpen) {
+      setShowSuccess(false);
+      setLinkCopied(false);
+    }
+  }, [isOpen]);
 
   // Check if user has already used their free vote today
   useEffect(() => {
@@ -78,12 +89,11 @@ export default function VoteModal({
       });
 
       if (result.success) {
-        const voteText = result.votesAdded > 1 ? `${result.votesAdded} votes` : '1 vote';
-        toast.success(`Vote submitted! You gave ${contestant.name} ${voteText}`);
+        setVotesAdded(result.votesAdded || 1);
         setFreeVoteUsed(true);
         setVotedContestantId(contestant.id);
+        setShowSuccess(true);
         onVoteSuccess?.();
-        onClose();
       } else {
         toast.error(result.error || 'Failed to submit vote');
       }
@@ -97,43 +107,349 @@ export default function VoteModal({
 
   if (!contestant) return null;
 
-  // If not authenticated, show login prompt
-  if (!isAuthenticated) {
+  // Generate share URL for the contestant
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/competition/${competitionId}?contestant=${contestant.id}` : '';
+  const shareText = `I just voted for ${contestant.name} in Most Eligible! Help them win by voting too! 🏆`;
+
+  // Share handlers
+  const handleShareTwitter = () => {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(url, '_blank', 'width=550,height=420');
+  };
+
+  const handleShareFacebook = () => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+    window.open(url, '_blank', 'width=550,height=420');
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  // Native share (shows OS share sheet on mobile - Instagram, TikTok, Snapchat, etc.)
+  const canNativeShare = typeof navigator !== 'undefined' && navigator.share;
+  const handleNativeShare = async () => {
+    if (!canNativeShare) return;
+    try {
+      await navigator.share({
+        title: `Vote for ${contestant.name}`,
+        text: shareText,
+        url: shareUrl,
+      });
+    } catch (err) {
+      // User cancelled or share failed - that's okay
+      if (err.name !== 'AbortError') {
+        console.error('Share failed:', err);
+      }
+    }
+  };
+
+  const handleCloseSuccess = () => {
+    setShowSuccess(false);
+    onClose();
+  };
+
+  // Success confirmation screen
+  if (showSuccess) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} title="Sign In Required" maxWidth="400px">
-        <div style={{ textAlign: 'center', padding: spacing.xl }}>
-          <div
-            style={{
-              width: '80px',
-              height: '80px',
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.1))',
-              borderRadius: borderRadius.full,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto',
-              marginBottom: spacing.xl,
-            }}
-          >
-            <LogIn size={36} style={{ color: colors.gold.primary }} />
+      <Modal isOpen={isOpen} onClose={handleCloseSuccess} title="" maxWidth="380px" centered>
+        <div style={{ textAlign: 'center', padding: `${spacing.xl} ${spacing.lg} ${spacing.xxl}` }}>
+          {/* Contestant image with success badge */}
+          <div style={{ position: 'relative', display: 'inline-block', marginBottom: spacing.lg }}>
+            <div
+              style={{
+                width: '90px',
+                height: '90px',
+                borderRadius: borderRadius.full,
+                overflow: 'hidden',
+                border: `3px solid ${colors.gold.primary}`,
+                boxShadow: shadows.gold,
+              }}
+            >
+              {contestant.avatar_url || contestant.avatarUrl ? (
+                <img
+                  src={contestant.avatar_url || contestant.avatarUrl}
+                  alt={contestant.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    background: gradients.gold,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: typography.fontSize.xxxl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: '#0a0a0f',
+                  }}
+                >
+                  {contestant.name?.charAt(0)}
+                </div>
+              )}
+            </div>
+            {/* Success checkmark badge */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '-4px',
+                right: '-4px',
+                width: '32px',
+                height: '32px',
+                borderRadius: borderRadius.full,
+                background: colors.status.success,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: `3px solid ${colors.background.card}`,
+              }}
+            >
+              <Check size={18} style={{ color: 'white' }} />
+            </div>
           </div>
 
-          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.md }}>
-            Sign In to Vote
-          </h3>
+          {/* Success message */}
+          <h2
+            style={{
+              fontSize: typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+              marginBottom: spacing.xs,
+            }}
+          >
+            Vote Submitted!
+          </h2>
+          <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, marginBottom: spacing.xl }}>
+            You gave <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>{contestant.name}</span> {votesAdded} {votesAdded > 1 ? 'votes' : 'vote'}
+          </p>
 
-          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, marginBottom: spacing.xxl, lineHeight: 1.6 }}>
-            Create an account or sign in to vote for <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>{contestant.name}</span> and support your favorite contestant!
+          {/* Share prompt */}
+          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginBottom: spacing.md }}>
+            Share to help them win
+          </p>
+
+          {/* Share buttons row */}
+          <div style={{ display: 'flex', gap: spacing.sm, justifyContent: 'center', marginBottom: spacing.xl }}>
+            {canNativeShare && (
+              <button
+                onClick={handleNativeShare}
+                style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: borderRadius.full,
+                  background: 'linear-gradient(135deg, #E1306C, #F77737)',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <Share2 size={22} style={{ color: 'white' }} />
+              </button>
+            )}
+            <button
+              onClick={handleShareTwitter}
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: borderRadius.full,
+                background: '#1DA1F2',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <Twitter size={22} style={{ color: 'white' }} />
+            </button>
+            <button
+              onClick={handleShareFacebook}
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: borderRadius.full,
+                background: '#4267B2',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <Facebook size={22} style={{ color: 'white' }} />
+            </button>
+            <button
+              onClick={handleCopyLink}
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: borderRadius.full,
+                background: linkCopied ? colors.status.success : 'rgba(255,255,255,0.1)',
+                border: `1px solid ${linkCopied ? colors.status.success : colors.border.light}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              {linkCopied ? <Check size={22} style={{ color: 'white' }} /> : <Link2 size={22} style={{ color: colors.text.secondary }} />}
+            </button>
+          </div>
+
+          {linkCopied && (
+            <p style={{ color: colors.status.success, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
+              Link copied!
+            </p>
+          )}
+
+          {/* Done button */}
+          <button
+            onClick={handleCloseSuccess}
+            style={{
+              width: '100%',
+              padding: spacing.md,
+              background: 'transparent',
+              border: `1px solid ${colors.border.light}`,
+              borderRadius: borderRadius.lg,
+              color: colors.text.secondary,
+              fontSize: typography.fontSize.md,
+              fontWeight: typography.fontWeight.medium,
+              cursor: 'pointer',
+            }}
+          >
+            Done
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  // If not authenticated, show login prompt (styled to match LoginPage)
+  if (!isAuthenticated) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="" maxWidth="420px" centered>
+        <div style={{ textAlign: 'center', padding: `${spacing.lg} ${spacing.xl} ${spacing.xxl}` }}>
+          {/* Contestant Profile Image */}
+          <div
+            style={{
+              width: '100px',
+              height: '100px',
+              borderRadius: borderRadius.full,
+              overflow: 'hidden',
+              margin: '0 auto',
+              marginBottom: spacing.lg,
+              border: `3px solid ${colors.gold.primary}`,
+              boxShadow: shadows.goldLarge,
+            }}
+          >
+            {contestant.avatar_url || contestant.avatarUrl ? (
+              <img
+                src={contestant.avatar_url || contestant.avatarUrl}
+                alt={contestant.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: gradients.gold,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: typography.fontSize.hero,
+                  fontWeight: typography.fontWeight.bold,
+                  color: '#0a0a0f',
+                }}
+              >
+                {contestant.name?.charAt(0)}
+              </div>
+            )}
+          </div>
+
+          {/* Title */}
+          <h2
+            style={{
+              fontSize: typography.fontSize.xl,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.primary,
+              marginBottom: spacing.sm,
+            }}
+          >
+            Vote for {contestant.name?.split(' ')[0]}
+          </h2>
+
+          <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, marginBottom: spacing.xl }}>
+            Sign in to cast your vote
+          </p>
+
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.xxl, lineHeight: 1.6 }}>
+            Create an account or sign in to vote for{' '}
+            <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>
+              {contestant.name}
+            </span>{' '}
+            and support your favorite contestant!
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            <Button fullWidth size="lg" onClick={onLogin}>
+            {/* Primary Button - matches LoginPage gold gradient */}
+            <button
+              onClick={onLogin}
+              style={{
+                width: '100%',
+                padding: spacing.lg,
+                background: gradients.gold,
+                border: 'none',
+                borderRadius: borderRadius.lg,
+                color: '#0a0a0f',
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.semibold,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.sm,
+                boxShadow: shadows.gold,
+                transition: 'all 0.2s ease',
+              }}
+            >
               <LogIn size={18} />
               Sign In to Vote
-            </Button>
-            <Button variant="secondary" fullWidth size="md" onClick={onClose}>
+            </button>
+
+            {/* Cancel Button */}
+            <button
+              onClick={onClose}
+              style={{
+                width: '100%',
+                padding: spacing.md,
+                background: 'rgba(255,255,255,0.05)',
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.lg,
+                color: colors.text.secondary,
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.medium,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
               Cancel
-            </Button>
+            </button>
           </div>
         </div>
       </Modal>
@@ -145,7 +461,7 @@ export default function VoteModal({
   const alreadyVotedForThis = votedContestantId === contestant.id;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Cast Your Vote" maxWidth="450px">
+    <Modal isOpen={isOpen} onClose={onClose} title="Cast Your Vote" maxWidth="450px" centered>
       {/* Double Vote Day Banner */}
       {forceDoubleVoteDay && (
         <div

@@ -389,6 +389,27 @@ export default function App() {
   // URL HANDLING
   // ===========================================================================
 
+  // Handle query params (e.g., ?login=true, ?profile=true, ?dashboard=true)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+
+    if (params.get('login') === 'true') {
+      setCurrentView(VIEW.LOGIN);
+      // Clear the query param from URL
+      navigate('/', { replace: true });
+    } else if (params.get('profile') === 'true' && isAuthenticated) {
+      setShowUserProfile(true);
+      navigate('/', { replace: true });
+    } else if (params.get('dashboard') === 'true' && hasDashboardAccess) {
+      if (userRole === ROLE.SUPER_ADMIN) {
+        setCurrentView(VIEW.SUPER_ADMIN);
+      } else if (userRole === ROLE.HOST) {
+        setCurrentView(VIEW.HOST_DASHBOARD);
+      }
+      navigate('/', { replace: true });
+    }
+  }, [location.search, isAuthenticated, hasDashboardAccess, userRole, navigate]);
+
   // Handle initial URL on app load (e.g., /claim/:token or legacy /c/:citySlug)
   useEffect(() => {
     const handleInitialUrl = async () => {

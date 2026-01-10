@@ -16,6 +16,9 @@ import WinnersManager from '../super-admin/components/WinnersManager';
 import TimelineSettings from './components/TimelineSettings';
 import { PublicPageSettings } from './components/settings';
 
+// Import tab components
+import { OverviewTab, ContestantsTab, AdvancementTab, CommunityTab, SettingsTab } from './components/tabs';
+
 // Reusable components from overview
 import CurrentPhaseCard from '../overview/components/CurrentPhaseCard';
 import UpcomingCard from '../overview/components/UpcomingCard';
@@ -132,39 +135,7 @@ export default function CompetitionDashboard({
   // Add person modal state (for manual nominee/contestant entry)
   const [addPersonModal, setAddPersonModal] = useState({ isOpen: false, type: 'nominee' });
 
-  // Advancement tab state
-  const [voteInputs, setVoteInputs] = useState({});
-  const [savingVotes, setSavingVotes] = useState({});
-  const [activeRound, setActiveRound] = useState(null);
-  const [votingRounds, setVotingRounds] = useState([]);
-  const [showTieResolver, setShowTieResolver] = useState(false);
-  const [tiedContestants, setTiedContestants] = useState([]);
-  const [advanceCount, setAdvanceCount] = useState(10);
-
-  // Fetch voting rounds for advancement tab
-  useEffect(() => {
-    const fetchRounds = async () => {
-      if (!supabase || !competitionId) return;
-      const { data: rounds } = await supabase
-        .from('voting_rounds')
-        .select('*')
-        .eq('competition_id', competitionId)
-        .order('round_order');
-      if (rounds && rounds.length > 0) {
-        setVotingRounds(rounds);
-        // Set active round to current/latest
-        const now = new Date();
-        const active = rounds.find(r => {
-          const start = r.start_date ? new Date(r.start_date) : null;
-          const end = r.end_date ? new Date(r.end_date) : null;
-          return start && end && start <= now && now <= end;
-        }) || rounds[rounds.length - 1];
-        setActiveRound(active);
-        setAdvanceCount(active?.contestants_advance || 10);
-      }
-    };
-    fetchRounds();
-  }, [competitionId]);
+  // Note: Advancement tab state is now managed in AdvancementTab component
 
   const openAddPersonModal = (type) => {
     setAddPersonModal({ isOpen: true, type });
@@ -2063,14 +2034,75 @@ export default function CompetitionDashboard({
     }
 
     switch (activeTab) {
-      case 'overview': return renderOverview();
-      case 'contestants': return renderContestants();
-      case 'advancement': return renderAdvancement();
-      case 'community': return renderCommunity();
-      case 'public-page': return renderPublicPage();
-      case 'settings': return renderSettings();
-      case 'profile': return renderHostProfile();
-      default: return null;
+      case 'overview':
+        return (
+          <OverviewTab
+            competition={competition}
+            contestants={data.contestants}
+            events={data.events}
+            onViewPublicSite={onViewPublicSite}
+          />
+        );
+      case 'contestants':
+        return (
+          <ContestantsTab
+            competition={competition}
+            nominees={data.nominees}
+            contestants={data.contestants}
+            onRefresh={refresh}
+            onApproveNominee={approveNominee}
+            onRejectNominee={rejectNominee}
+            onArchiveNominee={archiveNominee}
+            onRestoreNominee={restoreNominee}
+            onOpenAddPersonModal={openAddPersonModal}
+          />
+        );
+      case 'advancement':
+        return (
+          <AdvancementTab
+            competitionId={competitionId}
+            contestants={data.contestants}
+          />
+        );
+      case 'community':
+        return (
+          <CommunityTab
+            announcements={data.announcements}
+            host={data.host}
+            isSuperAdmin={isSuperAdmin}
+            onAddAnnouncement={addAnnouncement}
+            onUpdateAnnouncement={updateAnnouncement}
+            onDeleteAnnouncement={deleteAnnouncement}
+            onTogglePin={toggleAnnouncementPin}
+          />
+        );
+      case 'public-page':
+        return renderPublicPage();
+      case 'settings':
+        return (
+          <SettingsTab
+            competition={competition}
+            judges={data.judges}
+            sponsors={data.sponsors}
+            events={data.events}
+            rules={data.rules}
+            formFields={formFields}
+            onRefresh={refresh}
+            onDeleteJudge={deleteJudge}
+            onDeleteSponsor={deleteSponsor}
+            onDeleteEvent={deleteEvent}
+            onDeleteRule={deleteRule}
+            onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
+            onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+            onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+            onOpenRuleModal={(rule) => setRuleModal({ isOpen: true, rule })}
+            onShowNominationFormEditor={() => setShowNominationFormEditor(true)}
+          />
+        );
+      case 'profile':
+        return renderHostProfile();
+      default:
+        return null;
     }
   };
 

@@ -10,6 +10,7 @@ export default function Modal({
   footer,
   maxWidth = '500px',
   headerStyle = {},
+  centered = false,
 }) {
   if (!isOpen) return null;
 
@@ -19,16 +20,17 @@ export default function Modal({
     background: colors.background.overlay,
     backdropFilter: 'blur(8px)',
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: centered ? 'center' : 'flex-start',
     justifyContent: 'center',
     zIndex: 50,
     padding: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: centered ? spacing.lg : spacing.xl,
     overflowY: 'auto',
   };
 
   const modalStyle = {
-    background: '#1a1a24',
+    position: 'relative',
+    background: colors.background.card,
     border: `1px solid ${colors.border.light}`,
     borderRadius: borderRadius.xxl,
     width: '100%',
@@ -73,16 +75,34 @@ export default function Modal({
     gap: spacing.md,
   };
 
+  // If no title, show minimal header with just close button
+  const showFullHeader = title && title.trim() !== '';
+
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={headerBaseStyle}>
-          <h2 style={titleStyle}>{title}</h2>
-          <button style={closeButtonStyle} onClick={onClose}>
+        {showFullHeader ? (
+          <div style={headerBaseStyle}>
+            <h2 style={titleStyle}>{title}</h2>
+            <button style={closeButtonStyle} onClick={onClose}>
+              <X size={24} />
+            </button>
+          </div>
+        ) : (
+          <button
+            style={{
+              ...closeButtonStyle,
+              position: 'absolute',
+              top: spacing.md,
+              right: spacing.md,
+              zIndex: 10,
+            }}
+            onClick={onClose}
+          >
             <X size={24} />
           </button>
-        </div>
-        <div style={bodyStyle}>{children}</div>
+        )}
+        <div style={showFullHeader ? bodyStyle : { ...bodyStyle, paddingTop: spacing.xl }}>{children}</div>
         {footer && <div style={footerStyle}>{footer}</div>}
       </div>
     </div>
