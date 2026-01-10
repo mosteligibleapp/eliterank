@@ -132,6 +132,24 @@ export default function VoteModal({
     }
   };
 
+  // Native share (shows OS share sheet on mobile - Instagram, TikTok, Snapchat, etc.)
+  const canNativeShare = typeof navigator !== 'undefined' && navigator.share;
+  const handleNativeShare = async () => {
+    if (!canNativeShare) return;
+    try {
+      await navigator.share({
+        title: `Vote for ${contestant.name}`,
+        text: shareText,
+        url: shareUrl,
+      });
+    } catch (err) {
+      // User cancelled or share failed - that's okay
+      if (err.name !== 'AbortError') {
+        console.error('Share failed:', err);
+      }
+    }
+  };
+
   const handleCloseSuccess = () => {
     setShowSuccess(false);
     onClose();
@@ -260,6 +278,33 @@ export default function VoteModal({
               Share with friends to give them more votes and increase their chances of winning!
             </p>
           </div>
+
+          {/* Native Share Button (shows on mobile with OS share sheet) */}
+          {canNativeShare && (
+            <button
+              onClick={handleNativeShare}
+              style={{
+                width: '100%',
+                padding: spacing.lg,
+                background: 'linear-gradient(135deg, #E1306C, #F77737, #FCAF45)',
+                border: 'none',
+                borderRadius: borderRadius.lg,
+                color: 'white',
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.semibold,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.sm,
+                marginBottom: spacing.lg,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Share2 size={20} />
+              Share to Stories & More
+            </button>
+          )}
 
           {/* Share buttons */}
           <div style={{ display: 'flex', gap: spacing.md, justifyContent: 'center', marginBottom: spacing.xl }}>
