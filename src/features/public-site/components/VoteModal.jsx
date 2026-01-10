@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle } from 'lucide-react';
+import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle, CreditCard, ArrowLeft } from 'lucide-react';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Modal, Button, Avatar } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients, shadows } from '../../../styles/theme';
 import { formatNumber, formatCurrency } from '../../../utils/formatters';
 import { VOTE_PRESETS } from '../../../constants';
-import { hasUsedFreeVoteToday, submitFreeVote, getTodaysVote, getTimeUntilReset } from '../../../lib/votes';
+import { hasUsedFreeVoteToday, submitFreeVote, getTodaysVote, getTimeUntilReset, createVotePaymentIntent, recordPaidVote } from '../../../lib/votes';
 import { useToast } from '../../../contexts/ToastContext';
+import { getStripe, isStripeConfigured } from '../../../lib/stripe';
 
 export default function VoteModal({
   isOpen,
@@ -32,11 +34,24 @@ export default function VoteModal({
   const [votesAdded, setVotesAdded] = useState(1);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  // Reset success state when modal opens/closes or contestant changes
+  // Payment states
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [clientSecret, setClientSecret] = useState(null);
+  const [paymentIntentId, setPaymentIntentId] = useState(null);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  const [selectedVoteCount, setSelectedVoteCount] = useState(10);
+
+  const stripeConfigured = isStripeConfigured();
+
+  // Reset states when modal opens/closes or contestant changes
   useEffect(() => {
     if (!isOpen) {
       setShowSuccess(false);
       setLinkCopied(false);
+      setShowPaymentForm(false);
+      setClientSecret(null);
+      setPaymentIntentId(null);
+      setSelectedVoteCount(10);
     }
   }, [isOpen]);
 
@@ -105,6 +120,72 @@ export default function VoteModal({
     setIsSubmitting(false);
   };
 
+  // Handle initiating purchase
+  const handleInitiatePurchase = async () => {
+    if (!contestant || !competitionId || !selectedVoteCount || isCreatingPayment) {
+      return;
+    }
+
+    if (!hasActiveRound) {
+      toast.error('Voting is not currently active');
+      return;
+    }
+
+    if (!stripeConfigured) {
+      toast.error('Payment system is not configured');
+      return;
+    }
+
+    setIsCreatingPayment(true);
+
+    try {
+      const result = await createVotePaymentIntent({
+        competitionId,
+        contestantId: contestant.id,
+        voteCount: selectedVoteCount,
+        voterEmail: user?.email,
+      });
+
+      if (result.success && result.clientSecret) {
+        setClientSecret(result.clientSecret);
+        setPaymentIntentId(result.paymentIntentId);
+        setShowPaymentForm(true);
+      } else {
+        toast.error(result.error || 'Failed to create payment');
+      }
+    } catch (err) {
+      console.error('Error initiating purchase:', err);
+      toast.error('An unexpected error occurred');
+    }
+
+    setIsCreatingPayment(false);
+  };
+
+  // Handle successful payment
+  const handlePaymentSuccess = async () => {
+    // Record the vote (webhook will also record it, but this gives immediate feedback)
+    await recordPaidVote({
+      paymentIntentId,
+      competitionId,
+      contestantId: contestant.id,
+      voteCount: selectedVoteCount,
+      amountPaid: selectedVoteCount, // $1 per vote
+      voterEmail: user?.email,
+    });
+
+    setVotesAdded(selectedVoteCount);
+    setShowPaymentForm(false);
+    setShowSuccess(true);
+    onVoteSuccess?.();
+  };
+
+  // Handle back from payment form
+  const handleBackFromPayment = () => {
+    setShowPaymentForm(false);
+    setClientSecret(null);
+    setPaymentIntentId(null);
+  };
+
   if (!contestant) return null;
 
   // Generate share URL for the contestant
@@ -154,6 +235,127 @@ export default function VoteModal({
     setShowSuccess(false);
     onClose();
   };
+
+  // Payment form screen
+  if (showPaymentForm && clientSecret) {
+    const stripePromise = getStripe();
+
+    return (
+      <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="450px" centered>
+        <div style={{ padding: spacing.lg }}>
+          {/* Back button */}
+          <button
+            onClick={handleBackFromPayment}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.xs,
+              background: 'none',
+              border: 'none',
+              color: colors.text.secondary,
+              cursor: 'pointer',
+              padding: 0,
+              marginBottom: spacing.lg,
+              fontSize: typography.fontSize.sm,
+            }}
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
+            <div
+              style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: borderRadius.full,
+                overflow: 'hidden',
+                margin: '0 auto',
+                marginBottom: spacing.md,
+                border: `2px solid ${colors.gold.primary}`,
+              }}
+            >
+              {contestant.avatar_url || contestant.avatarUrl ? (
+                <img
+                  src={contestant.avatar_url || contestant.avatarUrl}
+                  alt={contestant.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    background: gradients.gold,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: typography.fontSize.xl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: '#0a0a0f',
+                  }}
+                >
+                  {contestant.name?.charAt(0)}
+                </div>
+              )}
+            </div>
+            <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+              Purchase {selectedVoteCount} Votes
+            </h3>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+              for {contestant.name}
+            </p>
+          </div>
+
+          {/* Amount */}
+          <div
+            style={{
+              background: 'rgba(212,175,55,0.1)',
+              borderRadius: borderRadius.lg,
+              padding: spacing.lg,
+              textAlign: 'center',
+              marginBottom: spacing.xl,
+              border: `1px solid rgba(212,175,55,0.2)`,
+            }}
+          >
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Total</span>
+            <p style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
+              {formatCurrency(selectedVoteCount)}
+            </p>
+          </div>
+
+          {/* Stripe Elements */}
+          {stripePromise && (
+            <Elements
+              stripe={stripePromise}
+              options={{
+                clientSecret,
+                appearance: {
+                  theme: 'night',
+                  variables: {
+                    colorPrimary: '#d4af37',
+                    colorBackground: '#1a1a2e',
+                    colorText: '#ffffff',
+                    colorDanger: '#ef4444',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    borderRadius: '8px',
+                  },
+                },
+              }}
+            >
+              <PaymentCheckoutForm
+                onSuccess={handlePaymentSuccess}
+                onCancel={handleBackFromPayment}
+                amount={selectedVoteCount}
+                contestantName={contestant.name}
+              />
+            </Elements>
+          )}
+        </div>
+      </Modal>
+    );
+  }
 
   // Success confirmation screen
   if (showSuccess) {
@@ -595,7 +797,7 @@ export default function VoteModal({
       </div>
 
       {/* Vote Count Selector */}
-      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: borderRadius.xl, padding: spacing.xl, marginBottom: spacing.xl, opacity: 0.5 }}>
+      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: borderRadius.xl, padding: spacing.xl, marginBottom: spacing.xl }}>
         <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, marginBottom: spacing.md, textAlign: 'center' }}>
           Select vote amount
         </p>
@@ -603,18 +805,19 @@ export default function VoteModal({
           {VOTE_PRESETS.map((num) => (
             <button
               key={num}
-              onClick={() => onVoteCountChange(num)}
-              disabled
+              onClick={() => setSelectedVoteCount(num)}
+              disabled={!stripeConfigured || !hasActiveRound}
               style={{
                 padding: `${spacing.md} ${spacing.lg}`,
                 borderRadius: borderRadius.md,
                 border: 'none',
-                background: voteCount === num ? colors.gold.primary : 'rgba(255,255,255,0.05)',
-                color: voteCount === num ? '#0a0a0f' : colors.text.secondary,
+                background: selectedVoteCount === num ? colors.gold.primary : 'rgba(255,255,255,0.05)',
+                color: selectedVoteCount === num ? '#0a0a0f' : colors.text.secondary,
                 fontWeight: typography.fontWeight.semibold,
                 fontSize: typography.fontSize.lg,
-                cursor: 'not-allowed',
+                cursor: (!stripeConfigured || !hasActiveRound) ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s',
+                opacity: (!stripeConfigured || !hasActiveRound) ? 0.5 : 1,
               }}
             >
               {num}
@@ -645,31 +848,44 @@ export default function VoteModal({
           </div>
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: typography.fontSize.xxxl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-              {formatCurrency(voteCount)}
+              {formatCurrency(selectedVoteCount)}
             </span>
             {forceDoubleVoteDay && (
               <p style={{ color: colors.status.success, fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold }}>
-                = {formatNumber(effectiveVotes)} votes
+                = {formatNumber(selectedVoteCount * 2)} votes
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Purchase Button - Coming Soon */}
+      {/* Purchase Button */}
       <Button
         fullWidth
         size="xl"
-        icon={DollarSign}
-        disabled
+        icon={isCreatingPayment ? Loader : CreditCard}
+        onClick={handleInitiatePurchase}
+        disabled={!stripeConfigured || !hasActiveRound || isCreatingPayment}
         style={{
-          opacity: 0.5,
-          cursor: 'not-allowed',
-          background: 'rgba(212,175,55,0.1)',
-          borderColor: 'rgba(212,175,55,0.2)',
+          background: (!stripeConfigured || !hasActiveRound) ? 'rgba(212,175,55,0.1)' : gradients.gold,
+          borderColor: 'rgba(212,175,55,0.3)',
+          color: (!stripeConfigured || !hasActiveRound) ? colors.text.muted : '#0a0a0f',
+          cursor: (!stripeConfigured || !hasActiveRound) ? 'not-allowed' : 'pointer',
+          opacity: (!stripeConfigured || !hasActiveRound) ? 0.5 : 1,
         }}
       >
-        Purchase Votes - Coming Soon
+        {isCreatingPayment ? (
+          <>
+            <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⟳</span>
+            Processing...
+          </>
+        ) : !stripeConfigured ? (
+          'Payment Not Configured'
+        ) : !hasActiveRound ? (
+          'Voting Not Active'
+        ) : (
+          `Purchase ${selectedVoteCount} Votes - ${formatCurrency(selectedVoteCount)}`
+        )}
       </Button>
 
       {/* Spin animation style */}
@@ -680,5 +896,149 @@ export default function VoteModal({
         }
       `}</style>
     </Modal>
+  );
+}
+
+/**
+ * Payment checkout form using Stripe Elements
+ */
+function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+    setErrorMessage(null);
+
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.href, // Fallback, but we handle redirect: 'if_required'
+        },
+        redirect: 'if_required',
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        onSuccess();
+      } else if (paymentIntent && paymentIntent.status === 'processing') {
+        // Payment is processing, show appropriate message
+        setErrorMessage('Payment is processing. Please wait...');
+      } else {
+        setErrorMessage('Something went wrong. Please try again.');
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      setErrorMessage('An unexpected error occurred.');
+    }
+
+    setIsProcessing(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <PaymentElement
+        options={{
+          layout: 'tabs',
+        }}
+      />
+
+      {errorMessage && (
+        <div
+          style={{
+            marginTop: spacing.md,
+            padding: spacing.md,
+            background: 'rgba(239, 68, 68, 0.1)',
+            borderRadius: borderRadius.md,
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#ef4444',
+            fontSize: typography.fontSize.sm,
+          }}
+        >
+          {errorMessage}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={!stripe || isProcessing}
+        style={{
+          width: '100%',
+          marginTop: spacing.xl,
+          padding: spacing.lg,
+          background: isProcessing ? 'rgba(212,175,55,0.5)' : gradients.gold,
+          border: 'none',
+          borderRadius: borderRadius.lg,
+          color: '#0a0a0f',
+          fontSize: typography.fontSize.md,
+          fontWeight: typography.fontWeight.semibold,
+          cursor: isProcessing ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: spacing.sm,
+        }}
+      >
+        {isProcessing ? (
+          <>
+            <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+            Processing...
+          </>
+        ) : (
+          <>
+            <CreditCard size={18} />
+            Pay {formatCurrency(amount)}
+          </>
+        )}
+      </button>
+
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={isProcessing}
+        style={{
+          width: '100%',
+          marginTop: spacing.md,
+          padding: spacing.md,
+          background: 'transparent',
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.lg,
+          color: colors.text.secondary,
+          fontSize: typography.fontSize.md,
+          cursor: isProcessing ? 'not-allowed' : 'pointer',
+          opacity: isProcessing ? 0.5 : 1,
+        }}
+      >
+        Cancel
+      </button>
+
+      <p
+        style={{
+          marginTop: spacing.lg,
+          textAlign: 'center',
+          fontSize: typography.fontSize.xs,
+          color: colors.text.muted,
+        }}
+      >
+        Secure payment powered by Stripe
+      </p>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </form>
   );
 }

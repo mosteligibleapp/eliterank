@@ -307,3 +307,159 @@ export function getTimeUntilReset() {
   }
   return `${minutes}m`;
 }
+
+/**
+ * Create a payment intent for purchasing votes
+ * @param {Object} params - Payment parameters
+ * @param {string} params.competitionId - The competition ID
+ * @param {string} params.contestantId - The contestant ID to vote for
+ * @param {number} params.voteCount - Number of votes to purchase
+ * @param {string} params.voterEmail - The voter's email (optional)
+ * @returns {Promise<{success: boolean, clientSecret?: string, error?: string}>}
+ */
+export async function createVotePaymentIntent({
+  competitionId,
+  contestantId,
+  voteCount,
+  voterEmail,
+}) {
+  if (!supabase) {
+    return { success: false, error: 'Database not configured' };
+  }
+
+  if (!competitionId || !contestantId || !voteCount) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  if (voteCount < 1 || voteCount > 1000) {
+    return { success: false, error: 'Invalid vote count' };
+  }
+
+  try {
+    // Check if there's an active voting round
+    const roundCheck = await checkActiveVotingRound(competitionId);
+    if (!roundCheck.isActive) {
+      return { success: false, error: 'Voting is not currently active' };
+    }
+
+    // Call the Supabase Edge Function to create payment intent
+    const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+      body: {
+        competitionId,
+        contestantId,
+        voteCount,
+        voterEmail,
+      },
+    });
+
+    if (error) {
+      console.error('Payment intent creation failed:', error);
+      return { success: false, error: error.message || 'Failed to create payment' };
+    }
+
+    if (!data?.clientSecret) {
+      return { success: false, error: 'Invalid response from payment service' };
+    }
+
+    return {
+      success: true,
+      clientSecret: data.clientSecret,
+      paymentIntentId: data.paymentIntentId,
+      amount: data.amount,
+      voteCount: data.voteCount,
+      contestantName: data.contestantName,
+    };
+  } catch (err) {
+    console.error('Error creating payment intent:', err);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Record a paid vote after successful payment
+ * Note: This is called client-side for immediate UI feedback.
+ * The webhook will also record the vote, so we use idempotency checks.
+ * @param {Object} params - Vote parameters
+ * @param {string} params.paymentIntentId - The Stripe payment intent ID
+ * @param {string} params.competitionId - The competition ID
+ * @param {string} params.contestantId - The contestant ID
+ * @param {number} params.voteCount - Number of votes purchased
+ * @param {number} params.amountPaid - Amount paid in dollars
+ * @param {string} params.voterEmail - The voter's email
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function recordPaidVote({
+  paymentIntentId,
+  competitionId,
+  contestantId,
+  voteCount,
+  amountPaid,
+  voterEmail,
+}) {
+  if (!supabase) {
+    return { success: false, error: 'Database not configured' };
+  }
+
+  try {
+    // Check if already recorded (idempotency - webhook may have already recorded it)
+    const { data: existingVote } = await supabase
+      .from('votes')
+      .select('id')
+      .eq('payment_intent_id', paymentIntentId)
+      .single();
+
+    if (existingVote) {
+      // Already recorded by webhook, return success
+      return { success: true, alreadyRecorded: true };
+    }
+
+    // Insert the vote record
+    const { error: voteError } = await supabase
+      .from('votes')
+      .insert({
+        voter_email: voterEmail || null,
+        competition_id: competitionId,
+        contestant_id: contestantId,
+        vote_count: voteCount,
+        amount_paid: amountPaid,
+        payment_intent_id: paymentIntentId,
+        is_double_vote: false,
+      });
+
+    if (voteError) {
+      // If it's a duplicate (webhook beat us), that's fine
+      if (voteError.code === '23505') {
+        return { success: true, alreadyRecorded: true };
+      }
+      console.error('Vote insert error:', voteError);
+      return { success: false, error: voteError.message };
+    }
+
+    // Update contestant vote count
+    const { error: updateError } = await supabase.rpc('increment_contestant_votes', {
+      p_contestant_id: contestantId,
+      p_vote_count: voteCount,
+    });
+
+    if (updateError) {
+      // Fallback to manual update
+      const { data: contestant } = await supabase
+        .from('contestants')
+        .select('votes')
+        .eq('id', contestantId)
+        .single();
+
+      if (contestant) {
+        await supabase
+          .from('contestants')
+          .update({ votes: (contestant.votes || 0) + voteCount })
+          .eq('id', contestantId);
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error recording paid vote:', err);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
