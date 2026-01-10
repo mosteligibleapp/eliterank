@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useLocation, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   PublicCompetitionProvider,
   usePublicCompetition,
@@ -258,9 +258,13 @@ function ContestantModals() {
     switchToVote,
     competition,
     phase,
+    openVoteModal,
+    getContestant,
   } = usePublicCompetition();
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useSupabaseAuth();
   const [voteCount, setVoteCount] = useState(1);
 
@@ -269,8 +273,24 @@ function ContestantModals() {
     ? { ...phase.currentRound, isActive: phase.isVoting }
     : { isActive: phase?.isVoting ?? false };
 
+  // Auto-open vote modal for contestant if voteFor param is present
+  useEffect(() => {
+    const voteForId = searchParams.get('voteFor');
+    if (voteForId && isAuthenticated && getContestant) {
+      const contestant = getContestant(voteForId);
+      if (contestant) {
+        openVoteModal(contestant);
+        // Clear the param from URL
+        searchParams.delete('voteFor');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, isAuthenticated, getContestant, openVoteModal, setSearchParams]);
+
   const handleLogin = () => {
-    navigate('/?login=true');
+    // Build return URL with contestant ID so we can reopen the modal after login
+    const returnUrl = `${location.pathname}${selectedContestant ? `?voteFor=${selectedContestant.id}` : ''}`;
+    navigate(`/?login=true&returnTo=${encodeURIComponent(returnUrl)}`);
   };
 
   if (!selectedContestant) return null;

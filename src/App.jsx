@@ -331,6 +331,9 @@ export default function App() {
   // Claim nomination state
   const [claimToken, setClaimToken] = useState(null);
 
+  // Return URL after login (for redirecting back to contestant vote modal)
+  const [loginReturnUrl, setLoginReturnUrl] = useState(null);
+
   // ===========================================================================
   // HOST COMPETITION (from database)
   // ===========================================================================
@@ -394,6 +397,11 @@ export default function App() {
     const params = new URLSearchParams(location.search);
 
     if (params.get('login') === 'true') {
+      // Store return URL if provided (for redirecting back after login)
+      const returnTo = params.get('returnTo');
+      if (returnTo) {
+        setLoginReturnUrl(decodeURIComponent(returnTo));
+      }
       setCurrentView(VIEW.LOGIN);
       // Clear the query param from URL
       navigate('/', { replace: true });
@@ -473,8 +481,15 @@ export default function App() {
   }, []);
 
   const handleLogin = useCallback(() => {
-    setCurrentView(VIEW.PUBLIC);
-  }, []);
+    // If we have a return URL (e.g., from clicking "Sign in to vote"), redirect there
+    if (loginReturnUrl) {
+      const returnUrl = loginReturnUrl;
+      setLoginReturnUrl(null); // Clear the stored URL
+      navigate(returnUrl);
+    } else {
+      setCurrentView(VIEW.PUBLIC);
+    }
+  }, [loginReturnUrl, navigate]);
 
   const handleLogout = useCallback(async () => {
     await signOut();
