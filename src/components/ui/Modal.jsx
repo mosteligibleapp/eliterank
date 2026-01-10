@@ -30,7 +30,7 @@ export default function Modal({
 
   const modalStyle = {
     position: 'relative',
-    background: '#1a1a24',
+    background: colors.background.card,
     border: `1px solid ${colors.border.light}`,
     borderRadius: borderRadius.xxl,
     width: '100%',
