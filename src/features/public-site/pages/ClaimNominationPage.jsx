@@ -179,7 +179,9 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
           // The profile stage will redirect to success if already complete
           setStage('profile');
         } else {
-          setStage('decide');
+          // Not yet claimed - stage will be determined after auth check completes
+          // (see useEffect below that handles authenticated users)
+          setStage('loading-auth');
         }
       } catch (err) {
         console.error('Error fetching nomination:', err);
@@ -191,6 +193,31 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
 
     fetchNomination();
   }, [token]);
+
+  // Determine stage after auth check completes for unclaimed nominations
+  useEffect(() => {
+    // Only run when we're waiting for auth and auth check is complete
+    if (stage !== 'loading-auth' || authLoading) return;
+
+    // Check if user came via magic link (URL hash contains auth tokens)
+    const hash = window.location.hash;
+    const cameViaMagicLink = hash.includes('access_token') || hash.includes('type=magiclink');
+
+    if (user) {
+      // User is authenticated - they MUST set password first before seeing nomination
+      // This ensures they can't just close the page and stay logged in without a password
+      setNeedsPassword(true);
+      setStage('set-password');
+    } else if (cameViaMagicLink) {
+      // Magic link tokens in URL but user not set yet - wait for auth to complete
+      // This can happen if auth state change hasn't fired yet
+      return;
+    } else {
+      // Not authenticated and no magic link - show decide stage
+      // They'll need to sign up when they click Accept
+      setStage('decide');
+    }
+  }, [stage, authLoading, user]);
 
   // Initialize form data when profile/nominee loads
   useEffect(() => {
@@ -211,7 +238,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     return profile.first_name && profile.last_name && profile.avatar_url && profile.bio && profile.city;
   };
 
-  // Handle Accept - check if user needs to create account or set password first
+  // Handle Accept - check if user needs to create account first
   const handleAccept = async () => {
     // If not authenticated, go to signup stage first
     if (!user) {
@@ -224,10 +251,9 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
       return;
     }
 
-    // User is authenticated (likely via magic link) - require password setup before accepting
-    // This ensures they can log back in later with a password
-    setNeedsPassword(true);
-    setStage('set-password');
+    // User is authenticated and has set password (required before seeing this page)
+    // Proceed with accepting the nomination
+    await completeAccept();
   };
 
   // Handle Set Password - for users authenticated via magic link
@@ -256,13 +282,15 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
 
       if (updateError) throw updateError;
 
-      toast.success('Password set successfully!');
+      toast.success('Password set! Now you can view your nomination.');
 
-      // Now proceed with accepting the nomination
-      await completeAccept();
+      // Password is set - now show them the nomination to accept/reject
+      setNeedsPassword(false);
+      setStage('decide');
     } catch (err) {
       console.error('Set password error:', err);
       toast.error(err.message || 'Failed to set password. Please try again.');
+    } finally {
       setProcessing(false);
     }
   };
@@ -581,7 +609,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   // =========================================================================
   // RENDER: Loading
   // =========================================================================
-  if (loading || authLoading) {
+  if (loading || authLoading || stage === 'loading' || stage === 'loading-auth') {
     return (
       <div style={{
         minHeight: '100vh',
@@ -959,7 +987,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm }}>
                 <AlertCircle size={16} style={{ color: colors.gold.primary, flexShrink: 0, marginTop: '2px' }} />
                 <span>
-                  Before accepting your nomination, please set a password. This will allow you to log back in anytime.
+                  Please set a password for your account. This will allow you to log back in anytime.
                 </span>
               </div>
             </div>
@@ -1047,7 +1075,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
                 </>
               ) : (
                 <>
-                  Set Password & Accept Nomination
+                  Set Password & Continue
                   <ArrowRight size={18} style={{ marginLeft: 8 }} />
                 </>
               )}
@@ -1060,7 +1088,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
               color: colors.text.muted,
               textAlign: 'center',
             }}>
-              A password is required to accept your nomination.
+              Set your password to view your nomination details.
             </p>
           </div>
         </div>
