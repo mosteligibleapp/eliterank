@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle, CreditCard, ArrowLeft } from 'lucide-react';
+import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle, CreditCard, X } from 'lucide-react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Modal, Button, Avatar } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients, shadows } from '../../../styles/theme';
@@ -236,43 +236,34 @@ export default function VoteModal({
     onClose();
   };
 
-  // Payment form screen
+  // Payment form screen - Compact for mobile
   if (showPaymentForm && clientSecret) {
     const stripePromise = getStripe();
 
     return (
-      <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="450px" centered>
-        <div style={{ padding: spacing.lg }}>
-          {/* Back button */}
-          <button
-            onClick={handleBackFromPayment}
+      <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="360px" centered hideCloseButton>
+        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+          {/* Sticky header with avatar, info, total, and X close button */}
+          <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: spacing.xs,
-              background: 'none',
-              border: 'none',
-              color: colors.text.secondary,
-              cursor: 'pointer',
-              padding: 0,
-              marginBottom: spacing.lg,
-              fontSize: typography.fontSize.sm,
+              gap: spacing.sm,
+              padding: `${spacing.sm} ${spacing.md}`,
+              background: colors.background.card,
+              borderBottom: `1px solid ${colors.border.light}`,
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
             }}
           >
-            <ArrowLeft size={16} />
-            Back
-          </button>
-
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
             <div
               style={{
-                width: '60px',
-                height: '60px',
+                width: '32px',
+                height: '32px',
                 borderRadius: borderRadius.full,
                 overflow: 'hidden',
-                margin: '0 auto',
-                marginBottom: spacing.md,
+                flexShrink: 0,
                 border: `2px solid ${colors.gold.primary}`,
               }}
             >
@@ -291,7 +282,7 @@ export default function VoteModal({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: typography.fontSize.xl,
+                    fontSize: typography.fontSize.xs,
                     fontWeight: typography.fontWeight.bold,
                     color: '#0a0a0f',
                   }}
@@ -300,58 +291,74 @@ export default function VoteModal({
                 </div>
               )}
             </div>
-            <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
-              Purchase {selectedVoteCount} Votes
-            </h3>
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              for {contestant.name}
-            </p>
-          </div>
-
-          {/* Amount */}
-          <div
-            style={{
-              background: 'rgba(212,175,55,0.1)',
-              borderRadius: borderRadius.lg,
-              padding: spacing.lg,
-              textAlign: 'center',
-              marginBottom: spacing.xl,
-              border: `1px solid rgba(212,175,55,0.2)`,
-            }}
-          >
-            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Total</span>
-            <p style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-              {formatCurrency(selectedVoteCount)}
-            </p>
-          </div>
-
-          {/* Stripe Elements */}
-          {stripePromise && (
-            <Elements
-              stripe={stripePromise}
-              options={{
-                clientSecret,
-                appearance: {
-                  theme: 'night',
-                  variables: {
-                    colorPrimary: '#d4af37',
-                    colorBackground: '#1a1a2e',
-                    colorText: '#ffffff',
-                    colorDanger: '#ef4444',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    borderRadius: '8px',
-                  },
-                },
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, margin: 0 }}>
+                {selectedVoteCount} Votes for {contestant.name?.split(' ')[0]}
+              </p>
+            </div>
+            <div
+              style={{
+                background: 'rgba(212,175,55,0.15)',
+                borderRadius: borderRadius.md,
+                padding: `2px ${spacing.sm}`,
+                border: `1px solid rgba(212,175,55,0.25)`,
               }}
             >
-              <PaymentCheckoutForm
-                onSuccess={handlePaymentSuccess}
-                onCancel={handleBackFromPayment}
-                amount={selectedVoteCount}
-                contestantName={contestant.name}
-              />
-            </Elements>
-          )}
+              <span style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
+                {formatCurrency(selectedVoteCount)}
+              </span>
+            </div>
+            {/* X close button */}
+            <button
+              onClick={handleBackFromPayment}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: borderRadius.full,
+                width: '28px',
+                height: '28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                marginLeft: spacing.xs,
+                flexShrink: 0,
+              }}
+            >
+              <X size={16} style={{ color: colors.text.secondary }} />
+            </button>
+          </div>
+
+          {/* Scrollable Stripe Elements container */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: spacing.md }}>
+            {stripePromise && (
+              <Elements
+                stripe={stripePromise}
+                options={{
+                  clientSecret,
+                  appearance: {
+                    theme: 'night',
+                    variables: {
+                      colorPrimary: '#d4af37',
+                      colorBackground: '#18181b',
+                      colorText: '#ffffff',
+                      colorDanger: '#ef4444',
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      borderRadius: '8px',
+                      spacingUnit: '3px',
+                    },
+                  },
+                }}
+              >
+                <PaymentCheckoutForm
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={handleBackFromPayment}
+                  amount={selectedVoteCount}
+                  contestantName={contestant.name}
+                />
+              </Elements>
+            )}
+          </div>
         </div>
       </Modal>
     );
@@ -537,127 +544,6 @@ export default function VoteModal({
     );
   }
 
-  // If not authenticated, show login prompt (styled to match LoginPage)
-  if (!isAuthenticated) {
-    return (
-      <Modal isOpen={isOpen} onClose={onClose} title="" maxWidth="420px" centered>
-        <div style={{ textAlign: 'center', padding: `${spacing.lg} ${spacing.xl} ${spacing.xxl}` }}>
-          {/* Contestant Profile Image */}
-          <div
-            style={{
-              width: '100px',
-              height: '100px',
-              borderRadius: borderRadius.full,
-              overflow: 'hidden',
-              margin: '0 auto',
-              marginBottom: spacing.lg,
-              border: `3px solid ${colors.gold.primary}`,
-              boxShadow: shadows.goldLarge,
-            }}
-          >
-            {contestant.avatar_url || contestant.avatarUrl ? (
-              <img
-                src={contestant.avatar_url || contestant.avatarUrl}
-                alt={contestant.name}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  background: gradients.gold,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: typography.fontSize.hero,
-                  fontWeight: typography.fontWeight.bold,
-                  color: '#0a0a0f',
-                }}
-              >
-                {contestant.name?.charAt(0)}
-              </div>
-            )}
-          </div>
-
-          {/* Title */}
-          <h2
-            style={{
-              fontSize: typography.fontSize.xl,
-              fontWeight: typography.fontWeight.semibold,
-              color: colors.text.primary,
-              marginBottom: spacing.sm,
-            }}
-          >
-            Vote for {contestant.name?.split(' ')[0]}
-          </h2>
-
-          <p style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, marginBottom: spacing.xl }}>
-            Sign in to cast your vote
-          </p>
-
-          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.xxl, lineHeight: 1.6 }}>
-            Create an account or sign in to vote for{' '}
-            <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>
-              {contestant.name}
-            </span>{' '}
-            and support your favorite contestant!
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            {/* Primary Button - matches LoginPage gold gradient */}
-            <button
-              onClick={onLogin}
-              style={{
-                width: '100%',
-                padding: spacing.lg,
-                background: gradients.gold,
-                border: 'none',
-                borderRadius: borderRadius.lg,
-                color: '#0a0a0f',
-                fontSize: typography.fontSize.md,
-                fontWeight: typography.fontWeight.semibold,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: spacing.sm,
-                boxShadow: shadows.gold,
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <LogIn size={18} />
-              Sign In to Vote
-            </button>
-
-            {/* Cancel Button */}
-            <button
-              onClick={onClose}
-              style={{
-                width: '100%',
-                padding: spacing.md,
-                background: 'rgba(255,255,255,0.05)',
-                border: `1px solid ${colors.border.light}`,
-                borderRadius: borderRadius.lg,
-                color: colors.text.secondary,
-                fontSize: typography.fontSize.md,
-                fontWeight: typography.fontWeight.medium,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </Modal>
-    );
-  }
-
   const effectiveVotes = forceDoubleVoteDay ? voteCount * 2 : voteCount;
   const freeVoteValue = forceDoubleVoteDay ? 2 : 1;
   const alreadyVotedForThis = votedContestantId === contestant.id;
@@ -688,8 +574,8 @@ export default function VoteModal({
         </div>
       )}
 
-      {/* Already voted banner */}
-      {freeVoteUsed && alreadyVotedForThis && (
+      {/* Already voted banner - only show for authenticated users */}
+      {isAuthenticated && freeVoteUsed && alreadyVotedForThis && (
         <div
           style={{
             background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))',
@@ -722,68 +608,94 @@ export default function VoteModal({
 
       {/* Free Vote Section - Compact */}
       <div style={{ marginBottom: spacing.md }}>
-        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, marginBottom: spacing.sm, textAlign: 'center' }}>
-          {!hasActiveRound ? (
-            <>
-              <Clock size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-              Voting is not currently active
-            </>
-          ) : freeVoteUsed ? (
-            <>
-              <Clock size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-              Free vote resets in {getTimeUntilReset()}
-            </>
-          ) : (
-            <>
-              Use your <span style={{ color: colors.status.success, fontWeight: typography.fontWeight.semibold }}>free daily vote</span>
+        {!isAuthenticated ? (
+          <>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, marginBottom: spacing.sm, textAlign: 'center' }}>
+              Sign in for a <span style={{ color: colors.status.success, fontWeight: typography.fontWeight.semibold }}>free daily vote</span>
               {forceDoubleVoteDay && <span style={{ color: colors.status.success }}> (2x!)</span>}
-            </>
-          )}
-        </p>
+            </p>
+            <Button
+              variant="approve"
+              fullWidth
+              size="lg"
+              onClick={onLogin}
+              style={{
+                background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1))',
+                borderColor: 'rgba(34,197,94,0.4)',
+                color: colors.status.success,
+                padding: `${spacing.sm} ${spacing.md}`,
+              }}
+            >
+              <LogIn size={16} />
+              Sign In for Free Vote
+            </Button>
+          </>
+        ) : (
+          <>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, marginBottom: spacing.sm, textAlign: 'center' }}>
+              {!hasActiveRound ? (
+                <>
+                  <Clock size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                  Voting is not currently active
+                </>
+              ) : freeVoteUsed ? (
+                <>
+                  <Clock size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                  Free vote resets in {getTimeUntilReset()}
+                </>
+              ) : (
+                <>
+                  Use your <span style={{ color: colors.status.success, fontWeight: typography.fontWeight.semibold }}>free daily vote</span>
+                  {forceDoubleVoteDay && <span style={{ color: colors.status.success }}> (2x!)</span>}
+                </>
+              )}
+            </p>
 
-        <Button
-          variant="approve"
-          fullWidth
-          size="lg"
-          onClick={handleFreeVote}
-          disabled={!hasActiveRound || freeVoteUsed || isSubmitting || checkingVoteStatus}
-          style={{
-            background: (!hasActiveRound || freeVoteUsed)
-              ? 'rgba(255,255,255,0.05)'
-              : 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1))',
-            borderColor: (!hasActiveRound || freeVoteUsed) ? 'rgba(255,255,255,0.1)' : 'rgba(34,197,94,0.4)',
-            color: (!hasActiveRound || freeVoteUsed) ? colors.text.muted : colors.status.success,
-            cursor: (!hasActiveRound || freeVoteUsed) ? 'not-allowed' : 'pointer',
-            padding: `${spacing.sm} ${spacing.md}`,
-          }}
-        >
-          {checkingVoteStatus ? (
-            <>
-              <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-              Checking...
-            </>
-          ) : !hasActiveRound ? (
-            <>
-              <Clock size={16} />
-              Voting Not Active
-            </>
-          ) : isSubmitting ? (
-            <>
-              <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-              Submitting...
-            </>
-          ) : freeVoteUsed ? (
-            <>
-              <Check size={16} />
-              Free Vote Used Today
-            </>
-          ) : (
-            <>
-              <Sparkles size={16} />
-              Use Free Daily Vote (+{freeVoteValue})
-            </>
-          )}
-        </Button>
+            <Button
+              variant="approve"
+              fullWidth
+              size="lg"
+              onClick={handleFreeVote}
+              disabled={!hasActiveRound || freeVoteUsed || isSubmitting || checkingVoteStatus}
+              style={{
+                background: (!hasActiveRound || freeVoteUsed)
+                  ? 'rgba(255,255,255,0.05)'
+                  : 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1))',
+                borderColor: (!hasActiveRound || freeVoteUsed) ? 'rgba(255,255,255,0.1)' : 'rgba(34,197,94,0.4)',
+                color: (!hasActiveRound || freeVoteUsed) ? colors.text.muted : colors.status.success,
+                cursor: (!hasActiveRound || freeVoteUsed) ? 'not-allowed' : 'pointer',
+                padding: `${spacing.sm} ${spacing.md}`,
+              }}
+            >
+              {checkingVoteStatus ? (
+                <>
+                  <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  Checking...
+                </>
+              ) : !hasActiveRound ? (
+                <>
+                  <Clock size={16} />
+                  Voting Not Active
+                </>
+              ) : isSubmitting ? (
+                <>
+                  <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  Submitting...
+                </>
+              ) : freeVoteUsed ? (
+                <>
+                  <Check size={16} />
+                  Free Vote Used Today
+                </>
+              ) : (
+                <>
+                  <Sparkles size={16} />
+                  Use Free Daily Vote (+{freeVoteValue})
+                </>
+              )}
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Divider */}
@@ -962,29 +874,29 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName }) {
         disabled={!stripe || isProcessing}
         style={{
           width: '100%',
-          marginTop: spacing.xl,
-          padding: spacing.lg,
+          marginTop: spacing.md,
+          padding: spacing.sm,
           background: isProcessing ? 'rgba(212,175,55,0.5)' : gradients.gold,
           border: 'none',
-          borderRadius: borderRadius.lg,
+          borderRadius: borderRadius.md,
           color: '#0a0a0f',
-          fontSize: typography.fontSize.md,
+          fontSize: typography.fontSize.sm,
           fontWeight: typography.fontWeight.semibold,
           cursor: isProcessing ? 'not-allowed' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: spacing.sm,
+          gap: spacing.xs,
         }}
       >
         {isProcessing ? (
           <>
-            <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+            <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
             Processing...
           </>
         ) : (
           <>
-            <CreditCard size={18} />
+            <CreditCard size={16} />
             Pay {formatCurrency(amount)}
           </>
         )}
@@ -996,13 +908,13 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName }) {
         disabled={isProcessing}
         style={{
           width: '100%',
-          marginTop: spacing.md,
-          padding: spacing.md,
+          marginTop: spacing.sm,
+          padding: spacing.sm,
           background: 'transparent',
           border: `1px solid ${colors.border.light}`,
-          borderRadius: borderRadius.lg,
+          borderRadius: borderRadius.md,
           color: colors.text.secondary,
-          fontSize: typography.fontSize.md,
+          fontSize: typography.fontSize.sm,
           cursor: isProcessing ? 'not-allowed' : 'pointer',
           opacity: isProcessing ? 0.5 : 1,
         }}
@@ -1012,13 +924,13 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName }) {
 
       <p
         style={{
-          marginTop: spacing.lg,
+          marginTop: spacing.sm,
           textAlign: 'center',
-          fontSize: typography.fontSize.xs,
+          fontSize: '10px',
           color: colors.text.muted,
         }}
       >
-        Secure payment powered by Stripe
+        Secure payment by Stripe
       </p>
 
       <style>{`

@@ -11,6 +11,7 @@ export default function Modal({
   maxWidth = '500px',
   headerStyle = {},
   centered = false,
+  hideCloseButton = false,
 }) {
   if (!isOpen) return null;
 
@@ -84,11 +85,13 @@ export default function Modal({
         {showFullHeader ? (
           <div style={headerBaseStyle}>
             <h2 style={titleStyle}>{title}</h2>
-            <button style={closeButtonStyle} onClick={onClose}>
-              <X size={24} />
-            </button>
+            {!hideCloseButton && (
+              <button style={closeButtonStyle} onClick={onClose}>
+                <X size={24} />
+              </button>
+            )}
           </div>
-        ) : (
+        ) : !hideCloseButton ? (
           <button
             style={{
               ...closeButtonStyle,
@@ -101,8 +104,8 @@ export default function Modal({
           >
             <X size={24} />
           </button>
-        )}
-        <div style={showFullHeader ? bodyStyle : { ...bodyStyle, paddingTop: spacing.xl }}>{children}</div>
+        ) : null}
+        <div style={showFullHeader ? bodyStyle : hideCloseButton ? { padding: 0 } : { ...bodyStyle, paddingTop: spacing.xl }}>{children}</div>
         {footer && <div style={footerStyle}>{footer}</div>}
       </div>
     </div>

@@ -27,7 +27,7 @@ import VoteModal from '../../features/public-site/components/VoteModal';
  * Inner layout component (has access to context)
  */
 function CompetitionLayoutInner() {
-  const { loading, error, competition, phase } = usePublicCompetition();
+  const { loading, error, competition, phase, showVoteModal, showProfileModal } = usePublicCompetition();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -117,31 +117,38 @@ function CompetitionLayoutInner() {
     navigate('/');
   };
 
+  // Hide floating buttons when modals are open
+  const isModalOpen = showVoteModal || showProfileModal;
+
   return (
     <div className="competition-layout">
-      {/* Floating Back Button */}
-      <button
-        className="competition-back-btn"
-        onClick={handleBack}
-        aria-label="Back to explore"
-      >
-        <ArrowLeft size={20} />
-      </button>
+      {/* Floating Back Button - hidden when modal open */}
+      {!isModalOpen && (
+        <button
+          className="competition-back-btn"
+          onClick={handleBack}
+          aria-label="Back to explore"
+        >
+          <ArrowLeft size={20} />
+        </button>
+      )}
 
-      {/* Floating Profile Icon - top right */}
-      <div className="competition-profile-btn">
-        <ProfileIcon
-          isAuthenticated={isAuthenticated}
-          user={user}
-          profile={profile}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-          onProfile={handleProfile}
-          onDashboard={hasDashboardAccess ? handleDashboard : null}
-          hasDashboardAccess={hasDashboardAccess}
-          size={40}
-        />
-      </div>
+      {/* Floating Profile Icon - hidden when modal open */}
+      {!isModalOpen && (
+        <div className="competition-profile-btn">
+          <ProfileIcon
+            isAuthenticated={isAuthenticated}
+            user={user}
+            profile={profile}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+            onProfile={handleProfile}
+            onDashboard={hasDashboardAccess ? handleDashboard : null}
+            hasDashboardAccess={hasDashboardAccess}
+            size={40}
+          />
+        </div>
+      )}
 
       {/* View Navigation - only during voting phases */}
       {phase?.isVoting && !isContestantView && (
