@@ -59,16 +59,44 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
 
       setOrganization(orgData);
 
-      // Convert slug to pattern for matching:
-      // "new-york-ny" -> "%new%york%ny%" to match "New York, NY"
-      const cityPattern = `%${citySlug.split('-').join('%')}%`;
+      // Lookup city by slug from cities table
+      let cityData = null;
+      const { data: cityResult, error: cityError } = await supabase
+        .from('cities')
+        .select('id, name, slug, state')
+        .eq('slug', citySlug)
+        .single();
 
-      // Build competition query
+      if (cityError || !cityResult) {
+        // Fallback: try pattern matching on slug
+        const { data: cityFallback } = await supabase
+          .from('cities')
+          .select('id, name, slug, state')
+          .ilike('slug', `%${citySlug}%`)
+          .limit(1)
+          .single();
+
+        if (!cityFallback) {
+          throw new Error('City not found');
+        }
+        cityData = cityFallback;
+      } else {
+        cityData = cityResult;
+      }
+
+      // Build competition query using city_id for accurate lookup
       let query = supabase
         .from('competitions')
         .select(
           `
           *,
+          city:cities!competitions_city_id_fkey (
+            id,
+            name,
+            slug,
+            state,
+            country
+          ),
           host:profiles!competitions_host_id_fkey (
             id,
             first_name,
@@ -160,7 +188,7 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
         `
         )
         .eq('organization_id', orgData.id)
-        .ilike('city', cityPattern);
+        .eq('city_id', cityData.id);
 
       // Filter by year if provided
       if (year) {

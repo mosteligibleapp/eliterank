@@ -625,7 +625,7 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
           Advance to Most Eligible USA
         </h2>
         <p style={{ color: colors.text.light, fontSize: typography.fontSize.lg, maxWidth: '600px', margin: '0 auto 24px', lineHeight: '1.6' }}>
-          The <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>Top 5 finalists</span> from New York Most Eligible will automatically qualify to compete in the national <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>Most Eligible USA</span> competition for the <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>$100,000 grand prize</span>.
+          The <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>Top 5 finalists</span> from {city} Most Eligible will automatically qualify to compete in the national <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>Most Eligible USA</span> competition for the <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>$100,000 grand prize</span>.
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
           {['New York', 'Los Angeles', 'Miami', 'Chicago', 'Houston'].map((cityName, i) => (
