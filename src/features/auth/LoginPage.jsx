@@ -9,13 +9,15 @@ import { supabase } from '../../lib/supabase';
  *
  * Step 1: Email entry
  * Step 2: Based on account status:
+ *   - Nominee without profile → Show nomination popup with magic link option
+ *   - Existing user (including claimed nominees) → Password entry with forgot password option
  *   - New user → Signup form (name + password)
- *   - Existing user (including nominees) → Password entry with forgot password option
  */
 export default function LoginPage({ onLogin, onBack }) {
   // Flow state
-  const [step, setStep] = useState('email'); // 'email', 'password', 'signup'
+  const [step, setStep] = useState('email'); // 'email', 'password', 'signup', 'nominee-popup', 'magic-link-sent'
   const [isNominee, setIsNominee] = useState(false);
+  const [nomineeData, setNomineeData] = useState(null); // Store nominee info for magic link
 
   // Form data
   const [email, setEmail] = useState('');
@@ -45,19 +47,58 @@ export default function LoginPage({ onLogin, onBack }) {
     setIsLoading(true);
 
     try {
-      // Check if user is a nominee (may not have password set)
-      const { data: nomineeData } = await supabase
+      // Check if user is a nominee with pending (unclaimed) nomination
+      const { data: nominees } = await supabase
+        .from('nominees')
+        .select(`
+          id,
+          name,
+          email,
+          invite_token,
+          claimed_at,
+          status,
+          user_id,
+          competition:competitions(id, city, season, status)
+        `)
+        .eq('email', email)
+        .neq('status', 'rejected')
+        .is('claimed_at', null)
+        .limit(1);
+
+      const hasUnclaimedNomination = nominees && nominees.length > 0;
+
+      if (hasUnclaimedNomination) {
+        // Nominee with unclaimed nomination - show nomination popup
+        const nominee = nominees[0];
+        setNomineeData(nominee);
+        setIsNominee(true);
+
+        // Pre-fill name from nominee data
+        if (nominee.name) {
+          const nameParts = nominee.name.split(' ');
+          setFirstName(nameParts[0] || '');
+          setLastName(nameParts.slice(1).join(' ') || '');
+        }
+
+        setStep('nominee-popup');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if they're a nominee with claimed nomination (has profile)
+      const { data: claimedNominees } = await supabase
         .from('nominees')
         .select('id, name')
         .eq('email', email)
+        .not('claimed_at', 'is', null)
         .limit(1);
 
-      const isNomineeUser = nomineeData && nomineeData.length > 0;
-      setIsNominee(isNomineeUser);
+      const isClaimedNominee = claimedNominees && claimedNominees.length > 0;
+      setIsNominee(isClaimedNominee);
 
       // Pre-fill name from nominee data if available
-      if (isNomineeUser && nomineeData[0]?.name) {
-        const nameParts = nomineeData[0].name.split(' ');
+      if (isClaimedNominee && claimedNominees[0]?.name) {
+        const nameParts = claimedNominees[0].name.split(' ');
         setFirstName(nameParts[0] || '');
         setLastName(nameParts.slice(1).join(' ') || '');
       }
@@ -78,7 +119,7 @@ export default function LoginPage({ onLogin, onBack }) {
         // New user - go to signup
         setStep('signup');
       } else {
-        // Existing user (including nominees) - show password field
+        // Existing user (including claimed nominees) - show password field
         // If they don't have a password, they can use "Forgot password?" to set one
         setStep('password');
       }
@@ -184,6 +225,37 @@ export default function LoginPage({ onLogin, onBack }) {
     }
   };
 
+  // Send magic link to nominee (for claiming nomination)
+  const handleRequestMagicLink = async () => {
+    if (!nomineeData?.invite_token) {
+      setError('Unable to find your nomination. Please contact support.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Send magic link that redirects to the claim page
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/claim/${nomineeData.invite_token}`,
+        },
+      });
+
+      if (otpError) {
+        setError(otpError.message || 'Failed to send magic link');
+      } else {
+        setStep('magic-link-sent');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to send magic link');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Go back to email step
   const handleBack = () => {
     setStep('email');
@@ -191,6 +263,7 @@ export default function LoginPage({ onLogin, onBack }) {
     setConfirmPassword('');
     setError('');
     setSuccess('');
+    setNomineeData(null);
   };
 
   // Styles
@@ -353,9 +426,13 @@ export default function LoginPage({ onLogin, onBack }) {
       case 'email':
         return 'Enter your email to continue';
       case 'password':
-        return isNominee ? 'You were nominated!' : 'Welcome back';
+        return isNominee ? 'Welcome back' : 'Welcome back';
       case 'signup':
         return 'Create your account';
+      case 'nominee-popup':
+        return "You've been nominated!";
+      case 'magic-link-sent':
+        return 'Check your email';
       default:
         return '';
     }
@@ -495,19 +572,6 @@ export default function LoginPage({ onLogin, onBack }) {
               </div>
             )}
 
-            {/* Nominee banner */}
-            {isNominee && (
-              <div style={{
-                padding: spacing.md,
-                background: 'rgba(212, 175, 55, 0.1)',
-                border: `1px solid ${colors.border.gold}`,
-                borderRadius: borderRadius.md,
-              }}>
-                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                  Enter your password to claim your nomination. If you haven't set a password yet, use "Forgot password?" below.
-                </p>
-              </div>
-            )}
 
             <div style={{
               padding: spacing.md,
@@ -728,6 +792,166 @@ export default function LoginPage({ onLogin, onBack }) {
               )}
             </button>
           </form>
+        )}
+
+        {/* Step: Nominee Popup (unclaimed nomination) */}
+        {step === 'nominee-popup' && nomineeData && (
+          <div style={formStyle}>
+            {error && (
+              <div style={alertStyle('error')}>
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+
+            {/* Nomination announcement */}
+            <div style={{
+              padding: spacing.xl,
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))',
+              border: `1px solid ${colors.border.gold}`,
+              borderRadius: borderRadius.lg,
+              textAlign: 'center',
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                background: gradients.gold,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}>
+                <Crown size={28} style={{ color: '#0a0a0f' }} />
+              </div>
+              <h3 style={{
+                fontSize: typography.fontSize.lg,
+                fontWeight: typography.fontWeight.bold,
+                color: colors.gold.primary,
+                marginBottom: spacing.sm,
+              }}>
+                Congratulations, {nomineeData.name?.split(' ')[0] || 'Nominee'}!
+              </h3>
+              <p style={{
+                fontSize: typography.fontSize.md,
+                color: colors.text.secondary,
+                marginBottom: spacing.md,
+              }}>
+                You've been nominated for
+              </p>
+              <p style={{
+                fontSize: typography.fontSize.lg,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.text.primary,
+              }}>
+                Most Eligible {nomineeData.competition?.city} {nomineeData.competition?.season}
+              </p>
+            </div>
+
+            {/* Email info */}
+            <div style={{
+              padding: spacing.md,
+              background: 'rgba(255,255,255,0.03)',
+              borderRadius: borderRadius.md,
+            }}>
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                Sending magic link to
+              </p>
+              <p style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>
+                {email}
+              </p>
+            </div>
+
+            {/* Request magic link button */}
+            <button
+              onClick={handleRequestMagicLink}
+              disabled={isLoading}
+              style={buttonStyle}
+            >
+              {isLoading ? (
+                <>
+                  <span style={{
+                    width: '18px',
+                    height: '18px',
+                    border: '2px solid rgba(0,0,0,0.3)',
+                    borderTopColor: '#0a0a0f',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail size={18} />
+                  Send Magic Link to Claim
+                </>
+              )}
+            </button>
+
+            <p style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.muted,
+              textAlign: 'center',
+              marginTop: spacing.md,
+            }}>
+              We'll send you a secure link to accept or decline your nomination and set up your account.
+            </p>
+          </div>
+        )}
+
+        {/* Step: Magic Link Sent Confirmation */}
+        {step === 'magic-link-sent' && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              background: 'rgba(74, 222, 128, 0.1)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+            }}>
+              <CheckCircle size={32} style={{ color: colors.status.success }} />
+            </div>
+            <h3 style={{
+              fontSize: typography.fontSize.lg,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+              marginBottom: spacing.md,
+            }}>
+              Magic Link Sent!
+            </h3>
+            <p style={{
+              fontSize: typography.fontSize.md,
+              color: colors.text.secondary,
+              marginBottom: spacing.lg,
+              lineHeight: 1.6,
+            }}>
+              We sent a link to <strong style={{ color: colors.text.primary }}>{email}</strong>
+            </p>
+            <p style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.muted,
+              marginBottom: spacing.xl,
+            }}>
+              Click the link in your email to claim your nomination. The link will expire in 1 hour.
+            </p>
+            <button
+              onClick={handleBack}
+              style={{
+                background: 'none',
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.lg,
+                padding: `${spacing.md} ${spacing.xl}`,
+                color: colors.text.secondary,
+                fontSize: typography.fontSize.sm,
+                cursor: 'pointer',
+              }}
+            >
+              Use a different email
+            </button>
+          </div>
         )}
 
         {/* Footer */}
