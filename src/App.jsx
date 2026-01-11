@@ -106,11 +106,14 @@ const slugToCity = (slug) => {
 const buildCompetitionName = (competition) => {
   if (!competition) return 'Unknown Competition';
 
-  const city = competition.city || 'Unknown';
+  // Handle city as object (from join) or string (legacy)
+  const city = typeof competition.city === 'object'
+    ? competition.city?.name
+    : competition.city || 'Unknown';
   const season = competition.season || new Date().getFullYear();
 
   // If city already includes "Most Eligible", use as-is
-  if (city.toLowerCase().includes('most eligible')) {
+  if (city?.toLowerCase().includes('most eligible')) {
     return city;
   }
 

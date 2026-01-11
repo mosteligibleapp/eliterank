@@ -16,8 +16,11 @@ import { Button } from '../../../../components/ui';
  */
 export function PublicPageSettings({ competition, organization, onSave }) {
   // Build public page URL
+  const citySlug = typeof competition?.city === 'object'
+    ? competition.city?.slug || competition.city?.name?.toLowerCase()
+    : competition?.city?.toLowerCase();
   const publicUrl = competition
-    ? `/c/${organization?.slug || 'most-eligible'}/${competition.city?.toLowerCase()}${
+    ? `/c/${organization?.slug || 'most-eligible'}/${citySlug}${
         competition.season ? `/${competition.season}` : ''
       }`
     : null;

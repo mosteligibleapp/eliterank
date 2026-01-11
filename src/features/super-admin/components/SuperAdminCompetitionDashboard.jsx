@@ -453,7 +453,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: spacing.xl }}>
           <div>
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>City</p>
-            <p style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.medium }}>{competition.city}</p>
+            <p style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.medium }}>{competition.city?.name || competition.city}</p>
           </div>
           <div>
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>Season</p>
@@ -473,7 +473,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
       </div>
 
       {/* Leaderboard */}
-      <Leaderboard contestants={data.contestants} title={`${competition.city} Top Contestants`} />
+      <Leaderboard contestants={data.contestants} title={`${competition.city?.name || competition.city} Top Contestants`} />
     </div>
   );
 

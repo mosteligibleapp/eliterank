@@ -27,7 +27,7 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
 
       {/* City */}
       {competition?.city && (
-        <h2 className="competition-city">{competition.city}</h2>
+        <h2 className="competition-city">{competition.city?.name || competition.city}</h2>
       )}
 
       {/* Description */}

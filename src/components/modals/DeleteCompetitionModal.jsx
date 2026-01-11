@@ -24,8 +24,9 @@ export default function DeleteCompetitionModal({
 
   if (!isOpen || !competition) return null;
 
-  const competitionName = competition.city
-    ? `${competition.city} ${competition.season || ''}`.trim()
+  const cityName = typeof competition.city === 'object' ? competition.city?.name : competition.city;
+  const competitionName = cityName
+    ? `${cityName} ${competition.season || ''}`.trim()
     : competition.name || 'Unknown Competition';
 
   const isConfirmValid = confirmText === competitionName;
