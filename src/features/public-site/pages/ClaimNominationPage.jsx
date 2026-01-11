@@ -122,9 +122,9 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
           return;
         }
 
-        // Check if already claimed and converted
+        // Check if already converted to contestant (fully complete)
         if (nomineeData.converted_to_contestant) {
-          setError('This nomination has already been claimed.');
+          setError('This nomination has already been fully processed.');
           setLoading(false);
           setStage('error');
           return;
@@ -153,7 +153,16 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         setNominee(nomineeData);
         setCompetition(comp);
         setLoading(false);
-        setStage('decide');
+
+        // Determine which stage to show
+        if (nomineeData.claimed_at) {
+          // Already claimed - check if profile is complete
+          // We'll check this after profile loads, for now go to profile stage
+          // The profile stage will redirect to success if already complete
+          setStage('profile');
+        } else {
+          setStage('decide');
+        }
       } catch (err) {
         console.error('Error fetching nomination:', err);
         setError('Something went wrong. Please try again.');
@@ -459,9 +468,65 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   }
 
   // =========================================================================
-  // RENDER: Profile Completion
+  // RENDER: Profile Completion (or Success if already complete)
   // =========================================================================
   if (stage === 'profile') {
+    // If profile is already complete, show success message
+    if (isProfileComplete()) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)',
+          padding: spacing.xl,
+        }}>
+          <div style={{
+            maxWidth: '400px',
+            textAlign: 'center',
+            background: colors.background.card,
+            border: `1px solid ${colors.border.light}`,
+            borderRadius: borderRadius.xl,
+            padding: spacing.xxxl,
+          }}>
+            <div style={{
+              width: '72px',
+              height: '72px',
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+            }}>
+              <Check size={36} style={{ color: colors.gold.primary }} />
+            </div>
+            <h2 style={{
+              fontSize: typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: '#fff',
+              marginBottom: spacing.md,
+            }}>
+              You're All Set!
+            </h2>
+            <p style={{
+              fontSize: typography.fontSize.md,
+              color: colors.text.secondary,
+              marginBottom: spacing.xl,
+              lineHeight: 1.6,
+            }}>
+              Your nomination for <span style={{ color: colors.gold.primary }}>Most Eligible {competition?.city} {competition?.season}</span> is pending admin approval.
+            </p>
+            <Button onClick={onSuccess}>
+              Explore Competitions
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Profile incomplete - show completion form
     return (
       <div style={{
         minHeight: '100vh',
