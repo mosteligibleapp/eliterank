@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle, ArrowLeft, ArrowRight, Send } from 'lucide-react';
+import { Crown, Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { colors, gradients, shadows, borderRadius, spacing, typography } from '../../styles/theme';
 import { useSupabaseAuth } from '../../hooks';
 import { supabase } from '../../lib/supabase';
@@ -10,12 +10,12 @@ import { supabase } from '../../lib/supabase';
  * Step 1: Email entry
  * Step 2: Based on account status:
  *   - New user → Signup form (name + password)
- *   - Existing user with password → Password entry
+ *   - Existing user → Password entry with forgot password option
  *   - Nominee without password → Create password form
  */
 export default function LoginPage({ onLogin, onBack }) {
   // Flow state
-  const [step, setStep] = useState('email'); // 'email', 'password', 'create-password', 'signup', 'magic-link-sent'
+  const [step, setStep] = useState('email'); // 'email', 'password', 'create-password', 'signup'
   const [isNominee, setIsNominee] = useState(false);
 
   // Form data
@@ -240,26 +240,23 @@ export default function LoginPage({ onLogin, onBack }) {
     }
   };
 
-  // Send magic link
-  const handleSendMagicLink = async () => {
+  // Send forgot password email
+  const handleForgotPassword = async () => {
     setIsLoading(true);
     setError('');
 
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}?reset=true`,
       });
 
-      if (otpError) {
-        setError(otpError.message || 'Failed to send sign-in link');
+      if (resetError) {
+        setError(resetError.message || 'Failed to send reset email');
       } else {
-        setStep('magic-link-sent');
+        setSuccess('Password reset email sent! Check your inbox.');
       }
     } catch (err) {
-      setError(err.message || 'Failed to send sign-in link');
+      setError(err.message || 'Failed to send reset email');
     } finally {
       setIsLoading(false);
     }
@@ -399,14 +396,6 @@ export default function LoginPage({ onLogin, onBack }) {
     marginTop: spacing.md,
   };
 
-  const secondaryButtonStyle = {
-    ...buttonStyle,
-    background: 'transparent',
-    border: `1px solid ${colors.gold.primary}`,
-    color: colors.gold.primary,
-    boxShadow: 'none',
-  };
-
   const alertStyle = (type) => ({
     display: 'flex',
     alignItems: 'center',
@@ -447,8 +436,6 @@ export default function LoginPage({ onLogin, onBack }) {
         return 'Create your password';
       case 'signup':
         return 'Create your account';
-      case 'magic-link-sent':
-        return 'Check your email';
       default:
         return '';
     }
@@ -581,6 +568,13 @@ export default function LoginPage({ onLogin, onBack }) {
               </div>
             )}
 
+            {success && (
+              <div style={alertStyle('success')}>
+                <CheckCircle size={16} />
+                {success}
+              </div>
+            )}
+
             <div style={{
               padding: spacing.md,
               background: 'rgba(255,255,255,0.03)',
@@ -628,7 +622,7 @@ export default function LoginPage({ onLogin, onBack }) {
               </div>
             </div>
 
-            <button type="submit" disabled={isLoading} style={buttonStyle}>
+            <button type="submit" disabled={isLoading || !!success} style={buttonStyle}>
               {isLoading ? (
                 <>
                   <span style={{
@@ -649,15 +643,23 @@ export default function LoginPage({ onLogin, onBack }) {
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={handleSendMagicLink}
-              disabled={isLoading}
-              style={secondaryButtonStyle}
-            >
-              <Send size={16} />
-              Send me a sign-in link instead
-            </button>
+            <div style={{ textAlign: 'center', marginTop: spacing.md }}>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={isLoading}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: colors.text.secondary,
+                  cursor: 'pointer',
+                  fontSize: typography.fontSize.sm,
+                  textDecoration: 'underline',
+                }}
+              >
+                Forgot password?
+              </button>
+            </div>
           </form>
         )}
 
@@ -807,30 +809,6 @@ export default function LoginPage({ onLogin, onBack }) {
                 </>
               )}
             </button>
-
-            <div style={{ textAlign: 'center', marginTop: spacing.md }}>
-              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.sm }}>
-                Or sign in without a password
-              </p>
-              <button
-                type="button"
-                onClick={handleSendMagicLink}
-                disabled={isLoading}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: colors.gold.primary,
-                  cursor: 'pointer',
-                  fontSize: typography.fontSize.sm,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: spacing.xs,
-                }}
-              >
-                <Send size={14} />
-                Send me a magic link
-              </button>
-            </div>
           </form>
         )}
 
@@ -965,58 +943,6 @@ export default function LoginPage({ onLogin, onBack }) {
               )}
             </button>
           </form>
-        )}
-
-        {/* Step: Magic Link Sent */}
-        {step === 'magic-link-sent' && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: '64px',
-              height: '64px',
-              background: 'rgba(74, 222, 128, 0.1)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 24px',
-            }}>
-              <Mail size={32} style={{ color: colors.status.success }} />
-            </div>
-            <p style={{
-              color: colors.text.primary,
-              fontSize: typography.fontSize.md,
-              marginBottom: spacing.md,
-              lineHeight: 1.6,
-            }}>
-              We sent a sign-in link to <strong>{email}</strong>
-            </p>
-            <p style={{
-              color: colors.text.secondary,
-              fontSize: typography.fontSize.sm,
-              marginBottom: spacing.xl,
-              lineHeight: 1.6,
-            }}>
-              Click the link in your email to sign in. The link will expire in 1 hour.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setStep('email');
-                setPassword('');
-                setConfirmPassword('');
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: colors.gold.primary,
-                cursor: 'pointer',
-                fontSize: typography.fontSize.sm,
-                textDecoration: 'underline',
-              }}
-            >
-              Back to login
-            </button>
-          </div>
         )}
 
         {/* Footer */}
