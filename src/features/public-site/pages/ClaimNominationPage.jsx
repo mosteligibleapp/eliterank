@@ -289,20 +289,36 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
       });
 
       if (signUpError) {
-        // If user already exists, try to sign in instead
+        // If user already exists (likely from invite), try to sign in or send magic link
         if (signUpError.message?.includes('already registered')) {
+          // First try to sign in with the password they entered
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email: signupData.email,
             password: signupData.password,
           });
 
           if (signInError) {
-            toast.error('Account exists. Please check your password or use forgot password.');
-            setSignupErrors({ email: 'Account exists with different password' });
+            // Password didn't work - send magic link instead
+            const { error: otpError } = await supabase.auth.signInWithOtp({
+              email: signupData.email,
+              options: {
+                emailRedirectTo: `${window.location.origin}/claim/${token}`,
+              },
+            });
+
+            if (otpError) {
+              toast.error('Failed to send sign-in link. Please try again.');
+              setProcessing(false);
+              return;
+            }
+
+            toast.success('Account found! Check your email for a sign-in link.');
+            setSignupErrors({ email: 'Check your email for a sign-in link to continue' });
             setProcessing(false);
             return;
           }
 
+          // Sign in succeeded
           setUser(signInData.user);
 
           // Fetch profile
