@@ -134,7 +134,8 @@ export default function EliteRankCityModal({
             const visible = isCompetitionVisible(comp.status);
             const accessible = isCompetitionAccessible(comp.status);
             const cityFromLookup = citiesMap[comp.city_id];
-            const cityName = comp.city || cityFromLookup?.name || 'Unknown City';
+            // Prioritize city lookup by city_id over potentially stale comp.city string
+            const cityName = cityFromLookup?.name || comp.city || 'Unknown City';
             const hostProfile = comp.host_id ? profilesMap[comp.host_id] : null;
 
             return {
