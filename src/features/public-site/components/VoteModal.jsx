@@ -242,9 +242,21 @@ export default function VoteModal({
 
     return (
       <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="360px" centered>
-        <div style={{ padding: spacing.md }}>
-          {/* Compact header with back button, avatar, info, and total */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+          {/* Sticky header with back button, avatar, info, and total */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              padding: spacing.md,
+              background: colors.background.card,
+              borderBottom: `1px solid ${colors.border.light}`,
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+            }}
+          >
             <button
               onClick={handleBackFromPayment}
               style={{
@@ -261,8 +273,8 @@ export default function VoteModal({
             </button>
             <div
               style={{
-                width: '40px',
-                height: '40px',
+                width: '36px',
+                height: '36px',
                 borderRadius: borderRadius.full,
                 overflow: 'hidden',
                 flexShrink: 0,
@@ -284,7 +296,7 @@ export default function VoteModal({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: typography.fontSize.base,
+                    fontSize: typography.fontSize.sm,
                     fontWeight: typography.fontWeight.bold,
                     color: '#0a0a0f',
                   }}
@@ -294,7 +306,7 @@ export default function VoteModal({
               )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, margin: 0 }}>
+              <p style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, margin: 0 }}>
                 {selectedVoteCount} Votes for {contestant.name?.split(' ')[0]}
               </p>
             </div>
@@ -312,34 +324,36 @@ export default function VoteModal({
             </div>
           </div>
 
-          {/* Stripe Elements */}
-          {stripePromise && (
-            <Elements
-              stripe={stripePromise}
-              options={{
-                clientSecret,
-                appearance: {
-                  theme: 'night',
-                  variables: {
-                    colorPrimary: '#d4af37',
-                    colorBackground: '#18181b',
-                    colorText: '#ffffff',
-                    colorDanger: '#ef4444',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    borderRadius: '8px',
-                    spacingUnit: '3px',
+          {/* Scrollable Stripe Elements container */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: spacing.md }}>
+            {stripePromise && (
+              <Elements
+                stripe={stripePromise}
+                options={{
+                  clientSecret,
+                  appearance: {
+                    theme: 'night',
+                    variables: {
+                      colorPrimary: '#d4af37',
+                      colorBackground: '#18181b',
+                      colorText: '#ffffff',
+                      colorDanger: '#ef4444',
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      borderRadius: '8px',
+                      spacingUnit: '3px',
+                    },
                   },
-                },
-              }}
-            >
-              <PaymentCheckoutForm
-                onSuccess={handlePaymentSuccess}
-                onCancel={handleBackFromPayment}
-                amount={selectedVoteCount}
-                contestantName={contestant.name}
-              />
-            </Elements>
-          )}
+                }}
+              >
+                <PaymentCheckoutForm
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={handleBackFromPayment}
+                  amount={selectedVoteCount}
+                  contestantName={contestant.name}
+                />
+              </Elements>
+            )}
+          </div>
         </div>
       </Modal>
     );
