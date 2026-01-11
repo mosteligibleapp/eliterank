@@ -198,7 +198,124 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
         .limit(1)
         .maybeSingle();
 
-      const { data: compData, error: compError } = await query;
+      let { data: compData, error: compError } = await query;
+
+      // Fallback: if no competition found by city_id, try legacy city string matching
+      // This handles cases where city_id wasn't properly set in the database
+      if (!compData && !compError) {
+        const cityPattern = `%${citySlug.split('-').join('%')}%`;
+        let fallbackQuery = supabase
+          .from('competitions')
+          .select(
+            `
+            *,
+            city:cities(*),
+            host:profiles!competitions_host_id_fkey (
+              id,
+              first_name,
+              last_name,
+              bio,
+              avatar_url,
+              city,
+              instagram,
+              twitter,
+              linkedin
+            ),
+            contestants (
+              id,
+              user_id,
+              name,
+              email,
+              age,
+              bio,
+              avatar_url,
+              instagram,
+              status,
+              votes,
+              rank,
+              trend,
+              city,
+              slug,
+              profile_views,
+              external_shares,
+              eliminated_in_round,
+              advancement_status,
+              current_round,
+              created_at,
+              updated_at
+            ),
+            sponsors (
+              id,
+              name,
+              tier,
+              amount,
+              logo_url,
+              website_url,
+              sort_order
+            ),
+            events (
+              id,
+              name,
+              date,
+              end_date,
+              time,
+              location,
+              status,
+              public_visible,
+              is_double_vote_day,
+              sort_order
+            ),
+            competition_rules (
+              id,
+              section_title,
+              section_content,
+              sort_order
+            ),
+            voting_rounds (
+              id,
+              title,
+              round_order,
+              start_date,
+              end_date,
+              contestants_advance,
+              votes_accumulate,
+              round_type
+            ),
+            nomination_periods (
+              id,
+              title,
+              period_order,
+              start_date,
+              end_date,
+              max_submissions
+            ),
+            announcements (
+              id,
+              type,
+              title,
+              content,
+              pinned,
+              published_at,
+              is_ai_generated
+            )
+          `
+          )
+          .eq('organization_id', orgData.id)
+          .ilike('city', cityPattern);
+
+        if (year) {
+          fallbackQuery = fallbackQuery.or(`slug.ilike.%${year}%,season.eq.${year}`);
+        }
+
+        fallbackQuery = fallbackQuery
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const fallbackResult = await fallbackQuery;
+        compData = fallbackResult.data;
+        compError = fallbackResult.error;
+      }
 
       if (compError) throw compError;
       if (!compData) throw new Error('Competition not found');
