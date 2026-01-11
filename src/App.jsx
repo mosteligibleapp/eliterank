@@ -45,8 +45,6 @@ const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 const SuperAdminPage = lazy(() => import('./features/super-admin/SuperAdminPage'));
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
 const ClaimNominationPage = lazy(() => import('./features/public-site/pages/ClaimNominationPage'));
-const ClaimCompletionPage = lazy(() => import('./features/public-site/pages/ClaimCompletionPage'));
-const NomineeProfileCompletionPage = lazy(() => import('./features/public-site/pages/NomineeProfileCompletionPage'));
 const CompetitionLayout = lazy(() => import('./pages/competition/CompetitionLayout'));
 
 // Shared competition dashboard for both host and superadmin
@@ -425,19 +423,12 @@ export default function App() {
   // Handle initial URL on app load (e.g., /claim/:token or legacy /c/:citySlug)
   useEffect(() => {
     const handleInitialUrl = async () => {
-      // Check for claim completion URL (magic link destination)
-      const claimCompleteMatch = location.pathname.match(/^\/claim\/([^/]+)\/complete\/?$/);
-      if (claimCompleteMatch) {
-        setClaimToken(claimCompleteMatch[1]);
-        setClaimStage('completion');
-        return;
-      }
-
-      // Check for claim nomination URL (initial claim page)
-      const claimMatch = location.pathname.match(/^\/claim\/([^/]+)\/?$/);
+      // Check for claim nomination URL (handles both /claim/{token} and /claim/{token}/complete)
+      // The unified ClaimNominationPage handles the entire flow
+      const claimMatch = location.pathname.match(/^\/claim\/([^/]+)(\/complete)?\/?$/);
       if (claimMatch) {
         setClaimToken(claimMatch[1]);
-        setClaimStage('initial');
+        setClaimStage('initial'); // Always use 'initial' - the page handles everything
         return;
       }
 
@@ -654,54 +645,9 @@ export default function App() {
     navigate('/', { replace: true });
   };
 
-  // Handle nomination accept
-  const handleClaimAccept = ({ nominee, competition, needsProfileCompletion }) => {
-    setClaimData({ nominee, competition });
-    if (needsProfileCompletion) {
-      setClaimStage('profile');
-    } else {
-      // Profile is complete, show success and go to competition
-      const orgSlug = competition?.organization?.slug || 'most-eligible';
-      const citySlug = competition?.city
-        ? competition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
-        : '';
-      const year = competition?.season || '';
-      const path = year ? `/c/${orgSlug}/${citySlug}/${year}` : `/c/${orgSlug}/${citySlug}`;
-
-      setClaimToken(null);
-      setClaimStage(null);
-      setClaimData(null);
-      navigate(path, { replace: true });
-    }
-  };
-
-  // Handle nomination reject
-  const handleClaimReject = () => {
-    setClaimToken(null);
-    setClaimStage(null);
-    setClaimData(null);
-    navigate('/', { replace: true });
-  };
-
-  // Handle profile completion
-  const handleProfileComplete = () => {
-    // Navigate to the competition page
-    const competition = claimData?.competition;
-    const orgSlug = competition?.organization?.slug || 'most-eligible';
-    const citySlug = competition?.city
-      ? competition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
-      : '';
-    const year = competition?.season || '';
-    const path = year ? `/c/${orgSlug}/${citySlug}/${year}` : `/c/${orgSlug}/${citySlug}`;
-
-    setClaimToken(null);
-    setClaimStage(null);
-    setClaimData(null);
-    navigate(path, { replace: true });
-  };
-
-  // Render claim flow based on stage
-  if (claimToken && claimStage === 'initial') {
+  // Render claim page - ClaimNominationPage now handles the entire flow
+  // (accept/reject + profile completion)
+  if (claimToken) {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingScreen message="Loading nomination..." />}>
@@ -709,40 +655,6 @@ export default function App() {
             token={claimToken}
             onClose={handleClaimClose}
             onSuccess={handleClaimClose}
-          />
-        </Suspense>
-      </ErrorBoundary>
-    );
-  }
-
-  if (claimToken && claimStage === 'completion') {
-    return (
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingScreen message="Loading nomination..." />}>
-          <ClaimCompletionPage
-            token={claimToken}
-            user={user}
-            profile={profile}
-            onAccept={handleClaimAccept}
-            onReject={handleClaimReject}
-            onClose={handleClaimClose}
-          />
-        </Suspense>
-      </ErrorBoundary>
-    );
-  }
-
-  if (claimToken && claimStage === 'profile') {
-    return (
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingScreen message="Loading profile..." />}>
-          <NomineeProfileCompletionPage
-            nominee={claimData?.nominee}
-            competition={claimData?.competition}
-            profile={profile}
-            user={user}
-            onComplete={handleProfileComplete}
-            onCancel={handleProfileComplete}
           />
         </Suspense>
       </ErrorBoundary>
