@@ -1053,26 +1053,15 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
               )}
             </Button>
 
-            {/* Back button */}
-            <button
-              onClick={() => {
-                setStage('decide');
-                setNeedsPassword(false);
-              }}
-              disabled={processing}
-              style={{
-                width: '100%',
-                marginTop: spacing.md,
-                padding: spacing.sm,
-                background: 'transparent',
-                border: 'none',
-                color: colors.text.muted,
-                fontSize: typography.fontSize.sm,
-                cursor: 'pointer',
-              }}
-            >
-              ← Back to nomination
-            </button>
+            {/* Note about requirement */}
+            <p style={{
+              marginTop: spacing.lg,
+              fontSize: typography.fontSize.sm,
+              color: colors.text.muted,
+              textAlign: 'center',
+            }}>
+              A password is required to accept your nomination.
+            </p>
           </div>
         </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
