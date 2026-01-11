@@ -1012,18 +1012,9 @@
 
 @media (max-width: 768px) {
   .portrait-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    padding: var(--spacing-xs);
-  }
-}
-
-/* Small mobile - maintain 3 columns but tighter spacing */
-@media (max-width: 480px) {
-  .portrait-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-    padding: 4px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
   }
 }
 
@@ -1183,9 +1174,6 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .portrait-votes {
@@ -1193,22 +1181,6 @@
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--color-primary);
-}
-
-/* Mobile portrait info - more compact */
-@media (max-width: 480px) {
-  .portrait-info {
-    padding: 4px 6px;
-  }
-
-  .portrait-name {
-    font-size: 11px;
-    line-height: 1.2;
-  }
-
-  .portrait-votes {
-    font-size: 9px;
-  }
 }
 
 /* =====================
