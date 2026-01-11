@@ -1,120 +1,253 @@
 import React, { useState } from 'react';
-import { Crown, Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle, ArrowLeft, Send } from 'lucide-react';
+import { Crown, Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle, ArrowLeft, ArrowRight, Send } from 'lucide-react';
 import { colors, gradients, shadows, borderRadius, spacing, typography } from '../../styles/theme';
 import { useSupabaseAuth } from '../../hooks';
 import { supabase } from '../../lib/supabase';
 
+/**
+ * LoginPage - Two-step authentication flow
+ *
+ * Step 1: Email entry
+ * Step 2: Based on account status:
+ *   - New user → Signup form (name + password)
+ *   - Existing user with password → Password entry
+ *   - Nominee without password → Create password form
+ */
 export default function LoginPage({ onLogin, onBack }) {
-  const [mode, setMode] = useState('login'); // 'login', 'signup', or 'magic-link-sent'
+  // Flow state
+  const [step, setStep] = useState('email'); // 'email', 'password', 'create-password', 'signup', 'magic-link-sent'
+  const [isNominee, setIsNominee] = useState(false);
+
+  // Form data
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showMagicLinkOption, setShowMagicLinkOption] = useState(false);
 
   const { signIn, signUp } = useSupabaseAuth();
 
-  const validateForm = () => {
-    if (!email || !password) {
-      setError('Please enter both email and password');
-      return false;
-    }
-
-    if (!email.includes('@')) {
-      setError('Please enter a valid email address');
-      return false;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return false;
-    }
-
-    if (mode === 'signup') {
-      if (!firstName || !lastName) {
-        setError('Please enter your first and last name');
-        return false;
-      }
-      if (password !== confirmPassword) {
-        setError('Passwords do not match');
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async (e) => {
+  // Step 1: Check email and determine next step
+  const handleEmailSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
-    if (!validateForm()) return;
-
-    setIsLoading(true);
-
-    try {
-      if (mode === 'signup') {
-        const { user, error } = await signUp(email, password, {
-          first_name: firstName,
-          last_name: lastName,
-        });
-
-        if (error) {
-          setError(error);
-        } else if (user) {
-          setSuccess('Account created! Please check your email to confirm your account.');
-          setMode('login');
-        }
-      } else {
-        const { user, error } = await signIn(email, password);
-
-        if (error) {
-          setError(error);
-          // Show magic link option if login failed (could be wrong password or no password set)
-          if (error.includes('Invalid') || error.includes('credentials')) {
-            setShowMagicLinkOption(true);
-          }
-        } else if (user) {
-          onLogin({
-            id: user.id,
-            email: user.email,
-            name: user.user_metadata?.first_name || email.split('@')[0],
-          });
-        }
-      }
-    } catch (err) {
-      setError(err.message || 'An unexpected error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const switchMode = () => {
-    setMode(mode === 'login' ? 'signup' : 'login');
-    setError('');
-    setSuccess('');
-    setShowMagicLinkOption(false);
-  };
-
-  // Send magic link for users who don't have a password set
-  const handleSendMagicLink = async () => {
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address');
       return;
     }
 
     setIsLoading(true);
+
+    try {
+      // Check if user is a nominee (may not have password set)
+      const { data: nomineeData } = await supabase
+        .from('nominees')
+        .select('id, name')
+        .eq('email', email)
+        .limit(1);
+
+      const isNomineeUser = nomineeData && nomineeData.length > 0;
+      setIsNominee(isNomineeUser);
+
+      // Pre-fill name from nominee data if available
+      if (isNomineeUser && nomineeData[0]?.name) {
+        const nameParts = nomineeData[0].name.split(' ');
+        setFirstName(nameParts[0] || '');
+        setLastName(nameParts.slice(1).join(' ') || '');
+      }
+
+      // Try to check if user exists by attempting OTP (won't create user)
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        },
+      });
+
+      // If error contains "Signups not allowed" or similar, user doesn't exist
+      // If no error, user exists (OTP was sent but we won't use it)
+      const userExists = !otpError || !otpError.message?.includes('Signups not allowed');
+
+      if (!userExists) {
+        // New user - go to signup
+        setStep('signup');
+      } else if (isNomineeUser) {
+        // Existing user who is a nominee - likely needs to create password
+        // Show create password form with magic link option
+        setStep('create-password');
+      } else {
+        // Regular existing user - show password field
+        setStep('password');
+      }
+    } catch (err) {
+      console.error('Email check error:', err);
+      // Default to password step on error
+      setStep('password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle password login
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!password) {
+      setError('Please enter your password');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { user, error: signInError } = await signIn(email, password);
+
+      if (signInError) {
+        setError(signInError);
+      } else if (user) {
+        onLogin({
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.first_name || email.split('@')[0],
+        });
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to sign in');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle create password (for nominees)
+  const handleCreatePassword = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Try to update password - this works if user is already authenticated via magic link
+      // For users without session, we need to sign them up or use password recovery
+
+      // First try signing up (in case account was pre-created without password)
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+        },
+      });
+
+      if (signUpError) {
+        if (signUpError.message?.includes('already registered')) {
+          // User exists - they need to use password reset flow
+          // Send password reset email
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}?reset=true`,
+          });
+
+          if (resetError) {
+            setError('Unable to set password. Please try the magic link option.');
+          } else {
+            setSuccess('Password reset email sent! Check your inbox to set your password.');
+          }
+        } else {
+          setError(signUpError.message);
+        }
+      } else if (signUpData?.user) {
+        // Sign up successful - they may need to confirm email
+        if (signUpData.user.identities?.length === 0) {
+          // User already existed, try to sign in
+          const { user, error: signInError } = await signIn(email, password);
+          if (signInError) {
+            setError('Account exists. Please check your email for a confirmation link.');
+          } else if (user) {
+            onLogin({
+              id: user.id,
+              email: user.email,
+              name: user.user_metadata?.first_name || firstName || email.split('@')[0],
+            });
+          }
+        } else {
+          setSuccess('Account created! Please check your email to confirm.');
+        }
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to create password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle signup (new users)
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!firstName || !lastName) {
+      setError('Please enter your first and last name');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { user, error: signUpError } = await signUp(email, password, {
+        first_name: firstName,
+        last_name: lastName,
+      });
+
+      if (signUpError) {
+        setError(signUpError);
+      } else if (user) {
+        setSuccess('Account created! Please check your email to confirm your account.');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to create account');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Send magic link
+  const handleSendMagicLink = async () => {
+    setIsLoading(true);
     setError('');
 
     try {
       const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: email,
+        email,
         options: {
           emailRedirectTo: window.location.origin,
         },
@@ -123,7 +256,7 @@ export default function LoginPage({ onLogin, onBack }) {
       if (otpError) {
         setError(otpError.message || 'Failed to send sign-in link');
       } else {
-        setMode('magic-link-sent');
+        setStep('magic-link-sent');
       }
     } catch (err) {
       setError(err.message || 'Failed to send sign-in link');
@@ -132,6 +265,16 @@ export default function LoginPage({ onLogin, onBack }) {
     }
   };
 
+  // Go back to email step
+  const handleBack = () => {
+    setStep('email');
+    setPassword('');
+    setConfirmPassword('');
+    setError('');
+    setSuccess('');
+  };
+
+  // Styles
   const containerStyle = {
     minHeight: '100vh',
     background: gradients.background,
@@ -184,18 +327,13 @@ export default function LoginPage({ onLogin, onBack }) {
   const subtitleStyle = {
     fontSize: typography.fontSize.md,
     color: colors.text.secondary,
+    textAlign: 'center',
   };
 
   const formStyle = {
     display: 'flex',
     flexDirection: 'column',
     gap: spacing.lg,
-  };
-
-  const rowStyle = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: spacing.md,
   };
 
   const inputGroupStyle = {
@@ -241,19 +379,6 @@ export default function LoginPage({ onLogin, onBack }) {
     paddingLeft: spacing.lg,
   };
 
-  const passwordToggleStyle = {
-    position: 'absolute',
-    right: spacing.md,
-    background: 'none',
-    border: 'none',
-    color: colors.text.muted,
-    cursor: 'pointer',
-    padding: spacing.xs,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
   const buttonStyle = {
     width: '100%',
     padding: spacing.lg,
@@ -274,6 +399,14 @@ export default function LoginPage({ onLogin, onBack }) {
     marginTop: spacing.md,
   };
 
+  const secondaryButtonStyle = {
+    ...buttonStyle,
+    background: 'transparent',
+    border: `1px solid ${colors.gold.primary}`,
+    color: colors.gold.primary,
+    boxShadow: 'none',
+  };
+
   const alertStyle = (type) => ({
     display: 'flex',
     alignItems: 'center',
@@ -285,20 +418,6 @@ export default function LoginPage({ onLogin, onBack }) {
     color: type === 'error' ? colors.status.error : colors.status.success,
     fontSize: typography.fontSize.sm,
   });
-
-  const switchStyle = {
-    marginTop: spacing.xl,
-    textAlign: 'center',
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-  };
-
-  const linkStyle = {
-    color: colors.gold.primary,
-    cursor: 'pointer',
-    fontWeight: typography.fontWeight.medium,
-    marginLeft: spacing.xs,
-  };
 
   const footerStyle = {
     marginTop: spacing.xl,
@@ -317,6 +436,24 @@ export default function LoginPage({ onLogin, onBack }) {
     e.target.style.boxShadow = 'none';
   };
 
+  // Get subtitle based on step
+  const getSubtitle = () => {
+    switch (step) {
+      case 'email':
+        return 'Enter your email to continue';
+      case 'password':
+        return 'Welcome back';
+      case 'create-password':
+        return 'Create your password';
+      case 'signup':
+        return 'Create your account';
+      case 'magic-link-sent':
+        return 'Check your email';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div style={containerStyle}>
       {/* Background decoration */}
@@ -331,7 +468,7 @@ export default function LoginPage({ onLogin, onBack }) {
 
       <div style={cardStyle}>
         {/* Back Button */}
-        {onBack && (
+        {onBack && step === 'email' && (
           <button
             onClick={onBack}
             style={{
@@ -352,23 +489,486 @@ export default function LoginPage({ onLogin, onBack }) {
           </button>
         )}
 
+        {/* Back to email step */}
+        {step !== 'email' && step !== 'magic-link-sent' && (
+          <button
+            onClick={handleBack}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              background: 'none',
+              border: 'none',
+              color: colors.text.secondary,
+              fontSize: typography.fontSize.sm,
+              cursor: 'pointer',
+              marginBottom: spacing.lg,
+              padding: 0,
+            }}
+          >
+            <ArrowLeft size={16} />
+            Change email
+          </button>
+        )}
+
         {/* Logo */}
         <div style={logoStyle}>
           <div style={logoIconStyle}>
             <Crown size={32} />
           </div>
           <h1 style={titleStyle}>EliteRank</h1>
-          <p style={subtitleStyle}>
-            {mode === 'magic-link-sent'
-              ? 'Check your email'
-              : mode === 'login'
-                ? 'Welcome back'
-                : 'Create your account'}
-          </p>
+          <p style={subtitleStyle}>{getSubtitle()}</p>
         </div>
 
-        {/* Magic Link Sent Confirmation */}
-        {mode === 'magic-link-sent' ? (
+        {/* Step: Email Entry */}
+        {step === 'email' && (
+          <form onSubmit={handleEmailSubmit} style={formStyle}>
+            {error && (
+              <div style={alertStyle('error')}>
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Email Address</label>
+              <div style={inputWrapperStyle}>
+                <Mail size={18} style={inputIconStyle} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  style={inputStyle}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  autoComplete="email"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <button type="submit" disabled={isLoading} style={buttonStyle}>
+              {isLoading ? (
+                <>
+                  <span style={{
+                    width: '18px',
+                    height: '18px',
+                    border: '2px solid rgba(0,0,0,0.3)',
+                    borderTopColor: '#0a0a0f',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  Checking...
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
+        {/* Step: Password Entry (existing user) */}
+        {step === 'password' && (
+          <form onSubmit={handlePasswordSubmit} style={formStyle}>
+            {error && (
+              <div style={alertStyle('error')}>
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+
+            <div style={{
+              padding: spacing.md,
+              background: 'rgba(255,255,255,0.03)',
+              borderRadius: borderRadius.md,
+              marginBottom: spacing.sm,
+            }}>
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                Signing in as
+              </p>
+              <p style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>
+                {email}
+              </p>
+            </div>
+
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Password</label>
+              <div style={inputWrapperStyle}>
+                <Lock size={18} style={inputIconStyle} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  style={{ ...inputStyle, paddingRight: '44px' }}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  autoComplete="current-password"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: spacing.md,
+                    background: 'none',
+                    border: 'none',
+                    color: colors.text.muted,
+                    cursor: 'pointer',
+                    padding: spacing.xs,
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" disabled={isLoading} style={buttonStyle}>
+              {isLoading ? (
+                <>
+                  <span style={{
+                    width: '18px',
+                    height: '18px',
+                    border: '2px solid rgba(0,0,0,0.3)',
+                    borderTopColor: '#0a0a0f',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <LogIn size={18} />
+                  Sign In
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSendMagicLink}
+              disabled={isLoading}
+              style={secondaryButtonStyle}
+            >
+              <Send size={16} />
+              Send me a sign-in link instead
+            </button>
+          </form>
+        )}
+
+        {/* Step: Create Password (nominee without password) */}
+        {step === 'create-password' && (
+          <form onSubmit={handleCreatePassword} style={formStyle}>
+            {error && (
+              <div style={alertStyle('error')}>
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div style={alertStyle('success')}>
+                <CheckCircle size={16} />
+                {success}
+              </div>
+            )}
+
+            <div style={{
+              padding: spacing.md,
+              background: 'rgba(212, 175, 55, 0.1)',
+              border: `1px solid ${colors.border.gold}`,
+              borderRadius: borderRadius.md,
+              marginBottom: spacing.sm,
+            }}>
+              <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>
+                You were nominated!
+              </p>
+              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                Create a password to access your account and claim your nomination.
+              </p>
+            </div>
+
+            <div style={{
+              padding: spacing.md,
+              background: 'rgba(255,255,255,0.03)',
+              borderRadius: borderRadius.md,
+            }}>
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                Creating account for
+              </p>
+              <p style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>
+                {email}
+              </p>
+            </div>
+
+            {/* Name fields - pre-filled from nominee data */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>First Name</label>
+                <div style={inputWrapperStyle}>
+                  <User size={18} style={inputIconStyle} />
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="First name"
+                    style={inputStyle}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                  />
+                </div>
+              </div>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>Last Name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last name"
+                  style={inputStyleNoIcon}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                />
+              </div>
+            </div>
+
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Create Password</label>
+              <div style={inputWrapperStyle}>
+                <Lock size={18} style={inputIconStyle} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min. 6 characters"
+                  style={{ ...inputStyle, paddingRight: '44px' }}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  autoComplete="new-password"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: spacing.md,
+                    background: 'none',
+                    border: 'none',
+                    color: colors.text.muted,
+                    cursor: 'pointer',
+                    padding: spacing.xs,
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Confirm Password</label>
+              <div style={inputWrapperStyle}>
+                <Lock size={18} style={inputIconStyle} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm password"
+                  style={inputStyle}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+
+            <button type="submit" disabled={isLoading || !!success} style={buttonStyle}>
+              {isLoading ? (
+                <>
+                  <span style={{
+                    width: '18px',
+                    height: '18px',
+                    border: '2px solid rgba(0,0,0,0.3)',
+                    borderTopColor: '#0a0a0f',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <UserPlus size={18} />
+                  Create Password & Continue
+                </>
+              )}
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: spacing.md }}>
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.sm }}>
+                Or sign in without a password
+              </p>
+              <button
+                type="button"
+                onClick={handleSendMagicLink}
+                disabled={isLoading}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: colors.gold.primary,
+                  cursor: 'pointer',
+                  fontSize: typography.fontSize.sm,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: spacing.xs,
+                }}
+              >
+                <Send size={14} />
+                Send me a magic link
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Step: Signup (new user) */}
+        {step === 'signup' && (
+          <form onSubmit={handleSignup} style={formStyle}>
+            {error && (
+              <div style={alertStyle('error')}>
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div style={alertStyle('success')}>
+                <CheckCircle size={16} />
+                {success}
+              </div>
+            )}
+
+            <div style={{
+              padding: spacing.md,
+              background: 'rgba(255,255,255,0.03)',
+              borderRadius: borderRadius.md,
+            }}>
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                Creating account for
+              </p>
+              <p style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>
+                {email}
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>First Name</label>
+                <div style={inputWrapperStyle}>
+                  <User size={18} style={inputIconStyle} />
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="John"
+                    style={inputStyle}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>Last Name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Doe"
+                  style={inputStyleNoIcon}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                />
+              </div>
+            </div>
+
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Password</label>
+              <div style={inputWrapperStyle}>
+                <Lock size={18} style={inputIconStyle} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min. 6 characters"
+                  style={{ ...inputStyle, paddingRight: '44px' }}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: spacing.md,
+                    background: 'none',
+                    border: 'none',
+                    color: colors.text.muted,
+                    cursor: 'pointer',
+                    padding: spacing.xs,
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Confirm Password</label>
+              <div style={inputWrapperStyle}>
+                <Lock size={18} style={inputIconStyle} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm password"
+                  style={inputStyle}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+
+            <button type="submit" disabled={isLoading || !!success} style={buttonStyle}>
+              {isLoading ? (
+                <>
+                  <span style={{
+                    width: '18px',
+                    height: '18px',
+                    border: '2px solid rgba(0,0,0,0.3)',
+                    borderTopColor: '#0a0a0f',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  Creating account...
+                </>
+              ) : (
+                <>
+                  <UserPlus size={18} />
+                  Create Account
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
+        {/* Step: Magic Link Sent */}
+        {step === 'magic-link-sent' && (
           <div style={{ textAlign: 'center' }}>
             <div style={{
               width: '64px',
@@ -401,8 +1001,9 @@ export default function LoginPage({ onLogin, onBack }) {
             <button
               type="button"
               onClick={() => {
-                setMode('login');
-                setShowMagicLinkOption(false);
+                setStep('email');
+                setPassword('');
+                setConfirmPassword('');
               }}
               style={{
                 background: 'none',
@@ -416,209 +1017,6 @@ export default function LoginPage({ onLogin, onBack }) {
               Back to login
             </button>
           </div>
-        ) : (
-        /* Form */
-        <form onSubmit={handleSubmit} style={formStyle}>
-          {error && (
-            <div style={alertStyle('error')}>
-              <AlertCircle size={16} />
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div style={alertStyle('success')}>
-              <CheckCircle size={16} />
-              {success}
-            </div>
-          )}
-
-          {mode === 'signup' && (
-            <div style={rowStyle}>
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>First Name</label>
-                <div style={inputWrapperStyle}>
-                  <User size={18} style={inputIconStyle} />
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="John"
-                    style={inputStyle}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                  />
-                </div>
-              </div>
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>Last Name</label>
-                <div style={inputWrapperStyle}>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Doe"
-                    style={inputStyleNoIcon}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div style={inputGroupStyle}>
-            <label style={labelStyle}>Email Address</label>
-            <div style={inputWrapperStyle}>
-              <Mail size={18} style={inputIconStyle} />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                style={inputStyle}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                autoComplete="email"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-              />
-            </div>
-          </div>
-
-          <div style={inputGroupStyle}>
-            <label style={labelStyle}>Password</label>
-            <div style={inputWrapperStyle}>
-              <Lock size={18} style={inputIconStyle} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === 'signup' ? 'Min. 6 characters' : 'Enter your password'}
-                style={{ ...inputStyle, paddingRight: '44px' }}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={passwordToggleStyle}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-          {mode === 'signup' && (
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>Confirm Password</label>
-              <div style={inputWrapperStyle}>
-                <Lock size={18} style={inputIconStyle} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your password"
-                  style={inputStyle}
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
-                />
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={buttonStyle}
-            onMouseEnter={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = shadows.goldLarge;
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = shadows.gold;
-            }}
-          >
-            {isLoading ? (
-              <>
-                <span
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    border: '2px solid rgba(0,0,0,0.3)',
-                    borderTopColor: '#0a0a0f',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite',
-                  }}
-                />
-                {mode === 'login' ? 'Signing in...' : 'Creating account...'}
-              </>
-            ) : (
-              <>
-                {mode === 'login' ? <LogIn size={18} /> : <UserPlus size={18} />}
-                {mode === 'login' ? 'Sign In' : 'Create Account'}
-              </>
-            )}
-          </button>
-
-          {/* Magic Link Option - shown when login fails */}
-          {mode === 'login' && showMagicLinkOption && (
-            <div style={{
-              marginTop: spacing.lg,
-              padding: spacing.lg,
-              background: 'rgba(212, 175, 55, 0.05)',
-              border: `1px solid ${colors.border.gold}`,
-              borderRadius: borderRadius.lg,
-            }}>
-              <p style={{
-                color: colors.text.secondary,
-                fontSize: typography.fontSize.sm,
-                marginBottom: spacing.md,
-                lineHeight: 1.5,
-              }}>
-                Were you nominated and haven't set a password yet? We can send you a sign-in link.
-              </p>
-              <button
-                type="button"
-                onClick={handleSendMagicLink}
-                disabled={isLoading}
-                style={{
-                  width: '100%',
-                  padding: spacing.md,
-                  background: 'transparent',
-                  border: `1px solid ${colors.gold.primary}`,
-                  borderRadius: borderRadius.md,
-                  color: colors.gold.primary,
-                  fontSize: typography.fontSize.sm,
-                  fontWeight: typography.fontWeight.medium,
-                  cursor: isLoading ? 'wait' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: spacing.sm,
-                }}
-              >
-                <Send size={16} />
-                Send me a sign-in link
-              </button>
-            </div>
-          )}
-        </form>
-        )}
-
-        {/* Switch mode */}
-        {mode !== 'magic-link-sent' && (
-        <p style={switchStyle}>
-          {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
-          <span style={linkStyle} onClick={switchMode}>
-            {mode === 'login' ? 'Sign up' : 'Sign in'}
-          </span>
-        </p>
         )}
 
         {/* Footer */}
