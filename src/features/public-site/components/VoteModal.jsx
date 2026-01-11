@@ -663,28 +663,27 @@ export default function VoteModal({
   const alreadyVotedForThis = votedContestantId === contestant.id;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Cast Your Vote" maxWidth="450px" centered>
-      {/* Double Vote Day Banner */}
+    <Modal isOpen={isOpen} onClose={onClose} title="Cast Your Vote" maxWidth="360px" centered>
+      {/* Double Vote Day Banner - Compact */}
       {forceDoubleVoteDay && (
         <div
           style={{
             background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(251,191,36,0.1))',
-            border: `2px solid rgba(212,175,55,0.4)`,
-            borderRadius: borderRadius.lg,
-            padding: `${spacing.md} ${spacing.lg}`,
-            marginBottom: spacing.xl,
+            border: `1px solid rgba(212,175,55,0.4)`,
+            borderRadius: borderRadius.md,
+            padding: `${spacing.sm} ${spacing.md}`,
+            marginBottom: spacing.md,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: spacing.md,
+            gap: spacing.sm,
           }}
         >
-          <Sparkles size={20} style={{ color: colors.gold.primary }} />
+          <Sparkles size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />
           <div>
-            <p style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.bold, fontSize: typography.fontSize.md }}>
-              DOUBLE VOTE DAY!
+            <p style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.bold, fontSize: typography.fontSize.sm }}>
+              DOUBLE VOTE DAY - All votes count 2x!
             </p>
-            <p style={{ color: colors.text.light, fontSize: typography.fontSize.sm }}>All votes count 2x today</p>
           </div>
         </div>
       )}
@@ -695,52 +694,49 @@ export default function VoteModal({
           style={{
             background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))',
             border: `1px solid rgba(34,197,94,0.3)`,
-            borderRadius: borderRadius.lg,
-            padding: `${spacing.md} ${spacing.lg}`,
-            marginBottom: spacing.xl,
+            borderRadius: borderRadius.md,
+            padding: `${spacing.sm} ${spacing.md}`,
+            marginBottom: spacing.md,
             display: 'flex',
             alignItems: 'center',
-            gap: spacing.md,
+            gap: spacing.sm,
           }}
         >
-          <Check size={20} style={{ color: colors.status.success }} />
-          <div>
-            <p style={{ color: colors.status.success, fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>
-              You voted for {contestant.name} today!
-            </p>
-          </div>
+          <Check size={16} style={{ color: colors.status.success, flexShrink: 0 }} />
+          <p style={{ color: colors.status.success, fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.xs }}>
+            You voted for {contestant.name} today!
+          </p>
         </div>
       )}
 
-      {/* Contestant Preview */}
-      <div style={{ textAlign: 'center', marginBottom: spacing.xxl }}>
-        <Avatar name={contestant.name} src={contestant.avatarUrl || contestant.avatar_url} size={100} style={{ margin: '0 auto 16px' }} />
-        <h3 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+      {/* Contestant Preview - Compact */}
+      <div style={{ textAlign: 'center', marginBottom: spacing.lg }}>
+        <Avatar name={contestant.name} src={contestant.avatarUrl || contestant.avatar_url} size={64} style={{ margin: '0 auto 8px' }} />
+        <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: '2px' }}>
           {contestant.name}
         </h3>
-        <p style={{ color: colors.text.secondary }}>{contestant.occupation}</p>
-        <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginTop: spacing.sm }}>
+        <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold }}>
           {formatNumber(contestant.votes || 0)} votes
         </p>
       </div>
 
-      {/* Free Vote Section */}
-      <div style={{ marginBottom: spacing.xl }}>
-        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.base, marginBottom: spacing.md, textAlign: 'center' }}>
+      {/* Free Vote Section - Compact */}
+      <div style={{ marginBottom: spacing.md }}>
+        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, marginBottom: spacing.sm, textAlign: 'center' }}>
           {!hasActiveRound ? (
             <>
-              <Clock size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: spacing.xs }} />
+              <Clock size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
               Voting is not currently active
             </>
           ) : freeVoteUsed ? (
             <>
-              <Clock size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: spacing.xs }} />
+              <Clock size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
               Free vote resets in {getTimeUntilReset()}
             </>
           ) : (
             <>
               Use your <span style={{ color: colors.status.success, fontWeight: typography.fontWeight.semibold }}>free daily vote</span>
-              {forceDoubleVoteDay && <span style={{ color: colors.status.success }}> (counts as {freeVoteValue}!)</span>}
+              {forceDoubleVoteDay && <span style={{ color: colors.status.success }}> (2x!)</span>}
             </>
           )}
         </p>
@@ -748,7 +744,7 @@ export default function VoteModal({
         <Button
           variant="approve"
           fullWidth
-          size="xl"
+          size="lg"
           onClick={handleFreeVote}
           disabled={!hasActiveRound || freeVoteUsed || isSubmitting || checkingVoteStatus}
           style={{
@@ -758,31 +754,32 @@ export default function VoteModal({
             borderColor: (!hasActiveRound || freeVoteUsed) ? 'rgba(255,255,255,0.1)' : 'rgba(34,197,94,0.4)',
             color: (!hasActiveRound || freeVoteUsed) ? colors.text.muted : colors.status.success,
             cursor: (!hasActiveRound || freeVoteUsed) ? 'not-allowed' : 'pointer',
+            padding: `${spacing.sm} ${spacing.md}`,
           }}
         >
           {checkingVoteStatus ? (
             <>
-              <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+              <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
               Checking...
             </>
           ) : !hasActiveRound ? (
             <>
-              <Clock size={18} />
+              <Clock size={16} />
               Voting Not Active
             </>
           ) : isSubmitting ? (
             <>
-              <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+              <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
               Submitting...
             </>
           ) : freeVoteUsed ? (
             <>
-              <Check size={18} />
+              <Check size={16} />
               Free Vote Used Today
             </>
           ) : (
             <>
-              <Sparkles size={18} />
+              <Sparkles size={16} />
               Use Free Daily Vote (+{freeVoteValue})
             </>
           )}
@@ -790,34 +787,32 @@ export default function VoteModal({
       </div>
 
       {/* Divider */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
         <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-        <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>or purchase additional votes</span>
+        <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>or buy votes</span>
         <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
       </div>
 
-      {/* Vote Count Selector */}
-      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: borderRadius.xl, padding: spacing.xl, marginBottom: spacing.xl }}>
-        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, marginBottom: spacing.md, textAlign: 'center' }}>
-          Select vote amount
-        </p>
-        <div style={{ display: 'flex', gap: spacing.sm, justifyContent: 'center', flexWrap: 'wrap', marginBottom: spacing.md }}>
+      {/* Vote Count Selector - Compact */}
+      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.md }}>
+        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: spacing.sm }}>
           {VOTE_PRESETS.map((num) => (
             <button
               key={num}
               onClick={() => setSelectedVoteCount(num)}
               disabled={!stripeConfigured || !hasActiveRound}
               style={{
-                padding: `${spacing.md} ${spacing.lg}`,
+                padding: '8px 12px',
                 borderRadius: borderRadius.md,
                 border: 'none',
                 background: selectedVoteCount === num ? colors.gold.primary : 'rgba(255,255,255,0.05)',
                 color: selectedVoteCount === num ? '#0a0a0f' : colors.text.secondary,
                 fontWeight: typography.fontWeight.semibold,
-                fontSize: typography.fontSize.lg,
+                fontSize: typography.fontSize.base,
                 cursor: (!stripeConfigured || !hasActiveRound) ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s',
                 opacity: (!stripeConfigured || !hasActiveRound) ? 0.5 : 1,
+                minWidth: '44px',
               }}
             >
               {num}
@@ -825,44 +820,36 @@ export default function VoteModal({
           ))}
         </div>
 
-        {/* Total Display */}
+        {/* Total Display - Compact */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: `${spacing.md} ${spacing.lg}`,
+            padding: `${spacing.sm} ${spacing.md}`,
             background: forceDoubleVoteDay ? 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(34,197,94,0.1))' : 'rgba(212,175,55,0.15)',
-            borderRadius: borderRadius.lg,
-            marginTop: spacing.lg,
+            borderRadius: borderRadius.md,
             border: `1px solid ${forceDoubleVoteDay ? 'rgba(34,197,94,0.3)' : 'rgba(212,175,55,0.2)'}`,
           }}
         >
-          <div style={{ textAlign: 'left' }}>
-            <span style={{ color: colors.text.light, fontSize: typography.fontSize.md }}>Total</span>
+          <span style={{ color: colors.text.light, fontSize: typography.fontSize.sm }}>
+            Total{forceDoubleVoteDay && <span style={{ color: colors.status.success, marginLeft: '4px' }}>(2x)</span>}
+          </span>
+          <span style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
+            {formatCurrency(selectedVoteCount)}
             {forceDoubleVoteDay && (
-              <p style={{ color: colors.status.success, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold }}>
-                2x BONUS ACTIVE
-              </p>
+              <span style={{ color: colors.status.success, fontSize: typography.fontSize.xs, marginLeft: '4px' }}>
+                = {formatNumber(selectedVoteCount * 2)}
+              </span>
             )}
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: typography.fontSize.xxxl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-              {formatCurrency(selectedVoteCount)}
-            </span>
-            {forceDoubleVoteDay && (
-              <p style={{ color: colors.status.success, fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold }}>
-                = {formatNumber(selectedVoteCount * 2)} votes
-              </p>
-            )}
-          </div>
+          </span>
         </div>
       </div>
 
-      {/* Purchase Button */}
+      {/* Purchase Button - Compact */}
       <Button
         fullWidth
-        size="xl"
+        size="lg"
         icon={isCreatingPayment ? Loader : CreditCard}
         onClick={handleInitiatePurchase}
         disabled={!stripeConfigured || !hasActiveRound || isCreatingPayment}
@@ -872,6 +859,7 @@ export default function VoteModal({
           color: (!stripeConfigured || !hasActiveRound) ? colors.text.muted : '#0a0a0f',
           cursor: (!stripeConfigured || !hasActiveRound) ? 'not-allowed' : 'pointer',
           opacity: (!stripeConfigured || !hasActiveRound) ? 0.5 : 1,
+          padding: `${spacing.sm} ${spacing.md}`,
         }}
       >
         {isCreatingPayment ? (
@@ -884,7 +872,7 @@ export default function VoteModal({
         ) : !hasActiveRound ? (
           'Voting Not Active'
         ) : (
-          `Purchase ${selectedVoteCount} Votes - ${formatCurrency(selectedVoteCount)}`
+          `Buy ${selectedVoteCount} Votes - ${formatCurrency(selectedVoteCount)}`
         )}
       </Button>
 
