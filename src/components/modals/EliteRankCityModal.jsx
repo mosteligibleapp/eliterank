@@ -98,17 +98,6 @@ export default function EliteRankCityModal({
           supabase.from('announcements').select('*').order('published_at', { ascending: false }),
         ]);
 
-        // Fetch nomination_periods separately with error handling (table may not exist in all environments)
-        let nominationPeriodsData = [];
-        try {
-          const nominationPeriodsResult = await supabase.from('nomination_periods').select('*').order('period_order');
-          if (!nominationPeriodsResult.error && nominationPeriodsResult.data) {
-            nominationPeriodsData = nominationPeriodsResult.data;
-          }
-        } catch {
-          // nomination_periods table may not exist, continue without it
-        }
-
         // Group voting rounds by competition_id
         const votingRoundsMap = (votingRoundsResult.data || []).reduce((acc, r) => {
           if (!acc[r.competition_id]) acc[r.competition_id] = [];
@@ -116,12 +105,25 @@ export default function EliteRankCityModal({
           return acc;
         }, {});
 
-        // Group nomination periods by competition_id
-        const nominationPeriodsMap = nominationPeriodsData.reduce((acc, p) => {
-          if (!acc[p.competition_id]) acc[p.competition_id] = [];
-          acc[p.competition_id].push(p);
-          return acc;
-        }, {});
+        // Fetch nomination_periods separately - gracefully handle if table doesn't exist
+        let nominationPeriodsMap = {};
+        try {
+          const { data: npData, error: npError } = await supabase
+            .from('nomination_periods')
+            .select('*')
+            .order('period_order');
+
+          if (!npError && npData) {
+            nominationPeriodsMap = npData.reduce((acc, p) => {
+              if (!acc[p.competition_id]) acc[p.competition_id] = [];
+              acc[p.competition_id].push(p);
+              return acc;
+            }, {});
+          }
+        } catch (e) {
+          // Table may not exist - continue without nomination periods
+          console.warn('Could not fetch nomination_periods:', e);
+        }
 
         // Auto-transitions (settings are now directly on competition)
         const toTransition = [];
