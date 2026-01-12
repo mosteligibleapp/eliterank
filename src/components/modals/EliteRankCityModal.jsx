@@ -105,26 +105,6 @@ export default function EliteRankCityModal({
           return acc;
         }, {});
 
-        // Fetch nomination_periods separately - gracefully handle if table doesn't exist
-        let nominationPeriodsMap = {};
-        try {
-          const { data: npData, error: npError } = await supabase
-            .from('nomination_periods')
-            .select('*')
-            .order('period_order');
-
-          if (!npError && npData) {
-            nominationPeriodsMap = npData.reduce((acc, p) => {
-              if (!acc[p.competition_id]) acc[p.competition_id] = [];
-              acc[p.competition_id].push(p);
-              return acc;
-            }, {});
-          }
-        } catch (e) {
-          // Table may not exist - continue without nomination periods
-          console.warn('Could not fetch nomination_periods:', e);
-        }
-
         // Auto-transitions (settings are now directly on competition)
         const toTransition = [];
         for (const comp of (compsResult.data || [])) {
@@ -149,7 +129,6 @@ export default function EliteRankCityModal({
             const compWithSettings = {
               ...comp,
               voting_rounds: votingRoundsMap[comp.id] || [],
-              nomination_periods: nominationPeriodsMap[comp.id] || [],
             };
             const computedPhase = computeCompetitionPhase(compWithSettings);
             const visible = isCompetitionVisible(comp.status);
@@ -185,7 +164,6 @@ export default function EliteRankCityModal({
               voting_end: compWithSettings.voting_end,
               finals_date: compWithSettings.finals_date,
               voting_rounds: compWithSettings.voting_rounds,
-              nomination_periods: compWithSettings.nomination_periods,
             };
           }));
         }

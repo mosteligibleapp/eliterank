@@ -499,8 +499,9 @@ export function getDatePeriodStatus(startDate, endDate) {
 export function shouldAutoTransitionToLive(competition, settings = null) {
   if (!competition) return false;
 
-  // Only applies to competitions with status 'publish'
-  if (competition.status !== COMPETITION_STATUSES.PUBLISH) return false;
+  // Only applies to competitions with status 'publish' (case-insensitive)
+  const status = (competition.status || '').toLowerCase();
+  if (status !== COMPETITION_STATUSES.PUBLISH) return false;
 
   // Check nomination_start from settings first, then from competition
   const nominationStart = settings?.nomination_start || competition?.nomination_start;
@@ -525,8 +526,9 @@ export function shouldAutoTransitionToLive(competition, settings = null) {
 export function shouldAutoTransitionToCompleted(competition, settings = null) {
   if (!competition) return false;
 
-  // Only applies to competitions with status 'live'
-  if (competition.status !== COMPETITION_STATUSES.LIVE) return false;
+  // Only applies to competitions with status 'live' (case-insensitive)
+  const status = (competition.status || '').toLowerCase();
+  if (status !== COMPETITION_STATUSES.LIVE) return false;
 
   // Check finale_date from settings first, then from competition
   const finaleDate = settings?.finale_date || competition?.finale_date || competition?.finals_date;
