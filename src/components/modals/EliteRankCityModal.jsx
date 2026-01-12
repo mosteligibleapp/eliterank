@@ -91,9 +91,10 @@ export default function EliteRankCityModal({
       try {
         // Fetch only dynamic data - static data comes from cached hooks
         // Note: competition_settings has been merged into competitions table
-        const [compsResult, votingRoundsResult, eventsResult, announcementsResult] = await Promise.all([
+        const [compsResult, votingRoundsResult, nominationPeriodsResult, eventsResult, announcementsResult] = await Promise.all([
           supabase.from('competitions').select('*').order('created_at', { ascending: false }),
           supabase.from('voting_rounds').select('*').order('round_order'),
+          supabase.from('nomination_periods').select('*').order('period_order'),
           supabase.from('events').select('*').order('date', { ascending: true }),
           supabase.from('announcements').select('*').order('published_at', { ascending: false }),
         ]);
@@ -102,6 +103,13 @@ export default function EliteRankCityModal({
         const votingRoundsMap = (votingRoundsResult.data || []).reduce((acc, r) => {
           if (!acc[r.competition_id]) acc[r.competition_id] = [];
           acc[r.competition_id].push(r);
+          return acc;
+        }, {});
+
+        // Group nomination periods by competition_id
+        const nominationPeriodsMap = (nominationPeriodsResult.data || []).reduce((acc, p) => {
+          if (!acc[p.competition_id]) acc[p.competition_id] = [];
+          acc[p.competition_id].push(p);
           return acc;
         }, {});
 
@@ -129,6 +137,7 @@ export default function EliteRankCityModal({
             const compWithSettings = {
               ...comp,
               voting_rounds: votingRoundsMap[comp.id] || [],
+              nomination_periods: nominationPeriodsMap[comp.id] || [],
             };
             const computedPhase = computeCompetitionPhase(compWithSettings);
             const visible = isCompetitionVisible(comp.status);
@@ -164,6 +173,7 @@ export default function EliteRankCityModal({
               voting_end: compWithSettings.voting_end,
               finals_date: compWithSettings.finals_date,
               voting_rounds: compWithSettings.voting_rounds,
+              nomination_periods: compWithSettings.nomination_periods,
             };
           }));
         }
