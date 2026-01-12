@@ -91,13 +91,23 @@ export default function EliteRankCityModal({
       try {
         // Fetch only dynamic data - static data comes from cached hooks
         // Note: competition_settings has been merged into competitions table
-        const [compsResult, votingRoundsResult, nominationPeriodsResult, eventsResult, announcementsResult] = await Promise.all([
+        const [compsResult, votingRoundsResult, eventsResult, announcementsResult] = await Promise.all([
           supabase.from('competitions').select('*').order('created_at', { ascending: false }),
           supabase.from('voting_rounds').select('*').order('round_order'),
-          supabase.from('nomination_periods').select('*').order('period_order'),
           supabase.from('events').select('*').order('date', { ascending: true }),
           supabase.from('announcements').select('*').order('published_at', { ascending: false }),
         ]);
+
+        // Fetch nomination_periods separately with error handling (table may not exist in all environments)
+        let nominationPeriodsData = [];
+        try {
+          const nominationPeriodsResult = await supabase.from('nomination_periods').select('*').order('period_order');
+          if (!nominationPeriodsResult.error && nominationPeriodsResult.data) {
+            nominationPeriodsData = nominationPeriodsResult.data;
+          }
+        } catch {
+          // nomination_periods table may not exist, continue without it
+        }
 
         // Group voting rounds by competition_id
         const votingRoundsMap = (votingRoundsResult.data || []).reduce((acc, r) => {
@@ -107,7 +117,7 @@ export default function EliteRankCityModal({
         }, {});
 
         // Group nomination periods by competition_id
-        const nominationPeriodsMap = (nominationPeriodsResult.data || []).reduce((acc, p) => {
+        const nominationPeriodsMap = nominationPeriodsData.reduce((acc, p) => {
           if (!acc[p.competition_id]) acc[p.competition_id] = [];
           acc[p.competition_id].push(p);
           return acc;
