@@ -363,12 +363,22 @@ export default function TimelineSettings({ competition, onSave }) {
 
     setSaving(true);
     try {
-      // Update competition status and finale_date (consolidated schema)
+      // Derive flat nomination fields from nomination_periods for backward compatibility
+      // This ensures display components (AboutTab, CompetitionTeaser, etc.) show correct dates
+      const sortedPeriods = [...nominationPeriods].sort(
+        (a, b) => (a.period_order || 0) - (b.period_order || 0)
+      );
+      const firstPeriodStart = sortedPeriods[0]?.start_date || null;
+      const lastPeriodEnd = sortedPeriods[sortedPeriods.length - 1]?.end_date || null;
+
+      // Update competition status, finale_date, and synced nomination fields
       const { error: compError } = await supabase
         .from('competitions')
         .update({
           status,
           finale_date: settings.finale_date || null,
+          nomination_start: firstPeriodStart,
+          nomination_end: lastPeriodEnd,
           updated_at: new Date().toISOString(),
         })
         .eq('id', competition.id);
