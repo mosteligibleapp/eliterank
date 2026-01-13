@@ -320,8 +320,16 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
       if (compError) throw compError;
       if (!compData) throw new Error('Competition not found');
 
+      // Normalize city to string for rendering, keep full object as cityData
+      const cityObj = compData.city;
+      const normalizedCompData = {
+        ...compData,
+        city: typeof cityObj === 'object' ? cityObj?.name : cityObj || 'Unknown City',
+        cityData: typeof cityObj === 'object' ? cityObj : null,
+      };
+
       // Set all state
-      setCompetition(compData);
+      setCompetition(normalizedCompData);
       setContestants(compData.contestants || []);
       setSponsors(
         (compData.sponsors || []).sort(
