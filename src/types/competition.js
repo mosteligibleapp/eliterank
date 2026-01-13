@@ -198,9 +198,18 @@ export function generateCitySlug(cityName, stateCode) {
 
 /**
  * Generate a competition URL path
+ * @param {string} orgSlug - Organization slug
+ * @param {string} citySlug - City slug
+ * @param {number} season - Season year
+ * @param {string} [demographicSlug] - Demographic slug (omit for "open")
  */
-export function generateCompetitionUrl(orgSlug, citySlug, season) {
-  return `/org/${orgSlug}/${citySlug}-${season}`;
+export function generateCompetitionUrl(orgSlug, citySlug, season, demographicSlug) {
+  // If demographic is 'open' or not provided, use simple URL format
+  if (!demographicSlug || demographicSlug === 'open') {
+    return `/org/${orgSlug}/${citySlug}-${season}`;
+  }
+  // Include demographic in URL for non-open demographics
+  return `/org/${orgSlug}/${citySlug}-${demographicSlug}-${season}`;
 }
 
 /**

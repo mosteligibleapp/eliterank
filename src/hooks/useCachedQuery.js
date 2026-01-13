@@ -146,6 +146,26 @@ export function useOrganizations() {
   return useStaticData('organizations', '*', { column: 'name', ascending: true });
 }
 
+export function useCategories() {
+  return useCachedQuery({
+    table: 'categories',
+    select: '*',
+    eq: { active: true },
+    order: { column: 'name', ascending: true },
+    ttl: 300000, // 5 minutes
+  });
+}
+
+export function useDemographics() {
+  return useCachedQuery({
+    table: 'demographics',
+    select: '*',
+    eq: { active: true },
+    order: { column: 'id', ascending: true }, // Keep seed order (Open first)
+    ttl: 300000, // 5 minutes
+  });
+}
+
 export function useCompetitions(filters = {}) {
   return useCachedQuery({
     table: 'competitions',

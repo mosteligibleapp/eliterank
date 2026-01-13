@@ -30,6 +30,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
   const [competitions, setCompetitions] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [cities, setCities] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [demographics, setDemographics] = useState([]);
   const [hosts, setHosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,6 +48,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
   const [formData, setFormData] = useState({
     organization_id: '',
     city_id: '',
+    category_id: '',
+    demographic_id: '',
     name: '', // Custom competition name
     season: new Date().getFullYear() + 1,
     number_of_winners: 5,
@@ -80,6 +84,24 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
 
       if (!citiesError) setCities(citiesData || []);
 
+      // Categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('active', true)
+        .order('name');
+
+      if (!categoriesError) setCategories(categoriesData || []);
+
+      // Demographics
+      const { data: demographicsData, error: demographicsError } = await supabase
+        .from('demographics')
+        .select('*')
+        .eq('active', true)
+        .order('id');
+
+      if (!demographicsError) setDemographics(demographicsData || []);
+
       // Hosts
       const { data: hostsData } = await supabase
         .from('profiles')
@@ -108,24 +130,31 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
 
   // Create competition
   const handleCreate = async () => {
-    if (!formData.organization_id || !formData.city_id) {
-      toast.error('Organization and city are required');
+    if (!formData.organization_id || !formData.city_id || !formData.category_id || !formData.demographic_id) {
+      toast.error('Organization, city, category, and demographic are required');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Check for duplicate competition (same org + city + season)
+      // Check for duplicate competition (same org + city + category + demographic + season)
       const { data: existing } = await supabase
         .from('competitions')
         .select('id')
         .eq('organization_id', formData.organization_id)
         .eq('city_id', formData.city_id)
+        .eq('category_id', formData.category_id)
+        .eq('demographic_id', formData.demographic_id)
         .eq('season', formData.season)
         .limit(1);
 
       if (existing && existing.length > 0) {
-        toast.error('A competition for this organization, city, and season already exists');
+        const selectedCategory = categories.find(c => c.id === formData.category_id);
+        const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
+        const selectedCity = cities.find(c => c.id === formData.city_id);
+        toast.error(
+          `A ${selectedCategory?.name || 'Unknown'} competition for ${selectedDemographic?.label || 'Unknown'} in ${selectedCity?.name || 'Unknown'} already exists for Season ${formData.season}.`
+        );
         setIsSubmitting(false);
         return;
       }
@@ -136,6 +165,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
         .insert({
           organization_id: formData.organization_id,
           city_id: formData.city_id,
+          category_id: formData.category_id,
+          demographic_id: formData.demographic_id,
           name: formData.name || null, // Custom competition name
           season: formData.season,
           status: COMPETITION_STATUS.DRAFT,
@@ -234,6 +265,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     setFormData({
       organization_id: '',
       city_id: '',
+      category_id: '',
+      demographic_id: '',
       name: '',
       season: new Date().getFullYear() + 1,
       number_of_winners: 5,
@@ -249,6 +282,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     setFormData({
       organization_id: comp.organization_id,
       city_id: comp.city_id,
+      category_id: comp.category_id || '',
+      demographic_id: comp.demographic_id || '',
       name: comp.name || '',
       season: comp.season,
       number_of_winners: comp.number_of_winners,
@@ -292,12 +327,17 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
 
   // Get display name for competition
   const getCompetitionName = (comp) => {
-    // Use custom name if set, otherwise generate from org/city
+    // Use custom name if set, otherwise generate from org/city/demographic
     if (comp.name) return comp.name;
     const org = organizations.find(o => o.id === comp.organization_id);
     const city = cities.find(c => c.id === comp.city_id);
+    const demographic = demographics.find(d => d.id === comp.demographic_id);
     const orgName = org?.name || 'Unknown Org';
     const cityName = city?.name || 'Unknown City';
+    // Include demographic in name if not "Open (All)"
+    if (demographic && demographic.slug !== 'open') {
+      return `${orgName} ${cityName} - ${demographic.label}`;
+    }
     return `${orgName} ${cityName}`;
   };
 
@@ -444,6 +484,17 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
         );
 
       case 2:
+        // Get selected values for auto-generated name preview
+        const step2Org = organizations.find(o => o.id === formData.organization_id);
+        const step2City = cities.find(c => c.id === formData.city_id);
+        const step2Demographic = demographics.find(d => d.id === formData.demographic_id);
+        const isOpenDemographic = step2Demographic?.slug === 'open';
+        const autoGeneratedName = step2Org && step2City
+          ? isOpenDemographic || !step2Demographic
+            ? `${step2Org.name} ${step2City.name}`
+            : `${step2Org.name} ${step2City.name} - ${step2Demographic.label}`
+          : '';
+
         return (
           <div>
             <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.lg }}>
@@ -473,6 +524,55 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
               )}
             </div>
 
+            {/* Category selection */}
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>Category *</label>
+              {categories.length === 0 ? (
+                <div style={{ padding: spacing.md, background: colors.background.secondary, borderRadius: borderRadius.lg, color: colors.text.secondary }}>
+                  No categories found.
+                </div>
+              ) : (
+                <select
+                  value={formData.category_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
+                  style={selectStyle}
+                >
+                  <option value="">Select a category...</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Demographic selection */}
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>Demographic *</label>
+              {demographics.length === 0 ? (
+                <div style={{ padding: spacing.md, background: colors.background.secondary, borderRadius: borderRadius.lg, color: colors.text.secondary }}>
+                  No demographics found.
+                </div>
+              ) : (
+                <select
+                  value={formData.demographic_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, demographic_id: e.target.value }))}
+                  style={selectStyle}
+                >
+                  <option value="">Select a demographic...</option>
+                  {demographics.map(demographic => (
+                    <option key={demographic.id} value={demographic.id}>
+                      {demographic.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                Who can enter this competition
+              </p>
+            </div>
+
             {/* Season */}
             <div style={{ marginBottom: spacing.lg }}>
               <label style={labelStyle}>Season Year *</label>
@@ -497,11 +597,15 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Most Eligible Miami"
+                placeholder={autoGeneratedName || 'e.g., Most Eligible Miami'}
                 style={inputStyle}
               />
               <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
-                Custom name for the competition. Leave blank to auto-generate from organization and city.
+                {formData.name
+                  ? 'Using custom name'
+                  : autoGeneratedName
+                    ? `Will auto-generate as: "${autoGeneratedName}"`
+                    : 'Leave blank to auto-generate from organization, city, and demographic.'}
               </p>
             </div>
           </div>
@@ -550,7 +654,21 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       case 4:
         const selectedOrg = organizations.find(o => o.id === formData.organization_id);
         const selectedCity = cities.find(c => c.id === formData.city_id);
+        const selectedCategory = categories.find(c => c.id === formData.category_id);
+        const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
         const selectedHost = hosts.find(h => h.id === formData.host_id);
+
+        // Determine if demographic is "Open (All)"
+        const step4IsOpen = selectedDemographic?.slug === 'open';
+
+        // Generate competition name for display
+        const displayName = formData.name
+          ? formData.name
+          : selectedOrg && selectedCity
+            ? step4IsOpen || !selectedDemographic
+              ? `${selectedOrg.name} ${selectedCity.name}`
+              : `${selectedOrg.name} ${selectedCity.name} - ${selectedDemographic.label}`
+            : 'Auto-generated';
 
         return (
           <div>
@@ -569,15 +687,21 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
               </div>
               <div style={{ marginBottom: spacing.md }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Competition Name:</span>
-                <p style={{ fontWeight: typography.fontWeight.medium }}>
-                  {formData.name || `${selectedOrg?.name || ''} ${selectedCity?.name || ''}`.trim() || 'Auto-generated'}
-                </p>
+                <p style={{ fontWeight: typography.fontWeight.medium }}>{displayName}</p>
               </div>
               <div style={{ marginBottom: spacing.md }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Location:</span>
                 <p style={{ fontWeight: typography.fontWeight.medium }}>
                   {selectedCity ? `${selectedCity.name}, ${selectedCity.state}` : 'Not selected'}
                 </p>
+              </div>
+              <div style={{ marginBottom: spacing.md }}>
+                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Category:</span>
+                <p style={{ fontWeight: typography.fontWeight.medium }}>{selectedCategory?.name || 'Not selected'}</p>
+              </div>
+              <div style={{ marginBottom: spacing.md }}>
+                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Demographic:</span>
+                <p style={{ fontWeight: typography.fontWeight.medium }}>{selectedDemographic?.label || 'Not selected'}</p>
               </div>
               <div style={{ marginBottom: spacing.md }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Season:</span>
@@ -605,7 +729,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
               }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>URL Preview:</span>
                 <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.sm }}>
-                  {generateCompetitionUrl(selectedOrg.slug, selectedCity.slug, formData.season)}
+                  {generateCompetitionUrl(selectedOrg.slug, selectedCity.slug, formData.season, selectedDemographic?.slug)}
                 </p>
               </div>
             )}
@@ -940,7 +1064,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                   onClick={() => setCurrentStep(prev => prev + 1)}
                   disabled={
                     (currentStep === 1 && !formData.organization_id) ||
-                    (currentStep === 2 && !formData.city_id)
+                    (currentStep === 2 && (!formData.city_id || !formData.category_id || !formData.demographic_id))
                   }
                 >
                   Next
@@ -948,7 +1072,7 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
               ) : (
                 <Button
                   onClick={handleCreate}
-                  disabled={isSubmitting || !formData.organization_id || !formData.city_id}
+                  disabled={isSubmitting || !formData.organization_id || !formData.city_id || !formData.category_id || !formData.demographic_id}
                 >
                   {isSubmitting ? 'Creating...' : 'Create Competition'}
                 </Button>
