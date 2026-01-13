@@ -116,7 +116,8 @@ export default function CompetitionPage() {
 
       setCompetition({
         ...compData,
-        city: cityData,
+        city: cityData?.name || cityData || 'Unknown City',  // Ensure city is a string for rendering
+        cityData: cityData,  // Keep full city object for components that need it
       });
 
       // Fetch winners if competition has them
@@ -255,7 +256,7 @@ export default function CompetitionPage() {
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}>
                 <h1 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold }}>
-                  {organization?.name} {competition.city?.name}
+                  {organization?.name} {competition.city}
                 </h1>
                 <span style={{
                   padding: `${spacing.xs} ${spacing.md}`,
@@ -272,7 +273,7 @@ export default function CompetitionPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, marginBottom: spacing.md }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.secondary }}>
                   <MapPin size={16} />
-                  {competition.city?.name}, {competition.city?.state}
+                  {competition.city}{competition.cityData?.state ? `, ${competition.cityData.state}` : ''}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.secondary }}>
                   <Calendar size={16} />
@@ -365,7 +366,7 @@ export default function CompetitionPage() {
                 Coming Soon
               </h2>
               <p style={{ color: colors.text.secondary, lineHeight: 1.6, marginBottom: spacing.lg }}>
-                {organization?.name} is bringing an exciting competition to {competition.city?.name} in {competition.season}!
+                {organization?.name} is bringing an exciting competition to {competition.city} in {competition.season}!
                 We're currently preparing everything for an amazing experience.
               </p>
 
