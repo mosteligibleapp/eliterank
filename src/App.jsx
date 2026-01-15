@@ -889,19 +889,37 @@ export default function App() {
   }
 
   // ===========================================================================
-  // RENDER: NEW PUBLIC COMPETITION PAGES (/c/:org/:city routes)
+  // RENDER: PUBLIC COMPETITION PAGES (/:orgSlug/:slug routes)
   // ===========================================================================
 
-  // Check if we're on a new-style competition route: /c/:orgSlug/:citySlug
-  // These routes have the format /c/org-name/city-name or /c/org-name/city-name/2026
+  // New URL format: /:orgSlug/:slug
+  // Where slug is: {city}-{year} or {city}-{demographic}-{year}
+  // Examples: /most-eligible/chicago-2028, /most-eligible/chicago-women-21-39-2028
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const isNewCompetitionRoute = pathParts[0] === 'c' && pathParts.length >= 3;
 
-  if (isNewCompetitionRoute) {
+  // Reserved paths that should NOT be treated as competition routes
+  const reservedPaths = ['c', 'org', 'login', 'claim', 'admin', 'profile', 'api', 'auth'];
+
+  // Check if this is a competition route:
+  // 1. Has exactly 2 segments (or more for nested routes like /e/:contestant)
+  // 2. First segment is not a reserved path
+  // 3. Second segment ends with a 4-digit year (e.g., "chicago-2028")
+  const isCompetitionRoute =
+    pathParts.length >= 2 &&
+    !reservedPaths.includes(pathParts[0].toLowerCase()) &&
+    /-\d{4}($|\/)/.test(pathParts[1]);
+
+  // Also support legacy /c/ routes for backwards compatibility
+  const isLegacyCompetitionRoute = pathParts[0] === 'c' && pathParts.length >= 2;
+
+  if (isCompetitionRoute || isLegacyCompetitionRoute) {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingScreen message="Loading competition..." />}>
           <Routes>
+            {/* New format: /:orgSlug/:slug/* */}
+            <Route path="/:orgSlug/:slug/*" element={<CompetitionLayout />} />
+            {/* Legacy format: /c/:orgSlug/:citySlug/:year/* */}
             <Route path="/c/:orgSlug/:citySlug/:year/*" element={<CompetitionLayout />} />
             <Route path="/c/:orgSlug/:citySlug/*" element={<CompetitionLayout />} />
           </Routes>
@@ -1038,13 +1056,13 @@ export default function App() {
           onLogout={handleLogout}
           currentUserId={user?.id}
           onViewPublicSite={() => {
-            // Navigate to new public page format
+            // Navigate to new public page format: /:orgSlug/:city-{year}
             const orgSlug = hostCompetition?.organization?.slug || 'most-eligible';
-            const citySlug = hostCompetition?.city
-              ? hostCompetition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
-              : 'competition';
-            const year = hostCompetition?.season || '';
-            const path = year ? `/c/${orgSlug}/${citySlug}/${year}` : `/c/${orgSlug}/${citySlug}`;
+            const cityName = hostCompetition?.city?.name || hostCompetition?.city || 'competition';
+            const citySlug = cityName.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '');
+            const year = hostCompetition?.season || new Date().getFullYear();
+            // New format: /:orgSlug/:city-year (demographic not included for host view)
+            const path = `/${orgSlug}/${citySlug}-${year}`;
             window.open(path, '_blank');
           }}
         />

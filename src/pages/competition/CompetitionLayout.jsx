@@ -224,11 +224,13 @@ function PhaseContent({ phase }) {
  * View Navigation - tabs for main/leaderboard
  */
 function ViewNavigation({ currentView }) {
-  const { orgSlug, citySlug, year } = usePublicCompetition();
+  const { orgSlug, citySlug, year, demographicSlug } = usePublicCompetition();
 
-  const basePath = year
-    ? `/c/${orgSlug}/${citySlug}/${year}`
-    : `/c/${orgSlug}/${citySlug}`;
+  // Build base path using new URL format: /:orgSlug/:city-{demographic}-{year}
+  const cityPart = citySlug?.replace(/-[a-z]{2}$/i, '') || 'unknown';
+  const basePath = demographicSlug && demographicSlug !== 'open'
+    ? `/${orgSlug}/${cityPart}-${demographicSlug}-${year}`
+    : `/${orgSlug}/${cityPart}-${year}`;
 
   const views = [
     { id: 'main', label: 'Competition', path: basePath },
@@ -367,12 +369,68 @@ function ContestantModals() {
 /**
  * Main Layout Wrapper
  * Extracts route params and wraps with provider
+ * Supports both new format (/:orgSlug/:slug) and legacy format (/c/:orgSlug/:citySlug/:year)
  */
 export function CompetitionLayout() {
-  const { orgSlug, citySlug, year } = useParams();
+  const params = useParams();
+  const location = useLocation();
+
+  // Determine if this is legacy or new format based on URL
+  const isLegacyFormat = location.pathname.startsWith('/c/');
+
+  let orgSlug, citySlug, year, demographicSlug;
+
+  if (isLegacyFormat) {
+    // Legacy format: /c/:orgSlug/:citySlug/:year
+    orgSlug = params.orgSlug;
+    citySlug = params.citySlug;
+    year = params.year;
+    demographicSlug = null;
+  } else {
+    // New format: /:orgSlug/:slug where slug is {city}-{year} or {city}-{demographic}-{year}
+    orgSlug = params.orgSlug;
+    const slug = params.slug;
+
+    if (slug) {
+      // Import parseCompetitionSlug dynamically to avoid circular deps
+      // Pattern: {city}-{year} or {city}-{demographic}-{year}
+      const yearMatch = slug.match(/-(\d{4})($|\/)/);
+      if (yearMatch) {
+        year = yearMatch[1];
+        const withoutYear = slug.replace(/-\d{4}($|\/).*/, '');
+
+        // Known demographic slugs
+        const demographicSlugs = [
+          'women-21-39', 'women-40-plus',
+          'men-21-39', 'men-40-plus',
+          'lgbtq-plus-21-39', 'lgbtq-plus-40-plus',
+        ];
+
+        // Check if any demographic slug is at the end
+        let foundDemographic = null;
+        for (const demoSlug of demographicSlugs) {
+          if (withoutYear.endsWith(`-${demoSlug}`)) {
+            foundDemographic = demoSlug;
+            citySlug = withoutYear.slice(0, -(demoSlug.length + 1));
+            break;
+          }
+        }
+
+        if (!foundDemographic) {
+          citySlug = withoutYear;
+        }
+        demographicSlug = foundDemographic;
+      }
+    }
+  }
 
   return (
-    <PublicCompetitionProvider orgSlug={orgSlug} citySlug={citySlug} year={year}>
+    <PublicCompetitionProvider
+      orgSlug={orgSlug}
+      citySlug={citySlug}
+      year={year}
+      demographicSlug={demographicSlug}
+    >
       <CompetitionLayoutInner />
     </PublicCompetitionProvider>
   );

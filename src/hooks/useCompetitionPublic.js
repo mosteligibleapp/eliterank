@@ -7,14 +7,15 @@ import {
 } from '../utils/calculatePrizePool';
 
 /**
- * Fetch public competition data by org slug, city slug, and optional year
+ * Fetch public competition data by org slug, city slug, optional year, and optional demographic
  *
  * @param {string} orgSlug - Organization slug (e.g., 'most-eligible')
  * @param {string} citySlug - City slug (e.g., 'chicago')
  * @param {string|number} year - Optional year (e.g., '2026')
+ * @param {string} demographicSlug - Optional demographic slug (e.g., 'women-21-39')
  * @returns {object} Competition data, phase info, loading state, and helpers
  */
-export function useCompetitionPublic(orgSlug, citySlug, year = null) {
+export function useCompetitionPublic(orgSlug, citySlug, year = null, demographicSlug = null) {
   const [competition, setCompetition] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [contestants, setContestants] = useState([]);
@@ -85,6 +86,25 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
         cityData = cityResult;
       }
 
+      // Lookup demographic if provided
+      let demographicId = null;
+      if (demographicSlug) {
+        const { data: demoData } = await supabase
+          .from('demographics')
+          .select('id')
+          .eq('slug', demographicSlug)
+          .maybeSingle();
+        demographicId = demoData?.id;
+      } else {
+        // Default to 'open' demographic if no demographic specified
+        const { data: openDemo } = await supabase
+          .from('demographics')
+          .select('id')
+          .eq('slug', 'open')
+          .maybeSingle();
+        demographicId = openDemo?.id;
+      }
+
       // Build competition query using city_id for accurate lookup
       let query = supabase
         .from('competitions')
@@ -92,6 +112,8 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
           `
           *,
           city:cities(*),
+          category:categories(*),
+          demographic:demographics(*),
           host:profiles!competitions_host_id_fkey (
             id,
             first_name,
@@ -184,6 +206,11 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
         )
         .eq('organization_id', orgData.id)
         .eq('city_id', cityData.id);
+
+      // Filter by demographic if we found one
+      if (demographicId) {
+        query = query.eq('demographic_id', demographicId);
+      }
 
       // Filter by year if provided
       if (year) {
@@ -380,7 +407,7 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null) {
     } finally {
       setLoading(false);
     }
-  }, [orgSlug, citySlug, year, isDemoMode]);
+  }, [orgSlug, citySlug, year, demographicSlug, isDemoMode]);
 
   // Initial fetch
   useEffect(() => {

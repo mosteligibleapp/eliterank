@@ -198,18 +198,61 @@ export function generateCitySlug(cityName, stateCode) {
 
 /**
  * Generate a competition URL path
+ * Format: /{org}/{city}-{year} for open demographic
+ * Format: /{org}/{city}-{demographic}-{year} for specific demographic
  * @param {string} orgSlug - Organization slug
- * @param {string} citySlug - City slug
+ * @param {string} citySlug - City slug (without state, e.g., "chicago" not "chicago-il")
  * @param {number} season - Season year
  * @param {string} [demographicSlug] - Demographic slug (omit for "open")
  */
 export function generateCompetitionUrl(orgSlug, citySlug, season, demographicSlug) {
+  // Extract just the city name part if slug includes state (e.g., "chicago-il" -> "chicago")
+  const cityPart = citySlug.replace(/-[a-z]{2}$/i, '');
+
   // If demographic is 'open' or not provided, use simple URL format
   if (!demographicSlug || demographicSlug === 'open') {
-    return `/org/${orgSlug}/${citySlug}-${season}`;
+    return `/${orgSlug}/${cityPart}-${season}`;
   }
   // Include demographic in URL for non-open demographics
-  return `/org/${orgSlug}/${citySlug}-${demographicSlug}-${season}`;
+  return `/${orgSlug}/${cityPart}-${demographicSlug}-${season}`;
+}
+
+/**
+ * Parse a competition URL slug to extract components
+ * @param {string} slug - The slug part (e.g., "chicago-2028" or "chicago-women-21-39-2028")
+ * @returns {{ city: string, demographic: string|null, year: number }|null}
+ */
+export function parseCompetitionSlug(slug) {
+  if (!slug) return null;
+
+  // Pattern: {city}-{year} or {city}-{demographic}-{year}
+  // Year is always 4 digits at the end
+  const yearMatch = slug.match(/-(\d{4})$/);
+  if (!yearMatch) return null;
+
+  const year = parseInt(yearMatch[1], 10);
+  const withoutYear = slug.slice(0, -5); // Remove "-YYYY"
+
+  // Known demographic slugs (must match database)
+  const demographicSlugs = [
+    'women-21-39',
+    'women-40-plus',
+    'men-21-39',
+    'men-40-plus',
+    'lgbtq-plus-21-39',
+    'lgbtq-plus-40-plus',
+  ];
+
+  // Check if any demographic slug is at the end
+  for (const demoSlug of demographicSlugs) {
+    if (withoutYear.endsWith(`-${demoSlug}`)) {
+      const city = withoutYear.slice(0, -(demoSlug.length + 1)); // Remove "-{demographic}"
+      return { city, demographic: demoSlug, year };
+    }
+  }
+
+  // No demographic found, entire withoutYear is the city
+  return { city: withoutYear, demographic: null, year };
 }
 
 /**
