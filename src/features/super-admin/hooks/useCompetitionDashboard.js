@@ -109,10 +109,14 @@ export function useCompetitionDashboard(competitionId) {
           .eq('competition_id', competitionId)
           .order('sort_order'),
 
-        // Get competition info
+        // Get competition info with category and demographic joins
         supabase
           .from('competitions')
-          .select('*')
+          .select(`
+            *,
+            category:categories(id, name, slug),
+            demographic:demographics(id, label, slug)
+          `)
           .eq('id', competitionId)
           .single(),
       ]);
@@ -274,6 +278,7 @@ export function useCompetitionDashboard(competitionId) {
           hostId: competition.host_id,
           organizationId: competition.organization_id,
           city: competition.city,
+          cityId: competition.city_id,
           nominationStart: competition.nomination_start,
           nominationEnd: competition.nomination_end,
           votingStart: competition.voting_start,
@@ -287,6 +292,19 @@ export function useCompetitionDashboard(competitionId) {
           description: competition.description,
           winners: competition.winners || [],
           nominationFormConfig: competition.nomination_form_config,
+          // Category & Demographic (joined)
+          categoryId: competition.category_id,
+          categoryName: competition.category?.name || null,
+          categorySlug: competition.category?.slug || null,
+          demographicId: competition.demographic_id,
+          demographicName: competition.demographic?.label || null,
+          demographicSlug: competition.demographic?.slug || null,
+          // Economics & Settings (admin-controlled)
+          pricePerVote: parseFloat(competition.price_per_vote) || 1.00,
+          minimumPrizeCents: competition.minimum_prize_cents || 100000,
+          eligibilityRadiusMiles: competition.eligibility_radius_miles || 100,
+          minContestants: competition.min_contestants || 40,
+          maxContestants: competition.max_contestants || null,
         } : null,
       });
     } catch (err) {

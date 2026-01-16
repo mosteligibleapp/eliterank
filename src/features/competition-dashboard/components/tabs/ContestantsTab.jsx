@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge, Avatar } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
+import { useResponsive } from '../../../../hooks/useResponsive';
 import WinnersManager from '../../../super-admin/components/WinnersManager';
 
 export default function ContestantsTab({
@@ -18,6 +19,7 @@ export default function ContestantsTab({
   onRestoreNominee,
   onOpenAddPersonModal,
 }) {
+  const { isMobile } = useResponsive();
   const [expandedSections, setExpandedSections] = useState({
     contestants: true,
     withProfile: true,
@@ -195,19 +197,33 @@ export default function ContestantsTab({
       {/* Stats Row */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: spacing.lg,
-        marginBottom: spacing.xxl,
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
+        gap: isMobile ? spacing.sm : spacing.lg,
+        marginBottom: isMobile ? spacing.lg : spacing.xxl,
       }}>
         {stats.map((stat, i) => (
           <div key={i} style={{
             background: colors.background.card,
             border: `1px solid ${colors.border.light}`,
-            borderRadius: borderRadius.xl,
-            padding: spacing.lg,
+            borderRadius: borderRadius.lg,
+            padding: isMobile ? spacing.md : spacing.lg,
+            // Last item spans 2 columns on mobile if odd count
+            ...(isMobile && i === stats.length - 1 && stats.length % 2 === 1 ? { gridColumn: 'span 2' } : {}),
           }}>
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, marginBottom: spacing.xs }}>{stat.label}</p>
-            <p style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: stat.color }}>{stat.value}</p>
+            <p style={{
+              color: colors.text.secondary,
+              fontSize: isMobile ? '10px' : typography.fontSize.xs,
+              marginBottom: spacing.xs,
+            }}>
+              {stat.label}
+            </p>
+            <p style={{
+              fontSize: isMobile ? typography.fontSize.xl : typography.fontSize.xxl,
+              fontWeight: typography.fontWeight.bold,
+              color: stat.color,
+            }}>
+              {stat.value}
+            </p>
           </div>
         ))}
       </div>

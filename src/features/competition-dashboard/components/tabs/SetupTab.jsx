@@ -1,9 +1,10 @@
-import React from 'react';
-import { Calendar, User, Star, FileText, Plus, Edit, Trash2, CheckCircle, XCircle, Lock, MapPin, DollarSign, Users, Tag } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, User, Star, Plus, Trash2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
+import { ThemeEditor } from '../settings';
 
 // Helper to format currency from cents
 const formatCurrency = (cents) => {
@@ -31,26 +32,26 @@ const getEventStatus = (event) => {
   return 'upcoming';
 };
 
-export default function SettingsTab({
+/**
+ * SetupTab - Configuration settings tab
+ * Contains competition details, timeline, judges, sponsors, events, and theme colors
+ */
+export default function SetupTab({
   competition,
   judges,
   sponsors,
   events,
-  rules,
-  formFields,
   isSuperAdmin = false,
   onRefresh,
   onDeleteJudge,
   onDeleteSponsor,
   onDeleteEvent,
-  onDeleteRule,
   onOpenJudgeModal,
   onOpenSponsorModal,
   onOpenEventModal,
-  onOpenRuleModal,
-  onShowNominationFormEditor,
 }) {
   const { isMobile } = useResponsive();
+  const [showCompetitionDetails, setShowCompetitionDetails] = useState(false);
 
   // View-only field component - stacked layout for better mobile display
   const ViewOnlyField = ({ label, value, icon: Icon }) => (
@@ -95,131 +96,117 @@ export default function SettingsTab({
 
   return (
     <div>
-      {/* Competition Details - View Only (Admin Controlled) */}
+      {/* Competition Details - View Only (Admin Controlled) - Collapsed by default */}
       <Panel
         title="Competition Details"
         icon={Lock}
         action={
-          <Badge variant="secondary" size="sm" style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-            <Lock size={12} /> Admin
-          </Badge>
+          <button
+            onClick={() => setShowCompetitionDetails(!showCompetitionDetails)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.xs,
+              background: 'none',
+              border: 'none',
+              color: colors.text.secondary,
+              cursor: 'pointer',
+              fontSize: typography.fontSize.sm,
+            }}
+          >
+            {showCompetitionDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            {showCompetitionDetails ? 'Hide' : 'Show'}
+          </button>
         }
       >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          <p style={{
+        {showCompetitionDetails && (
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+            <p style={{
+              color: colors.text.muted,
+              fontSize: typography.fontSize.sm,
+              marginBottom: spacing.md,
+            }}>
+              These settings are managed by the admin.
+            </p>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: spacing.sm,
+            }}>
+              {/* Slot Fields */}
+              <ViewOnlyField
+                label="Category"
+                value={competition?.categoryName}
+                icon={Tag}
+              />
+              <ViewOnlyField
+                label="Demographic"
+                value={competition?.demographicName}
+                icon={Users}
+              />
+              <ViewOnlyField
+                label="City"
+                value={competition?.city}
+                icon={MapPin}
+              />
+              <ViewOnlyField
+                label="Season"
+                value={competition?.season}
+                icon={Calendar}
+              />
+
+              {/* Economics Fields */}
+              <ViewOnlyField
+                label="Price per Vote"
+                value={competition?.pricePerVote ? `$${competition.pricePerVote.toFixed(2)}` : '$1.00'}
+                icon={DollarSign}
+              />
+              <ViewOnlyField
+                label="Minimum Prize"
+                value={formatCurrency(competition?.minimumPrizeCents)}
+                icon={DollarSign}
+              />
+              <ViewOnlyField
+                label="Number of Winners"
+                value={competition?.numberOfWinners}
+                icon={Star}
+              />
+              <ViewOnlyField
+                label="Eligibility Radius"
+                value={formatRadius(competition?.eligibilityRadiusMiles)}
+                icon={MapPin}
+              />
+
+              {/* Contestant Limits */}
+              <ViewOnlyField
+                label="Min Contestants"
+                value={competition?.minContestants || 40}
+                icon={Users}
+              />
+              <ViewOnlyField
+                label="Max Contestants"
+                value={competition?.maxContestants || 'No limit'}
+                icon={Users}
+              />
+            </div>
+          </div>
+        )}
+        {!showCompetitionDetails && (
+          <div style={{
+            padding: isMobile ? spacing.md : spacing.lg,
             color: colors.text.muted,
             fontSize: typography.fontSize.sm,
-            marginBottom: spacing.md,
           }}>
-            These settings are managed by the admin.
-          </p>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
-            gap: spacing.sm,
-          }}>
-            {/* Slot Fields */}
-            <ViewOnlyField
-              label="Category"
-              value={competition?.categoryName}
-              icon={Tag}
-            />
-            <ViewOnlyField
-              label="Demographic"
-              value={competition?.demographicName}
-              icon={Users}
-            />
-            <ViewOnlyField
-              label="City"
-              value={competition?.city}
-              icon={MapPin}
-            />
-            <ViewOnlyField
-              label="Season"
-              value={competition?.season}
-              icon={Calendar}
-            />
-
-            {/* Economics Fields */}
-            <ViewOnlyField
-              label="Price per Vote"
-              value={competition?.pricePerVote ? `$${competition.pricePerVote.toFixed(2)}` : '$1.00'}
-              icon={DollarSign}
-            />
-            <ViewOnlyField
-              label="Minimum Prize"
-              value={formatCurrency(competition?.minimumPrizeCents)}
-              icon={DollarSign}
-            />
-            <ViewOnlyField
-              label="Number of Winners"
-              value={competition?.numberOfWinners}
-              icon={Star}
-            />
-            <ViewOnlyField
-              label="Eligibility Radius"
-              value={formatRadius(competition?.eligibilityRadiusMiles)}
-              icon={MapPin}
-            />
-
-            {/* Contestant Limits - combined on one row for tablet+ */}
-            {isMobile ? (
-              <>
-                <ViewOnlyField
-                  label="Min Contestants"
-                  value={competition?.minContestants}
-                  icon={Users}
-                />
-                <ViewOnlyField
-                  label="Max Contestants"
-                  value={competition?.maxContestants || 'No limit'}
-                  icon={Users}
-                />
-              </>
-            ) : (
-              <div style={{ gridColumn: 'span 2' }}>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: spacing.xs,
-                  padding: `${spacing.md} ${spacing.lg}`,
-                  background: colors.background.secondary,
-                  borderRadius: borderRadius.md,
-                  border: `1px solid ${colors.border.lighter}`,
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                    color: colors.text.muted,
-                    fontSize: typography.fontSize.xs,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}>
-                    <Users size={12} />
-                    <span>Contestants</span>
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}>
-                    <span style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.base }}>
-                      {competition?.minContestants || 40} minimum · {competition?.maxContestants || 'No'} maximum
-                    </span>
-                    <Lock size={14} style={{ color: colors.text.muted, opacity: 0.4 }} />
-                  </div>
-                </div>
-              </div>
-            )}
+            <Lock size={14} style={{ display: 'inline', marginRight: spacing.xs, verticalAlign: 'middle' }} />
+            Admin-managed slot and economics settings. Click "Show" to view.
           </div>
-        </div>
+        )}
       </Panel>
 
       {/* Timeline & Status Settings */}
       <Panel title="Timeline & Status" icon={Calendar}>
-        <div style={{ padding: spacing.xl }}>
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           <TimelineSettings competition={competition} onSave={onRefresh} isSuperAdmin={isSuperAdmin} />
         </div>
       </Panel>
@@ -230,14 +217,14 @@ export default function SettingsTab({
         icon={User}
         action={<Button size="sm" icon={Plus} onClick={() => onOpenJudgeModal(null)}>Add Judge</Button>}
       >
-        <div style={{ padding: spacing.xl }}>
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {judges.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
               <p>No judges assigned yet</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.lg }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: spacing.lg }}>
               {judges.map((judge) => (
                 <div key={judge.id} style={{
                   display: 'flex',
@@ -247,10 +234,10 @@ export default function SettingsTab({
                   background: colors.background.secondary,
                   borderRadius: borderRadius.lg,
                 }}>
-                  <Avatar name={judge.name} size={48} avatarUrl={judge.avatarUrl} variant="gold" />
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: typography.fontWeight.medium }}>{judge.name}</p>
-                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>{judge.title}</p>
+                  <Avatar name={judge.name} size={isMobile ? 40 : 48} avatarUrl={judge.avatarUrl} variant="gold" />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: typography.fontWeight.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.name}</p>
+                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.title}</p>
                   </div>
                   <button
                     onClick={() => onDeleteJudge(judge.id)}
@@ -261,6 +248,11 @@ export default function SettingsTab({
                       borderRadius: borderRadius.md,
                       color: '#ef4444',
                       cursor: 'pointer',
+                      minWidth: '36px',
+                      minHeight: '36px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
                     <Trash2 size={14} />
@@ -278,7 +270,7 @@ export default function SettingsTab({
         icon={Star}
         action={<Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>}
       >
-        <div style={{ padding: spacing.xl }}>
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {sponsors.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <Star size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
@@ -294,15 +286,16 @@ export default function SettingsTab({
                   padding: spacing.lg,
                   background: colors.background.secondary,
                   borderRadius: borderRadius.lg,
+                  flexWrap: isMobile ? 'wrap' : 'nowrap',
                 }}>
                   {sponsor.logoUrl ? (
                     <img src={sponsor.logoUrl} alt={sponsor.name} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain' }} />
                   ) : (
-                    <div style={{ width: 48, height: 48, background: 'rgba(212,175,55,0.2)', borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 48, height: 48, background: 'rgba(212,175,55,0.2)', borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Star size={24} style={{ color: colors.gold.primary }} />
                     </div>
                   )}
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: typography.fontWeight.medium }}>{sponsor.name}</p>
                     <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
                       {sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)} Tier • ${sponsor.amount.toLocaleString()}
@@ -317,6 +310,11 @@ export default function SettingsTab({
                       borderRadius: borderRadius.md,
                       color: '#ef4444',
                       cursor: 'pointer',
+                      minWidth: '36px',
+                      minHeight: '36px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
                     <Trash2 size={14} />
@@ -334,7 +332,7 @@ export default function SettingsTab({
         icon={Calendar}
         action={<Button size="sm" icon={Plus} onClick={() => onOpenEventModal(null)}>Add Event</Button>}
       >
-        <div style={{ padding: spacing.xl }}>
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {events.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <Calendar size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
@@ -352,6 +350,7 @@ export default function SettingsTab({
                     padding: spacing.lg,
                     background: colors.background.secondary,
                     borderRadius: borderRadius.lg,
+                    flexWrap: isMobile ? 'wrap' : 'nowrap',
                   }}>
                     <div style={{
                       width: 48,
@@ -361,10 +360,11 @@ export default function SettingsTab({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      flexShrink: 0,
                     }}>
                       <Calendar size={24} style={{ color: status === 'active' ? colors.gold.primary : status === 'completed' ? '#22c55e' : '#3b82f6' }} />
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: typography.fontWeight.medium }}>{event.name}</p>
                       <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
                         {event.date ? new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set'}
@@ -383,6 +383,11 @@ export default function SettingsTab({
                         borderRadius: borderRadius.md,
                         color: '#ef4444',
                         cursor: 'pointer',
+                        minWidth: '36px',
+                        minHeight: '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
                       <Trash2 size={14} />
@@ -395,107 +400,8 @@ export default function SettingsTab({
         </div>
       </Panel>
 
-      {/* Rules Section */}
-      <Panel
-        title={`Rules (${rules.length})`}
-        icon={FileText}
-        action={<Button size="sm" icon={Plus} onClick={() => onOpenRuleModal(null)}>Add Rule</Button>}
-      >
-        <div style={{ padding: spacing.xl }}>
-          {rules.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No rules defined yet</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: spacing.md }}>
-              {rules.map((rule) => (
-                <div key={rule.id} style={{
-                  padding: spacing.lg,
-                  background: colors.background.secondary,
-                  borderRadius: borderRadius.lg,
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm }}>
-                    <h4 style={{ fontWeight: typography.fontWeight.semibold }}>{rule.sectionTitle}</h4>
-                    <div style={{ display: 'flex', gap: spacing.sm }}>
-                      <button
-                        onClick={() => onOpenRuleModal(rule)}
-                        style={{
-                          padding: spacing.sm,
-                          background: 'transparent',
-                          border: `1px solid ${colors.border.light}`,
-                          borderRadius: borderRadius.md,
-                          color: colors.text.secondary,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        onClick={() => onDeleteRule(rule.id)}
-                        style={{
-                          padding: spacing.sm,
-                          background: 'transparent',
-                          border: `1px solid rgba(239,68,68,0.3)`,
-                          borderRadius: borderRadius.md,
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                  <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>{rule.sectionContent || 'No content'}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Panel>
-
-      {/* Nomination Form Fields Section */}
-      <Panel
-        title="Nomination Form Fields"
-        icon={FileText}
-        action={<Button size="sm" icon={Edit} onClick={onShowNominationFormEditor}>Edit Form</Button>}
-      >
-        <div style={{ padding: spacing.xl }}>
-          <p style={{ color: colors.text.secondary, marginBottom: spacing.lg, fontSize: typography.fontSize.sm }}>
-            Customize the fields shown in the nomination form. Toggle fields on/off or mark them as required.
-          </p>
-          <div style={{ display: 'grid', gap: spacing.sm }}>
-            {formFields.map((field) => (
-              <div
-                key={field.key}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: spacing.md,
-                  background: field.enabled ? colors.background.secondary : 'rgba(100,100,100,0.1)',
-                  borderRadius: borderRadius.lg,
-                  opacity: field.enabled ? 1 : 0.6,
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: typography.fontWeight.medium }}>{field.label}</p>
-                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                    Type: {field.type} {field.required && '• Required'}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                  {field.enabled ? (
-                    <CheckCircle size={18} style={{ color: colors.status.success }} />
-                  ) : (
-                    <XCircle size={18} style={{ color: colors.text.muted }} />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Panel>
+      {/* Theme Colors */}
+      <ThemeEditor competition={competition} organization={null} onSave={onRefresh} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
+import { useResponsive } from '../../../../hooks/useResponsive';
 import CurrentPhaseCard from '../../../overview/components/CurrentPhaseCard';
 import UpcomingCard from '../../../overview/components/UpcomingCard';
 import Leaderboard from '../../../overview/components/Leaderboard';
@@ -12,15 +13,16 @@ export default function OverviewTab({
   onViewPublicSite,
 }) {
   const competitionName = competition?.name || 'Competition';
+  const { isMobile } = useResponsive();
 
   return (
     <div>
       {/* Two Cards Row */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: spacing.xl,
-        marginBottom: spacing.xxxl,
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+        gap: isMobile ? spacing.lg : spacing.xl,
+        marginBottom: isMobile ? spacing.xl : spacing.xxxl,
       }}>
         <CurrentPhaseCard competition={competition} />
         <UpcomingCard events={events} />

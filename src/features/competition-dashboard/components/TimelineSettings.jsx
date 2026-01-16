@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   Calendar, Vote, Plus, Trash2, AlertTriangle, Save, Loader,
-  Clock, Activity, Trophy, Archive, FileEdit
+  Clock, Activity, Trophy, Archive, FileEdit, Lock, Info
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { useResponsive } from '../../../hooks/useResponsive';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../../contexts/ToastContext';
 import {
@@ -19,6 +20,10 @@ import {
   TIMELINE_PHASES,
   getPhaseDisplayConfig,
 } from '../../../utils/competitionPhase';
+import {
+  getStatusChangeRestriction,
+  getNextAutoTransition,
+} from '../../../utils/competitionStatusEngine';
 
 /**
  * Parse a typed date string into an ISO date string
@@ -173,9 +178,14 @@ function formatDateForDisplay(isoDate) {
 /**
  * TimelineSettings - Manages competition status, timeline dates, and voting rounds
  * Used by both Host and SuperAdmin dashboards
+ *
+ * @param {object} competition - Competition object
+ * @param {function} onSave - Callback when save completes
+ * @param {boolean} isSuperAdmin - Whether the user is a super admin (shows status controls)
  */
-export default function TimelineSettings({ competition, onSave }) {
+export default function TimelineSettings({ competition, onSave, isSuperAdmin = false }) {
   const toast = useToast();
+  const { isMobile } = useResponsive();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -653,37 +663,116 @@ export default function TimelineSettings({ competition, onSave }) {
         </div>
       </div>
 
-      {/* Status Section */}
+      {/* Status Section - Admin can change, hosts see read-only */}
       <div style={sectionStyle}>
         <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
           <Vote size={18} />
           Competition Status
+          {!isSuperAdmin && (
+            <Badge variant="secondary" size="sm" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+              <Lock size={12} /> Admin Controlled
+            </Badge>
+          )}
         </h4>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-          {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-            <button
-              key={key}
-              onClick={() => setStatus(key)}
-              style={{
-                padding: `${spacing.sm} ${spacing.md}`,
-                background: status === key ? config.bg : 'transparent',
-                border: `1px solid ${status === key ? config.color : colors.border.light}`,
-                borderRadius: borderRadius.md,
-                color: status === key ? config.color : colors.text.muted,
-                fontSize: typography.fontSize.sm,
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: spacing.xs,
-                minWidth: '120px',
-              }}
-            >
-              <span style={{ fontWeight: typography.fontWeight.medium }}>{config.label}</span>
-              <span style={{ fontSize: typography.fontSize.xs, opacity: 0.7 }}>{config.description}</span>
-            </button>
-          ))}
-        </div>
+
+        {isSuperAdmin ? (
+          /* Admin view: clickable status buttons */
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
+            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+              <button
+                key={key}
+                onClick={() => setStatus(key)}
+                style={{
+                  padding: `${spacing.sm} ${spacing.md}`,
+                  background: status === key ? config.bg : 'transparent',
+                  border: `1px solid ${status === key ? config.color : colors.border.light}`,
+                  borderRadius: borderRadius.md,
+                  color: status === key ? config.color : colors.text.muted,
+                  fontSize: typography.fontSize.sm,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: spacing.xs,
+                  minWidth: '120px',
+                }}
+              >
+                <span style={{ fontWeight: typography.fontWeight.medium }}>{config.label}</span>
+                <span style={{ fontSize: typography.fontSize.xs, opacity: 0.7 }}>{config.description}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          /* Host view: read-only status display */
+          <div>
+            {/* Current status badge */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.md,
+              padding: spacing.lg,
+              background: colors.background.card,
+              borderRadius: borderRadius.lg,
+              border: `1px solid ${colors.border.light}`,
+              marginBottom: spacing.md,
+            }}>
+              <Badge
+                variant={STATUS_CONFIG[status]?.variant || 'secondary'}
+                size="lg"
+                style={{
+                  background: STATUS_CONFIG[status]?.bg,
+                  color: STATUS_CONFIG[status]?.color,
+                  border: `1px solid ${STATUS_CONFIG[status]?.color}`,
+                }}
+              >
+                {STATUS_CONFIG[status]?.label || status}
+              </Badge>
+              <div>
+                <p style={{ margin: 0, fontSize: typography.fontSize.sm, color: colors.text.primary }}>
+                  {STATUS_CONFIG[status]?.description || 'Competition status'}
+                </p>
+                <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+                  {getStatusChangeRestriction(status)}
+                </p>
+              </div>
+            </div>
+
+            {/* Auto-transition info */}
+            {(() => {
+              const nextTransition = getNextAutoTransition({
+                status,
+                nomination_start: nominationPeriods[0]?.start_date,
+                finale_date: settings.finale_date,
+              });
+
+              if (nextTransition) {
+                return (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: spacing.sm,
+                    padding: spacing.md,
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    borderRadius: borderRadius.md,
+                  }}>
+                    <Info size={16} style={{ color: 'rgb(59, 130, 246)', marginTop: '2px', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ margin: 0, fontSize: typography.fontSize.sm, color: 'rgb(59, 130, 246)' }}>
+                        {nextTransition.description}
+                      </p>
+                      <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+                        Scheduled: {formatDateForDisplay(nextTransition.triggerDate.toISOString())}
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
+            })()}
+          </div>
+        )}
       </div>
 
       {/* Contestant Prospecting Periods */}
@@ -755,7 +844,11 @@ export default function TimelineSettings({ competition, onSave }) {
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.sm }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                  gap: spacing.sm,
+                }}>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
                     <input
@@ -766,8 +859,9 @@ export default function TimelineSettings({ competition, onSave }) {
                       onBlur={(e) => handleNominationDateBlur(index, 'start_date', e.target.value)}
                       style={{
                         ...inputStyle,
-                        fontSize: typography.fontSize.sm,
-                        padding: spacing.sm,
+                        fontSize: '16px', // Prevents iOS zoom
+                        padding: spacing.md,
+                        minHeight: '44px',
                         borderColor: parseErrors[`nom_${index}_start_date`] ? '#ef4444' : colors.border.light,
                       }}
                     />
@@ -785,8 +879,9 @@ export default function TimelineSettings({ competition, onSave }) {
                       onBlur={(e) => handleNominationDateBlur(index, 'end_date', e.target.value)}
                       style={{
                         ...inputStyle,
-                        fontSize: typography.fontSize.sm,
-                        padding: spacing.sm,
+                        fontSize: '16px', // Prevents iOS zoom
+                        padding: spacing.md,
+                        minHeight: '44px',
                         borderColor: parseErrors[`nom_${index}_end_date`] ? '#ef4444' : colors.border.light,
                       }}
                     />
@@ -896,7 +991,11 @@ export default function TimelineSettings({ competition, onSave }) {
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: spacing.sm }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 100px',
+                  gap: spacing.sm,
+                }}>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
                     <input
@@ -907,8 +1006,9 @@ export default function TimelineSettings({ competition, onSave }) {
                       onBlur={(e) => handleRoundDateBlur(index, 'start_date', e.target.value)}
                       style={{
                         ...inputStyle,
-                        fontSize: typography.fontSize.sm,
-                        padding: spacing.sm,
+                        fontSize: '16px', // Prevents iOS zoom
+                        padding: spacing.md,
+                        minHeight: '44px',
                         borderColor: parseErrors[`round_${index}_start_date`] ? '#ef4444' : colors.border.light,
                       }}
                     />
@@ -926,8 +1026,9 @@ export default function TimelineSettings({ competition, onSave }) {
                       onBlur={(e) => handleRoundDateBlur(index, 'end_date', e.target.value)}
                       style={{
                         ...inputStyle,
-                        fontSize: typography.fontSize.sm,
-                        padding: spacing.sm,
+                        fontSize: '16px', // Prevents iOS zoom
+                        padding: spacing.md,
+                        minHeight: '44px',
                         borderColor: parseErrors[`round_${index}_end_date`] ? '#ef4444' : colors.border.light,
                       }}
                     />
@@ -936,13 +1037,18 @@ export default function TimelineSettings({ competition, onSave }) {
                     )}
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Advance</label>
+                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Contestants Advance</label>
                     <input
                       type="number"
                       min="1"
                       value={round.contestants_advance}
                       onChange={(e) => updateVotingRound(index, 'contestants_advance', parseInt(e.target.value) || 1)}
-                      style={{ ...inputStyle, fontSize: typography.fontSize.sm, padding: spacing.sm }}
+                      style={{
+                        ...inputStyle,
+                        fontSize: '16px',
+                        padding: spacing.md,
+                        minHeight: '44px',
+                      }}
                     />
                   </div>
                 </div>
