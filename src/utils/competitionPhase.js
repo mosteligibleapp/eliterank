@@ -75,7 +75,7 @@ export function computeTimelinePhase(competition) {
     return value ? new Date(value) : null;
   };
 
-  const finalsDate = getDate('finale_date', 'finals_date') || getDate('finals_date');
+  const finalsDate = getDate('finale_date');
 
   // Phase 1: Completed - after finals date
   if (finalsDate && now >= finalsDate) {
@@ -284,7 +284,7 @@ export function validateTimelineDates(competition) {
   const nominationEnd = competition?.nominationEnd || competition?.nomination_end;
   const votingStart = competition?.votingStart || competition?.voting_start;
   const votingEnd = competition?.votingEnd || competition?.voting_end;
-  const finalsDate = competition?.finalsDate || competition?.finals_date;
+  const finalsDate = competition?.finaleDate || competition?.finale_date;
 
   // Parse dates
   const nomStart = nominationStart ? new Date(nominationStart) : null;
@@ -549,7 +549,7 @@ export function shouldAutoTransitionToCompleted(competition, settings = null) {
   if (competition.status !== COMPETITION_STATUSES.LIVE) return false;
 
   // Check finale_date from settings first, then from competition
-  const finaleDate = settings?.finale_date || competition?.finale_date || competition?.finals_date;
+  const finaleDate = settings?.finale_date || competition?.finale_date;
 
   if (!finaleDate) return false;
 

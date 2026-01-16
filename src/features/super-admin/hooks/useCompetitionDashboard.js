@@ -278,7 +278,7 @@ export function useCompetitionDashboard(competitionId) {
           nominationEnd: competition.nomination_end,
           votingStart: competition.voting_start,
           votingEnd: competition.voting_end,
-          finalsDate: competition.finals_date,
+          finalsDate: competition.finale_date,
           hasEvents: competition.has_events,
           numberOfWinners: competition.number_of_winners,
           selectionCriteria: competition.selection_criteria,
@@ -968,7 +968,7 @@ export function useCompetitionDashboard(competitionId) {
           nomination_end: timelineData.nominationEnd,
           voting_start: timelineData.votingStart,
           voting_end: timelineData.votingEnd,
-          finals_date: timelineData.finalsDate,
+          finale_date: timelineData.finalsDate,
         })
         .eq('id', competitionId);
 
