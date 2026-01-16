@@ -390,7 +390,6 @@ export default function CompetitionDashboard({
         return (
           <PeopleTab
             competition={competition}
-            competitionId={competitionId}
             nominees={data.nominees}
             contestants={data.contestants}
             host={data.host}
