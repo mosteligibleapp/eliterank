@@ -203,7 +203,7 @@ export default function CompetitionDashboard({
     <header style={{
       background: 'rgba(20,20,30,0.95)',
       borderBottom: '1px solid rgba(212,175,55,0.15)',
-      padding: `${spacing.md} ${spacing.xxl}`,
+      padding: isMobile ? `${spacing.sm} ${spacing.md}` : `${spacing.md} ${spacing.xxl}`,
       position: 'sticky',
       top: 0,
       zIndex: 40,
@@ -215,8 +215,16 @@ export default function CompetitionDashboard({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: spacing.sm,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+        {/* Left side: Back, Logo, Name, Badge */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? spacing.sm : spacing.md,
+          minWidth: 0,
+          flex: 1,
+        }}>
           {onBack && (
             <button
               onClick={onBack}
@@ -224,77 +232,101 @@ export default function CompetitionDashboard({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '36px',
-                height: '36px',
+                width: isMobile ? '32px' : '36px',
+                height: isMobile ? '32px' : '36px',
                 background: 'rgba(212,175,55,0.1)',
                 border: '1px solid rgba(212,175,55,0.3)',
                 borderRadius: borderRadius.md,
                 color: colors.gold.primary,
                 cursor: 'pointer',
+                flexShrink: 0,
               }}
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={isMobile ? 16 : 18} />
             </button>
           )}
 
           <div style={{
-            width: '40px',
-            height: '40px',
+            width: isMobile ? '28px' : '40px',
+            height: isMobile ? '28px' : '40px',
             background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
-            borderRadius: borderRadius.lg,
+            borderRadius: borderRadius.md,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#0a0a0f',
             boxShadow: '0 0 20px rgba(212,175,55,0.3)',
+            flexShrink: 0,
           }}>
-            <Crown size={22} />
+            <Crown size={isMobile ? 16 : 22} />
           </div>
 
-          <span style={{
-            fontSize: typography.fontSize.xxl,
-            fontWeight: typography.fontWeight.semibold,
-            background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>
-            {competitionName}
-          </span>
-
-          <span style={{
-            padding: `${spacing.xs} ${spacing.md}`,
-            background: 'rgba(212,175,55,0.15)',
-            color: colors.gold.primary,
-            borderRadius: borderRadius.sm,
-            fontSize: typography.fontSize.xs,
-            fontWeight: typography.fontWeight.semibold,
+          {/* Name + Badge stacked on mobile */}
+          <div style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: spacing.xs,
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            gap: isMobile ? '1px' : spacing.md,
+            minWidth: 0,
           }}>
-            <Star size={12} /> {isSuperAdmin ? 'SUPER ADMIN' : 'VERIFIED HOST'}
-          </span>
+            <span style={{
+              fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.xxl,
+              fontWeight: typography.fontWeight.semibold,
+              background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: isMobile ? '100px' : 'none',
+              lineHeight: 1.2,
+            }}>
+              {competitionName}
+            </span>
+
+            <span style={{
+              padding: isMobile ? `1px ${spacing.xs}` : `${spacing.xs} ${spacing.md}`,
+              background: 'rgba(212,175,55,0.15)',
+              color: colors.gold.primary,
+              borderRadius: borderRadius.sm,
+              fontSize: isMobile ? '9px' : typography.fontSize.xs,
+              fontWeight: typography.fontWeight.semibold,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px',
+              whiteSpace: 'nowrap',
+            }}>
+              <Star size={isMobile ? 8 : 12} /> {isSuperAdmin ? 'ADMIN' : 'HOST'}
+            </span>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+        {/* Right side: Preview + Logout */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? spacing.xs : spacing.md,
+          flexShrink: 0,
+        }}>
           {onViewPublicSite && (
             <button
               onClick={onViewPublicSite}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: spacing.sm,
-                padding: `${spacing.sm} ${spacing.md}`,
+                gap: spacing.xs,
+                padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
                 background: 'rgba(212,175,55,0.1)',
                 border: `1px solid ${colors.gold.primary}`,
                 borderRadius: borderRadius.md,
                 color: colors.gold.primary,
-                fontSize: typography.fontSize.sm,
+                fontSize: isMobile ? '11px' : typography.fontSize.sm,
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
-              <Eye size={14} />
-              Preview Competition
+              <Eye size={isMobile ? 12 : 14} />
+              {isMobile ? 'Preview' : 'Preview Competition'}
             </button>
           )}
 
@@ -304,18 +336,20 @@ export default function CompetitionDashboard({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: spacing.sm,
-                padding: `${spacing.sm} ${spacing.md}`,
+                justifyContent: 'center',
+                padding: isMobile ? spacing.xs : `${spacing.sm} ${spacing.md}`,
                 background: 'transparent',
                 border: `1px solid ${colors.border.light}`,
                 borderRadius: borderRadius.md,
                 color: colors.text.secondary,
                 fontSize: typography.fontSize.sm,
                 cursor: 'pointer',
+                minWidth: isMobile ? '32px' : 'auto',
+                minHeight: isMobile ? '32px' : 'auto',
               }}
             >
               <LogOut size={16} />
-              Logout
+              {!isMobile && <span style={{ marginLeft: spacing.sm }}>Logout</span>}
             </button>
           )}
         </div>
