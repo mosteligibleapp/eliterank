@@ -15,6 +15,7 @@ import {
   generateCompetitionUrl,
   generateSlug,
 } from '../../../types/competition';
+import { validateStatusChange, COMPETITION_STATUSES } from '../../../utils/competitionPhase';
 
 // Wizard steps for creating a new competition
 const WIZARD_STEPS = [
@@ -41,6 +42,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAssignHostModal, setShowAssignHostModal] = useState(false);
+  const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState(null); // { competitionId, newStatus, competition }
   const [selectedCompetition, setSelectedCompetition] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -237,8 +240,47 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     }
   };
 
-  // Update competition status
-  const handleStatusChange = async (competitionId, newStatus) => {
+  // Check if a status change requires confirmation
+  const requiresConfirmation = (currentStatus, newStatus) => {
+    // Confirmation needed for destructive changes
+    if (newStatus === COMPETITION_STATUSES.ARCHIVE) return true;
+    if (newStatus === COMPETITION_STATUSES.COMPLETED) return true;
+    if (currentStatus === COMPETITION_STATUSES.LIVE) return true;
+    return false;
+  };
+
+  // Get confirmation dialog content based on status change
+  const getConfirmationContent = (currentStatus, newStatus) => {
+    if (newStatus === COMPETITION_STATUSES.ARCHIVE) {
+      return {
+        title: 'Archive Competition?',
+        message: 'This will hide the competition from public view and host dashboard.',
+        confirmLabel: 'Archive',
+      };
+    }
+    if (newStatus === COMPETITION_STATUSES.COMPLETED) {
+      return {
+        title: 'Complete Competition?',
+        message: 'This will finalize results and make the competition read-only. This should only be done after winners are determined.',
+        confirmLabel: 'Complete',
+      };
+    }
+    if (currentStatus === COMPETITION_STATUSES.LIVE) {
+      return {
+        title: 'Change Live Competition?',
+        message: 'This competition is currently live. Changing status will affect active voting.',
+        confirmLabel: 'Change Status',
+      };
+    }
+    return {
+      title: 'Change Status?',
+      message: 'Are you sure you want to change the competition status?',
+      confirmLabel: 'Change Status',
+    };
+  };
+
+  // Execute the actual status change in the database
+  const executeStatusChange = async (competitionId, newStatus) => {
     try {
       const { error } = await supabase
         .from('competitions')
@@ -252,6 +294,51 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     } catch {
       toast.error('Failed to update status');
     }
+  };
+
+  // Handle status change request with validation and confirmation
+  const handleStatusChange = async (competitionId, newStatus) => {
+    // Find the competition object
+    const competition = competitions.find(c => c.id === competitionId);
+    if (!competition) {
+      toast.error('Competition not found');
+      return;
+    }
+
+    // Don't do anything if status is the same
+    if (competition.status === newStatus) return;
+
+    // Validate the status change
+    const validation = validateStatusChange(competition, newStatus);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+
+    // Check if confirmation is required
+    if (requiresConfirmation(competition.status, newStatus)) {
+      setPendingStatusChange({ competitionId, newStatus, competition });
+      setShowStatusConfirmModal(true);
+      return;
+    }
+
+    // No confirmation needed, execute immediately
+    await executeStatusChange(competitionId, newStatus);
+  };
+
+  // Handle status confirmation from modal
+  const handleStatusConfirm = async () => {
+    if (!pendingStatusChange) return;
+
+    await executeStatusChange(pendingStatusChange.competitionId, pendingStatusChange.newStatus);
+    setShowStatusConfirmModal(false);
+    setPendingStatusChange(null);
+  };
+
+  // Cancel status change
+  const handleStatusCancel = () => {
+    setShowStatusConfirmModal(false);
+    setPendingStatusChange(null);
   };
 
   // Assign host
@@ -1396,6 +1483,69 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                   }}
                 >
                   {isSubmitting ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Change Confirmation Modal */}
+      {showStatusConfirmModal && pendingStatusChange && (
+        <div style={modalOverlayStyle} onClick={handleStatusCancel}>
+          <div style={{ ...modalStyle, maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: spacing.xl, textAlign: 'center' }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: pendingStatusChange.newStatus === COMPETITION_STATUSES.ARCHIVE
+                  ? 'rgba(156,163,175,0.2)'
+                  : pendingStatusChange.newStatus === COMPETITION_STATUSES.COMPLETED
+                    ? 'rgba(168,85,247,0.2)'
+                    : 'rgba(251,191,36,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto',
+                marginBottom: spacing.lg,
+              }}>
+                <AlertTriangle size={28} style={{
+                  color: pendingStatusChange.newStatus === COMPETITION_STATUSES.ARCHIVE
+                    ? colors.text.muted
+                    : pendingStatusChange.newStatus === COMPETITION_STATUSES.COMPLETED
+                      ? '#a855f7'
+                      : '#fbbf24'
+                }} />
+              </div>
+
+              <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>
+                {getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).title}
+              </h3>
+              <p style={{ color: colors.text.secondary, marginBottom: spacing.xl, lineHeight: 1.5 }}>
+                {getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).message}
+              </p>
+
+              <div style={{ display: 'flex', gap: spacing.md }}>
+                <Button
+                  variant="secondary"
+                  onClick={handleStatusCancel}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleStatusConfirm}
+                  style={{
+                    flex: 1,
+                    background: pendingStatusChange.newStatus === COMPETITION_STATUSES.ARCHIVE
+                      ? colors.text.muted
+                      : pendingStatusChange.newStatus === COMPETITION_STATUSES.COMPLETED
+                        ? '#a855f7'
+                        : colors.gold.primary,
+                  }}
+                >
+                  {getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).confirmLabel}
                 </Button>
               </div>
             </div>
