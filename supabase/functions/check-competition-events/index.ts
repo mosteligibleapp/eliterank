@@ -22,7 +22,7 @@ interface Competition {
   nomination_end: string | null
   voting_start: string | null
   voting_end: string | null
-  finals_date: string | null
+  finale_date: string | null
   total_contestants: number
   total_votes: number
   winners: string[] | null
@@ -93,9 +93,9 @@ const EVENT_CHECKS: EventCheck[] = [
       // Trigger if competition has winners and status just changed to completed
       if (comp.status !== 'completed') return false
       if (!comp.winners || comp.winners.length === 0) return false
-      // Check if finals_date was in the last 24 hours
-      if (comp.finals_date) {
-        const finalsDate = new Date(comp.finals_date)
+      // Check if finale_date was in the last 24 hours
+      if (comp.finale_date) {
+        const finalsDate = new Date(comp.finale_date)
         const hoursSinceFinals = (now.getTime() - finalsDate.getTime()) / (1000 * 60 * 60)
         return hoursSinceFinals >= 0 && hoursSinceFinals <= 48 // Give a bit more buffer for results
       }

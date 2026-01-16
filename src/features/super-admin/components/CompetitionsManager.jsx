@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
-  ChevronRight, ChevronLeft, Building2, X, Loader,
-  Settings, Eye, Archive, AlertTriangle, Activity
+  ChevronRight, ChevronLeft, ChevronDown, Building2, X, Loader,
+  Settings, Eye, Archive, AlertTriangle, Activity, DollarSign
 } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -13,7 +13,9 @@ import {
   STATUS_CONFIG,
   DEFAULT_COMPETITION,
   generateCompetitionUrl,
+  generateSlug,
 } from '../../../types/competition';
+import { validateStatusChange, COMPETITION_STATUSES } from '../../../utils/competitionPhase';
 
 // Wizard steps for creating a new competition
 const WIZARD_STEPS = [
@@ -40,6 +42,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAssignHostModal, setShowAssignHostModal] = useState(false);
+  const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState(null); // { competitionId, newStatus, competition }
   const [selectedCompetition, setSelectedCompetition] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,9 +57,16 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     name: '', // Custom competition name
     season: new Date().getFullYear() + 1,
     number_of_winners: 5,
+    minimum_prize: 1000, // $1,000 default
+    eligibility_radius: 100, // 100 miles default
+    min_contestants: 40,
+    max_contestants: '', // Empty = no limit
     host_id: '',
     description: '',
   });
+
+  // Collapsible state for contestant limits section
+  const [showContestantLimits, setShowContestantLimits] = useState(false);
 
   // Fetch all data on mount
   useEffect(() => {
@@ -135,6 +146,23 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       return;
     }
 
+    // Validate new settings
+    if (formData.minimum_prize < 1000) {
+      toast.error('Minimum prize must be at least $1,000');
+      return;
+    }
+
+    if (formData.min_contestants < 10) {
+      toast.error('Minimum contestants must be at least 10');
+      return;
+    }
+
+    const maxContestants = formData.max_contestants ? parseInt(formData.max_contestants, 10) : null;
+    if (maxContestants !== null && maxContestants <= formData.min_contestants) {
+      toast.error('Maximum contestants must be greater than minimum');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Check for duplicate competition (same org + city + category + demographic + season)
@@ -159,6 +187,15 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
         return;
       }
 
+      // Generate competition slug
+      const selectedCity = cities.find(c => c.id === formData.city_id);
+      const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
+      const citySlugPart = selectedCity?.slug?.replace(/-[a-z]{2}$/i, '') || generateSlug(selectedCity?.name || 'unknown');
+      const isOpenDemographic = !selectedDemographic || selectedDemographic.slug === 'open';
+      const competitionSlug = isOpenDemographic
+        ? `${citySlugPart}-${formData.season}`
+        : `${citySlugPart}-${selectedDemographic.slug}-${formData.season}`;
+
       // Create competition with settings included (consolidated schema)
       const { data, error } = await supabase
         .from('competitions')
@@ -167,16 +204,22 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
           city_id: formData.city_id,
           category_id: formData.category_id,
           demographic_id: formData.demographic_id,
-          name: formData.name || null, // Custom competition name
+          name: formData.name || null,
+          slug: competitionSlug,
           season: formData.season,
           status: COMPETITION_STATUS.DRAFT,
           entry_type: 'nominations',
-          has_events: true, // Always enable events
+          has_events: true,
           number_of_winners: formData.number_of_winners,
-          selection_criteria: 'votes', // Default to public votes
+          selection_criteria: 'votes',
           host_id: formData.host_id || null,
           description: formData.description || '',
-          // Settings fields (now on competitions table)
+          // New settings fields
+          minimum_prize_cents: formData.minimum_prize * 100,
+          eligibility_radius_miles: formData.eligibility_radius,
+          min_contestants: formData.min_contestants,
+          max_contestants: maxContestants,
+          // Existing settings
           price_per_vote: 1.00,
           use_price_bundler: false,
           allow_manual_votes: false,
@@ -197,8 +240,47 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     }
   };
 
-  // Update competition status
-  const handleStatusChange = async (competitionId, newStatus) => {
+  // Check if a status change requires confirmation
+  const requiresConfirmation = (currentStatus, newStatus) => {
+    // Confirmation needed for destructive changes
+    if (newStatus === COMPETITION_STATUSES.ARCHIVE) return true;
+    if (newStatus === COMPETITION_STATUSES.COMPLETED) return true;
+    if (currentStatus === COMPETITION_STATUSES.LIVE) return true;
+    return false;
+  };
+
+  // Get confirmation dialog content based on status change
+  const getConfirmationContent = (currentStatus, newStatus) => {
+    if (newStatus === COMPETITION_STATUSES.ARCHIVE) {
+      return {
+        title: 'Archive Competition?',
+        message: 'This will hide the competition from public view and host dashboard.',
+        confirmLabel: 'Archive',
+      };
+    }
+    if (newStatus === COMPETITION_STATUSES.COMPLETED) {
+      return {
+        title: 'Complete Competition?',
+        message: 'This will finalize results and make the competition read-only. This should only be done after winners are determined.',
+        confirmLabel: 'Complete',
+      };
+    }
+    if (currentStatus === COMPETITION_STATUSES.LIVE) {
+      return {
+        title: 'Change Live Competition?',
+        message: 'This competition is currently live. Changing status will affect active voting.',
+        confirmLabel: 'Change Status',
+      };
+    }
+    return {
+      title: 'Change Status?',
+      message: 'Are you sure you want to change the competition status?',
+      confirmLabel: 'Change Status',
+    };
+  };
+
+  // Execute the actual status change in the database
+  const executeStatusChange = async (competitionId, newStatus) => {
     try {
       const { error } = await supabase
         .from('competitions')
@@ -212,6 +294,51 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     } catch {
       toast.error('Failed to update status');
     }
+  };
+
+  // Handle status change request with validation and confirmation
+  const handleStatusChange = async (competitionId, newStatus) => {
+    // Find the competition object
+    const competition = competitions.find(c => c.id === competitionId);
+    if (!competition) {
+      toast.error('Competition not found');
+      return;
+    }
+
+    // Don't do anything if status is the same
+    if (competition.status === newStatus) return;
+
+    // Validate the status change
+    const validation = validateStatusChange(competition, newStatus);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+
+    // Check if confirmation is required
+    if (requiresConfirmation(competition.status, newStatus)) {
+      setPendingStatusChange({ competitionId, newStatus, competition });
+      setShowStatusConfirmModal(true);
+      return;
+    }
+
+    // No confirmation needed, execute immediately
+    await executeStatusChange(competitionId, newStatus);
+  };
+
+  // Handle status confirmation from modal
+  const handleStatusConfirm = async () => {
+    if (!pendingStatusChange) return;
+
+    await executeStatusChange(pendingStatusChange.competitionId, pendingStatusChange.newStatus);
+    setShowStatusConfirmModal(false);
+    setPendingStatusChange(null);
+  };
+
+  // Cancel status change
+  const handleStatusCancel = () => {
+    setShowStatusConfirmModal(false);
+    setPendingStatusChange(null);
   };
 
   // Assign host
@@ -270,10 +397,15 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       name: '',
       season: new Date().getFullYear() + 1,
       number_of_winners: 5,
+      minimum_prize: 1000,
+      eligibility_radius: 100,
+      min_contestants: 40,
+      max_contestants: '',
       host_id: '',
       description: '',
     });
     setCurrentStep(1);
+    setShowContestantLimits(false);
   };
 
   // Open edit modal with competition data
@@ -287,6 +419,10 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       name: comp.name || '',
       season: comp.season,
       number_of_winners: comp.number_of_winners,
+      minimum_prize: comp.minimum_prize_cents ? comp.minimum_prize_cents / 100 : 1000,
+      eligibility_radius: comp.eligibility_radius_miles ?? 100,
+      min_contestants: comp.min_contestants ?? 40,
+      max_contestants: comp.max_contestants || '',
       host_id: comp.host_id || '',
       description: comp.description || '',
     });
@@ -632,6 +768,128 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
               </select>
             </div>
 
+            {/* Minimum Prize */}
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>Minimum Prize *</label>
+              <div style={{ position: 'relative' }}>
+                <span style={{
+                  position: 'absolute',
+                  left: spacing.md,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: colors.text.muted,
+                  fontSize: typography.fontSize.md,
+                  pointerEvents: 'none',
+                }}>$</span>
+                <input
+                  type="number"
+                  value={formData.minimum_prize}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    minimum_prize: Math.max(1000, parseInt(e.target.value) || 1000)
+                  }))}
+                  min={1000}
+                  step={100}
+                  style={{ ...inputStyle, paddingLeft: '28px' }}
+                />
+              </div>
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                Host must fund at least this amount
+              </p>
+            </div>
+
+            {/* Eligibility Radius */}
+            <div style={{ marginBottom: spacing.lg }}>
+              <label style={labelStyle}>Eligibility Radius *</label>
+              <select
+                value={formData.eligibility_radius}
+                onChange={(e) => setFormData(prev => ({ ...prev, eligibility_radius: parseInt(e.target.value) }))}
+                style={selectStyle}
+              >
+                <option value={0}>Must reside in city</option>
+                <option value={10}>Within 10 miles</option>
+                <option value={25}>Within 25 miles</option>
+                <option value={50}>Within 50 miles</option>
+                <option value={100}>Within 100 miles</option>
+              </select>
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                How close contestants must be to the city
+              </p>
+            </div>
+
+            {/* Contestant Limits (Collapsible) */}
+            <div style={{
+              marginBottom: spacing.lg,
+              border: `1px solid ${colors.border.light}`,
+              borderRadius: borderRadius.lg,
+              overflow: 'hidden',
+            }}>
+              <button
+                type="button"
+                onClick={() => setShowContestantLimits(!showContestantLimits)}
+                style={{
+                  width: '100%',
+                  padding: spacing.md,
+                  background: colors.background.secondary,
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  color: colors.text.primary,
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: typography.fontWeight.medium,
+                }}
+              >
+                <span>Contestant Limits (Optional)</span>
+                <ChevronDown
+                  size={16}
+                  style={{
+                    transform: showContestantLimits ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </button>
+              {showContestantLimits && (
+                <div style={{ padding: spacing.md, background: colors.background.card }}>
+                  {/* Minimum Contestants */}
+                  <div style={{ marginBottom: spacing.md }}>
+                    <label style={{ ...labelStyle, marginBottom: spacing.xs }}>Minimum to Launch</label>
+                    <input
+                      type="number"
+                      value={formData.min_contestants}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        min_contestants: Math.max(10, parseInt(e.target.value) || 10)
+                      }))}
+                      min={10}
+                      style={inputStyle}
+                    />
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                      Required to start voting rounds
+                    </p>
+                  </div>
+                  {/* Maximum Contestants */}
+                  <div>
+                    <label style={{ ...labelStyle, marginBottom: spacing.xs }}>Maximum Contestants</label>
+                    <input
+                      type="number"
+                      value={formData.max_contestants}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        max_contestants: e.target.value
+                      }))}
+                      placeholder="No limit"
+                      style={inputStyle}
+                    />
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                      Leave blank for no limit
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Assign Host (optional) */}
             <div style={{ marginBottom: spacing.lg }}>
               <label style={labelStyle}>Assign Host (optional)</label>
@@ -710,6 +968,28 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
               <div style={{ marginBottom: spacing.md }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Winners:</span>
                 <p style={{ fontWeight: typography.fontWeight.medium }}>{formData.number_of_winners}</p>
+              </div>
+              <div style={{ marginBottom: spacing.md }}>
+                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Minimum Prize:</span>
+                <p style={{ fontWeight: typography.fontWeight.medium }}>
+                  ${formData.minimum_prize.toLocaleString()}
+                </p>
+              </div>
+              <div style={{ marginBottom: spacing.md }}>
+                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Eligibility:</span>
+                <p style={{ fontWeight: typography.fontWeight.medium }}>
+                  {formData.eligibility_radius === 0
+                    ? `Must reside in ${selectedCity?.name || 'city'}`
+                    : `Within ${formData.eligibility_radius} miles of ${selectedCity?.name || 'city'}`}
+                </p>
+              </div>
+              <div style={{ marginBottom: spacing.md }}>
+                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Contestants:</span>
+                <p style={{ fontWeight: typography.fontWeight.medium }}>
+                  {formData.max_contestants
+                    ? `${formData.min_contestants} minimum, ${formData.max_contestants} maximum`
+                    : `${formData.min_contestants} minimum, no maximum`}
+                </p>
               </div>
               <div>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Host:</span>
@@ -1203,6 +1483,69 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                   }}
                 >
                   {isSubmitting ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Change Confirmation Modal */}
+      {showStatusConfirmModal && pendingStatusChange && (
+        <div style={modalOverlayStyle} onClick={handleStatusCancel}>
+          <div style={{ ...modalStyle, maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: spacing.xl, textAlign: 'center' }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: pendingStatusChange.newStatus === COMPETITION_STATUSES.ARCHIVE
+                  ? 'rgba(156,163,175,0.2)'
+                  : pendingStatusChange.newStatus === COMPETITION_STATUSES.COMPLETED
+                    ? 'rgba(168,85,247,0.2)'
+                    : 'rgba(251,191,36,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto',
+                marginBottom: spacing.lg,
+              }}>
+                <AlertTriangle size={28} style={{
+                  color: pendingStatusChange.newStatus === COMPETITION_STATUSES.ARCHIVE
+                    ? colors.text.muted
+                    : pendingStatusChange.newStatus === COMPETITION_STATUSES.COMPLETED
+                      ? '#a855f7'
+                      : '#fbbf24'
+                }} />
+              </div>
+
+              <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>
+                {getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).title}
+              </h3>
+              <p style={{ color: colors.text.secondary, marginBottom: spacing.xl, lineHeight: 1.5 }}>
+                {getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).message}
+              </p>
+
+              <div style={{ display: 'flex', gap: spacing.md }}>
+                <Button
+                  variant="secondary"
+                  onClick={handleStatusCancel}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleStatusConfirm}
+                  style={{
+                    flex: 1,
+                    background: pendingStatusChange.newStatus === COMPETITION_STATUSES.ARCHIVE
+                      ? colors.text.muted
+                      : pendingStatusChange.newStatus === COMPETITION_STATUSES.COMPLETED
+                        ? '#a855f7'
+                        : colors.gold.primary,
+                  }}
+                >
+                  {getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).confirmLabel}
                 </Button>
               </div>
             </div>
