@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, User, Star, FileText, Plus, Edit, Trash2, CheckCircle, XCircle, Lock, MapPin, DollarSign, Users, Tag } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
+import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
 
 // Helper to format currency from cents
@@ -49,24 +50,45 @@ export default function SettingsTab({
   onOpenRuleModal,
   onShowNominationFormEditor,
 }) {
-  // View-only field row component
+  const { isMobile } = useResponsive();
+
+  // View-only field component - stacked layout for better mobile display
   const ViewOnlyField = ({ label, value, icon: Icon }) => (
     <div style={{
       display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: `${spacing.md} ${spacing.lg}`,
+      flexDirection: 'column',
+      gap: spacing.xs,
+      padding: isMobile ? spacing.md : `${spacing.md} ${spacing.lg}`,
       background: colors.background.secondary,
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadius.md,
       border: `1px solid ${colors.border.lighter}`,
+      minHeight: '44px', // Touch-friendly
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-        {Icon && <Icon size={16} style={{ color: colors.text.muted }} />}
-        <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>{label}</span>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spacing.xs,
+        color: colors.text.muted,
+        fontSize: typography.fontSize.xs,
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+      }}>
+        {Icon && <Icon size={12} />}
+        <span>{label}</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-        <span style={{ fontWeight: typography.fontWeight.medium }}>{value || '—'}</span>
-        <Lock size={14} style={{ color: colors.text.muted, opacity: 0.5 }} />
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <span style={{
+          fontWeight: typography.fontWeight.medium,
+          fontSize: typography.fontSize.base,
+          wordBreak: 'break-word',
+        }}>
+          {value || '—'}
+        </span>
+        <Lock size={14} style={{ color: colors.text.muted, opacity: 0.4, flexShrink: 0, marginLeft: spacing.sm }} />
       </div>
     </div>
   );
@@ -79,20 +101,24 @@ export default function SettingsTab({
         icon={Lock}
         action={
           <Badge variant="secondary" size="sm" style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-            <Lock size={12} /> Admin Controlled
+            <Lock size={12} /> Admin
           </Badge>
         }
       >
-        <div style={{ padding: spacing.xl }}>
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           <p style={{
             color: colors.text.muted,
             fontSize: typography.fontSize.sm,
-            marginBottom: spacing.lg,
+            marginBottom: spacing.md,
           }}>
-            These settings are managed by the admin and define the competition's franchise slot and economics.
+            These settings are managed by the admin.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+            gap: spacing.sm,
+          }}>
             {/* Slot Fields */}
             <ViewOnlyField
               label="Category"
@@ -137,17 +163,56 @@ export default function SettingsTab({
               icon={MapPin}
             />
 
-            {/* Contestant Limits */}
-            <ViewOnlyField
-              label="Min Contestants"
-              value={competition?.minContestants}
-              icon={Users}
-            />
-            <ViewOnlyField
-              label="Max Contestants"
-              value={competition?.maxContestants || 'No limit'}
-              icon={Users}
-            />
+            {/* Contestant Limits - combined on one row for tablet+ */}
+            {isMobile ? (
+              <>
+                <ViewOnlyField
+                  label="Min Contestants"
+                  value={competition?.minContestants}
+                  icon={Users}
+                />
+                <ViewOnlyField
+                  label="Max Contestants"
+                  value={competition?.maxContestants || 'No limit'}
+                  icon={Users}
+                />
+              </>
+            ) : (
+              <div style={{ gridColumn: 'span 2' }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: spacing.xs,
+                  padding: `${spacing.md} ${spacing.lg}`,
+                  background: colors.background.secondary,
+                  borderRadius: borderRadius.md,
+                  border: `1px solid ${colors.border.lighter}`,
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    color: colors.text.muted,
+                    fontSize: typography.fontSize.xs,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}>
+                    <Users size={12} />
+                    <span>Contestants</span>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
+                    <span style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.base }}>
+                      {competition?.minContestants || 40} minimum · {competition?.maxContestants || 'No'} maximum
+                    </span>
+                    <Lock size={14} style={{ color: colors.text.muted, opacity: 0.4 }} />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Panel>

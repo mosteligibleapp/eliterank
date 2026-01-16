@@ -6,6 +6,7 @@ import {
 import { Button, Badge, Avatar } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, RuleModal, AddPersonModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
+import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
@@ -36,6 +37,7 @@ export default function CompetitionDashboard({
   const [activeTab, setActiveTab] = useState('overview');
   const [showHostAssignment, setShowHostAssignment] = useState(false);
   const isSuperAdmin = role === 'superadmin';
+  const { isMobile } = useResponsive();
 
   // Fetch all dashboard data
   const dashboard = useCompetitionDashboard(competitionId);
@@ -329,7 +331,7 @@ export default function CompetitionDashboard({
     <nav style={{
       background: 'rgba(20,20,30,0.8)',
       borderBottom: `1px solid ${colors.border.lighter}`,
-      padding: `0 ${spacing.xxl}`,
+      padding: `0 ${isMobile ? spacing.md : spacing.xxl}`,
     }}>
       <div style={{
         maxWidth: '1200px',
@@ -337,6 +339,9 @@ export default function CompetitionDashboard({
         display: 'flex',
         gap: '0',
         overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch', // Smooth scroll on iOS
+        scrollbarWidth: 'none', // Hide scrollbar on Firefox
+        msOverflowStyle: 'none', // Hide scrollbar on IE/Edge
       }}>
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -346,23 +351,31 @@ export default function CompetitionDashboard({
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{
-                padding: `${spacing.md} ${spacing.xl}`,
+                padding: isMobile ? `${spacing.md} ${spacing.md}` : `${spacing.md} ${spacing.xl}`,
                 color: isActive ? colors.gold.primary : colors.text.secondary,
-                fontSize: typography.fontSize.md,
+                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 fontWeight: typography.fontWeight.medium,
                 cursor: 'pointer',
                 borderBottom: `2px solid ${isActive ? colors.gold.primary : 'transparent'}`,
                 background: 'none',
                 border: 'none',
                 display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
                 alignItems: 'center',
-                gap: spacing.sm,
+                justifyContent: 'center',
+                gap: isMobile ? '2px' : spacing.sm,
                 transition: `all ${transitions.fast}`,
                 whiteSpace: 'nowrap',
+                minWidth: isMobile ? '60px' : 'auto',
+                minHeight: '44px', // Touch-friendly
               }}
             >
-              <Icon size={18} />
-              {tab.label}
+              <Icon size={isMobile ? 20 : 18} />
+              {isMobile ? (
+                <span style={{ fontSize: '10px' }}>{tab.label.split(' ')[0]}</span>
+              ) : (
+                tab.label
+              )}
             </button>
           );
         })}
@@ -644,7 +657,7 @@ export default function CompetitionDashboard({
         <main style={{
           maxWidth: '1200px',
           margin: '0 auto',
-          padding: `${spacing.xxxl} ${spacing.xxl}`,
+          padding: isMobile ? `${spacing.lg} ${spacing.md}` : `${spacing.xxxl} ${spacing.xxl}`,
         }}>
           {renderContent()}
         </main>

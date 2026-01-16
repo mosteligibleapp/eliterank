@@ -5,6 +5,7 @@ import { EditWarningModal } from './EditWarningModal';
 import { isFieldEditable, checkFieldsForWarning } from '../../../../utils/fieldEditability';
 import { supabase } from '../../../../lib/supabase';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
+import { useResponsive } from '../../../../hooks/useResponsive';
 import { Button, Panel } from '../../../../components/ui';
 import { useToast } from '../../../../contexts/ToastContext';
 
@@ -18,6 +19,7 @@ import { useToast } from '../../../../contexts/ToastContext';
  */
 export function ThemeEditor({ competition, organization, onSave }) {
   const toast = useToast();
+  const { isMobile } = useResponsive();
   const status = competition?.status || 'draft';
 
   // Default colors
@@ -144,7 +146,7 @@ export function ThemeEditor({ competition, organization, onSave }) {
 
   const colorEditorsStyle = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
     gap: spacing.lg,
   };
 
@@ -170,7 +172,7 @@ export function ThemeEditor({ competition, organization, onSave }) {
 
   const colorPickerStyle = {
     width: '48px',
-    height: '40px',
+    height: '44px', // Touch-friendly
     padding: '2px',
     border: `1px solid ${colors.border.primary}`,
     borderRadius: borderRadius.md,
@@ -180,14 +182,15 @@ export function ThemeEditor({ competition, organization, onSave }) {
 
   const colorTextInputStyle = {
     flex: 1,
-    padding: spacing.sm,
+    padding: spacing.md,
     fontFamily: typography.fontFamily.mono,
-    fontSize: typography.fontSize.sm,
+    fontSize: '16px', // Prevents iOS zoom
     background: 'rgba(255, 255, 255, 0.05)',
     border: `1px solid ${colors.border.primary}`,
     borderRadius: borderRadius.md,
     color: colors.text.primary,
     outline: 'none',
+    minHeight: '44px', // Touch-friendly
   };
 
   const usageStyle = {
@@ -265,7 +268,7 @@ export function ThemeEditor({ competition, organization, onSave }) {
         </div>
       }
     >
-      <div style={{ padding: spacing.xl }}>
+      <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
         <p style={descStyle}>Customize the color scheme for your public competition page.</p>
 
         <div style={colorEditorsStyle}>

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { useResponsive } from '../../../hooks/useResponsive';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../../contexts/ToastContext';
 import {
@@ -184,6 +185,7 @@ function formatDateForDisplay(isoDate) {
  */
 export default function TimelineSettings({ competition, onSave, isSuperAdmin = false }) {
   const toast = useToast();
+  const { isMobile } = useResponsive();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -842,7 +844,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.sm }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                  gap: spacing.sm,
+                }}>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
                     <input
@@ -853,8 +859,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                       onBlur={(e) => handleNominationDateBlur(index, 'start_date', e.target.value)}
                       style={{
                         ...inputStyle,
-                        fontSize: typography.fontSize.sm,
-                        padding: spacing.sm,
+                        fontSize: '16px', // Prevents iOS zoom
+                        padding: spacing.md,
+                        minHeight: '44px',
                         borderColor: parseErrors[`nom_${index}_start_date`] ? '#ef4444' : colors.border.light,
                       }}
                     />
@@ -872,8 +879,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                       onBlur={(e) => handleNominationDateBlur(index, 'end_date', e.target.value)}
                       style={{
                         ...inputStyle,
-                        fontSize: typography.fontSize.sm,
-                        padding: spacing.sm,
+                        fontSize: '16px', // Prevents iOS zoom
+                        padding: spacing.md,
+                        minHeight: '44px',
                         borderColor: parseErrors[`nom_${index}_end_date`] ? '#ef4444' : colors.border.light,
                       }}
                     />
@@ -983,7 +991,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: spacing.sm }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 100px',
+                  gap: spacing.sm,
+                }}>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
                     <input
@@ -994,8 +1006,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                       onBlur={(e) => handleRoundDateBlur(index, 'start_date', e.target.value)}
                       style={{
                         ...inputStyle,
-                        fontSize: typography.fontSize.sm,
-                        padding: spacing.sm,
+                        fontSize: '16px', // Prevents iOS zoom
+                        padding: spacing.md,
+                        minHeight: '44px',
                         borderColor: parseErrors[`round_${index}_start_date`] ? '#ef4444' : colors.border.light,
                       }}
                     />
@@ -1013,8 +1026,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                       onBlur={(e) => handleRoundDateBlur(index, 'end_date', e.target.value)}
                       style={{
                         ...inputStyle,
-                        fontSize: typography.fontSize.sm,
-                        padding: spacing.sm,
+                        fontSize: '16px', // Prevents iOS zoom
+                        padding: spacing.md,
+                        minHeight: '44px',
                         borderColor: parseErrors[`round_${index}_end_date`] ? '#ef4444' : colors.border.light,
                       }}
                     />
@@ -1023,13 +1037,18 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                     )}
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Advance</label>
+                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Contestants Advance</label>
                     <input
                       type="number"
                       min="1"
                       value={round.contestants_advance}
                       onChange={(e) => updateVotingRound(index, 'contestants_advance', parseInt(e.target.value) || 1)}
-                      style={{ ...inputStyle, fontSize: typography.fontSize.sm, padding: spacing.sm }}
+                      style={{
+                        ...inputStyle,
+                        fontSize: '16px',
+                        padding: spacing.md,
+                        minHeight: '44px',
+                      }}
                     />
                   </div>
                 </div>
