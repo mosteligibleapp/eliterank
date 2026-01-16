@@ -1,8 +1,20 @@
 import React from 'react';
-import { Calendar, User, Star, FileText, Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, User, Star, FileText, Plus, Edit, Trash2, CheckCircle, XCircle, Lock, MapPin, DollarSign, Users, Tag } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import TimelineSettings from '../TimelineSettings';
+
+// Helper to format currency from cents
+const formatCurrency = (cents) => {
+  const dollars = (cents || 0) / 100;
+  return dollars.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 });
+};
+
+// Helper to format radius display
+const formatRadius = (miles) => {
+  if (miles === 0) return 'No restriction';
+  return `${miles} miles`;
+};
 
 // Helper to determine event status
 const getEventStatus = (event) => {
@@ -36,8 +48,109 @@ export default function SettingsTab({
   onOpenRuleModal,
   onShowNominationFormEditor,
 }) {
+  // View-only field row component
+  const ViewOnlyField = ({ label, value, icon: Icon }) => (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: `${spacing.md} ${spacing.lg}`,
+      background: colors.background.secondary,
+      borderRadius: borderRadius.lg,
+      border: `1px solid ${colors.border.lighter}`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+        {Icon && <Icon size={16} style={{ color: colors.text.muted }} />}
+        <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>{label}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+        <span style={{ fontWeight: typography.fontWeight.medium }}>{value || '—'}</span>
+        <Lock size={14} style={{ color: colors.text.muted, opacity: 0.5 }} />
+      </div>
+    </div>
+  );
+
   return (
     <div>
+      {/* Competition Details - View Only (Admin Controlled) */}
+      <Panel
+        title="Competition Details"
+        icon={Lock}
+        action={
+          <Badge variant="secondary" size="sm" style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+            <Lock size={12} /> Admin Controlled
+          </Badge>
+        }
+      >
+        <div style={{ padding: spacing.xl }}>
+          <p style={{
+            color: colors.text.muted,
+            fontSize: typography.fontSize.sm,
+            marginBottom: spacing.lg,
+          }}>
+            These settings are managed by the admin and define the competition's franchise slot and economics.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
+            {/* Slot Fields */}
+            <ViewOnlyField
+              label="Category"
+              value={competition?.categoryName}
+              icon={Tag}
+            />
+            <ViewOnlyField
+              label="Demographic"
+              value={competition?.demographicName}
+              icon={Users}
+            />
+            <ViewOnlyField
+              label="City"
+              value={competition?.city}
+              icon={MapPin}
+            />
+            <ViewOnlyField
+              label="Season"
+              value={competition?.season}
+              icon={Calendar}
+            />
+
+            {/* Economics Fields */}
+            <ViewOnlyField
+              label="Price per Vote"
+              value={competition?.pricePerVote ? `$${competition.pricePerVote.toFixed(2)}` : '$1.00'}
+              icon={DollarSign}
+            />
+            <ViewOnlyField
+              label="Minimum Prize"
+              value={formatCurrency(competition?.minimumPrizeCents)}
+              icon={DollarSign}
+            />
+            <ViewOnlyField
+              label="Number of Winners"
+              value={competition?.numberOfWinners}
+              icon={Star}
+            />
+            <ViewOnlyField
+              label="Eligibility Radius"
+              value={formatRadius(competition?.eligibilityRadiusMiles)}
+              icon={MapPin}
+            />
+
+            {/* Contestant Limits */}
+            <ViewOnlyField
+              label="Min Contestants"
+              value={competition?.minContestants}
+              icon={Users}
+            />
+            <ViewOnlyField
+              label="Max Contestants"
+              value={competition?.maxContestants || 'No limit'}
+              icon={Users}
+            />
+          </div>
+        </div>
+      </Panel>
+
       {/* Timeline & Status Settings */}
       <Panel title="Timeline & Status" icon={Calendar}>
         <div style={{ padding: spacing.xl }}>

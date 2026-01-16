@@ -8,11 +8,24 @@
  */
 
 const FIELD_RULES = {
-  // Core Identity - locked once live
-  name: { draft: true, publish: true, live: false, completed: false },
-  city: { draft: true, publish: true, live: false, completed: false },
-  season: { draft: true, publish: true, live: false, completed: false },
-  slug: { draft: true, publish: true, live: false, completed: false },
+  // SLOT FIELDS - Always locked (admin-controlled franchise definition)
+  // These define the unique competition slot and cannot be changed by hosts
+  name: { draft: false, publish: false, live: false, completed: false },
+  city: { draft: false, publish: false, live: false, completed: false },
+  season: { draft: false, publish: false, live: false, completed: false },
+  slug: { draft: false, publish: false, live: false, completed: false },
+  category: { draft: false, publish: false, live: false, completed: false },
+  demographic: { draft: false, publish: false, live: false, completed: false },
+
+  // ECONOMICS FIELDS - Always locked (admin-controlled economics)
+  // These affect prize commitments and revenue structure
+  prize_pool_minimum: { draft: false, publish: false, live: false, completed: false },
+  minimum_prize: { draft: false, publish: false, live: false, completed: false },
+  number_of_winners: { draft: false, publish: false, live: false, completed: false },
+  price_per_vote: { draft: false, publish: false, live: false, completed: false },
+  eligibility_radius: { draft: false, publish: false, live: false, completed: false },
+  min_contestants: { draft: false, publish: false, live: false, completed: false },
+  max_contestants: { draft: false, publish: false, live: false, completed: false },
 
   // About/Marketing - mostly editable
   about_tagline: { draft: true, publish: true, live: true, completed: false },
@@ -20,9 +33,6 @@ const FIELD_RULES = {
   about_traits: { draft: true, publish: true, live: 'warn', completed: false },
   about_age_range: { draft: true, publish: true, live: false, completed: false },
   about_requirement: { draft: true, publish: true, live: false, completed: false },
-
-  // Prize Structure - locked once commitments made
-  prize_pool_minimum: { draft: true, publish: true, live: false, completed: false },
 
   // Theme - warn during live
   theme_primary: { draft: true, publish: true, live: 'warn', completed: false },
@@ -141,12 +151,31 @@ export function checkFieldsForWarning(fields, status) {
 export function getLockedReason(fieldName, status) {
   const normalizedStatus = normalizeStatus(status);
 
+  // Always-locked fields (admin-controlled) - same message regardless of status
+  const alwaysLockedReasons = {
+    name: 'Competition name is set by admin and defines the franchise slot.',
+    city: 'City is set by admin and defines the franchise slot.',
+    season: 'Season is set by admin and defines the franchise slot.',
+    slug: 'URL slug is generated automatically and cannot be changed.',
+    category: 'Category is set by admin and defines the franchise slot.',
+    demographic: 'Demographic is set by admin and defines the franchise slot.',
+    prize_pool_minimum: 'Minimum prize is set by admin to protect contestant expectations.',
+    minimum_prize: 'Minimum prize is set by admin to protect contestant expectations.',
+    number_of_winners: 'Winner count is set by admin and affects prize distribution.',
+    price_per_vote: 'Price per vote is set by admin and affects revenue structure.',
+    eligibility_radius: 'Eligibility radius is set by admin and defines competition scope.',
+    min_contestants: 'Minimum contestants is set by admin for competition viability.',
+    max_contestants: 'Maximum contestants is set by admin for competition management.',
+  };
+
+  // Check always-locked first
+  if (alwaysLockedReasons[fieldName]) {
+    return alwaysLockedReasons[fieldName];
+  }
+
+  // Status-specific reasons
   const reasons = {
     live: {
-      name: 'Competition name cannot be changed while live to avoid confusion.',
-      city: 'Location cannot be changed while the competition is active.',
-      prize_pool_minimum:
-        'Prize pool minimum is locked once voting begins to protect contestant expectations.',
       about_age_range:
         'Eligibility requirements cannot change during an active competition.',
       about_requirement:
@@ -154,7 +183,6 @@ export function getLockedReason(fieldName, status) {
       nomination_start: 'Past dates cannot be modified.',
       nomination_end: 'Nomination period cannot be changed once voting has started.',
       voting_start: 'Voting has already begun.',
-      number_of_winners: 'Winner count cannot change during active competition.',
       advancement_thresholds: 'Advancement rules are locked once voting begins.',
     },
     completed: {
