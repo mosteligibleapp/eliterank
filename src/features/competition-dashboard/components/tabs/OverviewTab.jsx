@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Eye } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -15,6 +15,11 @@ export default function OverviewTab({
   const competitionName = competition?.name || 'Competition';
   const { isMobile } = useResponsive();
 
+  // Sort contestants by votes (descending) for proper ranking
+  const rankedContestants = useMemo(() => {
+    return [...contestants].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+  }, [contestants]);
+
   return (
     <div>
       {/* Two Cards Row */}
@@ -28,8 +33,8 @@ export default function OverviewTab({
         <UpcomingCard events={events} />
       </div>
 
-      {/* Leaderboard */}
-      <Leaderboard contestants={contestants} title={`${competitionName} Top Contestants`} />
+      {/* Leaderboard - sorted by votes */}
+      <Leaderboard contestants={rankedContestants} title={`${competitionName} Top Contestants`} />
 
       {/* Footer Actions */}
       {onViewPublicSite && (
