@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Users, Edit2, Trash2, UserPlus,
   ChevronRight, ChevronLeft, ChevronDown, Building2, X, Loader,
-  Settings, Eye, Archive, AlertTriangle, Activity, DollarSign
+  Settings, Eye, Archive, AlertTriangle, Activity, DollarSign, Lock, ChevronUp
 } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -14,6 +14,7 @@ import {
   DEFAULT_COMPETITION,
   generateCompetitionUrl,
   generateSlug,
+  PRICE_BUNDLER_TIERS,
 } from '../../../types/competition';
 import { validateStatusChange, COMPETITION_STATUSES } from '../../../utils/competitionPhase';
 
@@ -25,7 +26,7 @@ const WIZARD_STEPS = [
   { id: 4, name: 'Review', description: 'Confirm & create' },
 ];
 
-export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSettings }) {
+export default function CompetitionsManager({ onViewDashboard }) {
   const toast = useToast();
 
   // Data state
@@ -47,6 +48,8 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
   const [selectedCompetition, setSelectedCompetition] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editModalTab, setEditModalTab] = useState('basic'); // 'basic', 'pricing', 'settings'
+  const [showPriceBundlerTiers, setShowPriceBundlerTiers] = useState(false);
 
   // Form state for new competition
   const [formData, setFormData] = useState({
@@ -63,6 +66,10 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
     max_contestants: '', // Empty = no limit
     host_id: '',
     description: '',
+    // Pricing fields
+    price_per_vote: 1.00,
+    use_price_bundler: false,
+    allow_manual_votes: false,
   });
 
   // Collapsible state for contestant limits section
@@ -409,8 +416,10 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
   };
 
   // Open edit modal with competition data
-  const openEditModal = (comp) => {
+  const openEditModal = (comp, defaultTab = 'basic') => {
     setSelectedCompetition(comp);
+    setEditModalTab(defaultTab);
+    setShowPriceBundlerTiers(false);
     setFormData({
       organization_id: comp.organization_id,
       city_id: comp.city_id,
@@ -425,34 +434,75 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
       max_contestants: comp.max_contestants || '',
       host_id: comp.host_id || '',
       description: comp.description || '',
+      // Pricing fields
+      price_per_vote: comp.price_per_vote ?? 1.00,
+      use_price_bundler: comp.use_price_bundler ?? false,
+      allow_manual_votes: comp.allow_manual_votes ?? false,
     });
     setShowEditModal(true);
   };
 
-  // Update competition
+  // Close edit modal and reset state
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setSelectedCompetition(null);
+    setEditModalTab('basic');
+    setShowPriceBundlerTiers(false);
+    resetForm();
+  };
+
+  // Update competition - saves all tabs at once
   const handleUpdate = async () => {
     if (!selectedCompetition) return;
+
+    // Validation
+    if (formData.minimum_prize < 1000) {
+      toast.error('Minimum prize must be at least $1,000');
+      setEditModalTab('settings');
+      return;
+    }
+
+    if (formData.min_contestants < 10) {
+      toast.error('Minimum contestants must be at least 10');
+      setEditModalTab('settings');
+      return;
+    }
+
+    const maxContestants = formData.max_contestants ? parseInt(formData.max_contestants, 10) : null;
+    if (maxContestants !== null && maxContestants <= formData.min_contestants) {
+      toast.error('Maximum contestants must be greater than minimum');
+      setEditModalTab('settings');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const { error } = await supabase
         .from('competitions')
         .update({
+          // Tab 1: Basic Info
           name: formData.name || null,
           season: formData.season,
           number_of_winners: formData.number_of_winners,
           host_id: formData.host_id || null,
           description: formData.description || '',
+          // Tab 2: Voting & Pricing
+          price_per_vote: formData.price_per_vote,
+          use_price_bundler: formData.use_price_bundler,
+          allow_manual_votes: formData.allow_manual_votes,
+          // Tab 3: Settings
+          minimum_prize_cents: formData.minimum_prize * 100,
+          eligibility_radius_miles: formData.eligibility_radius,
+          min_contestants: formData.min_contestants,
+          max_contestants: maxContestants,
           updated_at: new Date().toISOString(),
         })
         .eq('id', selectedCompetition.id);
 
       if (error) throw error;
 
-      toast.success('Competition updated successfully');
-      setShowEditModal(false);
-      setSelectedCompetition(null);
-      resetForm();
+      toast.success('Competition updated');
+      closeEditModal();
       fetchData();
     } catch (err) {
       toast.error(`Failed to update competition: ${err.message}`);
@@ -1182,19 +1232,17 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
                       onClick={() => onViewDashboard({ ...comp, name: getCompetitionName(comp) })}
                     />
                   )}
-                  {onOpenAdvancedSettings && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon={Settings}
-                      onClick={() => onOpenAdvancedSettings({ ...comp, name: getCompetitionName(comp) })}
-                    />
-                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={Settings}
+                    onClick={() => openEditModal(comp, 'pricing')}
+                  />
                   <Button
                     variant="secondary"
                     size="sm"
                     icon={Edit2}
-                    onClick={() => openEditModal(comp)}
+                    onClick={() => openEditModal(comp, 'basic')}
                   />
                   <Button
                     variant="secondary"
@@ -1553,122 +1601,383 @@ export default function CompetitionsManager({ onViewDashboard, onOpenAdvancedSet
         </div>
       )}
 
-      {/* Edit Competition Modal */}
-      {showEditModal && selectedCompetition && (
-        <div style={modalOverlayStyle} onClick={() => { setShowEditModal(false); setSelectedCompetition(null); resetForm(); }}>
-          <div style={{ ...modalStyle, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
-            <div style={{
-              padding: spacing.xl,
-              borderBottom: `1px solid ${colors.border.light}`,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold }}>
-                Edit Competition
-              </h3>
-              <button
-                onClick={() => { setShowEditModal(false); setSelectedCompetition(null); resetForm(); }}
-                style={{ background: 'none', border: 'none', color: colors.text.secondary, cursor: 'pointer' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
+      {/* Edit Competition Modal - Tabbed */}
+      {showEditModal && selectedCompetition && (() => {
+        const editOrg = organizations.find(o => o.id === selectedCompetition.organization_id);
+        const editCity = cities.find(c => c.id === selectedCompetition.city_id);
+        const editCategory = categories.find(c => c.id === selectedCompetition.category_id);
+        const editDemographic = demographics.find(d => d.id === selectedCompetition.demographic_id);
 
-            <div style={{ padding: spacing.xl }}>
-              {/* Competition Name */}
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Competition Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Most Eligible Miami"
-                  style={inputStyle}
-                />
-                <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
-                  Leave blank to auto-generate from organization and city.
-                </p>
+        const readOnlyFieldStyle = {
+          padding: spacing.md,
+          background: colors.background.secondary,
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.md,
+          color: colors.text.muted,
+        };
+
+        const tabStyle = (isActive) => ({
+          padding: `${spacing.md} ${spacing.lg}`,
+          background: 'none',
+          border: 'none',
+          borderBottom: isActive ? `2px solid ${colors.gold.primary}` : '2px solid transparent',
+          color: isActive ? colors.gold.primary : colors.text.muted,
+          fontWeight: isActive ? typography.fontWeight.semibold : typography.fontWeight.normal,
+          cursor: 'pointer',
+          fontSize: typography.fontSize.sm,
+        });
+
+        return (
+          <div style={modalOverlayStyle} onClick={closeEditModal}>
+            <div style={{ ...modalStyle, maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div style={{
+                padding: spacing.xl,
+                borderBottom: `1px solid ${colors.border.light}`,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                      Edit Competition
+                    </h3>
+                    <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>
+                      {getCompetitionName(selectedCompetition)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={closeEditModal}
+                    style={{ background: 'none', border: 'none', color: colors.text.secondary, cursor: 'pointer' }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
 
-              {/* Season */}
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Season</label>
-                <input
-                  type="number"
-                  value={formData.season}
-                  onChange={(e) => setFormData(prev => ({ ...prev, season: parseInt(e.target.value) }))}
-                  style={inputStyle}
-                />
+              {/* Tab Bar */}
+              <div style={{ display: 'flex', borderBottom: `1px solid ${colors.border.light}`, padding: `0 ${spacing.xl}` }}>
+                <button style={tabStyle(editModalTab === 'basic')} onClick={() => setEditModalTab('basic')}>
+                  Basic Info
+                </button>
+                <button style={tabStyle(editModalTab === 'pricing')} onClick={() => setEditModalTab('pricing')}>
+                  Voting & Pricing
+                </button>
+                <button style={tabStyle(editModalTab === 'settings')} onClick={() => setEditModalTab('settings')}>
+                  Settings
+                </button>
               </div>
 
-              {/* Number of Winners */}
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Number of Winners</label>
-                <select
-                  value={formData.number_of_winners}
-                  onChange={(e) => setFormData(prev => ({ ...prev, number_of_winners: parseInt(e.target.value) }))}
-                  style={selectStyle}
-                >
-                  {[1, 3, 5, 10, 15, 20].map(num => (
-                    <option key={num} value={num}>{num}</option>
-                  ))}
-                </select>
+              {/* Tab Content */}
+              <div style={{ padding: spacing.xl, overflowY: 'auto', flex: 1 }}>
+                {/* Tab 1: Basic Info */}
+                {editModalTab === 'basic' && (
+                  <>
+                    {/* Read-only fields */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md, marginBottom: spacing.lg }}>
+                      <div>
+                        <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                          Organization <Lock size={12} style={{ color: colors.text.muted }} />
+                        </label>
+                        <div style={readOnlyFieldStyle}>{editOrg?.name || 'Not set'}</div>
+                      </div>
+                      <div>
+                        <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                          City <Lock size={12} style={{ color: colors.text.muted }} />
+                        </label>
+                        <div style={readOnlyFieldStyle}>{editCity?.name || 'Not set'}</div>
+                      </div>
+                      <div>
+                        <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                          Category <Lock size={12} style={{ color: colors.text.muted }} />
+                        </label>
+                        <div style={readOnlyFieldStyle}>{editCategory?.name || 'Not set'}</div>
+                      </div>
+                      <div>
+                        <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                          Demographic <Lock size={12} style={{ color: colors.text.muted }} />
+                        </label>
+                        <div style={readOnlyFieldStyle}>{editDemographic?.label || 'Not set'}</div>
+                      </div>
+                    </div>
+
+                    {/* Competition Name */}
+                    <div style={{ marginBottom: spacing.lg }}>
+                      <label style={labelStyle}>Competition Name</label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g., Most Eligible Miami"
+                        style={inputStyle}
+                      />
+                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                        Leave blank to auto-generate from organization and city.
+                      </p>
+                    </div>
+
+                    {/* Season & Winners Row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md, marginBottom: spacing.lg }}>
+                      <div>
+                        <label style={labelStyle}>Season</label>
+                        <input
+                          type="number"
+                          value={formData.season}
+                          onChange={(e) => setFormData(prev => ({ ...prev, season: parseInt(e.target.value) }))}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Number of Winners</label>
+                        <select
+                          value={formData.number_of_winners}
+                          onChange={(e) => setFormData(prev => ({ ...prev, number_of_winners: parseInt(e.target.value) }))}
+                          style={selectStyle}
+                        >
+                          {[1, 3, 5, 10, 15, 20].map(num => (
+                            <option key={num} value={num}>{num}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Host */}
+                    <div style={{ marginBottom: spacing.lg }}>
+                      <label style={labelStyle}>Host</label>
+                      <select
+                        value={formData.host_id}
+                        onChange={(e) => setFormData(prev => ({ ...prev, host_id: e.target.value }))}
+                        style={selectStyle}
+                      >
+                        <option value="">No host assigned</option>
+                        {hosts.map(host => (
+                          <option key={host.id} value={host.id}>
+                            {getHostName(host) || host.email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label style={labelStyle}>Description</label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Competition description..."
+                        rows={3}
+                        style={{ ...inputStyle, resize: 'vertical' }}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Tab 2: Voting & Pricing */}
+                {editModalTab === 'pricing' && (
+                  <>
+                    <div style={{ background: colors.background.secondary, borderRadius: borderRadius.lg, padding: spacing.lg, marginBottom: spacing.lg }}>
+                      <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                        <DollarSign size={18} />
+                        Vote Pricing
+                      </h4>
+
+                      {/* Price per vote */}
+                      <div style={{ marginBottom: spacing.lg }}>
+                        <label style={labelStyle}>Base Price Per Vote</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                          <span style={{ color: colors.text.muted }}>$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={formData.price_per_vote}
+                            onChange={(e) => setFormData(prev => ({ ...prev, price_per_vote: parseFloat(e.target.value) || 0 }))}
+                            style={{ ...inputStyle, maxWidth: '120px' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Price bundler toggle */}
+                      <div style={{ marginBottom: spacing.md }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.md, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={formData.use_price_bundler}
+                            onChange={(e) => setFormData(prev => ({ ...prev, use_price_bundler: e.target.checked }))}
+                            style={{ width: 18, height: 18, accentColor: colors.gold.primary }}
+                          />
+                          <span>Enable Price Bundler (volume discounts)</span>
+                        </label>
+                      </div>
+
+                      {/* Show bundler tiers */}
+                      {formData.use_price_bundler && (
+                        <div>
+                          <button
+                            onClick={() => setShowPriceBundlerTiers(!showPriceBundlerTiers)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: colors.gold.primary,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: spacing.xs,
+                              fontSize: typography.fontSize.sm,
+                            }}
+                          >
+                            {showPriceBundlerTiers ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            View pricing tiers
+                          </button>
+                          {showPriceBundlerTiers && PRICE_BUNDLER_TIERS && (
+                            <div style={{
+                              marginTop: spacing.md,
+                              background: colors.background.card,
+                              borderRadius: borderRadius.md,
+                              padding: spacing.md,
+                            }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: typography.fontSize.sm }}>
+                                <thead>
+                                  <tr style={{ borderBottom: `1px solid ${colors.border.light}` }}>
+                                    <th style={{ padding: spacing.sm, textAlign: 'left', color: colors.text.muted }}>Votes</th>
+                                    <th style={{ padding: spacing.sm, textAlign: 'center', color: colors.text.muted }}>Discount</th>
+                                    <th style={{ padding: spacing.sm, textAlign: 'right', color: colors.text.muted }}>Price/Vote</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {PRICE_BUNDLER_TIERS.map((tier, i) => (
+                                    <tr key={i}>
+                                      <td style={{ padding: spacing.sm }}>
+                                        {tier.minVotes === tier.maxVotes ? tier.minVotes : `${tier.minVotes}-${tier.maxVotes}`}
+                                      </td>
+                                      <td style={{ padding: spacing.sm, textAlign: 'center', color: colors.gold.primary }}>
+                                        {tier.discount}% off
+                                      </td>
+                                      <td style={{ padding: spacing.sm, textAlign: 'right' }}>
+                                        ${(formData.price_per_vote * tier.pricePerVote).toFixed(2)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Manual Votes Section */}
+                    <div style={{ background: colors.background.secondary, borderRadius: borderRadius.lg, padding: spacing.lg }}>
+                      <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.md }}>
+                        Additional Options
+                      </h4>
+
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.md, cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={formData.allow_manual_votes}
+                          onChange={(e) => setFormData(prev => ({ ...prev, allow_manual_votes: e.target.checked }))}
+                          style={{ width: 18, height: 18, accentColor: colors.gold.primary, marginTop: 2 }}
+                        />
+                        <div>
+                          <span>Allow Manual Votes</span>
+                          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                            Host can add manual votes (tracked separately from public votes)
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </>
+                )}
+
+                {/* Tab 3: Settings */}
+                {editModalTab === 'settings' && (
+                  <>
+                    {/* Minimum Prize */}
+                    <div style={{ marginBottom: spacing.lg }}>
+                      <label style={labelStyle}>Minimum Prize</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                        <span style={{ color: colors.text.muted }}>$</span>
+                        <input
+                          type="number"
+                          value={formData.minimum_prize}
+                          onChange={(e) => setFormData(prev => ({ ...prev, minimum_prize: parseInt(e.target.value) || 0 }))}
+                          style={{ ...inputStyle, maxWidth: '150px' }}
+                        />
+                      </div>
+                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                        Host must fund at least this amount
+                      </p>
+                    </div>
+
+                    {/* Eligibility Radius */}
+                    <div style={{ marginBottom: spacing.lg }}>
+                      <label style={labelStyle}>Eligibility Radius</label>
+                      <select
+                        value={formData.eligibility_radius}
+                        onChange={(e) => setFormData(prev => ({ ...prev, eligibility_radius: parseInt(e.target.value) }))}
+                        style={selectStyle}
+                      >
+                        <option value={0}>Must reside in city</option>
+                        <option value={10}>Within 10 miles</option>
+                        <option value={25}>Within 25 miles</option>
+                        <option value={50}>Within 50 miles</option>
+                        <option value={100}>Within 100 miles</option>
+                      </select>
+                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                        Contestants must confirm they meet this requirement
+                      </p>
+                    </div>
+
+                    {/* Contestant Limits */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
+                      <div>
+                        <label style={labelStyle}>Minimum Contestants</label>
+                        <input
+                          type="number"
+                          value={formData.min_contestants}
+                          onChange={(e) => setFormData(prev => ({ ...prev, min_contestants: parseInt(e.target.value) || 10 }))}
+                          style={inputStyle}
+                        />
+                        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                          Required to start voting
+                        </p>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Maximum Contestants</label>
+                        <input
+                          type="number"
+                          value={formData.max_contestants}
+                          onChange={(e) => setFormData(prev => ({ ...prev, max_contestants: e.target.value }))}
+                          placeholder="No limit"
+                          style={inputStyle}
+                        />
+                        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                          Leave blank for no limit
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* Assign Host */}
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Host</label>
-                <select
-                  value={formData.host_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, host_id: e.target.value }))}
-                  style={selectStyle}
-                >
-                  <option value="">No host assigned</option>
-                  {hosts.map(host => (
-                    <option key={host.id} value={host.id}>
-                      {getHostName(host) || host.email}
-                    </option>
-                  ))}
-                </select>
+              {/* Footer */}
+              <div style={{
+                padding: spacing.xl,
+                borderTop: `1px solid ${colors.border.light}`,
+                display: 'flex',
+                gap: spacing.md,
+                justifyContent: 'flex-end',
+              }}>
+                <Button variant="secondary" onClick={closeEditModal}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdate} disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
-
-              {/* Description */}
-              <div style={{ marginBottom: spacing.lg }}>
-                <label style={labelStyle}>Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Competition description..."
-                  rows={3}
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                />
-              </div>
-            </div>
-
-            <div style={{
-              padding: spacing.xl,
-              borderTop: `1px solid ${colors.border.light}`,
-              display: 'flex',
-              gap: spacing.md,
-              justifyContent: 'flex-end',
-            }}>
-              <Button
-                variant="secondary"
-                onClick={() => { setShowEditModal(false); setSelectedCompetition(null); resetForm(); }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUpdate}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Saving...' : 'Save Changes'}
-              </Button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
