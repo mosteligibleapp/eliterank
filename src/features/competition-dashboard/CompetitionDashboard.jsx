@@ -616,6 +616,7 @@ export default function CompetitionDashboard({
             events={data.events}
             rules={data.rules}
             formFields={formFields}
+            isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onDeleteJudge={deleteJudge}
             onDeleteSponsor={deleteSponsor}

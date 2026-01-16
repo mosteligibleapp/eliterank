@@ -37,6 +37,7 @@ export default function SettingsTab({
   events,
   rules,
   formFields,
+  isSuperAdmin = false,
   onRefresh,
   onDeleteJudge,
   onDeleteSponsor,
@@ -154,7 +155,7 @@ export default function SettingsTab({
       {/* Timeline & Status Settings */}
       <Panel title="Timeline & Status" icon={Calendar}>
         <div style={{ padding: spacing.xl }}>
-          <TimelineSettings competition={competition} onSave={onRefresh} />
+          <TimelineSettings competition={competition} onSave={onRefresh} isSuperAdmin={isSuperAdmin} />
         </div>
       </Panel>
 

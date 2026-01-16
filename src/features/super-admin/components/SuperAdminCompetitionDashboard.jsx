@@ -889,6 +889,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         <TimelineSettings
           competition={competition}
           onSave={refresh}
+          isSuperAdmin={true}
         />
       </div>
 
