@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Crown, ArrowLeft, Star, LogOut, BarChart3, UserPlus, FileText, Settings as SettingsIcon,
-  User, Calendar, Eye, Loader, AlertCircle, CheckCircle, XCircle, Edit, MapPin, Check, Globe
+  Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
+  Eye, Loader, AlertCircle, CheckCircle, XCircle, Edit, Check
 } from 'lucide-react';
 import { Button, Badge, Avatar } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, RuleModal, AddPersonModal } from '../../components/modals';
@@ -10,19 +10,16 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
-import { PublicPageSettings } from './components/settings';
 
 // Import tab components
-import { OverviewTab, ContestantsTab, AdvancementTab, CommunityTab, SettingsTab } from './components/tabs';
+import { OverviewTab, PeopleTab, ContentTab, SetupTab } from './components/tabs';
 
+// Consolidated 4-tab navigation
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: BarChart3 },
-  { id: 'contestants', label: 'Contestants', icon: Crown },
-  { id: 'advancement', label: 'Advancement', icon: BarChart3 },
-  { id: 'community', label: 'Community', icon: FileText },
-  { id: 'public-page', label: 'Public Page', icon: Globe },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon },
-  { id: 'profile', label: 'Host Profile', icon: User },
+  { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
+  { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
+  { id: 'content', label: 'Content', shortLabel: 'Content', icon: FileText },
+  { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
 ];
 
 export default function CompetitionDashboard({
@@ -34,7 +31,7 @@ export default function CompetitionDashboard({
   currentUserId,
 }) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [showHostAssignment, setShowHostAssignment] = useState(false);
   const isSuperAdmin = role === 'superadmin';
   const { isMobile } = useResponsive();
@@ -406,7 +403,7 @@ export default function CompetitionDashboard({
             >
               <Icon size={isMobile ? 20 : 18} />
               {isMobile ? (
-                <span style={{ fontSize: '10px' }}>{tab.label.split(' ')[0]}</span>
+                <span style={{ fontSize: '10px' }}>{tab.shortLabel || tab.label}</span>
               ) : (
                 tab.label
               )}
@@ -416,155 +413,6 @@ export default function CompetitionDashboard({
       </div>
     </nav>
   );
-
-  // ============================================================================
-  // HOST PROFILE TAB
-  // ============================================================================
-
-  const renderHostProfile = () => {
-    const host = data.host;
-
-    if (!host) {
-      return (
-        <div style={{
-          background: colors.background.card,
-          border: `1px solid ${colors.border.light}`,
-          borderRadius: borderRadius.xl,
-          padding: spacing.xxl,
-          textAlign: 'center',
-        }}>
-          <User size={64} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
-          <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.md }}>No Host Assigned</h3>
-          <p style={{ color: colors.text.secondary, marginBottom: spacing.xl }}>
-            This competition doesn't have a host assigned yet.
-          </p>
-          {isSuperAdmin && (
-            <Button icon={UserPlus} onClick={() => setShowHostAssignment(true)}>Assign Host</Button>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        <div style={{
-          background: colors.background.card,
-          border: `1px solid ${colors.border.light}`,
-          borderRadius: borderRadius.xl,
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(139,92,246,0.1))',
-            padding: spacing.xxl,
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.xl,
-          }}>
-            <Avatar name={host.name} avatarUrl={host.avatar} size={120} />
-            <div>
-              <h2 style={{ fontSize: typography.fontSize.display, fontWeight: typography.fontWeight.bold }}>
-                {host.name}
-              </h2>
-              {host.city && (
-                <p style={{ color: colors.text.secondary, display: 'flex', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
-                  <MapPin size={16} /> {host.city}
-                </p>
-              )}
-              <Badge variant="gold" size="md" style={{ marginTop: spacing.md }}>
-                <Star size={14} style={{ marginRight: spacing.xs }} /> Verified Host
-              </Badge>
-            </div>
-            {isSuperAdmin && (
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: spacing.md }}>
-                <Button variant="secondary" onClick={() => setShowHostAssignment(true)}>Reassign Host</Button>
-                <Button
-                  variant="secondary"
-                  style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                  onClick={removeHost}
-                >
-                  Remove Host
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div style={{ padding: spacing.xxl }}>
-            {host.bio && (
-              <div style={{ marginBottom: spacing.xxl }}>
-                <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                  <FileText size={18} /> About
-                </h3>
-                <p style={{ color: colors.text.secondary, lineHeight: 1.6 }}>{host.bio}</p>
-              </div>
-            )}
-
-            {host.instagram && (
-              <div style={{ marginBottom: spacing.xxl }}>
-                <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.md }}>
-                  Social
-                </h3>
-                <a
-                  href={`https://instagram.com/${host.instagram.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: spacing.sm,
-                    padding: `${spacing.sm} ${spacing.md}`,
-                    background: 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${colors.border.light}`,
-                    borderRadius: borderRadius.md,
-                    color: colors.text.primary,
-                    textDecoration: 'none',
-                  }}
-                >
-                  @{host.instagram.replace('@', '')}
-                </a>
-              </div>
-            )}
-
-            {host.gallery && host.gallery.length > 0 && (
-              <div>
-                <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.md }}>
-                  Gallery
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: spacing.md }}>
-                  {host.gallery.map((img, i) => (
-                    <img
-                      key={i}
-                      src={typeof img === 'string' ? img : img.url}
-                      alt={`Gallery ${i + 1}`}
-                      style={{
-                        width: '100%',
-                        aspectRatio: '1',
-                        objectFit: 'cover',
-                        borderRadius: borderRadius.lg,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ============================================================================
-  // PUBLIC PAGE TAB
-  // ============================================================================
-
-  const renderPublicPage = () => {
-    return (
-      <PublicPageSettings
-        competition={competition}
-        organization={null}
-        onSave={refresh}
-      />
-    );
-  };
 
   // ============================================================================
   // MAIN RENDER
@@ -610,7 +458,7 @@ export default function CompetitionDashboard({
     }
 
     switch (activeTab) {
-      case 'overview':
+      case 'dashboard':
         return (
           <OverviewTab
             competition={competition}
@@ -619,10 +467,11 @@ export default function CompetitionDashboard({
             onViewPublicSite={onViewPublicSite}
           />
         );
-      case 'contestants':
+      case 'people':
         return (
-          <ContestantsTab
+          <PeopleTab
             competition={competition}
+            competitionId={competitionId}
             nominees={data.nominees}
             contestants={data.contestants}
             onRefresh={refresh}
@@ -633,36 +482,31 @@ export default function CompetitionDashboard({
             onOpenAddPersonModal={openAddPersonModal}
           />
         );
-      case 'advancement':
+      case 'content':
         return (
-          <AdvancementTab
-            competitionId={competitionId}
-            contestants={data.contestants}
-          />
-        );
-      case 'community':
-        return (
-          <CommunityTab
+          <ContentTab
+            competition={competition}
             announcements={data.announcements}
             host={data.host}
             isSuperAdmin={isSuperAdmin}
+            onRefresh={refresh}
             onAddAnnouncement={addAnnouncement}
             onUpdateAnnouncement={updateAnnouncement}
             onDeleteAnnouncement={deleteAnnouncement}
             onTogglePin={toggleAnnouncementPin}
+            onViewPublicSite={onViewPublicSite}
           />
         );
-      case 'public-page':
-        return renderPublicPage();
-      case 'settings':
+      case 'setup':
         return (
-          <SettingsTab
+          <SetupTab
             competition={competition}
             judges={data.judges}
             sponsors={data.sponsors}
             events={data.events}
             rules={data.rules}
             formFields={formFields}
+            host={data.host}
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onDeleteJudge={deleteJudge}
@@ -674,10 +518,10 @@ export default function CompetitionDashboard({
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
             onOpenRuleModal={(rule) => setRuleModal({ isOpen: true, rule })}
             onShowNominationFormEditor={() => setShowNominationFormEditor(true)}
+            onShowHostAssignment={() => setShowHostAssignment(true)}
+            onRemoveHost={removeHost}
           />
         );
-      case 'profile':
-        return renderHostProfile();
       default:
         return null;
     }
