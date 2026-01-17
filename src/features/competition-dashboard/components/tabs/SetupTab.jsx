@@ -147,7 +147,7 @@ export default function SetupTab({
               />
               <ViewOnlyField
                 label="City"
-                value={competition?.city}
+                value={typeof competition?.city === 'object' ? competition?.city?.name : competition?.city}
                 icon={MapPin}
               />
               <ViewOnlyField
