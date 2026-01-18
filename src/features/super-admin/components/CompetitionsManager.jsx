@@ -1402,7 +1402,12 @@ export default function CompetitionsManager({ onViewDashboard }) {
                       variant="secondary"
                       size="sm"
                       icon={Eye}
-                      onClick={() => onViewDashboard({ ...comp, name: getCompetitionName(comp) })}
+                      onClick={() => onViewDashboard({
+                        ...comp,
+                        name: getCompetitionName(comp),
+                        city,
+                        organization: org,
+                      })}
                     />
                   )}
                   <Button

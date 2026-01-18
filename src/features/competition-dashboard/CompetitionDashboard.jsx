@@ -382,8 +382,20 @@ export default function CompetitionDashboard({
           <OverviewTab
             competition={competition}
             contestants={data.contestants}
+            nominees={data.nominees}
+            sponsors={data.sponsors}
             events={data.events}
+            announcements={data.announcements}
+            host={data.host}
+            isSuperAdmin={isSuperAdmin}
             onViewPublicSite={onViewPublicSite}
+            onNavigateToTab={setActiveTab}
+            onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+            onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+            onAddAnnouncement={addAnnouncement}
+            onUpdateAnnouncement={updateAnnouncement}
+            onDeleteAnnouncement={deleteAnnouncement}
+            onTogglePin={toggleAnnouncementPin}
           />
         );
       case 'people':

@@ -109,13 +109,15 @@ export function useCompetitionDashboard(competitionId) {
           .eq('competition_id', competitionId)
           .order('sort_order'),
 
-        // Get competition info with category and demographic joins
+        // Get competition info with category, demographic, city, and organization joins
         supabase
           .from('competitions')
           .select(`
             *,
             category:categories(id, name, slug),
-            demographic:demographics(id, label, slug)
+            demographic:demographics(id, label, slug),
+            city:cities(id, name, state, slug),
+            organization:organizations(id, name, slug)
           `)
           .eq('id', competitionId)
           .single(),
