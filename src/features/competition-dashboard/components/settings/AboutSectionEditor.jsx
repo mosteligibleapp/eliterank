@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Crown, RotateCcw, Check } from 'lucide-react';
 import { FieldLockIndicator, LockIcon } from './FieldLockIndicator';
 import { EditWarningModal } from './EditWarningModal';
 import { isFieldEditable, checkFieldsForWarning } from '../../../../utils/fieldEditability';
+import { getCompetitionDefaults } from '../../../../utils/competitionDefaults';
 import { supabase } from '../../../../lib/supabase';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { Button, Panel } from '../../../../components/ui';
@@ -19,6 +20,9 @@ import { useToast } from '../../../../contexts/ToastContext';
 export function AboutSectionEditor({ competition, organization, onSave }) {
   const toast = useToast();
   const status = competition?.status || 'draft';
+
+  // Compute template-based defaults from competition context
+  const defaults = useMemo(() => getCompetitionDefaults(competition), [competition]);
 
   // Form state
   const [tagline, setTagline] = useState('');
@@ -64,13 +68,13 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
     );
   };
 
-  // Reset to organization defaults
+  // Reset to organization defaults or computed template defaults
   const resetToDefaults = () => {
-    setTagline(organization?.default_about_tagline || '');
-    setDescription(organization?.default_about_description || '');
-    setTraits(organization?.default_about_traits || ['', '', '', '']);
-    setAgeRange(organization?.default_age_range || '');
-    setRequirement(organization?.default_requirement || '');
+    setTagline(organization?.default_about_tagline || defaults.tagline);
+    setDescription(organization?.default_about_description || defaults.description);
+    setTraits(organization?.default_about_traits || defaults.traits);
+    setAgeRange(organization?.default_age_range || defaults.ageRange);
+    setRequirement(organization?.default_requirement || defaults.requirement);
   };
 
   // Update single trait
@@ -168,17 +172,17 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
     setPendingChanges(null);
   };
 
-  // Get placeholder from org defaults
+  // Get placeholder from org defaults or computed template defaults
   const getPlaceholder = (field) => {
     switch (field) {
       case 'tagline':
-        return organization?.default_about_tagline || 'Enter a compelling tagline...';
+        return organization?.default_about_tagline || defaults.tagline;
       case 'description':
-        return organization?.default_about_description || 'Describe this competition...';
+        return organization?.default_about_description || defaults.description;
       case 'ageRange':
-        return organization?.default_age_range || '21-45';
+        return organization?.default_age_range || defaults.ageRange;
       case 'requirement':
-        return organization?.default_requirement || 'Single & city-based';
+        return organization?.default_requirement || defaults.requirement;
       default:
         return '';
     }
@@ -368,7 +372,7 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
                     type="text"
                     value={trait}
                     onChange={(e) => updateTrait(index, e.target.value)}
-                    placeholder={organization?.default_about_traits?.[index] || `Trait ${index + 1}`}
+                    placeholder={organization?.default_about_traits?.[index] || defaults.traits[index] || `Trait ${index + 1}`}
                     maxLength={50}
                     disabled={isFieldEditable('about_traits', status) === false}
                     style={{ ...inputStyle, flex: 1 }}

@@ -5,6 +5,7 @@ import {
   calculatePrizePool,
   calculateVoteRevenue,
 } from '../utils/calculatePrizePool';
+import { getCompetitionDefaults } from '../utils/competitionDefaults';
 
 /**
  * Fetch public competition data by org slug, city slug, optional year, and optional demographic
@@ -436,21 +437,32 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null, demographic
   const about = useMemo(() => {
     if (!competition && !organization) return null;
 
+    // Get template-based defaults from competition context
+    const defaults = getCompetitionDefaults(competition);
+
     return {
       tagline:
-        competition?.about_tagline || organization?.default_about_tagline || '',
+        competition?.about_tagline ||
+        organization?.default_about_tagline ||
+        defaults.tagline,
       description:
         competition?.about_description ||
         organization?.default_about_description ||
-        '',
+        defaults.description,
       traits:
-        competition?.about_traits || organization?.default_about_traits || [],
+        competition?.about_traits?.length
+          ? competition.about_traits
+          : organization?.default_about_traits?.length
+            ? organization.default_about_traits
+            : defaults.traits,
       ageRange:
-        competition?.about_age_range || organization?.default_age_range || '',
+        competition?.about_age_range ||
+        organization?.default_age_range ||
+        defaults.ageRange,
       requirement:
         competition?.about_requirement ||
         organization?.default_requirement ||
-        '',
+        defaults.requirement,
     };
   }, [competition, organization]);
 
