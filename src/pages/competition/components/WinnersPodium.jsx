@@ -8,13 +8,12 @@ import { Crown, Award, Medal, Trophy } from 'lucide-react';
 export function WinnersPodium() {
   const { topThree, prizePool, orgSlug, citySlug, year } = usePublicCompetition();
 
-  // Build profile URL and open in new tab (competition is complete when showing winners)
-  const handleWinnerClick = (winner) => {
+  // Build profile URL for winner
+  const getProfileUrl = (winner) => {
     const basePath = year
       ? `/c/${orgSlug}/${citySlug}/${year}`
       : `/c/${orgSlug}/${citySlug}`;
-    const profileUrl = `${basePath}/e/${winner.slug || winner.id}`;
-    window.open(profileUrl, '_blank', 'noopener,noreferrer');
+    return `${basePath}/e/${winner.slug || winner.id}`;
   };
 
   if (!topThree?.length) return null;
@@ -45,10 +44,13 @@ export function WinnersPodium() {
           const isFirst = index === 0;
 
           return (
-            <div
+            <a
               key={winner.id}
+              href={getProfileUrl(winner)}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`podium-winner podium-winner-${index + 1} ${isFirst ? 'first-place' : ''}`}
-              onClick={() => handleWinnerClick(winner)}
+              style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <div className="winner-place">
                 <Icon size={isFirst ? 32 : 24} />
@@ -69,7 +71,7 @@ export function WinnersPodium() {
                 <span className="winner-votes">{winner.votes?.toLocaleString()} votes</span>
                 <span className="winner-prize">{prizes[index]}</span>
               </div>
-            </div>
+            </a>
           );
         })}
       </div>
