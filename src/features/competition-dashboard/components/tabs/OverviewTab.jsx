@@ -9,7 +9,6 @@ import MetricCard from '../../../overview/components/MetricCard';
 
 /**
  * OverviewTab - Host Dashboard with performance metrics and quick actions
- * 2-column layout on desktop, stacked on mobile
  */
 export default function OverviewTab({
   competition,
@@ -34,19 +33,14 @@ export default function OverviewTab({
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
 
-  // Sort contestants by votes (descending) for ranking
   const rankedContestants = useMemo(() => {
     return [...(contestants || [])].sort((a, b) => (b.votes || 0) - (a.votes || 0));
   }, [contestants]);
 
-  // Top 5 contestants for display
   const topContestants = rankedContestants.slice(0, 5);
-
-  // Count pending nominees
   const pendingNominees = (nominees || []).filter(n => n.status === 'pending').length;
   const totalNominees = (nominees || []).length;
 
-  // Upcoming events (future events only, sorted by date)
   const upcomingEvents = useMemo(() => {
     const now = new Date();
     return (events || [])
@@ -55,28 +49,22 @@ export default function OverviewTab({
       .slice(0, 3);
   }, [events]);
 
-  // Calculate revenue (placeholder - would need real data)
   const sponsorRevenue = (sponsors || []).reduce((sum, s) => sum + (s.amount || 0), 0);
-  const voteRevenue = 0; // TODO: Add vote revenue data
-  const eventRevenue = 0; // TODO: Add event revenue data
-  const totalRevenue = sponsorRevenue + voteRevenue + eventRevenue;
+  const totalRevenue = sponsorRevenue;
 
-  // Sorted announcements (pinned first, then by date)
   const sortedAnnouncements = useMemo(() => {
     return [...(announcements || [])].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
       return new Date(b.publishedAt) - new Date(a.publishedAt);
-    }).slice(0, 3); // Show only 3 on dashboard
+    }).slice(0, 3);
   }, [announcements]);
 
   const authorName = isSuperAdmin ? 'EliteRank' : (host?.name || 'Host');
   const authorAvatar = isSuperAdmin ? null : host?.avatar;
 
-  // Announcement handlers
   const handleSubmitAnnouncement = async () => {
     if (!announcementForm.title.trim() || !announcementForm.content.trim()) return;
-
     if (editingAnnouncement) {
       await onUpdateAnnouncement?.(editingAnnouncement.id, announcementForm);
       setEditingAnnouncement(null);
@@ -87,30 +75,22 @@ export default function OverviewTab({
     setShowAnnouncementForm(false);
   };
 
-  const handleEditAnnouncement = (announcement) => {
-    setEditingAnnouncement(announcement);
-    setAnnouncementForm({ title: announcement.title, content: announcement.content });
-    setShowAnnouncementForm(true);
-  };
-
   return (
     <div style={{
       display: 'grid',
       gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
       gap: isMobile ? spacing.lg : spacing.xl,
     }}>
-      {/* LEFT COLUMN */}
+      {/* Left Column */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
-        {/* Timeline Card */}
         <TimelineCard competition={competition} events={events} />
 
-        {/* Key Metrics - 3 cards in a row */}
+        {/* Key Metrics */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: isMobile ? spacing.sm : spacing.md,
         }}>
-          {/* Nominations */}
           <MetricCard
             icon={UserPlus}
             label="Nominations"
@@ -121,8 +101,6 @@ export default function OverviewTab({
             cta="People →"
             onCtaClick={() => onNavigateToTab?.('people')}
           />
-
-          {/* Contestants */}
           <MetricCard
             icon={Users}
             label="Contestants"
@@ -135,8 +113,6 @@ export default function OverviewTab({
             cta="People →"
             onCtaClick={() => onNavigateToTab?.('people')}
           />
-
-          {/* Sponsors */}
           <MetricCard
             icon={Star}
             label="Sponsors"
@@ -152,14 +128,10 @@ export default function OverviewTab({
         <Panel
           title="Upcoming Events"
           icon={Calendar}
-          action={
-            <Button size="sm" icon={Plus} onClick={() => onOpenEventModal?.(null)}>
-              Add Event
-            </Button>
-          }
+          action={<Button size="sm" icon={Plus} onClick={() => onOpenEventModal?.(null)}>Add Event</Button>}
           collapsible
         >
-          <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
             {upcomingEvents.length === 0 ? (
               <div style={{
                 textAlign: 'center',
@@ -172,9 +144,7 @@ export default function OverviewTab({
                 <p style={{ color: '#fbbf24', fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
                   No events scheduled
                 </p>
-                <Button size="sm" icon={Plus} onClick={() => onOpenEventModal?.(null)}>
-                  Add Event
-                </Button>
+                <Button size="sm" icon={Plus} onClick={() => onOpenEventModal?.(null)}>Add Event</Button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
@@ -230,7 +200,7 @@ export default function OverviewTab({
         </Panel>
       </div>
 
-      {/* RIGHT COLUMN */}
+      {/* Right Column */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
         {/* Revenue Card */}
         <div style={{
@@ -239,18 +209,9 @@ export default function OverviewTab({
           background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))',
           border: '1px solid rgba(34,197,94,0.3)',
         }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.sm,
-            marginBottom: spacing.sm,
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
             <DollarSign size={18} style={{ color: '#4ade80' }} />
-            <span style={{
-              color: colors.text.secondary,
-              fontSize: typography.fontSize.sm,
-              textTransform: 'uppercase',
-            }}>
+            <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textTransform: 'uppercase' }}>
               Total Revenue
             </span>
           </div>
@@ -263,17 +224,9 @@ export default function OverviewTab({
             {formatCurrency(totalRevenue)}
           </p>
           {totalRevenue > 0 ? (
-            <div style={{
-              display: 'flex',
-              gap: spacing.md,
-              fontSize: typography.fontSize.sm,
-              color: colors.text.secondary,
-              flexWrap: 'wrap',
-            }}>
-              {sponsorRevenue > 0 && <span>Sponsors {formatCurrency(sponsorRevenue)}</span>}
-              {voteRevenue > 0 && <span>· Votes {formatCurrency(voteRevenue)}</span>}
-              {eventRevenue > 0 && <span>· Events {formatCurrency(eventRevenue)}</span>}
-            </div>
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+              Sponsors {formatCurrency(sponsorRevenue)}
+            </p>
           ) : (
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
               Revenue from votes, sponsors, and events will appear here
@@ -301,14 +254,12 @@ export default function OverviewTab({
           }
           collapsible
         >
-          <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
             {topContestants.length === 0 ? (
               <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                <Users size={32} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+                <Users size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
                 <p style={{ fontSize: typography.fontSize.sm }}>
-                  {competition?.status === 'live' && competition?.votingStart
-                    ? 'Rankings appear when voting begins'
-                    : 'No contestants yet'}
+                  {competition?.status === 'live' ? 'Rankings appear when voting begins' : 'No contestants yet'}
                 </p>
               </div>
             ) : (
@@ -362,15 +313,10 @@ export default function OverviewTab({
         <Panel
           title="Announcements"
           icon={FileText}
-          action={
-            <Button size="sm" icon={Plus} onClick={() => setShowAnnouncementForm(true)}>
-              New Post
-            </Button>
-          }
+          action={<Button size="sm" icon={Plus} onClick={() => setShowAnnouncementForm(true)}>New Post</Button>}
           collapsible
         >
-          <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
-            {/* Quick Post Form */}
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
             {showAnnouncementForm && (
               <div style={{
                 marginBottom: spacing.lg,
@@ -390,7 +336,7 @@ export default function OverviewTab({
                     border: `1px solid ${colors.border.light}`,
                     borderRadius: borderRadius.md,
                     color: '#fff',
-                    fontSize: typography.fontSize.md,
+                    fontSize: '16px',
                     marginBottom: spacing.sm,
                   }}
                 />
@@ -406,7 +352,7 @@ export default function OverviewTab({
                     border: `1px solid ${colors.border.light}`,
                     borderRadius: borderRadius.md,
                     color: '#fff',
-                    fontSize: typography.fontSize.md,
+                    fontSize: '16px',
                     resize: 'vertical',
                     marginBottom: spacing.md,
                   }}
@@ -434,10 +380,9 @@ export default function OverviewTab({
               </div>
             )}
 
-            {/* Announcements List */}
             {sortedAnnouncements.length === 0 ? (
               <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                <FileText size={32} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+                <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
                 <p style={{ fontSize: typography.fontSize.sm }}>No announcements yet</p>
               </div>
             ) : (
@@ -452,12 +397,7 @@ export default function OverviewTab({
                       border: post.pinned ? `1px solid ${colors.border.gold}` : 'none',
                     }}
                   >
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      marginBottom: spacing.sm,
-                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
                       <Avatar name={authorName} src={authorAvatar} size={28} />
                       <span style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.sm }}>
                         {authorName}
@@ -485,13 +425,7 @@ export default function OverviewTab({
                     }}>
                       {post.content}
                     </p>
-                    {/* Action buttons */}
-                    <div style={{
-                      display: 'flex',
-                      gap: spacing.sm,
-                      marginTop: spacing.sm,
-                      justifyContent: 'flex-end',
-                    }}>
+                    <div style={{ display: 'flex', gap: spacing.sm, marginTop: spacing.sm, justifyContent: 'flex-end' }}>
                       <button
                         onClick={() => onTogglePin?.(post.id)}
                         style={{
@@ -505,7 +439,11 @@ export default function OverviewTab({
                         <Pin size={14} />
                       </button>
                       <button
-                        onClick={() => handleEditAnnouncement(post)}
+                        onClick={() => {
+                          setEditingAnnouncement(post);
+                          setAnnouncementForm({ title: post.title, content: post.content });
+                          setShowAnnouncementForm(true);
+                        }}
                         style={{
                           background: 'none',
                           border: 'none',

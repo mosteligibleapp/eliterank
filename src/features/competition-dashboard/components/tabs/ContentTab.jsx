@@ -7,8 +7,7 @@ import { formatRelativeTime } from '../../../../utils/formatters';
 import { AboutSectionEditor, PrizePoolSettings } from '../settings';
 
 /**
- * ContentTab - Combined Community + Public tab
- * Manages about section, prize pool, and announcements
+ * ContentTab - Manages about section, prize pool, and announcements
  */
 export default function ContentTab({
   competition,
@@ -29,16 +28,20 @@ export default function ContentTab({
   const authorName = isSuperAdmin ? 'EliteRank' : (host?.name || 'Host');
   const authorAvatar = isSuperAdmin ? null : host?.avatar;
 
-  const handleCreateAnnouncement = async () => {
+  const handleSubmit = async () => {
     if (!announcementForm.title.trim() || !announcementForm.content.trim()) return;
-    await onAddAnnouncement(announcementForm);
+    if (editingAnnouncement) {
+      await onUpdateAnnouncement(editingAnnouncement.id, announcementForm);
+      setEditingAnnouncement(null);
+    } else {
+      await onAddAnnouncement(announcementForm);
+    }
     setAnnouncementForm({ title: '', content: '' });
     setShowAnnouncementForm(false);
   };
 
-  const handleUpdateAnnouncement = async () => {
-    if (!editingAnnouncement || !announcementForm.title.trim()) return;
-    await onUpdateAnnouncement(editingAnnouncement.id, announcementForm);
+  const resetForm = () => {
+    setShowAnnouncementForm(false);
     setEditingAnnouncement(null);
     setAnnouncementForm({ title: '', content: '' });
   };
@@ -52,29 +55,16 @@ export default function ContentTab({
   return (
     <div>
       {/* About Section */}
-      <AboutSectionEditor
-        competition={competition}
-        organization={null}
-        onSave={onRefresh}
-      />
+      <AboutSectionEditor competition={competition} organization={null} onSave={onRefresh} />
 
       {/* Prize Pool Settings */}
-      <PrizePoolSettings
-        competition={competition}
-        onSave={onRefresh}
-      />
-
-      {/* Divider */}
-      <div style={{
-        borderTop: `1px solid ${colors.border.light}`,
-        margin: `${spacing.xxl} 0`,
-      }} />
+      <PrizePoolSettings competition={competition} onSave={onRefresh} />
 
       {/* Create Announcement Section */}
-      <Panel title="Create Announcement" icon={Plus} collapsible>
+      <Panel title="Create Announcement" icon={Plus} collapsible defaultCollapsed>
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {showAnnouncementForm || editingAnnouncement ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
               <input
                 type="text"
                 placeholder="Announcement title..."
@@ -86,7 +76,7 @@ export default function ContentTab({
                   borderRadius: borderRadius.lg,
                   padding: spacing.md,
                   color: '#fff',
-                  fontSize: '16px', // Prevents iOS zoom
+                  fontSize: '16px',
                   minHeight: '44px',
                 }}
               />
@@ -101,24 +91,13 @@ export default function ContentTab({
                   borderRadius: borderRadius.lg,
                   padding: spacing.md,
                   color: '#fff',
-                  fontSize: '16px', // Prevents iOS zoom
+                  fontSize: '16px',
                   resize: 'vertical',
                 }}
               />
               <div style={{ display: 'flex', gap: spacing.md, justifyContent: 'flex-end' }}>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setShowAnnouncementForm(false);
-                    setEditingAnnouncement(null);
-                    setAnnouncementForm({ title: '', content: '' });
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={editingAnnouncement ? handleUpdateAnnouncement : handleCreateAnnouncement}>
-                  {editingAnnouncement ? 'Update' : 'Post'}
-                </Button>
+                <Button variant="secondary" onClick={resetForm}>Cancel</Button>
+                <Button onClick={handleSubmit}>{editingAnnouncement ? 'Update' : 'Post'}</Button>
               </div>
             </div>
           ) : (
@@ -127,7 +106,7 @@ export default function ContentTab({
                 display: 'flex',
                 alignItems: 'center',
                 gap: spacing.lg,
-                padding: isMobile ? spacing.md : spacing.xl,
+                padding: isMobile ? spacing.md : spacing.lg,
                 background: 'rgba(255,255,255,0.02)',
                 borderRadius: borderRadius.xl,
                 border: `1px dashed ${colors.border.gold}`,
@@ -138,7 +117,7 @@ export default function ContentTab({
             >
               <Avatar name={authorName} src={authorAvatar} size={isMobile ? 36 : 44} />
               <div style={{ flex: 1, minWidth: isMobile ? '100%' : 'auto' }}>
-                <p style={{ color: colors.text.secondary, fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.lg }}>
+                <p style={{ color: colors.text.secondary, fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md }}>
                   Share an update with your audience...
                 </p>
               </div>
@@ -156,124 +135,126 @@ export default function ContentTab({
         collapsible
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {sortedAnnouncements.length > 0 ? (
-            sortedAnnouncements.map((post) => (
-              <div
-                key={post.id}
-                style={{
-                  background: post.pinned ? 'rgba(212,175,55,0.05)' : 'rgba(255,255,255,0.02)',
-                  border: post.pinned ? `1px solid rgba(212,175,55,0.2)` : `1px solid ${colors.border.lighter}`,
-                  borderRadius: borderRadius.xl,
-                  padding: isMobile ? spacing.md : spacing.xl,
-                  marginBottom: spacing.lg,
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: isMobile ? 'flex-start' : 'flex-start',
-                  gap: spacing.md,
-                  marginBottom: spacing.md,
-                  flexWrap: isMobile ? 'wrap' : 'nowrap',
-                }}>
-                  <Avatar name={authorName} src={authorAvatar} size={isMobile ? 36 : 44} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      marginBottom: spacing.xs,
-                      flexWrap: 'wrap',
-                    }}>
-                      <span style={{ fontWeight: typography.fontWeight.semibold, fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.base }}>
-                        {authorName}
-                      </span>
-                      {post.pinned && <Badge variant="gold" size="sm">Pinned</Badge>}
-                      <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
-                        • {formatRelativeTime(post.publishedAt)}
-                      </span>
-                    </div>
-                    <h4 style={{
-                      fontSize: isMobile ? typography.fontSize.base : typography.fontSize.lg,
-                      fontWeight: typography.fontWeight.semibold,
-                      marginBottom: spacing.sm,
-                    }}>
-                      {post.title}
-                    </h4>
-                    <p style={{ color: colors.text.secondary, fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.base }}>
-                      {post.content}
-                    </p>
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    gap: spacing.xs,
-                    ...(isMobile ? { width: '100%', justifyContent: 'flex-end', marginTop: spacing.sm } : {}),
-                  }}>
-                    <button
-                      onClick={() => onTogglePin(post.id, post.pinned)}
-                      style={{
-                        padding: spacing.sm,
-                        background: post.pinned ? 'rgba(212,175,55,0.2)' : 'transparent',
-                        border: `1px solid ${post.pinned ? colors.gold.primary : colors.border.light}`,
-                        borderRadius: borderRadius.md,
-                        color: post.pinned ? colors.gold.primary : colors.text.secondary,
-                        cursor: 'pointer',
-                        minWidth: '36px',
-                        minHeight: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      title={post.pinned ? 'Unpin' : 'Pin'}
-                    >
-                      <Pin size={14} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingAnnouncement(post);
-                        setAnnouncementForm({ title: post.title, content: post.content });
-                      }}
-                      style={{
-                        padding: spacing.sm,
-                        background: 'transparent',
-                        border: `1px solid ${colors.border.light}`,
-                        borderRadius: borderRadius.md,
-                        color: colors.text.secondary,
-                        cursor: 'pointer',
-                        minWidth: '36px',
-                        minHeight: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Edit size={14} />
-                    </button>
-                    <button
-                      onClick={() => onDeleteAnnouncement(post.id)}
-                      style={{
-                        padding: spacing.sm,
-                        background: 'transparent',
-                        border: `1px solid rgba(239,68,68,0.3)`,
-                        borderRadius: borderRadius.md,
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        minWidth: '36px',
-                        minHeight: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div style={{ textAlign: 'center', padding: spacing.xxl, color: colors.text.secondary }}>
+          {sortedAnnouncements.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
               <p>No announcements yet. Create your first post above.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+              {sortedAnnouncements.map((post) => (
+                <div
+                  key={post.id}
+                  style={{
+                    background: post.pinned ? 'rgba(212,175,55,0.05)' : 'rgba(255,255,255,0.02)',
+                    border: post.pinned ? '1px solid rgba(212,175,55,0.2)' : `1px solid ${colors.border.lighter}`,
+                    borderRadius: borderRadius.xl,
+                    padding: isMobile ? spacing.md : spacing.lg,
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: spacing.md,
+                    marginBottom: spacing.md,
+                    flexWrap: isMobile ? 'wrap' : 'nowrap',
+                  }}>
+                    <Avatar name={authorName} src={authorAvatar} size={isMobile ? 36 : 44} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.sm,
+                        marginBottom: spacing.xs,
+                        flexWrap: 'wrap',
+                      }}>
+                        <span style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>
+                          {authorName}
+                        </span>
+                        {post.pinned && <Badge variant="gold" size="sm">Pinned</Badge>}
+                        <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
+                          · {formatRelativeTime(post.publishedAt)}
+                        </span>
+                      </div>
+                      <h4 style={{
+                        fontSize: isMobile ? typography.fontSize.base : typography.fontSize.lg,
+                        fontWeight: typography.fontWeight.semibold,
+                        marginBottom: spacing.sm,
+                      }}>
+                        {post.title}
+                      </h4>
+                      <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                        {post.content}
+                      </p>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      gap: spacing.xs,
+                      ...(isMobile ? { width: '100%', justifyContent: 'flex-end', marginTop: spacing.sm } : {}),
+                    }}>
+                      <button
+                        onClick={() => onTogglePin(post.id, post.pinned)}
+                        style={{
+                          padding: spacing.sm,
+                          background: post.pinned ? 'rgba(212,175,55,0.2)' : 'transparent',
+                          border: `1px solid ${post.pinned ? colors.gold.primary : colors.border.light}`,
+                          borderRadius: borderRadius.md,
+                          color: post.pinned ? colors.gold.primary : colors.text.secondary,
+                          cursor: 'pointer',
+                          minWidth: '36px',
+                          minHeight: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        title={post.pinned ? 'Unpin' : 'Pin'}
+                      >
+                        <Pin size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingAnnouncement(post);
+                          setAnnouncementForm({ title: post.title, content: post.content });
+                          setShowAnnouncementForm(true);
+                        }}
+                        style={{
+                          padding: spacing.sm,
+                          background: 'transparent',
+                          border: `1px solid ${colors.border.light}`,
+                          borderRadius: borderRadius.md,
+                          color: colors.text.secondary,
+                          cursor: 'pointer',
+                          minWidth: '36px',
+                          minHeight: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        onClick={() => onDeleteAnnouncement(post.id)}
+                        style={{
+                          padding: spacing.sm,
+                          background: 'transparent',
+                          border: '1px solid rgba(239,68,68,0.3)',
+                          borderRadius: borderRadius.md,
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          minWidth: '36px',
+                          minHeight: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

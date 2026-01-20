@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  ChevronDown, ChevronUp, Plus, User, Star, FileText, MapPin, UserPlus
+  Plus, User, Star, FileText, MapPin, UserPlus
 } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
@@ -9,8 +9,7 @@ import { useResponsive } from '../../../../hooks/useResponsive';
 import WinnersManager from '../../../super-admin/components/WinnersManager';
 
 /**
- * PeopleTab - Combined Contestants + Advancement + Host Profile tab
- * Manages winners, nominees, contestants, voting rankings, and host profile
+ * PeopleTab - Manages winners, nominees, contestants, and host profile
  */
 export default function PeopleTab({
   competition,
@@ -28,17 +27,7 @@ export default function PeopleTab({
   onRemoveHost,
 }) {
   const { isMobile } = useResponsive();
-  const [expandedSections, setExpandedSections] = useState({
-    contestants: true,
-    withProfile: true,
-    external: false,
-    archived: false,
-  });
   const [processingId, setProcessingId] = useState(null);
-
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
 
   // Categorize nominees
   const activeNominees = nominees.filter(n =>
@@ -48,147 +37,110 @@ export default function PeopleTab({
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
   const archivedNominees = nominees.filter(n => n.status === 'archived');
 
-  // Stats
-  const stats = [
-    { label: 'Total Nominees', value: nominees.length, color: colors.gold.primary },
-    { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
-    { label: 'External', value: externalNominees.length, color: '#f59e0b' },
-    { label: 'Approved', value: contestants.length, color: '#22c55e' },
-    { label: 'Archived', value: archivedNominees.length, color: '#6b7280' },
-  ];
-
-  // Section Header Component
-  const SectionHeader = ({ title, count, icon: Icon, iconColor, sectionKey, badge, action }) => (
-    <button
-      onClick={() => toggleSection(sectionKey)}
-      style={{
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: spacing.lg,
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        textAlign: 'left',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: borderRadius.md,
-          background: `${iconColor}20`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon size={18} style={{ color: iconColor }} />
-        </div>
-        <span style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.medium }}>{title}</span>
-        <Badge variant={badge} size="sm">{count}</Badge>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-        {action}
-        {expandedSections[sectionKey] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-      </div>
-    </button>
-  );
-
-  // Contestant Row Component
-  const ContestantRow = ({ contestant }) => (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: spacing.md, padding: spacing.md,
-      background: colors.background.secondary, borderRadius: borderRadius.lg, marginBottom: spacing.sm,
-    }}>
-      <Avatar name={contestant.name} size={40} src={contestant.avatarUrl} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontWeight: typography.fontWeight.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {contestant.name}
-        </p>
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-          {contestant.votes || 0} votes
-        </p>
-      </div>
-      {contestant.instagram && (
-        <a href={`https://instagram.com/${contestant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-           style={{ color: colors.text.muted, padding: spacing.xs }}>
-          <ExternalLink size={14} />
-        </a>
-      )}
-    </div>
-  );
-
-  // Nominee Row Component
-  const NomineeRow = ({ nominee }) => {
+  // Action buttons for nominee rows
+  const NomineeActions = ({ nominee }) => {
     const isProcessing = processingId === nominee.id;
     return (
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: spacing.md, padding: spacing.md,
-        background: colors.background.secondary, borderRadius: borderRadius.lg, marginBottom: spacing.sm,
-      }}>
-        <Avatar name={nominee.name} size={40} src={nominee.avatarUrl} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontWeight: typography.fontWeight.medium }}>{nominee.name}</p>
-          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>{nominee.email}</p>
-        </div>
-        <div style={{ display: 'flex', gap: spacing.xs }}>
-          <button
-            onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee.id); setProcessingId(null); }}
-            disabled={isProcessing}
-            style={{
-              padding: spacing.xs, background: 'rgba(34,197,94,0.1)', border: 'none',
-              borderRadius: borderRadius.sm, cursor: 'pointer', color: '#22c55e',
-            }}
-          >
-            <CheckCircle size={16} />
-          </button>
-          <button
-            onClick={async () => { setProcessingId(nominee.id); await onRejectNominee(nominee.id); setProcessingId(null); }}
-            disabled={isProcessing}
-            style={{
-              padding: spacing.xs, background: 'rgba(239,68,68,0.1)', border: 'none',
-              borderRadius: borderRadius.sm, cursor: 'pointer', color: '#ef4444',
-            }}
-          >
-            <XCircle size={16} />
-          </button>
-          <button
-            onClick={async () => { setProcessingId(nominee.id); await onArchiveNominee(nominee.id); setProcessingId(null); }}
-            disabled={isProcessing}
-            style={{
-              padding: spacing.xs, background: 'rgba(107,114,128,0.1)', border: 'none',
-              borderRadius: borderRadius.sm, cursor: 'pointer', color: '#6b7280',
-            }}
-          >
-            <Archive size={16} />
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  // Archived Row Component
-  const ArchivedRow = ({ nominee }) => {
-    const isProcessing = processingId === nominee.id;
-    return (
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: spacing.md, padding: spacing.md,
-        background: colors.background.secondary, borderRadius: borderRadius.lg, marginBottom: spacing.sm, opacity: 0.7,
-      }}>
-        <Avatar name={nominee.name} size={40} src={nominee.avatarUrl} />
-        <div style={{ flex: 1 }}>
-          <p style={{ fontWeight: typography.fontWeight.medium }}>{nominee.name}</p>
-          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>{nominee.email}</p>
-        </div>
+      <div style={{ display: 'flex', gap: spacing.xs }}>
         <button
-          onClick={async () => { setProcessingId(nominee.id); await onRestoreNominee(nominee.id); setProcessingId(null); }}
+          onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee.id); setProcessingId(null); }}
           disabled={isProcessing}
           style={{
-            padding: spacing.xs, background: 'rgba(34,197,94,0.1)', border: 'none',
-            borderRadius: borderRadius.sm, cursor: 'pointer', color: '#22c55e', display: 'flex', alignItems: 'center', gap: spacing.xs,
+            padding: spacing.xs,
+            background: 'rgba(34,197,94,0.1)',
+            border: 'none',
+            borderRadius: borderRadius.sm,
+            cursor: 'pointer',
+            color: '#22c55e',
+            minWidth: '32px',
+            minHeight: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <RotateCcw size={14} /> Restore
+          <CheckCircle size={16} />
+        </button>
+        <button
+          onClick={async () => { setProcessingId(nominee.id); await onRejectNominee(nominee.id); setProcessingId(null); }}
+          disabled={isProcessing}
+          style={{
+            padding: spacing.xs,
+            background: 'rgba(239,68,68,0.1)',
+            border: 'none',
+            borderRadius: borderRadius.sm,
+            cursor: 'pointer',
+            color: '#ef4444',
+            minWidth: '32px',
+            minHeight: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <XCircle size={16} />
+        </button>
+        <button
+          onClick={async () => { setProcessingId(nominee.id); await onArchiveNominee(nominee.id); setProcessingId(null); }}
+          disabled={isProcessing}
+          style={{
+            padding: spacing.xs,
+            background: 'rgba(107,114,128,0.1)',
+            border: 'none',
+            borderRadius: borderRadius.sm,
+            cursor: 'pointer',
+            color: '#6b7280',
+            minWidth: '32px',
+            minHeight: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Archive size={16} />
         </button>
       </div>
     );
   };
+
+  // Person row component - shared between contestants and nominees
+  const PersonRow = ({ person, actions, dimmed }) => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: spacing.md,
+      padding: spacing.md,
+      background: colors.background.secondary,
+      borderRadius: borderRadius.lg,
+      opacity: dimmed ? 0.7 : 1,
+    }}>
+      <Avatar name={person.name} size={40} src={person.avatarUrl} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{
+          fontWeight: typography.fontWeight.medium,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          {person.name}
+        </p>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+          {person.email || `${person.votes || 0} votes`}
+        </p>
+      </div>
+      {person.instagram && (
+        <a
+          href={`https://instagram.com/${person.instagram.replace('@', '')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: colors.text.muted, padding: spacing.xs }}
+        >
+          <ExternalLink size={14} />
+        </a>
+      )}
+      {actions}
+    </div>
+  );
 
   return (
     <div>
@@ -200,7 +152,9 @@ export default function PeopleTab({
         action={
           host && isSuperAdmin ? (
             <div style={{ display: 'flex', gap: spacing.sm }}>
-              <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>Reassign</Button>
+              <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
+                Reassign
+              </Button>
               <Button
                 size="sm"
                 variant="secondary"
@@ -210,26 +164,24 @@ export default function PeopleTab({
                 Remove
               </Button>
             </div>
-          ) : (
-            isSuperAdmin && <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>Assign Host</Button>
-          )
+          ) : isSuperAdmin ? (
+            <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
+              Assign Host
+            </Button>
+          ) : null
         }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {!host ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <User size={64} style={{ marginBottom: spacing.lg, opacity: 0.5 }} />
-              <h3 style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.md }}>No Host Assigned</h3>
-              <p style={{ marginBottom: spacing.xl }}>
-                This competition doesn't have a host assigned yet.
-              </p>
+              <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p style={{ marginBottom: spacing.lg }}>No host assigned yet</p>
               {isSuperAdmin && (
                 <Button icon={UserPlus} onClick={onShowHostAssignment}>Assign Host</Button>
               )}
             </div>
           ) : (
             <div>
-              {/* Host Header */}
               <div style={{
                 display: 'flex',
                 alignItems: isMobile ? 'flex-start' : 'center',
@@ -239,11 +191,20 @@ export default function PeopleTab({
               }}>
                 <Avatar name={host.name} src={host.avatar} size={isMobile ? 80 : 100} />
                 <div style={{ flex: 1 }}>
-                  <h2 style={{ fontSize: isMobile ? typography.fontSize.xl : typography.fontSize.display, fontWeight: typography.fontWeight.bold }}>
+                  <h2 style={{
+                    fontSize: isMobile ? typography.fontSize.xl : typography.fontSize.display,
+                    fontWeight: typography.fontWeight.bold,
+                  }}>
                     {host.name}
                   </h2>
                   {host.city && (
-                    <p style={{ color: colors.text.secondary, display: 'flex', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
+                    <p style={{
+                      color: colors.text.secondary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.sm,
+                      marginTop: spacing.sm,
+                    }}>
                       <MapPin size={16} /> {host.city}
                     </p>
                   )}
@@ -253,10 +214,16 @@ export default function PeopleTab({
                 </div>
               </div>
 
-              {/* Host Details */}
               {host.bio && (
                 <div style={{ marginBottom: spacing.xl }}>
-                  <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                  <h3 style={{
+                    fontSize: typography.fontSize.lg,
+                    fontWeight: typography.fontWeight.semibold,
+                    marginBottom: spacing.md,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                  }}>
                     <FileText size={18} /> About
                   </h3>
                   <p style={{ color: colors.text.secondary, lineHeight: 1.6 }}>{host.bio}</p>
@@ -265,7 +232,11 @@ export default function PeopleTab({
 
               {host.instagram && (
                 <div style={{ marginBottom: spacing.xl }}>
-                  <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.md }}>
+                  <h3 style={{
+                    fontSize: typography.fontSize.lg,
+                    fontWeight: typography.fontWeight.semibold,
+                    marginBottom: spacing.md,
+                  }}>
                     Social
                   </h3>
                   <a
@@ -292,10 +263,18 @@ export default function PeopleTab({
 
               {host.gallery && host.gallery.length > 0 && (
                 <div>
-                  <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.md }}>
+                  <h3 style={{
+                    fontSize: typography.fontSize.lg,
+                    fontWeight: typography.fontWeight.semibold,
+                    marginBottom: spacing.md,
+                  }}>
                     Gallery
                   </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: spacing.md }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(150px, 1fr))',
+                    gap: spacing.md,
+                  }}>
                     {host.gallery.map((img, i) => (
                       <img
                         key={i}
@@ -317,9 +296,6 @@ export default function PeopleTab({
         </div>
       </Panel>
 
-      {/* Divider */}
-      <div style={{ borderTop: `1px solid ${colors.border.light}`, margin: `${spacing.xxl} 0` }} />
-
       {/* Winners Manager */}
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
 
@@ -327,21 +303,38 @@ export default function PeopleTab({
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
-        gap: isMobile ? spacing.sm : spacing.lg,
-        marginBottom: isMobile ? spacing.lg : spacing.xxl,
+        gap: spacing.sm,
+        marginBottom: spacing.xl,
       }}>
-        {stats.map((stat, i) => (
-          <div key={i} style={{
-            background: colors.background.card,
-            border: `1px solid ${colors.border.light}`,
-            borderRadius: borderRadius.lg,
-            padding: isMobile ? spacing.md : spacing.lg,
-            ...(isMobile && i === stats.length - 1 && stats.length % 2 === 1 ? { gridColumn: 'span 2' } : {}),
-          }}>
-            <p style={{ color: colors.text.secondary, fontSize: isMobile ? '10px' : typography.fontSize.xs, marginBottom: spacing.xs }}>
+        {[
+          { label: 'Total Nominees', value: nominees.length, color: colors.gold.primary },
+          { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
+          { label: 'External', value: externalNominees.length, color: '#f59e0b' },
+          { label: 'Approved', value: contestants.length, color: '#22c55e' },
+          { label: 'Archived', value: archivedNominees.length, color: '#6b7280' },
+        ].map((stat, i, arr) => (
+          <div
+            key={stat.label}
+            style={{
+              background: colors.background.card,
+              border: `1px solid ${colors.border.light}`,
+              borderRadius: borderRadius.lg,
+              padding: spacing.md,
+              ...(isMobile && i === arr.length - 1 && arr.length % 2 === 1 ? { gridColumn: 'span 2' } : {}),
+            }}
+          >
+            <p style={{
+              color: colors.text.secondary,
+              fontSize: typography.fontSize.xs,
+              marginBottom: spacing.xs,
+            }}>
               {stat.label}
             </p>
-            <p style={{ fontSize: isMobile ? typography.fontSize.xl : typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: stat.color }}>
+            <p style={{
+              fontSize: typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: stat.color,
+            }}>
               {stat.value}
             </p>
           </div>
@@ -349,97 +342,133 @@ export default function PeopleTab({
       </div>
 
       {/* Contestants Section */}
-      <div style={{
-        background: colors.background.card,
-        border: `1px solid rgba(34,197,94,0.3)`,
-        borderRadius: borderRadius.xl,
-        marginBottom: spacing.lg,
-        overflow: 'hidden',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: spacing.lg }}>
-          <SectionHeader title="Contestants" count={contestants.length} icon={Crown} iconColor="#22c55e" sectionKey="contestants" badge="success" />
+      <Panel
+        title={`Contestants (${contestants.length})`}
+        icon={Crown}
+        action={
           <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
             Add
           </Button>
+        }
+        collapsible
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          {contestants.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+              <Crown size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p>No contestants yet. Approve nominees or add manually.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {contestants.map(c => (
+                <PersonRow key={c.id} person={c} />
+              ))}
+            </div>
+          )}
         </div>
-        {expandedSections.contestants && (
-          <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
-            {contestants.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                <Crown size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                <p>No contestants yet. Approve nominees or add manually.</p>
-              </div>
-            ) : contestants.map(c => <ContestantRow key={c.id} contestant={c} />)}
-          </div>
-        )}
-      </div>
+      </Panel>
 
       {/* Nominees with Profile */}
-      <div style={{
-        background: colors.background.card,
-        border: `1px solid ${colors.border.light}`,
-        borderRadius: borderRadius.xl,
-        marginBottom: spacing.lg,
-        overflow: 'hidden',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: spacing.lg }}>
-          <SectionHeader title="Nominees with Profile" count={nomineesWithProfile.length} icon={UserCheck} iconColor="#3b82f6" sectionKey="withProfile" badge="info" />
+      <Panel
+        title={`Nominees with Profile (${nomineesWithProfile.length})`}
+        icon={UserCheck}
+        action={
           <Button size="sm" variant="secondary" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
             Add
           </Button>
+        }
+        collapsible
+        defaultCollapsed
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          {nomineesWithProfile.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+              <UserCheck size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p>No nominees with linked profiles</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {nomineesWithProfile.map(n => (
+                <PersonRow key={n.id} person={n} actions={<NomineeActions nominee={n} />} />
+              ))}
+            </div>
+          )}
         </div>
-        {expandedSections.withProfile && (
-          <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
-            {nomineesWithProfile.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                <UserCheck size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                <p>No nominees with linked profiles</p>
-              </div>
-            ) : nomineesWithProfile.map(n => <NomineeRow key={n.id} nominee={n} />)}
-          </div>
-        )}
-      </div>
+      </Panel>
 
       {/* External Nominees */}
-      <div style={{
-        background: colors.background.card,
-        border: `1px solid ${colors.border.light}`,
-        borderRadius: borderRadius.xl,
-        marginBottom: spacing.lg,
-        overflow: 'hidden',
-      }}>
-        <SectionHeader title="External Nominees" count={externalNominees.length} icon={Users} iconColor="#f59e0b" sectionKey="external" badge="warning" />
-        {expandedSections.external && (
-          <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
-            {externalNominees.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                <Users size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                <p>No external nominees</p>
-              </div>
-            ) : externalNominees.map(n => <NomineeRow key={n.id} nominee={n} />)}
-          </div>
-        )}
-      </div>
+      <Panel
+        title={`External Nominees (${externalNominees.length})`}
+        icon={Users}
+        collapsible
+        defaultCollapsed
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          {externalNominees.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+              <Users size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p>No external nominees</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {externalNominees.map(n => (
+                <PersonRow key={n.id} person={n} actions={<NomineeActions nominee={n} />} />
+              ))}
+            </div>
+          )}
+        </div>
+      </Panel>
 
       {/* Archived */}
-      <div style={{
-        background: colors.background.card,
-        border: `1px solid ${colors.border.light}`,
-        borderRadius: borderRadius.xl,
-        overflow: 'hidden',
-      }}>
-        <SectionHeader title="Archived" count={archivedNominees.length} icon={Archive} iconColor="#6b7280" sectionKey="archived" badge="secondary" />
-        {expandedSections.archived && (
-          <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
-            {archivedNominees.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                <Archive size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                <p>No archived nominees</p>
-              </div>
-            ) : archivedNominees.map(n => <ArchivedRow key={n.id} nominee={n} />)}
-          </div>
-        )}
-      </div>
+      <Panel
+        title={`Archived (${archivedNominees.length})`}
+        icon={Archive}
+        collapsible
+        defaultCollapsed
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          {archivedNominees.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+              <Archive size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p>No archived nominees</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {archivedNominees.map(n => (
+                <PersonRow
+                  key={n.id}
+                  person={n}
+                  dimmed
+                  actions={
+                    <button
+                      onClick={async () => {
+                        setProcessingId(n.id);
+                        await onRestoreNominee(n.id);
+                        setProcessingId(null);
+                      }}
+                      disabled={processingId === n.id}
+                      style={{
+                        padding: `${spacing.xs} ${spacing.sm}`,
+                        background: 'rgba(34,197,94,0.1)',
+                        border: 'none',
+                        borderRadius: borderRadius.sm,
+                        cursor: 'pointer',
+                        color: '#22c55e',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.xs,
+                        fontSize: typography.fontSize.sm,
+                      }}
+                    >
+                      <RotateCcw size={14} /> Restore
+                    </button>
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </Panel>
     </div>
   );
 }
