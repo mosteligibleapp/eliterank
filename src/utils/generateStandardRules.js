@@ -93,16 +93,21 @@ function generateEligibilityContent({ about, city }) {
   // Age requirement
   if (about?.ageRange) {
     const ageRange = about.ageRange;
-    if (ageRange.includes('-')) {
+    if (ageRange.toLowerCase().includes('all') || ageRange.toLowerCase() === 'open') {
+      // "All Ages" or "Open" = minimum 18 years old
+      parts.push('Must be at least 18 years old');
+    } else if (ageRange.includes('-')) {
       const [min, max] = ageRange.split('-').map(s => s.trim());
       parts.push(`Must be between ${min} and ${max} years old`);
     } else if (ageRange.includes('+')) {
       parts.push(`Must be ${ageRange} years old`);
     } else {
+      // Numeric value only - use as minimum
       parts.push(`Must be at least ${ageRange} years old`);
     }
   } else {
-    parts.push('Must be at least 21 years old');
+    // Default minimum age for competitions without specified range
+    parts.push('Must be at least 18 years old');
   }
 
   // Location requirement
