@@ -437,8 +437,13 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null, demographic
   const about = useMemo(() => {
     if (!competition && !organization) return null;
 
-    // Get template-based defaults from competition context
+    // Get template-based defaults from competition context (category-specific)
     const defaults = getCompetitionDefaults(competition);
+
+    // For category-sensitive fields (traits, requirement, ageRange),
+    // prefer category-computed defaults over organization defaults
+    // when the competition has a category specified
+    const hasCategory = Boolean(competition?.category_id || competition?.category);
 
     return {
       tagline:
@@ -449,18 +454,25 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null, demographic
         competition?.about_description ||
         organization?.default_about_description ||
         defaults.description,
+      // Traits: competition > category defaults > organization defaults
       traits:
         competition?.about_traits?.length
           ? competition.about_traits
-          : organization?.default_about_traits?.length
-            ? organization.default_about_traits
-            : defaults.traits,
+          : hasCategory
+            ? defaults.traits
+            : (organization?.default_about_traits?.length
+                ? organization.default_about_traits
+                : defaults.traits),
+      // Age range: competition > category/demographic defaults > organization defaults
       ageRange:
         competition?.about_age_range ||
+        (hasCategory ? defaults.ageRange : null) ||
         organization?.default_age_range ||
         defaults.ageRange,
+      // Requirement: competition > category defaults > organization defaults
       requirement:
         competition?.about_requirement ||
+        (hasCategory ? defaults.requirement : null) ||
         organization?.default_requirement ||
         defaults.requirement,
     };

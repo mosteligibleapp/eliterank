@@ -114,10 +114,14 @@ function generateEligibilityContent({ about, city }) {
     const req = about.requirement.toLowerCase();
     if (req.includes('single')) {
       parts.push('Must be single (not married or in a committed relationship)');
+    } else if (req.includes('based')) {
+      // Generic location requirement - already covered above, skip duplicating
+    } else {
+      // Include custom requirement as-is
+      parts.push(about.requirement);
     }
-  } else {
-    parts.push('Must be single (not married or in a committed relationship)');
   }
+  // Note: No default "single" requirement - only applies when explicitly set
 
   // Format as bullet list
   return parts.map(p => `• ${p}`).join('\n');
