@@ -71,30 +71,48 @@ export async function getAllUserCompetitions(userId) {
       competitionId: entry.competition?.id,
     }));
 
+    // Mark hosted entries with competitionId for consistency
+    const hostedEntries = hostedCompetitions.map(entry => ({
+      ...entry,
+      competitionId: entry.id,
+    }));
+
     // Combine and sort by date (most recent first)
-    const all = [...contestantEntries, ...hostedCompetitions];
+    const all = [...contestantEntries, ...hostedEntries];
 
     // Remove duplicates (in case user is both host and contestant in same competition)
+    // Merge data from both roles when user has both
     const seen = new Map();
-    const unique = all.filter(entry => {
+    all.forEach(entry => {
       const compId = entry.competitionId || entry.id;
       if (seen.has(compId)) {
-        // If we already have this competition, keep the one with 'host' role
         const existing = seen.get(compId);
-        if (entry.role === 'host' && existing.role !== 'host') {
-          seen.set(compId, { ...entry, alsoContestant: true });
-          return false;
+        // Merge the two entries, keeping contestant data (votes, etc) and adding host flag
+        if (entry.role === 'host' && existing.role === 'contestant') {
+          seen.set(compId, {
+            ...existing,
+            isHost: true,
+            alsoHost: true,
+            organization: entry.organization || existing.organization,
+          });
+        } else if (entry.role === 'contestant' && existing.role === 'host') {
+          seen.set(compId, {
+            ...entry,
+            role: 'host', // Primary role is host
+            isHost: true,
+            alsoContestant: true,
+            organization: existing.organization || entry.organization,
+          });
         }
-        if (existing.role === 'host' && entry.role === 'contestant') {
-          seen.set(compId, { ...existing, alsoContestant: true });
-        }
-        return false;
+      } else {
+        seen.set(compId, {
+          ...entry,
+          isHost: entry.role === 'host',
+        });
       }
-      seen.set(compId, entry);
-      return true;
     });
 
-    // Return unique entries with updated data from seen map
+    // Return unique entries sorted by date
     return Array.from(seen.values()).sort((a, b) => {
       const dateA = new Date(a.createdAt || 0);
       const dateB = new Date(b.createdAt || 0);

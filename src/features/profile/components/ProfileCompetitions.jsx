@@ -97,13 +97,19 @@ function InlineVoteCard({ entry, onVote }) {
  */
 function CompetitionCard({ entry, onVote, onViewCompetition }) {
   const { isMobile } = useResponsive();
-  const roleConfig = ROLE_CONFIG[entry.role] || ROLE_CONFIG.contestant;
-  const RoleIcon = roleConfig.icon;
+
+  // Determine if user is contestant (either primary role or also contestant)
+  const isContestant = entry.role === 'contestant' || entry.alsoContestant;
+  const isHost = entry.role === 'host' || entry.alsoHost || entry.isHost;
+
+  // Get appropriate role config for display
+  const primaryRoleConfig = isHost ? ROLE_CONFIG.host : ROLE_CONFIG.contestant;
+  const PrimaryRoleIcon = primaryRoleConfig.icon;
 
   const competition = entry.competition || entry;
-  const city = competition.city || 'Unknown';
-  const season = competition.season || '';
-  const status = competition.status || competition.phase || 'upcoming';
+  const city = competition.city || entry.city || 'Unknown';
+  const season = competition.season || entry.season || '';
+  const status = competition.status || competition.phase || entry.status || entry.phase || 'upcoming';
   const isActive = status === 'voting' || status === 'nomination' || status === 'live' || status === 'active';
 
   // Generate competition URL
@@ -141,7 +147,7 @@ function CompetitionCard({ entry, onVote, onViewCompetition }) {
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
-            <MapPin size={14} style={{ color: roleConfig.color, flexShrink: 0 }} />
+            <MapPin size={14} style={{ color: primaryRoleConfig.color, flexShrink: 0 }} />
             <span style={{
               fontWeight: typography.fontWeight.semibold,
               color: colors.text.primary,
@@ -151,24 +157,33 @@ function CompetitionCard({ entry, onVote, onViewCompetition }) {
             </span>
           </div>
 
-          {/* Role badge */}
+          {/* Role badges - show both if user has both roles */}
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
-            <Badge
-              variant={entry.role === 'host' ? 'purple' : 'gold'}
-              size="sm"
-              style={{
-                background: 'transparent',
-                border: `1px solid ${roleConfig.color}40`,
-              }}
-            >
-              <RoleIcon size={10} style={{ marginRight: '4px' }} />
-              {roleConfig.label}
-            </Badge>
+            {isHost && (
+              <Badge
+                variant="purple"
+                size="sm"
+                style={{
+                  background: 'transparent',
+                  border: `1px solid ${ROLE_CONFIG.host.color}40`,
+                }}
+              >
+                <Crown size={10} style={{ marginRight: '4px' }} />
+                Host
+              </Badge>
+            )}
 
-            {entry.alsoContestant && (
-              <Badge variant="gold" size="sm" style={{ background: 'transparent', border: `1px solid ${colors.gold.primary}40` }}>
+            {isContestant && (
+              <Badge
+                variant="gold"
+                size="sm"
+                style={{
+                  background: 'transparent',
+                  border: `1px solid ${ROLE_CONFIG.contestant.color}40`,
+                }}
+              >
                 <Star size={10} style={{ marginRight: '4px' }} />
-                Also Contestant
+                Contestant
               </Badge>
             )}
           </div>
@@ -193,7 +208,7 @@ function CompetitionCard({ entry, onVote, onViewCompetition }) {
       </div>
 
       {/* Stats row for contestants */}
-      {entry.role === 'contestant' && (
+      {isContestant && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -212,7 +227,7 @@ function CompetitionCard({ entry, onVote, onViewCompetition }) {
       )}
 
       {/* Vote card for active competitions where user is contestant */}
-      {entry.role === 'contestant' && (status === 'voting' || competition.phase === 'voting') && (
+      {isContestant && (status === 'voting' || competition.phase === 'voting') && (
         <InlineVoteCard entry={entry} onVote={onVote} />
       )}
 
