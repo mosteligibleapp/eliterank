@@ -6,7 +6,16 @@ import { Crown, Award, Medal, Trophy } from 'lucide-react';
  * Large display of top 3 with prizes
  */
 export function WinnersPodium() {
-  const { topThree, prizePool, openContestantProfile } = usePublicCompetition();
+  const { topThree, prizePool, orgSlug, citySlug, year } = usePublicCompetition();
+
+  // Build profile URL and open in new tab (competition is complete when showing winners)
+  const handleWinnerClick = (winner) => {
+    const basePath = year
+      ? `/c/${orgSlug}/${citySlug}/${year}`
+      : `/c/${orgSlug}/${citySlug}`;
+    const profileUrl = `${basePath}/e/${winner.slug || winner.id}`;
+    window.open(profileUrl, '_blank', 'noopener,noreferrer');
+  };
 
   if (!topThree?.length) return null;
 
@@ -39,7 +48,7 @@ export function WinnersPodium() {
             <div
               key={winner.id}
               className={`podium-winner podium-winner-${index + 1} ${isFirst ? 'first-place' : ''}`}
-              onClick={() => openContestantProfile(winner)}
+              onClick={() => handleWinnerClick(winner)}
             >
               <div className="winner-place">
                 <Icon size={isFirst ? 32 : 24} />

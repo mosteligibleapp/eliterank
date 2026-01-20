@@ -341,9 +341,12 @@ function ContestantModals() {
                 </div>
               )}
 
-              <button onClick={switchToVote} className="btn btn-primary btn-full">
-                Vote for {selectedContestant.name?.split(' ')[0]}
-              </button>
+              {/* Hide vote button when competition is complete */}
+              {!phase?.isComplete && (
+                <button onClick={switchToVote} className="btn btn-primary btn-full">
+                  Vote for {selectedContestant.name?.split(' ')[0]}
+                </button>
+              )}
             </div>
           </div>
         </div>

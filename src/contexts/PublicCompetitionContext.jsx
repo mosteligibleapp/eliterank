@@ -94,10 +94,19 @@ export function PublicCompetitionProvider({
   }, []);
 
   const openVoteModal = useCallback((contestant) => {
+    // If competition is complete, open profile in new tab instead of vote modal
+    if (phase?.isComplete) {
+      const basePath = year
+        ? `/c/${orgSlug}/${citySlug}/${year}`
+        : `/c/${orgSlug}/${citySlug}`;
+      const profileUrl = `${basePath}/e/${contestant.slug || contestant.id}`;
+      window.open(profileUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     setSelectedContestant(contestant);
     setShowVoteModal(true);
     setShowProfileModal(false);
-  }, []);
+  }, [phase?.isComplete, year, orgSlug, citySlug]);
 
   const closeModals = useCallback(() => {
     setShowVoteModal(false);
