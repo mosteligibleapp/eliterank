@@ -11,17 +11,10 @@ export async function getHostedCompetitions(userId) {
   }
 
   try {
+    // Simple flat query - no joins (joins cause 400 errors in production)
     const { data, error } = await supabase
       .from('competitions')
-      .select(`
-        id,
-        city,
-        season,
-        status,
-        phase,
-        created_at,
-        organization:organizations(id, name, slug)
-      `)
+      .select('id, city, season, status, phase, created_at')
       .eq('host_id', userId)
       .order('created_at', { ascending: false });
 
@@ -39,7 +32,6 @@ export async function getHostedCompetitions(userId) {
       phase: comp.phase,
       createdAt: comp.created_at,
       role: 'host',
-      organization: comp.organization,
     }));
   } catch (err) {
     console.error('Error in getHostedCompetitions:', err);
@@ -70,7 +62,6 @@ export async function getAllUserCompetitions(userId) {
       ...entry,
       role: 'contestant',
       competitionId: entry.competition?.id,
-      organization: entry.competition?.organization,
     }));
 
     // Mark hosted entries with competitionId for consistency
@@ -106,36 +97,54 @@ export async function getCompetitionHistory(userId) {
   }
 
   try {
-    // Simple query without nested organization join (causes 400 errors)
-    const { data, error } = await supabase
+    // Step 1: Get contestant entries for this user (no joins)
+    const { data: contestants, error: contestantsError } = await supabase
       .from('contestants')
-      .select(`
-        id,
-        name,
-        votes,
-        avatar_url,
-        status,
-        created_at,
-        competition_id,
-        competitions (
-          id,
-          city,
-          season,
-          status,
-          phase
-        )
-      `)
+      .select('id, name, votes, avatar_url, status, created_at, competition_id')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching competition history:', error);
+    if (contestantsError) {
+      console.error('Error fetching contestants:', contestantsError);
       return [];
     }
 
-    // Process the data to add winner status based on contestant status
-    return (data || []).map(entry => {
-      const competition = entry.competitions;
+    if (!contestants || contestants.length === 0) {
+      return [];
+    }
+
+    // Step 2: Get competition details for those entries
+    const competitionIds = [...new Set(contestants.map(c => c.competition_id).filter(Boolean))];
+
+    if (competitionIds.length === 0) {
+      return contestants.map(entry => ({
+        id: entry.id,
+        name: entry.name,
+        votes: entry.votes || 0,
+        avatarUrl: entry.avatar_url,
+        status: entry.status,
+        createdAt: entry.created_at,
+        isWinner: entry.status === 'winner',
+        placement: entry.status === 'winner' ? 1 : null,
+        competition: null,
+      }));
+    }
+
+    const { data: competitions, error: competitionsError } = await supabase
+      .from('competitions')
+      .select('id, city, season, status, phase')
+      .in('id', competitionIds);
+
+    if (competitionsError) {
+      console.error('Error fetching competitions:', competitionsError);
+    }
+
+    // Create a lookup map for competitions
+    const competitionMap = new Map((competitions || []).map(c => [c.id, c]));
+
+    // Step 3: Merge the data
+    return contestants.map(entry => {
+      const competition = competitionMap.get(entry.competition_id);
       const isWinner = entry.status === 'winner';
 
       return {
