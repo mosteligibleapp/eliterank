@@ -15,7 +15,6 @@ export async function getHostedCompetitions(userId) {
       .from('competitions')
       .select(`
         id,
-        name,
         city,
         season,
         status,
@@ -33,7 +32,7 @@ export async function getHostedCompetitions(userId) {
 
     return (data || []).map(comp => ({
       id: comp.id,
-      name: comp.name || `${comp.city} ${comp.season}`,
+      name: `${comp.city || 'Competition'} ${comp.season || ''}`.trim(),
       city: comp.city,
       season: comp.season,
       status: comp.status,
@@ -50,6 +49,8 @@ export async function getHostedCompetitions(userId) {
 
 /**
  * Get all competitions a user is involved in (as contestant or host)
+ * Users can be a host in one competition and contestant in another,
+ * but not both roles in the same competition.
  * @param {string} userId - The user's profile ID
  * @returns {Promise<Array>} - Combined array of competitions with role indicator
  */
@@ -64,56 +65,26 @@ export async function getAllUserCompetitions(userId) {
       getHostedCompetitions(userId),
     ]);
 
-    // Mark contestant entries with role
+    // Mark contestant entries with role and extract competition ID
     const contestantEntries = contestantHistory.map(entry => ({
       ...entry,
       role: 'contestant',
       competitionId: entry.competition?.id,
+      organization: entry.competition?.organization,
     }));
 
     // Mark hosted entries with competitionId for consistency
     const hostedEntries = hostedCompetitions.map(entry => ({
       ...entry,
       competitionId: entry.id,
+      isHost: true,
     }));
 
-    // Combine and sort by date (most recent first)
+    // Combine all entries (users can't be both host and contestant in same competition)
     const all = [...contestantEntries, ...hostedEntries];
 
-    // Remove duplicates (in case user is both host and contestant in same competition)
-    // Merge data from both roles when user has both
-    const seen = new Map();
-    all.forEach(entry => {
-      const compId = entry.competitionId || entry.id;
-      if (seen.has(compId)) {
-        const existing = seen.get(compId);
-        // Merge the two entries, keeping contestant data (votes, etc) and adding host flag
-        if (entry.role === 'host' && existing.role === 'contestant') {
-          seen.set(compId, {
-            ...existing,
-            isHost: true,
-            alsoHost: true,
-            organization: entry.organization || existing.organization,
-          });
-        } else if (entry.role === 'contestant' && existing.role === 'host') {
-          seen.set(compId, {
-            ...entry,
-            role: 'host', // Primary role is host
-            isHost: true,
-            alsoContestant: true,
-            organization: existing.organization || entry.organization,
-          });
-        }
-      } else {
-        seen.set(compId, {
-          ...entry,
-          isHost: entry.role === 'host',
-        });
-      }
-    });
-
-    // Return unique entries sorted by date
-    return Array.from(seen.values()).sort((a, b) => {
+    // Sort by date (most recent first)
+    return all.sort((a, b) => {
       const dateA = new Date(a.createdAt || 0);
       const dateB = new Date(b.createdAt || 0);
       return dateB - dateA;
@@ -147,12 +118,12 @@ export async function getCompetitionHistory(userId) {
         competition_id,
         competitions (
           id,
-          name,
           city,
           season,
           status,
+          phase,
           winners,
-          phase
+          organization:organizations(id, name, slug)
         )
       `)
       .eq('user_id', userId)
@@ -166,7 +137,7 @@ export async function getCompetitionHistory(userId) {
     // Process the data to add rank and winner status
     return (data || []).map(entry => {
       const competition = entry.competitions;
-      const isWinner = competition?.winners?.includes(userId) || false;
+      const isWinner = competition?.winners?.includes(userId) || entry.status === 'winner';
 
       // Calculate placement (if competition has winners array)
       let placement = null;
@@ -188,11 +159,11 @@ export async function getCompetitionHistory(userId) {
         placement,
         competition: competition ? {
           id: competition.id,
-          name: competition.name,
           city: competition.city,
           season: competition.season,
           status: competition.status,
           phase: competition.phase,
+          organization: competition.organization,
         } : null,
       };
     });

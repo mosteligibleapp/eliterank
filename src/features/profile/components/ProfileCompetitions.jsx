@@ -98,13 +98,13 @@ function InlineVoteCard({ entry, onVote }) {
 function CompetitionCard({ entry, onVote, onViewCompetition }) {
   const { isMobile } = useResponsive();
 
-  // Determine if user is contestant (either primary role or also contestant)
-  const isContestant = entry.role === 'contestant' || entry.alsoContestant;
-  const isHost = entry.role === 'host' || entry.alsoHost || entry.isHost;
+  // Determine role (users can only be one role per competition)
+  const isHost = entry.role === 'host' || entry.isHost;
+  const isContestant = entry.role === 'contestant';
 
   // Get appropriate role config for display
-  const primaryRoleConfig = isHost ? ROLE_CONFIG.host : ROLE_CONFIG.contestant;
-  const PrimaryRoleIcon = primaryRoleConfig.icon;
+  const roleConfig = isHost ? ROLE_CONFIG.host : ROLE_CONFIG.contestant;
+  const RoleIcon = roleConfig.icon;
 
   const competition = entry.competition || entry;
   const city = competition.city || entry.city || 'Unknown';
@@ -147,7 +147,7 @@ function CompetitionCard({ entry, onVote, onViewCompetition }) {
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
-            <MapPin size={14} style={{ color: primaryRoleConfig.color, flexShrink: 0 }} />
+            <MapPin size={14} style={{ color: roleConfig.color, flexShrink: 0 }} />
             <span style={{
               fontWeight: typography.fontWeight.semibold,
               color: colors.text.primary,
@@ -157,36 +157,21 @@ function CompetitionCard({ entry, onVote, onViewCompetition }) {
             </span>
           </div>
 
-          {/* Role badges - show both if user has both roles */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
-            {isHost && (
-              <Badge
-                variant="purple"
-                size="sm"
-                style={{
-                  background: 'transparent',
-                  border: `1px solid ${ROLE_CONFIG.host.color}40`,
-                }}
-              >
-                <Crown size={10} style={{ marginRight: '4px' }} />
-                Host
-              </Badge>
+          {/* Role badge */}
+          <Badge
+            variant={isHost ? 'purple' : 'gold'}
+            size="sm"
+            style={{
+              background: 'transparent',
+              border: `1px solid ${roleConfig.color}40`,
+            }}
+          >
+            {isHost ? (
+              <><Crown size={10} style={{ marginRight: '4px' }} />Host</>
+            ) : (
+              <><Star size={10} style={{ marginRight: '4px' }} />Contestant</>
             )}
-
-            {isContestant && (
-              <Badge
-                variant="gold"
-                size="sm"
-                style={{
-                  background: 'transparent',
-                  border: `1px solid ${ROLE_CONFIG.contestant.color}40`,
-                }}
-              >
-                <Star size={10} style={{ marginRight: '4px' }} />
-                Contestant
-              </Badge>
-            )}
-          </div>
+          </Badge>
         </div>
 
         {/* Status / Result badges */}
