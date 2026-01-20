@@ -106,6 +106,7 @@ export async function getCompetitionHistory(userId) {
   }
 
   try {
+    // Simple query without nested organization join (causes 400 errors)
     const { data, error } = await supabase
       .from('contestants')
       .select(`
@@ -121,9 +122,7 @@ export async function getCompetitionHistory(userId) {
           city,
           season,
           status,
-          phase,
-          winners,
-          organization:organizations(id, name, slug)
+          phase
         )
       `)
       .eq('user_id', userId)
@@ -134,19 +133,10 @@ export async function getCompetitionHistory(userId) {
       return [];
     }
 
-    // Process the data to add rank and winner status
+    // Process the data to add winner status based on contestant status
     return (data || []).map(entry => {
       const competition = entry.competitions;
-      const isWinner = competition?.winners?.includes(userId) || entry.status === 'winner';
-
-      // Calculate placement (if competition has winners array)
-      let placement = null;
-      if (competition?.winners && Array.isArray(competition.winners)) {
-        const winnerIndex = competition.winners.indexOf(userId);
-        if (winnerIndex !== -1) {
-          placement = winnerIndex + 1; // 1st place, 2nd place, etc.
-        }
-      }
+      const isWinner = entry.status === 'winner';
 
       return {
         id: entry.id,
@@ -156,14 +146,13 @@ export async function getCompetitionHistory(userId) {
         status: entry.status,
         createdAt: entry.created_at,
         isWinner,
-        placement,
+        placement: isWinner ? 1 : null,
         competition: competition ? {
           id: competition.id,
           city: competition.city,
           season: competition.season,
           status: competition.status,
           phase: competition.phase,
-          organization: competition.organization,
         } : null,
       };
     });
