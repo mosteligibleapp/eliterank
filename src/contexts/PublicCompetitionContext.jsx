@@ -96,9 +96,10 @@ export function PublicCompetitionProvider({
   const openVoteModal = useCallback((contestant) => {
     // If competition is complete, open profile in new tab instead of vote modal
     if (phase?.isComplete) {
-      const basePath = year
-        ? `/c/${orgSlug}/${citySlug}/${year}`
-        : `/c/${orgSlug}/${citySlug}`;
+      // Get base path from current URL, removing sub-routes
+      const basePath = window.location.pathname
+        .replace(/\/(leaderboard|activity|e\/[^/]+)\/?$/, '')
+        .replace(/\/$/, '');
       const profileUrl = `${basePath}/e/${contestant.slug || contestant.id}`;
       window.open(profileUrl, '_blank', 'noopener,noreferrer');
       return;
@@ -106,7 +107,7 @@ export function PublicCompetitionProvider({
     setSelectedContestant(contestant);
     setShowVoteModal(true);
     setShowProfileModal(false);
-  }, [phase?.isComplete, year, orgSlug, citySlug]);
+  }, [phase?.isComplete]);
 
   const closeModals = useCallback(() => {
     setShowVoteModal(false);

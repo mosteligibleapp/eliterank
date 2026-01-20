@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown, Award, Medal, Trophy } from 'lucide-react';
 
@@ -6,13 +7,16 @@ import { Crown, Award, Medal, Trophy } from 'lucide-react';
  * Large display of top 3 with prizes
  */
 export function WinnersPodium() {
-  const { topThree, prizePool, orgSlug, citySlug, year } = usePublicCompetition();
+  const { topThree, prizePool } = usePublicCompetition();
+  const location = useLocation();
 
-  // Build profile URL for winner
+  // Build profile URL for winner using current URL as base
   const getProfileUrl = (winner) => {
-    const basePath = year
-      ? `/c/${orgSlug}/${citySlug}/${year}`
-      : `/c/${orgSlug}/${citySlug}`;
+    // Get the base competition path from current URL
+    // Remove trailing segments like /leaderboard, /activity, or /e/:slug
+    const basePath = location.pathname
+      .replace(/\/(leaderboard|activity|e\/[^/]+)\/?$/, '')
+      .replace(/\/$/, '');
     return `${basePath}/e/${winner.slug || winner.id}`;
   };
 
