@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, FileText, Heart, Camera, Globe, TrendingUp } from 'lucide-react';
+import { Edit, MapPin, FileText, Heart, Camera, Globe, TrendingUp, Share2, Check } from 'lucide-react';
 import { Panel, Button, InterestTag } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats } from '../../../lib/competition-history';
@@ -9,11 +9,31 @@ import ProfileCompetitions from './ProfileCompetitions';
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
   const [competitionStats, setCompetitionStats] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!hostProfile?.id) return;
     getCompetitionStats(hostProfile.id).then(setCompetitionStats).catch(console.error);
   }, [hostProfile?.id]);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   if (!hostProfile) return null;
 
@@ -40,7 +60,21 @@ export default function ProfileView({ hostProfile, onEdit }) {
             position: 'relative',
           }}
         >
-          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg }}>
+          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg, display: 'flex', gap: spacing.sm }}>
+            <Button
+              onClick={handleShare}
+              icon={copied ? Check : Share2}
+              size={isMobile ? 'sm' : 'md'}
+              style={{
+                background: copied ? 'rgba(34,197,94,0.8)' : 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(8px)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.2)',
+                minWidth: isMobile ? 'auto' : '100px',
+              }}
+            >
+              {copied ? 'Copied!' : 'Share'}
+            </Button>
             <Button
               onClick={onEdit}
               icon={Edit}
