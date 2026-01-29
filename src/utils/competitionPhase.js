@@ -356,10 +356,18 @@ export function validateStatusChange(competition, newStatus) {
 
   if (newStatus === COMPETITION_STATUSES.PUBLISH) {
     // Require city and organization for publishing
-    if (!competition?.city) {
+    // Check both city_id (foreign key) and city (string) for compatibility
+    if (!competition?.city_id && !competition?.city) {
       return {
         valid: false,
         error: 'City must be set before publishing a competition.',
+      };
+    }
+    // Also require organization
+    if (!competition?.organization_id) {
+      return {
+        valid: false,
+        error: 'Organization must be set before publishing a competition.',
       };
     }
   }
