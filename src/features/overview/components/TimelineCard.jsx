@@ -2,7 +2,7 @@ import React from 'react';
 import { Clock, AlertTriangle, Calendar } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
-import { computeCompetitionPhase, COMPETITION_STATUSES } from '../../../utils/competitionPhase';
+import { computeCompetitionPhase, COMPETITION_STATUSES, isDraft } from '../../../utils/competitionPhase';
 import { daysUntil } from '../../../utils/formatters';
 
 // Timeline phases in order
@@ -221,7 +221,7 @@ export default function TimelineCard({ competition, events = [] }) {
       )}
 
       {/* Not Live States */}
-      {!isLive && status === 'draft' && (
+      {!isLive && isDraft(status) && (
         <div style={{
           padding: spacing.md,
           background: 'rgba(255,255,255,0.05)',

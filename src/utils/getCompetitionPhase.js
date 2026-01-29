@@ -19,6 +19,12 @@ import {
   computeCompetitionPhase,
   COMPETITION_STATUSES,
   TIMELINE_PHASES,
+  normalizeStatus,
+  isDraft,
+  isPublished,
+  isLive,
+  isCompleted,
+  isArchived,
 } from './competitionPhase';
 
 /**
@@ -39,9 +45,10 @@ export function getCompetitionPhase(
   }
 
   const now = new Date();
-  const status = competition.status?.toLowerCase();
+  // Normalize status once at the top - handles variants like 'published' -> 'publish'
+  const status = normalizeStatus(competition.status);
 
-  // Handle terminal states
+  // Handle terminal states using helper functions
   if (status === 'cancelled') {
     return {
       phase: 'cancelled',
@@ -52,7 +59,7 @@ export function getCompetitionPhase(
     };
   }
 
-  if (status === 'completed') {
+  if (isCompleted(status)) {
     return {
       phase: 'results',
       label: 'Results',
@@ -63,7 +70,7 @@ export function getCompetitionPhase(
     };
   }
 
-  if (status === 'draft') {
+  if (isDraft(status)) {
     return {
       phase: 'draft',
       label: 'Draft',
@@ -73,7 +80,7 @@ export function getCompetitionPhase(
     };
   }
 
-  if (status === 'archive') {
+  if (isArchived(status)) {
     return {
       phase: 'archived',
       label: 'Archived',
@@ -111,7 +118,7 @@ export function getCompetitionPhase(
   // Check for active nomination period
   const activeNomination = findActiveNominationPeriod(periods, now);
 
-  if (activeNomination || status === 'live') {
+  if (activeNomination || isLive(status)) {
     // If live but no active voting, check if nominations are open
     const nominationStart = competition.nomination_start
       ? new Date(competition.nomination_start)
@@ -154,8 +161,8 @@ export function getCompetitionPhase(
   }
 
   // Check for coming soon (publish status)
-  // Support multiple variations: publish, published, coming_soon, coming-soon
-  if (status === 'publish' || status === 'published' || status === 'coming_soon' || status === 'coming-soon') {
+  // Status is already normalized, so just use the helper
+  if (isPublished(status)) {
     const nominationStart = competition.nomination_start
       ? new Date(competition.nomination_start)
       : null;
@@ -172,7 +179,7 @@ export function getCompetitionPhase(
   }
 
   // Default: if live but between rounds/nominations
-  if (status === 'live') {
+  if (isLive(status)) {
     // Find next upcoming round
     const nextRound = findNextVotingRound(rounds, now);
 
@@ -194,7 +201,7 @@ export function getCompetitionPhase(
   return {
     phase: 'unknown',
     label: status || 'Unknown',
-    isPublic: status === 'live' || status === 'publish' || status === 'published',
+    isPublic: isLive(status) || isPublished(status),
     isVoting: false,
     canNominate: false,
   };

@@ -5,6 +5,7 @@ import { ThemeEditor } from './ThemeEditor';
 import { PrizePoolSettings } from './PrizePoolSettings';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { Button } from '../../../../components/ui';
+import { isLive, isCompleted } from '../../../../utils/competitionPhase';
 
 /**
  * Main public page settings component
@@ -130,7 +131,7 @@ export function PublicPageSettings({ competition, organization, onSave }) {
       </div>
 
       {/* Status Banner */}
-      {competition?.status === 'live' && (
+      {isLive(competition?.status) && (
         <div style={statusBannerStyle('live')}>
           <span style={statusDotStyle} />
           <span>
@@ -139,7 +140,7 @@ export function PublicPageSettings({ competition, organization, onSave }) {
         </div>
       )}
 
-      {competition?.status === 'completed' && (
+      {isCompleted(competition?.status) && (
         <div style={statusBannerStyle('completed')}>
           <CheckCircle size={16} />
           <span>Competition is complete. Most fields are now locked.</span>

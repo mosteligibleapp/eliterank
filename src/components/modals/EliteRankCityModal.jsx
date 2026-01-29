@@ -23,6 +23,9 @@ import {
   COMPETITION_STATUSES,
   shouldAutoTransitionToLive,
   shouldAutoTransitionToCompleted,
+  isLive,
+  isPublished,
+  isCompleted,
 } from '../../utils/competitionPhase';
 import { getCityImage } from '../../utils/cityImages';
 
@@ -219,10 +222,10 @@ export default function EliteRankCityModal({
       if (!c.visible) return false;
       if (cityFilter !== 'all' && c.cityId !== cityFilter) return false;
       if (statusFilter === 'active') {
-        return c.status === COMPETITION_STATUSES.LIVE && ['nomination', 'voting', 'judging'].includes(c.phase);
+        return isLive(c.status) && ['nomination', 'voting', 'judging'].includes(c.phase);
       }
-      if (statusFilter === 'upcoming') return c.status === COMPETITION_STATUSES.PUBLISH;
-      if (statusFilter === 'complete') return c.status === COMPETITION_STATUSES.COMPLETED || c.phase === 'completed';
+      if (statusFilter === 'upcoming') return isPublished(c.status);
+      if (statusFilter === 'complete') return isCompleted(c.status) || c.phase === 'completed';
       return true;
     });
   }, [competitions, cityFilter, statusFilter]);
@@ -238,7 +241,7 @@ export default function EliteRankCityModal({
 
     if (competition.accessible && onOpenCompetition) {
       onOpenCompetition(competitionWithOrg);
-    } else if (competition.status === COMPETITION_STATUSES.PUBLISH) {
+    } else if (isPublished(competition.status)) {
       onOpenTeaser ? onOpenTeaser(competitionWithOrg) : onOpenCompetition?.({ ...competitionWithOrg, isTeaser: true });
     }
   };
@@ -252,12 +255,12 @@ export default function EliteRankCityModal({
     const isHovered = hoveredCard === competition.id;
     const displayPhase = competition.accessible ? competition.phase : competition.status;
     const config = getPhaseDisplayConfig(displayPhase);
-    const isClickable = competition.accessible || competition.status === COMPETITION_STATUSES.PUBLISH;
+    const isClickable = competition.accessible || isPublished(competition.status);
     const cityImage = getCityImage(competition.city);
     const org = getOrg(competition.organizationId);
 
     const getCtaText = () => {
-      if (competition.status === COMPETITION_STATUSES.PUBLISH) return 'Coming Soon';
+      if (isPublished(competition.status)) return 'Coming Soon';
       if (competition.phase === 'nomination') return 'Nominate';
       if (competition.phase === 'voting') return 'Vote Now';
       if (competition.phase === 'completed') return 'View Winners';

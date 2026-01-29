@@ -3,6 +3,11 @@ import { supabase } from '../../../lib/supabase';
 import {
   shouldAutoTransitionToLive,
   shouldAutoTransitionToCompleted,
+  isDraft,
+  isPublished,
+  isLive,
+  isCompleted,
+  isArchived,
 } from '../../../utils/competitionPhase';
 
 export function useCompetitionManager() {
@@ -303,11 +308,11 @@ export function useCompetitionManager() {
   // Status values: draft, publish, live, completed, archive
   const competitionsByStatus = useMemo(() => {
     return {
-      draft: competitions.filter((t) => t.status === 'draft'),
-      publish: competitions.filter((t) => t.status === 'publish'),
-      live: competitions.filter((t) => t.status === 'live'),
-      completed: competitions.filter((t) => t.status === 'completed'),
-      archive: competitions.filter((t) => t.status === 'archive'),
+      draft: competitions.filter((t) => isDraft(t.status)),
+      publish: competitions.filter((t) => isPublished(t.status)),
+      live: competitions.filter((t) => isLive(t.status)),
+      completed: competitions.filter((t) => isCompleted(t.status)),
+      archive: competitions.filter((t) => isArchived(t.status)),
     };
   }, [competitions]);
 

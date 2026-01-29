@@ -29,6 +29,80 @@ export const TIMELINE_PHASES = {
   COMPLETED: 'completed',     // After finale date
 };
 
+// =============================================================================
+// STATUS NORMALIZATION - Single source of truth for status variants
+// =============================================================================
+
+/**
+ * Normalize competition status to canonical form.
+ * Handles variations like 'published' -> 'publish', 'coming-soon' -> 'publish'.
+ *
+ * @param {string} status - Raw status string from database or elsewhere
+ * @returns {string} Normalized canonical status value
+ */
+export function normalizeStatus(status) {
+  const s = (status || '').toLowerCase().trim();
+
+  // Map variants to canonical values
+  const statusMap = {
+    'published': COMPETITION_STATUSES.PUBLISH,
+    'coming_soon': COMPETITION_STATUSES.PUBLISH,
+    'coming-soon': COMPETITION_STATUSES.PUBLISH,
+    'archived': COMPETITION_STATUSES.ARCHIVE,
+  };
+
+  return statusMap[s] || s;
+}
+
+// =============================================================================
+// STATUS CHECK HELPERS - Use these instead of direct string comparisons
+// =============================================================================
+
+/**
+ * Check if competition status is draft
+ * @param {string} status - Competition status
+ * @returns {boolean}
+ */
+export function isDraft(status) {
+  return normalizeStatus(status) === COMPETITION_STATUSES.DRAFT;
+}
+
+/**
+ * Check if competition status is published (coming soon)
+ * @param {string} status - Competition status
+ * @returns {boolean}
+ */
+export function isPublished(status) {
+  return normalizeStatus(status) === COMPETITION_STATUSES.PUBLISH;
+}
+
+/**
+ * Check if competition status is live
+ * @param {string} status - Competition status
+ * @returns {boolean}
+ */
+export function isLive(status) {
+  return normalizeStatus(status) === COMPETITION_STATUSES.LIVE;
+}
+
+/**
+ * Check if competition status is completed
+ * @param {string} status - Competition status
+ * @returns {boolean}
+ */
+export function isCompleted(status) {
+  return normalizeStatus(status) === COMPETITION_STATUSES.COMPLETED;
+}
+
+/**
+ * Check if competition status is archived
+ * @param {string} status - Competition status
+ * @returns {boolean}
+ */
+export function isArchived(status) {
+  return normalizeStatus(status) === COMPETITION_STATUSES.ARCHIVE;
+}
+
 /**
  * Compute the current phase of a competition.
  *
@@ -170,13 +244,12 @@ export function computeTimelinePhase(competition) {
  * @returns {boolean}
  */
 export function isCompetitionVisible(status) {
-  const normalizedStatus = (status || '').toLowerCase();
+  const normalized = normalizeStatus(status);
   return [
     COMPETITION_STATUSES.PUBLISH,
-    'published', // Support alternate spelling
     COMPETITION_STATUSES.LIVE,
     COMPETITION_STATUSES.COMPLETED,
-  ].includes(normalizedStatus);
+  ].includes(normalized);
 }
 
 /**
@@ -187,11 +260,11 @@ export function isCompetitionVisible(status) {
  * @returns {boolean}
  */
 export function isCompetitionAccessible(status) {
-  const normalizedStatus = (status || '').toLowerCase();
+  const normalized = normalizeStatus(status);
   return [
     COMPETITION_STATUSES.LIVE,
     COMPETITION_STATUSES.COMPLETED,
-  ].includes(normalizedStatus);
+  ].includes(normalized);
 }
 
 /**
@@ -503,9 +576,8 @@ export function getDatePeriodStatus(startDate, endDate) {
 export function shouldAutoTransitionToLive(competition, settings = null) {
   if (!competition) return false;
 
-  // Only applies to competitions with status 'publish' or 'published'
-  const status = (competition.status || '').toLowerCase();
-  if (status !== COMPETITION_STATUSES.PUBLISH && status !== 'published') return false;
+  // Only applies to competitions with status 'publish' (or variants like 'published')
+  if (!isPublished(competition.status)) return false;
 
   const now = new Date();
 
