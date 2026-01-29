@@ -41,17 +41,40 @@ export const TIMELINE_PHASES = {
  * @returns {string} Normalized canonical status value
  */
 export function normalizeStatus(status) {
-  const s = (status || '').toLowerCase().trim();
+  // Handle null/undefined - treat as draft
+  if (!status) return COMPETITION_STATUSES.DRAFT;
+
+  const s = String(status).toLowerCase().trim();
+
+  // Handle empty string - treat as draft
+  if (!s) return COMPETITION_STATUSES.DRAFT;
 
   // Map variants to canonical values
+  // Include common variations and typos
   const statusMap = {
+    // Publish variants
     'published': COMPETITION_STATUSES.PUBLISH,
+    'publish': COMPETITION_STATUSES.PUBLISH,
     'coming_soon': COMPETITION_STATUSES.PUBLISH,
     'coming-soon': COMPETITION_STATUSES.PUBLISH,
+    'coming soon': COMPETITION_STATUSES.PUBLISH,
+    'comingsoon': COMPETITION_STATUSES.PUBLISH,
+    // Archive variants
     'archived': COMPETITION_STATUSES.ARCHIVE,
+    'archive': COMPETITION_STATUSES.ARCHIVE,
+    // Draft variants
+    'draft': COMPETITION_STATUSES.DRAFT,
+    // Live variants
+    'live': COMPETITION_STATUSES.LIVE,
+    'active': COMPETITION_STATUSES.LIVE,
+    // Completed variants
+    'completed': COMPETITION_STATUSES.COMPLETED,
+    'complete': COMPETITION_STATUSES.COMPLETED,
+    'finished': COMPETITION_STATUSES.COMPLETED,
+    'ended': COMPETITION_STATUSES.COMPLETED,
   };
 
-  return statusMap[s] || s;
+  return statusMap[s] || COMPETITION_STATUSES.DRAFT;
 }
 
 // =============================================================================
