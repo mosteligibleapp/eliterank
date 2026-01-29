@@ -797,16 +797,24 @@ export default function App() {
   const handleOpenCompetition = useCallback((competition) => {
     setShowUserProfile(false);
 
-    // Build new URL format: /:orgSlug/:slug where slug is {city}-{year}
     // Use orgSlug from competition object (set during explore page data processing)
     const orgSlug = competition?.organization?.slug || competition?.orgSlug;
 
     if (!orgSlug) {
       console.warn('[handleOpenCompetition] Missing organization slug for competition:', competition?.name || competition?.id);
-      // Fallback: try to navigate anyway with a default, but log the issue
     }
 
-    // Use citySlug if available (from explore page), otherwise derive from city name
+    // Use org slug or fallback to most-eligible only as last resort
+    const finalOrgSlug = orgSlug || 'most-eligible';
+
+    // Prefer using the database slug directly - it's unique and includes category
+    if (competition?.slug) {
+      navigate(`/${finalOrgSlug}/${competition.slug}`);
+      return;
+    }
+
+    // Fallback: construct slug from parts (for backwards compatibility)
+    const categoryPart = competition?.categorySlug || '';
     const cityPart = competition?.citySlug
       ? competition.citySlug.replace(/-[a-z]{2}$/i, '') // Remove state suffix like "-il"
       : competition?.city
@@ -814,11 +822,12 @@ export default function App() {
         : '';
     const year = competition?.season || '';
 
-    // Use org slug or fallback to most-eligible only as last resort
-    const finalOrgSlug = orgSlug || 'most-eligible';
-
-    if (cityPart && year) {
-      // New format: /:orgSlug/:city-:year
+    if (categoryPart && cityPart && year) {
+      // New format with category: /:orgSlug/:category-:city-:year
+      const slug = `${categoryPart}-${cityPart}-${year}`;
+      navigate(`/${finalOrgSlug}/${slug}`);
+    } else if (cityPart && year) {
+      // Legacy format: /:orgSlug/:city-:year
       const slug = `${cityPart}-${year}`;
       navigate(`/${finalOrgSlug}/${slug}`);
     } else if (cityPart) {

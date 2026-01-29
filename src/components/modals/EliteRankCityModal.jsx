@@ -14,6 +14,7 @@ import {
   useOrganizations,
   useProfiles,
   useVotingRounds,
+  useCategories,
 } from '../../hooks/useCachedQuery';
 import {
   computeCompetitionPhase,
@@ -69,14 +70,16 @@ export default function EliteRankCityModal({
   const [cityFilter, setCityFilter] = useState('all');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  // Use cached hooks for static data (cities, organizations, profiles)
+  // Use cached hooks for static data (cities, organizations, profiles, categories)
   const { data: cachedCities, loading: citiesLoading } = useCities();
   const { data: cachedOrganizations, loading: orgsLoading } = useOrganizations();
   const { data: cachedProfiles, loading: profilesLoading } = useProfiles();
+  const { data: cachedCategories, loading: categoriesLoading } = useCategories();
 
   // Memoize maps for quick lookups
   const cities = cachedCities || [];
   const organizations = cachedOrganizations || [];
+  const categories = cachedCategories || [];
   const profilesMap = useMemo(() => {
     return (cachedProfiles || []).reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
   }, [cachedProfiles]);
@@ -87,7 +90,7 @@ export default function EliteRankCityModal({
   // Fetch dynamic data (competitions, settings, voting rounds, events, announcements)
   useEffect(() => {
     const fetchData = async () => {
-      if (!supabase || citiesLoading || orgsLoading || profilesLoading) {
+      if (!supabase || citiesLoading || orgsLoading || profilesLoading || categoriesLoading) {
         return;
       }
 
@@ -157,6 +160,9 @@ export default function EliteRankCityModal({
             // Include organization data directly to avoid lookup issues later
             const org = organizations.find(o => o.id === comp.organization_id);
 
+            // Lookup category for navigation
+            const category = categories.find(cat => cat.id === comp.category_id);
+
             return {
               id: comp.id,
               name: comp.name || `Most Eligible ${cityName}`,
@@ -165,11 +171,15 @@ export default function EliteRankCityModal({
               citySlug: cityFromLookup?.slug || cityName.toLowerCase().replace(/\s+/g, '-'),
               cityId: comp.city_id,
               season: comp.season || new Date().getFullYear(),
+              // Use database slug directly - it's unique and includes category
+              slug: comp.slug,
               status: (comp.status || COMPETITION_STATUSES.DRAFT).toLowerCase(),
               phase: computedPhase,
               visible,
               accessible,
               organizationId: comp.organization_id,
+              categoryId: comp.category_id,
+              categorySlug: category?.slug,
               // Include org slug directly for reliable navigation
               orgSlug: org?.slug,
               organization: org ? { id: org.id, name: org.name, logo_url: org.logo_url || org.logo, slug: org.slug } : null,
@@ -213,8 +223,8 @@ export default function EliteRankCityModal({
       }
     };
 
-    if (isOpen && !citiesLoading && !orgsLoading && !profilesLoading) fetchData();
-  }, [isOpen, citiesLoading, orgsLoading, profilesLoading, citiesMap, profilesMap]);
+    if (isOpen && !citiesLoading && !orgsLoading && !profilesLoading && !categoriesLoading) fetchData();
+  }, [isOpen, citiesLoading, orgsLoading, profilesLoading, categoriesLoading, citiesMap, profilesMap, categories]);
 
   // Memoized values
   const availableCities = useMemo(() =>

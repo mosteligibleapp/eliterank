@@ -201,14 +201,17 @@ export default function CompetitionsManager({ onViewDashboard }) {
         return;
       }
 
-      // Generate competition slug
+      // Generate competition slug - include category for uniqueness
       const selectedCity = cities.find(c => c.id === formData.city_id);
       const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
+      const selectedCategory = categories.find(c => c.id === formData.category_id);
       const citySlugPart = selectedCity?.slug?.replace(/-[a-z]{2}$/i, '') || generateSlug(selectedCity?.name || 'unknown');
+      const categorySlugPart = selectedCategory?.slug || generateSlug(selectedCategory?.name || 'general');
       const isOpenDemographic = !selectedDemographic || selectedDemographic.slug === 'open';
+      // Slug format: {category}-{city}-{year} or {category}-{city}-{demographic}-{year}
       const competitionSlug = isOpenDemographic
-        ? `${citySlugPart}-${formData.season}`
-        : `${citySlugPart}-${selectedDemographic.slug}-${formData.season}`;
+        ? `${categorySlugPart}-${citySlugPart}-${formData.season}`
+        : `${categorySlugPart}-${citySlugPart}-${selectedDemographic.slug}-${formData.season}`;
 
       // Create competition with settings included (consolidated schema)
       const { data, error } = await supabase
