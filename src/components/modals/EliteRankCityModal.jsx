@@ -425,10 +425,12 @@ export default function EliteRankCityModal({
     <div style={{
       display: 'flex',
       flexDirection: isMobile ? 'column' : 'row',
-      alignItems: isMobile ? 'stretch' : 'center',
+      alignItems: 'center',
+      justifyContent: 'center',
       gap: spacing.md,
       marginBottom: spacing.xl,
       padding: isMobile ? `0 ${spacing.lg}` : 0,
+      flexWrap: 'wrap',
     }}>
       {/* Status Pills */}
       <div style={{
