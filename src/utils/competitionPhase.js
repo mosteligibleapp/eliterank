@@ -173,6 +173,7 @@ export function isCompetitionVisible(status) {
   const normalizedStatus = (status || '').toLowerCase();
   return [
     COMPETITION_STATUSES.PUBLISH,
+    'published', // Support alternate spelling
     COMPETITION_STATUSES.LIVE,
     COMPETITION_STATUSES.COMPLETED,
   ].includes(normalizedStatus);
@@ -502,8 +503,9 @@ export function getDatePeriodStatus(startDate, endDate) {
 export function shouldAutoTransitionToLive(competition, settings = null) {
   if (!competition) return false;
 
-  // Only applies to competitions with status 'publish'
-  if (competition.status !== COMPETITION_STATUSES.PUBLISH) return false;
+  // Only applies to competitions with status 'publish' or 'published'
+  const status = (competition.status || '').toLowerCase();
+  if (status !== COMPETITION_STATUSES.PUBLISH && status !== 'published') return false;
 
   const now = new Date();
 

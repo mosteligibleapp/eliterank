@@ -154,7 +154,8 @@ export function getCompetitionPhase(
   }
 
   // Check for coming soon (publish status)
-  if (status === 'publish' || status === 'coming_soon' || status === 'coming-soon') {
+  // Support multiple variations: publish, published, coming_soon, coming-soon
+  if (status === 'publish' || status === 'published' || status === 'coming_soon' || status === 'coming-soon') {
     const nominationStart = competition.nomination_start
       ? new Date(competition.nomination_start)
       : null;
@@ -193,7 +194,7 @@ export function getCompetitionPhase(
   return {
     phase: 'unknown',
     label: status || 'Unknown',
-    isPublic: status === 'live' || status === 'publish',
+    isPublic: status === 'live' || status === 'publish' || status === 'published',
     isVoting: false,
     canNominate: false,
   };
