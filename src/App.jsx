@@ -20,6 +20,7 @@ import React, {
   Suspense
 } from 'react';
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
+import PushNotifications from './components/PushNotifications';
 
 // =============================================================================
 // CORE IMPORTS
@@ -1079,6 +1080,8 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      {/* Push Notifications */}
+      {isAuthenticated && user?.id && <PushNotifications userId={user.id} />}
       {/* Main Public Page - Competitions Listing */}
       <EliteRankCityModal
         isOpen={true}
