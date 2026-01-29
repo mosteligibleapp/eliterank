@@ -797,16 +797,23 @@ export default function App() {
   const handleOpenCompetition = useCallback((competition) => {
     setShowUserProfile(false);
 
-    // Build new URL format: /c/:orgSlug/:citySlug/:year
+    // Build new URL format: /:orgSlug/:slug where slug is {city}-{year}
     const orgSlug = competition?.organization?.slug || competition?.orgSlug || 'most-eligible';
-    const citySlug = competition?.city
-      ? competition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
-      : '';
+    // Use citySlug if available (from explore page), otherwise derive from city name
+    const cityPart = competition?.citySlug
+      ? competition.citySlug.replace(/-[a-z]{2}$/i, '') // Remove state suffix like "-il"
+      : competition?.city
+        ? competition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
+        : '';
     const year = competition?.season || '';
 
-    if (citySlug) {
-      const path = year ? `/c/${orgSlug}/${citySlug}/${year}` : `/c/${orgSlug}/${citySlug}`;
-      navigate(path);
+    if (cityPart && year) {
+      // New format: /:orgSlug/:city-:year
+      const slug = `${cityPart}-${year}`;
+      navigate(`/${orgSlug}/${slug}`);
+    } else if (cityPart) {
+      // Fallback to legacy format if no year
+      navigate(`/c/${orgSlug}/${cityPart}`);
     }
   }, [navigate]);
 

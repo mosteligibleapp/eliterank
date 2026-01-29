@@ -4,6 +4,7 @@ import { colors, spacing, borderRadius, typography } from '../../../../styles/th
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
+import { isLive } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
 
@@ -259,7 +260,7 @@ export default function OverviewTab({
               <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
                 <Users size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
                 <p style={{ fontSize: typography.fontSize.sm }}>
-                  {competition?.status === 'live' ? 'Rankings appear when voting begins' : 'No contestants yet'}
+                  {isLive(competition?.status) ? 'Rankings appear when voting begins' : 'No contestants yet'}
                 </p>
               </div>
             ) : (
