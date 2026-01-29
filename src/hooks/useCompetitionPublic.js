@@ -471,6 +471,9 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null, demographic
       if (compError) throw compError;
       if (!compData) throw new Error('Competition not found');
 
+      // Debug: log fetched competition data
+      console.warn(`[useCompetitionPublic] Fetched competition: "${compData.name}" (${compData.id}), status: "${compData.status}", slug: "${compData.slug}"`);
+
       // Normalize city to string for rendering, keep full object as cityData
       const cityObj = compData.city;
       const normalizedCompData = {

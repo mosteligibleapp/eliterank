@@ -49,10 +49,8 @@ export function getCompetitionPhase(
   const rawStatus = competition.status;
   const status = normalizeStatus(rawStatus);
 
-  // Debug: log status processing
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[getCompetitionPhase] Competition: ${competition.name || competition.id}, Raw status: "${rawStatus}", Normalized: "${status}"`);
-  }
+  // Debug: log status processing (console.warn shows in Vercel logs)
+  console.warn(`[getCompetitionPhase] Competition: "${competition.name || 'unnamed'}" (${competition.id}), Raw status: "${rawStatus}", Normalized: "${status}"`);
 
   // Handle terminal states using helper functions
   if (status === 'cancelled') {
