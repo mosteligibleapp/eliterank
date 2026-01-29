@@ -154,6 +154,8 @@ export default function EliteRankCityModal({
             // Prioritize city lookup by city_id over potentially stale comp.city string
             const cityName = cityFromLookup?.name || comp.city || 'Unknown City';
             const hostProfile = comp.host_id ? profilesMap[comp.host_id] : null;
+            // Include organization data directly to avoid lookup issues later
+            const org = organizations.find(o => o.id === comp.organization_id);
 
             return {
               id: comp.id,
@@ -168,6 +170,9 @@ export default function EliteRankCityModal({
               visible,
               accessible,
               organizationId: comp.organization_id,
+              // Include org slug directly for reliable navigation
+              orgSlug: org?.slug,
+              organization: org ? { id: org.id, name: org.name, logo_url: org.logo_url || org.logo, slug: org.slug } : null,
               host_id: comp.host_id,
               host: hostProfile ? {
                 id: hostProfile.id,
@@ -233,16 +238,11 @@ export default function EliteRankCityModal({
   const getOrg = (orgId) => organizations.find(o => o.id === orgId);
 
   const handleCompetitionClick = (competition) => {
-    const org = getOrg(competition.organizationId);
-    const competitionWithOrg = {
-      ...competition,
-      organization: org ? { id: org.id, name: org.name, logo_url: org.logo_url || org.logo, slug: org.slug } : null,
-    };
-
+    // Organization data is already included in competition object from data processing
     if (competition.accessible && onOpenCompetition) {
-      onOpenCompetition(competitionWithOrg);
+      onOpenCompetition(competition);
     } else if (isPublished(competition.status)) {
-      onOpenTeaser ? onOpenTeaser(competitionWithOrg) : onOpenCompetition?.({ ...competitionWithOrg, isTeaser: true });
+      onOpenTeaser ? onOpenTeaser(competition) : onOpenCompetition?.({ ...competition, isTeaser: true });
     }
   };
 

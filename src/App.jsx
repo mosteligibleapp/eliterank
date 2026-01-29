@@ -798,7 +798,14 @@ export default function App() {
     setShowUserProfile(false);
 
     // Build new URL format: /:orgSlug/:slug where slug is {city}-{year}
-    const orgSlug = competition?.organization?.slug || competition?.orgSlug || 'most-eligible';
+    // Use orgSlug from competition object (set during explore page data processing)
+    const orgSlug = competition?.organization?.slug || competition?.orgSlug;
+
+    if (!orgSlug) {
+      console.warn('[handleOpenCompetition] Missing organization slug for competition:', competition?.name || competition?.id);
+      // Fallback: try to navigate anyway with a default, but log the issue
+    }
+
     // Use citySlug if available (from explore page), otherwise derive from city name
     const cityPart = competition?.citySlug
       ? competition.citySlug.replace(/-[a-z]{2}$/i, '') // Remove state suffix like "-il"
@@ -807,13 +814,16 @@ export default function App() {
         : '';
     const year = competition?.season || '';
 
+    // Use org slug or fallback to most-eligible only as last resort
+    const finalOrgSlug = orgSlug || 'most-eligible';
+
     if (cityPart && year) {
       // New format: /:orgSlug/:city-:year
       const slug = `${cityPart}-${year}`;
-      navigate(`/${orgSlug}/${slug}`);
+      navigate(`/${finalOrgSlug}/${slug}`);
     } else if (cityPart) {
       // Fallback to legacy format if no year
-      navigate(`/c/${orgSlug}/${cityPart}`);
+      navigate(`/c/${finalOrgSlug}/${cityPart}`);
     }
   }, [navigate]);
 

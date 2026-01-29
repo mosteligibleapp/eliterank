@@ -46,7 +46,13 @@ export function getCompetitionPhase(
 
   const now = new Date();
   // Normalize status once at the top - handles variants like 'published' -> 'publish'
-  const status = normalizeStatus(competition.status);
+  const rawStatus = competition.status;
+  const status = normalizeStatus(rawStatus);
+
+  // Debug: log status processing
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[getCompetitionPhase] Competition: ${competition.name || competition.id}, Raw status: "${rawStatus}", Normalized: "${status}"`);
+  }
 
   // Handle terminal states using helper functions
   if (status === 'cancelled') {
