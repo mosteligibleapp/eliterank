@@ -61,183 +61,25 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null, demographic
 
       setOrganization(orgData);
 
-      // Lookup city by slug from cities table
-      // Use maybeSingle() to gracefully handle 0 results (returns null instead of 406 error)
-      let cityData = null;
-      const { data: cityResult } = await supabase
-        .from('cities')
-        .select('id, name, slug, state')
-        .eq('slug', citySlug)
-        .maybeSingle();
+      // Build the expected competition slug from URL parts
+      // Format: {city}-{year} or {city}-{demographic}-{year}
+      const expectedSlug = demographicSlug && demographicSlug !== 'open'
+        ? `${citySlug}-${demographicSlug}-${year}`
+        : `${citySlug}-${year}`;
 
-      if (!cityResult) {
-        // Fallback: try pattern matching on slug
-        const { data: cityFallback } = await supabase
-          .from('cities')
-          .select('id, name, slug, state')
-          .ilike('slug', `%${citySlug}%`)
-          .limit(1)
-          .maybeSingle();
+      // First, try direct lookup by competition slug (most reliable)
+      let compData = null;
+      let compError = null;
 
-        if (!cityFallback) {
-          throw new Error('City not found');
-        }
-        cityData = cityFallback;
-      } else {
-        cityData = cityResult;
-      }
-
-      // Lookup demographic if provided
-      let demographicId = null;
-      if (demographicSlug) {
-        const { data: demoData } = await supabase
-          .from('demographics')
-          .select('id')
-          .eq('slug', demographicSlug)
-          .maybeSingle();
-        demographicId = demoData?.id;
-      } else {
-        // Default to 'open' demographic if no demographic specified
-        const { data: openDemo } = await supabase
-          .from('demographics')
-          .select('id')
-          .eq('slug', 'open')
-          .maybeSingle();
-        demographicId = openDemo?.id;
-      }
-
-      // Build competition query using city_id for accurate lookup
-      let query = supabase
-        .from('competitions')
-        .select(
-          `
-          *,
-          city:cities(*),
-          category:categories(*),
-          demographic:demographics(*),
-          host:profiles!competitions_host_id_fkey (
-            id,
-            first_name,
-            last_name,
-            bio,
-            avatar_url,
-            city,
-            instagram,
-            twitter,
-            linkedin
-          ),
-          contestants (
-            id,
-            user_id,
-            name,
-            email,
-            age,
-            bio,
-            avatar_url,
-            instagram,
-            status,
-            votes,
-            rank,
-            trend,
-            city,
-            slug,
-            profile_views,
-            external_shares,
-            eliminated_in_round,
-            advancement_status,
-            current_round,
-            created_at,
-            updated_at
-          ),
-          sponsors (
-            id,
-            name,
-            tier,
-            amount,
-            logo_url,
-            website_url,
-            sort_order
-          ),
-          events (
-            id,
-            name,
-            date,
-            end_date,
-            time,
-            location,
-            status,
-            public_visible,
-            is_double_vote_day,
-            sort_order
-          ),
-          competition_rules (
-            id,
-            section_title,
-            section_content,
-            sort_order
-          ),
-          voting_rounds (
-            id,
-            title,
-            round_order,
-            start_date,
-            end_date,
-            contestants_advance,
-            votes_accumulate,
-            round_type
-          ),
-          nomination_periods (
-            id,
-            title,
-            period_order,
-            start_date,
-            end_date,
-            max_submissions
-          ),
-          announcements (
-            id,
-            type,
-            title,
-            content,
-            pinned,
-            published_at,
-            is_ai_generated
-          )
-        `
-        )
-        .eq('organization_id', orgData.id)
-        .eq('city_id', cityData.id);
-
-      // Filter by demographic if we found one
-      if (demographicId) {
-        query = query.eq('demographic_id', demographicId);
-      }
-
-      // Filter by year if provided
-      if (year) {
-        // Assuming slug format is 'city-year' or filtering by season field
-        query = query.or(`slug.ilike.%${year}%,season.eq.${year}`);
-      }
-
-      // Order by most recent and get first match
-      // Use maybeSingle() to gracefully handle 0 results (returns null instead of error)
-      query = query
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      let { data: compData, error: compError } = await query;
-
-      // Fallback: if no competition found by city_id, try legacy city string matching
-      // This handles cases where city_id wasn't properly set in the database
-      if (!compData && !compError) {
-        const cityPattern = `%${citySlug.split('-').join('%')}%`;
-        let fallbackQuery = supabase
+      if (expectedSlug && year) {
+        const { data: directMatch, error: directError } = await supabase
           .from('competitions')
           .select(
             `
             *,
             city:cities(*),
+            category:categories(*),
+            demographic:demographics(*),
             host:profiles!competitions_host_id_fkey (
               id,
               first_name,
@@ -329,20 +171,301 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null, demographic
           `
           )
           .eq('organization_id', orgData.id)
-          .ilike('city', cityPattern);
+          .eq('slug', expectedSlug)
+          .maybeSingle();
 
-        if (year) {
-          fallbackQuery = fallbackQuery.or(`slug.ilike.%${year}%,season.eq.${year}`);
+        if (!directError && directMatch) {
+          compData = directMatch;
+        }
+      }
+
+      // If direct slug lookup didn't find anything, fall back to city_id lookup
+      if (!compData) {
+        // Lookup city by slug from cities table
+        // Use maybeSingle() to gracefully handle 0 results (returns null instead of 406 error)
+        let cityData = null;
+        const { data: cityResult } = await supabase
+          .from('cities')
+          .select('id, name, slug, state')
+          .eq('slug', citySlug)
+          .maybeSingle();
+
+        if (!cityResult) {
+          // Fallback: try pattern matching on slug
+          const { data: cityFallback } = await supabase
+            .from('cities')
+            .select('id, name, slug, state')
+            .ilike('slug', `%${citySlug}%`)
+            .limit(1)
+            .maybeSingle();
+
+          if (!cityFallback) {
+            throw new Error('City not found');
+          }
+          cityData = cityFallback;
+        } else {
+          cityData = cityResult;
         }
 
-        fallbackQuery = fallbackQuery
+        // Lookup demographic if provided
+        let demographicId = null;
+        if (demographicSlug) {
+          const { data: demoData } = await supabase
+            .from('demographics')
+            .select('id')
+            .eq('slug', demographicSlug)
+            .maybeSingle();
+          demographicId = demoData?.id;
+        } else {
+          // Default to 'open' demographic if no demographic specified
+          const { data: openDemo } = await supabase
+            .from('demographics')
+            .select('id')
+            .eq('slug', 'open')
+            .maybeSingle();
+          demographicId = openDemo?.id;
+        }
+
+        // Build competition query using city_id for accurate lookup
+        let query = supabase
+          .from('competitions')
+          .select(
+            `
+            *,
+            city:cities(*),
+            category:categories(*),
+            demographic:demographics(*),
+            host:profiles!competitions_host_id_fkey (
+              id,
+              first_name,
+              last_name,
+              bio,
+              avatar_url,
+              city,
+              instagram,
+              twitter,
+              linkedin
+            ),
+            contestants (
+              id,
+              user_id,
+              name,
+              email,
+              age,
+              bio,
+              avatar_url,
+              instagram,
+              status,
+              votes,
+              rank,
+              trend,
+              city,
+              slug,
+              profile_views,
+              external_shares,
+              eliminated_in_round,
+              advancement_status,
+              current_round,
+              created_at,
+              updated_at
+            ),
+            sponsors (
+              id,
+              name,
+              tier,
+              amount,
+              logo_url,
+              website_url,
+              sort_order
+            ),
+            events (
+              id,
+              name,
+              date,
+              end_date,
+              time,
+              location,
+              status,
+              public_visible,
+              is_double_vote_day,
+              sort_order
+            ),
+            competition_rules (
+              id,
+              section_title,
+              section_content,
+              sort_order
+            ),
+            voting_rounds (
+              id,
+              title,
+              round_order,
+              start_date,
+              end_date,
+              contestants_advance,
+              votes_accumulate,
+              round_type
+            ),
+            nomination_periods (
+              id,
+              title,
+              period_order,
+              start_date,
+              end_date,
+              max_submissions
+            ),
+            announcements (
+              id,
+              type,
+              title,
+              content,
+              pinned,
+              published_at,
+              is_ai_generated
+            )
+          `
+          )
+          .eq('organization_id', orgData.id)
+          .eq('city_id', cityData.id);
+
+        // Filter by demographic if we found one
+        if (demographicId) {
+          query = query.eq('demographic_id', demographicId);
+        }
+
+        // Filter by year if provided
+        if (year) {
+          // Assuming slug format is 'city-year' or filtering by season field
+          query = query.or(`slug.ilike.%${year}%,season.eq.${year}`);
+        }
+
+        // Order by most recent and get first match
+        // Use maybeSingle() to gracefully handle 0 results (returns null instead of error)
+        query = query
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
-        const fallbackResult = await fallbackQuery;
-        compData = fallbackResult.data;
-        compError = fallbackResult.error;
+        const cityQueryResult = await query;
+        compData = cityQueryResult.data;
+        compError = cityQueryResult.error;
+
+        // Fallback: if no competition found by city_id, try legacy city string matching
+        // This handles cases where city_id wasn't properly set in the database
+        if (!compData && !compError) {
+          const cityPattern = `%${citySlug.split('-').join('%')}%`;
+          let fallbackQuery = supabase
+            .from('competitions')
+            .select(
+              `
+              *,
+              city:cities(*),
+              host:profiles!competitions_host_id_fkey (
+                id,
+                first_name,
+                last_name,
+                bio,
+                avatar_url,
+                city,
+                instagram,
+                twitter,
+                linkedin
+              ),
+              contestants (
+                id,
+                user_id,
+                name,
+                email,
+                age,
+                bio,
+                avatar_url,
+                instagram,
+                status,
+                votes,
+                rank,
+                trend,
+                city,
+                slug,
+                profile_views,
+                external_shares,
+                eliminated_in_round,
+                advancement_status,
+                current_round,
+                created_at,
+                updated_at
+              ),
+              sponsors (
+                id,
+                name,
+                tier,
+                amount,
+                logo_url,
+                website_url,
+                sort_order
+              ),
+              events (
+                id,
+                name,
+                date,
+                end_date,
+                time,
+                location,
+                status,
+                public_visible,
+                is_double_vote_day,
+                sort_order
+              ),
+              competition_rules (
+                id,
+                section_title,
+                section_content,
+                sort_order
+              ),
+              voting_rounds (
+                id,
+                title,
+                round_order,
+                start_date,
+                end_date,
+                contestants_advance,
+                votes_accumulate,
+                round_type
+              ),
+              nomination_periods (
+                id,
+                title,
+                period_order,
+                start_date,
+                end_date,
+                max_submissions
+              ),
+              announcements (
+                id,
+                type,
+                title,
+                content,
+                pinned,
+                published_at,
+                is_ai_generated
+              )
+            `
+            )
+            .eq('organization_id', orgData.id)
+            .ilike('city', cityPattern);
+
+          if (year) {
+            fallbackQuery = fallbackQuery.or(`slug.ilike.%${year}%,season.eq.${year}`);
+          }
+
+          fallbackQuery = fallbackQuery
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const fallbackResult = await fallbackQuery;
+          compData = fallbackResult.data;
+          compError = fallbackResult.error;
+        }
       }
 
       if (compError) throw compError;
