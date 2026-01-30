@@ -201,14 +201,15 @@ export default function CompetitionsManager({ onViewDashboard }) {
         return;
       }
 
-      // Generate competition slug
+      // Generate competition slug: name-city-year-demographics
       const selectedCity = cities.find(c => c.id === formData.city_id);
       const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
       const citySlugPart = selectedCity?.slug?.replace(/-[a-z]{2}$/i, '') || generateSlug(selectedCity?.name || 'unknown');
+      const nameSlugPart = generateSlug(formData.name || 'competition');
       const isOpenDemographic = !selectedDemographic || selectedDemographic.slug === 'open';
       const competitionSlug = isOpenDemographic
-        ? `${citySlugPart}-${formData.season}`
-        : `${citySlugPart}-${selectedDemographic.slug}-${formData.season}`;
+        ? `${nameSlugPart}-${citySlugPart}-${formData.season}`
+        : `${nameSlugPart}-${citySlugPart}-${formData.season}-${selectedDemographic.slug}`;
 
       // Create competition with settings included (consolidated schema)
       const { data, error } = await supabase
@@ -1092,7 +1093,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
               }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>URL Preview:</span>
                 <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.sm }}>
-                  {generateCompetitionUrl(selectedOrg.slug, selectedCity.slug, formData.season, selectedDemographic?.slug)}
+                  {generateCompetitionUrl(selectedOrg.slug, generateSlug(formData.name || 'competition'), selectedCity.slug, formData.season, selectedDemographic?.slug)}
                 </p>
               </div>
             )}

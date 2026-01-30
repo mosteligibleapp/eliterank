@@ -356,7 +356,8 @@ export function validateStatusChange(competition, newStatus) {
 
   if (newStatus === COMPETITION_STATUSES.PUBLISH) {
     // Require city and organization for publishing
-    if (!competition?.city) {
+    // Check both city (joined data) and city_id (foreign key)
+    if (!competition?.city && !competition?.city_id) {
       return {
         valid: false,
         error: 'City must be set before publishing a competition.',

@@ -40,29 +40,16 @@ export default function CompetitionPage() {
   const [activeTab, setActiveTab] = useState('about');
   const [winners, setWinners] = useState([]);
 
-  // Parse competition slug (format: city-slug-season)
-  const parseCompetitionSlug = (slug) => {
-    if (!slug) return { citySlug: null, season: null };
-    const parts = slug.split('-');
-    const season = parseInt(parts[parts.length - 1]);
-    const citySlug = parts.slice(0, -1).join('-');
-    return { citySlug, season };
-  };
-
-  // Find organization and city from cached data
-  const { citySlug, season } = useMemo(() => parseCompetitionSlug(competitionSlug), [competitionSlug]);
+  // Find organization from cached data
   const organization = useMemo(() => {
     return (cachedOrganizations || []).find(org => org.slug === orgSlug) || null;
   }, [cachedOrganizations, orgSlug]);
-  const cityData = useMemo(() => {
-    return (cachedCities || []).find(city => city.slug === citySlug) || null;
-  }, [cachedCities, citySlug]);
 
   useEffect(() => {
     if (orgSlug && competitionSlug && !orgsLoading && !citiesLoading) {
       fetchCompetition();
     }
-  }, [orgSlug, competitionSlug, orgsLoading, citiesLoading, organization, cityData]);
+  }, [orgSlug, competitionSlug, orgsLoading, citiesLoading, organization]);
 
   const fetchCompetition = async () => {
     if (!supabase) return;
@@ -71,20 +58,14 @@ export default function CompetitionPage() {
     setError(null);
 
     try {
-      // Check if organization and city were found in cache
+      // Check if organization was found in cache
       if (!organization) {
         setError('Organization not found');
         setLoading(false);
         return;
       }
 
-      if (!cityData) {
-        setError('City not found');
-        setLoading(false);
-        return;
-      }
-
-      // Fetch competition (organization and city already from cache, settings now on competitions table)
+      // Fetch competition by slug directly (new slug format: name-city-year-demographics)
       const { data: compData, error: compError } = await supabase
         .from('competitions')
         .select(`
@@ -94,9 +75,8 @@ export default function CompetitionPage() {
           prizes:competition_prizes(*),
           rules:competition_rules(*)
         `)
+        .eq('slug', competitionSlug)
         .eq('organization_id', organization.id)
-        .eq('city_id', cityData.id)
-        .eq('season', season)
         .single();
 
       if (compError) {
@@ -114,9 +94,12 @@ export default function CompetitionPage() {
         return;
       }
 
+      // Get city data from cached cities
+      const cityData = (cachedCities || []).find(city => city.id === compData.city_id) || null;
+
       setCompetition({
         ...compData,
-        city: cityData?.name || cityData || 'Unknown City',  // Ensure city is a string for rendering
+        city: cityData?.name || 'Unknown City',  // Ensure city is a string for rendering
         cityData: cityData,  // Keep full city object for components that need it
       });
 
