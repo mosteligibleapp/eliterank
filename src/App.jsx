@@ -45,6 +45,7 @@ import { EliteRankCityModal } from './components/modals';
 const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 const SuperAdminPage = lazy(() => import('./features/super-admin/SuperAdminPage'));
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
+const RewardsPage = lazy(() => import('./features/profile/RewardsPage'));
 const ClaimNominationPage = lazy(() => import('./features/public-site/pages/ClaimNominationPage'));
 const CompetitionLayout = lazy(() => import('./pages/competition/CompetitionLayout'));
 
@@ -462,6 +463,7 @@ export default function App() {
 
   const [currentView, setCurrentView] = useState(VIEW.PUBLIC);
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [showRewards, setShowRewards] = useState(false);
 
   // Claim nomination state
   const [claimToken, setClaimToken] = useState(null);
@@ -548,6 +550,9 @@ export default function App() {
       navigate('/', { replace: true });
     } else if (params.get('profile') === 'true' && isAuthenticated) {
       setShowUserProfile(true);
+      navigate('/', { replace: true });
+    } else if (params.get('rewards') === 'true' && isAuthenticated) {
+      setShowRewards(true);
       navigate('/', { replace: true });
     } else if (params.get('dashboard') === 'true' && hasDashboardAccess) {
       if (userRole === ROLE.SUPER_ADMIN) {
@@ -764,6 +769,7 @@ export default function App() {
     await signOut();
     setCurrentView(VIEW.PUBLIC);
     setShowUserProfile(false);
+    setShowRewards(false);
     setIsEditingProfile(false);
     setEditingProfileData(null);
   }, [signOut]);
@@ -788,6 +794,14 @@ export default function App() {
     setShowUserProfile(false);
     setIsEditingProfile(false);
     setEditingProfileData(null);
+  }, []);
+
+  const handleShowRewards = useCallback(() => {
+    setShowRewards(true);
+  }, []);
+
+  const handleCloseRewards = useCallback(() => {
+    setShowRewards(false);
   }, []);
 
   // ===========================================================================
@@ -1108,6 +1122,7 @@ export default function App() {
         onLogin={handleShowLogin}
         onDashboard={isAuthenticated && hasDashboardAccess ? handleGoToDashboard : null}
         onProfile={isAuthenticated ? handleShowProfile : null}
+        onRewards={isAuthenticated ? handleShowRewards : null}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
         userName={userName}
@@ -1163,6 +1178,50 @@ export default function App() {
                 userRole={userRole}
                 isHost={userRole === ROLE.HOST}
               />
+            </Suspense>
+          </div>
+        </div>
+      )}
+
+      {/* Rewards Modal */}
+      {showRewards && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: '#0a0a0f',
+            zIndex: 200,
+            overflow: 'auto',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+              <button
+                onClick={handleCloseRewards}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}
+              >
+                ← Back to Competitions
+              </button>
+            </div>
+            <Suspense fallback={<LoadingScreen message="Loading rewards..." />}>
+              <RewardsPage hostProfile={hostProfile} />
             </Suspense>
           </div>
         </div>

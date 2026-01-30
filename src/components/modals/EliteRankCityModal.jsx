@@ -47,6 +47,7 @@ export default function EliteRankCityModal({
   onLogin,
   onDashboard,
   onProfile,
+  onRewards,
   isAuthenticated = false,
   userRole = 'fan',
   userName,
@@ -1277,6 +1278,7 @@ export default function EliteRankCityModal({
               onLogin={onLogin}
               onLogout={onLogout}
               onProfile={onProfile}
+              onRewards={onRewards}
               onDashboard={hasDashboardAccess ? onDashboard : null}
               hasDashboardAccess={hasDashboardAccess}
               size={isMobile ? 36 : 40}

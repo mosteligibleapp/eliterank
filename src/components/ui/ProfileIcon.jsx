@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { User, LogOut, LayoutDashboard, UserCircle, LogIn } from 'lucide-react';
+import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift } from 'lucide-react';
 import { colors, borderRadius, spacing, typography, shadows, transitions } from '../../styles/theme';
 import Avatar from './Avatar';
 
@@ -14,6 +14,7 @@ function ProfileIcon({
   onLogin,
   onLogout,
   onProfile,
+  onRewards,
   onDashboard,
   hasDashboardAccess = false,
   size = 36,
@@ -191,6 +192,24 @@ function ProfileIcon({
               >
                 <UserCircle size={16} />
                 View Profile
+              </button>
+            )}
+
+            {onRewards && (
+              <button
+                onClick={() => handleMenuClick(onRewards)}
+                style={menuItemStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.interactive.hover;
+                  e.currentTarget.style.color = colors.text.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = colors.text.secondary;
+                }}
+              >
+                <Gift size={16} />
+                Rewards
               </button>
             )}
 

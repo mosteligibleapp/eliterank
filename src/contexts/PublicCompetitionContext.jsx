@@ -22,6 +22,7 @@ export function PublicCompetitionProvider({
   citySlug,
   year = null,
   demographicSlug = null,
+  fullSlug = null,
   children,
 }) {
   // Modal states (lifted here so any component can trigger them)
@@ -30,7 +31,7 @@ export function PublicCompetitionProvider({
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Main competition data
-  const competitionData = useCompetitionPublic(orgSlug, citySlug, year, demographicSlug);
+  const competitionData = useCompetitionPublic(orgSlug, citySlug, year, demographicSlug, fullSlug);
 
   const {
     competition,
