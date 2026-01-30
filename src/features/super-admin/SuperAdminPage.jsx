@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, MapPin, Users, Settings, Building2 } from 'lucide-react';
+import { Crown, MapPin, Users, Settings, Building2, Gift } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -8,12 +8,14 @@ import CompetitionsManager from './components/CompetitionsManager';
 import HostsManager from './components/HostsManager';
 import CitiesManager from './components/CitiesManager';
 import OrganizationsManager from './components/OrganizationsManager';
+import RewardsManager from './components/RewardsManager';
 import { CompetitionDashboard } from '../competition-dashboard';
 
 const TABS = [
   { id: 'organizations', label: 'Organizations', shortLabel: 'Orgs', icon: Building2 },
   { id: 'cities', label: 'Cities', shortLabel: 'Cities', icon: MapPin },
   { id: 'competitions', label: 'Competitions', shortLabel: 'Comps', icon: Crown },
+  { id: 'rewards', label: 'Rewards', shortLabel: 'Rewards', icon: Gift },
   { id: 'hosts', label: 'Hosts', shortLabel: 'Hosts', icon: Users },
   { id: 'settings', label: 'Settings', shortLabel: 'Settings', icon: Settings },
 ];
@@ -91,6 +93,8 @@ export default function SuperAdminPage({ onLogout }) {
             onViewDashboard={handleViewCompetition}
           />
         );
+      case 'rewards':
+        return <RewardsManager />;
       case 'hosts':
         return <HostsManager />;
       case 'settings':
