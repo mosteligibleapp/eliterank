@@ -268,7 +268,7 @@ export default function RewardsPage({ hostProfile }) {
               Action Required ({pendingRewards.length})
             </h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
               {pendingRewards.map(assignment => (
                 <RewardCard
                   key={assignment.id}
@@ -300,7 +300,7 @@ export default function RewardsPage({ hostProfile }) {
               Your Rewards ({activeRewards.length})
             </h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
               {activeRewards.map(assignment => (
                 <RewardCard
                   key={assignment.id}
@@ -372,7 +372,7 @@ export default function RewardsPage({ hostProfile }) {
               These rewards are available for your competition. Check back soon to claim!
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
               {visibleRewards.map(assignment => (
                 <VisibleRewardCard
                   key={assignment.id}
@@ -483,51 +483,56 @@ function RewardCard({
   return (
     <div style={{
       display: 'flex',
-      gap: spacing.lg,
-      padding: spacing.lg,
+      gap: spacing.md,
+      padding: spacing.md,
       background: colors.background.secondary,
-      borderRadius: borderRadius.xl,
+      borderRadius: borderRadius.lg,
       border: isPending ? `2px solid #eab308` : `1px solid ${colors.border.light}`,
       flexDirection: isMobile ? 'column' : 'row',
     }}>
       {/* Product Image */}
       <div style={{
-        width: isMobile ? '100%' : '140px',
-        height: isMobile ? '160px' : '140px',
+        width: isMobile ? '100%' : '80px',
+        height: isMobile ? '100px' : '80px',
         background: reward?.image_url
           ? `url(${reward.image_url}) center/cover`
           : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
-        borderRadius: borderRadius.lg,
+        borderRadius: borderRadius.md,
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {!reward?.image_url && <Package size={40} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
+        {!reward?.image_url && <Package size={24} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
       </div>
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.sm, gap: spacing.sm, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.xs, gap: spacing.sm, flexWrap: 'wrap' }}>
           <div>
-            <p style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary, marginBottom: spacing.xs }}>
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginBottom: '2px' }}>
               {reward?.brand_name}
             </p>
-            <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold }}>
+            <h3 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold }}>
               {reward?.name}
             </h3>
           </div>
-          <Badge style={{ background: `${statusConfig.color}20`, color: statusConfig.color }}>
+          <Badge style={{ background: `${statusConfig.color}20`, color: statusConfig.color }} size="sm">
             {statusConfig.label}
           </Badge>
         </div>
 
-        <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.md, lineHeight: 1.5 }}>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary, marginBottom: spacing.sm, lineHeight: 1.4 }}>
           {reward?.description || 'No description available.'}
+          {reward?.cash_value && (
+            <span style={{ color: '#22c55e', fontWeight: typography.fontWeight.semibold }}>
+              {' '}(${reward.cash_value} value)
+            </span>
+          )}
         </p>
 
         {/* Competition Info */}
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
           From: {assignment.competition?.name || assignment.competition?.city?.name || 'Unknown'}
         </p>
 
@@ -714,59 +719,65 @@ function VisibleRewardCard({ assignment, isMobile }) {
   return (
     <div style={{
       display: 'flex',
-      gap: spacing.lg,
-      padding: spacing.lg,
+      gap: spacing.md,
+      padding: spacing.md,
       background: colors.background.secondary,
-      borderRadius: borderRadius.xl,
+      borderRadius: borderRadius.lg,
       border: `1px solid ${colors.border.light}`,
       flexDirection: isMobile ? 'column' : 'row',
       opacity: 0.85,
     }}>
       {/* Product Image */}
       <div style={{
-        width: isMobile ? '100%' : '140px',
-        height: isMobile ? '160px' : '140px',
+        width: isMobile ? '100%' : '80px',
+        height: isMobile ? '100px' : '80px',
         background: reward?.image_url
           ? `url(${reward.image_url}) center/cover`
           : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
-        borderRadius: borderRadius.lg,
+        borderRadius: borderRadius.md,
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {!reward?.image_url && <Package size={40} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
+        {!reward?.image_url && <Package size={24} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
       </div>
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.sm, gap: spacing.sm, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.xs, gap: spacing.sm, flexWrap: 'wrap' }}>
           <div>
-            <p style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary, marginBottom: spacing.xs }}>
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginBottom: '2px' }}>
               {reward?.brand_name}
             </p>
-            <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold }}>
+            <h3 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold }}>
               {reward?.name}
             </h3>
           </div>
-          <Badge style={{ background: 'rgba(107, 114, 128, 0.2)', color: colors.text.muted }}>
+          <Badge style={{ background: 'rgba(107, 114, 128, 0.2)', color: colors.text.muted }} size="sm">
             Coming Soon
           </Badge>
         </div>
 
-        <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.md, lineHeight: 1.5 }}>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary, marginBottom: spacing.sm, lineHeight: 1.4 }}>
           {reward?.description || 'No description available.'}
+          {reward?.cash_value && (
+            <span style={{ color: '#22c55e', fontWeight: typography.fontWeight.semibold }}>
+              {' '}(${reward.cash_value} value)
+            </span>
+          )}
         </p>
 
         {/* Competition Info */}
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
           From: {assignment.competition?.name || assignment.competition?.city?.name || 'Unknown'}
         </p>
 
         {/* Disabled Claim Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
           <Button
             disabled
+            size="sm"
             style={{
               background: colors.background.card,
               color: colors.text.muted,
@@ -776,7 +787,7 @@ function VisibleRewardCard({ assignment, isMobile }) {
           >
             Not Yet Available
           </Button>
-          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>
+          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
             Check back soon for claiming details
           </p>
         </div>
@@ -784,10 +795,10 @@ function VisibleRewardCard({ assignment, isMobile }) {
         {/* Commission Info (if applicable) */}
         {reward?.commission_rate && (
           <div style={{
-            marginTop: spacing.md,
-            padding: spacing.md,
+            marginTop: spacing.sm,
+            padding: spacing.sm,
             background: 'rgba(139, 92, 246, 0.1)',
-            borderRadius: borderRadius.md,
+            borderRadius: borderRadius.sm,
             border: '1px solid rgba(139, 92, 246, 0.2)',
           }}>
             <p style={{ fontSize: typography.fontSize.xs, color: '#a78bfa', fontWeight: typography.fontWeight.medium }}>
