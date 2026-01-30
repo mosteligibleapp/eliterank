@@ -241,10 +241,17 @@ export default function EliteRankCityModal({
 
   const handleCompetitionClick = (competition) => {
     // Organization data is already included in competition object from data processing
-    if (competition.accessible && onOpenCompetition) {
+    if (!onOpenCompetition) return;
+
+    if (competition.accessible) {
+      // Live or completed - full access
       onOpenCompetition(competition);
     } else if (isPublished(competition.status)) {
-      onOpenTeaser ? onOpenTeaser(competition) : onOpenCompetition?.({ ...competition, isTeaser: true });
+      // Published/coming soon - teaser mode
+      onOpenTeaser ? onOpenTeaser(competition) : onOpenCompetition({ ...competition, isTeaser: true });
+    } else {
+      // Fallback - still try to open (for any other status)
+      onOpenCompetition({ ...competition, isTeaser: true });
     }
   };
 
