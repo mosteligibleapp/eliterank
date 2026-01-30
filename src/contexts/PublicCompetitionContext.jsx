@@ -19,10 +19,7 @@ const PublicCompetitionContext = createContext(null);
  */
 export function PublicCompetitionProvider({
   orgSlug,
-  citySlug,
-  year = null,
-  demographicSlug = null,
-  fullSlug = null,
+  competitionSlug,
   children,
 }) {
   // Modal states (lifted here so any component can trigger them)
@@ -31,7 +28,7 @@ export function PublicCompetitionProvider({
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Main competition data
-  const competitionData = useCompetitionPublic(orgSlug, citySlug, year, demographicSlug, fullSlug);
+  const competitionData = useCompetitionPublic(orgSlug, competitionSlug);
 
   const {
     competition,
@@ -124,9 +121,7 @@ export function PublicCompetitionProvider({
     () => ({
       // Route params
       orgSlug,
-      citySlug,
-      year,
-      demographicSlug,
+      competitionSlug,
 
       // Core data
       competition,
@@ -183,9 +178,7 @@ export function PublicCompetitionProvider({
     }),
     [
       orgSlug,
-      citySlug,
-      year,
-      demographicSlug,
+      competitionSlug,
       competition,
       organization,
       phase,
