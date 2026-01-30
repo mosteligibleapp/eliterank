@@ -70,7 +70,15 @@ export default function CityPage() {
   };
 
   const handleCompetitionClick = (comp) => {
-    navigate(`/org/${comp.organization.slug}/${citySlug}-${comp.season}`);
+    // Use the actual slug from the database
+    const orgSlug = comp.organization?.slug || 'most-eligible';
+    if (comp.slug) {
+      navigate(`/${orgSlug}/${comp.slug}`);
+    } else {
+      // Fallback if slug is missing
+      console.warn('[CityPage] Competition missing slug:', comp.name || comp.id);
+      navigate(`/${orgSlug}/${citySlug}-${comp.season}`);
+    }
   };
 
   // Get state name

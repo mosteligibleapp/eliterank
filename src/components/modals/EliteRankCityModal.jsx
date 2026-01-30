@@ -161,6 +161,7 @@ export default function EliteRankCityModal({
             return {
               id: comp.id,
               name: comp.name || `Most Eligible ${cityName}`,
+              slug: comp.slug, // Database slug - source of truth for navigation
               city: cityName,
               cityState: cityFromLookup?.state || '',
               citySlug: cityFromLookup?.slug || cityName.toLowerCase().replace(/\s+/g, '-'),
