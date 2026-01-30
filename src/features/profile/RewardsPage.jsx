@@ -22,16 +22,18 @@ const STATUS_CONFIG = {
 export default function RewardsPage({ hostProfile }) {
   const { isMobile } = useResponsive();
   const { user } = useSupabaseAuth();
-  const [assignments, setAssignments] = useState([]);
+  const [claimableRewards, setClaimableRewards] = useState([]); // Individual assignments (can claim)
+  const [visibleRewards, setVisibleRewards] = useState([]); // Competition assignments (visible only)
   const [loading, setLoading] = useState(true);
   const [claimingId, setClaimingId] = useState(null);
   const [addingLinkId, setAddingLinkId] = useState(null);
   const [newLink, setNewLink] = useState('');
 
-  // Fetch user's reward assignments
-  const fetchAssignments = useCallback(async () => {
+  // Fetch user's rewards (both claimable and visible-only)
+  const fetchRewards = useCallback(async () => {
     if (!user?.id || !supabase) {
-      setAssignments([]);
+      setClaimableRewards([]);
+      setVisibleRewards([]);
       setLoading(false);
       return;
     }
@@ -40,21 +42,23 @@ export default function RewardsPage({ hostProfile }) {
       // First get all contestants for this user
       const { data: contestants, error: contestantError } = await supabase
         .from('contestants')
-        .select('id')
+        .select('id, competition_id')
         .eq('user_id', user.id);
 
       if (contestantError) throw contestantError;
 
       if (!contestants || contestants.length === 0) {
-        setAssignments([]);
+        setClaimableRewards([]);
+        setVisibleRewards([]);
         setLoading(false);
         return;
       }
 
       const contestantIds = contestants.map(c => c.id);
+      const competitionIds = contestants.map(c => c.competition_id);
 
-      // Get all reward assignments for these contestants
-      const { data, error } = await supabase
+      // Get individual assignments (claimable rewards)
+      const { data: individualAssignments, error: indError } = await supabase
         .from('reward_assignments')
         .select(`
           *,
@@ -64,19 +68,38 @@ export default function RewardsPage({ hostProfile }) {
         .in('contestant_id', contestantIds)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setAssignments(data || []);
+      if (indError) throw indError;
+      setClaimableRewards(individualAssignments || []);
+
+      // Get competition-level assignments (visible rewards)
+      const { data: compAssignments, error: compError } = await supabase
+        .from('reward_competition_assignments')
+        .select(`
+          *,
+          reward:rewards(*),
+          competition:competitions(id, name, city, season)
+        `)
+        .in('competition_id', competitionIds)
+        .order('created_at', { ascending: false });
+
+      if (compError) throw compError;
+
+      // Filter out rewards that user already has individual assignment for
+      const claimableRewardIds = new Set((individualAssignments || []).map(a => a.reward_id));
+      const visibleOnly = (compAssignments || []).filter(ca => !claimableRewardIds.has(ca.reward_id));
+      setVisibleRewards(visibleOnly);
     } catch (err) {
       console.error('Error fetching rewards:', err);
-      setAssignments([]);
+      setClaimableRewards([]);
+      setVisibleRewards([]);
     } finally {
       setLoading(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
-    fetchAssignments();
-  }, [fetchAssignments]);
+    fetchRewards();
+  }, [fetchRewards]);
 
   // Claim a reward
   const handleClaim = async (assignmentId) => {
@@ -93,7 +116,7 @@ export default function RewardsPage({ hostProfile }) {
         .eq('id', assignmentId);
 
       if (error) throw error;
-      await fetchAssignments();
+      await fetchRewards();
     } catch (err) {
       console.error('Error claiming reward:', err);
       alert('Failed to claim reward. Please try again.');
@@ -107,7 +130,7 @@ export default function RewardsPage({ hostProfile }) {
     if (!newLink.trim() || !supabase) return;
 
     try {
-      const assignment = assignments.find(a => a.id === assignmentId);
+      const assignment = claimableRewards.find(a => a.id === assignmentId);
       const currentLinks = assignment?.content_links || [];
       const updatedLinks = [...currentLinks, newLink.trim()];
 
@@ -120,7 +143,7 @@ export default function RewardsPage({ hostProfile }) {
         .eq('id', assignmentId);
 
       if (error) throw error;
-      await fetchAssignments();
+      await fetchRewards();
       setNewLink('');
       setAddingLinkId(null);
     } catch (err) {
@@ -133,10 +156,13 @@ export default function RewardsPage({ hostProfile }) {
 
   const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
 
-  // Separate assignments by status
-  const pendingRewards = assignments.filter(a => a.status === 'pending');
-  const activeRewards = assignments.filter(a => ['claimed', 'shipped', 'active'].includes(a.status));
-  const completedRewards = assignments.filter(a => ['completed', 'expired'].includes(a.status));
+  // Separate claimable rewards by status
+  const pendingRewards = claimableRewards.filter(a => a.status === 'pending');
+  const activeRewards = claimableRewards.filter(a => ['claimed', 'shipped', 'active'].includes(a.status));
+  const completedRewards = claimableRewards.filter(a => ['completed', 'expired'].includes(a.status));
+
+  // Check if there are any rewards at all (claimable or visible)
+  const hasAnyRewards = claimableRewards.length > 0 || visibleRewards.length > 0;
 
   return (
     <div>
@@ -312,8 +338,45 @@ export default function RewardsPage({ hostProfile }) {
         </Panel>
       )}
 
+      {/* Visible-Only Rewards (can see but not yet assigned) */}
+      {!loading && visibleRewards.length > 0 && (
+        <Panel style={{ marginBottom: isMobile ? spacing.lg : spacing.xxl }}>
+          <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
+            <h2 style={{
+              fontSize: isMobile ? typography.fontSize.xl : typography.fontSize.xxl,
+              fontWeight: typography.fontWeight.semibold,
+              marginBottom: spacing.xl,
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.md,
+              color: colors.text.primary,
+            }}>
+              <Gift size={isMobile ? 20 : 24} style={{ color: colors.text.muted }} />
+              Coming Soon ({visibleRewards.length})
+            </h2>
+            <p style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary,
+              marginBottom: spacing.lg,
+            }}>
+              These rewards are available for your competition. Check back soon to claim!
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+              {visibleRewards.map(assignment => (
+                <VisibleRewardCard
+                  key={assignment.id}
+                  assignment={assignment}
+                  isMobile={isMobile}
+                />
+              ))}
+            </div>
+          </div>
+        </Panel>
+      )}
+
       {/* Empty State */}
-      {!loading && assignments.length === 0 && (
+      {!loading && !hasAnyRewards && (
         <Panel>
           <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
             <h2 style={{
@@ -624,6 +687,102 @@ function RewardCard({
                 </p>
               </div>
             )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * VisibleRewardCard - Displays a visible-only reward (not yet assigned to user)
+ * Shows reward info but with disabled claim action
+ */
+function VisibleRewardCard({ assignment, isMobile }) {
+  const reward = assignment.reward;
+
+  return (
+    <div style={{
+      display: 'flex',
+      gap: spacing.lg,
+      padding: spacing.lg,
+      background: colors.background.secondary,
+      borderRadius: borderRadius.xl,
+      border: `1px solid ${colors.border.light}`,
+      flexDirection: isMobile ? 'column' : 'row',
+      opacity: 0.85,
+    }}>
+      {/* Product Image */}
+      <div style={{
+        width: isMobile ? '100%' : '140px',
+        height: isMobile ? '160px' : '140px',
+        background: reward?.image_url
+          ? `url(${reward.image_url}) center/cover`
+          : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
+        borderRadius: borderRadius.lg,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        {!reward?.image_url && <Package size={40} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.sm, gap: spacing.sm, flexWrap: 'wrap' }}>
+          <div>
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary, marginBottom: spacing.xs }}>
+              {reward?.brand_name}
+            </p>
+            <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold }}>
+              {reward?.name}
+            </h3>
+          </div>
+          <Badge style={{ background: 'rgba(107, 114, 128, 0.2)', color: colors.text.muted }}>
+            Coming Soon
+          </Badge>
+        </div>
+
+        <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.md, lineHeight: 1.5 }}>
+          {reward?.description || 'No description available.'}
+        </p>
+
+        {/* Competition Info */}
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
+          From: {assignment.competition?.name || assignment.competition?.city}
+        </p>
+
+        {/* Disabled Claim Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+          <Button
+            disabled
+            style={{
+              background: colors.background.card,
+              color: colors.text.muted,
+              cursor: 'not-allowed',
+              opacity: 0.6,
+            }}
+          >
+            Not Yet Available
+          </Button>
+          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>
+            Check back soon for claiming details
+          </p>
+        </div>
+
+        {/* Commission Info (if applicable) */}
+        {reward?.commission_rate && (
+          <div style={{
+            marginTop: spacing.md,
+            padding: spacing.md,
+            background: 'rgba(139, 92, 246, 0.1)',
+            borderRadius: borderRadius.md,
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+          }}>
+            <p style={{ fontSize: typography.fontSize.xs, color: '#a78bfa', fontWeight: typography.fontWeight.medium }}>
+              Earn up to {reward.commission_rate}% commission on referrals
+            </p>
           </div>
         )}
       </div>

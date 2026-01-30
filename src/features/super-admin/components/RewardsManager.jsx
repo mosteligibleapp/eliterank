@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Gift, Plus, Edit2, Trash2, Users, ExternalLink, Clock, Check, X,
-  Package, Link2, Loader, ChevronDown, ChevronRight, AlertCircle
+  Package, Link2, Loader, ChevronDown, ChevronRight, AlertCircle, Crown
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -28,6 +28,7 @@ export default function RewardsManager() {
   const [activeTab, setActiveTab] = useState('rewards');
   const [rewards, setRewards] = useState([]);
   const [assignments, setAssignments] = useState([]);
+  const [competitionAssignments, setCompetitionAssignments] = useState([]);
   const [competitions, setCompetitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -98,15 +99,35 @@ export default function RewardsManager() {
     }
   }, []);
 
+  // Fetch competition assignments (visibility)
+  const fetchCompetitionAssignments = useCallback(async () => {
+    if (!supabase) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('reward_competition_assignments')
+        .select(`
+          *,
+          competition:competitions(id, name, city, season, status)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCompetitionAssignments(data || []);
+    } catch (err) {
+      console.error('Error fetching competition assignments:', err);
+    }
+  }, []);
+
   // Load all data
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchRewards(), fetchAssignments(), fetchCompetitions()]);
+      await Promise.all([fetchRewards(), fetchAssignments(), fetchCompetitions(), fetchCompetitionAssignments()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchRewards, fetchAssignments, fetchCompetitions]);
+  }, [fetchRewards, fetchAssignments, fetchCompetitions, fetchCompetitionAssignments]);
 
   // Create or update a reward
   const handleSaveReward = async (rewardData) => {
@@ -183,28 +204,55 @@ export default function RewardsManager() {
     }
   };
 
-  // Assign reward to contestants
+  // Assign reward to competitions and/or contestants
   const handleAssignReward = async (assignmentData) => {
     if (!supabase) return;
 
     try {
-      // Create assignments for each selected contestant
-      const assignmentsToCreate = assignmentData.contestantIds.map(contestantId => ({
-        reward_id: assigningReward.id,
-        competition_id: assignmentData.competitionId,
-        contestant_id: contestantId,
-        discount_code: null, // Admin enters later
-        tracking_link: null,
-        status: 'pending',
-      }));
+      // First, create competition assignments (for visibility)
+      if (assignmentData.competitionIds && assignmentData.competitionIds.length > 0) {
+        const competitionAssignmentsToCreate = assignmentData.competitionIds.map(competitionId => ({
+          reward_id: assigningReward.id,
+          competition_id: competitionId,
+        }));
 
-      const { error } = await supabase
-        .from('reward_assignments')
-        .upsert(assignmentsToCreate, { onConflict: 'reward_id,contestant_id' });
+        const { error: compError } = await supabase
+          .from('reward_competition_assignments')
+          .upsert(competitionAssignmentsToCreate, { onConflict: 'reward_id,competition_id' });
 
-      if (error) throw error;
+        if (compError) throw compError;
+      }
 
-      await fetchAssignments();
+      // Then, create contestant assignments (for claiming) if any selected
+      if (assignmentData.contestantIds && assignmentData.contestantIds.length > 0) {
+        // Get contestant competition mappings
+        const { data: contestantData } = await supabase
+          .from('contestants')
+          .select('id, competition_id')
+          .in('id', assignmentData.contestantIds);
+
+        const contestantCompMap = {};
+        (contestantData || []).forEach(c => {
+          contestantCompMap[c.id] = c.competition_id;
+        });
+
+        const contestantAssignmentsToCreate = assignmentData.contestantIds.map(contestantId => ({
+          reward_id: assigningReward.id,
+          competition_id: contestantCompMap[contestantId],
+          contestant_id: contestantId,
+          discount_code: null,
+          tracking_link: null,
+          status: 'pending',
+        }));
+
+        const { error: assignError } = await supabase
+          .from('reward_assignments')
+          .upsert(contestantAssignmentsToCreate, { onConflict: 'reward_id,contestant_id' });
+
+        if (assignError) throw assignError;
+      }
+
+      await Promise.all([fetchAssignments(), fetchCompetitionAssignments()]);
       setShowAssignModal(false);
       setAssigningReward(null);
     } catch (err) {
@@ -239,9 +287,21 @@ export default function RewardsManager() {
     }));
   };
 
-  // Get assignments for a specific reward
+  // Get contestant assignments for a specific reward
   const getRewardAssignments = (rewardId) => {
     return assignments.filter(a => a.reward_id === rewardId);
+  };
+
+  // Get competition assignments for a specific reward
+  const getRewardCompetitionAssignments = (rewardId) => {
+    return competitionAssignments.filter(a => a.reward_id === rewardId);
+  };
+
+  // Get existing competition IDs for a reward (for the modal)
+  const getExistingCompetitionIds = (rewardId) => {
+    return competitionAssignments
+      .filter(a => a.reward_id === rewardId)
+      .map(a => a.competition_id);
   };
 
   if (loading) {
@@ -343,6 +403,7 @@ export default function RewardsManager() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
             {rewards.map((reward) => {
               const rewardAssignments = getRewardAssignments(reward.id);
+              const rewardCompAssignments = getRewardCompetitionAssignments(reward.id);
               const isExpanded = expandedRewards[reward.id];
 
               return (
@@ -424,6 +485,32 @@ export default function RewardsManager() {
                         <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginBottom: spacing.md, lineHeight: 1.5 }}>
                           {reward.description || 'No description provided.'}
                         </p>
+
+                        {/* Assigned Competitions */}
+                        {rewardCompAssignments.length > 0 && (
+                          <div style={{ marginBottom: spacing.md }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+                              <Crown size={14} style={{ color: colors.gold.primary }} />
+                              <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+                                Visible in {rewardCompAssignments.length} competition{rewardCompAssignments.length !== 1 ? 's' : ''}:
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: spacing.xs, flexWrap: 'wrap' }}>
+                              {rewardCompAssignments.map(ca => (
+                                <Badge
+                                  key={ca.id}
+                                  size="sm"
+                                  style={{
+                                    background: 'rgba(139,92,246,0.15)',
+                                    color: '#a78bfa',
+                                  }}
+                                >
+                                  {ca.competition?.name || `${ca.competition?.city} ${ca.competition?.season}`}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         <div style={{ display: 'flex', gap: spacing.xl, flexWrap: 'wrap' }}>
                           {reward.commission_rate && (
@@ -560,6 +647,7 @@ export default function RewardsManager() {
         onClose={() => { setShowAssignModal(false); setAssigningReward(null); }}
         reward={assigningReward}
         competitions={competitions}
+        existingCompetitionAssignments={assigningReward ? getExistingCompetitionIds(assigningReward.id) : []}
         onAssign={handleAssignReward}
       />
     </div>
