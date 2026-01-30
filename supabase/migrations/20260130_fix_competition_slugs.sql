@@ -1,6 +1,7 @@
 -- ============================================================================
 -- FIX COMPETITION SLUGS
 -- Updates ALL competition slugs to consistent format: {name}-{city}-{year}[-{demographic}]
+-- Run this in your Supabase SQL editor
 -- ============================================================================
 
 -- Helper function to generate slug (mirrors JS generateSlug function)
@@ -21,37 +22,42 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Update all competition slugs to new format
+-- Update all competition slugs to new format using subqueries (PostgreSQL compatible)
 -- Format: {name}-{city}-{year} for open demographic
 -- Format: {name}-{city}-{year}-{demographic} for specific demographic
-UPDATE competitions c
-SET slug = CASE
-  -- If demographic is null or 'open': name-city-year
-  WHEN d.slug IS NULL OR d.slug = 'open' THEN
-    CONCAT(
-      generate_slug(COALESCE(c.name, cat.name, org.name, 'competition')),
-      '-',
-      REGEXP_REPLACE(LOWER(ci.slug), '-[a-z]{2}$', ''),
-      '-',
-      c.season::text
-    )
-  -- If specific demographic: name-city-year-demographic
-  ELSE
-    CONCAT(
-      generate_slug(COALESCE(c.name, cat.name, org.name, 'competition')),
-      '-',
-      REGEXP_REPLACE(LOWER(ci.slug), '-[a-z]{2}$', ''),
-      '-',
-      c.season::text,
-      '-',
-      d.slug
-    )
-END
-FROM cities ci
-JOIN organizations org ON c.organization_id = org.id
-LEFT JOIN categories cat ON c.category_id = cat.id
-LEFT JOIN demographics d ON c.demographic_id = d.id
-WHERE c.city_id = ci.id;
+UPDATE competitions
+SET slug = (
+  SELECT
+    CASE
+      WHEN d.slug IS NULL OR d.slug = 'open' THEN
+        CONCAT(
+          generate_slug(COALESCE(competitions.name, cat.name, org.name, 'competition')),
+          '-',
+          REGEXP_REPLACE(LOWER(ci.slug), '-[a-z]{2}$', ''),
+          '-',
+          competitions.season::text
+        )
+      ELSE
+        CONCAT(
+          generate_slug(COALESCE(competitions.name, cat.name, org.name, 'competition')),
+          '-',
+          REGEXP_REPLACE(LOWER(ci.slug), '-[a-z]{2}$', ''),
+          '-',
+          competitions.season::text,
+          '-',
+          d.slug
+        )
+    END
+  FROM cities ci
+  JOIN organizations org ON competitions.organization_id = org.id
+  LEFT JOIN categories cat ON competitions.category_id = cat.id
+  LEFT JOIN demographics d ON competitions.demographic_id = d.id
+  WHERE competitions.city_id = ci.id
+)
+WHERE city_id IS NOT NULL;
+
+-- Show what the slugs look like now
+SELECT id, name, slug, season FROM competitions ORDER BY created_at DESC LIMIT 10;
 
 -- Verify no duplicate slugs per organization
 DO $$

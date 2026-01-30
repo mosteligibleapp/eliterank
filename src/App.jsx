@@ -821,16 +821,29 @@ export default function App() {
       return;
     }
 
-    // Fallback: construct slug if not available (shouldn't happen with proper data)
+    // Fallback: construct slug in database format: {name}-{city}-{year}
     console.warn('[handleOpenCompetition] Competition missing slug field:', competition?.name || competition?.id);
+
+    // Generate name slug
+    const nameSlug = competition?.name
+      ? competition.name.toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/[\s_-]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+      : '';
+
     const cityPart = competition?.citySlug
       ? competition.citySlug.replace(/-[a-z]{2}$/i, '')
       : competition?.city
         ? competition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
         : '';
-    const year = competition?.season || '';
+    const year = competition?.season || new Date().getFullYear();
 
-    if (cityPart && year) {
+    // Construct slug: name-city-year (matching database format)
+    if (nameSlug && cityPart && year) {
+      navigate(`/${orgSlug}/${nameSlug}-${cityPart}-${year}`);
+    } else if (cityPart && year) {
+      // Last resort: just city-year (may not match DB but better than nothing)
       navigate(`/${orgSlug}/${cityPart}-${year}`);
     }
   }, [navigate]);
