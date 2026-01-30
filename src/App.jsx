@@ -811,33 +811,40 @@ export default function App() {
   const handleOpenCompetition = useCallback((competition) => {
     setShowUserProfile(false);
 
-    // Build new URL format: /:orgSlug/:slug where slug is {city}-{year}
-    // Use orgSlug from competition object (set during explore page data processing)
-    const orgSlug = competition?.organization?.slug || competition?.orgSlug;
+    // Get org slug from competition object
+    const orgSlug = competition?.organization?.slug || competition?.orgSlug || 'most-eligible';
 
-    if (!orgSlug) {
-      console.warn('[handleOpenCompetition] Missing organization slug for competition:', competition?.name || competition?.id);
-      // Fallback: try to navigate anyway with a default, but log the issue
+    // Use the actual slug from the database if available
+    // This is the source of truth - no need to reconstruct it
+    if (competition?.slug) {
+      navigate(`/${orgSlug}/${competition.slug}`);
+      return;
     }
 
-    // Use citySlug if available (from explore page), otherwise derive from city name
+    // Fallback: construct slug in database format: {name}-{city}-{year}
+    console.warn('[handleOpenCompetition] Competition missing slug field:', competition?.name || competition?.id);
+
+    // Generate name slug
+    const nameSlug = competition?.name
+      ? competition.name.toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/[\s_-]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+      : '';
+
     const cityPart = competition?.citySlug
-      ? competition.citySlug.replace(/-[a-z]{2}$/i, '') // Remove state suffix like "-il"
+      ? competition.citySlug.replace(/-[a-z]{2}$/i, '')
       : competition?.city
         ? competition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
         : '';
-    const year = competition?.season || '';
+    const year = competition?.season || new Date().getFullYear();
 
-    // Use org slug or fallback to most-eligible only as last resort
-    const finalOrgSlug = orgSlug || 'most-eligible';
-
-    if (cityPart && year) {
-      // New format: /:orgSlug/:city-:year
-      const slug = `${cityPart}-${year}`;
-      navigate(`/${finalOrgSlug}/${slug}`);
-    } else if (cityPart) {
-      // Fallback to legacy format if no year
-      navigate(`/c/${finalOrgSlug}/${cityPart}`);
+    // Construct slug: name-city-year (matching database format)
+    if (nameSlug && cityPart && year) {
+      navigate(`/${orgSlug}/${nameSlug}-${cityPart}-${year}`);
+    } else if (cityPart && year) {
+      // Last resort: just city-year (may not match DB but better than nothing)
+      navigate(`/${orgSlug}/${cityPart}-${year}`);
     }
   }, [navigate]);
 
