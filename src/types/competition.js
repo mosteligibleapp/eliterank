@@ -198,40 +198,33 @@ export function generateCitySlug(cityName, stateCode) {
 
 /**
  * Generate a competition URL path
- * Format: /{org}/{city}-{year} for open demographic
- * Format: /{org}/{city}-{demographic}-{year} for specific demographic
+ * Format: /{org}/{name}-{city}-{year} for open demographic
+ * Format: /{org}/{name}-{city}-{year}-{demographic} for specific demographic
  * @param {string} orgSlug - Organization slug
+ * @param {string} nameSlug - Competition name slug
  * @param {string} citySlug - City slug (without state, e.g., "chicago" not "chicago-il")
  * @param {number} season - Season year
  * @param {string} [demographicSlug] - Demographic slug (omit for "open")
  */
-export function generateCompetitionUrl(orgSlug, citySlug, season, demographicSlug) {
+export function generateCompetitionUrl(orgSlug, nameSlug, citySlug, season, demographicSlug) {
   // Extract just the city name part if slug includes state (e.g., "chicago-il" -> "chicago")
   const cityPart = citySlug.replace(/-[a-z]{2}$/i, '');
 
-  // If demographic is 'open' or not provided, use simple URL format
+  // Format: name-city-year-demographics
   if (!demographicSlug || demographicSlug === 'open') {
-    return `/${orgSlug}/${cityPart}-${season}`;
+    return `/${orgSlug}/${nameSlug}-${cityPart}-${season}`;
   }
-  // Include demographic in URL for non-open demographics
-  return `/${orgSlug}/${cityPart}-${demographicSlug}-${season}`;
+  return `/${orgSlug}/${nameSlug}-${cityPart}-${season}-${demographicSlug}`;
 }
 
 /**
  * Parse a competition URL slug to extract components
- * @param {string} slug - The slug part (e.g., "chicago-2028" or "chicago-women-21-39-2028")
- * @returns {{ city: string, demographic: string|null, year: number }|null}
+ * New format: {name}-{city}-{year} or {name}-{city}-{year}-{demographic}
+ * @param {string} slug - The slug part (e.g., "most-eligible-chicago-2028" or "most-eligible-chicago-2028-men-21-39")
+ * @returns {{ slug: string, year: number, demographic: string|null }|null}
  */
 export function parseCompetitionSlug(slug) {
   if (!slug) return null;
-
-  // Pattern: {city}-{year} or {city}-{demographic}-{year}
-  // Year is always 4 digits at the end
-  const yearMatch = slug.match(/-(\d{4})$/);
-  if (!yearMatch) return null;
-
-  const year = parseInt(yearMatch[1], 10);
-  const withoutYear = slug.slice(0, -5); // Remove "-YYYY"
 
   // Known demographic slugs (must match database)
   const demographicSlugs = [
@@ -243,16 +236,30 @@ export function parseCompetitionSlug(slug) {
     'lgbtq-plus-40-plus',
   ];
 
-  // Check if any demographic slug is at the end
+  // New format: {name}-{city}-{year}-{demographic} or {name}-{city}-{year}
+  // Demographic is at the END (after year) if present
+
+  let demographic = null;
+  let remaining = slug;
+
+  // Check if slug ends with a known demographic
   for (const demoSlug of demographicSlugs) {
-    if (withoutYear.endsWith(`-${demoSlug}`)) {
-      const city = withoutYear.slice(0, -(demoSlug.length + 1)); // Remove "-{demographic}"
-      return { city, demographic: demoSlug, year };
+    if (slug.endsWith(`-${demoSlug}`)) {
+      demographic = demoSlug;
+      remaining = slug.slice(0, -(demoSlug.length + 1)); // Remove "-{demographic}"
+      break;
     }
   }
 
-  // No demographic found, entire withoutYear is the city
-  return { city: withoutYear, demographic: null, year };
+  // Year should be at the end of remaining (4 digits)
+  const yearMatch = remaining.match(/-(\d{4})$/);
+  if (!yearMatch) return null;
+
+  const year = parseInt(yearMatch[1], 10);
+  const nameAndCity = remaining.slice(0, -5); // Remove "-YYYY"
+
+  // Return the full slug for direct lookup, plus extracted components
+  return { slug, nameAndCity, demographic, year };
 }
 
 /**
