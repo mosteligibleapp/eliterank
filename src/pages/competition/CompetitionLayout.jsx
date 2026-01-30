@@ -56,6 +56,10 @@ function CompetitionLayoutInner() {
     navigate('/?dashboard=true');
   };
 
+  const handleRewards = () => {
+    navigate('/?rewards=true');
+  };
+
   const handleLogout = async () => {
     await signOut();
   };
@@ -143,6 +147,7 @@ function CompetitionLayoutInner() {
             onLogin={handleLogin}
             onLogout={handleLogout}
             onProfile={handleProfile}
+            onRewards={handleRewards}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
             size={40}
