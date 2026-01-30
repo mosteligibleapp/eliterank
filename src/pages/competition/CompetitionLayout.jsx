@@ -229,13 +229,10 @@ function PhaseContent({ phase }) {
  * View Navigation - tabs for main/leaderboard
  */
 function ViewNavigation({ currentView }) {
-  const { orgSlug, citySlug, year, demographicSlug } = usePublicCompetition();
+  const { orgSlug, competitionSlug } = usePublicCompetition();
 
-  // Build base path using new URL format: /:orgSlug/:city-{demographic}-{year}
-  const cityPart = citySlug?.replace(/-[a-z]{2}$/i, '') || 'unknown';
-  const basePath = demographicSlug && demographicSlug !== 'open'
-    ? `/${orgSlug}/${cityPart}-${demographicSlug}-${year}`
-    : `/${orgSlug}/${cityPart}-${year}`;
+  // Build base path using competition slug directly
+  const basePath = `/${orgSlug}/${competitionSlug}`;
 
   const views = [
     { id: 'main', label: 'Competition', path: basePath },
@@ -383,62 +380,21 @@ export function CompetitionLayout() {
   // Determine if this is legacy or new format based on URL
   const isLegacyFormat = location.pathname.startsWith('/c/');
 
-  let orgSlug, citySlug, year, demographicSlug, fullSlug;
+  let orgSlug, competitionSlug;
 
   if (isLegacyFormat) {
-    // Legacy format: /c/:orgSlug/:citySlug/:year
+    // Legacy format: /c/:orgSlug/:citySlug/:year - construct slug
     orgSlug = params.orgSlug;
-    citySlug = params.citySlug;
-    year = params.year;
-    demographicSlug = null;
-    fullSlug = null; // Not available in legacy format
+    competitionSlug = `${params.citySlug}-${params.year}`;
   } else {
-    // New format: /:orgSlug/:slug where slug is the full competition slug
-    // Slug format: {name}-{city}-{year} or {name}-{city}-{year}-{demographic}
+    // New format: /:orgSlug/:slug - use slug directly
     orgSlug = params.orgSlug;
-    const slug = params.slug;
-    fullSlug = slug; // Keep the full slug for direct lookup
-
-    if (slug) {
-      // Extract year from slug
-      const yearMatch = slug.match(/-(\d{4})($|\/)/);
-      if (yearMatch) {
-        year = yearMatch[1];
-        const withoutYear = slug.replace(/-\d{4}($|\/).*/, '');
-
-        // Known demographic slugs
-        const demographicSlugs = [
-          'women-21-39', 'women-40-plus',
-          'men-21-39', 'men-40-plus',
-          'lgbtq-plus-21-39', 'lgbtq-plus-40-plus',
-        ];
-
-        // Check if any demographic slug is at the end (after the year in slug)
-        const afterYear = slug.slice(slug.indexOf(year) + 4);
-        let foundDemographic = null;
-        for (const demoSlug of demographicSlugs) {
-          if (afterYear === `-${demoSlug}` || afterYear.startsWith(`-${demoSlug}/`)) {
-            foundDemographic = demoSlug;
-            break;
-          }
-        }
-
-        // For citySlug, we just use the withoutYear part for fallback lookups
-        // The full slug will be used for primary lookup
-        citySlug = withoutYear;
-        demographicSlug = foundDemographic;
-      }
-    }
+    // Remove any trailing path segments (e.g., /leaderboard, /activity)
+    competitionSlug = params.slug?.split('/')[0] || params.slug;
   }
 
   return (
-    <PublicCompetitionProvider
-      orgSlug={orgSlug}
-      citySlug={citySlug}
-      year={year}
-      demographicSlug={demographicSlug}
-      fullSlug={fullSlug}
-    >
+    <PublicCompetitionProvider orgSlug={orgSlug} competitionSlug={competitionSlug}>
       <CompetitionLayoutInner />
     </PublicCompetitionProvider>
   );
