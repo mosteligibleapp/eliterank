@@ -89,7 +89,6 @@ export default function RewardsManager() {
       const { data, error } = await supabase
         .from('competitions')
         .select('id, name, city, season, status')
-        .in('status', ['live', 'published'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
