@@ -73,7 +73,7 @@ export default function AssignRewardModal({
       // Get competition names for display
       const competitionMap = {};
       competitions.forEach(c => {
-        competitionMap[c.id] = c.name || `${c.city} ${c.season}`;
+        competitionMap[c.id] = c.name || `${c.cityName || c.city} ${c.season}`;
       });
 
       setContestants((data || []).map(c => ({
@@ -107,7 +107,7 @@ export default function AssignRewardModal({
 
   // Filter competitions by search
   const filteredCompetitions = competitions.filter(c => {
-    const name = c.name || `${c.city} ${c.season}`;
+    const name = c.name || `${c.cityName || c.city} ${c.season}`;
     return name.toLowerCase().includes(competitionSearchQuery.toLowerCase());
   });
 
@@ -393,7 +393,7 @@ export default function AssignRewardModal({
                             fontSize: typography.fontSize.sm,
                             fontWeight: typography.fontWeight.medium,
                           }}>
-                            {comp.name || `${comp.city} ${comp.season}`}
+                            {comp.name || `${comp.cityName || comp.city} ${comp.season}`}
                           </p>
                           <Badge
                             size="sm"

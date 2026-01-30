@@ -89,11 +89,24 @@ export default function RewardsManager() {
     try {
       const { data, error } = await supabase
         .from('competitions')
-        .select('id, name, city, season, status')
+        .select(`
+          id,
+          name,
+          season,
+          status,
+          city_id,
+          city:cities(id, name, state)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCompetitions(data || []);
+      // Map data to include city name for display
+      const mappedData = (data || []).map(comp => ({
+        ...comp,
+        cityName: comp.city?.name || 'Unknown City',
+        cityState: comp.city?.state || '',
+      }));
+      setCompetitions(mappedData);
     } catch (err) {
       console.error('Error fetching competitions:', err);
     }
@@ -108,7 +121,13 @@ export default function RewardsManager() {
         .from('reward_competition_assignments')
         .select(`
           *,
-          competition:competitions(id, name, city, season, status)
+          competition:competitions(
+            id,
+            name,
+            season,
+            status,
+            city:cities(name, state)
+          )
         `)
         .order('created_at', { ascending: false });
 
@@ -505,7 +524,7 @@ export default function RewardsManager() {
                                     color: '#a78bfa',
                                   }}
                                 >
-                                  {ca.competition?.name || `${ca.competition?.city} ${ca.competition?.season}`}
+                                  {ca.competition?.name || `${ca.competition?.city?.name || 'Unknown'} ${ca.competition?.season}`}
                                 </Badge>
                               ))}
                             </div>

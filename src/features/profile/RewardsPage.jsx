@@ -63,7 +63,12 @@ export default function RewardsPage({ hostProfile }) {
         .select(`
           *,
           reward:rewards(*),
-          competition:competitions(id, name, city, season)
+          competition:competitions(
+            id,
+            name,
+            season,
+            city:cities(name)
+          )
         `)
         .in('contestant_id', contestantIds)
         .order('created_at', { ascending: false });
@@ -77,7 +82,12 @@ export default function RewardsPage({ hostProfile }) {
         .select(`
           *,
           reward:rewards(*),
-          competition:competitions(id, name, city, season)
+          competition:competitions(
+            id,
+            name,
+            season,
+            city:cities(name)
+          )
         `)
         .in('competition_id', competitionIds)
         .order('created_at', { ascending: false });
@@ -518,7 +528,7 @@ function RewardCard({
 
         {/* Competition Info */}
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
-          From: {assignment.competition?.name || assignment.competition?.city}
+          From: {assignment.competition?.name || assignment.competition?.city?.name || 'Unknown'}
         </p>
 
         {/* Pending: Claim Button */}
@@ -750,7 +760,7 @@ function VisibleRewardCard({ assignment, isMobile }) {
 
         {/* Competition Info */}
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
-          From: {assignment.competition?.name || assignment.competition?.city}
+          From: {assignment.competition?.name || assignment.competition?.city?.name || 'Unknown'}
         </p>
 
         {/* Disabled Claim Button */}
