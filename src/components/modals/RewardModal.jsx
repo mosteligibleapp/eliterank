@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Check, Upload } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Check, Upload, Camera, Loader, X } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useModalForm } from '../../hooks';
@@ -13,6 +13,7 @@ const INITIAL_STATE = {
   productUrl: '',
   terms: '',
   commissionRate: '',
+  cashValue: '',
   requiresPromotion: true,
   claimDeadlineDays: '7',
   status: 'active',
@@ -30,6 +31,9 @@ export default function RewardModal({
   reward,
   onSave,
 }) {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
   // Transform reward data for form
   const rewardData = useMemo(() => {
     if (!reward) return null;
@@ -42,6 +46,7 @@ export default function RewardModal({
       productUrl: reward.product_url || '',
       terms: reward.terms || '',
       commissionRate: reward.commission_rate?.toString() || '',
+      cashValue: reward.cash_value?.toString() || '',
       requiresPromotion: reward.requires_promotion ?? true,
       claimDeadlineDays: reward.claim_deadline_days?.toString() || '7',
       status: reward.status || 'active',
@@ -51,11 +56,70 @@ export default function RewardModal({
   const { form, updateField, getFormData } = useModalForm(INITIAL_STATE, rewardData, isOpen);
   const isEditing = !!reward;
 
+  // Upload image to Vercel Blob
+  const uploadImage = async (file) => {
+    if (!file) return null;
+
+    // Validate file size (max 4.5MB for Vercel Blob free tier)
+    const maxSize = 4.5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('Image too large. Please choose an image under 4.5MB.');
+      return null;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file.');
+      return null;
+    }
+
+    try {
+      const timestamp = Date.now();
+      const ext = file.name.split('.').pop();
+      const filename = `rewards/${timestamp}.${ext}`;
+
+      const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        body: file,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      return data.url;
+    } catch (error) {
+      alert(`Upload failed: ${error.message}. Please try again.`);
+      return null;
+    }
+  };
+
+  // Handle image upload
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const url = await uploadImage(file);
+    if (url) {
+      updateField('imageUrl', url);
+    }
+    setUploading(false);
+  };
+
+  // Clear uploaded image
+  const handleClearImage = () => {
+    updateField('imageUrl', '');
+  };
+
   const handleSave = () => {
     const data = getFormData();
     onSave({
       ...data,
       commissionRate: data.commissionRate ? parseFloat(data.commissionRate) : null,
+      cashValue: data.cashValue ? parseFloat(data.cashValue) : null,
       claimDeadlineDays: parseInt(data.claimDeadlineDays, 10) || 7,
     });
   };
@@ -98,6 +162,15 @@ export default function RewardModal({
         </>
       }
     >
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        style={{ display: 'none' }}
+      />
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
         {/* Basic Info */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
@@ -131,13 +204,94 @@ export default function RewardModal({
           />
         </div>
 
-        {/* URLs */}
+        {/* Product Image Upload */}
+        <div>
+          <label style={labelStyle}>Product Image</label>
+          <div style={{ display: 'flex', gap: spacing.md, alignItems: 'flex-start' }}>
+            {/* Image Preview / Upload Area */}
+            <div
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              style={{
+                width: '120px',
+                height: '120px',
+                borderRadius: borderRadius.lg,
+                background: form.imageUrl
+                  ? `url(${form.imageUrl}) center/cover`
+                  : colors.background.secondary,
+                border: `2px dashed ${colors.border.light}`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: uploading ? 'wait' : 'pointer',
+                position: 'relative',
+                flexShrink: 0,
+              }}
+            >
+              {uploading ? (
+                <>
+                  <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+                  <span style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary, marginTop: spacing.xs }}>
+                    Uploading...
+                  </span>
+                </>
+              ) : form.imageUrl ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClearImage();
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    width: '24px',
+                    height: '24px',
+                    background: 'rgba(239, 68, 68, 0.9)',
+                    border: 'none',
+                    borderRadius: borderRadius.full,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#fff',
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              ) : (
+                <>
+                  <Camera size={24} style={{ color: colors.text.secondary }} />
+                  <span style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary, marginTop: spacing.xs }}>
+                    Upload
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* URL Input as alternative */}
+            <div style={{ flex: 1 }}>
+              <Input
+                label="Or enter image URL"
+                value={form.imageUrl}
+                onChange={(e) => updateField('imageUrl', e.target.value)}
+                placeholder="https://..."
+              />
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                Click the box to upload or paste a URL
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Cash Value & Product URL */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
           <Input
-            label="Product Image URL"
-            value={form.imageUrl}
-            onChange={(e) => updateField('imageUrl', e.target.value)}
-            placeholder="https://..."
+            label="Cash Value ($)"
+            type="number"
+            value={form.cashValue}
+            onChange={(e) => updateField('cashValue', e.target.value)}
+            placeholder="e.g., 149"
           />
           <Input
             label="Product Page URL"
@@ -247,6 +401,13 @@ export default function RewardModal({
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </Modal>
   );
 }

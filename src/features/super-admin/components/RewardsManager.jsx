@@ -166,6 +166,7 @@ export default function RewardsManager() {
             product_url: rewardData.productUrl,
             terms: rewardData.terms,
             commission_rate: rewardData.commissionRate || null,
+            cash_value: rewardData.cashValue || null,
             requires_promotion: rewardData.requiresPromotion,
             claim_deadline_days: rewardData.claimDeadlineDays || 7,
             status: rewardData.status,
@@ -186,6 +187,7 @@ export default function RewardsManager() {
             product_url: rewardData.productUrl,
             terms: rewardData.terms,
             commission_rate: rewardData.commissionRate || null,
+            cash_value: rewardData.cashValue || null,
             requires_promotion: rewardData.requiresPromotion,
             claim_deadline_days: rewardData.claimDeadlineDays || 7,
             status: rewardData.status || 'active',
@@ -532,6 +534,14 @@ export default function RewardsManager() {
                         )}
 
                         <div style={{ display: 'flex', gap: spacing.xl, flexWrap: 'wrap' }}>
+                          {reward.cash_value && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                              <span style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>Value:</span>
+                              <span style={{ fontSize: typography.fontSize.sm, color: '#22c55e', fontWeight: typography.fontWeight.semibold }}>
+                                ${reward.cash_value}
+                              </span>
+                            </div>
+                          )}
                           {reward.commission_rate && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
                               <span style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>Commission:</span>
