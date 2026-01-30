@@ -268,7 +268,7 @@ export default function RewardsPage({ hostProfile }) {
               Action Required ({pendingRewards.length})
             </h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.md }}>
               {pendingRewards.map(assignment => (
                 <RewardCard
                   key={assignment.id}
@@ -300,7 +300,7 @@ export default function RewardsPage({ hostProfile }) {
               Your Rewards ({activeRewards.length})
             </h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.md }}>
               {activeRewards.map(assignment => (
                 <RewardCard
                   key={assignment.id}
@@ -372,7 +372,7 @@ export default function RewardsPage({ hostProfile }) {
               These rewards are available for your competition. Check back soon to claim!
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.md }}>
               {visibleRewards.map(assignment => (
                 <VisibleRewardCard
                   key={assignment.id}
@@ -483,27 +483,26 @@ function RewardCard({
   return (
     <div style={{
       display: 'flex',
-      gap: spacing.md,
+      flexDirection: 'column',
+      gap: spacing.sm,
       padding: spacing.md,
       background: colors.background.secondary,
       borderRadius: borderRadius.lg,
       border: isPending ? `2px solid #eab308` : `1px solid ${colors.border.light}`,
-      flexDirection: isMobile ? 'column' : 'row',
     }}>
       {/* Product Image */}
       <div style={{
-        width: isMobile ? '100%' : '80px',
-        height: isMobile ? '100px' : '80px',
+        width: '100%',
+        height: '120px',
         background: reward?.image_url
           ? `url(${reward.image_url}) center/cover`
           : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
         borderRadius: borderRadius.md,
-        flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {!reward?.image_url && <Package size={24} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
+        {!reward?.image_url && <Package size={32} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
       </div>
 
       {/* Content */}
@@ -719,28 +718,27 @@ function VisibleRewardCard({ assignment, isMobile }) {
   return (
     <div style={{
       display: 'flex',
-      gap: spacing.md,
+      flexDirection: 'column',
+      gap: spacing.sm,
       padding: spacing.md,
       background: colors.background.secondary,
       borderRadius: borderRadius.lg,
       border: `1px solid ${colors.border.light}`,
-      flexDirection: isMobile ? 'column' : 'row',
       opacity: 0.85,
     }}>
       {/* Product Image */}
       <div style={{
-        width: isMobile ? '100%' : '80px',
-        height: isMobile ? '100px' : '80px',
+        width: '100%',
+        height: '120px',
         background: reward?.image_url
           ? `url(${reward.image_url}) center/cover`
           : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
         borderRadius: borderRadius.md,
-        flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {!reward?.image_url && <Package size={24} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
+        {!reward?.image_url && <Package size={32} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
       </div>
 
       {/* Content */}
