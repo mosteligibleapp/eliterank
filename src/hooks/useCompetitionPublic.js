@@ -89,20 +89,69 @@ export function useCompetitionPublic(orgSlug, competitionSlug) {
 
       setOrganization(orgData);
 
-      // Direct lookup by slug - this is the ONLY lookup method needed
-      // URL slug must match database slug exactly
-      const { data: compData, error: compError } = await supabase
+      // Try direct lookup by slug first
+      let compData = null;
+      let compError = null;
+
+      const { data: slugData, error: slugError } = await supabase
         .from('competitions')
         .select(COMPETITION_SELECT)
         .eq('organization_id', orgData.id)
         .eq('slug', competitionSlug)
         .single();
 
-      if (compError) {
-        if (compError.code === 'PGRST116') {
-          throw new Error('Competition not found');
+      if (!slugError && slugData) {
+        compData = slugData;
+      } else {
+        // Fallback: Parse slug to extract year and try alternative lookups
+        // Slug format: {name}-{city}-{year} e.g., "elite-single-women-chicago-2026"
+        const yearMatch = competitionSlug.match(/(\d{4})(?:-[^-]+)?$/);
+        const year = yearMatch ? parseInt(yearMatch[1], 10) : null;
+
+        if (year) {
+          // Try to find by season (year) - get all competitions for this org/year
+          const { data: yearData, error: yearError } = await supabase
+            .from('competitions')
+            .select(COMPETITION_SELECT)
+            .eq('organization_id', orgData.id)
+            .eq('season', year);
+
+          if (!yearError && yearData?.length > 0) {
+            // If only one competition for this year, use it
+            if (yearData.length === 1) {
+              compData = yearData[0];
+            } else {
+              // Multiple competitions - try to match by name pattern
+              const slugParts = competitionSlug.toLowerCase();
+              const match = yearData.find(c => {
+                const nameSlug = (c.name || '')
+                  .toLowerCase()
+                  .replace(/[^\w\s-]/g, '')
+                  .replace(/[\s_-]+/g, '-');
+                return slugParts.includes(nameSlug) || nameSlug.includes(slugParts.split('-')[0]);
+              });
+              compData = match || yearData[0]; // Use first match or first result
+            }
+          }
         }
-        throw compError;
+
+        // Still no data - try getting any active competition
+        if (!compData) {
+          const { data: anyData } = await supabase
+            .from('competitions')
+            .select(COMPETITION_SELECT)
+            .eq('organization_id', orgData.id)
+            .in('status', ['live', 'publish'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          compData = anyData;
+        }
+      }
+
+      if (!compData) {
+        throw new Error('Competition not found');
       }
 
       // Normalize city to string for rendering, keep full object as cityData
