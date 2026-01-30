@@ -383,7 +383,7 @@ export function CompetitionLayout() {
   // Determine if this is legacy or new format based on URL
   const isLegacyFormat = location.pathname.startsWith('/c/');
 
-  let orgSlug, citySlug, year, demographicSlug;
+  let orgSlug, citySlug, year, demographicSlug, fullSlug;
 
   if (isLegacyFormat) {
     // Legacy format: /c/:orgSlug/:citySlug/:year
@@ -391,14 +391,16 @@ export function CompetitionLayout() {
     citySlug = params.citySlug;
     year = params.year;
     demographicSlug = null;
+    fullSlug = null; // Not available in legacy format
   } else {
-    // New format: /:orgSlug/:slug where slug is {city}-{year} or {city}-{demographic}-{year}
+    // New format: /:orgSlug/:slug where slug is the full competition slug
+    // Slug format: {name}-{city}-{year} or {name}-{city}-{year}-{demographic}
     orgSlug = params.orgSlug;
     const slug = params.slug;
+    fullSlug = slug; // Keep the full slug for direct lookup
 
     if (slug) {
-      // Import parseCompetitionSlug dynamically to avoid circular deps
-      // Pattern: {city}-{year} or {city}-{demographic}-{year}
+      // Extract year from slug
       const yearMatch = slug.match(/-(\d{4})($|\/)/);
       if (yearMatch) {
         year = yearMatch[1];
@@ -411,19 +413,19 @@ export function CompetitionLayout() {
           'lgbtq-plus-21-39', 'lgbtq-plus-40-plus',
         ];
 
-        // Check if any demographic slug is at the end
+        // Check if any demographic slug is at the end (after the year in slug)
+        const afterYear = slug.slice(slug.indexOf(year) + 4);
         let foundDemographic = null;
         for (const demoSlug of demographicSlugs) {
-          if (withoutYear.endsWith(`-${demoSlug}`)) {
+          if (afterYear === `-${demoSlug}` || afterYear.startsWith(`-${demoSlug}/`)) {
             foundDemographic = demoSlug;
-            citySlug = withoutYear.slice(0, -(demoSlug.length + 1));
             break;
           }
         }
 
-        if (!foundDemographic) {
-          citySlug = withoutYear;
-        }
+        // For citySlug, we just use the withoutYear part for fallback lookups
+        // The full slug will be used for primary lookup
+        citySlug = withoutYear;
         demographicSlug = foundDemographic;
       }
     }
@@ -435,6 +437,7 @@ export function CompetitionLayout() {
       citySlug={citySlug}
       year={year}
       demographicSlug={demographicSlug}
+      fullSlug={fullSlug}
     >
       <CompetitionLayoutInner />
     </PublicCompetitionProvider>

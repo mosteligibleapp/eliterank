@@ -11,12 +11,13 @@ import { getCompetitionDefaults } from '../utils/competitionDefaults';
  * Fetch public competition data by org slug, city slug, optional year, and optional demographic
  *
  * @param {string} orgSlug - Organization slug (e.g., 'most-eligible')
- * @param {string} citySlug - City slug (e.g., 'chicago')
+ * @param {string} citySlug - City slug (e.g., 'chicago') - used for fallback lookups
  * @param {string|number} year - Optional year (e.g., '2026')
  * @param {string} demographicSlug - Optional demographic slug (e.g., 'women-21-39')
+ * @param {string} fullSlug - Full competition slug from URL (e.g., 'top-startup-founder-chicago-2026')
  * @returns {object} Competition data, phase info, loading state, and helpers
  */
-export function useCompetitionPublic(orgSlug, citySlug, year = null, demographicSlug = null) {
+export function useCompetitionPublic(orgSlug, citySlug, year = null, demographicSlug = null, fullSlug = null) {
   const [competition, setCompetition] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [contestants, setContestants] = useState([]);
@@ -61,17 +62,17 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null, demographic
 
       setOrganization(orgData);
 
-      // Build the expected competition slug from URL parts
-      // Format: {city}-{year} or {city}-{demographic}-{year}
-      const expectedSlug = demographicSlug && demographicSlug !== 'open'
+      // Use the full slug from URL for direct lookup (most reliable)
+      // Fallback to reconstructed slug if fullSlug not available
+      const expectedSlug = fullSlug || (demographicSlug && demographicSlug !== 'open'
         ? `${citySlug}-${demographicSlug}-${year}`
-        : `${citySlug}-${year}`;
+        : `${citySlug}-${year}`);
 
       // First, try direct lookup by competition slug (most reliable)
       let compData = null;
       let compError = null;
 
-      if (expectedSlug && year) {
+      if (expectedSlug) {
         const { data: directMatch, error: directError } = await supabase
           .from('competitions')
           .select(
@@ -531,7 +532,7 @@ export function useCompetitionPublic(orgSlug, citySlug, year = null, demographic
     } finally {
       setLoading(false);
     }
-  }, [orgSlug, citySlug, year, demographicSlug, isDemoMode]);
+  }, [orgSlug, citySlug, year, demographicSlug, fullSlug, isDemoMode]);
 
   // Initial fetch
   useEffect(() => {
