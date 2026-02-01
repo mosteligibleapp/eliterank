@@ -3,6 +3,7 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { Bell, Crown, Users, Briefcase } from 'lucide-react';
 import { PrizePool } from '../components/PrizePool';
 import { WhoCompetes } from '../components/WhoCompetes';
+import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
 import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
 import { Timeline } from '../components/Timeline';
@@ -37,6 +38,11 @@ export function ComingSoonPhase() {
       {/* Who Competes - Prominent */}
       <section className="phase-section">
         <WhoCompetes />
+      </section>
+
+      {/* Hall of Winners - Past Champions */}
+      <section className="phase-section">
+        <HallOfWinnersSection />
       </section>
 
       {/* Prize Pool + Countdown Row */}
