@@ -937,21 +937,23 @@ export default function App() {
   // ===========================================================================
 
   // New URL format: /:orgSlug/:slug
-  // Where slug is: {city}-{year} or {city}-{demographic}-{year}
-  // Examples: /most-eligible/chicago-2028, /most-eligible/chicago-women-21-39-2028
+  // Where slug can be:
+  // - {name}-{city}-{year} e.g., "elite-single-women-chicago-2026"
+  // - {name}-{city}-{year}-{demographic} e.g., "elite-single-women-chicago-2026-women-21-39"
+  // - id/{competitionId} e.g., "id/c1c44ae3-6ccf-4470-8c14-ddcc5f021500"
   const pathParts = location.pathname.split('/').filter(Boolean);
 
   // Reserved paths that should NOT be treated as competition routes
   const reservedPaths = ['c', 'org', 'login', 'claim', 'admin', 'profile', 'api', 'auth'];
 
   // Check if this is a competition route:
-  // 1. Has exactly 2 segments (or more for nested routes like /e/:contestant)
+  // 1. Has at least 2 segments
   // 2. First segment is not a reserved path
-  // 3. Second segment ends with a 4-digit year (e.g., "chicago-2028")
+  // 3. Second segment contains a 4-digit year ANYWHERE or is "id" (for ID-based routes)
   const isCompetitionRoute =
     pathParts.length >= 2 &&
     !reservedPaths.includes(pathParts[0].toLowerCase()) &&
-    /-\d{4}($|\/)/.test(pathParts[1]);
+    (pathParts[1] === 'id' || /\d{4}/.test(pathParts[1]));
 
   // Also support legacy /c/ routes for backwards compatibility
   const isLegacyCompetitionRoute = pathParts[0] === 'c' && pathParts.length >= 2;
