@@ -511,9 +511,9 @@ function RewardCard({
       {/* Product Image */}
       <div style={{
         width: '100%',
-        height: '120px',
+        height: '200px',
         background: reward?.image_url
-          ? `url(${reward.image_url}) center/cover`
+          ? `#f5f5f5 url(${reward.image_url}) center/contain no-repeat`
           : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
         borderRadius: borderRadius.md,
         display: 'flex',
@@ -747,9 +747,9 @@ function VisibleRewardCard({ assignment, isMobile }) {
       {/* Product Image */}
       <div style={{
         width: '100%',
-        height: '120px',
+        height: '200px',
         background: reward?.image_url
-          ? `url(${reward.image_url}) center/cover`
+          ? `#f5f5f5 url(${reward.image_url}) center/contain no-repeat`
           : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
         borderRadius: borderRadius.md,
         display: 'flex',
