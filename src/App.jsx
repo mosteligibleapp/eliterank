@@ -31,6 +31,7 @@ import { supabase } from './lib/supabase';
 
 // Phase utilities
 import { computeCompetitionPhase, COMPETITION_STATUSES } from './utils/competitionPhase';
+import { isCompetitionSlug, isIdRoute, isReservedPath, getCompetitionUrl, generateCompetitionSlug } from './utils/slugs';
 
 // Hooks
 import { useSupabaseAuth } from './hooks';
@@ -809,45 +810,29 @@ export default function App() {
   // ===========================================================================
 
   const handleOpenCompetition = useCallback((competition) => {
-    console.log('[handleOpenCompetition] Called with:', competition?.name);
     setShowUserProfile(false);
 
-    // Get org slug - default to 'most-eligible' if not found
     const orgSlug = competition?.organization?.slug || competition?.orgSlug || 'most-eligible';
-    console.log('[handleOpenCompetition] orgSlug:', orgSlug);
 
-    // Priority 1: Use database slug if available
+    // Priority 1: Use database slug directly (preferred)
     if (competition?.slug) {
-      console.log('[handleOpenCompetition] Using slug:', competition.slug);
-      navigate(`/${orgSlug}/${competition.slug}`);
+      navigate(getCompetitionUrl(orgSlug, competition.slug));
       return;
     }
 
-    // Priority 2: Use competition ID (always available, always works)
+    // Priority 2: Use competition ID as fallback
     if (competition?.id) {
-      console.log('[handleOpenCompetition] Using ID:', competition.id);
       navigate(`/${orgSlug}/id/${competition.id}`);
       return;
     }
 
-    console.log('[handleOpenCompetition] No slug or ID, constructing URL...');
-
-    // Priority 3: Construct from name-city-year
-    const nameSlug = (competition?.name || 'competition')
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-    const cityPart = (competition?.citySlug || competition?.city || 'unknown')
-      .toLowerCase()
-      .replace(/-[a-z]{2}$/i, '')
-      .replace(/\s+/g, '-')
-      .replace(/,/g, '');
-
-    const year = competition?.season || new Date().getFullYear();
-
-    navigate(`/${orgSlug}/${nameSlug}-${cityPart}-${year}`);
+    // Priority 3: Generate slug from competition data
+    const generatedSlug = generateCompetitionSlug({
+      name: competition?.name,
+      citySlug: competition?.citySlug || competition?.city,
+      season: competition?.season,
+    });
+    navigate(getCompetitionUrl(orgSlug, generatedSlug));
   }, [navigate]);
 
   // ===========================================================================
@@ -936,24 +921,15 @@ export default function App() {
   // RENDER: PUBLIC COMPETITION PAGES (/:orgSlug/:slug routes)
   // ===========================================================================
 
-  // New URL format: /:orgSlug/:slug
-  // Where slug can be:
-  // - {name}-{city}-{year} e.g., "elite-single-women-chicago-2026"
-  // - {name}-{city}-{year}-{demographic} e.g., "elite-single-women-chicago-2026-women-21-39"
-  // - id/{competitionId} e.g., "id/c1c44ae3-6ccf-4470-8c14-ddcc5f021500"
+  // Competition route detection using centralized slug utilities
+  // Format: /:orgSlug/:slug where slug contains a year, or /:orgSlug/id/:competitionId
   const pathParts = location.pathname.split('/').filter(Boolean);
 
-  // Reserved paths that should NOT be treated as competition routes
-  const reservedPaths = ['c', 'org', 'login', 'claim', 'admin', 'profile', 'api', 'auth'];
-
-  // Check if this is a competition route:
-  // 1. Has at least 2 segments
-  // 2. First segment is not a reserved path
-  // 3. Second segment contains a 4-digit year ANYWHERE or is "id" (for ID-based routes)
+  // Check if this is a competition route using slug utilities
   const isCompetitionRoute =
     pathParts.length >= 2 &&
-    !reservedPaths.includes(pathParts[0].toLowerCase()) &&
-    (pathParts[1] === 'id' || /\d{4}/.test(pathParts[1]));
+    !isReservedPath(pathParts[0]) &&
+    (isIdRoute(pathParts[1]) || isCompetitionSlug(pathParts[1]));
 
   // Also support legacy /c/ routes for backwards compatibility
   const isLegacyCompetitionRoute = pathParts[0] === 'c' && pathParts.length >= 2;

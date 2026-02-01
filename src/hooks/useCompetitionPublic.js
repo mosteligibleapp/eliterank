@@ -61,7 +61,7 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
 
   const isDemoMode = !isSupabaseConfigured();
 
-  // Fetch competition data
+  // Fetch competition data - simplified lookup (ID or slug only)
   const fetchCompetition = useCallback(async () => {
     // Must have orgSlug AND either competitionSlug or competitionId
     if (!orgSlug || (!competitionSlug && !competitionId)) {
@@ -92,80 +92,33 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       setOrganization(orgData);
 
       let compData = null;
+      let compError = null;
 
-      // PRIORITY 1: Direct ID lookup (most reliable)
+      // Lookup by ID (if provided)
       if (competitionId) {
-        const { data: idData, error: idError } = await supabase
+        const result = await supabase
           .from('competitions')
           .select(COMPETITION_SELECT)
           .eq('id', competitionId)
           .single();
 
-        if (!idError && idData) {
-          compData = idData;
-        }
+        compData = result.data;
+        compError = result.error;
       }
-
-      // PRIORITY 2: Direct slug lookup
-      if (!compData && competitionSlug) {
-        const { data: slugData, error: slugError } = await supabase
+      // Lookup by slug
+      else if (competitionSlug) {
+        const result = await supabase
           .from('competitions')
           .select(COMPETITION_SELECT)
           .eq('organization_id', orgData.id)
           .eq('slug', competitionSlug)
           .single();
 
-        if (!slugError && slugData) {
-          compData = slugData;
-        }
+        compData = result.data;
+        compError = result.error;
       }
 
-      // PRIORITY 3: Parse slug for year and find by season
-      if (!compData && competitionSlug) {
-        const yearMatch = competitionSlug.match(/(\d{4})(?:-[^-]+)?$/);
-        const year = yearMatch ? parseInt(yearMatch[1], 10) : null;
-
-        if (year) {
-          const { data: yearData } = await supabase
-            .from('competitions')
-            .select(COMPETITION_SELECT)
-            .eq('organization_id', orgData.id)
-            .eq('season', year);
-
-          if (yearData?.length > 0) {
-            if (yearData.length === 1) {
-              compData = yearData[0];
-            } else {
-              // Multiple competitions - try to match by name pattern
-              const slugParts = competitionSlug.toLowerCase();
-              const match = yearData.find(c => {
-                const nameSlug = (c.name || '')
-                  .toLowerCase()
-                  .replace(/[^\w\s-]/g, '')
-                  .replace(/[\s_-]+/g, '-');
-                return slugParts.includes(nameSlug) || nameSlug.includes(slugParts.split('-')[0]);
-              });
-              compData = match || yearData[0];
-            }
-          }
-        }
-      }
-
-      // PRIORITY 4: Fall back to any active competition for this org
-      if (!compData) {
-        const { data: anyData } = await supabase
-          .from('competitions')
-          .select(COMPETITION_SELECT)
-          .eq('organization_id', orgData.id)
-          .in('status', ['live', 'publish'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        compData = anyData;
-      }
-
-      if (!compData) {
+      if (compError || !compData) {
         throw new Error('Competition not found');
       }
 
