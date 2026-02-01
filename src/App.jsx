@@ -650,6 +650,9 @@ export default function App() {
           claimed_at,
           status,
           user_id,
+          nominator_name,
+          nominator_anonymous,
+          nomination_reason,
           competition:competitions(
             id,
             city,
@@ -661,7 +664,7 @@ export default function App() {
         `)
         .eq('email', userEmail)
         .neq('status', 'rejected')
-        .is('converted_to_contestant', null);
+        .or('converted_to_contestant.is.null,converted_to_contestant.eq.false');
 
       if (error || !nominees?.length) {
         return null;
