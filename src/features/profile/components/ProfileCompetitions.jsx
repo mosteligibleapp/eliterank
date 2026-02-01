@@ -5,6 +5,7 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
+import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
 
 const STATUS_LABELS = {
   upcoming: 'Upcoming',
@@ -18,11 +19,19 @@ const STATUS_LABELS = {
 function NominationCard({ nomination, onAcceptClick }) {
   const { isMobile } = useResponsive();
   const competition = nomination?.competition;
-  const cityName = competition?.city?.name || 'Competition';
+  const competitionName = competition?.name || 'Competition';
+  const cityName = competition?.city?.name || '';
   const season = competition?.season || '';
+  const orgSlug = competition?.organization?.slug || 'most-eligible';
   const isUnclaimed = !nomination.claimed_at;
 
-  const url = `/most-eligible/${cityName.toLowerCase().replace(/\s+/g, '-')}-${season}`;
+  // Build the proper competition URL using the slug utilities
+  const competitionSlug = generateCompetitionSlug({
+    name: competitionName,
+    citySlug: slugify(cityName),
+    season,
+  });
+  const url = getCompetitionUrl(orgSlug, competitionSlug);
 
   return (
     <div
@@ -50,7 +59,7 @@ function NominationCard({ nomination, onAcceptClick }) {
         >
           <MapPin size={14} style={{ color: isUnclaimed ? colors.gold.primary : colors.accent.purple }} />
           <span style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>
-            {cityName} {season}
+            {competitionName}
           </span>
           <ExternalLink size={12} style={{ color: colors.text.tertiary }} />
         </a>
