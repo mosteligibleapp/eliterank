@@ -6,7 +6,7 @@
  */
 
 // Branded Most Eligible background image
-const BRANDED_BACKGROUND = '/images/most-eligible-background.jpg';
+const BRANDED_BACKGROUND = 'https://i.imgur.com/iiJlKvO.jpg';
 
 // Legacy city images (kept for reference, but not currently used)
 const CITY_IMAGES = {
