@@ -688,44 +688,49 @@ export default function EliteRankCityModal({
     );
   };
 
-  // Web Hall of Winners Sidebar (vertically stacked)
-  const HallOfWinnersSidebar = () => {
+  // Web Hall of Winners (horizontal row above competitions)
+  const HallOfWinnersWeb = () => {
     const winners = hallOfWinnersData?.winners || [];
     if (!winners.length) return null;
 
     return (
       <div style={{
-        flex: '0 0 280px',
-        position: 'sticky',
-        top: spacing.xl,
-        alignSelf: 'flex-start',
+        maxWidth: '1000px',
+        margin: '0 auto',
+        marginBottom: spacing.xl,
+        padding: spacing.xl,
         background: colors.background.card,
         borderRadius: borderRadius.xl,
-        padding: spacing.lg,
         border: `1px solid ${colors.border.primary}`,
       }}>
         {/* Header */}
-        <div style={{ marginBottom: spacing.lg }}>
-          <p style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            marginBottom: spacing.xs,
-          }}>
-            {hallOfWinnersData?.year || new Date().getFullYear()} Champions
-          </p>
-          <h3 style={{
-            fontSize: typography.fontSize.xl,
-            fontWeight: typography.fontWeight.bold,
-            color: colors.text.primary,
-            marginBottom: spacing.sm,
-          }}>
-            Hall of Winners
-          </h3>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: spacing.xl,
+        }}>
           <div>
+            <p style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.text.muted,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: spacing.xs,
+            }}>
+              {hallOfWinnersData?.year || new Date().getFullYear()} Champions
+            </p>
+            <h2 style={{
+              fontSize: typography.fontSize['2xl'],
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+            }}>
+              Hall of Winners
+            </h2>
+          </div>
+          <div style={{ textAlign: 'right' }}>
             <span style={{
-              fontSize: typography.fontSize.lg,
+              fontSize: typography.fontSize.xl,
               fontWeight: typography.fontWeight.bold,
               color: colors.gold.primary,
             }}>
@@ -741,8 +746,12 @@ export default function EliteRankCityModal({
           </div>
         </div>
 
-        {/* Vertically stacked winners */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+        {/* Horizontal row of winners */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${Math.min(winners.length, 5)}, 1fr)`,
+          gap: spacing.lg,
+        }}>
           {winners.map(winner => (
             <WinnerCard key={winner.id} winner={winner} size="large" />
           ))}
@@ -1006,19 +1015,12 @@ export default function EliteRankCityModal({
               </p>
             </div>
 
-            {/* Mobile: Hall of Winners above competitions */}
-            {isMobile && <HallOfWinnersMobile />}
+            {/* Hall of Winners - mobile uses compact grid, web uses horizontal */}
+            {isMobile ? <HallOfWinnersMobile /> : <HallOfWinnersWeb />}
 
-            {/* Main content area - sidebar layout on web */}
-            <div style={{
-              display: isMobile ? 'block' : 'flex',
-              gap: spacing.xl,
-              maxWidth: '1400px',
-              margin: '0 auto',
-            }}>
-              {/* Competitions section (left on web) */}
-              <div style={{ flex: isMobile ? 'none' : '1 1 auto', minWidth: 0 }}>
-                <FilterBar />
+            {/* Competitions section */}
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <FilterBar />
 
                 {/* Competition Grid */}
                 {visibleCompetitions.length > 0 ? (
@@ -1059,10 +1061,6 @@ export default function EliteRankCityModal({
                     )}
                   </div>
                 )}
-              </div>
-
-              {/* Web: Hall of Winners sidebar (right) */}
-              {!isMobile && <HallOfWinnersSidebar />}
             </div>
           </div>
         );
