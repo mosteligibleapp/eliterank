@@ -651,10 +651,10 @@ export default function SiteSettingsManager() {
                 {/* Preview Cards */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: `repeat(${Math.min(formData.winners.length, 3)}, 1fr)`,
+                  gridTemplateColumns: `repeat(${Math.min(formData.winners.length, 5)}, 1fr)`,
                   gap: spacing.md,
                 }}>
-                  {formData.winners.slice(0, 3).map((winner) => (
+                  {formData.winners.slice(0, 5).map((winner) => (
                     <div
                       key={winner.id}
                       style={{

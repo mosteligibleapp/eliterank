@@ -584,7 +584,7 @@ export default function EliteRankCityModal({
         {/* Winners Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(winners.length, 3)}, 1fr)`,
+          gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(winners.length, 5)}, 1fr)`,
           gap: spacing.md,
         }}>
           {winners.map((winner) => (
@@ -675,61 +675,103 @@ export default function EliteRankCityModal({
             {/* Hero */}
             <div style={{
               textAlign: 'center',
-              maxWidth: '800px',
+              maxWidth: '900px',
               margin: '0 auto',
               marginBottom: spacing.xxl,
               padding: isMobile ? `${spacing.xl} 0` : `${spacing.xxxl} 0`,
             }}>
-              {/* Season Status Banner */}
+              {/* Season Status Badge */}
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: spacing.sm,
                 padding: `${spacing.sm} ${spacing.lg}`,
-                background: colors.background.elevated,
+                background: '#18181b',
                 borderRadius: borderRadius.full,
-                border: `1px solid ${colors.border.primary}`,
-                marginBottom: spacing.xl,
+                border: '1px solid #3f3f46',
+                marginBottom: isMobile ? spacing.lg : spacing.xl,
               }}>
                 <span style={{
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
                   background: colors.gold.primary,
+                  animation: 'pulse 2s infinite',
                 }} />
                 <span style={{
                   fontSize: typography.fontSize.sm,
-                  color: colors.text.primary,
+                  color: '#d4d4d8',
                   fontWeight: typography.fontWeight.medium,
                 }}>
                   Season {new Date().getFullYear()} · {competitionStats.active} Active Competition{competitionStats.active !== 1 ? 's' : ''} · {competitionStats.openingSoon} Opening Soon
                 </span>
               </div>
 
+              {/* Main Headline */}
               <h1 style={{
-                fontSize: isMobile ? typography.fontSize['3xl'] : typography.fontSize['5xl'],
+                fontSize: isMobile ? '3rem' : '4.5rem',
                 fontWeight: typography.fontWeight.bold,
-                color: colors.text.primary,
-                lineHeight: typography.lineHeight.tight,
-                marginBottom: spacing.md,
+                lineHeight: 1.1,
+                marginBottom: isMobile ? spacing.md : spacing.lg,
               }}>
-                Social Competitions for <span style={{ color: colors.gold.primary }}>Top Talent</span>
+                <span style={{ color: '#ffffff', display: 'block' }}>Social Competitions</span>
+                <span style={{
+                  display: 'block',
+                  background: 'linear-gradient(90deg, #f59e0b, #eab308)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}>
+                  for Top Talent
+                </span>
               </h1>
+
+              {/* Subheadline */}
               <p style={{
-                fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-                color: colors.text.primary,
-                lineHeight: typography.lineHeight.relaxed,
-                marginBottom: spacing.md,
-                fontWeight: typography.fontWeight.medium,
+                fontSize: isMobile ? typography.fontSize.xl : '1.5rem',
+                marginBottom: isMobile ? spacing.lg : spacing.xl,
               }}>
-                Fans crown the Elites.
+                <span style={{ color: '#a1a1aa' }}>Climb the Ranks. </span>
+                <span style={{ color: '#ffffff', fontWeight: typography.fontWeight.bold }}>Become an Elite.</span>
               </p>
-              <p style={{
-                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                color: colors.text.secondary,
-                lineHeight: typography.lineHeight.relaxed,
+
+              {/* Card */}
+              <div style={{
+                display: 'inline-block',
+                background: 'rgba(39, 39, 42, 0.5)',
+                borderRadius: borderRadius.xl,
+                border: '1px solid #3f3f46',
+                padding: `${spacing.lg} ${spacing.xxl}`,
+                marginBottom: isMobile ? spacing.lg : spacing.xl,
               }}>
-                Enter free. Rally votes from your network. Climb the leaderboard. Win prizes and the title.
+                <span style={{ color: '#a1a1aa', fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl }}>
+                  Think you're elite?{' '}
+                </span>
+                <span style={{
+                  color: '#eab308',
+                  fontWeight: typography.fontWeight.bold,
+                  fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+                }}>
+                  Prove it.
+                </span>
+              </div>
+
+              {/* Action Line */}
+              <p style={{
+                fontSize: isMobile ? '1.5rem' : '2.25rem',
+                fontWeight: typography.fontWeight.bold,
+                color: '#ffffff',
+                marginBottom: isMobile ? spacing.md : spacing.lg,
+              }}>
+                Enter <span style={{ color: '#eab308' }}>·</span> Compete <span style={{ color: '#eab308' }}>·</span> Win
+              </p>
+
+              {/* Subtext */}
+              <p style={{
+                fontSize: typography.fontSize.md,
+              }}>
+                <span style={{ color: '#d4d4d8' }}>Fans decide </span>
+                <span style={{ color: '#71717a' }}>who earns the title and prize package.</span>
               </p>
             </div>
 
