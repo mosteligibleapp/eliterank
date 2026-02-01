@@ -371,30 +371,43 @@ function ContestantModals() {
 /**
  * Main Layout Wrapper
  * Extracts route params and wraps with provider
- * Supports both new format (/:orgSlug/:slug) and legacy format (/c/:orgSlug/:citySlug/:year)
+ * Supports:
+ * - ID format: /:orgSlug/id/:competitionId (most reliable)
+ * - Slug format: /:orgSlug/:slug
+ * - Legacy format: /c/:orgSlug/:citySlug/:year
  */
 export function CompetitionLayout() {
   const params = useParams();
   const location = useLocation();
 
-  // Determine if this is legacy or new format based on URL
+  // Determine format based on URL
   const isLegacyFormat = location.pathname.startsWith('/c/');
+  const isIdFormat = params.competitionId != null;
 
-  let orgSlug, competitionSlug;
+  let orgSlug, competitionSlug, competitionId;
 
-  if (isLegacyFormat) {
+  if (isIdFormat) {
+    // ID format: /:orgSlug/id/:competitionId - lookup by ID
+    orgSlug = params.orgSlug;
+    competitionId = params.competitionId;
+    competitionSlug = null;
+  } else if (isLegacyFormat) {
     // Legacy format: /c/:orgSlug/:citySlug/:year - construct slug
     orgSlug = params.orgSlug;
     competitionSlug = `${params.citySlug}-${params.year}`;
   } else {
-    // New format: /:orgSlug/:slug - use slug directly
+    // Slug format: /:orgSlug/:slug - use slug directly
     orgSlug = params.orgSlug;
     // Remove any trailing path segments (e.g., /leaderboard, /activity)
     competitionSlug = params.slug?.split('/')[0] || params.slug;
   }
 
   return (
-    <PublicCompetitionProvider orgSlug={orgSlug} competitionSlug={competitionSlug}>
+    <PublicCompetitionProvider
+      orgSlug={orgSlug}
+      competitionSlug={competitionSlug}
+      competitionId={competitionId}
+    >
       <CompetitionLayoutInner />
     </PublicCompetitionProvider>
   );

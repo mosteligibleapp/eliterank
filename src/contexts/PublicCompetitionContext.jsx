@@ -20,6 +20,7 @@ const PublicCompetitionContext = createContext(null);
 export function PublicCompetitionProvider({
   orgSlug,
   competitionSlug,
+  competitionId,
   children,
 }) {
   // Modal states (lifted here so any component can trigger them)
@@ -27,8 +28,8 @@ export function PublicCompetitionProvider({
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  // Main competition data
-  const competitionData = useCompetitionPublic(orgSlug, competitionSlug);
+  // Main competition data - supports both slug and ID lookup
+  const competitionData = useCompetitionPublic(orgSlug, competitionSlug, competitionId);
 
   const {
     competition,
