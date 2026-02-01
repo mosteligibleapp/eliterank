@@ -41,7 +41,7 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
   const hasTimelineData = competition && (
     competition.nomination_start ||
     competition.voting_start ||
-    competition.finale_date
+    competition.finals_date
   );
 
   return (
@@ -336,7 +336,7 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
               )}
 
               {/* Finals Date */}
-              {competition.finale_date && (
+              {competition.finals_date && (
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.02))',
                   border: '1px solid rgba(34,197,94,0.2)',
@@ -371,12 +371,12 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
                         Finals & Award Ceremony
                       </p>
                       <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#22c55e' }}>
-                        {new Date() >= new Date(competition.finale_date) ? 'Completed' : 'Mark Your Calendar'}
+                        {new Date() >= new Date(competition.finals_date) ? 'Completed' : 'Mark Your Calendar'}
                       </p>
                     </div>
                   </div>
                   <div style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, lineHeight: 1.6 }}>
-                    <p><strong style={{ color: '#fff' }}>Date:</strong> {formatKeyDate(competition.finale_date)}</p>
+                    <p><strong style={{ color: '#fff' }}>Date:</strong> {formatKeyDate(competition.finals_date)}</p>
                   </div>
                 </div>
               )}

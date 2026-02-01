@@ -186,7 +186,7 @@ export default function EliteRankCityModal({
               nomination_end: compWithSettings.nomination_end,
               voting_start: compWithSettings.voting_start,
               voting_end: compWithSettings.voting_end,
-              finale_date: compWithSettings.finale_date,
+              finals_date: compWithSettings.finals_date,
               voting_rounds: compWithSettings.voting_rounds,
               nomination_periods: compWithSettings.nomination_periods,
             };
@@ -240,22 +240,8 @@ export default function EliteRankCityModal({
   const getOrg = (orgId) => organizations.find(o => o.id === orgId);
 
   const handleCompetitionClick = (competition) => {
-    console.log('[handleCompetitionClick] Clicked:', competition?.name, competition?.id);
-    console.log('[handleCompetitionClick] onOpenCompetition exists:', !!onOpenCompetition);
-    console.log('[handleCompetitionClick] Competition data:', JSON.stringify({
-      id: competition?.id,
-      name: competition?.name,
-      slug: competition?.slug,
-      city: competition?.city,
-      season: competition?.season,
-      orgSlug: competition?.orgSlug,
-      organization: competition?.organization?.slug,
-    }));
-
     if (onOpenCompetition) {
       onOpenCompetition(competition);
-    } else {
-      console.error('[handleCompetitionClick] onOpenCompetition is not defined!');
     }
   };
 
