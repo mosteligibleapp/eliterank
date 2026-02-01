@@ -4,36 +4,24 @@ import useAppSettings from '../../../hooks/useAppSettings';
 
 /**
  * Hall of Winners section for competition pages
- * Shows previous season winners on current season competition pages
- * Example: 2025 Most Eligible Atlanta winners shown on 2026 Most Eligible Atlanta page
+ * Shows the explore page Hall of Winners on selected competition pages
  * Only displays during Coming Soon and Nominations phases
  */
 export function HallOfWinnersSection() {
   const { competition } = usePublicCompetition();
 
-  // Fetch competition-specific hall of winners settings
-  const { data: competitionHallOfWinners, loading, error } = useAppSettings('competition_hall_of_winners');
+  // Fetch hall of winners settings (same as explore page)
+  const { data: hallOfWinners, loading } = useAppSettings('hall_of_winners');
 
-  // Debug logging
-  console.log('HallOfWinnersSection Debug:', {
-    competitionId: competition?.id,
-    loading,
-    error,
-    allData: competitionHallOfWinners,
-    configForThisComp: competitionHallOfWinners?.[competition?.id],
-  });
+  // Check if this competition should display the Hall of Winners
+  const shouldDisplay = hallOfWinners?.displayOnCompetitions?.includes(competition?.id);
 
-  // Get config for this competition
-  const config = competitionHallOfWinners?.[competition?.id];
-
-  // Don't render if no config, not enabled, or no winners
-  if (loading || !config?.enabled || !config?.winners?.length) {
+  // Don't render if loading, no data, not enabled for this competition, or no winners
+  if (loading || !hallOfWinners || !shouldDisplay || !hallOfWinners.winners?.length) {
     return null;
   }
 
-  const winners = config.winners;
-  // Use configured season or default to previous season
-  const winnersSeason = config.winnersSeason || (competition?.season ? competition.season - 1 : new Date().getFullYear() - 1);
+  const { winners, year } = hallOfWinners;
 
   return (
     <section className="hall-of-winners-section">
@@ -42,7 +30,7 @@ export function HallOfWinnersSection() {
           <Trophy size={20} />
         </div>
         <div className="hall-of-winners-title">
-          <span className="hall-of-winners-label">{winnersSeason} Champions</span>
+          <span className="hall-of-winners-label">{year} Champions</span>
           <h3>Hall of Winners</h3>
         </div>
       </div>
