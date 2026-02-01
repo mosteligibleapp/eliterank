@@ -237,6 +237,14 @@ export default function EliteRankCityModal({
     });
   }, [competitions, cityFilter, statusFilter]);
 
+  // Competition counts for header stats
+  const competitionStats = useMemo(() => {
+    const visible = competitions.filter(c => c.visible);
+    const active = visible.filter(c => isLive(c.status) && ['nomination', 'voting', 'judging'].includes(c.phase)).length;
+    const openingSoon = visible.filter(c => isPublished(c.status)).length;
+    return { active, openingSoon };
+  }, [competitions]);
+
   const getOrg = (orgId) => organizations.find(o => o.id === orgId);
 
   const handleCompetitionClick = (competition) => {
@@ -534,11 +542,37 @@ export default function EliteRankCityModal({
             {/* Hero */}
             <div style={{
               textAlign: 'center',
-              maxWidth: '600px',
+              maxWidth: '800px',
               margin: '0 auto',
               marginBottom: spacing.xxl,
               padding: isMobile ? `${spacing.xl} 0` : `${spacing.xxxl} 0`,
             }}>
+              {/* Season Status Banner */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: spacing.sm,
+                padding: `${spacing.sm} ${spacing.lg}`,
+                background: colors.background.elevated,
+                borderRadius: borderRadius.full,
+                border: `1px solid ${colors.border.primary}`,
+                marginBottom: spacing.xl,
+              }}>
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: colors.gold.primary,
+                }} />
+                <span style={{
+                  fontSize: typography.fontSize.sm,
+                  color: colors.text.primary,
+                  fontWeight: typography.fontWeight.medium,
+                }}>
+                  Season {new Date().getFullYear()} · {competitionStats.active} Active Competition{competitionStats.active !== 1 ? 's' : ''} · {competitionStats.openingSoon} Opening Soon
+                </span>
+              </div>
+
               <h1 style={{
                 fontSize: isMobile ? typography.fontSize['3xl'] : typography.fontSize['5xl'],
                 fontWeight: typography.fontWeight.bold,
@@ -546,14 +580,23 @@ export default function EliteRankCityModal({
                 lineHeight: typography.lineHeight.tight,
                 marginBottom: spacing.md,
               }}>
-                America's Arena for Excellence
+                Social Competitions for <span style={{ color: colors.gold.primary }}>Top Talent</span>
               </h1>
               <p style={{
-                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+                color: colors.text.primary,
+                lineHeight: typography.lineHeight.relaxed,
+                marginBottom: spacing.md,
+                fontWeight: typography.fontWeight.medium,
+              }}>
+                Fans crown the Elites.
+              </p>
+              <p style={{
+                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 color: colors.text.secondary,
                 lineHeight: typography.lineHeight.relaxed,
               }}>
-                Social competitions where top talent is discovered, celebrated, and rewarded.
+                Enter free. Rally votes from your network. Climb the leaderboard. Win prizes and the title.
               </p>
             </div>
 
