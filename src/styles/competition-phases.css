@@ -738,127 +738,424 @@
   font-weight: var(--font-weight-bold);
 }
 
-/* Hall of Winners Section */
-.hall-of-winners-section {
-  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08), rgba(var(--color-primary-rgb), 0.02));
-  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
+/* =====================
+   HALL OF WINNERS - Premium Redesign
+   ===================== */
+
+.hall-of-winners {
+  padding: var(--spacing-xl);
+  background: linear-gradient(
+    180deg,
+    rgba(212, 175, 55, 0.08) 0%,
+    rgba(212, 175, 55, 0.02) 50%,
+    transparent 100%
+  );
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
 }
 
-.hall-of-winners-header {
+/* Subtle ambient glow */
+.hall-of-winners::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(
+    circle,
+    rgba(212, 175, 55, 0.12) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Header */
+.hall-of-winners__header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  position: relative;
+  z-index: 1;
+}
+
+.hall-of-winners__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 100px;
+  color: #d4af37;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+
+.hall-of-winners__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* Podium Layout */
+.hall-of-winners__podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Finalists Row */
+.hall-of-winners__finalists {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+/* =====================
+   WINNER CARD
+   ===================== */
+
+.winner-card {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #1c1c1f;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
+}
+
+.winner-card[role="button"] {
+  cursor: pointer;
+}
+
+.winner-card[role="button"]:hover {
+  transform: translateY(-4px) scale(1.02);
+}
+
+.winner-card[role="button"]:active {
+  transform: translateY(-2px) scale(1.01);
+}
+
+.winner-card[role="button"]:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+}
+
+/* Size Variants */
+.winner-card--small {
+  width: 80px;
+}
+
+.winner-card--small .winner-card__image-container {
+  height: 100px;
+}
+
+.winner-card--medium {
+  width: 100px;
+}
+
+.winner-card--medium .winner-card__image-container {
+  height: 130px;
+}
+
+.winner-card--large {
+  width: 130px;
+}
+
+.winner-card--large .winner-card__image-container {
+  height: 170px;
+}
+
+/* Featured Champion */
+.winner-card--featured {
+  border: 2px solid rgba(212, 175, 55, 0.5);
+  box-shadow: 0 8px 32px rgba(212, 175, 55, 0.2);
+}
+
+.winner-card--featured:hover {
+  box-shadow: 0 16px 48px rgba(212, 175, 55, 0.35);
+}
+
+/* Image Container */
+.winner-card__image-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.winner-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.winner-card__placeholder {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05));
+  color: #d4af37;
+  font-size: 2rem;
+  font-weight: 700;
 }
 
-.hall-of-winners-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  border-radius: var(--radius-md);
+.winner-card--small .winner-card__placeholder {
+  font-size: 1.25rem;
+}
+
+/* Gradient Overlay */
+.winner-card__gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    rgba(0, 0, 0, 0.6) 70%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+  pointer-events: none;
+}
+
+/* Crown Badge */
+.winner-card__crown {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #000;
-  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.5);
+  z-index: 2;
 }
 
-.hall-of-winners-title {
+.winner-card--medium .winner-card__crown,
+.winner-card--small .winner-card__crown {
+  width: 26px;
+  height: 26px;
+  top: 6px;
+}
+
+/* Rank Badge */
+.winner-card__rank {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 100px;
+  color: #d4af37;
+  font-size: 0.625rem;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.winner-card--small .winner-card__rank {
+  padding: 2px 6px;
+  font-size: 0.5625rem;
+}
+
+/* Info Overlay */
+.winner-card__info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-}
-
-.hall-of-winners-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.hall-of-winners-title h3 {
-  font-family: var(--font-display);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  margin: 0;
-}
-
-.hall-of-winners-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: var(--spacing-sm);
-}
-
-@media (max-width: 500px) {
-  .hall-of-winners-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.hall-of-winners-card {
-  display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(var(--color-primary-rgb), 0.15);
+  text-align: center;
+  z-index: 2;
 }
 
-.hall-of-winners-rank {
-  width: 22px;
-  height: 22px;
-  background: rgba(var(--color-primary-rgb), 0.2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
-  flex-shrink: 0;
+.winner-card--small .winner-card__info {
+  padding: 6px;
 }
 
-.hall-of-winners-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--color-bg-elevated);
-  border: 1px solid rgba(var(--color-primary-rgb), 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-  color: var(--color-text-muted);
-}
-
-.hall-of-winners-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hall-of-winners-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.hall-of-winners-name {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+.winner-card__name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0;
+  max-width: 100%;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.hall-of-winners-city {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin: 0;
+.winner-card--small .winner-card__name {
+  font-size: 0.6875rem;
+}
+
+.winner-card--large .winner-card__name {
+  font-size: 0.875rem;
+}
+
+.winner-card__label {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  color: #d4af37;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+/* Glow Effect for Featured */
+.winner-card__glow {
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    180deg,
+    rgba(212, 175, 55, 0.3) 0%,
+    transparent 50%
+  );
+  border-radius: 18px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.winner-card--featured:hover .winner-card__glow {
+  opacity: 1;
+}
+
+/* =====================
+   RESPONSIVE - Mobile
+   ===================== */
+
+@media (max-width: 479px) {
+  .hall-of-winners {
+    padding: var(--spacing-lg);
+  }
+
+  .hall-of-winners__podium {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* Champion centered on its own row */
+  .winner-card--large {
+    order: -1;
+    flex-basis: 100%;
+    display: flex;
+    justify-content: center;
+    width: auto;
+  }
+
+  .winner-card--large .winner-card__image-container {
+    width: 150px;
+    height: 190px;
+  }
+
+  .winner-card--medium {
+    width: 110px;
+  }
+
+  .winner-card--medium .winner-card__image-container {
+    height: 140px;
+  }
+
+  .hall-of-winners__finalists {
+    gap: 10px;
+  }
+
+  .winner-card--small {
+    width: 75px;
+  }
+
+  .winner-card--small .winner-card__image-container {
+    height: 95px;
+  }
+}
+
+/* Tablet and up */
+@media (min-width: 480px) {
+  .hall-of-winners__podium {
+    gap: 20px;
+  }
+
+  .winner-card--medium {
+    width: 120px;
+  }
+
+  .winner-card--medium .winner-card__image-container {
+    height: 155px;
+  }
+
+  .winner-card--large {
+    width: 150px;
+  }
+
+  .winner-card--large .winner-card__image-container {
+    height: 195px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 768px) {
+  .hall-of-winners {
+    padding: var(--spacing-2xl);
+  }
+
+  .hall-of-winners__title {
+    font-size: 1.75rem;
+  }
+
+  .hall-of-winners__podium {
+    gap: 24px;
+  }
+
+  .winner-card--large {
+    width: 170px;
+  }
+
+  .winner-card--large .winner-card__image-container {
+    height: 220px;
+  }
+
+  .winner-card--medium {
+    width: 130px;
+  }
+
+  .winner-card--medium .winner-card__image-container {
+    height: 170px;
+  }
+
+  .winner-card--small {
+    width: 95px;
+  }
+
+  .winner-card--small .winner-card__image-container {
+    height: 120px;
+  }
+
+  .hall-of-winners__finalists {
+    gap: 16px;
+  }
 }
 
 /* Countdown */
