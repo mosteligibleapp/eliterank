@@ -9,6 +9,7 @@ import HostsManager from './components/HostsManager';
 import CitiesManager from './components/CitiesManager';
 import OrganizationsManager from './components/OrganizationsManager';
 import RewardsManager from './components/RewardsManager';
+import SiteSettingsManager from './components/SiteSettingsManager';
 import { CompetitionDashboard } from '../competition-dashboard';
 
 const TABS = [
@@ -98,14 +99,7 @@ export default function SuperAdminPage({ onLogout }) {
       case 'hosts':
         return <HostsManager />;
       case 'settings':
-        return (
-          <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
-            <Settings size={64} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
-            <h2 style={{ fontSize: typography.fontSize.xl, color: colors.text.secondary }}>
-              Settings coming soon
-            </h2>
-          </div>
-        );
+        return <SiteSettingsManager />;
       default:
         return null;
     }

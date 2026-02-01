@@ -4,8 +4,8 @@ import {
   Activity, Info, Briefcase, Loader, User, Megaphone, Award, Building, Heart,
   Home, Search, Bell, Menu, ArrowRight, Play
 } from 'lucide-react';
-import { Button, Badge, OrganizationLogo, ProfileIcon } from '../ui';
-import { useSupabaseAuth } from '../../hooks';
+import { Button, Badge, OrganizationLogo, ProfileIcon, EliteRankCrown, CrownIcon } from '../ui';
+import { useSupabaseAuth, useAppSettings } from '../../hooks';
 import { colors, spacing, borderRadius, typography, shadows, transitions, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
@@ -30,8 +30,11 @@ import {
 import { getCityImage } from '../../utils/cityImages';
 
 // Tab configuration
+// Custom wrapper to make CrownIcon work like lucide icons
+const CrownIconWrapper = ({ size, style }) => <CrownIcon size={size} color="currentColor" style={style} />;
+
 const TABS = [
-  { id: 'competitions', label: 'Explore', icon: Crown, mobileIcon: Home },
+  { id: 'competitions', label: 'Explore', icon: CrownIconWrapper, mobileIcon: Home },
   { id: 'events', label: 'Events', icon: Calendar, mobileIcon: Calendar },
   { id: 'announcements', label: 'News', icon: Megaphone, mobileIcon: Bell },
   { id: 'opportunities', label: 'Join', icon: Briefcase, mobileIcon: Briefcase },
@@ -74,6 +77,9 @@ export default function EliteRankCityModal({
   const { data: cachedCities, loading: citiesLoading } = useCities();
   const { data: cachedOrganizations, loading: orgsLoading } = useOrganizations();
   const { data: cachedProfiles, loading: profilesLoading } = useProfiles();
+
+  // Fetch Hall of Winners settings
+  const { data: hallOfWinnersData } = useAppSettings('hall_of_winners');
 
   // Memoize maps for quick lookups
   const cities = cachedCities || [];
@@ -236,6 +242,14 @@ export default function EliteRankCityModal({
       return true;
     });
   }, [competitions, cityFilter, statusFilter]);
+
+  // Competition counts for header stats
+  const competitionStats = useMemo(() => {
+    const visible = competitions.filter(c => c.visible);
+    const active = visible.filter(c => isLive(c.status) && ['nomination', 'voting', 'judging'].includes(c.phase)).length;
+    const openingSoon = visible.filter(c => isPublished(c.status)).length;
+    return { active, openingSoon };
+  }, [competitions]);
 
   const getOrg = (orgId) => organizations.find(o => o.id === orgId);
 
@@ -508,6 +522,136 @@ export default function EliteRankCityModal({
   );
 
   // ============================================
+  // HALL OF WINNERS - Champions showcase
+  // ============================================
+  const HallOfWinners = () => {
+    // Use dynamic data from app settings
+    const winners = hallOfWinnersData?.winners || [];
+    if (!winners.length) return null;
+
+    return (
+      <div style={{
+        maxWidth: '900px',
+        margin: '0 auto',
+        marginBottom: spacing.xxxl,
+        padding: spacing.xl,
+        background: colors.background.card,
+        borderRadius: borderRadius.xl,
+        border: `1px solid ${colors.border.primary}`,
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: spacing.xl,
+        }}>
+          <div>
+            <p style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.text.muted,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: spacing.xs,
+            }}>
+              {hallOfWinnersData?.year || new Date().getFullYear()} Champions
+            </p>
+            <h2 style={{
+              fontSize: isMobile ? typography.fontSize.xl : typography.fontSize['2xl'],
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+            }}>
+              Hall of Winners
+            </h2>
+          </div>
+          <div style={{
+            textAlign: 'right',
+          }}>
+            <span style={{
+              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.gold.primary,
+            }}>
+              {hallOfWinnersData?.totalAwarded || '$0'}
+            </span>
+            <span style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary,
+              marginLeft: spacing.xs,
+            }}>
+              awarded
+            </span>
+          </div>
+        </div>
+
+        {/* Winners Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(winners.length, 5)}, 1fr)`,
+          gap: spacing.md,
+        }}>
+          {winners.map((winner) => (
+            <div
+              key={winner.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.md,
+                padding: spacing.lg,
+                background: colors.background.elevated,
+                borderRadius: borderRadius.lg,
+                border: winner.featured
+                  ? `1.5px solid ${colors.gold.primary}`
+                  : `1px solid ${colors.border.primary}`,
+              }}
+            >
+              {/* Profile Image */}
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: borderRadius.lg,
+                background: colors.background.card,
+                border: `1px solid ${colors.border.secondary}`,
+                ...styleHelpers.flexCenter,
+                flexShrink: 0,
+                overflow: 'hidden',
+              }}>
+                {winner.imageUrl ? (
+                  <img
+                    src={winner.imageUrl}
+                    alt={winner.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <User size={24} style={{ color: colors.text.muted }} />
+                )}
+              </div>
+
+              {/* Info */}
+              <div>
+                <p style={{
+                  fontSize: typography.fontSize.md,
+                  fontWeight: typography.fontWeight.semibold,
+                  color: colors.text.primary,
+                  marginBottom: '2px',
+                }}>
+                  {winner.name}
+                </p>
+                <p style={{
+                  fontSize: typography.fontSize.sm,
+                  color: colors.text.secondary,
+                }}>
+                  {winner.city}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================
   // RENDER CONTENT
   // ============================================
   const renderContent = () => {
@@ -534,28 +678,107 @@ export default function EliteRankCityModal({
             {/* Hero */}
             <div style={{
               textAlign: 'center',
-              maxWidth: '600px',
+              maxWidth: '700px',
               margin: '0 auto',
-              marginBottom: spacing.xxl,
-              padding: isMobile ? `${spacing.xl} 0` : `${spacing.xxxl} 0`,
+              marginBottom: spacing.xl,
+              padding: isMobile ? `${spacing.lg} 0` : `${spacing.xl} 0`,
             }}>
-              <h1 style={{
-                fontSize: isMobile ? typography.fontSize['3xl'] : typography.fontSize['5xl'],
-                fontWeight: typography.fontWeight.bold,
-                color: colors.text.primary,
-                lineHeight: typography.lineHeight.tight,
-                marginBottom: spacing.md,
+              {/* Season Status Badge - matches card styling */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: spacing.sm,
+                padding: `${spacing.md} ${spacing.lg}`,
+                background: 'rgba(39, 39, 42, 0.5)',
+                borderRadius: borderRadius.xl,
+                border: '1px solid #3f3f46',
+                marginBottom: isMobile ? spacing.lg : spacing.xl,
               }}>
-                America's Arena for Excellence
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: colors.gold.primary,
+                  animation: 'pulse 2s infinite',
+                }} />
+                <span style={{
+                  fontSize: typography.fontSize.sm,
+                  color: '#d4d4d8',
+                  fontWeight: typography.fontWeight.medium,
+                }}>
+                  Season {new Date().getFullYear()} · {competitionStats.active} Active Competition{competitionStats.active !== 1 ? 's' : ''} · {competitionStats.openingSoon} Opening Soon
+                </span>
+              </div>
+
+              {/* Main Headline */}
+              <h1 style={{
+                fontSize: isMobile ? '2rem' : '3rem',
+                fontWeight: typography.fontWeight.bold,
+                lineHeight: 1.15,
+                marginBottom: isMobile ? spacing.sm : spacing.md,
+              }}>
+                <span style={{ color: '#ffffff', display: 'block' }}>Social Competitions</span>
+                <span style={{
+                  display: 'block',
+                  background: 'linear-gradient(90deg, #f59e0b, #eab308)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}>
+                  for Top Talent
+                </span>
               </h1>
+
+              {/* Subheadline */}
               <p style={{
                 fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
-                color: colors.text.secondary,
-                lineHeight: typography.lineHeight.relaxed,
+                marginBottom: isMobile ? spacing.md : spacing.lg,
               }}>
-                Social competitions where top talent is discovered, celebrated, and rewarded.
+                <span style={{ color: '#a1a1aa' }}>Climb the Ranks. </span>
+                <span style={{ color: '#ffffff', fontWeight: typography.fontWeight.semibold }}>Become an Elite.</span>
+              </p>
+
+              {/* Card */}
+              <div style={{
+                display: 'inline-block',
+                background: 'rgba(39, 39, 42, 0.5)',
+                borderRadius: borderRadius.xl,
+                border: '1px solid #3f3f46',
+                padding: `${spacing.md} ${spacing.xl}`,
+                marginBottom: isMobile ? spacing.md : spacing.lg,
+              }}>
+                <span style={{ color: '#a1a1aa', fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg }}>
+                  Think you're elite?{' '}
+                </span>
+                <span style={{
+                  color: '#eab308',
+                  fontWeight: typography.fontWeight.bold,
+                  fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                }}>
+                  Prove it.
+                </span>
+              </div>
+
+              {/* Action Line */}
+              <p style={{
+                fontSize: isMobile ? typography.fontSize.xl : '1.5rem',
+                fontWeight: typography.fontWeight.bold,
+                color: '#ffffff',
+                marginBottom: isMobile ? spacing.sm : spacing.md,
+              }}>
+                Enter <span style={{ color: '#eab308' }}>·</span> Compete <span style={{ color: '#eab308' }}>·</span> Win
+              </p>
+
+              {/* Subtext */}
+              <p style={{
+                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+              }}>
+                <span style={{ color: '#d4d4d8' }}>Fans decide </span>
+                <span style={{ color: '#71717a' }}>who earns the title and prize package.</span>
               </p>
             </div>
+
+            <HallOfWinners />
 
             <FilterBar />
 
@@ -1221,21 +1444,18 @@ export default function EliteRankCityModal({
         }}>
           {/* Logo */}
           <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
-            <div style={{
-              width: isMobile ? '32px' : '40px',
-              height: isMobile ? '32px' : '40px',
-              background: gradients.gold,
-              borderRadius: borderRadius.lg,
-              ...styleHelpers.flexCenter,
-            }}>
-              <Crown size={isMobile ? 18 : 24} style={{ color: colors.text.inverse }} />
-            </div>
+            <EliteRankCrown size={isMobile ? 28 : 36} />
             <span style={{
               fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
               fontWeight: typography.fontWeight.bold,
-              color: colors.text.primary,
             }}>
-              Elite<span style={{ color: colors.gold.primary }}>Rank</span>
+              <span style={{ color: '#ffffff' }}>Elite</span>
+              <span style={{
+                background: 'linear-gradient(90deg, #d4af37, #c9a227)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>Rank</span>
             </span>
           </div>
 
@@ -1248,7 +1468,7 @@ export default function EliteRankCityModal({
                   onClick={() => setActiveTab(tab.id)}
                   style={{
                     ...styleHelpers.flexCenter,
-                    gap: spacing.sm,
+                    gap: spacing.xs,
                     padding: `${spacing.sm} ${spacing.lg}`,
                     background: activeTab === tab.id ? colors.gold.muted : 'transparent',
                     border: 'none',

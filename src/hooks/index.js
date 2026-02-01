@@ -13,3 +13,6 @@ export { default as useCompetitionPublic } from './useCompetitionPublic';
 export { default as usePrizePool } from './usePrizePool';
 export { default as useActivityFeed } from './useActivityFeed';
 export { default as useLeaderboard } from './useLeaderboard';
+
+// App settings
+export { default as useAppSettings } from './useAppSettings';

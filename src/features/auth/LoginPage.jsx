@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Crown, Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, Eye, EyeOff, User, AlertCircle, CheckCircle, ArrowLeft, ArrowRight, Crown } from 'lucide-react';
+import { EliteRankCrown } from '../../components/ui';
 import { colors, gradients, shadows, borderRadius, spacing, typography } from '../../styles/theme';
 import { useSupabaseAuth } from '../../hooks';
 import { supabase } from '../../lib/supabase';
@@ -497,10 +498,16 @@ export default function LoginPage({ onLogin, onBack }) {
 
         {/* Logo */}
         <div style={logoStyle}>
-          <div style={logoIconStyle}>
-            <Crown size={32} />
-          </div>
-          <h1 style={titleStyle}>EliteRank</h1>
+          <EliteRankCrown size={56} />
+          <h1 style={{ ...titleStyle, marginTop: '8px' }}>
+            <span style={{ color: '#ffffff' }}>Elite</span>
+            <span style={{
+              background: 'linear-gradient(90deg, #d4af37, #c9a227)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>Rank</span>
+          </h1>
           <p style={subtitleStyle}>{getSubtitle()}</p>
         </div>
 

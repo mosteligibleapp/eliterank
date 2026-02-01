@@ -3,6 +3,7 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { ArrowRight, Users, Clock, X } from 'lucide-react';
 import { PrizePool } from '../components/PrizePool';
 import { WhoCompetes } from '../components/WhoCompetes';
+import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
 import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
 import { Timeline } from '../components/Timeline';
@@ -52,6 +53,11 @@ export function NominationsPhase() {
       {/* Who Competes */}
       <section className="phase-section">
         <WhoCompetes />
+      </section>
+
+      {/* Hall of Winners - Past Champions */}
+      <section className="phase-section">
+        <HallOfWinnersSection />
       </section>
 
       {/* Main CTA */}
