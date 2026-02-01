@@ -498,10 +498,8 @@ export default function LoginPage({ onLogin, onBack }) {
 
         {/* Logo */}
         <div style={logoStyle}>
-          <div style={{ marginBottom: spacing.sm }}>
-            <EliteRankCrown size={56} />
-          </div>
-          <h1 style={titleStyle}>
+          <EliteRankCrown size={48} />
+          <h1 style={{ ...titleStyle, marginTop: '8px' }}>
             <span style={{ color: '#ffffff' }}>Elite</span>
             <span style={{
               background: 'linear-gradient(90deg, #d4af37, #c9a227)',
