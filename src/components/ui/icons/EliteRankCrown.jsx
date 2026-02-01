@@ -26,23 +26,23 @@ export default function EliteRankCrown({ size = 24, className, style }) {
       </defs>
       {/* Main crown shape - 3 peaks */}
       <path
-        d="M12 2L15.5 8L21 6L18.5 14H5.5L3 6L8.5 8L12 2Z"
+        d="M12 2L16 9L22 6.5L19 15H5L2 6.5L8 9L12 2Z"
         fill={`url(#${gradientId})`}
       />
       {/* Bottom band */}
       <rect
-        x="5"
-        y="15"
-        width="14"
+        x="4.5"
+        y="16"
+        width="15"
         height="3"
         rx="0.5"
         fill={`url(#${gradientId})`}
       />
       {/* Band highlight line */}
       <rect
-        x="5"
-        y="16.5"
-        width="14"
+        x="4.5"
+        y="17.5"
+        width="15"
         height="0.5"
         fill="rgba(255,255,255,0.2)"
       />

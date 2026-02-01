@@ -16,17 +16,17 @@ export default function CrownIcon({ size = 24, color = 'currentColor', className
       className={className}
       style={style}
     >
-      {/* Main crown shape - 3 peaks */}
+      {/* Main crown shape - 3 peaks, scaled up */}
       <path
-        d="M12 3L15.5 9L20 7L18 14H6L4 7L8.5 9L12 3Z"
+        d="M12 2L16 9L22 6.5L19 15H5L2 6.5L8 9L12 2Z"
         fill={color}
       />
       {/* Bottom band */}
       <rect
-        x="5.5"
-        y="15"
-        width="13"
-        height="2.5"
+        x="4.5"
+        y="16"
+        width="15"
+        height="3"
         rx="0.5"
         fill={color}
       />
