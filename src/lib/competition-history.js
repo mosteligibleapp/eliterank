@@ -24,6 +24,7 @@ export async function getNominationsForUser(userId, userEmail) {
         competition:competitions(
           id,
           name,
+          slug,
           season,
           status,
           city:cities(name),

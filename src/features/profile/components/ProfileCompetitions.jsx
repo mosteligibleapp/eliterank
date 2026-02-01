@@ -5,7 +5,7 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
-import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
+import { getCompetitionUrl } from '../../../utils/slugs';
 
 const STATUS_LABELS = {
   upcoming: 'Upcoming',
@@ -20,18 +20,18 @@ function NominationCard({ nomination, onAcceptClick }) {
   const { isMobile } = useResponsive();
   const competition = nomination?.competition;
   const competitionName = competition?.name || 'Competition';
-  const cityName = competition?.city?.name || '';
-  const season = competition?.season || '';
   const orgSlug = competition?.organization?.slug || 'most-eligible';
   const isUnclaimed = !nomination.claimed_at;
 
-  // Build the proper competition URL using the slug utilities
-  const competitionSlug = generateCompetitionSlug({
-    name: competitionName,
-    citySlug: slugify(cityName),
-    season,
-  });
-  const url = getCompetitionUrl(orgSlug, competitionSlug);
+  // Build competition URL - use actual slug from DB, or fall back to ID-based URL
+  let url;
+  if (competition?.slug) {
+    url = getCompetitionUrl(orgSlug, competition.slug);
+  } else if (competition?.id) {
+    url = `/${orgSlug}/id/${competition.id}`;
+  } else {
+    url = `/${orgSlug}`;
+  }
 
   return (
     <div
