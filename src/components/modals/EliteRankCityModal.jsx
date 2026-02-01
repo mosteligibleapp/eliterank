@@ -524,6 +524,234 @@ export default function EliteRankCityModal({
   // ============================================
   // HALL OF WINNERS - Champions showcase
   // ============================================
+
+  // Unified WinnerCard component
+  const WinnerCard = ({ winner, size = 'medium' }) => {
+    const imageSize = size === 'large' ? '100px' : '70px';
+
+    // Navigate to profile if profileId exists
+    const handleClick = () => {
+      if (winner.profileId) {
+        window.location.href = `/profile/${winner.profileId}`;
+      }
+    };
+
+    return (
+      <div
+        onClick={winner.profileId ? handleClick : undefined}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: spacing.md,
+          background: colors.background.elevated,
+          borderRadius: borderRadius.lg,
+          border: winner.featured
+            ? `1.5px solid ${colors.gold.primary}`
+            : `1px solid ${colors.border.primary}`,
+          cursor: winner.profileId ? 'pointer' : 'default',
+          transition: 'transform 0.2s, box-shadow 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          if (winner.profileId) {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      >
+        {/* Square Image */}
+        <div style={{
+          width: imageSize,
+          height: imageSize,
+          borderRadius: borderRadius.lg,
+          overflow: 'hidden',
+          marginBottom: spacing.sm,
+          border: `1px solid ${colors.border.secondary}`,
+          background: colors.background.card,
+        }}>
+          {winner.imageUrl ? (
+            <img
+              src={winner.imageUrl}
+              alt={winner.name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <div style={{ ...styleHelpers.flexCenter, height: '100%' }}>
+              <User size={size === 'large' ? 32 : 24} style={{ color: colors.text.muted }} />
+            </div>
+          )}
+        </div>
+
+        {/* Name (no city) */}
+        <p style={{
+          fontSize: typography.fontSize.sm,
+          fontWeight: typography.fontWeight.semibold,
+          color: colors.text.primary,
+          textAlign: 'center',
+        }}>
+          {winner.name}
+        </p>
+      </div>
+    );
+  };
+
+  // Mobile Hall of Winners (compact 2-3 grid)
+  const HallOfWinnersMobile = () => {
+    const winners = hallOfWinnersData?.winners || [];
+    if (!winners.length) return null;
+
+    const topRow = winners.slice(0, 2);
+    const bottomRow = winners.slice(2, 5);
+
+    return (
+      <div style={{
+        marginBottom: spacing.xl,
+        padding: spacing.lg,
+        background: colors.background.card,
+        borderRadius: borderRadius.xl,
+        border: `1px solid ${colors.border.primary}`,
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: spacing.lg,
+        }}>
+          <div>
+            <p style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.text.muted,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: spacing.xs,
+            }}>
+              {hallOfWinnersData?.year || new Date().getFullYear()} Champions
+            </p>
+            <h2 style={{
+              fontSize: typography.fontSize.lg,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+            }}>
+              Hall of Winners
+            </h2>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{
+              fontSize: typography.fontSize.md,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.gold.primary,
+            }}>
+              {hallOfWinnersData?.totalAwarded || '$0'}
+            </span>
+            <span style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.text.secondary,
+              marginLeft: spacing.xs,
+            }}>
+              awarded
+            </span>
+          </div>
+        </div>
+
+        {/* Top Row (2 winners) */}
+        {topRow.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: spacing.sm,
+            marginBottom: bottomRow.length > 0 ? spacing.sm : 0,
+          }}>
+            {topRow.map(winner => (
+              <WinnerCard key={winner.id} winner={winner} />
+            ))}
+          </div>
+        )}
+
+        {/* Bottom Row (up to 3 winners) */}
+        {bottomRow.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${bottomRow.length}, 1fr)`,
+            gap: spacing.sm,
+          }}>
+            {bottomRow.map(winner => (
+              <WinnerCard key={winner.id} winner={winner} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Web Hall of Winners Sidebar (vertically stacked)
+  const HallOfWinnersSidebar = () => {
+    const winners = hallOfWinnersData?.winners || [];
+    if (!winners.length) return null;
+
+    return (
+      <div style={{
+        flex: '0 0 280px',
+        position: 'sticky',
+        top: spacing.xl,
+        alignSelf: 'flex-start',
+        background: colors.background.card,
+        borderRadius: borderRadius.xl,
+        padding: spacing.lg,
+        border: `1px solid ${colors.border.primary}`,
+      }}>
+        {/* Header */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <p style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.text.muted,
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            marginBottom: spacing.xs,
+          }}>
+            {hallOfWinnersData?.year || new Date().getFullYear()} Champions
+          </p>
+          <h3 style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.bold,
+            color: colors.text.primary,
+            marginBottom: spacing.sm,
+          }}>
+            Hall of Winners
+          </h3>
+          <div>
+            <span style={{
+              fontSize: typography.fontSize.lg,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.gold.primary,
+            }}>
+              {hallOfWinnersData?.totalAwarded || '$0'}
+            </span>
+            <span style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary,
+              marginLeft: spacing.xs,
+            }}>
+              awarded
+            </span>
+          </div>
+        </div>
+
+        {/* Vertically stacked winners */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+          {winners.map(winner => (
+            <WinnerCard key={winner.id} winner={winner} size="large" />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Legacy HallOfWinners for backwards compatibility (not used)
   const HallOfWinners = () => {
     // Use dynamic data from app settings
     const winners = hallOfWinnersData?.winners || [];
@@ -778,51 +1006,64 @@ export default function EliteRankCityModal({
               </p>
             </div>
 
-            <HallOfWinners />
+            {/* Mobile: Hall of Winners above competitions */}
+            {isMobile && <HallOfWinnersMobile />}
 
-            <FilterBar />
+            {/* Main content area - sidebar layout on web */}
+            <div style={{
+              display: isMobile ? 'block' : 'flex',
+              gap: spacing.xl,
+              maxWidth: '1400px',
+              margin: '0 auto',
+            }}>
+              {/* Competitions section (left on web) */}
+              <div style={{ flex: isMobile ? 'none' : '1 1 auto', minWidth: 0 }}>
+                <FilterBar />
 
-            {/* Competition Grid */}
-            {visibleCompetitions.length > 0 ? (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile
-                  ? '1fr'
-                  : isTablet
-                    ? 'repeat(2, 1fr)'
-                    : `repeat(auto-fill, minmax(380px, 1fr))`,
-                gap: isMobile ? spacing.lg : spacing.xl,
-                maxWidth: '1400px',
-                margin: '0 auto',
-              }}>
-                {visibleCompetitions.map((comp) => (
-                  <CompetitionCard key={comp.id} competition={comp} />
-                ))}
-              </div>
-            ) : (
-              <div style={{
-                ...styleHelpers.flexCenter,
-                flexDirection: 'column',
-                padding: spacing.xxxl,
-                background: colors.background.card,
-                borderRadius: borderRadius.xl,
-                border: `1px solid ${colors.border.primary}`,
-                textAlign: 'center',
-              }}>
-                <Crown size={48} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
-                <h3 style={{ fontSize: typography.fontSize.xl, color: colors.text.primary, marginBottom: spacing.sm }}>
-                  No competitions found
-                </h3>
-                <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
-                  Try adjusting your filters or check back soon.
-                </p>
-                {(statusFilter !== 'all' || cityFilter !== 'all') && (
-                  <Button variant="outline" size="sm" onClick={() => { setStatusFilter('all'); setCityFilter('all'); }}>
-                    Clear Filters
-                  </Button>
+                {/* Competition Grid */}
+                {visibleCompetitions.length > 0 ? (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile
+                      ? '1fr'
+                      : isTablet
+                        ? 'repeat(2, 1fr)'
+                        : `repeat(auto-fill, minmax(340px, 1fr))`,
+                    gap: isMobile ? spacing.lg : spacing.xl,
+                  }}>
+                    {visibleCompetitions.map((comp) => (
+                      <CompetitionCard key={comp.id} competition={comp} />
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{
+                    ...styleHelpers.flexCenter,
+                    flexDirection: 'column',
+                    padding: spacing.xxxl,
+                    background: colors.background.card,
+                    borderRadius: borderRadius.xl,
+                    border: `1px solid ${colors.border.primary}`,
+                    textAlign: 'center',
+                  }}>
+                    <Crown size={48} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
+                    <h3 style={{ fontSize: typography.fontSize.xl, color: colors.text.primary, marginBottom: spacing.sm }}>
+                      No competitions found
+                    </h3>
+                    <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
+                      Try adjusting your filters or check back soon.
+                    </p>
+                    {(statusFilter !== 'all' || cityFilter !== 'all') && (
+                      <Button variant="outline" size="sm" onClick={() => { setStatusFilter('all'); setCityFilter('all'); }}>
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+
+              {/* Web: Hall of Winners sidebar (right) */}
+              {!isMobile && <HallOfWinnersSidebar />}
+            </div>
           </div>
         );
 
