@@ -265,6 +265,18 @@ export default function SiteSettingsManager() {
     setCompHasChanges(true);
   };
 
+  const handleUpdateWinnersSeason = (competitionId, season) => {
+    const current = getCompetitionConfig(competitionId);
+    setCompWinnersFormData(prev => ({
+      ...prev,
+      [competitionId]: {
+        ...current,
+        winnersSeason: season,
+      },
+    }));
+    setCompHasChanges(true);
+  };
+
   const handleSelectCompetitionUser = (profile) => {
     if (!selectedCompetitionId) return;
 
@@ -945,7 +957,7 @@ export default function SiteSettingsManager() {
                 Competition Page Hall of Winners
               </h2>
               <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                Show past winners on specific competition pages (Coming Soon & Nominations phases)
+                Showcase previous season winners on current competition pages
               </p>
             </div>
           </div>
@@ -1070,19 +1082,45 @@ export default function SiteSettingsManager() {
                           borderTop: `1px solid ${colors.border.primary}`,
                           marginTop: spacing.xs,
                         }}>
+                          {/* Winners Season Year */}
+                          <div style={{ marginTop: spacing.md, marginBottom: spacing.lg }}>
+                            <label style={{
+                              display: 'block',
+                              fontSize: typography.fontSize.sm,
+                              fontWeight: typography.fontWeight.medium,
+                              color: colors.text.secondary,
+                              marginBottom: spacing.xs,
+                            }}>
+                              Previous Season Year (e.g., 2025 winners shown on 2026 page)
+                            </label>
+                            <input
+                              type="number"
+                              value={config.winnersSeason || comp.season - 1}
+                              onChange={(e) => handleUpdateWinnersSeason(comp.id, parseInt(e.target.value) || comp.season - 1)}
+                              style={{
+                                width: '120px',
+                                padding: spacing.sm,
+                                background: colors.background.elevated,
+                                border: `1px solid ${colors.border.primary}`,
+                                borderRadius: borderRadius.md,
+                                color: colors.text.primary,
+                                fontSize: typography.fontSize.sm,
+                              }}
+                            />
+                          </div>
+
                           <div style={{
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             marginBottom: spacing.md,
-                            marginTop: spacing.md,
                           }}>
                             <label style={{
                               fontSize: typography.fontSize.sm,
                               fontWeight: typography.fontWeight.medium,
                               color: colors.text.secondary,
                             }}>
-                              Winners to Display ({config.winners?.length || 0})
+                              Previous Season Winners ({config.winners?.length || 0})
                             </label>
 
                             {/* Add Winner Search */}

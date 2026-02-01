@@ -4,7 +4,8 @@ import useAppSettings from '../../../hooks/useAppSettings';
 
 /**
  * Hall of Winners section for competition pages
- * Shows past winners configured for this specific competition
+ * Shows previous season winners on current season competition pages
+ * Example: 2025 Most Eligible Atlanta winners shown on 2026 Most Eligible Atlanta page
  * Only displays during Coming Soon and Nominations phases
  */
 export function HallOfWinnersSection() {
@@ -22,6 +23,8 @@ export function HallOfWinnersSection() {
   }
 
   const winners = config.winners;
+  // Use configured season or default to previous season
+  const winnersSeason = config.winnersSeason || (competition?.season ? competition.season - 1 : new Date().getFullYear() - 1);
 
   return (
     <section className="hall-of-winners-section">
@@ -30,7 +33,7 @@ export function HallOfWinnersSection() {
           <Trophy size={20} />
         </div>
         <div className="hall-of-winners-title">
-          <span className="hall-of-winners-label">Past Champions</span>
+          <span className="hall-of-winners-label">{winnersSeason} Champions</span>
           <h3>Hall of Winners</h3>
         </div>
       </div>
