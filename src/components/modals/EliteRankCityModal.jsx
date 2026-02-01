@@ -1468,7 +1468,7 @@ export default function EliteRankCityModal({
                   onClick={() => setActiveTab(tab.id)}
                   style={{
                     ...styleHelpers.flexCenter,
-                    gap: spacing.sm,
+                    gap: spacing.xs,
                     padding: `${spacing.sm} ${spacing.lg}`,
                     background: activeTab === tab.id ? colors.gold.muted : 'transparent',
                     border: 'none',
