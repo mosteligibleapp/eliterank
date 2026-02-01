@@ -5,7 +5,7 @@ import {
   Home, Search, Bell, Menu, ArrowRight, Play
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo, ProfileIcon } from '../ui';
-import { useSupabaseAuth } from '../../hooks';
+import { useSupabaseAuth, useAppSettings } from '../../hooks';
 import { colors, spacing, borderRadius, typography, shadows, transitions, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
@@ -37,17 +37,6 @@ const TABS = [
   { id: 'opportunities', label: 'Join', icon: Briefcase, mobileIcon: Briefcase },
   { id: 'about', label: 'About', icon: Info, mobileIcon: Info },
 ];
-
-// Hall of Winners configuration - manually select winners to display
-const HALL_OF_WINNERS = {
-  year: 2025,
-  totalAwarded: '$75K+',
-  winners: [
-    { id: 1, name: 'Sophia R.', city: 'Chicago', imageUrl: null, featured: true },
-    { id: 2, name: 'Marcus T.', city: 'Miami', imageUrl: null, featured: false },
-    { id: 3, name: 'Isabella M.', city: 'NYC', imageUrl: null, featured: false },
-  ],
-};
 
 export default function EliteRankCityModal({
   isOpen,
@@ -85,6 +74,9 @@ export default function EliteRankCityModal({
   const { data: cachedCities, loading: citiesLoading } = useCities();
   const { data: cachedOrganizations, loading: orgsLoading } = useOrganizations();
   const { data: cachedProfiles, loading: profilesLoading } = useProfiles();
+
+  // Fetch Hall of Winners settings
+  const { data: hallOfWinnersData } = useAppSettings('hall_of_winners');
 
   // Memoize maps for quick lookups
   const cities = cachedCities || [];
@@ -530,7 +522,9 @@ export default function EliteRankCityModal({
   // HALL OF WINNERS - Champions showcase
   // ============================================
   const HallOfWinners = () => {
-    if (!HALL_OF_WINNERS.winners || HALL_OF_WINNERS.winners.length === 0) return null;
+    // Use dynamic data from app settings
+    const winners = hallOfWinnersData?.winners || [];
+    if (!winners.length) return null;
 
     return (
       <div style={{
@@ -557,7 +551,7 @@ export default function EliteRankCityModal({
               letterSpacing: '0.1em',
               marginBottom: spacing.xs,
             }}>
-              {HALL_OF_WINNERS.year} Champions
+              {hallOfWinnersData?.year || new Date().getFullYear()} Champions
             </p>
             <h2 style={{
               fontSize: isMobile ? typography.fontSize.xl : typography.fontSize['2xl'],
@@ -575,7 +569,7 @@ export default function EliteRankCityModal({
               fontWeight: typography.fontWeight.bold,
               color: colors.gold.primary,
             }}>
-              {HALL_OF_WINNERS.totalAwarded}
+              {hallOfWinnersData?.totalAwarded || '$0'}
             </span>
             <span style={{
               fontSize: typography.fontSize.sm,
@@ -590,10 +584,10 @@ export default function EliteRankCityModal({
         {/* Winners Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(HALL_OF_WINNERS.winners.length, 3)}, 1fr)`,
+          gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(winners.length, 3)}, 1fr)`,
           gap: spacing.md,
         }}>
-          {HALL_OF_WINNERS.winners.map((winner) => (
+          {winners.map((winner) => (
             <div
               key={winner.id}
               style={{
