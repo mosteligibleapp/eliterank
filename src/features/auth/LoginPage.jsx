@@ -48,7 +48,48 @@ export default function LoginPage({ onLogin, onBack }) {
     setIsLoading(true);
 
     try {
-      // Check if user is a nominee with pending (unclaimed) nomination
+      // FIRST: Check if user has an existing account (can log in with password)
+      // This is checked first so existing users can always use password login
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        },
+      });
+
+      // If error contains "Signups not allowed" or similar, user doesn't exist
+      // If no error, user exists (OTP was sent but we won't use it)
+      const userExists = !otpError || !otpError.message?.includes('Signups not allowed');
+
+      if (userExists) {
+        // User has an existing account - let them log in with password
+        // After login, App.jsx will check for pending nominations and show the modal
+        // This allows users with EliteRank profiles to log in normally without magic link
+
+        // Check if they're a nominee (for UI purposes only)
+        const { data: anyNominees } = await supabase
+          .from('nominees')
+          .select('id, name')
+          .eq('email', email)
+          .limit(1);
+
+        const isNomineeRecord = anyNominees && anyNominees.length > 0;
+        setIsNominee(isNomineeRecord);
+
+        // Pre-fill name from nominee data if available
+        if (isNomineeRecord && anyNominees[0]?.name) {
+          const nameParts = anyNominees[0].name.split(' ');
+          setFirstName(nameParts[0] || '');
+          setLastName(nameParts.slice(1).join(' ') || '');
+        }
+
+        setStep('password');
+        setIsLoading(false);
+        return;
+      }
+
+      // User does NOT have an existing account
+      // Now check if they have an unclaimed nomination (magic link flow)
       const { data: nominees } = await supabase
         .from('nominees')
         .select(`
@@ -69,7 +110,8 @@ export default function LoginPage({ onLogin, onBack }) {
       const hasUnclaimedNomination = nominees && nominees.length > 0;
 
       if (hasUnclaimedNomination) {
-        // Nominee with unclaimed nomination - show nomination popup
+        // New user with unclaimed nomination - show magic link option
+        // This is the only case where magic link is required (no existing account)
         const nominee = nominees[0];
         setNomineeData(nominee);
         setIsNominee(true);
@@ -86,44 +128,8 @@ export default function LoginPage({ onLogin, onBack }) {
         return;
       }
 
-      // Check if they're a nominee with claimed nomination (has profile)
-      const { data: claimedNominees } = await supabase
-        .from('nominees')
-        .select('id, name')
-        .eq('email', email)
-        .not('claimed_at', 'is', null)
-        .limit(1);
-
-      const isClaimedNominee = claimedNominees && claimedNominees.length > 0;
-      setIsNominee(isClaimedNominee);
-
-      // Pre-fill name from nominee data if available
-      if (isClaimedNominee && claimedNominees[0]?.name) {
-        const nameParts = claimedNominees[0].name.split(' ');
-        setFirstName(nameParts[0] || '');
-        setLastName(nameParts.slice(1).join(' ') || '');
-      }
-
-      // Try to check if user exists by attempting OTP (won't create user)
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        },
-      });
-
-      // If error contains "Signups not allowed" or similar, user doesn't exist
-      // If no error, user exists (OTP was sent but we won't use it)
-      const userExists = !otpError || !otpError.message?.includes('Signups not allowed');
-
-      if (!userExists) {
-        // New user - go to signup
-        setStep('signup');
-      } else {
-        // Existing user (including claimed nominees) - show password field
-        // If they don't have a password, they can use "Forgot password?" to set one
-        setStep('password');
-      }
+      // New user without nomination - go to signup
+      setStep('signup');
     } catch (err) {
       console.error('Email check error:', err);
       // Default to password step on error
