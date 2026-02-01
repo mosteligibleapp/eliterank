@@ -655,10 +655,11 @@ export default function App() {
           nomination_reason,
           competition:competitions(
             id,
-            city,
+            name,
             season,
             status,
             nomination_end,
+            city:cities(name),
             organization:organizations(name, slug)
           )
         `)

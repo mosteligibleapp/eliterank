@@ -46,7 +46,7 @@ export default function AcceptNominationModal({
         lastName: profile?.last_name || nomination?.name?.split(' ').slice(1).join(' ') || '',
         avatarUrl: profile?.avatar_url || '',
         bio: profile?.bio || '',
-        city: profile?.city || nomination?.competition?.city || '',
+        city: profile?.city || nomination?.competition?.city?.name || '',
       });
     }
   }, [profile, nomination]);
@@ -266,7 +266,7 @@ export default function AcceptNominationModal({
             You've Been Nominated!
           </h2>
           <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>
-            for Most Eligible {competition?.city} {competition?.season}
+            for Most Eligible {competition?.city?.name} {competition?.season}
           </p>
         </div>
 
@@ -660,7 +660,7 @@ export default function AcceptNominationModal({
           </h2>
 
           <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, marginBottom: spacing.lg }}>
-            Your nomination for Most Eligible {competition?.city} {competition?.season} has been accepted.
+            Your nomination for Most Eligible {competition?.city?.name} {competition?.season} has been accepted.
           </p>
 
           <div
