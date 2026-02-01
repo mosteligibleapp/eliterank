@@ -809,22 +809,28 @@ export default function App() {
   // ===========================================================================
 
   const handleOpenCompetition = useCallback((competition) => {
+    console.log('[handleOpenCompetition] Called with:', competition?.name);
     setShowUserProfile(false);
 
     // Get org slug - default to 'most-eligible' if not found
     const orgSlug = competition?.organization?.slug || competition?.orgSlug || 'most-eligible';
+    console.log('[handleOpenCompetition] orgSlug:', orgSlug);
 
     // Priority 1: Use database slug if available
     if (competition?.slug) {
+      console.log('[handleOpenCompetition] Using slug:', competition.slug);
       navigate(`/${orgSlug}/${competition.slug}`);
       return;
     }
 
     // Priority 2: Use competition ID (always available, always works)
     if (competition?.id) {
+      console.log('[handleOpenCompetition] Using ID:', competition.id);
       navigate(`/${orgSlug}/id/${competition.id}`);
       return;
     }
+
+    console.log('[handleOpenCompetition] No slug or ID, constructing URL...');
 
     // Priority 3: Construct from name-city-year
     const nameSlug = (competition?.name || 'competition')

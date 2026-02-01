@@ -240,9 +240,22 @@ export default function EliteRankCityModal({
   const getOrg = (orgId) => organizations.find(o => o.id === orgId);
 
   const handleCompetitionClick = (competition) => {
-    // Always navigate when clicked - no conditions that could silently fail
+    console.log('[handleCompetitionClick] Clicked:', competition?.name, competition?.id);
+    console.log('[handleCompetitionClick] onOpenCompetition exists:', !!onOpenCompetition);
+    console.log('[handleCompetitionClick] Competition data:', JSON.stringify({
+      id: competition?.id,
+      name: competition?.name,
+      slug: competition?.slug,
+      city: competition?.city,
+      season: competition?.season,
+      orgSlug: competition?.orgSlug,
+      organization: competition?.organization?.slug,
+    }));
+
     if (onOpenCompetition) {
       onOpenCompetition(competition);
+    } else {
+      console.error('[handleCompetitionClick] onOpenCompetition is not defined!');
     }
   };
 
