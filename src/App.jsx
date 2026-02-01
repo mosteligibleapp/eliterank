@@ -432,6 +432,7 @@ export default function App() {
 
     return {
       id: profile.id,
+      email: user?.email || '',
       firstName: profile.first_name || '',
       lastName: profile.last_name || '',
       bio: profile.bio || '',
@@ -447,7 +448,7 @@ export default function App() {
       wins: profile.wins || 0,
       total_competitions: profile.total_competitions || 0,
     };
-  }, [profile]);
+  }, [profile, user?.email]);
 
   // Get user display name safely
   const userName = useMemo(() => {
@@ -665,7 +666,8 @@ export default function App() {
         `)
         .eq('email', userEmail)
         .neq('status', 'rejected')
-        .or('converted_to_contestant.is.null,converted_to_contestant.eq.false');
+        .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
+        .is('claimed_at', null);
 
       if (error || !nominees?.length) {
         return null;

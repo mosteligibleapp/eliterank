@@ -1,6 +1,63 @@
 import { supabase } from './supabase';
 
 /**
+ * Get nominations for a user (by user_id or email)
+ * Returns nominations that haven't been converted to contestant yet
+ */
+export async function getNominationsForUser(userId, userEmail) {
+  if (!supabase || (!userId && !userEmail)) return [];
+
+  try {
+    let query = supabase
+      .from('nominees')
+      .select(`
+        id,
+        name,
+        email,
+        status,
+        claimed_at,
+        user_id,
+        nominator_name,
+        nominator_anonymous,
+        nomination_reason,
+        invite_token,
+        competition:competitions(
+          id,
+          name,
+          season,
+          status,
+          city:cities(name),
+          organization:organizations(name, slug)
+        )
+      `)
+      .neq('status', 'rejected')
+      .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
+      .order('created_at', { ascending: false });
+
+    // Filter by user_id OR email
+    if (userId && userEmail) {
+      query = query.or(`user_id.eq.${userId},email.eq.${userEmail}`);
+    } else if (userId) {
+      query = query.eq('user_id', userId);
+    } else if (userEmail) {
+      query = query.eq('email', userEmail);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching nominations:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Error in getNominationsForUser:', err);
+    return [];
+  }
+}
+
+/**
  * Get competitions hosted by a user
  */
 export async function getHostedCompetitions(userId) {
