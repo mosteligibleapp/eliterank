@@ -347,20 +347,20 @@ export default function AssignRewardModal({
                   return (
                     <div
                       key={comp.id}
-                      onClick={() => !alreadyAssigned && toggleCompetition(comp.id)}
+                      onClick={() => toggleCompetition(comp.id)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: spacing.md,
                         padding: spacing.md,
                         borderBottom: index < filteredCompetitions.length - 1 ? `1px solid ${colors.border.light}` : 'none',
-                        cursor: alreadyAssigned ? 'not-allowed' : 'pointer',
+                        cursor: 'pointer',
                         background: isSelected
                           ? 'rgba(212,175,55,0.1)'
                           : alreadyAssigned
                             ? 'rgba(34,197,94,0.05)'
                             : 'transparent',
-                        opacity: alreadyAssigned ? 0.7 : 1,
+                        opacity: 1,
                       }}
                     >
                       {/* Checkbox */}

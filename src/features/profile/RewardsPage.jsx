@@ -47,36 +47,54 @@ export default function RewardsPage({ hostProfile }) {
 
       if (contestantError) throw contestantError;
 
-      if (!contestants || contestants.length === 0) {
+      // Also get nominations for this user (so nominees can see rewards)
+      const { data: nominees, error: nomineeError } = await supabase
+        .from('nominees')
+        .select('id, competition_id')
+        .eq('user_id', user.id)
+        .neq('status', 'rejected')
+        .or('converted_to_contestant.is.null,converted_to_contestant.eq.false');
+
+      if (nomineeError) console.error('Error fetching nominees:', nomineeError);
+
+      const contestantIds = (contestants || []).map(c => c.id);
+      const contestantCompetitionIds = (contestants || []).map(c => c.competition_id);
+      const nomineeCompetitionIds = (nominees || []).map(n => n.competition_id).filter(Boolean);
+
+      // Combine competition IDs from both contestants and nominees
+      const allCompetitionIds = [...new Set([...contestantCompetitionIds, ...nomineeCompetitionIds])];
+
+      if (allCompetitionIds.length === 0) {
         setClaimableRewards([]);
         setVisibleRewards([]);
         setLoading(false);
         return;
       }
 
-      const contestantIds = contestants.map(c => c.id);
-      const competitionIds = contestants.map(c => c.competition_id);
+      // Get individual assignments (claimable rewards) - only for contestants
+      let individualAssignments = [];
+      if (contestantIds.length > 0) {
+        const { data: indData, error: indError } = await supabase
+          .from('reward_assignments')
+          .select(`
+            *,
+            reward:rewards(*),
+            competition:competitions(
+              id,
+              name,
+              season,
+              city:cities(name)
+            )
+          `)
+          .in('contestant_id', contestantIds)
+          .order('created_at', { ascending: false });
 
-      // Get individual assignments (claimable rewards)
-      const { data: individualAssignments, error: indError } = await supabase
-        .from('reward_assignments')
-        .select(`
-          *,
-          reward:rewards(*),
-          competition:competitions(
-            id,
-            name,
-            season,
-            city:cities(name)
-          )
-        `)
-        .in('contestant_id', contestantIds)
-        .order('created_at', { ascending: false });
+        if (indError) throw indError;
+        individualAssignments = indData || [];
+      }
+      setClaimableRewards(individualAssignments);
 
-      if (indError) throw indError;
-      setClaimableRewards(individualAssignments || []);
-
-      // Get competition-level assignments (visible rewards)
+      // Get competition-level assignments (visible rewards) - includes both contestant and nominee competitions
       const { data: compAssignments, error: compError } = await supabase
         .from('reward_competition_assignments')
         .select(`
@@ -89,7 +107,7 @@ export default function RewardsPage({ hostProfile }) {
             city:cities(name)
           )
         `)
-        .in('competition_id', competitionIds)
+        .in('competition_id', allCompetitionIds)
         .order('created_at', { ascending: false });
 
       if (compError) throw compError;
