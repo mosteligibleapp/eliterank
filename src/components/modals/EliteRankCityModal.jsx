@@ -4,7 +4,7 @@ import {
   Activity, Info, Briefcase, Loader, User, Megaphone, Award, Building, Heart,
   Home, Search, Bell, Menu, ArrowRight, Play
 } from 'lucide-react';
-import { Button, Badge, OrganizationLogo, ProfileIcon } from '../ui';
+import { Button, Badge, OrganizationLogo, ProfileIcon, EliteRankCrown, CrownIcon } from '../ui';
 import { useSupabaseAuth, useAppSettings } from '../../hooks';
 import { colors, spacing, borderRadius, typography, shadows, transitions, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -30,8 +30,11 @@ import {
 import { getCityImage } from '../../utils/cityImages';
 
 // Tab configuration
+// Custom wrapper to make CrownIcon work like lucide icons
+const CrownIconWrapper = ({ size, style }) => <CrownIcon size={size} color="currentColor" style={style} />;
+
 const TABS = [
-  { id: 'competitions', label: 'Explore', icon: Crown, mobileIcon: Home },
+  { id: 'competitions', label: 'Explore', icon: CrownIconWrapper, mobileIcon: Home },
   { id: 'events', label: 'Events', icon: Calendar, mobileIcon: Calendar },
   { id: 'announcements', label: 'News', icon: Megaphone, mobileIcon: Bell },
   { id: 'opportunities', label: 'Join', icon: Briefcase, mobileIcon: Briefcase },
@@ -1441,21 +1444,18 @@ export default function EliteRankCityModal({
         }}>
           {/* Logo */}
           <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
-            <div style={{
-              width: isMobile ? '32px' : '40px',
-              height: isMobile ? '32px' : '40px',
-              background: gradients.gold,
-              borderRadius: borderRadius.lg,
-              ...styleHelpers.flexCenter,
-            }}>
-              <Crown size={isMobile ? 18 : 24} style={{ color: colors.text.inverse }} />
-            </div>
+            <EliteRankCrown size={isMobile ? 28 : 36} />
             <span style={{
               fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
               fontWeight: typography.fontWeight.bold,
-              color: colors.text.primary,
             }}>
-              Elite<span style={{ color: colors.gold.primary }}>Rank</span>
+              <span style={{ color: '#ffffff' }}>Elite</span>
+              <span style={{
+                background: 'linear-gradient(90deg, #d4af37, #c9a227)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>Rank</span>
             </span>
           </div>
 

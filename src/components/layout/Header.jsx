@@ -1,6 +1,6 @@
 import React from 'react';
-import { Crown, Star, LogOut } from 'lucide-react';
-import { Avatar, Badge } from '../ui';
+import { Star, LogOut } from 'lucide-react';
+import { Avatar, Badge, EliteRankCrown } from '../ui';
 import { colors, gradients, shadows, borderRadius, spacing, typography } from '../../styles/theme';
 
 export default function Header({ hostProfile, onLogout }) {
@@ -28,24 +28,9 @@ export default function Header({ hostProfile, onLogout }) {
     gap: spacing.md,
   };
 
-  const logoIconStyle = {
-    width: '40px',
-    height: '40px',
-    background: gradients.gold,
-    borderRadius: borderRadius.lg,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#0a0a0f',
-    boxShadow: shadows.gold,
-  };
-
   const logoTextStyle = {
     fontSize: typography.fontSize.xxl,
-    fontWeight: typography.fontWeight.semibold,
-    background: gradients.gold,
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+    fontWeight: typography.fontWeight.bold,
   };
 
   const badgeStyle = {
@@ -89,10 +74,16 @@ export default function Header({ hostProfile, onLogout }) {
     <header style={headerStyle}>
       <div style={contentStyle}>
         <div style={logoStyle}>
-          <div style={logoIconStyle}>
-            <Crown size={22} />
-          </div>
-          <span style={logoTextStyle}>EliteRank</span>
+          <EliteRankCrown size={36} />
+          <span style={logoTextStyle}>
+            <span style={{ color: '#ffffff' }}>Elite</span>
+            <span style={{
+              background: 'linear-gradient(90deg, #d4af37, #c9a227)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>Rank</span>
+          </span>
           <span style={badgeStyle}>HOST ADMIN</span>
         </div>
         <div style={userAreaStyle}>
