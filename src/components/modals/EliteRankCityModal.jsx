@@ -675,19 +675,19 @@ export default function EliteRankCityModal({
             {/* Hero */}
             <div style={{
               textAlign: 'center',
-              maxWidth: '900px',
+              maxWidth: '700px',
               margin: '0 auto',
-              marginBottom: spacing.xxl,
-              padding: isMobile ? `${spacing.xl} 0` : `${spacing.xxxl} 0`,
+              marginBottom: spacing.xl,
+              padding: isMobile ? `${spacing.lg} 0` : `${spacing.xl} 0`,
             }}>
-              {/* Season Status Badge */}
+              {/* Season Status Badge - matches card styling */}
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: spacing.sm,
-                padding: `${spacing.sm} ${spacing.lg}`,
-                background: '#18181b',
-                borderRadius: borderRadius.full,
+                padding: `${spacing.md} ${spacing.lg}`,
+                background: 'rgba(39, 39, 42, 0.5)',
+                borderRadius: borderRadius.xl,
                 border: '1px solid #3f3f46',
                 marginBottom: isMobile ? spacing.lg : spacing.xl,
               }}>
@@ -709,10 +709,10 @@ export default function EliteRankCityModal({
 
               {/* Main Headline */}
               <h1 style={{
-                fontSize: isMobile ? '3rem' : '4.5rem',
+                fontSize: isMobile ? '2rem' : '3rem',
                 fontWeight: typography.fontWeight.bold,
-                lineHeight: 1.1,
-                marginBottom: isMobile ? spacing.md : spacing.lg,
+                lineHeight: 1.15,
+                marginBottom: isMobile ? spacing.sm : spacing.md,
               }}>
                 <span style={{ color: '#ffffff', display: 'block' }}>Social Competitions</span>
                 <span style={{
@@ -728,11 +728,11 @@ export default function EliteRankCityModal({
 
               {/* Subheadline */}
               <p style={{
-                fontSize: isMobile ? typography.fontSize.xl : '1.5rem',
-                marginBottom: isMobile ? spacing.lg : spacing.xl,
+                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                marginBottom: isMobile ? spacing.md : spacing.lg,
               }}>
                 <span style={{ color: '#a1a1aa' }}>Climb the Ranks. </span>
-                <span style={{ color: '#ffffff', fontWeight: typography.fontWeight.bold }}>Become an Elite.</span>
+                <span style={{ color: '#ffffff', fontWeight: typography.fontWeight.semibold }}>Become an Elite.</span>
               </p>
 
               {/* Card */}
@@ -741,16 +741,16 @@ export default function EliteRankCityModal({
                 background: 'rgba(39, 39, 42, 0.5)',
                 borderRadius: borderRadius.xl,
                 border: '1px solid #3f3f46',
-                padding: `${spacing.lg} ${spacing.xxl}`,
-                marginBottom: isMobile ? spacing.lg : spacing.xl,
+                padding: `${spacing.md} ${spacing.xl}`,
+                marginBottom: isMobile ? spacing.md : spacing.lg,
               }}>
-                <span style={{ color: '#a1a1aa', fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl }}>
+                <span style={{ color: '#a1a1aa', fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg }}>
                   Think you're elite?{' '}
                 </span>
                 <span style={{
                   color: '#eab308',
                   fontWeight: typography.fontWeight.bold,
-                  fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+                  fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
                 }}>
                   Prove it.
                 </span>
@@ -758,17 +758,17 @@ export default function EliteRankCityModal({
 
               {/* Action Line */}
               <p style={{
-                fontSize: isMobile ? '1.5rem' : '2.25rem',
+                fontSize: isMobile ? typography.fontSize.xl : '1.5rem',
                 fontWeight: typography.fontWeight.bold,
                 color: '#ffffff',
-                marginBottom: isMobile ? spacing.md : spacing.lg,
+                marginBottom: isMobile ? spacing.sm : spacing.md,
               }}>
                 Enter <span style={{ color: '#eab308' }}>·</span> Compete <span style={{ color: '#eab308' }}>·</span> Win
               </p>
 
               {/* Subtext */}
               <p style={{
-                fontSize: typography.fontSize.md,
+                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
               }}>
                 <span style={{ color: '#d4d4d8' }}>Fans decide </span>
                 <span style={{ color: '#71717a' }}>who earns the title and prize package.</span>
