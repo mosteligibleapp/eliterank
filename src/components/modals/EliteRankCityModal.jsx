@@ -38,6 +38,17 @@ const TABS = [
   { id: 'about', label: 'About', icon: Info, mobileIcon: Info },
 ];
 
+// Hall of Winners configuration - manually select winners to display
+const HALL_OF_WINNERS = {
+  year: 2025,
+  totalAwarded: '$75K+',
+  winners: [
+    { id: 1, name: 'Sophia R.', city: 'Chicago', imageUrl: null, featured: true },
+    { id: 2, name: 'Marcus T.', city: 'Miami', imageUrl: null, featured: false },
+    { id: 3, name: 'Isabella M.', city: 'NYC', imageUrl: null, featured: false },
+  ],
+};
+
 export default function EliteRankCityModal({
   isOpen,
   onClose,
@@ -516,6 +527,134 @@ export default function EliteRankCityModal({
   );
 
   // ============================================
+  // HALL OF WINNERS - Champions showcase
+  // ============================================
+  const HallOfWinners = () => {
+    if (!HALL_OF_WINNERS.winners || HALL_OF_WINNERS.winners.length === 0) return null;
+
+    return (
+      <div style={{
+        maxWidth: '900px',
+        margin: '0 auto',
+        marginBottom: spacing.xxxl,
+        padding: spacing.xl,
+        background: colors.background.card,
+        borderRadius: borderRadius.xl,
+        border: `1px solid ${colors.border.primary}`,
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: spacing.xl,
+        }}>
+          <div>
+            <p style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.text.muted,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: spacing.xs,
+            }}>
+              {HALL_OF_WINNERS.year} Champions
+            </p>
+            <h2 style={{
+              fontSize: isMobile ? typography.fontSize.xl : typography.fontSize['2xl'],
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+            }}>
+              Hall of Winners
+            </h2>
+          </div>
+          <div style={{
+            textAlign: 'right',
+          }}>
+            <span style={{
+              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.gold.primary,
+            }}>
+              {HALL_OF_WINNERS.totalAwarded}
+            </span>
+            <span style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary,
+              marginLeft: spacing.xs,
+            }}>
+              awarded
+            </span>
+          </div>
+        </div>
+
+        {/* Winners Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(HALL_OF_WINNERS.winners.length, 3)}, 1fr)`,
+          gap: spacing.md,
+        }}>
+          {HALL_OF_WINNERS.winners.map((winner) => (
+            <div
+              key={winner.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.md,
+                padding: spacing.lg,
+                background: colors.background.elevated,
+                borderRadius: borderRadius.lg,
+                border: winner.featured
+                  ? `1.5px solid ${colors.gold.primary}`
+                  : `1px solid ${colors.border.primary}`,
+              }}
+            >
+              {/* Profile Image */}
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: borderRadius.lg,
+                background: colors.background.card,
+                border: `1px solid ${colors.border.secondary}`,
+                ...styleHelpers.flexCenter,
+                flexShrink: 0,
+                overflow: 'hidden',
+              }}>
+                {winner.imageUrl ? (
+                  <img
+                    src={winner.imageUrl}
+                    alt={winner.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <User size={24} style={{ color: colors.text.muted }} />
+                )}
+              </div>
+
+              {/* Info */}
+              <div>
+                <p style={{
+                  fontSize: typography.fontSize.md,
+                  fontWeight: typography.fontWeight.semibold,
+                  color: colors.text.primary,
+                  marginBottom: '2px',
+                }}>
+                  {winner.name}
+                </p>
+                <p style={{
+                  fontSize: typography.fontSize.sm,
+                  color: colors.text.secondary,
+                }}>
+                  {winner.city}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================
   // RENDER CONTENT
   // ============================================
   const renderContent = () => {
@@ -599,6 +738,8 @@ export default function EliteRankCityModal({
                 Enter free. Rally votes from your network. Climb the leaderboard. Win prizes and the title.
               </p>
             </div>
+
+            <HallOfWinners />
 
             <FilterBar />
 
