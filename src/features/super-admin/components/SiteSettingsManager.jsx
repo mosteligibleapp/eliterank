@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Trophy, Plus, Trash2, X, Loader, User, Save, GripVertical
+  Trophy, Plus, Trash2, Loader, User, Save, GripVertical, Search, X
 } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useToast } from '../../../contexts/ToastContext';
 import useAppSettings from '../../../hooks/useAppSettings';
+import { supabase } from '../../../lib/supabase';
 
 export default function SiteSettingsManager() {
   const toast = useToast();
@@ -27,6 +28,13 @@ export default function SiteSettingsManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // User search state
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchRef = useRef(null);
+
   // Sync form data with fetched data
   useEffect(() => {
     if (hallOfWinners) {
@@ -38,34 +46,72 @@ export default function SiteSettingsManager() {
     }
   }, [hallOfWinners]);
 
+  // Search for users
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (!searchQuery || searchQuery.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url, city')
+          .or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`)
+          .limit(10);
+
+        if (error) throw error;
+        setSearchResults(data || []);
+      } catch (err) {
+        console.error('Error searching users:', err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounce = setTimeout(searchUsers, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowUserSearch(false);
+        setSearchQuery('');
+        setSearchResults([]);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleFieldChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
 
-  const handleAddWinner = () => {
+  const handleSelectUser = (profile) => {
+    const displayName = `${profile.first_name || ''} ${profile.last_name ? profile.last_name.charAt(0) + '.' : ''}`.trim();
     const newWinner = {
       id: Date.now(),
-      name: '',
-      city: '',
-      imageUrl: '',
-      featured: formData.winners.length === 0, // First winner is featured by default
+      profileId: profile.id,
+      name: displayName || 'Unknown',
+      city: profile.city || '',
+      imageUrl: profile.avatar_url || '',
+      featured: formData.winners.length === 0,
     };
     setFormData(prev => ({
       ...prev,
       winners: [...prev.winners, newWinner],
     }));
     setHasChanges(true);
-  };
-
-  const handleUpdateWinner = (id, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      winners: prev.winners.map(w =>
-        w.id === id ? { ...w, [field]: value } : w
-      ),
-    }));
-    setHasChanges(true);
+    setShowUserSearch(false);
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   const handleRemoveWinner = (id) => {
@@ -257,10 +303,152 @@ export default function SiteSettingsManager() {
               }}>
                 Winners ({formData.winners.length})
               </label>
-              <Button variant="outline" size="sm" onClick={handleAddWinner}>
-                <Plus size={16} style={{ marginRight: spacing.xs }} />
-                Add Winner
-              </Button>
+
+              {/* User Search Button/Dropdown */}
+              <div ref={searchRef} style={{ position: 'relative' }}>
+                {!showUserSearch ? (
+                  <Button variant="outline" size="sm" onClick={() => setShowUserSearch(true)}>
+                    <Plus size={16} style={{ marginRight: spacing.xs }} />
+                    Add Winner
+                  </Button>
+                ) : (
+                  <div style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 0,
+                    width: '320px',
+                    background: colors.background.card,
+                    borderRadius: borderRadius.lg,
+                    border: `1px solid ${colors.border.primary}`,
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+                    zIndex: 100,
+                  }}>
+                    {/* Search Input */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: spacing.sm,
+                      borderBottom: `1px solid ${colors.border.primary}`,
+                    }}>
+                      <Search size={18} style={{ color: colors.text.muted, marginRight: spacing.sm }} />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search users by name..."
+                        autoFocus
+                        style={{
+                          flex: 1,
+                          padding: spacing.sm,
+                          background: 'transparent',
+                          border: 'none',
+                          color: colors.text.primary,
+                          fontSize: typography.fontSize.sm,
+                          outline: 'none',
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          setShowUserSearch(false);
+                          setSearchQuery('');
+                          setSearchResults([]);
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: colors.text.muted,
+                          cursor: 'pointer',
+                          padding: spacing.xs,
+                        }}
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    {/* Search Results */}
+                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                      {isSearching ? (
+                        <div style={{ padding: spacing.lg, textAlign: 'center' }}>
+                          <Loader size={20} style={{ animation: 'spin 1s linear infinite', color: colors.text.muted }} />
+                        </div>
+                      ) : searchQuery.length < 2 ? (
+                        <div style={{ padding: spacing.lg, textAlign: 'center', color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                          Type at least 2 characters to search
+                        </div>
+                      ) : searchResults.length === 0 ? (
+                        <div style={{ padding: spacing.lg, textAlign: 'center', color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+                          No users found
+                        </div>
+                      ) : (
+                        searchResults.map((profile) => (
+                          <button
+                            key={profile.id}
+                            onClick={() => handleSelectUser(profile)}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: spacing.md,
+                              padding: spacing.md,
+                              background: 'transparent',
+                              border: 'none',
+                              borderBottom: `1px solid ${colors.border.primary}`,
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = colors.background.elevated}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            {/* Avatar */}
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: borderRadius.full,
+                              background: colors.background.elevated,
+                              border: `1px solid ${colors.border.secondary}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                            }}>
+                              {profile.avatar_url ? (
+                                <img
+                                  src={profile.avatar_url}
+                                  alt=""
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <User size={20} style={{ color: colors.text.muted }} />
+                              )}
+                            </div>
+                            {/* Info */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{
+                                fontSize: typography.fontSize.sm,
+                                fontWeight: typography.fontWeight.medium,
+                                color: colors.text.primary,
+                                marginBottom: '2px',
+                              }}>
+                                {profile.first_name} {profile.last_name}
+                              </p>
+                              {profile.city && (
+                                <p style={{
+                                  fontSize: typography.fontSize.xs,
+                                  color: colors.text.secondary,
+                                }}>
+                                  {profile.city}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {formData.winners.length === 0 ? (
@@ -273,7 +461,7 @@ export default function SiteSettingsManager() {
               }}>
                 <User size={32} style={{ color: colors.text.muted, marginBottom: spacing.sm }} />
                 <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                  No winners added yet. Click "Add Winner" to get started.
+                  No winners added yet. Click "Add Winner" to search and select users.
                 </p>
               </div>
             ) : (
@@ -293,7 +481,7 @@ export default function SiteSettingsManager() {
                         : `1px solid ${colors.border.primary}`,
                     }}
                   >
-                    {/* Drag Handle (visual only for now) */}
+                    {/* Drag Handle */}
                     <div style={{ color: colors.text.muted, cursor: 'grab' }}>
                       <GripVertical size={18} />
                     </div>
@@ -315,59 +503,47 @@ export default function SiteSettingsManager() {
                       {index + 1}
                     </div>
 
-                    {/* Name Input */}
-                    <input
-                      type="text"
-                      value={winner.name}
-                      onChange={(e) => handleUpdateWinner(winner.id, 'name', e.target.value)}
-                      placeholder="Winner name"
-                      style={{
-                        flex: 1,
-                        padding: spacing.sm,
-                        background: colors.background.elevated,
-                        border: `1px solid ${colors.border.secondary}`,
-                        borderRadius: borderRadius.md,
-                        color: colors.text.primary,
-                        fontSize: typography.fontSize.sm,
-                        minWidth: 0,
-                      }}
-                    />
+                    {/* Avatar */}
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: borderRadius.full,
+                      background: colors.background.elevated,
+                      border: `1px solid ${colors.border.secondary}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                    }}>
+                      {winner.imageUrl ? (
+                        <img
+                          src={winner.imageUrl}
+                          alt={winner.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <User size={20} style={{ color: colors.text.muted }} />
+                      )}
+                    </div>
 
-                    {/* City Input */}
-                    <input
-                      type="text"
-                      value={winner.city}
-                      onChange={(e) => handleUpdateWinner(winner.id, 'city', e.target.value)}
-                      placeholder="City"
-                      style={{
-                        width: '120px',
-                        padding: spacing.sm,
-                        background: colors.background.elevated,
-                        border: `1px solid ${colors.border.secondary}`,
-                        borderRadius: borderRadius.md,
+                    {/* Name & City */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: typography.fontSize.md,
+                        fontWeight: typography.fontWeight.semibold,
                         color: colors.text.primary,
+                        marginBottom: '2px',
+                      }}>
+                        {winner.name}
+                      </p>
+                      <p style={{
                         fontSize: typography.fontSize.sm,
-                        flexShrink: 0,
-                      }}
-                    />
-
-                    {/* Image URL Input */}
-                    <input
-                      type="text"
-                      value={winner.imageUrl || ''}
-                      onChange={(e) => handleUpdateWinner(winner.id, 'imageUrl', e.target.value)}
-                      placeholder="Image URL (optional)"
-                      style={{
-                        width: '180px',
-                        padding: spacing.sm,
-                        background: colors.background.elevated,
-                        border: `1px solid ${colors.border.secondary}`,
-                        borderRadius: borderRadius.md,
-                        color: colors.text.primary,
-                        fontSize: typography.fontSize.sm,
-                        flexShrink: 0,
-                      }}
-                    />
+                        color: colors.text.secondary,
+                      }}>
+                        {winner.city || 'No city'}
+                      </p>
+                    </div>
 
                     {/* Featured Toggle */}
                     <button
