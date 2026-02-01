@@ -38,6 +38,7 @@ import { useSupabaseAuth } from './hooks';
 
 // Modals (eagerly loaded for responsiveness)
 import { EliteRankCityModal } from './components/modals';
+import AcceptNominationModal from './components/modals/AcceptNominationModal';
 
 // =============================================================================
 // LAZY-LOADED FEATURE PAGES (Code Splitting)
@@ -478,6 +479,9 @@ export default function App() {
   const [pendingNominations, setPendingNominations] = useState(null);
   const [showNominationsModal, setShowNominationsModal] = useState(false);
 
+  // Accept nomination modal state (for in-app accept/decline)
+  const [acceptingNomination, setAcceptingNomination] = useState(null);
+
   // ===========================================================================
   // HOST COMPETITION (from database)
   // ===========================================================================
@@ -646,18 +650,22 @@ export default function App() {
           claimed_at,
           status,
           user_id,
+          nominator_name,
+          nominator_anonymous,
+          nomination_reason,
           competition:competitions(
             id,
-            city,
+            name,
             season,
             status,
             nomination_end,
+            city:cities(name),
             organization:organizations(name, slug)
           )
         `)
         .eq('email', userEmail)
         .neq('status', 'rejected')
-        .is('converted_to_contestant', null);
+        .or('converted_to_contestant.is.null,converted_to_contestant.eq.false');
 
       if (error || !nominees?.length) {
         return null;
@@ -690,13 +698,14 @@ export default function App() {
       // Only check if:
       // 1. User is authenticated
       // 2. We haven't already checked this session
-      // 3. We're not already on a claim page
+      // 3. We're not already on a claim page or showing accept modal
       // 4. We're not showing the nominations modal
       if (
         isAuthenticated &&
         user?.email &&
         !hasCheckedPending &&
         !claimToken &&
+        !acceptingNomination &&
         !showNominationsModal
       ) {
         setHasCheckedPending(true);
@@ -705,8 +714,8 @@ export default function App() {
 
         if (pending?.length) {
           if (pending.length === 1) {
-            setClaimToken(pending[0].invite_token);
-            setClaimStage('initial');
+            // Show in-app accept/decline modal
+            setAcceptingNomination(pending[0]);
           } else {
             setPendingNominations(pending);
             setShowNominationsModal(true);
@@ -716,7 +725,7 @@ export default function App() {
     };
 
     checkOnAuth();
-  }, [isAuthenticated, user?.email, user?.id, hasCheckedPending, claimToken, showNominationsModal, checkPendingNominations]);
+  }, [isAuthenticated, user?.email, user?.id, hasCheckedPending, claimToken, acceptingNomination, showNominationsModal, checkPendingNominations]);
 
   // Reset the check flag when user logs out
   useEffect(() => {
@@ -740,9 +749,8 @@ export default function App() {
 
       if (pending?.length) {
         if (pending.length === 1) {
-          // Single pending nomination - redirect directly to claim page
-          setClaimToken(pending[0].invite_token);
-          setClaimStage('initial');
+          // Single pending nomination - show in-app accept/decline modal
+          setAcceptingNomination(pending[0]);
           setCurrentView(VIEW.PUBLIC);
           return;
         } else {
@@ -899,13 +907,26 @@ export default function App() {
   const handleSelectNomination = useCallback((nomination) => {
     setShowNominationsModal(false);
     setPendingNominations(null);
-    setClaimToken(nomination.invite_token);
-    setClaimStage('initial');
+    // Show in-app accept/decline modal instead of redirecting to ClaimNominationPage
+    setAcceptingNomination(nomination);
   }, []);
 
   const handleCloseNominationsModal = useCallback(() => {
     setShowNominationsModal(false);
     setPendingNominations(null);
+  }, []);
+
+  // Accept nomination modal handlers
+  const handleAcceptNomination = useCallback(() => {
+    setAcceptingNomination(null);
+  }, []);
+
+  const handleDeclineNomination = useCallback(() => {
+    setAcceptingNomination(null);
+  }, []);
+
+  const handleCloseAcceptModal = useCallback(() => {
+    setAcceptingNomination(null);
   }, []);
 
 
@@ -1222,6 +1243,19 @@ export default function App() {
           nominations={pendingNominations}
           onSelect={handleSelectNomination}
           onClose={handleCloseNominationsModal}
+        />
+      )}
+
+      {/* Accept Nomination Modal - In-app accept/decline for existing users */}
+      {acceptingNomination && (
+        <AcceptNominationModal
+          isOpen={true}
+          onClose={handleCloseAcceptModal}
+          nomination={acceptingNomination}
+          profile={profile}
+          user={user}
+          onAccept={handleAcceptNomination}
+          onDecline={handleDeclineNomination}
         />
       )}
     </ErrorBoundary>

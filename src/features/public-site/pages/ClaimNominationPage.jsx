@@ -204,10 +204,15 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     const cameViaMagicLink = hash.includes('access_token') || hash.includes('type=magiclink');
 
     if (user) {
-      // User is authenticated - they MUST set password first before seeing nomination
-      // This ensures they can't just close the page and stay logged in without a password
-      setNeedsPassword(true);
-      setStage('set-password');
+      if (cameViaMagicLink) {
+        // Magic link user - they don't have a password yet, must set one first
+        setNeedsPassword(true);
+        setStage('set-password');
+      } else {
+        // Password login user - already has password, go directly to accept/decline
+        setNeedsPassword(false);
+        setStage('decide');
+      }
     } else if (cameViaMagicLink) {
       // Magic link tokens in URL but user not set yet - wait for auth to complete
       // This can happen if auth state change hasn't fired yet
