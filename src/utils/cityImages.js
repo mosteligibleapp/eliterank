@@ -1,13 +1,15 @@
 /**
- * City Background Images
+ * Competition Card Background Images
  *
- * Maps city names to stock images for competition card backgrounds.
- * Uses Unsplash for free, high-quality city images.
+ * Uses branded Most Eligible background image for competition cards.
+ * Place your background image at: public/images/most-eligible-background.jpg
  */
 
-// City name to image URL mapping (lowercase for easier matching)
+// Branded Most Eligible background image
+const BRANDED_BACKGROUND = '/images/most-eligible-background.jpg';
+
+// Legacy city images (kept for reference, but not currently used)
 const CITY_IMAGES = {
-  // Major US Cities
   'miami': 'https://images.unsplash.com/photo-1514214246283-d427a95c5d2f?w=800&q=80',
   'new york': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=80',
   'los angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=800&q=80',
@@ -47,32 +49,15 @@ const CITY_IMAGES = {
   'dc': 'https://images.unsplash.com/photo-1501466044931-62695aada8e9?w=800&q=80',
 };
 
-// Default fallback image
-const DEFAULT_CITY_IMAGE = 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800&q=80';
-
 /**
- * Get background image URL for a city
- * @param {string} cityName - Name of the city
- * @returns {string} URL of the city image
+ * Get background image URL for a competition card
+ * Now returns the branded Most Eligible background for all competitions
+ * @param {string} cityName - Name of the city (unused, kept for API compatibility)
+ * @returns {string} URL of the background image
  */
 export function getCityImage(cityName) {
-  if (!cityName) return DEFAULT_CITY_IMAGE;
-
-  const normalizedName = cityName.toLowerCase().trim();
-
-  // Direct match
-  if (CITY_IMAGES[normalizedName]) {
-    return CITY_IMAGES[normalizedName];
-  }
-
-  // Partial match (e.g., "New York City" -> "new york")
-  for (const [key, url] of Object.entries(CITY_IMAGES)) {
-    if (normalizedName.includes(key) || key.includes(normalizedName)) {
-      return url;
-    }
-  }
-
-  return DEFAULT_CITY_IMAGE;
+  // Return branded background for all competition cards
+  return BRANDED_BACKGROUND;
 }
 
 /**
