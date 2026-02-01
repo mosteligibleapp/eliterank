@@ -285,7 +285,7 @@ export function getCurrentPhase(settings, nominationPeriods = []) {
   if (!settings) return null;
 
   const now = new Date();
-  const finaleDate = settings.finale_date ? new Date(settings.finale_date) : null;
+  const finaleDate = settings.finals_date ? new Date(settings.finals_date) : null;
 
   // After finale
   if (finaleDate && now >= finaleDate) {
@@ -375,7 +375,7 @@ export function shouldAutoComplete(competition, settings) {
   if (competition.status === COMPETITION_STATUS.COMPLETED) return false;
   if (competition.status !== COMPETITION_STATUS.LIVE) return false;
 
-  const finaleDate = settings?.finale_date ? new Date(settings.finale_date) : null;
+  const finaleDate = settings?.finals_date ? new Date(settings.finals_date) : null;
   if (!finaleDate) return false;
 
   return new Date() >= finaleDate;
@@ -404,7 +404,7 @@ export const DEFAULT_COMPETITION_SETTINGS = {
   use_price_bundler: false,
   nomination_start: null,
   nomination_end: null,
-  finale_date: null,
+  finals_date: null,
   allow_manual_votes: false,
 };
 

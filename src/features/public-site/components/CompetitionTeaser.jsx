@@ -1220,7 +1220,7 @@ export default function CompetitionTeaser({
         </div>
 
         {/* Timeline */}
-        {(competition?.nomination_start || competition?.voting_start || competition?.finale_date) && (
+        {(competition?.nomination_start || competition?.voting_start || competition?.finals_date) && (
           <div style={{
             background: colors.background.card,
             border: `1px solid ${colors.border.light}`,
@@ -1243,7 +1243,7 @@ export default function CompetitionTeaser({
                 { label: 'Nominations Close', date: competition?.nomination_end },
                 { label: 'Voting Begins', date: competition?.voting_start },
                 { label: 'Voting Ends', date: competition?.voting_end },
-                { label: 'Finals Gala', date: competition?.finale_date },
+                { label: 'Finals Gala', date: competition?.finals_date },
               ].filter(item => item.date).map((item, i) => (
                 <div key={i} style={{
                   display: 'flex',

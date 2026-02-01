@@ -44,7 +44,7 @@ export default function SettingsPage({
         nominationEnd: hostCompetition.nomination_end || '',
         votingStart: hostCompetition.voting_start || '',
         votingEnd: hostCompetition.voting_end || '',
-        finalsDate: hostCompetition.finale_date || '',
+        finalsDate: hostCompetition.finals_date || '',
       });
     }
   }, [hostCompetition]);
@@ -87,7 +87,7 @@ export default function SettingsPage({
         nomination_end: timelineData.nominationEnd || null,
         voting_start: timelineData.votingStart || null,
         voting_end: timelineData.votingEnd || null,
-        finale_date: timelineData.finalsDate || null,
+        finals_date: timelineData.finalsDate || null,
       };
 
       const { error } = await supabase
@@ -204,7 +204,7 @@ export default function SettingsPage({
                       nominationEnd: hostCompetition.nomination_end || '',
                       votingStart: hostCompetition.voting_start || '',
                       votingEnd: hostCompetition.voting_end || '',
-                      finalsDate: hostCompetition.finale_date || '',
+                      finalsDate: hostCompetition.finals_date || '',
                     });
                   }}
                   disabled={savingTimeline}
@@ -482,12 +482,12 @@ export default function SettingsPage({
                       Finals / Award Ceremony
                     </p>
                     <p style={{ fontSize: typography.fontSize.md, color: colors.text.primary }}>
-                      {formatDateForDisplay(hostCompetition.finale_date)}
+                      {formatDateForDisplay(hostCompetition.finals_date)}
                     </p>
                   </div>
-                  {hostCompetition.finale_date && (
+                  {hostCompetition.finals_date && (
                     <Badge variant="success" size="sm">
-                      {new Date() >= new Date(hostCompetition.finale_date) ? 'Completed' : 'Upcoming'}
+                      {new Date() >= new Date(hostCompetition.finals_date) ? 'Completed' : 'Upcoming'}
                     </Badge>
                   )}
                 </div>

@@ -44,7 +44,7 @@ const FIELD_RULES = {
   nomination_end: { draft: true, publish: true, live: false, completed: false },
   voting_start: { draft: true, publish: true, live: false, completed: false },
   voting_end: { draft: true, publish: true, live: 'warn', completed: false },
-  finale_date: { draft: true, publish: true, live: 'warn', completed: false },
+  finals_date: { draft: true, publish: true, live: 'warn', completed: false },
 
   // Events - always editable until complete
   events: { draft: true, publish: true, live: true, completed: false },
@@ -214,7 +214,7 @@ export function getEditWarning(fieldName) {
       'Changing theme colors will immediately affect how the public page appears.',
     voting_end:
       'Extending or shortening the voting period affects all contestants equally. Consider announcing this change.',
-    finale_date:
+    finals_date:
       'Changing the finale date may affect contestant and voter plans. Consider announcing this change.',
     rules:
       'Modifying rules during an active competition should be done carefully and communicated to participants.',

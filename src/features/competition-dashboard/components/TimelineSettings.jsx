@@ -191,12 +191,12 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
   // Settings state (stores ISO strings for DB)
   const [settings, setSettings] = useState({
-    finale_date: '',
+    finals_date: '',
   });
 
   // Display values (what user sees/types)
   const [displayValues, setDisplayValues] = useState({
-    finale_date: '',
+    finals_date: '',
   });
 
   // Nomination periods state (replaces single nomination_start/nomination_end)
@@ -229,10 +229,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     setLoading(true);
     try {
       const [compResult, roundsResult, periodsResult] = await Promise.all([
-        // finale_date is now on the competitions table directly
+        // finals_date is now on the competitions table directly
         supabase
           .from('competitions')
-          .select('finale_date')
+          .select('finals_date')
           .eq('id', competition.id)
           .single(),
         supabase
@@ -256,10 +256,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
       if (compResult.data) {
         setSettings({
-          finale_date: compResult.data.finale_date || '',
+          finals_date: compResult.data.finals_date || '',
         });
         setDisplayValues({
-          finale_date: formatDateForDisplay(compResult.data.finale_date),
+          finals_date: formatDateForDisplay(compResult.data.finals_date),
         });
       }
 
@@ -307,7 +307,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       validationErrors.push('Please fix invalid date formats before saving');
     }
 
-    const finale = settings.finale_date ? new Date(settings.finale_date) : null;
+    const finale = settings.finals_date ? new Date(settings.finals_date) : null;
 
     // Validate nomination periods
     let lastNomEnd = null;
@@ -381,12 +381,12 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       const firstPeriodStart = sortedPeriods[0]?.start_date || null;
       const lastPeriodEnd = sortedPeriods[sortedPeriods.length - 1]?.end_date || null;
 
-      // Update competition status, finale_date, and synced nomination fields
+      // Update competition status, finals_date, and synced nomination fields
       const { error: compError } = await supabase
         .from('competitions')
         .update({
           status,
-          finale_date: settings.finale_date || null,
+          finals_date: settings.finals_date || null,
           nomination_start: firstPeriodStart,
           nomination_end: lastPeriodEnd,
           updated_at: new Date().toISOString(),
@@ -742,7 +742,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
               const nextTransition = getNextAutoTransition({
                 status,
                 nomination_start: nominationPeriods[0]?.start_date,
-                finale_date: settings.finale_date,
+                finals_date: settings.finals_date,
               });
 
               if (nextTransition) {
@@ -1069,16 +1069,16 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           <input
             type="text"
             placeholder="Mar 15, 2025 7:00 PM"
-            value={displayValues.finale_date}
-            onChange={(e) => setDisplayValues(prev => ({ ...prev, finale_date: e.target.value }))}
-            onBlur={(e) => handleDateBlur('finale_date', e.target.value)}
+            value={displayValues.finals_date}
+            onChange={(e) => setDisplayValues(prev => ({ ...prev, finals_date: e.target.value }))}
+            onBlur={(e) => handleDateBlur('finals_date', e.target.value)}
             style={{
               ...inputStyle,
               maxWidth: '300px',
-              borderColor: parseErrors.finale_date ? '#ef4444' : colors.border.light,
+              borderColor: parseErrors.finals_date ? '#ef4444' : colors.border.light,
             }}
           />
-          {parseErrors.finale_date && (
+          {parseErrors.finals_date && (
             <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.xs }}>
               Invalid date format
             </p>

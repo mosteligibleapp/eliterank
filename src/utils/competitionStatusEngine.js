@@ -9,7 +9,7 @@
  * | Draft      | Competition created                                        | Automatic    |
  * | Published  | Admin sets (requires: city, category, demographic, host)   | Admin only   |
  * | Live       | datetime >= nomination_start AND status = Published        | Automatic    |
- * | Completed  | datetime > finale_date AND status = Live                   | Automatic    |
+ * | Completed  | datetime > finals_date AND status = Live                   | Automatic    |
  * | Archived   | Admin manually archives                                    | Admin only   |
  */
 
@@ -35,8 +35,8 @@ export function computeCompetitionStatus(competition) {
     : null;
 
   // Get finale date
-  const finaleDate = competition.finale_date
-    ? new Date(competition.finale_date)
+  const finaleDate = competition.finals_date
+    ? new Date(competition.finals_date)
     : null;
 
   // Archived and Draft are manual states — don't auto-transition
@@ -84,7 +84,7 @@ const PUBLISH_REQUIREMENTS = {
   demographic: (c) => Boolean(c.demographic_id),
   host: (c) => Boolean(c.host_id),
   nominationStart: (c) => Boolean(c.nomination_start),
-  finaleDate: (c) => Boolean(c.finale_date),
+  finaleDate: (c) => Boolean(c.finals_date),
 };
 
 /**
@@ -195,7 +195,7 @@ export function getStatusChangeRestriction(status) {
 export function getNextAutoTransition(competition) {
   if (!competition) return null;
 
-  const { status, nomination_start, finale_date } = competition;
+  const { status, nomination_start, finals_date } = competition;
 
   if (status === COMPETITION_STATUS.PUBLISHED && nomination_start) {
     return {
@@ -205,10 +205,10 @@ export function getNextAutoTransition(competition) {
     };
   }
 
-  if (status === COMPETITION_STATUS.LIVE && finale_date) {
+  if (status === COMPETITION_STATUS.LIVE && finals_date) {
     return {
       nextStatus: COMPETITION_STATUS.COMPLETED,
-      triggerDate: new Date(finale_date),
+      triggerDate: new Date(finals_date),
       description: 'Will complete after finale date',
     };
   }

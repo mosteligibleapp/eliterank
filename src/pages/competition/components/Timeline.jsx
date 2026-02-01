@@ -39,7 +39,7 @@ export function Timeline() {
 
   // Build finale item from competition record
   const finaleItems = [];
-  const finaleDate = competition?.finale_date;
+  const finaleDate = competition?.finals_date;
   if (finaleDate) {
     finaleItems.push({
       id: 'finale',

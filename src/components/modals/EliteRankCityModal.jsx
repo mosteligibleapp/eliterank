@@ -186,7 +186,7 @@ export default function EliteRankCityModal({
               nomination_end: compWithSettings.nomination_end,
               voting_start: compWithSettings.voting_start,
               voting_end: compWithSettings.voting_end,
-              finale_date: compWithSettings.finale_date,
+              finals_date: compWithSettings.finals_date,
               voting_rounds: compWithSettings.voting_rounds,
               nomination_periods: compWithSettings.nomination_periods,
             };

@@ -172,7 +172,7 @@ export function computeTimelinePhase(competition) {
     return value ? new Date(value) : null;
   };
 
-  const finalsDate = getDate('finale_date');
+  const finalsDate = getDate('finals_date');
 
   // Phase 1: Completed - after finals date
   if (finalsDate && now >= finalsDate) {
@@ -382,7 +382,7 @@ export function validateTimelineDates(competition) {
   const nominationEnd = competition?.nominationEnd || competition?.nomination_end;
   const votingStart = competition?.votingStart || competition?.voting_start;
   const votingEnd = competition?.votingEnd || competition?.voting_end;
-  const finalsDate = competition?.finaleDate || competition?.finale_date;
+  const finalsDate = competition?.finalsDate || competition?.finals_date;
 
   // Parse dates
   const nomStart = nominationStart ? new Date(nominationStart) : null;
@@ -634,10 +634,10 @@ export function shouldAutoTransitionToLive(competition, settings = null) {
 
 /**
  * Check if a competition should auto-transition from live to completed.
- * This happens when status is 'live' and finale_date has passed.
+ * This happens when status is 'live' and finals_date has passed.
  *
  * @param {Object} competition - Competition object
- * @param {Object} settings - Competition settings (with finale_date)
+ * @param {Object} settings - Competition settings (with finals_date)
  * @returns {boolean} True if should transition to completed
  */
 export function shouldAutoTransitionToCompleted(competition, settings = null) {
@@ -646,8 +646,8 @@ export function shouldAutoTransitionToCompleted(competition, settings = null) {
   // Only applies to competitions with status 'live'
   if (competition.status !== COMPETITION_STATUSES.LIVE) return false;
 
-  // Check finale_date from settings first, then from competition
-  const finaleDate = settings?.finale_date || competition?.finale_date;
+  // Check finals_date from settings first, then from competition
+  const finaleDate = settings?.finals_date || competition?.finals_date;
 
   if (!finaleDate) return false;
 
