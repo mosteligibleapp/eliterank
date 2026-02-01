@@ -240,18 +240,22 @@ export default function EliteRankCityModal({
   const getOrg = (orgId) => organizations.find(o => o.id === orgId);
 
   const handleCompetitionClick = (competition) => {
-    // Organization data is already included in competition object from data processing
-    if (!onOpenCompetition) return;
+    console.log('[handleCompetitionClick] Clicked:', competition?.name, competition?.id);
+    console.log('[handleCompetitionClick] onOpenCompetition exists:', !!onOpenCompetition);
+    console.log('[handleCompetitionClick] Competition data:', JSON.stringify({
+      id: competition?.id,
+      name: competition?.name,
+      slug: competition?.slug,
+      city: competition?.city,
+      season: competition?.season,
+      orgSlug: competition?.orgSlug,
+      organization: competition?.organization?.slug,
+    }));
 
-    if (competition.accessible) {
-      // Live or completed - full access
+    if (onOpenCompetition) {
       onOpenCompetition(competition);
-    } else if (isPublished(competition.status)) {
-      // Published/coming soon - teaser mode
-      onOpenTeaser ? onOpenTeaser(competition) : onOpenCompetition({ ...competition, isTeaser: true });
     } else {
-      // Fallback - still try to open (for any other status)
-      onOpenCompetition({ ...competition, isTeaser: true });
+      console.error('[handleCompetitionClick] onOpenCompetition is not defined!');
     }
   };
 

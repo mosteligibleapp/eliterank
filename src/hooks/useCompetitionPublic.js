@@ -38,13 +38,14 @@ const COMPETITION_SELECT = `
 `;
 
 /**
- * Fetch public competition data by org slug and competition slug
+ * Fetch public competition data by org slug and competition slug OR ID
  *
  * @param {string} orgSlug - Organization slug (e.g., 'most-eligible')
  * @param {string} competitionSlug - Full competition slug (e.g., 'most-eligible-chicago-2026')
+ * @param {string} competitionId - Optional competition ID for direct lookup
  * @returns {object} Competition data, phase info, loading state, and helpers
  */
-export function useCompetitionPublic(orgSlug, competitionSlug) {
+export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
   const [competition, setCompetition] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [contestants, setContestants] = useState([]);
@@ -62,8 +63,9 @@ export function useCompetitionPublic(orgSlug, competitionSlug) {
 
   // Fetch competition data
   const fetchCompetition = useCallback(async () => {
-    if (!orgSlug || !competitionSlug) {
-      setError(new Error('Missing org or competition slug'));
+    // Must have orgSlug AND either competitionSlug or competitionId
+    if (!orgSlug || (!competitionSlug && !competitionId)) {
+      setError(new Error('Missing org slug or competition identifier'));
       setLoading(false);
       return;
     }
@@ -89,35 +91,48 @@ export function useCompetitionPublic(orgSlug, competitionSlug) {
 
       setOrganization(orgData);
 
-      // Try direct lookup by slug first
       let compData = null;
-      let compError = null;
 
-      const { data: slugData, error: slugError } = await supabase
-        .from('competitions')
-        .select(COMPETITION_SELECT)
-        .eq('organization_id', orgData.id)
-        .eq('slug', competitionSlug)
-        .single();
+      // PRIORITY 1: Direct ID lookup (most reliable)
+      if (competitionId) {
+        const { data: idData, error: idError } = await supabase
+          .from('competitions')
+          .select(COMPETITION_SELECT)
+          .eq('id', competitionId)
+          .single();
 
-      if (!slugError && slugData) {
-        compData = slugData;
-      } else {
-        // Fallback: Parse slug to extract year and try alternative lookups
-        // Slug format: {name}-{city}-{year} e.g., "elite-single-women-chicago-2026"
+        if (!idError && idData) {
+          compData = idData;
+        }
+      }
+
+      // PRIORITY 2: Direct slug lookup
+      if (!compData && competitionSlug) {
+        const { data: slugData, error: slugError } = await supabase
+          .from('competitions')
+          .select(COMPETITION_SELECT)
+          .eq('organization_id', orgData.id)
+          .eq('slug', competitionSlug)
+          .single();
+
+        if (!slugError && slugData) {
+          compData = slugData;
+        }
+      }
+
+      // PRIORITY 3: Parse slug for year and find by season
+      if (!compData && competitionSlug) {
         const yearMatch = competitionSlug.match(/(\d{4})(?:-[^-]+)?$/);
         const year = yearMatch ? parseInt(yearMatch[1], 10) : null;
 
         if (year) {
-          // Try to find by season (year) - get all competitions for this org/year
-          const { data: yearData, error: yearError } = await supabase
+          const { data: yearData } = await supabase
             .from('competitions')
             .select(COMPETITION_SELECT)
             .eq('organization_id', orgData.id)
             .eq('season', year);
 
-          if (!yearError && yearData?.length > 0) {
-            // If only one competition for this year, use it
+          if (yearData?.length > 0) {
             if (yearData.length === 1) {
               compData = yearData[0];
             } else {
@@ -130,24 +145,24 @@ export function useCompetitionPublic(orgSlug, competitionSlug) {
                   .replace(/[\s_-]+/g, '-');
                 return slugParts.includes(nameSlug) || nameSlug.includes(slugParts.split('-')[0]);
               });
-              compData = match || yearData[0]; // Use first match or first result
+              compData = match || yearData[0];
             }
           }
         }
+      }
 
-        // Still no data - try getting any active competition
-        if (!compData) {
-          const { data: anyData } = await supabase
-            .from('competitions')
-            .select(COMPETITION_SELECT)
-            .eq('organization_id', orgData.id)
-            .in('status', ['live', 'publish'])
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+      // PRIORITY 4: Fall back to any active competition for this org
+      if (!compData) {
+        const { data: anyData } = await supabase
+          .from('competitions')
+          .select(COMPETITION_SELECT)
+          .eq('organization_id', orgData.id)
+          .in('status', ['live', 'publish'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-          compData = anyData;
-        }
+        compData = anyData;
       }
 
       if (!compData) {
@@ -205,7 +220,7 @@ export function useCompetitionPublic(orgSlug, competitionSlug) {
     } finally {
       setLoading(false);
     }
-  }, [orgSlug, competitionSlug, isDemoMode]);
+  }, [orgSlug, competitionSlug, competitionId, isDemoMode]);
 
   // Initial fetch
   useEffect(() => {

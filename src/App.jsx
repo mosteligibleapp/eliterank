@@ -809,43 +809,45 @@ export default function App() {
   // ===========================================================================
 
   const handleOpenCompetition = useCallback((competition) => {
+    console.log('[handleOpenCompetition] Called with:', competition?.name);
     setShowUserProfile(false);
 
-    // Get org slug from competition object
+    // Get org slug - default to 'most-eligible' if not found
     const orgSlug = competition?.organization?.slug || competition?.orgSlug || 'most-eligible';
+    console.log('[handleOpenCompetition] orgSlug:', orgSlug);
 
-    // Use the actual slug from the database if available
-    // This is the source of truth - no need to reconstruct it
+    // Priority 1: Use database slug if available
     if (competition?.slug) {
+      console.log('[handleOpenCompetition] Using slug:', competition.slug);
       navigate(`/${orgSlug}/${competition.slug}`);
       return;
     }
 
-    // Fallback: construct slug in database format: {name}-{city}-{year}
-    console.warn('[handleOpenCompetition] Competition missing slug field:', competition?.name || competition?.id);
+    // Priority 2: Use competition ID (always available, always works)
+    if (competition?.id) {
+      console.log('[handleOpenCompetition] Using ID:', competition.id);
+      navigate(`/${orgSlug}/id/${competition.id}`);
+      return;
+    }
 
-    // Generate name slug
-    const nameSlug = competition?.name
-      ? competition.name.toLowerCase()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/[\s_-]+/g, '-')
-          .replace(/^-+|-+$/g, '')
-      : '';
+    console.log('[handleOpenCompetition] No slug or ID, constructing URL...');
 
-    const cityPart = competition?.citySlug
-      ? competition.citySlug.replace(/-[a-z]{2}$/i, '')
-      : competition?.city
-        ? competition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
-        : '';
+    // Priority 3: Construct from name-city-year
+    const nameSlug = (competition?.name || 'competition')
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const cityPart = (competition?.citySlug || competition?.city || 'unknown')
+      .toLowerCase()
+      .replace(/-[a-z]{2}$/i, '')
+      .replace(/\s+/g, '-')
+      .replace(/,/g, '');
+
     const year = competition?.season || new Date().getFullYear();
 
-    // Construct slug: name-city-year (matching database format)
-    if (nameSlug && cityPart && year) {
-      navigate(`/${orgSlug}/${nameSlug}-${cityPart}-${year}`);
-    } else if (cityPart && year) {
-      // Last resort: just city-year (may not match DB but better than nothing)
-      navigate(`/${orgSlug}/${cityPart}-${year}`);
-    }
+    navigate(`/${orgSlug}/${nameSlug}-${cityPart}-${year}`);
   }, [navigate]);
 
   // ===========================================================================
@@ -959,6 +961,8 @@ export default function App() {
       <ErrorBoundary>
         <Suspense fallback={<LoadingScreen message="Loading competition..." />}>
           <Routes>
+            {/* ID-based lookup: /:orgSlug/id/:competitionId - most reliable */}
+            <Route path="/:orgSlug/id/:competitionId/*" element={<CompetitionLayout />} />
             {/* New format: /:orgSlug/:slug/* */}
             <Route path="/:orgSlug/:slug/*" element={<CompetitionLayout />} />
             {/* Legacy format: /c/:orgSlug/:citySlug/:year/* */}
@@ -1118,8 +1122,8 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {/* Push Notifications */}
-      {isAuthenticated && user?.id && <PushNotifications userId={user.id} />}
+      {/* Push Notifications - disabled temporarily */}
+      {/* {isAuthenticated && user?.id && <PushNotifications userId={user.id} />} */}
       {/* Main Public Page - Competitions Listing */}
       <EliteRankCityModal
         isOpen={true}

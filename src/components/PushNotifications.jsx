@@ -8,10 +8,20 @@ export default function PushNotifications({ userId }) {
     // Set external user ID when component mounts
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.login(userId);
-      
-      // Optionally show native prompt
-      OneSignal.Slidedown.promptPush();
+      try {
+        // Check if OneSignal methods exist before calling
+        if (OneSignal?.login) {
+          await OneSignal.login(userId);
+        }
+
+        // Optionally show native prompt
+        if (OneSignal?.Slidedown?.promptPush) {
+          OneSignal.Slidedown.promptPush();
+        }
+      } catch (err) {
+        // Silently handle OneSignal errors - don't block app functionality
+        console.warn('[PushNotifications] OneSignal error:', err.message);
+      }
     });
   }, [userId]);
 
