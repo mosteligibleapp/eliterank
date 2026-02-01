@@ -37,7 +37,7 @@ CREATE POLICY "Super admins can manage app settings"
     EXISTS (
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role = 'superadmin'
+      AND profiles.is_super_admin = true
     )
   );
 
