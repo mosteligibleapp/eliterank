@@ -12,7 +12,16 @@ export function HallOfWinnersSection() {
   const { competition } = usePublicCompetition();
 
   // Fetch competition-specific hall of winners settings
-  const { data: competitionHallOfWinners, loading } = useAppSettings('competition_hall_of_winners');
+  const { data: competitionHallOfWinners, loading, error } = useAppSettings('competition_hall_of_winners');
+
+  // Debug logging
+  console.log('HallOfWinnersSection Debug:', {
+    competitionId: competition?.id,
+    loading,
+    error,
+    allData: competitionHallOfWinners,
+    configForThisComp: competitionHallOfWinners?.[competition?.id],
+  });
 
   // Get config for this competition
   const config = competitionHallOfWinners?.[competition?.id];
