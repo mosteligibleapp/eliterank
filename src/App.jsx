@@ -20,7 +20,6 @@ import React, {
   Suspense
 } from 'react';
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
-import PushNotifications from './components/PushNotifications';
 
 // =============================================================================
 // CORE IMPORTS
