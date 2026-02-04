@@ -52,18 +52,10 @@ export function Timeline() {
     });
   }
 
-  // Combine all timeline items
+  // Combine all timeline items (events are now shown in a dedicated card above the rules)
   const timelineItems = [
     ...nominationItems,
-    ...(events || []).map(e => ({
-      id: e.id,
-      type: 'event',
-      date: e.date,
-      title: e.name,
-      subtitle: e.location,
-      isDoubleVote: e.is_double_vote_day,
-      status: getEventStatus(e.date, e.end_date),
-    })),
+    // Note: Events removed from timeline - they are now displayed in UpcomingEventCard
     ...(votingRounds || []).map(r => ({
       id: r.id,
       type: 'round',
