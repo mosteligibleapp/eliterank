@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Crown, MapPin, Calendar, Users, Loader, ChevronLeft, Trophy,
-  Vote, UserPlus, PartyPopper, Megaphone, BookOpen, Clock, Award
+  Vote, UserPlus, PartyPopper, Megaphone, BookOpen, Clock, Award, ExternalLink
 } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -13,7 +13,9 @@ import {
   getCurrentPhase,
 } from '../../../types/competition';
 import InterestForm from '../components/InterestForm';
+import UpcomingEventCard from '../components/UpcomingEventCard';
 import { useOrganizations, useCities } from '../../../hooks/useCachedQuery';
+import { formatEventTime } from '../../../utils/formatters';
 
 // Tab definitions
 const TABS = [
@@ -39,6 +41,7 @@ export default function CompetitionPage() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('about');
   const [winners, setWinners] = useState([]);
+  const [events, setEvents] = useState([]);
 
   // Find organization from cached data
   const organization = useMemo(() => {
@@ -117,6 +120,22 @@ export default function CompetitionPage() {
             .filter(Boolean);
           setWinners(orderedWinners);
         }
+      }
+
+      // Fetch events for this competition
+      const { data: eventsData } = await supabase
+        .from('events')
+        .select('*')
+        .eq('competition_id', compData.id)
+        .order('date');
+
+      if (eventsData) {
+        setEvents(eventsData.map(e => ({
+          id: e.id, name: e.name, date: e.date, endDate: e.end_date, time: e.time,
+          location: e.location, description: e.description, imageUrl: e.image_url,
+          ticketUrl: e.ticket_url, status: e.status, featured: e.featured,
+          publicVisible: e.public_visible,
+        })));
       }
     } catch (err) {
       console.error('Error fetching competition:', err);
@@ -429,28 +448,109 @@ export default function CompetitionPage() {
             </div>
           </div>
         ) : (
-          /* Live/Completed Mode - Tab Content */
-          <div>
-            {activeTab === 'about' && (
-              <AboutTab competition={competition} organization={organization} />
-            )}
-            {activeTab === 'winners' && (
-              <WinnersTab winners={winners} />
-            )}
-            {activeTab === 'vote' && (
-              <VoteTab competition={competition} />
-            )}
-            {activeTab === 'compete' && (
-              <CompeteTab competition={competition} />
-            )}
-            {activeTab === 'events' && (
-              <EventsTab competition={competition} />
-            )}
-            {activeTab === 'announcements' && (
-              <AnnouncementsTab competition={competition} />
-            )}
-            {activeTab === 'rules' && (
-              <RulesTab competition={competition} />
+          /* Live/Completed Mode - Tab Content with Sidebar */
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: activeTab === 'events' || activeTab === 'rules' ? '1fr' : '1fr 300px',
+            gap: spacing.xxl,
+          }}>
+            {/* Main Content */}
+            <div>
+              {activeTab === 'about' && (
+                <AboutTab competition={competition} organization={organization} />
+              )}
+              {activeTab === 'winners' && (
+                <WinnersTab winners={winners} />
+              )}
+              {activeTab === 'vote' && (
+                <VoteTab competition={competition} />
+              )}
+              {activeTab === 'compete' && (
+                <CompeteTab competition={competition} />
+              )}
+              {activeTab === 'events' && (
+                <EventsTabContent events={events} />
+              )}
+              {activeTab === 'announcements' && (
+                <AnnouncementsTab competition={competition} />
+              )}
+              {activeTab === 'rules' && (
+                <RulesTab competition={competition} />
+              )}
+            </div>
+
+            {/* Sidebar - show on most tabs except events and rules */}
+            {activeTab !== 'events' && activeTab !== 'rules' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+                {/* Upcoming Event Card */}
+                <UpcomingEventCard
+                  events={events}
+                  onViewAllEvents={() => setActiveTab('events')}
+                />
+
+                {/* Rules Summary Card */}
+                {competition?.rules?.length > 0 && (
+                  <div
+                    style={{
+                      background: colors.background.card,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.xl,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* Header */}
+                    <div
+                      style={{
+                        padding: `${spacing.md} ${spacing.lg}`,
+                        borderBottom: `1px solid ${colors.border.light}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.sm,
+                      }}
+                    >
+                      <BookOpen size={16} style={{ color: colors.text.secondary }} />
+                      <span
+                        style={{
+                          fontSize: typography.fontSize.sm,
+                          fontWeight: typography.fontWeight.semibold,
+                          color: colors.text.primary,
+                        }}
+                      >
+                        Competition Rules
+                      </span>
+                    </div>
+                    {/* Preview */}
+                    <div style={{ padding: spacing.lg }}>
+                      <p
+                        style={{
+                          fontSize: typography.fontSize.sm,
+                          color: colors.text.secondary,
+                          marginBottom: spacing.md,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {competition.rules.length} rule section{competition.rules.length !== 1 ? 's' : ''} for this competition.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('rules')}
+                        style={{
+                          background: 'none',
+                          border: `1px solid ${colors.border.light}`,
+                          borderRadius: borderRadius.md,
+                          padding: `${spacing.sm} ${spacing.md}`,
+                          color: colors.text.primary,
+                          fontSize: typography.fontSize.sm,
+                          fontWeight: typography.fontWeight.medium,
+                          cursor: 'pointer',
+                          width: '100%',
+                        }}
+                      >
+                        View Rules
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -687,16 +787,166 @@ function CompeteTab({ competition }) {
   );
 }
 
-function EventsTab({ competition }) {
+function EventsTabContent({ events }) {
+  // Sort events into upcoming and past
+  const now = new Date();
+  const upcomingEvents = events.filter(e => !e.date || new Date(e.date) >= now);
+  const pastEvents = events.filter(e => e.date && new Date(e.date) < now);
+
+  if (events.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
+        <PartyPopper size={64} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
+        <h2 style={{ fontSize: typography.fontSize.xl, marginBottom: spacing.md }}>
+          Competition Events
+        </h2>
+        <p style={{ color: colors.text.secondary }}>
+          No events scheduled yet. Check back soon!
+        </p>
+      </div>
+    );
+  }
+
+  const formatEventDate = (dateStr) => {
+    if (!dateStr) return 'Date TBD';
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const EventCard = ({ event }) => (
+    <div
+      style={{
+        background: colors.background.card,
+        border: `1px solid ${colors.border.light}`,
+        borderRadius: borderRadius.xl,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Event Image */}
+      {event.imageUrl ? (
+        <div
+          style={{
+            width: '100%',
+            height: '160px',
+            background: `url(${event.imageUrl}) center/cover no-repeat`,
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: '100%',
+            height: '100px',
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(139,92,246,0.1) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Crown size={40} style={{ color: 'rgba(212,175,55,0.4)' }} />
+        </div>
+      )}
+
+      {/* Event Details */}
+      <div style={{ padding: spacing.lg }}>
+        <h3 style={{
+          fontSize: typography.fontSize.lg,
+          fontWeight: typography.fontWeight.semibold,
+          marginBottom: spacing.sm,
+        }}>
+          {event.name}
+        </h3>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs, marginBottom: spacing.md }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+            <Calendar size={14} />
+            <span>{formatEventDate(event.date)}</span>
+          </div>
+          {event.time && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+              <Clock size={14} />
+              <span>{formatEventTime(event.time)}</span>
+            </div>
+          )}
+          {event.location && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+              <MapPin size={14} />
+              <span>{event.location}</span>
+            </div>
+          )}
+        </div>
+
+        {event.description && (
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.md, lineHeight: 1.5 }}>
+            {event.description}
+          </p>
+        )}
+
+        {event.ticketUrl && (
+          <a
+            href={event.ticketUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: spacing.xs,
+              width: '100%',
+              padding: `${spacing.sm} ${spacing.md}`,
+              background: `linear-gradient(135deg, ${colors.gold.primary}, ${colors.gold.light || '#f4d03f'})`,
+              color: '#0a0a0f',
+              borderRadius: borderRadius.md,
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.semibold,
+              textDecoration: 'none',
+            }}
+          >
+            Get Tickets
+            <ExternalLink size={12} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
-      <PartyPopper size={64} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
-      <h2 style={{ fontSize: typography.fontSize.xl, marginBottom: spacing.md }}>
+    <div>
+      <h2 style={{ fontSize: typography.fontSize.xl, marginBottom: spacing.lg }}>
         Competition Events
       </h2>
-      <p style={{ color: colors.text.secondary }}>
-        Event schedule and details will be displayed here.
-      </p>
+
+      {/* Upcoming Events */}
+      {upcomingEvents.length > 0 && (
+        <div style={{ marginBottom: spacing.xxl }}>
+          <h3 style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, marginBottom: spacing.md }}>
+            Upcoming Events
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: spacing.lg }}>
+            {upcomingEvents.map(event => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Past Events */}
+      {pastEvents.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: typography.fontSize.md, color: colors.text.secondary, marginBottom: spacing.md }}>
+            Past Events
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: spacing.lg }}>
+            {pastEvents.map(event => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
