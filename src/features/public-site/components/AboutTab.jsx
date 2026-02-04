@@ -1,13 +1,11 @@
 import React from 'react';
-import { Award, Calendar, FileText, Trophy, Building, Crown, Check, Star, Instagram, Linkedin, Twitter, User, UserPlus, Vote, Clock } from 'lucide-react';
+import { Award, Trophy, Building, Crown, Star, Instagram, Linkedin, Twitter, UserPlus, Vote, Clock } from 'lucide-react';
 import { Avatar, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
-import { formatEventDateRange } from '../../../utils/formatters';
 
-export default function AboutTab({ judges, sponsors, events, host, city = 'New York', competition, onViewProfile }) {
+export default function AboutTab({ judges, sponsors, host, city = 'New York', competition, onViewProfile }) {
   const platinumSponsor = sponsors.find((s) => s.tier === 'Platinum');
   const otherSponsors = sponsors.filter((s) => s.tier !== 'Platinum');
-  const publicEvents = events.filter((e) => e.publicVisible !== false);
 
   // Helper to format dates for display
   const formatKeyDate = (dateStr) => {
@@ -37,12 +35,13 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
     return 'active';
   };
 
-  // Check if we have any timeline data
+  // Check if we have any timeline data (key dates)
   const hasTimelineData = competition && (
     competition.nomination_start ||
     competition.voting_start ||
     competition.finals_date
   );
+  // Note: Events are now shown in a dedicated sidebar card, not in this timeline
 
   return (
     <div>
@@ -199,8 +198,8 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
         </div>
       )}
 
-      {/* Key Dates & Timeline Section */}
-      {(hasTimelineData || publicEvents.length > 0) && (
+      {/* Key Dates Section - Events are shown in dedicated sidebar card */}
+      {hasTimelineData && (
         <div style={{ marginBottom: spacing.xxxl }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xxl }}>
             <div
@@ -383,87 +382,6 @@ export default function AboutTab({ judges, sponsors, events, host, city = 'New Y
             </div>
           )}
 
-          {/* Events Timeline */}
-          {publicEvents.length > 0 && (
-            <div style={{ background: colors.background.card, border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.xxl, padding: spacing.xxxl }}>
-              <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xl, color: colors.text.primary }}>
-                <Calendar size={20} style={{ display: 'inline', marginRight: spacing.sm, verticalAlign: 'middle' }} />
-                Upcoming Events
-              </h3>
-              {publicEvents.map((event, i, arr) => (
-                <div
-                  key={event.id}
-                  style={{
-                    display: 'flex',
-                    gap: spacing.xl,
-                    position: 'relative',
-                    paddingBottom: i < arr.length - 1 ? spacing.xxxl : '0',
-                  }}
-                >
-                  {i < arr.length - 1 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: '19px',
-                        top: '40px',
-                        width: '2px',
-                        height: 'calc(100% - 20px)',
-                        background: event.status === 'completed' ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)',
-                      }}
-                    />
-                  )}
-                  <div
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: borderRadius.full,
-                      background:
-                        event.status === 'completed'
-                          ? 'rgba(34,197,94,0.2)'
-                          : event.status === 'active'
-                            ? 'rgba(212,175,55,0.2)'
-                            : 'rgba(255,255,255,0.05)',
-                      border: `2px solid ${
-                        event.status === 'completed'
-                          ? colors.status.success
-                          : event.status === 'active'
-                            ? colors.gold.primary
-                            : 'rgba(255,255,255,0.2)'
-                      }`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      boxShadow: event.status === 'active' ? '0 0 20px rgba(212,175,55,0.3)' : 'none',
-                    }}
-                  >
-                    {event.status === 'completed' && <Check size={18} style={{ color: colors.status.success }} />}
-                    {event.status === 'active' && (
-                      <div style={{ width: '12px', height: '12px', borderRadius: borderRadius.full, background: colors.gold.primary }} />
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ color: event.status === 'active' ? colors.gold.primary : colors.text.secondary, fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
-                      {formatEventDateRange(event)}
-                      {event.time && ` at ${event.time}`}
-                    </p>
-                    <h4 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
-                      {event.name}
-                    </h4>
-                    {event.location && <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>{event.location}</p>}
-                  </div>
-                  <Badge
-                    variant={event.status === 'completed' ? 'success' : event.status === 'active' ? 'gold' : 'default'}
-                    size="md"
-                    uppercase
-                    style={{ alignSelf: 'flex-start' }}
-                  >
-                    {event.status === 'completed' ? 'COMPLETED' : event.status === 'active' ? 'LIVE NOW' : 'UPCOMING'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
