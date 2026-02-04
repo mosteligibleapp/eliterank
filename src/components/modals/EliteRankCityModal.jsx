@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users,
   Activity, Info, Briefcase, Loader, User, Megaphone, Award, Building, Heart,
-  Home, Search, Bell, Menu, ArrowRight, Play
+  Home, Search, Bell, Menu, ArrowRight, Play, ExternalLink
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo, ProfileIcon, EliteRankCrown, CrownIcon } from '../ui';
 import { useSupabaseAuth, useAppSettings } from '../../hooks';
@@ -831,6 +831,163 @@ export default function EliteRankCityModal({
         const upcomingEvents = events.filter(e => new Date(e.date) >= now).sort((a, b) => new Date(a.date) - new Date(b.date));
         const pastEvents = events.filter(e => new Date(e.date) < now).sort((a, b) => new Date(b.date) - new Date(a.date));
 
+        const formatTime12h = (timeStr) => {
+          if (!timeStr) return '';
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          const period = hours >= 12 ? 'PM' : 'AM';
+          const displayHour = hours % 12 || 12;
+          return `${displayHour}:${String(minutes).padStart(2, '0')} ${period} CST`;
+        };
+
+        const renderEventCard = (event, isPast = false) => (
+          <div key={event.id} style={{
+            background: colors.background.card,
+            border: `1px solid ${colors.border.primary}`,
+            borderRadius: borderRadius.xxl,
+            overflow: 'hidden',
+            opacity: isPast ? 0.7 : 1,
+            transition: 'transform 0.2s, box-shadow 0.2s',
+          }}>
+            {/* Cover Image */}
+            <div style={{
+              width: '100%',
+              height: '180px',
+              background: event.image_url
+                ? `url(${event.image_url}) center/cover no-repeat`
+                : 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(139,92,246,0.1) 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+            }}>
+              {!event.image_url && (
+                <Crown size={48} style={{ color: 'rgba(212,175,55,0.4)' }} />
+              )}
+              {/* Date badge overlay */}
+              <div style={{
+                position: 'absolute',
+                top: spacing.md,
+                right: spacing.md,
+                background: 'rgba(10,10,15,0.85)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: borderRadius.lg,
+                padding: `${spacing.sm} ${spacing.md}`,
+                textAlign: 'center',
+                minWidth: '56px',
+              }}>
+                <div style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, fontWeight: typography.fontWeight.bold, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' })}
+                </div>
+                <div style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: colors.text.primary, lineHeight: 1 }}>
+                  {new Date(event.date + 'T00:00:00').getDate()}
+                </div>
+              </div>
+              {isPast && (
+                <div style={{
+                  position: 'absolute',
+                  top: spacing.md,
+                  left: spacing.md,
+                  background: 'rgba(255,255,255,0.15)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: borderRadius.md,
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.secondary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}>
+                  Past Event
+                </div>
+              )}
+            </div>
+
+            {/* Card Body */}
+            <div style={{ padding: spacing.xl }}>
+              {/* Competition badge */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+                padding: `${spacing.xs} ${spacing.sm}`,
+                background: 'rgba(212,175,55,0.1)',
+                border: `1px solid rgba(212,175,55,0.2)`,
+                borderRadius: borderRadius.md,
+                marginBottom: spacing.md,
+              }}>
+                <Crown size={12} style={{ color: colors.gold.primary }} />
+                <span style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, fontWeight: typography.fontWeight.medium }}>
+                  {event.competitionName || 'Elite Rank'} {event.cityName && event.cityName !== 'Unknown' ? `\u2022 ${event.cityName}` : ''}
+                </span>
+              </div>
+
+              <h3 style={{
+                fontSize: typography.fontSize.xl,
+                fontWeight: typography.fontWeight.bold,
+                color: colors.text.primary,
+                marginBottom: spacing.sm,
+              }}>
+                {event.name}
+              </h3>
+
+              {event.description && (
+                <p style={{
+                  color: colors.text.secondary,
+                  fontSize: typography.fontSize.sm,
+                  lineHeight: 1.5,
+                  marginBottom: spacing.lg,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}>
+                  {event.description}
+                </p>
+              )}
+
+              {/* Meta info */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: event.ticket_url && !isPast ? spacing.lg : 0 }}>
+                {event.time && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                    <Clock size={14} style={{ flexShrink: 0 }} />
+                    <span>{formatTime12h(event.time)}</span>
+                  </div>
+                )}
+                {event.location && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                    <MapPin size={14} style={{ flexShrink: 0 }} />
+                    <span>{event.location}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Ticket link */}
+              {event.ticket_url && !isPast && (
+                <a
+                  href={event.ticket_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    padding: `${spacing.md} ${spacing.xl}`,
+                    background: `linear-gradient(135deg, ${colors.gold.primary}, ${colors.gold.light || '#f4d03f'})`,
+                    color: '#0a0a0f',
+                    borderRadius: borderRadius.lg,
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.bold,
+                    textDecoration: 'none',
+                    marginTop: spacing.lg,
+                  }}
+                >
+                  Get Tickets
+                  <ExternalLink size={14} />
+                </a>
+              )}
+            </div>
+          </div>
+        );
+
         return (
           <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '1000px', margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
@@ -854,54 +1011,17 @@ export default function EliteRankCityModal({
                 <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.lg }}>
                   Upcoming
                 </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-                  {upcomingEvents.map(event => (
-                    <div key={event.id} style={{
-                      background: colors.background.card,
-                      border: `1px solid ${colors.border.primary}`,
-                      borderRadius: borderRadius.lg,
-                      padding: spacing.lg,
-                      ...styleHelpers.flexBetween,
-                      flexWrap: 'wrap',
-                      gap: spacing.md,
-                    }}>
-                      <div>
-                        <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.xs }}>{event.name}</h4>
-                        <div style={{ ...styleHelpers.flexStart, gap: spacing.lg, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                          {event.location && <span style={{ ...styleHelpers.flexStart, gap: spacing.xs }}><MapPin size={14} />{event.location}</span>}
-                          {event.time && <span style={{ ...styleHelpers.flexStart, gap: spacing.xs }}><Clock size={14} />{event.time}</span>}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-                          {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </p>
-                        <Badge variant="info" size="xs">{event.cityName}</Badge>
-                      </div>
-                    </div>
-                  ))}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: spacing.xl }}>
+                  {upcomingEvents.map(event => renderEventCard(event))}
                 </div>
               </div>
             )}
 
             {pastEvents.length > 0 && (
-              <div style={{ opacity: 0.7 }}>
+              <div>
                 <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.secondary, marginBottom: spacing.lg }}>Past Events</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-                  {pastEvents.slice(0, 4).map(event => (
-                    <div key={event.id} style={{
-                      background: colors.background.card,
-                      border: `1px solid ${colors.border.secondary}`,
-                      borderRadius: borderRadius.lg,
-                      padding: spacing.md,
-                      ...styleHelpers.flexBetween,
-                    }}>
-                      <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>{event.name}</span>
-                      <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
-                        {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                    </div>
-                  ))}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: spacing.xl }}>
+                  {pastEvents.slice(0, 6).map(event => renderEventCard(event, true))}
                 </div>
               </div>
             )}

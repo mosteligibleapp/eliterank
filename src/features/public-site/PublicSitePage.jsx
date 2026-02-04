@@ -165,8 +165,9 @@ export default function PublicSitePage({
           }),
           events: (eventsResult.data || []).map(e => ({
             id: e.id, name: e.name, date: e.date, endDate: e.end_date, time: e.time,
-            location: e.location, status: e.status, featured: e.featured,
-            isDoubleVoteDay: e.is_double_vote_day,
+            location: e.location, description: e.description, imageUrl: e.image_url,
+            ticketUrl: e.ticket_url, status: e.status, featured: e.featured,
+            isDoubleVoteDay: e.is_double_vote_day, publicVisible: e.public_visible,
           })),
           announcements: (announcementsResult.data || []).map(a => ({
             id: a.id, title: a.title, content: a.content, date: a.published_at, pinned: a.pinned,
