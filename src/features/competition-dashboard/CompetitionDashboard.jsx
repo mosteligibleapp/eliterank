@@ -505,11 +505,17 @@ export default function CompetitionDashboard({
         onClose={() => setEventModal({ isOpen: false, event: null })}
         event={eventModal.event}
         onSave={async (eventData) => {
+          let result;
           if (eventModal.event) {
-            await updateEvent(eventModal.event.id, eventData);
+            result = await updateEvent(eventModal.event.id, eventData);
           } else {
-            await addEvent(eventData);
+            result = await addEvent(eventData);
           }
+          if (result?.success === false) {
+            toast.error(result.error || 'Failed to save event');
+            return;
+          }
+          toast.success(eventModal.event ? 'Event updated' : 'Event added');
           setEventModal({ isOpen: false, event: null });
         }}
       />

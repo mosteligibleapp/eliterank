@@ -74,10 +74,18 @@ export function CompetitionProvider({ children }) {
   }, []);
 
   // Event handlers
+  const addEvent = useCallback((event) => {
+    setEvents((prev) => [...prev, { id: `e${Date.now()}`, ...event }]);
+  }, []);
+
   const updateEvent = useCallback((eventId, updates) => {
     setEvents((prev) =>
       prev.map((e) => (e.id === eventId ? { ...e, ...updates } : e))
     );
+  }, []);
+
+  const removeEvent = useCallback((eventId) => {
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
   }, []);
 
   // Computed values
@@ -125,7 +133,9 @@ export function CompetitionProvider({ children }) {
       removeSponsor,
 
       // Event actions
+      addEvent,
       updateEvent,
+      removeEvent,
 
       // Direct setters for bulk updates
       setContestants,
@@ -149,7 +159,9 @@ export function CompetitionProvider({ children }) {
       addSponsor,
       updateSponsor,
       removeSponsor,
+      addEvent,
       updateEvent,
+      removeEvent,
     ]
   );
 

@@ -30,7 +30,7 @@ export default function EventModal({
           <Button variant="secondary" onClick={onClose} style={{ width: 'auto' }}>
             Cancel
           </Button>
-          <Button onClick={handleSave} icon={Check} disabled={!form.name}>
+          <Button onClick={handleSave} icon={Check} disabled={!form.name || !form.date}>
             {isEditing ? 'Save Changes' : 'Add Event'}
           </Button>
         </>
