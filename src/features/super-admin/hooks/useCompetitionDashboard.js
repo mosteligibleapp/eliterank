@@ -238,6 +238,9 @@ export function useCompetitionDashboard(competitionId) {
         endDate: e.end_date,
         time: e.time,
         location: e.location,
+        description: e.description,
+        imageUrl: e.image_url,
+        ticketUrl: e.ticket_url,
         status: e.status,
         isDoubleVoteDay: e.is_double_vote_day,
         publicVisible: e.public_visible,
@@ -748,6 +751,9 @@ export function useCompetitionDashboard(competitionId) {
   const addEvent = useCallback(async (eventData) => {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
+    // date is required by the DB schema
+    if (!eventData.date) return { success: false, error: 'Date is required' };
+
     try {
       const maxSort = data.events.length > 0 ? Math.max(...data.events.map(e => e.sortOrder || 0)) : 0;
       const { error } = await supabase
@@ -756,9 +762,12 @@ export function useCompetitionDashboard(competitionId) {
           competition_id: competitionId,
           name: eventData.name,
           date: eventData.date,
-          end_date: eventData.endDate,
-          time: eventData.time,
-          location: eventData.location,
+          end_date: eventData.endDate || null,
+          time: eventData.time || null,
+          location: eventData.location || null,
+          description: eventData.description || null,
+          image_url: eventData.imageUrl || null,
+          ticket_url: eventData.ticketUrl || null,
           status: eventData.status || 'upcoming',
           public_visible: eventData.publicVisible ?? true,
           is_double_vote_day: eventData.isDoubleVoteDay ?? false,
@@ -782,10 +791,13 @@ export function useCompetitionDashboard(competitionId) {
         .from('events')
         .update({
           name: eventData.name,
-          date: eventData.date,
-          end_date: eventData.endDate,
-          time: eventData.time,
-          location: eventData.location,
+          date: eventData.date || null,
+          end_date: eventData.endDate || null,
+          time: eventData.time || null,
+          location: eventData.location || null,
+          description: eventData.description || null,
+          image_url: eventData.imageUrl || null,
+          ticket_url: eventData.ticketUrl || null,
           status: eventData.status,
           public_visible: eventData.publicVisible,
           is_double_vote_day: eventData.isDoubleVoteDay,

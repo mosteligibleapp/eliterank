@@ -1,8 +1,8 @@
 import React from 'react';
-import { MapPin, Users, Calendar, Clock, Sparkles, Edit2, Plus } from 'lucide-react';
+import { MapPin, Calendar, Clock, Sparkles, Edit2, Plus, ExternalLink, Crown } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
-import { formatEventDateRange } from '../../../utils/formatters';
+import { formatEventTime } from '../../../utils/formatters';
 
 export default function EventsTab({
   events = [],
@@ -78,39 +78,198 @@ export default function EventsTab({
     );
   }
 
-  const featuredEvent = visibleEvents.find(e => e.featured);
-  const otherEvents = visibleEvents.filter(e => !e.featured);
+  // Split into upcoming and past
+  const now = new Date();
+  const upcomingEvents = visibleEvents.filter(e => {
+    if (e.status === 'completed') return false;
+    if (!e.date) return true;
+    return new Date(e.date) >= now;
+  }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  // Helper to get event status
-  const getEventStatus = (event) => {
-    if (event.status === 'completed') return 'completed';
-    if (!event.date && !event.startDate) return 'upcoming';
-    const eventDate = new Date(event.date || event.startDate);
-    const now = new Date();
-    if (eventDate < now) return 'completed';
-    return 'upcoming';
-  };
+  const pastEvents = visibleEvents.filter(e => {
+    if (e.status === 'completed') return true;
+    if (!e.date) return false;
+    return new Date(e.date) < now;
+  }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  // Helper to format date/time display
-  const formatEventDateTime = (event) => {
-    if (event.startDate || event.endDate) {
-      return formatEventDateRange(event);
-    }
-    if (event.date) {
-      try {
-        const date = new Date(event.date);
-        return date.toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
-      } catch {
-        return event.date;
-      }
-    }
-    return 'TBD';
-  };
+  const renderEventCard = (event, isPast = false) => (
+    <div
+      key={event.id}
+      style={{
+        background: colors.background.card,
+        border: `1px solid ${colors.border.light}`,
+        borderRadius: borderRadius.xxl,
+        overflow: 'hidden',
+        opacity: isPast ? 0.75 : 1,
+        position: 'relative',
+      }}
+    >
+      {/* Edit button */}
+      {canEdit && onEditEvent && (
+        <button
+          onClick={() => onEditEvent(event)}
+          style={{
+            position: 'absolute',
+            top: spacing.md,
+            left: spacing.md,
+            zIndex: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.xs,
+            padding: `${spacing.xs} ${spacing.sm}`,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: borderRadius.md,
+            color: colors.text.secondary,
+            cursor: 'pointer',
+            fontSize: typography.fontSize.xs,
+          }}
+        >
+          <Edit2 size={12} />
+          Edit
+        </button>
+      )}
+
+      {/* Cover Image */}
+      <div style={{
+        width: '100%',
+        height: '200px',
+        background: event.imageUrl
+          ? `url(${event.imageUrl}) center/cover no-repeat`
+          : 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(139,92,246,0.1) 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+      }}>
+        {!event.imageUrl && (
+          <Crown size={56} style={{ color: 'rgba(212,175,55,0.35)' }} />
+        )}
+
+        {/* Date badge */}
+        <div style={{
+          position: 'absolute',
+          top: spacing.md,
+          right: spacing.md,
+          background: 'rgba(10,10,15,0.85)',
+          backdropFilter: 'blur(8px)',
+          borderRadius: borderRadius.lg,
+          padding: `${spacing.sm} ${spacing.md}`,
+          textAlign: 'center',
+          minWidth: '56px',
+        }}>
+          <div style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.gold.primary,
+            fontWeight: typography.fontWeight.bold,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            {event.date
+              ? new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' })
+              : 'TBD'}
+          </div>
+          <div style={{
+            fontSize: typography.fontSize.xxl,
+            fontWeight: typography.fontWeight.bold,
+            color: colors.text.primary,
+            lineHeight: 1,
+          }}>
+            {event.date ? new Date(event.date + 'T00:00:00').getDate() : '?'}
+          </div>
+        </div>
+
+        {isPast && (
+          <div style={{
+            position: 'absolute',
+            bottom: spacing.md,
+            left: spacing.md,
+            background: 'rgba(255,255,255,0.15)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: borderRadius.md,
+            padding: `${spacing.xs} ${spacing.sm}`,
+            fontSize: typography.fontSize.xs,
+            color: colors.text.secondary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            Past Event
+          </div>
+        )}
+      </div>
+
+      {/* Card Body */}
+      <div style={{ padding: spacing.xl }}>
+        <h3 style={{
+          fontSize: typography.fontSize.xl,
+          fontWeight: typography.fontWeight.bold,
+          color: colors.text.primary,
+          marginBottom: spacing.sm,
+        }}>
+          {event.name}
+        </h3>
+
+        {event.description && (
+          <p style={{
+            color: colors.text.secondary,
+            fontSize: typography.fontSize.sm,
+            lineHeight: 1.6,
+            marginBottom: spacing.lg,
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>
+            {event.description}
+          </p>
+        )}
+
+        {/* Meta info */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+          {event.time && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+              <Clock size={14} style={{ flexShrink: 0 }} />
+              <span>{formatEventTime(event.time)}</span>
+            </div>
+          )}
+          {(event.location || event.venue) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+              <MapPin size={14} style={{ flexShrink: 0 }} />
+              <span>{event.location || event.venue}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Ticket link */}
+        {event.ticketUrl && !isPast && (
+          <a
+            href={event.ticketUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: spacing.sm,
+              width: '100%',
+              padding: `${spacing.md} ${spacing.xl}`,
+              background: `linear-gradient(135deg, ${colors.gold.primary}, ${colors.gold.light || '#f4d03f'})`,
+              color: '#0a0a0f',
+              borderRadius: borderRadius.lg,
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.bold,
+              textDecoration: 'none',
+              marginTop: spacing.lg,
+            }}
+          >
+            Get Tickets
+            <ExternalLink size={14} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div>
@@ -137,159 +296,39 @@ export default function EventsTab({
         )}
       </div>
 
-      <div style={{ display: 'grid', gap: spacing.xxl }}>
-        {/* Featured Event */}
-        {featuredEvent && (
-          <div
-            style={{
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(139,92,246,0.1))',
-              border: `1px solid ${colors.border.gold}`,
-              borderRadius: borderRadius.xxl,
-              padding: spacing.xxxl,
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <span
-                style={{
-                  padding: `${spacing.sm} ${spacing.md}`,
-                  background: colors.gold.primary,
-                  color: '#0a0a0f',
-                  borderRadius: borderRadius.xxl,
-                  fontSize: typography.fontSize.sm,
-                  fontWeight: typography.fontWeight.bold,
-                }}
-              >
-                FEATURED
-              </span>
-              {canEdit && onEditEvent && (
-                <button
-                  onClick={() => onEditEvent(featuredEvent)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                    padding: `${spacing.sm} ${spacing.md}`,
-                    background: 'rgba(255,255,255,0.1)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: borderRadius.md,
-                    color: colors.text.secondary,
-                    cursor: 'pointer',
-                    fontSize: typography.fontSize.sm,
-                  }}
-                >
-                  <Edit2 size={14} />
-                  Edit
-                </button>
-              )}
-            </div>
-            <div style={{ marginTop: spacing.lg }}>
-              <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>
-                {formatEventDateTime(featuredEvent)} {featuredEvent.time && `• ${featuredEvent.time}`}
-              </p>
-              <h2 style={{ fontSize: typography.fontSize.display, fontWeight: typography.fontWeight.bold, marginBottom: spacing.md }}>
-                {featuredEvent.name}
-              </h2>
-              <p style={{ color: colors.text.light, fontSize: typography.fontSize.lg, marginBottom: spacing.xl, maxWidth: '600px' }}>
-                {featuredEvent.description}
-              </p>
-              <div style={{ display: 'flex', gap: spacing.lg, alignItems: 'center', marginBottom: spacing.xxl }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.md }}>
-                  <MapPin size={16} /> {featuredEvent.location || featuredEvent.venue || 'TBD'}
-                </span>
-                {featuredEvent.capacity && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.md }}>
-                    <Users size={16} /> {featuredEvent.capacity}
-                  </span>
-                )}
-              </div>
-              {getEventStatus(featuredEvent) !== 'completed' && (
-                <Button size="lg" style={{ padding: `${spacing.md} ${spacing.xxxl}` }}>
-                  {featuredEvent.price === 'Free' || !featuredEvent.price ? 'RSVP Free' : `Get Tickets - ${featuredEvent.price}`}
-                </Button>
-              )}
-            </div>
+      {/* Upcoming Events */}
+      {upcomingEvents.length > 0 && (
+        <div style={{ marginBottom: spacing.xxxl }}>
+          <h3 style={{
+            fontSize: typography.fontSize.lg,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            marginBottom: spacing.lg,
+          }}>
+            Upcoming
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: spacing.xl }}>
+            {upcomingEvents.map(event => renderEventCard(event))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Other Events */}
-        {otherEvents.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: spacing.xl }}>
-            {otherEvents.map(event => {
-              const status = getEventStatus(event);
-              return (
-                <div
-                  key={event.id}
-                  style={{
-                    background: colors.background.card,
-                    border: `1px solid ${colors.border.light}`,
-                    borderRadius: borderRadius.xxl,
-                    padding: spacing.xxl,
-                    opacity: status === 'completed' ? 0.8 : 1,
-                    position: 'relative',
-                  }}
-                >
-                  {canEdit && onEditEvent && (
-                    <button
-                      onClick={() => onEditEvent(event)}
-                      style={{
-                        position: 'absolute',
-                        top: spacing.md,
-                        right: spacing.md,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        padding: `${spacing.xs} ${spacing.sm}`,
-                        background: 'rgba(255,255,255,0.1)',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        borderRadius: borderRadius.md,
-                        color: colors.text.secondary,
-                        cursor: 'pointer',
-                        fontSize: typography.fontSize.xs,
-                      }}
-                    >
-                      <Edit2 size={12} />
-                    </button>
-                  )}
-                  {status === 'completed' && (
-                    <span style={{
-                      display: 'inline-block',
-                      padding: `${spacing.xs} ${spacing.sm}`,
-                      background: 'rgba(255,255,255,0.1)',
-                      borderRadius: borderRadius.sm,
-                      fontSize: typography.fontSize.xs,
-                      color: colors.text.muted,
-                      marginBottom: spacing.sm,
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                    }}>
-                      Past Event
-                    </span>
-                  )}
-                  <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>
-                    {formatEventDateTime(event)} {event.time && `• ${event.time}`}
-                  </p>
-                  <h3 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>
-                    {event.name}
-                  </h3>
-                  <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, marginBottom: spacing.lg }}>
-                    {event.description}
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.base, marginBottom: spacing.lg }}>
-                    <MapPin size={14} /> {event.location || event.venue || 'TBD'}
-                  </div>
-                  {status !== 'completed' && (
-                    <Button variant="secondary" fullWidth>
-                      {event.price === 'Free' || !event.price ? 'RSVP Free' : `Get Tickets - ${event.price}`}
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
+      {/* Past Events */}
+      {pastEvents.length > 0 && (
+        <div>
+          <h3 style={{
+            fontSize: typography.fontSize.lg,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.secondary,
+            marginBottom: spacing.lg,
+          }}>
+            Past Events
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: spacing.xl }}>
+            {pastEvents.map(event => renderEventCard(event, true))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -24,10 +24,7 @@ const COMPETITION_SELECT = `
     current_round, created_at, updated_at
   ),
   sponsors (id, name, tier, amount, logo_url, website_url, sort_order),
-  events (
-    id, name, date, end_date, time, location, status,
-    public_visible, is_double_vote_day, sort_order
-  ),
+  events (*),
   competition_rules (id, section_title, section_content, sort_order),
   voting_rounds (
     id, title, round_order, start_date, end_date,

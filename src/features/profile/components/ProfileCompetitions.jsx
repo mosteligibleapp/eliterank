@@ -98,13 +98,27 @@ function NominationCard({ nomination, onAcceptClick }) {
 function CompetitionCard({ competition, role, contestantData }) {
   const { isMobile } = useResponsive();
   const isHost = role === 'host';
-  const city = competition?.city || 'Competition';
+  const cityName = competition?.city?.name || competition?.city || '';
   const season = competition?.season || '';
   const status = competition?.status || 'upcoming';
   const isActive = ['voting', 'nomination', 'live'].includes(status);
   const isWinner = contestantData?.status === 'winner';
+  const orgSlug = competition?.organization?.slug || 'most-eligible';
 
-  const url = `/most-eligible/${city.toLowerCase().replace(/\s+/g, '-')}-${season}`;
+  // Use database slug if available, otherwise fall back to ID-based URL
+  let url;
+  if (competition?.slug) {
+    url = getCompetitionUrl(orgSlug, competition.slug);
+  } else if (competition?.id) {
+    url = `/${orgSlug}/id/${competition.id}`;
+  } else {
+    const generatedSlug = generateCompetitionSlug({
+      name: competition?.name,
+      citySlug: slugify(cityName),
+      season,
+    });
+    url = getCompetitionUrl(orgSlug, generatedSlug);
+  }
 
   return (
     <a
@@ -132,7 +146,7 @@ function CompetitionCard({ competition, role, contestantData }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
             <MapPin size={14} style={{ color: isHost ? colors.accent.purple : colors.gold.primary }} />
             <span style={{ fontWeight: typography.fontWeight.semibold, color: colors.text.primary, fontSize: typography.fontSize.sm }}>
-              {city} {season}
+              {cityName || competition?.name || 'Competition'} {season}
             </span>
           </div>
           {contestantData && (

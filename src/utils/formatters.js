@@ -171,6 +171,21 @@ export function slugify(name) {
 }
 
 /**
+ * Format a time string (HH:mm or HH:mm:ss) to 12-hour format (e.g., "7:30 PM CST")
+ * @param {string} timeStr - Time string from DB (e.g., "19:30:00")
+ * @param {string} timezone - Timezone abbreviation (default: "CST")
+ * @returns {string} - Formatted time string
+ */
+export function formatEventTime(timeStr, timezone = 'CST') {
+  if (!timeStr) return '';
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHour = hours % 12 || 12;
+  const displayMin = String(minutes).padStart(2, '0');
+  return `${displayHour}:${displayMin} ${period} ${timezone}`;
+}
+
+/**
  * Get ordinal suffix for number (1st, 2nd, 3rd, etc.)
  * @param {number} n
  * @returns {string}
