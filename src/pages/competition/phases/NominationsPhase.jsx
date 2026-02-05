@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { ArrowRight, Users, Clock, X } from 'lucide-react';
-import { PrizePool } from '../components/PrizePool';
+import { Users, Clock, X } from 'lucide-react';
+import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
 import { AboutSection } from '../components/AboutSection';
@@ -99,9 +99,9 @@ export function NominationsPhase() {
         </div>
       </section>
 
-      {/* Prize Breakdown */}
+      {/* Rewards */}
       <section className="phase-section">
-        <PrizePool />
+        <Rewards />
       </section>
 
       {/* About Links */}
