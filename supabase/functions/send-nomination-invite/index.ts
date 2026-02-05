@@ -77,10 +77,18 @@ serve(async (req) => {
       )
     }
 
+    // Build the redirect URL to the claim page with the invite token
+    const nomineeDataPrelim = nominee as unknown as NomineeData
+    const claimUrl = `${appUrl}/claim/${nomineeDataPrelim.invite_token}`
+
     // Check if already sent (unless force_resend is true)
     if (nominee.invite_sent_at && !force_resend) {
       return new Response(
-        JSON.stringify({ message: 'Invite already sent', sent_at: nominee.invite_sent_at }),
+        JSON.stringify({
+          message: 'Invite already sent',
+          sent_at: nominee.invite_sent_at,
+          claim_url: claimUrl, // Include for manual sharing
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -98,8 +106,8 @@ serve(async (req) => {
     const competition = nomineeData.competition
     const competitionName = `Most Eligible ${competition.city} ${competition.season}`
 
-    // Build the redirect URL to the claim page with the invite token
-    const redirectUrl = `${appUrl}/claim/${nomineeData.invite_token}`
+    // Use the claim URL built earlier
+    const redirectUrl = claimUrl
 
     // Check if user already exists
     const { data: existingUsers } = await supabase.auth.admin.listUsers()
@@ -187,6 +195,7 @@ serve(async (req) => {
         sent_via: 'supabase_auth',
         ...inviteResult,
         nominee_id: nominee_id,
+        claim_url: claimUrl, // Direct link for manual sharing if email fails
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
