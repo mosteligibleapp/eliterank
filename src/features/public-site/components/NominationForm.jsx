@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, User, Users, Mail, Phone, Instagram, Check } from 'lucide-react';
+import { Crown, User, Users, Mail, Phone, Instagram, Check, Share2, Copy, Twitter, Sparkles } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -10,9 +10,10 @@ import { supabase } from '../../../lib/supabase';
  * - Just collect info and save to database
  */
 export default function NominationForm({ city, competitionId, onClose }) {
-  const [step, setStep] = useState('choose'); // 'choose' | 'self' | 'other' | 'success'
+  const [step, setStep] = useState('choose'); // 'choose' | 'self' | 'other' | 'success-self' | 'success-other'
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Self nomination form
   const [selfData, setSelfData] = useState({
@@ -140,7 +141,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
         throw dbError;
       }
 
-      setStep('success');
+      setStep('success-self');
     } catch (err) {
       console.error('Nomination error:', err);
       setError(err.message || 'Failed to submit');
@@ -196,12 +197,64 @@ export default function NominationForm({ city, competitionId, onClose }) {
         throw dbError;
       }
 
-      setStep('success');
+      setStep('success-other');
     } catch (err) {
       console.error('Nomination error:', err);
       setError(err.message || 'Failed to submit');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Share helpers
+  const getShareUrl = () => {
+    return `${window.location.origin}${window.location.pathname}?apply=true`;
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareUrl());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleShareTwitter = () => {
+    const text = step === 'success-self'
+      ? `I've been nominated for Most Eligible ${city} Season 2026! Think you have what it takes?`
+      : `I just nominated someone for Most Eligible ${city} Season 2026! Know someone who deserves the spotlight?`;
+    const url = getShareUrl();
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+  };
+
+  const handleShareInstagram = () => {
+    // Instagram doesn't have a direct share URL, so we'll copy the message
+    const text = step === 'success-self'
+      ? `I've been nominated for Most Eligible ${city} Season 2026! Apply now: ${getShareUrl()}`
+      : `I just nominated someone for Most Eligible ${city} Season 2026! Nominate someone: ${getShareUrl()}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleNativeShare = async () => {
+    const shareData = {
+      title: `Most Eligible ${city}`,
+      text: step === 'success-self'
+        ? `I've been nominated for Most Eligible ${city} Season 2026!`
+        : `I just nominated someone for Most Eligible ${city}!`,
+      url: getShareUrl(),
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err.name !== 'AbortError') handleCopyLink();
+      }
+    } else {
+      handleCopyLink();
     }
   };
 
@@ -554,10 +607,194 @@ export default function NominationForm({ city, competitionId, onClose }) {
     );
   }
 
-  // ========== SUCCESS SCREEN ==========
-  if (step === 'success') {
+  // ========== SELF-NOMINATION SUCCESS SCREEN ==========
+  if (step === 'success-self') {
     return (
-      <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
+      <div style={{ textAlign: 'center', padding: spacing.xl }}>
+        {/* Animated crown/sparkle header */}
+        <div style={{
+          position: 'relative',
+          width: '100px',
+          height: '100px',
+          margin: '0 auto',
+          marginBottom: spacing.xl,
+        }}>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
+            borderRadius: '50%',
+            animation: 'pulse 2s ease-in-out infinite',
+          }} />
+          <div style={{
+            position: 'absolute',
+            inset: '10px',
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.6), rgba(212,175,55,0.2))',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Crown size={44} style={{ color: colors.gold.primary }} />
+          </div>
+          <Sparkles size={20} style={{ position: 'absolute', top: 0, right: 0, color: colors.gold.primary }} />
+          <Sparkles size={16} style={{ position: 'absolute', bottom: 10, left: 0, color: colors.gold.primary }} />
+        </div>
+
+        <h2 style={{
+          fontSize: typography.fontSize.xxl,
+          fontWeight: typography.fontWeight.bold,
+          marginBottom: spacing.sm,
+          background: `linear-gradient(135deg, ${colors.gold.primary}, #f4d03f)`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        }}>
+          You're In!
+        </h2>
+
+        <p style={{
+          fontSize: typography.fontSize.lg,
+          color: colors.text.primary,
+          marginBottom: spacing.xs,
+          fontWeight: typography.fontWeight.medium,
+        }}>
+          I've been nominated for
+        </p>
+
+        <p style={{
+          fontSize: typography.fontSize.xl,
+          fontWeight: typography.fontWeight.bold,
+          color: colors.gold.primary,
+          marginBottom: spacing.lg,
+        }}>
+          Most Eligible {city}
+          <br />
+          <span style={{ fontSize: typography.fontSize.md, color: colors.text.secondary }}>Season 2026</span>
+        </p>
+
+        <p style={{
+          color: colors.text.secondary,
+          fontSize: typography.fontSize.sm,
+          marginBottom: spacing.xl,
+          maxWidth: '280px',
+          margin: '0 auto',
+          marginBottom: spacing.xl,
+          lineHeight: 1.5,
+        }}>
+          The host will review your nomination and contact you with next steps.
+        </p>
+
+        {/* Share section */}
+        <div style={{
+          background: colors.background.secondary,
+          borderRadius: borderRadius.xl,
+          padding: spacing.lg,
+          marginBottom: spacing.lg,
+        }}>
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.muted,
+            marginBottom: spacing.md,
+          }}>
+            Share on social media
+          </p>
+
+          <div style={{ display: 'flex', gap: spacing.sm, justifyContent: 'center' }}>
+            <button
+              onClick={handleShareInstagram}
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: borderRadius.lg,
+                background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Instagram size={22} style={{ color: '#fff' }} />
+            </button>
+
+            <button
+              onClick={handleShareTwitter}
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: borderRadius.lg,
+                background: '#000',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Twitter size={22} style={{ color: '#fff' }} />
+            </button>
+
+            <button
+              onClick={handleNativeShare}
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: borderRadius.lg,
+                background: colors.gold.primary,
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Share2 size={22} style={{ color: '#000' }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Copy link */}
+        <button
+          onClick={handleCopyLink}
+          style={{
+            width: '100%',
+            padding: spacing.md,
+            background: copied ? 'rgba(74,222,128,0.2)' : colors.background.secondary,
+            border: `1px solid ${copied ? colors.status.success : colors.border.light}`,
+            borderRadius: borderRadius.lg,
+            color: copied ? colors.status.success : colors.text.secondary,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.sm,
+            fontSize: typography.fontSize.sm,
+            marginBottom: spacing.lg,
+          }}
+        >
+          {copied ? <Check size={16} /> : <Copy size={16} />}
+          {copied ? 'Link Copied!' : 'Copy nomination link'}
+        </button>
+
+        <Button onClick={onClose} variant="secondary" style={{ width: '100%' }}>
+          Done
+        </Button>
+
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // ========== THIRD-PARTY NOMINATION SUCCESS SCREEN ==========
+  if (step === 'success-other') {
+    return (
+      <div style={{ textAlign: 'center', padding: spacing.xl }}>
         <div style={{
           width: '80px',
           height: '80px',
@@ -572,17 +809,157 @@ export default function NominationForm({ city, competitionId, onClose }) {
           <Check size={40} style={{ color: colors.gold.primary }} />
         </div>
 
-        <h2 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.md }}>
-          Nomination Received!
+        <h2 style={{
+          fontSize: typography.fontSize.xxl,
+          fontWeight: typography.fontWeight.bold,
+          marginBottom: spacing.md,
+        }}>
+          Nomination Sent!
         </h2>
 
-        <p style={{ color: colors.text.secondary, marginBottom: spacing.xl, maxWidth: '300px', margin: '0 auto', lineHeight: 1.6 }}>
-          Thank you for your submission. The host will review it and contact you with next steps.
+        <p style={{
+          fontSize: typography.fontSize.md,
+          color: colors.text.primary,
+          marginBottom: spacing.xs,
+        }}>
+          You nominated <strong>{otherData.nomineeName}</strong> for
         </p>
 
-        <Button onClick={onClose} style={{ minWidth: '200px', marginTop: spacing.xl }}>
-          Done
-        </Button>
+        <p style={{
+          fontSize: typography.fontSize.lg,
+          fontWeight: typography.fontWeight.bold,
+          color: colors.gold.primary,
+          marginBottom: spacing.lg,
+        }}>
+          Most Eligible {city}
+        </p>
+
+        <p style={{
+          color: colors.text.secondary,
+          fontSize: typography.fontSize.sm,
+          marginBottom: spacing.xl,
+          maxWidth: '300px',
+          margin: '0 auto',
+          marginBottom: spacing.xl,
+          lineHeight: 1.5,
+        }}>
+          We'll reach out to let them know they've been nominated.
+          {otherData.notifyMe && " You'll be notified when they enter!"}
+        </p>
+
+        {/* Share section */}
+        <div style={{
+          background: colors.background.secondary,
+          borderRadius: borderRadius.xl,
+          padding: spacing.lg,
+          marginBottom: spacing.lg,
+        }}>
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.muted,
+            marginBottom: spacing.md,
+          }}>
+            Know someone else who should enter?
+          </p>
+
+          <div style={{ display: 'flex', gap: spacing.sm, justifyContent: 'center' }}>
+            <button
+              onClick={handleShareInstagram}
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: borderRadius.lg,
+                background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Instagram size={22} style={{ color: '#fff' }} />
+            </button>
+
+            <button
+              onClick={handleShareTwitter}
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: borderRadius.lg,
+                background: '#000',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Twitter size={22} style={{ color: '#fff' }} />
+            </button>
+
+            <button
+              onClick={handleNativeShare}
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: borderRadius.lg,
+                background: colors.gold.primary,
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Share2 size={22} style={{ color: '#000' }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Copy link */}
+        <button
+          onClick={handleCopyLink}
+          style={{
+            width: '100%',
+            padding: spacing.md,
+            background: copied ? 'rgba(74,222,128,0.2)' : colors.background.secondary,
+            border: `1px solid ${copied ? colors.status.success : colors.border.light}`,
+            borderRadius: borderRadius.lg,
+            color: copied ? colors.status.success : colors.text.secondary,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.sm,
+            fontSize: typography.fontSize.sm,
+            marginBottom: spacing.lg,
+          }}
+        >
+          {copied ? <Check size={16} /> : <Copy size={16} />}
+          {copied ? 'Link Copied!' : 'Copy nomination link to share'}
+        </button>
+
+        <div style={{ display: 'flex', gap: spacing.md }}>
+          <Button onClick={() => {
+            setStep('other');
+            setOtherData({
+              nomineeName: '',
+              contactType: 'email',
+              contactValue: '',
+              instagram: '',
+              reason: '',
+              nominatorName: otherData.nominatorName,
+              nominatorEmail: otherData.nominatorEmail,
+              isAnonymous: otherData.isAnonymous,
+              notifyMe: otherData.notifyMe,
+            });
+          }} variant="secondary" style={{ flex: 1 }}>
+            Nominate Another
+          </Button>
+          <Button onClick={onClose} style={{ flex: 1 }}>
+            Done
+          </Button>
+        </div>
       </div>
     );
   }
