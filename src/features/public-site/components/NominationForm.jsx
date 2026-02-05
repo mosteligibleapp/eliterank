@@ -687,12 +687,15 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
   // RENDER: Success
   // ============================================
   if (step === 'success') {
+    // Check if this was a third-party nomination
+    const wasThirdParty = otherData.firstName || otherData.lastName;
+
     return (
       <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
         <div style={{
           width: '80px',
           height: '80px',
-          background: 'linear-gradient(135deg, rgba(74,222,128,0.3), rgba(74,222,128,0.1))',
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
@@ -700,15 +703,18 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
           margin: '0 auto',
           marginBottom: spacing.xl,
         }}>
-          <Check size={40} style={{ color: colors.status.success }} />
+          <Check size={40} style={{ color: colors.gold.primary }} />
         </div>
 
         <h2 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.md }}>
-          You're In!
+          {wasThirdParty ? 'Nomination Sent!' : 'Application Submitted!'}
         </h2>
 
         <p style={{ color: colors.text.secondary, marginBottom: spacing.xl, maxWidth: '300px', margin: '0 auto', lineHeight: 1.6 }}>
-          Your nomination has been submitted. The host will review and notify you by email.
+          {wasThirdParty
+            ? `We'll notify ${otherData.firstName} about their nomination. Thanks for spreading the word!`
+            : 'The host will review your application and notify you by email if selected.'
+          }
         </p>
 
         <Button onClick={onClose} style={{ minWidth: '200px', marginTop: spacing.xl }}>
