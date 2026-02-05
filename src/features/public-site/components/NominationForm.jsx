@@ -26,6 +26,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     passwordComplete: false,
     photoComplete: false,
     socialComplete: false,
+    isLoginMode: false, // true if user already has account
   });
   const [pendingContestantId, setPendingContestantId] = useState(null);
 
@@ -972,13 +973,14 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
                              profileCompletion.photoComplete &&
                              profileCompletion.socialComplete;
 
-    // Handle password creation
+    // Handle password creation or login
     const handlePasswordSubmit = async () => {
       if (profileCompletion.password.length < 8) {
         setErrors({ password: 'Password must be at least 8 characters' });
         return;
       }
-      if (profileCompletion.password !== profileCompletion.confirmPassword) {
+      // Only check confirm password in signup mode
+      if (!profileCompletion.isLoginMode && profileCompletion.password !== profileCompletion.confirmPassword) {
         setErrors({ confirmPassword: 'Passwords do not match' });
         return;
       }
@@ -987,33 +989,60 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
       setErrors({});
 
       try {
-        // Create Supabase auth user with email and password
-        const { data, error } = await supabase.auth.signUp({
-          email: selfData.email,
-          password: profileCompletion.password,
-          options: {
-            data: {
-              first_name: selfData.firstName,
-              last_name: selfData.lastName,
+        let userData;
+
+        if (profileCompletion.isLoginMode) {
+          // Login existing user
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: selfData.email,
+            password: profileCompletion.password,
+          });
+          if (error) throw error;
+          userData = data.user;
+          toast.success('Logged in!');
+        } else {
+          // Create new user
+          const { data, error } = await supabase.auth.signUp({
+            email: selfData.email,
+            password: profileCompletion.password,
+            options: {
+              data: {
+                first_name: selfData.firstName,
+                last_name: selfData.lastName,
+              }
             }
+          });
+
+          // Check if user already exists
+          if (error?.message?.toLowerCase().includes('already registered') ||
+              error?.message?.toLowerCase().includes('already exists')) {
+            setProfileCompletion(prev => ({ ...prev, isLoginMode: true }));
+            setErrors({ password: 'Account exists. Enter your password to log in.' });
+            setIsSubmitting(false);
+            return;
           }
-        });
 
-        if (error) throw error;
+          if (error) throw error;
+          userData = data.user;
+          toast.success('Account created!');
+        }
 
-        // Update the nominee record with the new user_id
-        if (data.user && pendingContestantId) {
+        // Update the nominee record with the user_id
+        if (userData && pendingContestantId) {
           await supabase
             .from('nominees')
-            .update({ user_id: data.user.id })
+            .update({ user_id: userData.id })
             .eq('id', pendingContestantId);
         }
 
         setProfileCompletion(prev => ({ ...prev, passwordComplete: true }));
-        toast.success('Account created!');
       } catch (err) {
-        console.error('Error creating account:', err);
-        setErrors({ password: err.message || 'Failed to create account' });
+        console.error('Error with account:', err);
+        if (err.message?.toLowerCase().includes('invalid login')) {
+          setErrors({ password: 'Invalid password. Please try again.' });
+        } else {
+          setErrors({ password: err.message || 'Failed to continue' });
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -1226,7 +1255,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
             </div>
             <div style={{ flex: 1 }}>
               <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, margin: 0 }}>
-                Create a password
+                {profileCompletion.isLoginMode ? 'Log in to your account' : 'Create a password'}
               </h4>
               {profileCompletion.passwordComplete && (
                 <p style={{ fontSize: typography.fontSize.sm, color: colors.status.success, margin: 0 }}>Complete</p>
@@ -1248,7 +1277,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
                   type={profileCompletion.showPassword ? 'text' : 'password'}
                   value={profileCompletion.password}
                   onChange={(e) => setProfileCompletion(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Create password"
+                  placeholder={profileCompletion.isLoginMode ? 'Enter your password' : 'Create password'}
                   style={{
                     ...inputStyle,
                     paddingLeft: '44px',
@@ -1273,26 +1302,28 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
                   {profileCompletion.showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <div style={{ position: 'relative', marginBottom: spacing.md }}>
-                <Lock size={18} style={{
-                  position: 'absolute',
-                  left: spacing.md,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: colors.text.muted
-                }} />
-                <input
-                  type={profileCompletion.showPassword ? 'text' : 'password'}
-                  value={profileCompletion.confirmPassword}
-                  onChange={(e) => setProfileCompletion(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  placeholder="Confirm password"
-                  style={{
-                    ...inputStyle,
-                    paddingLeft: '44px',
-                    borderColor: errors.confirmPassword ? colors.status.error : colors.border.light,
-                  }}
-                />
-              </div>
+              {!profileCompletion.isLoginMode && (
+                <div style={{ position: 'relative', marginBottom: spacing.md }}>
+                  <Lock size={18} style={{
+                    position: 'absolute',
+                    left: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: colors.text.muted
+                  }} />
+                  <input
+                    type={profileCompletion.showPassword ? 'text' : 'password'}
+                    value={profileCompletion.confirmPassword}
+                    onChange={(e) => setProfileCompletion(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    placeholder="Confirm password"
+                    style={{
+                      ...inputStyle,
+                      paddingLeft: '44px',
+                      borderColor: errors.confirmPassword ? colors.status.error : colors.border.light,
+                    }}
+                  />
+                </div>
+              )}
               {(errors.password || errors.confirmPassword) && (
                 <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
                   {errors.password || errors.confirmPassword}
@@ -1304,7 +1335,10 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
                 size="sm"
                 style={{ width: '100%' }}
               >
-                {isSubmitting ? 'Creating...' : 'Create Account'}
+                {isSubmitting
+                  ? (profileCompletion.isLoginMode ? 'Logging in...' : 'Creating...')
+                  : (profileCompletion.isLoginMode ? 'Log In' : 'Create Account')
+                }
               </Button>
             </div>
           )}
