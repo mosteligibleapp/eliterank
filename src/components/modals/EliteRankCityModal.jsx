@@ -1140,7 +1140,7 @@ export default function EliteRankCityModal({
             color: '#10b981',
             hoverBg: 'rgba(16, 185, 129, 0.08)',
             cta: 'Start a conversation',
-            action: () => window.location.href = 'mailto:hello@eliterank.com?subject=Partnership%20Inquiry',
+            action: () => window.location.href = 'mailto:info@eliterank.co?subject=Partnership%20Inquiry',
           },
         ];
 
@@ -1396,7 +1396,7 @@ export default function EliteRankCityModal({
               <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed, marginBottom: spacing.lg }}>
                 Host a competition on EliteRank. Bring your audience, we bring the infrastructure. Sponsors, media partners, and organizations can co-create categories or power competitions around cultural moments.
               </p>
-              <Button variant="outline" size="sm" onClick={() => window.location.href = 'mailto:hello@eliterank.com'}>Contact Us</Button>
+              <Button variant="outline" size="sm" onClick={() => window.location.href = 'mailto:info@eliterank.co'}>Contact Us</Button>
             </div>
           </div>
         );
