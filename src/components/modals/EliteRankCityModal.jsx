@@ -1495,46 +1495,6 @@ export default function EliteRankCityModal({
               size={isMobile ? 36 : 40}
             />
 
-            {/* TEST PUSH NOTIFICATION BUTTON - REMOVE AFTER TESTING */}
-            {isAuthenticated && user?.id && (
-              <button
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/notifications/send', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        userIds: [user.id],
-                        title: '🎉 Test Notification',
-                        message: 'Push notifications are working!',
-                        url: 'https://eliterank.co'
-                      })
-                    });
-                    const data = await response.json();
-                    console.log('Notification sent:', data);
-                    alert('Test notification sent! Check your notifications.');
-                  } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error sending notification: ' + error.message);
-                  }
-                }}
-                style={{
-                  ...styleHelpers.flexCenter,
-                  width: isMobile ? '36px' : '40px',
-                  height: isMobile ? '36px' : '40px',
-                  background: colors.gold.primary,
-                  border: 'none',
-                  borderRadius: borderRadius.lg,
-                  color: colors.text.inverse,
-                  cursor: 'pointer',
-                  transition: `all ${transitions.fast}`,
-                }}
-                title="Test Push Notification"
-              >
-                <Bell size={18} />
-              </button>
-            )}
-            
             {!isFullPage && (
               <button onClick={onClose} style={{
                 background: 'none',
