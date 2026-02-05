@@ -70,7 +70,7 @@ export default function EliteRankCityModal({
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active'); // Default to Live competitions
   const [cityFilter, setCityFilter] = useState('all');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -458,7 +458,6 @@ export default function EliteRankCityModal({
         ...styleHelpers.hideScrollbar,
       }}>
         {[
-          { id: 'all', label: 'All' },
           { id: 'active', label: 'Live', dot: true },
           { id: 'upcoming', label: 'Coming Soon' },
           { id: 'complete', label: 'Completed' },
@@ -843,8 +842,8 @@ export default function EliteRankCityModal({
                 <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
                   Try adjusting your filters or check back soon.
                 </p>
-                {(statusFilter !== 'all' || cityFilter !== 'all') && (
-                  <Button variant="outline" size="sm" onClick={() => { setStatusFilter('all'); setCityFilter('all'); }}>
+                {cityFilter !== 'all' && (
+                  <Button variant="outline" size="sm" onClick={() => { setStatusFilter('active'); setCityFilter('all'); }}>
                     Clear Filters
                   </Button>
                 )}
