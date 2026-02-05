@@ -896,18 +896,15 @@
 }
 
 .hall-of-winners-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--spacing-sm);
 }
 
-@media (max-width: 500px) {
-  .hall-of-winners-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 .hall-of-winners-card {
+  flex: 0 1 calc(33.333% - var(--spacing-sm));
+  min-width: 140px;
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);

@@ -527,6 +527,7 @@ export default function EliteRankCityModal({
   const HallOfWinners = () => {
     // Use dynamic data from app settings
     const winners = hallOfWinnersData?.winners || [];
+    const year = hallOfWinnersData?.year || new Date().getFullYear();
     if (!winners.length) return null;
 
     return (
@@ -535,83 +536,92 @@ export default function EliteRankCityModal({
         margin: '0 auto',
         marginBottom: spacing.xxxl,
         padding: spacing.xl,
-        background: colors.background.card,
+        background: 'rgba(255, 255, 255, 0.05)',
         borderRadius: borderRadius.xl,
-        border: `1px solid ${colors.border.primary}`,
+        border: `1px solid rgba(255, 255, 255, 0.1)`,
       }}>
         {/* Header */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          alignItems: 'center',
+          gap: spacing.md,
           marginBottom: spacing.xl,
         }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            background: `linear-gradient(135deg, ${colors.gold.primary}, ${colors.gold.dark || '#b8960c'})`,
+            borderRadius: borderRadius.md,
+            ...styleHelpers.flexCenter,
+            flexShrink: 0,
+          }}>
+            <EliteRankCrown size={24} color="#000" />
+          </div>
           <div>
             <p style={{
               fontSize: typography.fontSize.xs,
               color: colors.text.muted,
               textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              marginBottom: spacing.xs,
+              letterSpacing: '0.05em',
+              marginBottom: '2px',
             }}>
-              {hallOfWinnersData?.year || new Date().getFullYear()} Champions
+              ELITES
             </p>
             <h2 style={{
-              fontSize: isMobile ? typography.fontSize.xl : typography.fontSize['2xl'],
-              fontWeight: typography.fontWeight.bold,
-              color: colors.text.primary,
-            }}>
-              Hall of Winners
-            </h2>
-          </div>
-          <div style={{
-            textAlign: 'right',
-          }}>
-            <span style={{
               fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
               fontWeight: typography.fontWeight.bold,
-              color: colors.gold.primary,
+              color: colors.text.primary,
+              margin: 0,
             }}>
-              {hallOfWinnersData?.totalAwarded || '$0'}
-            </span>
-            <span style={{
-              fontSize: typography.fontSize.sm,
-              color: colors.text.secondary,
-              marginLeft: spacing.xs,
-            }}>
-              awarded
-            </span>
+              Most Eligible {year}
+            </h2>
           </div>
         </div>
 
         {/* Winners Grid */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(winners.length, 5)}, 1fr)`,
-          gap: spacing.md,
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: spacing.sm,
         }}>
-          {winners.map((winner) => (
+          {winners.slice(0, 5).map((winner, index) => (
             <div
               key={winner.id}
               style={{
+                flex: isMobile ? '0 1 calc(50% - 8px)' : '0 1 calc(33.333% - 8px)',
+                minWidth: '140px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: spacing.md,
-                padding: spacing.lg,
-                background: colors.background.elevated,
-                borderRadius: borderRadius.lg,
-                border: winner.featured
-                  ? `1.5px solid ${colors.gold.primary}`
-                  : `1px solid ${colors.border.primary}`,
+                gap: spacing.sm,
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: 'rgba(0, 0, 0, 0.2)',
+                borderRadius: borderRadius.md,
+                border: `1px solid rgba(212, 175, 55, 0.15)`,
               }}
             >
+              {/* Rank */}
+              <div style={{
+                width: '22px',
+                height: '22px',
+                background: 'rgba(212, 175, 55, 0.2)',
+                borderRadius: '50%',
+                ...styleHelpers.flexCenter,
+                flexShrink: 0,
+                fontSize: typography.fontSize.xs,
+                fontWeight: typography.fontWeight.bold,
+                color: colors.gold.primary,
+              }}>
+                {index + 1}
+              </div>
+
               {/* Profile Image */}
               <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: borderRadius.lg,
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
                 background: colors.background.card,
-                border: `1px solid ${colors.border.secondary}`,
+                border: `2px solid rgba(212, 175, 55, 0.3)`,
                 ...styleHelpers.flexCenter,
                 flexShrink: 0,
                 overflow: 'hidden',
@@ -623,26 +633,34 @@ export default function EliteRankCityModal({
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : (
-                  <User size={24} style={{ color: colors.text.muted }} />
+                  <User size={18} style={{ color: colors.text.muted }} />
                 )}
               </div>
 
               {/* Info */}
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <p style={{
-                  fontSize: typography.fontSize.md,
+                  fontSize: typography.fontSize.sm,
                   fontWeight: typography.fontWeight.semibold,
                   color: colors.text.primary,
-                  marginBottom: '2px',
+                  marginBottom: '1px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}>
                   {winner.name}
                 </p>
-                <p style={{
-                  fontSize: typography.fontSize.sm,
-                  color: colors.text.secondary,
-                }}>
-                  {winner.city}
-                </p>
+                {winner.city && (
+                  <p style={{
+                    fontSize: typography.fontSize.xs,
+                    color: colors.text.muted,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {winner.city}
+                  </p>
+                )}
               </div>
             </div>
           ))}
