@@ -4,7 +4,6 @@ import { Users, Clock, X } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
-import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
@@ -102,11 +101,6 @@ export function NominationsPhase() {
       {/* Rewards */}
       <section className="phase-section">
         <Rewards />
-      </section>
-
-      {/* About Links */}
-      <section className="phase-section">
-        <AboutSection />
       </section>
 
       <hr className="phase-divider" />
