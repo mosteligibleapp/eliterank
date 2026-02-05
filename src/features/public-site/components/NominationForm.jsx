@@ -180,7 +180,6 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         user_id: user?.id || null, // May be null if not logged in
         name: `${selfData.firstName} ${selfData.lastName}`.trim(),
         email: selfData.email,
-        city: selfData.city || city,
         nominated_by: 'self',
         status: 'pending', // Will become 'profile-complete' after steps done
         profile_complete: false,
