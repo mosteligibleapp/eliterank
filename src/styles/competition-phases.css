@@ -720,7 +720,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .who-competes-icon {
@@ -733,17 +733,25 @@
   margin: 0;
 }
 
-.who-competes-traits {
+/* Two-column content layout */
+.who-competes-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
+  gap: var(--spacing-xl);
 }
 
-@media (max-width: 500px) {
-  .who-competes-traits {
+@media (max-width: 600px) {
+  .who-competes-content {
     grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
   }
+}
+
+/* Left column - Traits stacked vertically */
+.who-competes-traits-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
 .trait-item {
@@ -751,8 +759,9 @@
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
   border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
 }
 
 .trait-check {
@@ -760,29 +769,43 @@
   flex-shrink: 0;
 }
 
-.who-competes-requirements {
+/* Right column - Requirements stacked vertically */
+.who-competes-requirements-column {
   display: flex;
-  justify-content: center;
-  gap: var(--spacing-2xl);
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
-.requirement-item {
-  text-align: center;
+.requirement-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-md);
+}
+
+.requirement-icon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.requirement-text {
+  display: flex;
+  flex-direction: column;
 }
 
 .requirement-label {
-  display: block;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  margin-bottom: var(--spacing-xs);
+  letter-spacing: 0.5px;
 }
 
 .requirement-value {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 /* Hall of Winners Section */
