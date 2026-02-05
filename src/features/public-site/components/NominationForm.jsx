@@ -1,79 +1,46 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Crown, User, Users, Mail, Phone, Camera, Check, Lock, Instagram, AtSign, Eye, EyeOff } from 'lucide-react';
+import React, { useState } from 'react';
+import { Crown, User, Users, Mail, Phone, Instagram, Check } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
-import { useToast } from '../../../contexts/ToastContext';
-import { useAuthContextSafe } from '../../../contexts/AuthContext';
 
 /**
- * Nomination Form - Simplified Flow
- *
- * SELF NOMINATION:
- *   1. Choose "Apply Now"
- *   2. Fill basic info (name, email)
- *   3. Submit → Creates nominee record
- *   4. Optional: Create account to track status
- *   5. Success screen
- *
- * THIRD-PARTY NOMINATION:
- *   1. Choose "Nominate Someone"
- *   2. Fill nominee info
- *   3. Submit → Creates nominee record
- *   4. Success screen
+ * Simple Nomination Form
+ * - No photos, no accounts, no emails
+ * - Just collect info and save to database
  */
-export default function NominationForm({ city, competitionId, onSubmit, onClose }) {
-  const toast = useToast();
-  const { user, profile } = useAuthContextSafe();
-  const fileInputRef = useRef(null);
+export default function NominationForm({ city, competitionId, onClose }) {
+  const [step, setStep] = useState('choose'); // 'choose' | 'self' | 'other' | 'success'
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  // Simple flow state
-  const [step, setStep] = useState('choose'); // 'choose' | 'self-form' | 'other-form' | 'account' | 'success'
-  const [nomineeId, setNomineeId] = useState(null);
-
-  // Form data
-  const [formData, setFormData] = useState({
-    firstName: profile?.first_name || '',
-    lastName: profile?.last_name || '',
-    email: profile?.email || user?.email || '',
-    photo: profile?.avatar_url || null,
-  });
-
-  const [otherData, setOtherData] = useState({
+  // Self nomination form
+  const [selfData, setSelfData] = useState({
     firstName: '',
     lastName: '',
     email: '',
+    instagram: '',
+    livesInCity: null,
+    isSingle: null,
+    isAgeEligible: null,
   });
 
-  // Account creation (optional after self-nomination)
-  const [accountData, setAccountData] = useState({
-    password: '',
-    confirmPassword: '',
-    showPassword: false,
+  // Nominate someone else form
+  const [otherData, setOtherData] = useState({
+    nomineeName: '',
+    contactType: 'email',
+    contactValue: '',
+    instagram: '',
+    reason: '',
+    nominatorName: '',
+    nominatorEmail: '',
+    isAnonymous: false,
+    notifyMe: true,
   });
-  const [accountMode, setAccountMode] = useState('signup'); // 'signup' | 'login'
 
-  // UI state
-  const [photoFile, setPhotoFile] = useState(null);
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Pre-fill form if user is logged in
-  useEffect(() => {
-    if (user && profile) {
-      setFormData({
-        firstName: profile.first_name || '',
-        lastName: profile.last_name || '',
-        email: profile.email || user.email || '',
-        photo: profile.avatar_url || null,
-      });
-    }
-  }, [user, profile]);
-
-  // Styles
   const inputStyle = {
     width: '100%',
-    padding: `${spacing.md} ${spacing.lg}`,
+    padding: spacing.md,
     background: colors.background.secondary,
     border: `1px solid ${colors.border.light}`,
     borderRadius: borderRadius.lg,
@@ -90,350 +57,231 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     marginBottom: spacing.xs,
   };
 
-  // ============================================
-  // PHOTO HANDLING
-  // ============================================
-  const handlePhotoSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Yes/No button component
+  const YesNoButtons = ({ value, onChange, label }) => (
+    <div style={{ marginBottom: spacing.lg }}>
+      <label style={labelStyle}>{label} *</label>
+      <div style={{ display: 'flex', gap: spacing.md }}>
+        <button
+          type="button"
+          onClick={() => onChange(true)}
+          style={{
+            flex: 1,
+            padding: spacing.md,
+            background: value === true ? colors.gold.primary : colors.background.secondary,
+            color: value === true ? '#000' : colors.text.primary,
+            border: `1px solid ${value === true ? colors.gold.primary : colors.border.light}`,
+            borderRadius: borderRadius.lg,
+            cursor: 'pointer',
+            fontWeight: typography.fontWeight.medium,
+          }}
+        >
+          Yes
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange(false)}
+          style={{
+            flex: 1,
+            padding: spacing.md,
+            background: value === false ? colors.background.tertiary : colors.background.secondary,
+            color: colors.text.primary,
+            border: `1px solid ${value === false ? colors.text.muted : colors.border.light}`,
+            borderRadius: borderRadius.lg,
+            cursor: 'pointer',
+            fontWeight: typography.fontWeight.medium,
+          }}
+        >
+          No
+        </button>
+      </div>
+    </div>
+  );
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setFormData(prev => ({ ...prev, photo: e.target.result }));
-    };
-    reader.readAsDataURL(file);
-    setPhotoFile(file);
-  };
-
-  // ============================================
-  // SELF NOMINATION SUBMIT
-  // ============================================
+  // Handle self nomination submit
   const handleSelfSubmit = async () => {
-    // Validate
-    const newErrors = {};
-    if (!formData.firstName.trim()) newErrors.firstName = 'Required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Required';
-    if (!formData.email.trim()) newErrors.email = 'Required';
-    if (formData.email && !formData.email.includes('@')) newErrors.email = 'Invalid email';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!selfData.firstName.trim() || !selfData.lastName.trim()) {
+      setError('Name is required');
+      return;
+    }
+    if (!selfData.email.trim() || !selfData.email.includes('@')) {
+      setError('Valid email is required');
+      return;
+    }
+    if (selfData.livesInCity === null || selfData.isSingle === null || selfData.isAgeEligible === null) {
+      setError('Please answer all eligibility questions');
       return;
     }
 
     setIsSubmitting(true);
-    setErrors({});
+    setError('');
 
     try {
-      const { data: nominee, error } = await supabase
+      const { error: dbError } = await supabase
         .from('nominees')
         .insert({
           competition_id: competitionId,
-          user_id: user?.id || null,
-          name: `${formData.firstName} ${formData.lastName}`.trim(),
-          email: formData.email,
+          name: `${selfData.firstName} ${selfData.lastName}`.trim(),
+          email: selfData.email.trim(),
+          instagram: selfData.instagram.trim() || null,
           nominated_by: 'self',
           status: 'pending',
-        })
-        .select('id')
-        .single();
+          eligibility_answers: {
+            lives_in_city: selfData.livesInCity,
+            is_single: selfData.isSingle,
+            is_age_eligible: selfData.isAgeEligible,
+          },
+        });
 
-      if (error) {
-        if (error.code === '23505') {
-          throw new Error('You have already entered this competition.');
+      if (dbError) {
+        if (dbError.code === '23505') {
+          throw new Error('You have already submitted a nomination.');
         }
-        throw error;
+        throw dbError;
       }
 
-      setNomineeId(nominee.id);
-      toast.success('Nomination submitted!');
-
-      // If already logged in, go straight to success
-      if (user) {
-        setStep('success');
-      } else {
-        // Offer account creation
-        setStep('account');
-      }
+      setStep('success');
     } catch (err) {
       console.error('Nomination error:', err);
-      toast.error(err.message || 'Failed to submit');
-      setErrors({ submit: err.message });
+      setError(err.message || 'Failed to submit');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ============================================
-  // THIRD-PARTY NOMINATION SUBMIT
-  // ============================================
+  // Handle third-party nomination submit
   const handleOtherSubmit = async () => {
-    const newErrors = {};
-    if (!otherData.firstName.trim()) newErrors.firstName = 'Required';
-    if (!otherData.lastName.trim()) newErrors.lastName = 'Required';
-    if (!otherData.email.trim()) newErrors.email = 'Required';
-    if (otherData.email && !otherData.email.includes('@')) newErrors.email = 'Invalid email';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!otherData.nomineeName.trim()) {
+      setError("Nominee's name is required");
+      return;
+    }
+    if (!otherData.contactValue.trim()) {
+      setError(otherData.contactType === 'email' ? 'Email is required' : 'Phone is required');
+      return;
+    }
+    if (otherData.contactType === 'email' && !otherData.contactValue.includes('@')) {
+      setError('Valid email is required');
+      return;
+    }
+    if (!otherData.nominatorName.trim() || !otherData.nominatorEmail.trim()) {
+      setError('Your name and email are required');
       return;
     }
 
     setIsSubmitting(true);
-    setErrors({});
+    setError('');
 
     try {
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from('nominees')
         .insert({
           competition_id: competitionId,
-          name: `${otherData.firstName} ${otherData.lastName}`.trim(),
-          email: otherData.email,
+          name: otherData.nomineeName.trim(),
+          email: otherData.contactType === 'email' ? otherData.contactValue.trim() : null,
+          phone: otherData.contactType === 'phone' ? otherData.contactValue.trim() : null,
+          instagram: otherData.instagram.trim() || null,
           nominated_by: 'third_party',
-          nominator_id: user?.id || null,
-          nominator_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null,
+          nomination_reason: otherData.reason.trim() || null,
+          nominator_name: otherData.isAnonymous ? null : otherData.nominatorName.trim(),
+          nominator_email: otherData.nominatorEmail.trim(),
+          nominator_anonymous: otherData.isAnonymous,
+          nominator_notify: otherData.notifyMe,
           status: 'pending',
         });
 
-      if (error) {
-        if (error.code === '23505') {
+      if (dbError) {
+        if (dbError.code === '23505') {
           throw new Error('This person has already been nominated.');
         }
-        throw error;
+        throw dbError;
       }
 
-      toast.success('Nomination submitted!');
       setStep('success');
     } catch (err) {
       console.error('Nomination error:', err);
-      toast.error(err.message || 'Failed to submit');
-      setErrors({ submit: err.message });
+      setError(err.message || 'Failed to submit');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ============================================
-  // ACCOUNT CREATION (Optional)
-  // ============================================
-  const handleAccountSubmit = async () => {
-    if (accountData.password.length < 8) {
-      setErrors({ password: 'Password must be at least 8 characters' });
-      return;
-    }
-
-    if (accountMode === 'signup' && accountData.password !== accountData.confirmPassword) {
-      setErrors({ confirmPassword: 'Passwords do not match' });
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrors({});
-
-    try {
-      let userData;
-
-      if (accountMode === 'login') {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: accountData.password,
-        });
-        if (error) throw error;
-        userData = data.user;
-        toast.success('Logged in!');
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: accountData.password,
-          options: {
-            data: {
-              first_name: formData.firstName,
-              last_name: formData.lastName,
-            }
-          }
-        });
-
-        if (error?.message?.toLowerCase().includes('already')) {
-          setAccountMode('login');
-          setErrors({ password: 'Account exists. Enter your password to log in.' });
-          setIsSubmitting(false);
-          return;
-        }
-
-        if (error) throw error;
-        userData = data.user;
-        toast.success('Account created!');
-      }
-
-      // Link nominee to user
-      if (userData && nomineeId) {
-        await supabase
-          .from('nominees')
-          .update({ user_id: userData.id })
-          .eq('id', nomineeId);
-      }
-
-      setStep('success');
-    } catch (err) {
-      console.error('Account error:', err);
-      if (err.message?.toLowerCase().includes('invalid')) {
-        setErrors({ password: 'Invalid password' });
-      } else {
-        setErrors({ password: err.message });
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // ============================================
-  // RENDER: Choose Type
-  // ============================================
+  // ========== CHOOSE SCREEN ==========
   if (step === 'choose') {
-    const isLoggedIn = !!user;
-
     return (
       <div style={{ textAlign: 'center', padding: spacing.xl }}>
-        {/* Show profile photo if logged in */}
-        {isLoggedIn && profile?.avatar_url ? (
-          <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            background: `url(${profile.avatar_url}) center/cover`,
-            border: `3px solid ${colors.gold.primary}`,
-            margin: '0 auto',
-            marginBottom: spacing.lg,
-          }} />
-        ) : (
-          <Crown size={48} style={{ color: colors.gold.primary, marginBottom: spacing.lg }} />
-        )}
+        <Crown size={48} style={{ color: colors.gold.primary, marginBottom: spacing.lg }} />
 
-        <h2 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.sm }}>
-          {isLoggedIn ? `Hey ${profile?.first_name || 'there'}!` : 'Join the Competition'}
+        <h2 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.sm }}>
+          Who are you nominating?
         </h2>
         <p style={{ color: colors.text.secondary, marginBottom: spacing.xxl }}>
-          {isLoggedIn
-            ? 'Ready to compete or know someone who should?'
-            : 'Apply to compete or nominate someone you know'
-          }
+          Enter yourself or nominate someone you know
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md, maxWidth: '300px', margin: '0 auto' }}>
-          <Button onClick={() => setStep('self-form')} style={{ width: '100%' }}>
-            <User size={18} style={{ marginRight: spacing.sm }} />
-            {isLoggedIn ? 'Enter Competition' : 'Apply to Compete'}
-          </Button>
+        <div style={{ display: 'flex', gap: spacing.lg, maxWidth: '400px', margin: '0 auto' }}>
+          <button
+            onClick={() => setStep('self')}
+            style={{
+              flex: 1,
+              padding: spacing.xl,
+              background: colors.background.secondary,
+              border: `1px solid ${colors.border.light}`,
+              borderRadius: borderRadius.xl,
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            <User size={32} style={{ color: colors.text.primary, marginBottom: spacing.md }} />
+            <div style={{ fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.xs }}>
+              Myself
+            </div>
+            <div style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>
+              Enter the competition
+            </div>
+          </button>
 
-          <Button variant="secondary" onClick={() => setStep('other-form')} style={{ width: '100%' }}>
-            <Users size={18} style={{ marginRight: spacing.sm }} />
-            Nominate Someone
-          </Button>
+          <button
+            onClick={() => setStep('other')}
+            style={{
+              flex: 1,
+              padding: spacing.xl,
+              background: colors.background.secondary,
+              border: `1px solid ${colors.border.light}`,
+              borderRadius: borderRadius.xl,
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            <Users size={32} style={{ color: colors.text.primary, marginBottom: spacing.md }} />
+            <div style={{ fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.xs }}>
+              Someone Else
+            </div>
+            <div style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>
+              Nominate a friend
+            </div>
+          </button>
         </div>
       </div>
     );
   }
 
-  // ============================================
-  // RENDER: Self Nomination Form
-  // ============================================
-  if (step === 'self-form') {
-    const isLoggedIn = !!user;
-    const hasProfilePhoto = profile?.avatar_url;
-
+  // ========== SELF NOMINATION FORM ==========
+  if (step === 'self') {
     return (
-      <div style={{ padding: spacing.lg, maxWidth: '400px', margin: '0 auto' }}>
-        {/* Personalized greeting for logged-in users */}
-        {isLoggedIn ? (
-          <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-            <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.xs }}>
-              Hey {profile?.first_name || 'there'}!
-            </h3>
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              Ready to compete? Confirm your details below.
-            </p>
-          </div>
-        ) : (
-          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, textAlign: 'center', marginBottom: spacing.xl }}>
-            Apply to Compete
-          </h3>
-        )}
-
-        {/* Photo - shows existing profile photo with change option */}
-        <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handlePhotoSelect}
-            accept="image/*"
-            style={{ display: 'none' }}
-          />
-          <div style={{ position: 'relative', display: 'inline-block' }}>
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                width: '100px',
-                height: '100px',
-                borderRadius: '50%',
-                background: formData.photo ? `url(${formData.photo}) center/cover` : colors.background.secondary,
-                border: formData.photo ? `3px solid ${colors.gold.primary}` : `2px dashed ${colors.border.light}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                margin: '0 auto',
-              }}
-            >
-              {!formData.photo && <Camera size={28} style={{ color: colors.text.muted }} />}
-            </div>
-            {/* Change badge for existing photos */}
-            {formData.photo && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  position: 'absolute',
-                  bottom: '0',
-                  right: '0',
-                  background: colors.background.secondary,
-                  border: `1px solid ${colors.border.light}`,
-                  borderRadius: '50%',
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                }}
-              >
-                <Camera size={14} style={{ color: colors.text.secondary }} />
-              </button>
-            )}
-          </div>
-          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.sm }}>
-            {formData.photo ? 'Tap to change photo' : 'Add photo (optional)'}
-          </p>
-        </div>
+      <div style={{ padding: spacing.lg, maxWidth: '450px', margin: '0 auto' }}>
+        <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, textAlign: 'center', marginBottom: spacing.xl }}>
+          Enter {city}
+        </h3>
 
         {/* Name */}
-        <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.md }}>
+        <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>First Name *</label>
             <input
               type="text"
-              value={formData.firstName}
-              onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-              style={{ ...inputStyle, borderColor: errors.firstName ? colors.status.error : colors.border.light }}
+              value={selfData.firstName}
+              onChange={(e) => setSelfData(prev => ({ ...prev, firstName: e.target.value }))}
+              style={inputStyle}
               placeholder="First name"
             />
           </div>
@@ -441,106 +289,9 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
             <label style={labelStyle}>Last Name *</label>
             <input
               type="text"
-              value={formData.lastName}
-              onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-              style={{ ...inputStyle, borderColor: errors.lastName ? colors.status.error : colors.border.light }}
-              placeholder="Last name"
-            />
-          </div>
-        </div>
-
-        {/* Email - read-only if logged in */}
-        <div style={{ marginBottom: spacing.lg }}>
-          <label style={labelStyle}>Email *</label>
-          <div style={{ position: 'relative' }}>
-            <Mail size={18} style={{ position: 'absolute', left: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.text.muted }} />
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => !isLoggedIn && setFormData(prev => ({ ...prev, email: e.target.value }))}
-              readOnly={isLoggedIn}
-              style={{
-                ...inputStyle,
-                paddingLeft: '44px',
-                borderColor: errors.email ? colors.status.error : colors.border.light,
-                ...(isLoggedIn && {
-                  background: colors.background.tertiary,
-                  color: colors.text.secondary,
-                  cursor: 'not-allowed',
-                }),
-              }}
-              placeholder="your@email.com"
-            />
-            {isLoggedIn && (
-              <Check size={18} style={{ position: 'absolute', right: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.status.success }} />
-            )}
-          </div>
-          {isLoggedIn && (
-            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
-              Linked to your account
-            </p>
-          )}
-          {errors.email && <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.email}</p>}
-        </div>
-
-        {errors.submit && (
-          <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md, textAlign: 'center' }}>
-            {errors.submit}
-          </p>
-        )}
-
-        {/* Buttons */}
-        <div style={{ display: 'flex', gap: spacing.md }}>
-          <Button variant="secondary" onClick={() => setStep('choose')} style={{ flex: 1 }}>
-            Back
-          </Button>
-          <Button onClick={handleSelfSubmit} disabled={isSubmitting} style={{ flex: 1 }}>
-            {isSubmitting ? 'Submitting...' : (isLoggedIn ? 'Enter Now' : 'Submit')}
-          </Button>
-        </div>
-
-        {isLoggedIn && (
-          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textAlign: 'center', marginTop: spacing.md }}>
-            Your profile is already linked to your account
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  // ============================================
-  // RENDER: Third-Party Nomination Form
-  // ============================================
-  if (step === 'other-form') {
-    return (
-      <div style={{ padding: spacing.lg, maxWidth: '400px', margin: '0 auto' }}>
-        <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, textAlign: 'center', marginBottom: spacing.xl }}>
-          Nominate Someone
-        </h3>
-
-        <p style={{ color: colors.text.secondary, textAlign: 'center', marginBottom: spacing.xl }}>
-          Know someone who deserves to compete? Nominate them!
-        </p>
-
-        {/* Name */}
-        <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.md }}>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Their First Name *</label>
-            <input
-              type="text"
-              value={otherData.firstName}
-              onChange={(e) => setOtherData(prev => ({ ...prev, firstName: e.target.value }))}
-              style={{ ...inputStyle, borderColor: errors.firstName ? colors.status.error : colors.border.light }}
-              placeholder="First name"
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Their Last Name *</label>
-            <input
-              type="text"
-              value={otherData.lastName}
-              onChange={(e) => setOtherData(prev => ({ ...prev, lastName: e.target.value }))}
-              style={{ ...inputStyle, borderColor: errors.lastName ? colors.status.error : colors.border.light }}
+              value={selfData.lastName}
+              onChange={(e) => setSelfData(prev => ({ ...prev, lastName: e.target.value }))}
+              style={inputStyle}
               placeholder="Last name"
             />
           </div>
@@ -548,148 +299,263 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
 
         {/* Email */}
         <div style={{ marginBottom: spacing.lg }}>
-          <label style={labelStyle}>Their Email *</label>
+          <label style={labelStyle}>Email *</label>
           <div style={{ position: 'relative' }}>
             <Mail size={18} style={{ position: 'absolute', left: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.text.muted }} />
             <input
               type="email"
-              value={otherData.email}
-              onChange={(e) => setOtherData(prev => ({ ...prev, email: e.target.value }))}
-              style={{ ...inputStyle, paddingLeft: '44px', borderColor: errors.email ? colors.status.error : colors.border.light }}
-              placeholder="their@email.com"
+              value={selfData.email}
+              onChange={(e) => setSelfData(prev => ({ ...prev, email: e.target.value }))}
+              style={{ ...inputStyle, paddingLeft: '44px' }}
+              placeholder="your@email.com"
             />
           </div>
-          {errors.email && <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.email}</p>}
         </div>
 
-        {errors.submit && (
+        {/* Instagram */}
+        <div style={{ marginBottom: spacing.xl }}>
+          <label style={labelStyle}>Instagram Handle</label>
+          <div style={{ position: 'relative' }}>
+            <Instagram size={18} style={{ position: 'absolute', left: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.text.muted }} />
+            <input
+              type="text"
+              value={selfData.instagram}
+              onChange={(e) => setSelfData(prev => ({ ...prev, instagram: e.target.value.replace('@', '') }))}
+              style={{ ...inputStyle, paddingLeft: '44px' }}
+              placeholder="username"
+            />
+          </div>
+        </div>
+
+        {/* Eligibility Questions */}
+        <div style={{
+          background: colors.background.secondary,
+          padding: spacing.lg,
+          borderRadius: borderRadius.xl,
+          marginBottom: spacing.lg
+        }}>
+          <div style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginBottom: spacing.lg, textAlign: 'center' }}>
+            Eligibility Questions
+          </div>
+
+          <YesNoButtons
+            label={`Do you live in ${city}?`}
+            value={selfData.livesInCity}
+            onChange={(val) => setSelfData(prev => ({ ...prev, livesInCity: val }))}
+          />
+
+          <YesNoButtons
+            label="Are you single (not married or engaged)?"
+            value={selfData.isSingle}
+            onChange={(val) => setSelfData(prev => ({ ...prev, isSingle: val }))}
+          />
+
+          <YesNoButtons
+            label="Are you between the ages of 21-39?"
+            value={selfData.isAgeEligible}
+            onChange={(val) => setSelfData(prev => ({ ...prev, isAgeEligible: val }))}
+          />
+        </div>
+
+        {error && (
           <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md, textAlign: 'center' }}>
-            {errors.submit}
+            {error}
           </p>
         )}
 
-        {/* Buttons */}
+        <div style={{ display: 'flex', gap: spacing.md }}>
+          <Button variant="secondary" onClick={() => setStep('choose')} style={{ flex: 1 }}>
+            Back
+          </Button>
+          <Button onClick={handleSelfSubmit} disabled={isSubmitting} style={{ flex: 1 }}>
+            {isSubmitting ? 'Submitting...' : 'Submit'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ========== NOMINATE SOMEONE ELSE FORM ==========
+  if (step === 'other') {
+    return (
+      <div style={{ padding: spacing.lg, maxWidth: '450px', margin: '0 auto' }}>
+        <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, textAlign: 'center', marginBottom: spacing.xl }}>
+          Nominate Someone
+        </h3>
+
+        {/* Nominee Name */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>Their Name *</label>
+          <input
+            type="text"
+            value={otherData.nomineeName}
+            onChange={(e) => setOtherData(prev => ({ ...prev, nomineeName: e.target.value }))}
+            style={inputStyle}
+            placeholder="Nominee's full name"
+          />
+        </div>
+
+        {/* Contact Type Toggle */}
+        <div style={{ marginBottom: spacing.sm }}>
+          <label style={labelStyle}>How can we reach them? *</label>
+          <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.sm }}>
+            <button
+              type="button"
+              onClick={() => setOtherData(prev => ({ ...prev, contactType: 'email', contactValue: '' }))}
+              style={{
+                flex: 1,
+                padding: spacing.sm,
+                background: otherData.contactType === 'email' ? colors.gold.primary : colors.background.secondary,
+                color: otherData.contactType === 'email' ? '#000' : colors.text.primary,
+                border: `1px solid ${otherData.contactType === 'email' ? colors.gold.primary : colors.border.light}`,
+                borderRadius: borderRadius.lg,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.xs,
+              }}
+            >
+              <Mail size={16} /> Email
+            </button>
+            <button
+              type="button"
+              onClick={() => setOtherData(prev => ({ ...prev, contactType: 'phone', contactValue: '' }))}
+              style={{
+                flex: 1,
+                padding: spacing.sm,
+                background: otherData.contactType === 'phone' ? colors.gold.primary : colors.background.secondary,
+                color: otherData.contactType === 'phone' ? '#000' : colors.text.primary,
+                border: `1px solid ${otherData.contactType === 'phone' ? colors.gold.primary : colors.border.light}`,
+                borderRadius: borderRadius.lg,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.xs,
+              }}
+            >
+              <Phone size={16} /> Phone
+            </button>
+          </div>
+        </div>
+
+        {/* Contact Value */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <input
+            type={otherData.contactType === 'email' ? 'email' : 'tel'}
+            value={otherData.contactValue}
+            onChange={(e) => setOtherData(prev => ({ ...prev, contactValue: e.target.value }))}
+            style={inputStyle}
+            placeholder={otherData.contactType === 'email' ? 'their@email.com' : '(555) 555-5555'}
+          />
+        </div>
+
+        {/* Instagram */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>Their Instagram Handle</label>
+          <div style={{ position: 'relative' }}>
+            <Instagram size={18} style={{ position: 'absolute', left: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.text.muted }} />
+            <input
+              type="text"
+              value={otherData.instagram}
+              onChange={(e) => setOtherData(prev => ({ ...prev, instagram: e.target.value.replace('@', '') }))}
+              style={{ ...inputStyle, paddingLeft: '44px' }}
+              placeholder="username"
+            />
+          </div>
+        </div>
+
+        {/* Reason */}
+        <div style={{ marginBottom: spacing.xl }}>
+          <label style={labelStyle}>Why are you nominating them? (optional)</label>
+          <textarea
+            value={otherData.reason}
+            onChange={(e) => setOtherData(prev => ({ ...prev, reason: e.target.value }))}
+            style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+            placeholder="They're amazing because..."
+            maxLength={500}
+          />
+        </div>
+
+        {/* Divider */}
+        <div style={{ borderTop: `1px solid ${colors.border.light}`, margin: `${spacing.lg} 0`, paddingTop: spacing.lg }}>
+          <div style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginBottom: spacing.lg }}>
+            Your Information
+          </div>
+        </div>
+
+        {/* Nominator Name */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>Your Name *</label>
+          <input
+            type="text"
+            value={otherData.nominatorName}
+            onChange={(e) => setOtherData(prev => ({ ...prev, nominatorName: e.target.value }))}
+            style={inputStyle}
+            placeholder="Your full name"
+          />
+        </div>
+
+        {/* Nominator Email */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>Your Email *</label>
+          <input
+            type="email"
+            value={otherData.nominatorEmail}
+            onChange={(e) => setOtherData(prev => ({ ...prev, nominatorEmail: e.target.value }))}
+            style={inputStyle}
+            placeholder="your@email.com"
+          />
+        </div>
+
+        {/* Checkboxes */}
+        <div style={{ marginBottom: spacing.xl }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer', marginBottom: spacing.md }}>
+            <input
+              type="checkbox"
+              checked={otherData.isAnonymous}
+              onChange={(e) => setOtherData(prev => ({ ...prev, isAnonymous: e.target.checked }))}
+              style={{ width: '18px', height: '18px', accentColor: colors.gold.primary }}
+            />
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+              Keep my identity anonymous
+            </span>
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={otherData.notifyMe}
+              onChange={(e) => setOtherData(prev => ({ ...prev, notifyMe: e.target.checked }))}
+              style={{ width: '18px', height: '18px', accentColor: colors.gold.primary }}
+            />
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+              Notify me when they enter
+            </span>
+          </label>
+        </div>
+
+        {error && (
+          <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md, textAlign: 'center' }}>
+            {error}
+          </p>
+        )}
+
         <div style={{ display: 'flex', gap: spacing.md }}>
           <Button variant="secondary" onClick={() => setStep('choose')} style={{ flex: 1 }}>
             Back
           </Button>
           <Button onClick={handleOtherSubmit} disabled={isSubmitting} style={{ flex: 1 }}>
-            {isSubmitting ? 'Submitting...' : 'Nominate'}
+            {isSubmitting ? 'Submitting...' : 'Submit Nomination'}
           </Button>
         </div>
       </div>
     );
   }
 
-  // ============================================
-  // RENDER: Account Creation (Optional)
-  // ============================================
-  if (step === 'account') {
-    return (
-      <div style={{ padding: spacing.lg, maxWidth: '400px', margin: '0 auto', textAlign: 'center' }}>
-        <div style={{
-          width: '60px',
-          height: '60px',
-          background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto',
-          marginBottom: spacing.lg,
-        }}>
-          <Check size={28} style={{ color: colors.gold.primary }} />
-        </div>
-
-        <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.sm }}>
-          Nomination Submitted!
-        </h3>
-
-        <p style={{ color: colors.text.secondary, marginBottom: spacing.xl }}>
-          {accountMode === 'login'
-            ? 'Log in to track your application status'
-            : 'Create an account to track your application and complete your profile'
-          }
-        </p>
-
-        {/* Password Field */}
-        <div style={{ marginBottom: spacing.md, textAlign: 'left' }}>
-          <label style={labelStyle}>{accountMode === 'login' ? 'Password' : 'Create Password'}</label>
-          <div style={{ position: 'relative' }}>
-            <Lock size={18} style={{ position: 'absolute', left: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.text.muted }} />
-            <input
-              type={accountData.showPassword ? 'text' : 'password'}
-              value={accountData.password}
-              onChange={(e) => setAccountData(prev => ({ ...prev, password: e.target.value }))}
-              style={{ ...inputStyle, paddingLeft: '44px', paddingRight: '44px', borderColor: errors.password ? colors.status.error : colors.border.light }}
-              placeholder={accountMode === 'login' ? 'Enter password' : 'Create password'}
-            />
-            <button
-              type="button"
-              onClick={() => setAccountData(prev => ({ ...prev, showPassword: !prev.showPassword }))}
-              style={{ position: 'absolute', right: spacing.md, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: colors.text.muted, cursor: 'pointer' }}
-            >
-              {accountData.showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Confirm Password (signup only) */}
-        {accountMode === 'signup' && (
-          <div style={{ marginBottom: spacing.md, textAlign: 'left' }}>
-            <label style={labelStyle}>Confirm Password</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.text.muted }} />
-              <input
-                type={accountData.showPassword ? 'text' : 'password'}
-                value={accountData.confirmPassword}
-                onChange={(e) => setAccountData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                style={{ ...inputStyle, paddingLeft: '44px', borderColor: errors.confirmPassword ? colors.status.error : colors.border.light }}
-                placeholder="Confirm password"
-              />
-            </div>
-          </div>
-        )}
-
-        {(errors.password || errors.confirmPassword) && (
-          <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
-            {errors.password || errors.confirmPassword}
-          </p>
-        )}
-
-        <Button onClick={handleAccountSubmit} disabled={isSubmitting} style={{ width: '100%', marginBottom: spacing.md }}>
-          {isSubmitting ? 'Please wait...' : (accountMode === 'login' ? 'Log In' : 'Create Account')}
-        </Button>
-
-        <button
-          type="button"
-          onClick={() => setStep('success')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: colors.text.muted,
-            fontSize: typography.fontSize.sm,
-            cursor: 'pointer',
-            textDecoration: 'underline',
-          }}
-        >
-          Skip for now
-        </button>
-
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.lg }}>
-          You can create an account later from the competition page
-        </p>
-      </div>
-    );
-  }
-
-  // ============================================
-  // RENDER: Success
-  // ============================================
+  // ========== SUCCESS SCREEN ==========
   if (step === 'success') {
-    // Check if this was a third-party nomination
-    const wasThirdParty = otherData.firstName || otherData.lastName;
-
     return (
       <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
         <div style={{
@@ -707,14 +573,11 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         </div>
 
         <h2 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.md }}>
-          {wasThirdParty ? 'Nomination Sent!' : 'Application Submitted!'}
+          Nomination Received!
         </h2>
 
         <p style={{ color: colors.text.secondary, marginBottom: spacing.xl, maxWidth: '300px', margin: '0 auto', lineHeight: 1.6 }}>
-          {wasThirdParty
-            ? `We'll notify ${otherData.firstName} about their nomination. Thanks for spreading the word!`
-            : 'The host will review your application and notify you by email if selected.'
-          }
+          Thank you for your submission. The host will review it and contact you with next steps.
         </p>
 
         <Button onClick={onClose} style={{ minWidth: '200px', marginTop: spacing.xl }}>
