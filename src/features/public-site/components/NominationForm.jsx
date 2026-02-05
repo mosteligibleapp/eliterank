@@ -323,7 +323,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
     return (
       <div style={{ padding: spacing.lg, maxWidth: '450px', margin: '0 auto' }}>
         <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, textAlign: 'center', marginBottom: spacing.xl }}>
-          Enter {city}
+          Apply for Most Eligible {city} 2026
         </h3>
 
         {/* Name */}
