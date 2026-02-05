@@ -414,19 +414,15 @@
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-lg);
-  background: var(--color-bg-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   text-align: center;
 }
 
-.stat-card-highlight {
-  background: rgba(var(--color-primary-rgb), 0.1);
-  border: 1px solid rgba(var(--color-primary-rgb), 0.3);
-}
-
+.stat-card-highlight,
 .stat-card-urgent {
-  background: rgba(var(--color-error-rgb), 0.1);
-  border: 1px solid rgba(var(--color-error-rgb), 0.3);
+  /* Same styling as base for consistent design */
 }
 
 .stat-icon {
@@ -439,8 +435,10 @@
   font-weight: var(--font-weight-bold);
 }
 
-.stat-card-highlight .stat-value {
-  color: var(--color-primary);
+.stat-sublabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: calc(var(--spacing-xs) * -1);
 }
 
 .stat-label {

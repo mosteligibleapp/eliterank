@@ -90,6 +90,7 @@ export function NominationsPhase() {
         <div className="stat-card stat-card-highlight">
           <span className="stat-value">5</span>
           <span className="stat-label">Winners</span>
+          <span className="stat-sublabel">Season 2026</span>
         </div>
         <div className="stat-card">
           <Users size={20} className="stat-icon" />
