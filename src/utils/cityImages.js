@@ -5,13 +5,19 @@
  * Uses Unsplash for free, high-quality city images.
  */
 
+// Competition-specific images (takes priority over city images)
+// Key format: lowercase competition name or partial match
+const COMPETITION_IMAGES = {
+  'most eligible women': 'https://jioblcflgpqcfdmzjnto.supabase.co/storage/v1/object/public/competition-images/chicago-women-2026.jpg',
+};
+
 // City name to image URL mapping (lowercase for easier matching)
 const CITY_IMAGES = {
   // Major US Cities
   'miami': 'https://images.unsplash.com/photo-1514214246283-d427a95c5d2f?w=800&q=80',
   'new york': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=80',
   'los angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=800&q=80',
-  'chicago': 'https://jioblcflgpqcfdmzjnto.supabase.co/storage/v1/object/public/competition-images/chicago-women-2026.jpg',
+  'chicago': 'https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=800&q=80',
   'houston': 'https://images.unsplash.com/photo-1530089711124-9ca31fb9e863?w=800&q=80',
   'phoenix': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
   'philadelphia': 'https://images.unsplash.com/photo-1569761316261-9a8696fa2ca3?w=800&q=80',
@@ -51,11 +57,31 @@ const CITY_IMAGES = {
 const DEFAULT_CITY_IMAGE = 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800&q=80';
 
 /**
- * Get background image URL for a city
+ * Get background image URL for a competition
+ * First checks for competition-specific images, then falls back to city images
  * @param {string} cityName - Name of the city
- * @returns {string} URL of the city image
+ * @param {string} competitionName - Name of the competition (optional)
+ * @returns {string} URL of the image
  */
-export function getCityImage(cityName) {
+export function getCityImage(cityName, competitionName = '') {
+  // First check for competition-specific image
+  if (competitionName) {
+    const normalizedCompName = competitionName.toLowerCase().trim();
+
+    // Direct match
+    if (COMPETITION_IMAGES[normalizedCompName]) {
+      return COMPETITION_IMAGES[normalizedCompName];
+    }
+
+    // Partial match for competition name
+    for (const [key, url] of Object.entries(COMPETITION_IMAGES)) {
+      if (normalizedCompName.includes(key) || key.includes(normalizedCompName)) {
+        return url;
+      }
+    }
+  }
+
+  // Fall back to city image
   if (!cityName) return DEFAULT_CITY_IMAGE;
 
   const normalizedName = cityName.toLowerCase().trim();

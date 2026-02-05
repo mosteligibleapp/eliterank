@@ -270,7 +270,7 @@ export default function EliteRankCityModal({
     const displayPhase = competition.accessible ? competition.phase : competition.status;
     const config = getPhaseDisplayConfig(displayPhase);
     const isClickable = competition.accessible || isPublished(competition.status);
-    const cityImage = getCityImage(competition.city);
+    const cityImage = getCityImage(competition.city, competition.name);
     const org = getOrg(competition.organizationId);
 
     const getCtaText = () => {
