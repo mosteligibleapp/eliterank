@@ -3446,23 +3446,43 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
   display: flex;
-  align-items: center;
+  align-items: flex-start;  /* Prevent content jumping when form changes size */
   justify-content: center;
   z-index: 1000;
   padding: var(--spacing-lg);
+  padding-top: max(var(--spacing-lg), env(safe-area-inset-top));
+  padding-bottom: max(var(--spacing-lg), env(safe-area-inset-bottom));
   overflow-y: auto;
+  overscroll-behavior: contain;  /* Prevent scroll chaining to body */
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-container {
   position: relative;
   width: 100%;
   max-width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: none;  /* Allow container to grow, overlay handles scrolling */
+  margin-top: auto;  /* Center vertically when content is short */
+  margin-bottom: auto;
+  overflow-y: visible;  /* Let overlay handle scroll */
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
+}
+
+/* Mobile-specific modal fixes */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: var(--spacing-md);
+    align-items: flex-start;
+  }
+
+  .modal-container {
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border-radius: var(--radius-lg);
+  }
 }
 
 .modal-nomination {
