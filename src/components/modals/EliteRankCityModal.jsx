@@ -856,9 +856,10 @@ export default function EliteRankCityModal({
         );
 
       case 'events':
-        const now = new Date();
-        const upcomingEvents = events.filter(e => new Date(e.date) >= now).sort((a, b) => new Date(a.date) - new Date(b.date));
-        const pastEvents = events.filter(e => new Date(e.date) < now).sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Use string comparison to avoid timezone issues
+        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
+        const upcomingEvents = events.filter(e => e.date >= todayStr).sort((a, b) => new Date(a.date) - new Date(b.date));
+        const pastEvents = events.filter(e => e.date < todayStr).sort((a, b) => new Date(b.date) - new Date(a.date));
 
         const formatTime12h = (timeStr) => {
           if (!timeStr) return '';

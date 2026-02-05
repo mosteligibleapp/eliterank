@@ -43,9 +43,10 @@ export default function OverviewTab({
   const totalNominees = (nominees || []).length;
 
   const upcomingEvents = useMemo(() => {
-    const now = new Date();
+    // Use string comparison to avoid timezone issues
+    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
     return (events || [])
-      .filter(e => new Date(e.date) >= now)
+      .filter(e => e.date >= todayStr)
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(0, 3);
   }, [events]);

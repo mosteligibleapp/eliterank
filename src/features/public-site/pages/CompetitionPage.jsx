@@ -789,9 +789,10 @@ function CompeteTab({ competition }) {
 
 function EventsTabContent({ events }) {
   // Sort events into upcoming and past
-  const now = new Date();
-  const upcomingEvents = events.filter(e => !e.date || new Date(e.date) >= now);
-  const pastEvents = events.filter(e => e.date && new Date(e.date) < now);
+  // Use string comparison to avoid timezone issues
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
+  const upcomingEvents = events.filter(e => !e.date || e.date >= todayStr);
+  const pastEvents = events.filter(e => e.date && e.date < todayStr);
 
   if (events.length === 0) {
     return (
