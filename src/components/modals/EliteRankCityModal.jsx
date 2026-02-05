@@ -794,18 +794,20 @@ export default function EliteRankCityModal({
             {/* Competition Grid */}
             {visibleCompetitions.length > 0 ? (
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile
-                  ? '1fr'
-                  : isTablet
-                    ? 'repeat(2, 1fr)'
-                    : `repeat(auto-fill, minmax(380px, 1fr))`,
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
                 gap: isMobile ? spacing.lg : spacing.xl,
                 maxWidth: '1400px',
                 margin: '0 auto',
               }}>
                 {visibleCompetitions.map((comp) => (
-                  <CompetitionCard key={comp.id} competition={comp} />
+                  <div key={comp.id} style={{
+                    flex: isMobile ? '1 1 100%' : isTablet ? '1 1 calc(50% - 16px)' : '1 1 380px',
+                    maxWidth: isMobile ? '100%' : isTablet ? 'calc(50% - 16px)' : '500px',
+                  }}>
+                    <CompetitionCard competition={comp} />
+                  </div>
                 ))}
               </div>
             ) : (
