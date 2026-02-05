@@ -730,7 +730,7 @@ export default function EliteRankCityModal({
               }}>
                 <span style={{
                   display: 'block',
-                  background: 'linear-gradient(90deg, #f59e0b, #eab308)',
+                  background: 'linear-gradient(90deg, #f5d485, #d4af37)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
@@ -761,7 +761,7 @@ export default function EliteRankCityModal({
                   Think you're elite?
                 </span>
                 <span style={{
-                  color: '#eab308',
+                  color: '#d4af37',
                   fontWeight: typography.fontWeight.bold,
                   fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
                   display: 'block',
@@ -777,7 +777,7 @@ export default function EliteRankCityModal({
                 color: '#ffffff',
                 marginBottom: isMobile ? spacing.sm : spacing.md,
               }}>
-                Enter <span style={{ color: '#eab308' }}>·</span> Compete <span style={{ color: '#eab308' }}>·</span> Win
+                Enter <span style={{ color: '#d4af37' }}>·</span> Compete <span style={{ color: '#d4af37' }}>·</span> Win
               </p>
 
               {/* Subtext */}
