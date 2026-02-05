@@ -11,6 +11,7 @@ import { RulesAccordion } from '../components/RulesAccordion';
 import { UpcomingEventCard } from '../components/UpcomingEventCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
+import { CompetitionFooter } from '../components/CompetitionFooter';
 import { formatNumber } from '../../../utils/formatters';
 import NominationForm from '../../../features/public-site/components/NominationForm';
 
@@ -128,6 +129,9 @@ export function NominationsPhase() {
           <RulesAccordion />
         </div>
       </section>
+
+      {/* Footer */}
+      <CompetitionFooter />
 
       {/* Nomination Modal */}
       {showNominationModal && (
