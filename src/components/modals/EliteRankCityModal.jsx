@@ -301,14 +301,21 @@ export default function EliteRankCityModal({
         }}
       >
         {/* Background Image */}
-        <div style={{
-          ...styleHelpers.absoluteFill,
-          backgroundImage: `url(${cityImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: isHovered ? 'scale(1.08)' : 'scale(1)',
-        }} />
+        <img
+          src={cityImage}
+          alt={competition.name}
+          loading="eager"
+          fetchpriority="high"
+          style={{
+            ...styleHelpers.absoluteFill,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center',
+            transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+          }}
+        />
 
         {/* Gradient Overlay */}
         <div style={{

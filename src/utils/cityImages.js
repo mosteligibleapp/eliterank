@@ -7,8 +7,9 @@
 
 // Competition-specific images (takes priority over city images)
 // Key format: lowercase competition name or partial match
+// Using Supabase image transformation API for optimized delivery
 const COMPETITION_IMAGES = {
-  'most eligible women': 'https://jioblcflgpqcfdmzjnto.supabase.co/storage/v1/object/public/competition-images/chicago-women-2026.jpg',
+  'most eligible women': 'https://jioblcflgpqcfdmzjnto.supabase.co/storage/v1/render/image/public/competition-images/chicago-women-2026.jpg?width=800&quality=75',
 };
 
 // City name to image URL mapping (lowercase for easier matching)
