@@ -728,7 +728,6 @@ export default function EliteRankCityModal({
                 lineHeight: 1.15,
                 marginBottom: isMobile ? spacing.sm : spacing.md,
               }}>
-                <span style={{ color: '#ffffff', display: 'block' }}>Social Competitions</span>
                 <span style={{
                   display: 'block',
                   background: 'linear-gradient(90deg, #f59e0b, #eab308)',
@@ -736,7 +735,7 @@ export default function EliteRankCityModal({
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
                 }}>
-                  for Top Talent
+                  Where the Best Get Recognized
                 </span>
               </h1>
 
@@ -758,13 +757,14 @@ export default function EliteRankCityModal({
                 padding: `${spacing.md} ${spacing.xl}`,
                 marginBottom: isMobile ? spacing.md : spacing.lg,
               }}>
-                <span style={{ color: '#a1a1aa', fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg }}>
-                  Think you're elite?{' '}
+                <span style={{ color: '#a1a1aa', fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg, display: 'block' }}>
+                  Think you're elite?
                 </span>
                 <span style={{
                   color: '#eab308',
                   fontWeight: typography.fontWeight.bold,
                   fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                  display: 'block',
                 }}>
                   Prove it.
                 </span>
@@ -783,9 +783,9 @@ export default function EliteRankCityModal({
               {/* Subtext */}
               <p style={{
                 fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                color: '#71717a',
               }}>
-                <span style={{ color: '#d4d4d8' }}>Fans decide </span>
-                <span style={{ color: '#71717a' }}>who earns the title and prize package.</span>
+                Fans decide who win
               </p>
             </div>
 
