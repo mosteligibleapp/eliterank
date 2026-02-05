@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Check, Circle } from 'lucide-react';
+import { Check, Circle, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatDate } from '../../../utils/formatters';
 
 /**
@@ -73,6 +74,8 @@ export function Timeline() {
     .filter(item => item.date) // Only include items with dates
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
+  const [expanded, setExpanded] = useState(false);
+
   if (timelineItems.length === 0) {
     return (
       <div className="timeline">
@@ -84,14 +87,32 @@ export function Timeline() {
     );
   }
 
+  // Find the active item index for mobile collapsed view
+  const activeIndex = timelineItems.findIndex(item => item.status === 'active');
+  const currentIndex = activeIndex >= 0 ? activeIndex : 0;
+
+  // On mobile (collapsed), show: current/active item, and finale
+  const finaleIndex = timelineItems.findIndex(item => item.isFinale);
+  const mobileVisibleIndices = new Set([currentIndex]);
+  if (finaleIndex >= 0 && finaleIndex !== currentIndex) {
+    mobileVisibleIndices.add(finaleIndex);
+  }
+  // Also show the next upcoming item if different
+  const nextUpcoming = timelineItems.findIndex((item, idx) => idx > currentIndex && item.status === 'upcoming');
+  if (nextUpcoming >= 0 && !mobileVisibleIndices.has(nextUpcoming)) {
+    mobileVisibleIndices.add(nextUpcoming);
+  }
+
+  const hiddenCount = timelineItems.length - mobileVisibleIndices.size;
+
   return (
-    <div className="timeline">
+    <div className={`timeline ${expanded ? 'timeline-expanded' : ''}`}>
       <h4 className="section-label">Timeline</h4>
       <div className="timeline-list">
         {timelineItems.map((item, index) => (
           <div
             key={item.id}
-            className={`timeline-item timeline-item-${item.status}`}
+            className={`timeline-item timeline-item-${item.status} ${!mobileVisibleIndices.has(index) ? 'timeline-item-collapsible' : ''}`}
           >
             <div className="timeline-marker">
               {item.status === 'complete' ? (
@@ -131,6 +152,24 @@ export function Timeline() {
           </div>
         ))}
       </div>
+      {hiddenCount > 0 && (
+        <button
+          className="timeline-toggle"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? (
+            <>
+              <ChevronUp size={16} />
+              Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown size={16} />
+              Show all {timelineItems.length} phases
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }
