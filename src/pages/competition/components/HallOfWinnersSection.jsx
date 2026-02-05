@@ -32,7 +32,7 @@ export function HallOfWinnersSection() {
         </div>
         <div className="hall-of-winners-title">
           <span className="hall-of-winners-label">ELITES</span>
-          <h3>MOST ELIGIBLE {year}</h3>
+          <h3>Most Eligible {year}</h3>
         </div>
       </div>
 

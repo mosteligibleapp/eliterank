@@ -857,8 +857,8 @@
 
 /* Hall of Winners Section */
 .hall-of-winners-section {
-  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08), rgba(var(--color-primary-rgb), 0.02));
-  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
 }
