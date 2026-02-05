@@ -5,10 +5,9 @@ import { Users, Clock, X } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
-import { HostSection } from '../components/HostSection';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
-import { UpcomingEventCard } from '../components/UpcomingEventCard';
+import { HostCard } from '../components/HostCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CompetitionFooter } from '../components/CompetitionFooter';
@@ -144,18 +143,11 @@ export function NominationsPhase() {
 
       <hr className="phase-divider" />
 
-      {/* Host & Sponsors */}
-      <section className="phase-section">
-        <HostSection />
-      </section>
-
-      <hr className="phase-divider" />
-
-      {/* Timeline & Events/Rules */}
+      {/* Timeline & Host/Rules */}
       <section className="phase-grid phase-grid-2">
         <Timeline />
         <div className="sidebar-stack">
-          <UpcomingEventCard />
+          <HostCard />
           <RulesAccordion />
         </div>
       </section>

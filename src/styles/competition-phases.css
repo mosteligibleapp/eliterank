@@ -2943,6 +2943,119 @@
   font-size: var(--font-size-sm);
 }
 
+/* Host Sidebar Card */
+.host-sidebar-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.host-sidebar-card .sidebar-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.host-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+}
+
+.host-card-content:hover .host-card-name {
+  color: var(--color-primary);
+}
+
+.host-card-avatar {
+  flex-shrink: 0;
+}
+
+.host-card-avatar img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-border-gold);
+}
+
+.host-card-avatar-placeholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  border: 2px solid var(--color-border);
+}
+
+.host-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.host-card-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  transition: color 0.2s;
+}
+
+.host-card-bio {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.host-card-location {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.host-card-social {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.host-card-social:hover {
+  color: var(--color-primary);
+}
+
+.host-card-social svg {
+  color: var(--color-primary);
+}
+
 /* Button Styles */
 .btn {
   display: inline-flex;
