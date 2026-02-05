@@ -40,6 +40,27 @@ export function NominationsPhase() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Lock body scroll when modal is open to prevent background scrolling
+  useEffect(() => {
+    if (showNominationModal) {
+      // Save current scroll position and lock body
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        // Restore scroll position when modal closes
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [showNominationModal]);
+
   const handleOpenNomination = (forOther = false) => {
     setNominateOther(forOther);
     setShowNominationModal(true);
