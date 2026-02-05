@@ -2819,12 +2819,37 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.rules-subtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0 0 var(--spacing-xs);
+  text-align: left;
+}
+
+.rules-subtitle:last-of-type {
+  margin-bottom: var(--spacing-md);
+}
+
 .rule-content {
   padding: 0 0 var(--spacing-md);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   line-height: 1.8;
   white-space: pre-line;
+}
+
+.rule-bullet-list {
+  list-style: disc;
+  padding-left: var(--spacing-lg);
+  margin: 0;
+}
+
+.rule-bullet-list li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.rule-bullet-list li:last-child {
+  margin-bottom: 0;
 }
 
 /* Sidebar Stack - stacks cards vertically in right column */
