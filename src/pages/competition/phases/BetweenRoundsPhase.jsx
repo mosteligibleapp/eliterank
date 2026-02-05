@@ -5,6 +5,7 @@ import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
 import { CompetitionHeader } from '../components/CompetitionHeader';
+import { UpcomingEventCard } from '../components/UpcomingEventCard';
 
 /**
  * Between rounds phase view
@@ -39,8 +40,9 @@ export function BetweenRoundsPhase() {
           <h3 className="section-label">Current Standings</h3>
           <LeaderboardCompact />
         </div>
-        <div>
+        <div className="sidebar-stack">
           <PrizePool />
+          <UpcomingEventCard />
           <Timeline />
         </div>
       </section>

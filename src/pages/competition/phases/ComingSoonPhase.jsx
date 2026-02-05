@@ -8,6 +8,7 @@ import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
+import { UpcomingEventCard } from '../components/UpcomingEventCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { InterestModal } from '../components/InterestModal';
@@ -105,10 +106,13 @@ export function ComingSoonPhase() {
 
       <hr className="phase-divider" />
 
-      {/* Timeline & Rules */}
+      {/* Timeline & Events/Rules */}
       <section className="phase-grid phase-grid-2">
         <Timeline />
-        <RulesAccordion />
+        <div className="sidebar-stack">
+          <UpcomingEventCard />
+          <RulesAccordion />
+        </div>
       </section>
     </div>
   );

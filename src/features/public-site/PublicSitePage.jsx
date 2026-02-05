@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Crown, Users, Calendar, Sparkles, Award, UserPlus, Trophy, Clock, ChevronLeft, Home } from 'lucide-react';
+import { X, Crown, Users, Calendar, Sparkles, Award, UserPlus, Trophy, Clock, ChevronLeft, Home, BookOpen } from 'lucide-react';
 import { Button, Badge, OrganizationLogo } from '../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, shadows, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -15,6 +15,7 @@ import WinnersTab from './components/WinnersTab';
 import VoteModal from './components/VoteModal';
 import CompetitionTeaser from './components/CompetitionTeaser';
 import PublicProfileView from './components/PublicProfileView';
+import UpcomingEventCard from './components/UpcomingEventCard';
 
 const VOTING_TABS = [
   { id: 'contestants', label: 'Vote', mobileLabel: 'Vote', icon: Users },
@@ -563,40 +564,131 @@ export default function PublicSitePage({
         padding: isMobile ? `${spacing.lg} ${spacing.lg} 100px` : `${spacing.xxl} ${spacing.xxl}`,
         minHeight: isMobile ? 'calc(100vh - 140px)' : 'auto',
       }}>
-        {activeTab === 'winners' && (
-          <WinnersTab
-            city={city}
-            season={season}
-            winners={winners}
-            competitionId={competition?.id}
-            onViewProfile={(profile) => handleViewProfile(profile, 'winner')}
-          />
+        {/* Tabs with sidebar (contestants, nominate, winners, announcements) */}
+        {['contestants', 'nominate', 'winners', 'announcements'].includes(activeTab) && (
+          <div style={{
+            display: isMobile ? 'block' : 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 300px',
+            gap: spacing.xxl,
+          }}>
+            {/* Main Column */}
+            <div>
+              {activeTab === 'winners' && (
+                <WinnersTab
+                  city={city}
+                  season={season}
+                  winners={winners}
+                  competitionId={competition?.id}
+                  onViewProfile={(profile) => handleViewProfile(profile, 'winner')}
+                />
+              )}
+              {activeTab === 'nominate' && (
+                <NominationTab
+                  city={city}
+                  competitionId={competition?.id}
+                  onNominationSubmit={onClose}
+                  isAuthenticated={isAuthenticated}
+                  onLogin={onLogin}
+                  userEmail={userEmail}
+                  userInstagram={userInstagram}
+                  formConfig={competition?.nomination_form_config}
+                />
+              )}
+              {activeTab === 'contestants' && (
+                <ContestantsTab
+                  contestants={displayContestants}
+                  events={displayEvents}
+                  forceDoubleVoteDay={isDoubleVoteDay}
+                  onVote={setSelectedContestant}
+                  isAuthenticated={isAuthenticated}
+                  onLogin={onLogin}
+                  isJudgingPhase={isJudgingPhase}
+                  onViewProfile={(profile) => handleViewProfile(profile, 'contestant')}
+                  currentRound={currentRound}
+                />
+              )}
+              {activeTab === 'announcements' && (
+                <AnnouncementsTab announcements={displayAnnouncements} city={city} season={season} />
+              )}
+            </div>
+
+            {/* Sidebar Column */}
+            {!isMobile && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+                {/* Upcoming Event Card */}
+                <UpcomingEventCard
+                  events={displayEvents}
+                  onViewAllEvents={() => setActiveTab('events')}
+                />
+
+                {/* Rules Summary Card */}
+                {competition?.rules?.length > 0 && (
+                  <div
+                    style={{
+                      background: colors.background.card,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.xl,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* Header */}
+                    <div
+                      style={{
+                        padding: `${spacing.md} ${spacing.lg}`,
+                        borderBottom: `1px solid ${colors.border.light}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.sm,
+                      }}
+                    >
+                      <BookOpen size={16} style={{ color: colors.text.secondary }} />
+                      <span
+                        style={{
+                          fontSize: typography.fontSize.sm,
+                          fontWeight: typography.fontWeight.semibold,
+                          color: colors.text.primary,
+                        }}
+                      >
+                        Competition Rules
+                      </span>
+                    </div>
+                    {/* Preview */}
+                    <div style={{ padding: spacing.lg }}>
+                      <p
+                        style={{
+                          fontSize: typography.fontSize.sm,
+                          color: colors.text.secondary,
+                          marginBottom: spacing.md,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {competition.rules.length} rule section{competition.rules.length !== 1 ? 's' : ''} for this competition.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('about')}
+                        style={{
+                          background: 'none',
+                          border: `1px solid ${colors.border.light}`,
+                          borderRadius: borderRadius.md,
+                          padding: `${spacing.sm} ${spacing.md}`,
+                          color: colors.text.primary,
+                          fontSize: typography.fontSize.sm,
+                          fontWeight: typography.fontWeight.medium,
+                          cursor: 'pointer',
+                          width: '100%',
+                        }}
+                      >
+                        View Rules
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
-        {activeTab === 'nominate' && (
-          <NominationTab
-            city={city}
-            competitionId={competition?.id}
-            onNominationSubmit={onClose}
-            isAuthenticated={isAuthenticated}
-            onLogin={onLogin}
-            userEmail={userEmail}
-            userInstagram={userInstagram}
-            formConfig={competition?.nomination_form_config}
-          />
-        )}
-        {activeTab === 'contestants' && (
-          <ContestantsTab
-            contestants={displayContestants}
-            events={displayEvents}
-            forceDoubleVoteDay={isDoubleVoteDay}
-            onVote={setSelectedContestant}
-            isAuthenticated={isAuthenticated}
-            onLogin={onLogin}
-            isJudgingPhase={isJudgingPhase}
-            onViewProfile={(profile) => handleViewProfile(profile, 'contestant')}
-            currentRound={currentRound}
-          />
-        )}
+
+        {/* Full-width tabs (events, about) */}
         {activeTab === 'events' && (
           <EventsTab
             events={displayEvents}
@@ -608,14 +700,10 @@ export default function PublicSitePage({
             onAddEvent={onAddEvent}
           />
         )}
-        {activeTab === 'announcements' && (
-          <AnnouncementsTab announcements={displayAnnouncements} city={city} season={season} />
-        )}
         {activeTab === 'about' && (
           <AboutTab
             judges={displayJudges}
             sponsors={displaySponsors}
-            events={displayEvents}
             host={displayHost}
             city={city}
             competition={competition}

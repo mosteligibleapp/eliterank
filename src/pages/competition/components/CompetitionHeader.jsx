@@ -1,11 +1,12 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
+import { Crown } from 'lucide-react';
 
 /**
  * Consistent competition header across all phases
- * Shows season, name, and description - editable from host dashboard
+ * Shows organization branding, season, name, and description
  */
 export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 'default' }) {
-  const { competition, about, phase } = usePublicCompetition();
+  const { competition, organization, about } = usePublicCompetition();
 
   // Determine badge variant class
   const badgeClass = {
@@ -17,6 +18,22 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
 
   return (
     <section className="competition-header">
+      {/* Organization Branding */}
+      <div className="org-branding">
+        <div className="org-logo">
+          {organization?.logo_url ? (
+            <img
+              src={organization.logo_url}
+              alt={organization.name}
+            />
+          ) : (
+            <Crown size={40} />
+          )}
+        </div>
+        <span className="org-presented-by">Presented by</span>
+        <span className="org-name">{organization?.name || 'Elite Rank'}</span>
+      </div>
+
       {/* Season Tag */}
       {competition?.season && (
         <span className="competition-season">Season {competition.season}</span>

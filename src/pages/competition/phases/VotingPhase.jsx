@@ -5,6 +5,7 @@ import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
 import { CompetitionHeader } from '../components/CompetitionHeader';
+import { UpcomingEventCard } from '../components/UpcomingEventCard';
 
 /**
  * Voting phase view (Round 1, Round 2, Resurrection, Finals)
@@ -58,6 +59,8 @@ export function VotingPhase() {
           <PrizePool compact collapsible />
 
           <ActivityFeedCompact limit={5} />
+
+          <UpcomingEventCard />
 
           <Timeline />
         </aside>

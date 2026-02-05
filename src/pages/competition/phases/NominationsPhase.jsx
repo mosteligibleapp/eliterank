@@ -8,6 +8,7 @@ import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
+import { UpcomingEventCard } from '../components/UpcomingEventCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { formatNumber } from '../../../utils/formatters';
@@ -55,29 +56,31 @@ export function NominationsPhase() {
         <WhoCompetes />
       </section>
 
-      {/* Hall of Winners - Past Champions */}
-      <section className="phase-section">
-        <HallOfWinnersSection />
-      </section>
-
-      {/* Main CTA */}
-      <section className="phase-cta-main">
-        <span className="cta-label">Think you qualify?</span>
-        <button
-          className="btn btn-primary btn-large"
-          onClick={() => handleOpenNomination(false)}
-        >
-          Start Your Nomination
-          <ArrowRight size={18} />
-        </button>
-        <span className="cta-alt">
-          or <button
-            className="link-button"
+      {/* Main CTA Card */}
+      <section className="nomination-cta-card">
+        <h3 className="nomination-cta-title">Are You An Elite?</h3>
+        <p className="nomination-cta-subtitle">
+          Apply now or nominate someone who deserves the spotlight.
+        </p>
+        <div className="nomination-cta-buttons">
+          <button
+            className="btn btn-primary btn-large"
+            onClick={() => handleOpenNomination(false)}
+          >
+            Apply Now
+          </button>
+          <button
+            className="btn btn-outline btn-large"
             onClick={() => handleOpenNomination(true)}
           >
-            nominate someone you know
+            Nominate Someone
           </button>
-        </span>
+        </div>
+      </section>
+
+      {/* Hall of Winners - Past Elites */}
+      <section className="phase-section">
+        <HallOfWinnersSection />
       </section>
 
       {/* Stats Row */}
@@ -117,10 +120,13 @@ export function NominationsPhase() {
 
       <hr className="phase-divider" />
 
-      {/* Timeline & Rules */}
+      {/* Timeline & Events/Rules */}
       <section className="phase-grid phase-grid-2">
         <Timeline />
-        <RulesAccordion />
+        <div className="sidebar-stack">
+          <UpcomingEventCard />
+          <RulesAccordion />
+        </div>
       </section>
 
       {/* Nomination Modal */}
