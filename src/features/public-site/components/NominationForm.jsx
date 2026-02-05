@@ -166,7 +166,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit self-nomination (to contestants with pending status)
+  // Submit self-nomination (to nominees table with pending status)
   const handleSelfSubmit = async () => {
     if (!validateSelfNomination()) return;
 
@@ -174,25 +174,21 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     setSubmitError(null);
 
     try {
-      // Don't upload photo yet - that's part of profile completion
-      // Don't require user to be logged in yet
-
-      // Insert to contestants with 'pending' status
-      const contestantData = {
+      // Insert to nominees table (allows anonymous inserts)
+      const nomineeData = {
         competition_id: competitionId,
         user_id: user?.id || null, // May be null if not logged in
         name: `${selfData.firstName} ${selfData.lastName}`.trim(),
         email: selfData.email,
-        phone: selfData.phone || null,
         city: selfData.city || city,
-        avatar_url: selfData.photo || null,
-        status: 'pending', // Pending until profile completion
-        votes: 0,
+        nominated_by: 'self',
+        status: 'pending', // Will become 'profile-complete' after steps done
+        profile_complete: false,
       };
 
-      const { data: insertedContestant, error } = await supabase
-        .from('contestants')
-        .insert(contestantData)
+      const { data: insertedNominee, error } = await supabase
+        .from('nominees')
+        .insert(nomineeData)
         .select('id')
         .single();
 
@@ -203,8 +199,8 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         throw error;
       }
 
-      // Store the contestant ID for profile completion
-      setPendingContestantId(insertedContestant.id);
+      // Store the nominee ID for profile completion
+      setPendingContestantId(insertedNominee.id); // Reusing state name
 
       // If user is already logged in, mark password as complete
       if (user) {
@@ -1002,10 +998,10 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
 
         if (error) throw error;
 
-        // Update the contestant record with the new user_id
+        // Update the nominee record with the new user_id
         if (data.user && pendingContestantId) {
           await supabase
-            .from('contestants')
+            .from('nominees')
             .update({ user_id: data.user.id })
             .eq('id', pendingContestantId);
         }
@@ -1024,10 +1020,17 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     const handlePhotoUploadComplete = async () => {
       if (!photoFile) return;
 
+      // Get current user (should exist after password step)
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        toast.error('Please complete the password step first');
+        return;
+      }
+
       setUploadingPhoto(true);
       try {
         const fileExt = photoFile.name.split('.').pop();
-        const fileName = `contestant-${pendingContestantId}-${Date.now()}.${fileExt}`;
+        const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
         const filePath = `avatars/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -1040,11 +1043,11 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
           .from('avatars')
           .getPublicUrl(filePath);
 
-        // Update contestant with avatar
+        // Update user's profile with avatar
         await supabase
-          .from('contestants')
+          .from('profiles')
           .update({ avatar_url: publicUrl })
-          .eq('id', pendingContestantId);
+          .eq('id', currentUser.id);
 
         setProfileCompletion(prev => ({ ...prev, photoComplete: true }));
         toast.success('Photo uploaded!');
@@ -1066,18 +1069,31 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         return;
       }
 
+      // Get current user
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        toast.error('Please complete the password step first');
+        return;
+      }
+
       setIsSubmitting(true);
       setErrors({});
 
       try {
-        // Update contestant with social handles
+        // Update user's profile with social handles
         await supabase
-          .from('contestants')
+          .from('profiles')
           .update({
-            instagram_handle: instagram.trim() || null,
-            tiktok_handle: tiktok.trim() || null,
-            twitter_handle: twitter.trim() || null,
+            instagram: instagram.trim() || null,
+            tiktok: tiktok.trim() || null,
+            twitter: twitter.trim() || null,
           })
+          .eq('id', currentUser.id);
+
+        // Also update nominee record with instagram (for host visibility)
+        await supabase
+          .from('nominees')
+          .update({ instagram: instagram.trim() || null })
           .eq('id', pendingContestantId);
 
         setProfileCompletion(prev => ({ ...prev, socialComplete: true }));
@@ -1093,10 +1109,13 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     // Final completion
     const handleFinalComplete = async () => {
       try {
-        // Update contestant status to pending_review (awaiting host approval)
+        // Update nominee status to profile-complete (awaiting host approval)
         await supabase
-          .from('contestants')
-          .update({ status: 'pending_review' })
+          .from('nominees')
+          .update({
+            status: 'profile-complete',
+            profile_complete: true
+          })
           .eq('id', pendingContestantId);
 
         setIsSuccess(true);
