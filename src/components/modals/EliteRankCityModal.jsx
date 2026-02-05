@@ -1263,23 +1263,12 @@ export default function EliteRankCityModal({
           <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '900px', margin: '0 auto' }}>
             {/* Hero Section */}
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                background: gradients.gold,
-                borderRadius: borderRadius.xl,
-                ...styleHelpers.flexCenter,
-                margin: '0 auto',
-                marginBottom: spacing.lg,
-              }}>
-                <Crown size={32} style={{ color: '#000' }} />
-              </div>
               <h2 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.lg }}>About EliteRank</h2>
               <p style={{ color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed, fontSize: typography.fontSize.md, marginBottom: spacing.lg }}>
                 EliteRank is a social competition platform where public voting determines who ranks at the top across categories that matter — from dating to creators and more. Elites are nominated, accepted by the host then begin rally support, campaign for a chance to win while building their fan base.
               </p>
               <p style={{ color: colors.text.tertiary, lineHeight: typography.lineHeight.relaxed, fontSize: typography.fontSize.sm, fontStyle: 'italic' }}>
-                Think American Idol meets GoFundMe — bracket-style tournaments where your network becomes your campaign team, the crowd decides who rises, and every vote puts money in your pocket.
+                Think American Idol meets GoFundMe — competitions where your network becomes your campaign team and the crowd decides who rises the ranks to win.
               </p>
             </div>
 
