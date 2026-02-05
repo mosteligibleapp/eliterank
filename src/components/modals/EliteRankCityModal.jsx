@@ -64,6 +64,7 @@ export default function EliteRankCityModal({
   // Check if user has dashboard access
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
   const [activeTab, setActiveTab] = useState('competitions');
+  const [showCrownAnimation, setShowCrownAnimation] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [competitions, setCompetitions] = useState([]);
   const [events, setEvents] = useState([]);
@@ -694,6 +695,21 @@ export default function EliteRankCityModal({
               marginBottom: spacing.xl,
               padding: isMobile ? `${spacing.lg} 0` : `${spacing.xl} 0`,
             }}>
+              {/* Animated Crown */}
+              {showCrownAnimation && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  marginBottom: spacing.xl,
+                }}>
+                  <div style={{
+                    animation: 'crownDrop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, crownGlow 2s ease-in-out 0.8s infinite, crownFloat 3s ease-in-out 1.5s infinite',
+                  }}>
+                    <EliteRankCrown size={isMobile ? 64 : 80} />
+                  </div>
+                </div>
+              )}
+
               {/* Season Status Badge - matches card styling */}
               <div style={{
                 display: 'inline-flex',
@@ -1759,6 +1775,38 @@ export default function EliteRankCityModal({
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes crownDrop {
+          0% {
+            opacity: 0;
+            transform: translateY(-100px) scale(0.3) rotate(-20deg);
+          }
+          50% {
+            opacity: 1;
+            transform: translateY(10px) scale(1.2) rotate(5deg);
+          }
+          70% {
+            transform: translateY(-5px) scale(1.1) rotate(-3deg);
+          }
+          85% {
+            transform: translateY(3px) scale(1.05) rotate(1deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1) rotate(0deg);
+          }
+        }
+        @keyframes crownGlow {
+          0%, 100% {
+            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4)) drop-shadow(0 0 20px rgba(212, 175, 55, 0.2));
+          }
+          50% {
+            filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.8)) drop-shadow(0 0 40px rgba(212, 175, 55, 0.4)) drop-shadow(0 0 60px rgba(212, 175, 55, 0.2));
+          }
+        }
+        @keyframes crownFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
         }
         * {
           box-sizing: border-box;
