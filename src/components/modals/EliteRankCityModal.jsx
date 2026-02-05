@@ -4,7 +4,7 @@ import {
   Activity, Info, Briefcase, Loader, User, Megaphone, Award, Building, Heart,
   Home, Search, Bell, Menu, ArrowRight, Play, ExternalLink
 } from 'lucide-react';
-import { Button, Badge, OrganizationLogo, ProfileIcon, EliteRankCrown, CrownIcon } from '../ui';
+import { Button, Badge, OrganizationLogo, ProfileIcon, EliteRankCrown, CrownIcon, EliteGatheringIcon } from '../ui';
 import { useSupabaseAuth, useAppSettings } from '../../hooks';
 import { colors, spacing, borderRadius, typography, shadows, transitions, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -1021,15 +1021,15 @@ export default function EliteRankCityModal({
           <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '1000px', margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
               <div style={{
-                width: '64px',
-                height: '64px',
+                width: '80px',
+                height: '80px',
                 background: gradients.purple,
                 borderRadius: borderRadius.xl,
                 ...styleHelpers.flexCenter,
                 margin: '0 auto',
                 marginBottom: spacing.lg,
               }}>
-                <Calendar size={32} style={{ color: '#fff' }} />
+                <EliteGatheringIcon size={64} crownSize={12} />
               </div>
               <h2 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>Events</h2>
               <p style={{ color: colors.text.secondary }}>Exclusive events across all competitions</p>
@@ -1057,7 +1057,9 @@ export default function EliteRankCityModal({
 
             {events.length === 0 && (
               <div style={{ ...styleHelpers.flexCenter, flexDirection: 'column', padding: spacing.xxxl, textAlign: 'center' }}>
-                <Calendar size={48} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
+                <div style={{ marginBottom: spacing.lg, opacity: 0.5 }}>
+                  <EliteGatheringIcon size={64} crownSize={10} />
+                </div>
                 <p style={{ color: colors.text.secondary }}>No events scheduled yet</p>
               </div>
             )}

@@ -12,3 +12,4 @@ export { default as ProfileIcon } from './ProfileIcon';
 
 // Custom icons
 export { EliteRankCrown, CrownIcon } from './icons';
+export { EliteGatheringIcon } from './EliteGatheringIcon';
