@@ -9,18 +9,25 @@ import { formatEventTime } from '../../../utils/formatters';
 export function UpcomingEventCard({ onViewAllEvents }) {
   const { events } = usePublicCompetition();
 
-  // Filter to only upcoming events
-  const now = new Date();
-  const upcomingEvents = (events || [])
-    .filter(e => {
-      if (!e.date) return true; // Include events without dates
-      return new Date(e.date) >= now;
-    })
-    .sort((a, b) => {
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return new Date(a.date) - new Date(b.date);
-    });
+  // Get upcoming events - events without dates or with future/today dates
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Sort all events by date, putting events without dates at the end
+  const sortedEvents = [...(events || [])].sort((a, b) => {
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return new Date(a.date) - new Date(b.date);
+  });
+
+  // Find the first upcoming event (date is today or in the future, or no date set)
+  const upcomingEvents = sortedEvents.filter(e => {
+    if (!e.date) return true; // Include events without dates
+    // Compare using date strings to avoid timezone issues
+    const eventDateStr = e.date.split('T')[0]; // Get YYYY-MM-DD part
+    const todayStr = today.toISOString().split('T')[0];
+    return eventDateStr >= todayStr;
+  });
 
   const nextEvent = upcomingEvents[0] || null;
   const totalEvents = events?.length || 0;
