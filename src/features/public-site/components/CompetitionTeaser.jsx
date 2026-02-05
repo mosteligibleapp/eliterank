@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Crown, MapPin, Calendar, Clock, Users, Briefcase, X, ChevronRight,
   Sparkles, Star, Trophy, Mail, Phone, Building2, Globe, MessageSquare,
@@ -9,6 +9,7 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { formatTimelineDate } from '../../../utils/competitionPhase';
 import { supabase } from '../../../lib/supabase';
 import { INTEREST_TYPE } from '../../../types/competition';
+import { useAuthContextSafe } from '../../../contexts/AuthContext';
 
 export default function CompetitionTeaser({
   competition,
@@ -17,11 +18,38 @@ export default function CompetitionTeaser({
   onLogin,
   user,
 }) {
+  const { profile } = useAuthContextSafe();
   const [activeForm, setActiveForm] = useState(null); // 'host', 'sponsor', 'compete', or 'judge'
   const [formData, setFormData] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(null);
   const [submitError, setSubmitError] = useState(null);
+
+  // Pre-fill form data when user profile is available
+  useEffect(() => {
+    if (profile && user) {
+      const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+      setFormData(prev => ({
+        ...prev,
+        // Host form fields
+        hostName: fullName || prev.hostName,
+        hostEmail: profile.email || user.email || prev.hostEmail,
+        hostPhone: profile.phone || prev.hostPhone,
+        // Sponsor form fields
+        contactName: fullName || prev.contactName,
+        sponsorEmail: profile.email || user.email || prev.sponsorEmail,
+        sponsorPhone: profile.phone || prev.sponsorPhone,
+        // Compete form fields
+        competeName: fullName || prev.competeName,
+        competeEmail: profile.email || user.email || prev.competeEmail,
+        competePhone: profile.phone || prev.competePhone,
+        // Judge form fields
+        judgeName: fullName || prev.judgeName,
+        judgeEmail: profile.email || user.email || prev.judgeEmail,
+        judgePhone: profile.phone || prev.judgePhone,
+      }));
+    }
+  }, [profile, user]);
 
   const hasHost = !!competition?.host;
 
