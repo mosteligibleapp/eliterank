@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Bell, Crown, Users, Briefcase } from 'lucide-react';
-import { PrizePool } from '../components/PrizePool';
-import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
 import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
-import { Timeline } from '../components/Timeline';
-import { RulesAccordion } from '../components/RulesAccordion';
-import { UpcomingEventCard } from '../components/UpcomingEventCard';
-import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { InterestModal } from '../components/InterestModal';
 import { INTEREST_TYPE } from '../../../types/competition';
@@ -36,24 +30,9 @@ export function ComingSoonPhase() {
         badgeVariant="default"
       />
 
-      {/* Who Competes - Prominent */}
-      <section className="phase-section">
-        <WhoCompetes />
-      </section>
-
       {/* Hall of Winners - Past Champions */}
       <section className="phase-section">
         <HallOfWinnersSection />
-      </section>
-
-      {/* Prize Pool + Countdown Row */}
-      <section className="phase-grid phase-grid-2">
-        <div className="phase-card">
-          <PrizePool compact showLiveBadge={false} />
-        </div>
-        <div className="phase-card">
-          <CountdownDisplay label="Nominations Open In" large />
-        </div>
       </section>
 
       {/* CTA Buttons */}
@@ -104,16 +83,6 @@ export function ComingSoonPhase() {
         </>
       )}
 
-      <hr className="phase-divider" />
-
-      {/* Timeline & Events/Rules */}
-      <section className="phase-grid phase-grid-2">
-        <Timeline />
-        <div className="sidebar-stack">
-          <UpcomingEventCard />
-          <RulesAccordion />
-        </div>
-      </section>
     </div>
   );
 }
