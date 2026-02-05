@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Crown, User, Users, Mail, Phone, Camera, Check, Share2, Copy, UserPlus } from 'lucide-react';
+import { Crown, User, Users, Mail, Phone, Camera, Check, Share2, Copy, UserPlus, Lock, Instagram, AtSign, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -12,8 +12,22 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
   const fileInputRef = useRef(null);
 
   // Flow state
-  const [step, setStep] = useState(1); // 1 = choose type, 2 = form
+  const [step, setStep] = useState(1); // 1 = choose type, 2 = form, 3 = profile completion
   const [nominationType, setNominationType] = useState(null); // 'self' or 'other'
+
+  // Profile completion state (step 3)
+  const [profileCompletion, setProfileCompletion] = useState({
+    password: '',
+    confirmPassword: '',
+    showPassword: false,
+    instagram: '',
+    tiktok: '',
+    twitter: '',
+    passwordComplete: false,
+    photoComplete: false,
+    socialComplete: false,
+  });
+  const [pendingContestantId, setPendingContestantId] = useState(null);
 
   // Self-nomination state
   const [selfData, setSelfData] = useState({
@@ -123,9 +137,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     if (selfData.email && !selfData.email.includes('@')) {
       newErrors.email = 'Please enter a valid email';
     }
-    if (!selfData.photo && !photoFile) {
-      newErrors.photo = 'Please upload a photo';
-    }
+    // Photo is no longer required at initial submission
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -154,7 +166,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit self-nomination (directly to contestants)
+  // Submit self-nomination (to nominees table with pending status)
   const handleSelfSubmit = async () => {
     if (!validateSelfNomination()) return;
 
@@ -162,39 +174,22 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     setSubmitError(null);
 
     try {
-      // Upload photo if new one selected
-      let avatarUrl = selfData.photo;
-      if (photoFile) {
-        avatarUrl = await uploadPhoto();
-      }
-
-      // Update profile with any new info
-      const profileUpdates = {};
-      if (selfData.firstName !== profile?.first_name) profileUpdates.first_name = selfData.firstName;
-      if (selfData.lastName !== profile?.last_name) profileUpdates.last_name = selfData.lastName;
-      if (selfData.phone && selfData.phone !== profile?.phone) profileUpdates.phone = selfData.phone;
-      if (selfData.city && selfData.city !== profile?.city) profileUpdates.city = selfData.city;
-
-      if (Object.keys(profileUpdates).length > 0) {
-        await updateProfile(profileUpdates);
-      }
-
-      // Insert directly to contestants
-      const contestantData = {
+      // Insert to nominees table (allows anonymous inserts)
+      const nomineeData = {
         competition_id: competitionId,
-        user_id: user.id,
+        user_id: user?.id || null, // May be null if not logged in
         name: `${selfData.firstName} ${selfData.lastName}`.trim(),
         email: selfData.email,
-        phone: selfData.phone || null,
-        city: selfData.city || city,
-        avatar_url: avatarUrl,
-        status: 'active',
-        votes: 0,
+        nominated_by: 'self',
+        status: 'pending', // Will become 'profile-complete' after steps done
+        profile_complete: false,
       };
 
-      const { error } = await supabase
-        .from('contestants')
-        .insert(contestantData);
+      const { data: insertedNominee, error } = await supabase
+        .from('nominees')
+        .insert(nomineeData)
+        .select('id')
+        .single();
 
       if (error) {
         if (error.code === '23505') {
@@ -203,9 +198,22 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
         throw error;
       }
 
-      setIsSuccess(true);
-      toast.success("You're in! Good luck!");
-      if (onSubmit) onSubmit({ type: 'self' });
+      // Store the nominee ID for profile completion
+      setPendingContestantId(insertedNominee.id); // Reusing state name
+
+      // If user is already logged in, mark password as complete
+      if (user) {
+        setProfileCompletion(prev => ({ ...prev, passwordComplete: true }));
+      }
+
+      // If photo was already uploaded, mark as complete
+      if (selfData.photo || photoFile) {
+        setProfileCompletion(prev => ({ ...prev, photoComplete: true }));
+      }
+
+      // Move to profile completion step
+      setStep(3);
+      toast.success('Nomination submitted!');
     } catch (err) {
       console.error('Error submitting self-nomination:', err);
       setSubmitError(err.message || 'Failed to submit. Please try again.');
@@ -597,7 +605,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
               height: '120px',
               borderRadius: '50%',
               background: selfData.photo ? `url(${selfData.photo}) center/cover` : colors.background.secondary,
-              border: `2px dashed ${errors.photo ? colors.status.error : colors.border.light}`,
+              border: `2px dashed ${colors.border.light}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -612,10 +620,10 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
           </div>
           <p style={{
             fontSize: typography.fontSize.sm,
-            color: errors.photo ? colors.status.error : colors.text.muted,
+            color: colors.text.muted,
             marginTop: spacing.sm
           }}>
-            {selfData.photo ? 'Click to change photo' : 'Upload your photo *'}
+            {selfData.photo ? 'Click to change photo' : 'Upload your photo (optional)'}
           </p>
         </div>
 
@@ -760,7 +768,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
             disabled={isSubmitting || uploadingPhoto}
             style={{ flex: 1 }}
           >
-            {isSubmitting || uploadingPhoto ? 'Submitting...' : 'Enter Competition'}
+            {isSubmitting || uploadingPhoto ? 'Submitting...' : 'Request to Compete'}
           </Button>
         </div>
       </div>
@@ -950,6 +958,557 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
             {isSubmitting ? 'Submitting...' : 'Submit Nomination'}
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  // Step 3: Profile completion (after self-nomination)
+  if (step === 3 && nominationType === 'self') {
+    const allStepsComplete = profileCompletion.passwordComplete &&
+                             profileCompletion.photoComplete &&
+                             profileCompletion.socialComplete;
+
+    // Handle password creation
+    const handlePasswordSubmit = async () => {
+      if (profileCompletion.password.length < 8) {
+        setErrors({ password: 'Password must be at least 8 characters' });
+        return;
+      }
+      if (profileCompletion.password !== profileCompletion.confirmPassword) {
+        setErrors({ confirmPassword: 'Passwords do not match' });
+        return;
+      }
+
+      setIsSubmitting(true);
+      setErrors({});
+
+      try {
+        // Create Supabase auth user with email and password
+        const { data, error } = await supabase.auth.signUp({
+          email: selfData.email,
+          password: profileCompletion.password,
+          options: {
+            data: {
+              first_name: selfData.firstName,
+              last_name: selfData.lastName,
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        // Update the nominee record with the new user_id
+        if (data.user && pendingContestantId) {
+          await supabase
+            .from('nominees')
+            .update({ user_id: data.user.id })
+            .eq('id', pendingContestantId);
+        }
+
+        setProfileCompletion(prev => ({ ...prev, passwordComplete: true }));
+        toast.success('Account created!');
+      } catch (err) {
+        console.error('Error creating account:', err);
+        setErrors({ password: err.message || 'Failed to create account' });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    // Handle photo upload in profile completion
+    const handlePhotoUploadComplete = async () => {
+      if (!photoFile) return;
+
+      // Get current user (should exist after password step)
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        toast.error('Please complete the password step first');
+        return;
+      }
+
+      setUploadingPhoto(true);
+      try {
+        const fileExt = photoFile.name.split('.').pop();
+        const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, photoFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+        // Update user's profile with avatar
+        await supabase
+          .from('profiles')
+          .update({ avatar_url: publicUrl })
+          .eq('id', currentUser.id);
+
+        setProfileCompletion(prev => ({ ...prev, photoComplete: true }));
+        toast.success('Photo uploaded!');
+      } catch (err) {
+        console.error('Error uploading photo:', err);
+        toast.error('Failed to upload photo');
+      } finally {
+        setUploadingPhoto(false);
+      }
+    };
+
+    // Handle social media save
+    const handleSocialSubmit = async () => {
+      const { instagram, tiktok, twitter } = profileCompletion;
+
+      // At least one required
+      if (!instagram.trim() && !tiktok.trim() && !twitter.trim()) {
+        setErrors({ social: 'Please enter at least one social media handle' });
+        return;
+      }
+
+      // Get current user
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        toast.error('Please complete the password step first');
+        return;
+      }
+
+      setIsSubmitting(true);
+      setErrors({});
+
+      try {
+        // Update user's profile with social handles
+        await supabase
+          .from('profiles')
+          .update({
+            instagram: instagram.trim() || null,
+            tiktok: tiktok.trim() || null,
+            twitter: twitter.trim() || null,
+          })
+          .eq('id', currentUser.id);
+
+        // Also update nominee record with instagram (for host visibility)
+        await supabase
+          .from('nominees')
+          .update({ instagram: instagram.trim() || null })
+          .eq('id', pendingContestantId);
+
+        setProfileCompletion(prev => ({ ...prev, socialComplete: true }));
+        toast.success('Social accounts saved!');
+      } catch (err) {
+        console.error('Error saving social handles:', err);
+        setErrors({ social: 'Failed to save social handles' });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    // Final completion
+    const handleFinalComplete = async () => {
+      try {
+        // Update nominee status to profile-complete (awaiting host approval)
+        await supabase
+          .from('nominees')
+          .update({
+            status: 'profile-complete',
+            profile_complete: true
+          })
+          .eq('id', pendingContestantId);
+
+        setIsSuccess(true);
+        if (onSubmit) onSubmit({ type: 'self', complete: true });
+      } catch (err) {
+        console.error('Error completing profile:', err);
+        toast.error('Failed to complete profile');
+      }
+    };
+
+    // Final success screen
+    if (isSuccess) {
+      return (
+        <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto',
+            marginBottom: spacing.xl,
+          }}>
+            <Check size={40} style={{ color: colors.gold.primary }} />
+          </div>
+
+          <h2 style={{
+            fontSize: typography.fontSize.xxl,
+            fontWeight: typography.fontWeight.bold,
+            color: '#fff',
+            marginBottom: spacing.md
+          }}>
+            Application Complete!
+          </h2>
+
+          <p style={{
+            fontSize: typography.fontSize.lg,
+            color: colors.text.secondary,
+            maxWidth: '400px',
+            margin: `0 auto ${spacing.xl}`,
+            lineHeight: 1.6,
+          }}>
+            The host will review your application and approve or deny before nominations close. We'll notify you by email.
+          </p>
+
+          <Button onClick={onClose} style={{ minWidth: '200px' }}>
+            Done
+          </Button>
+        </div>
+      );
+    }
+
+    // Profile completion checklist
+    return (
+      <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto',
+            marginBottom: spacing.lg,
+          }}>
+            <Check size={28} style={{ color: colors.gold.primary }} />
+          </div>
+
+          <h3 style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.bold,
+            color: '#fff',
+            marginBottom: spacing.sm,
+          }}>
+            Your nomination has been submitted!
+          </h3>
+
+          <p style={{
+            fontSize: typography.fontSize.md,
+            color: colors.text.secondary,
+          }}>
+            Complete the next steps to get approved
+          </p>
+        </div>
+
+        {/* Step 1: Create Password */}
+        <div style={{
+          background: profileCompletion.passwordComplete ? 'rgba(74,222,128,0.1)' : colors.background.card,
+          border: `1px solid ${profileCompletion.passwordComplete ? colors.status.success : colors.border.light}`,
+          borderRadius: borderRadius.xl,
+          padding: spacing.lg,
+          marginBottom: spacing.md,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: profileCompletion.passwordComplete ? 0 : spacing.lg }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: profileCompletion.passwordComplete ? colors.status.success : 'rgba(212,175,55,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              {profileCompletion.passwordComplete ? (
+                <Check size={18} style={{ color: '#fff' }} />
+              ) : (
+                <span style={{ color: colors.gold.primary, fontWeight: 'bold' }}>1</span>
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, margin: 0 }}>
+                Create a password
+              </h4>
+              {profileCompletion.passwordComplete && (
+                <p style={{ fontSize: typography.fontSize.sm, color: colors.status.success, margin: 0 }}>Complete</p>
+              )}
+            </div>
+          </div>
+
+          {!profileCompletion.passwordComplete && (
+            <div style={{ marginTop: spacing.md }}>
+              <div style={{ position: 'relative', marginBottom: spacing.md }}>
+                <Lock size={18} style={{
+                  position: 'absolute',
+                  left: spacing.md,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: colors.text.muted
+                }} />
+                <input
+                  type={profileCompletion.showPassword ? 'text' : 'password'}
+                  value={profileCompletion.password}
+                  onChange={(e) => setProfileCompletion(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Create password"
+                  style={{
+                    ...inputStyle,
+                    paddingLeft: '44px',
+                    paddingRight: '44px',
+                    borderColor: errors.password ? colors.status.error : colors.border.light,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setProfileCompletion(prev => ({ ...prev, showPassword: !prev.showPassword }))}
+                  style={{
+                    position: 'absolute',
+                    right: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: colors.text.muted,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {profileCompletion.showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <div style={{ position: 'relative', marginBottom: spacing.md }}>
+                <Lock size={18} style={{
+                  position: 'absolute',
+                  left: spacing.md,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: colors.text.muted
+                }} />
+                <input
+                  type={profileCompletion.showPassword ? 'text' : 'password'}
+                  value={profileCompletion.confirmPassword}
+                  onChange={(e) => setProfileCompletion(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm password"
+                  style={{
+                    ...inputStyle,
+                    paddingLeft: '44px',
+                    borderColor: errors.confirmPassword ? colors.status.error : colors.border.light,
+                  }}
+                />
+              </div>
+              {(errors.password || errors.confirmPassword) && (
+                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
+                  {errors.password || errors.confirmPassword}
+                </p>
+              )}
+              <Button
+                onClick={handlePasswordSubmit}
+                disabled={isSubmitting}
+                size="sm"
+                style={{ width: '100%' }}
+              >
+                {isSubmitting ? 'Creating...' : 'Create Account'}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Step 2: Upload Photo */}
+        <div style={{
+          background: profileCompletion.photoComplete ? 'rgba(74,222,128,0.1)' : colors.background.card,
+          border: `1px solid ${profileCompletion.photoComplete ? colors.status.success : colors.border.light}`,
+          borderRadius: borderRadius.xl,
+          padding: spacing.lg,
+          marginBottom: spacing.md,
+          opacity: profileCompletion.passwordComplete ? 1 : 0.5,
+          pointerEvents: profileCompletion.passwordComplete ? 'auto' : 'none',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: profileCompletion.photoComplete ? 0 : spacing.lg }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: profileCompletion.photoComplete ? colors.status.success : 'rgba(212,175,55,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              {profileCompletion.photoComplete ? (
+                <Check size={18} style={{ color: '#fff' }} />
+              ) : (
+                <span style={{ color: colors.gold.primary, fontWeight: 'bold' }}>2</span>
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, margin: 0 }}>
+                Upload a photo
+              </h4>
+              {profileCompletion.photoComplete && (
+                <p style={{ fontSize: typography.fontSize.sm, color: colors.status.success, margin: 0 }}>Complete</p>
+              )}
+            </div>
+          </div>
+
+          {!profileCompletion.photoComplete && (
+            <div style={{ marginTop: spacing.md }}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoSelect}
+                accept="image/*"
+                style={{ display: 'none' }}
+              />
+              <div style={{ display: 'flex', gap: spacing.md, alignItems: 'center' }}>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: borderRadius.lg,
+                    background: selfData.photo ? `url(${selfData.photo}) center/cover` : colors.background.secondary,
+                    border: `2px dashed ${colors.border.light}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                >
+                  {!selfData.photo && <Camera size={24} style={{ color: colors.text.muted }} />}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Button
+                    onClick={selfData.photo || photoFile ? handlePhotoUploadComplete : () => fileInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    size="sm"
+                    variant={selfData.photo || photoFile ? 'primary' : 'secondary'}
+                    style={{ width: '100%' }}
+                  >
+                    {uploadingPhoto ? 'Uploading...' : selfData.photo || photoFile ? 'Save Photo' : 'Choose Photo'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Step 3: Social Media */}
+        <div style={{
+          background: profileCompletion.socialComplete ? 'rgba(74,222,128,0.1)' : colors.background.card,
+          border: `1px solid ${profileCompletion.socialComplete ? colors.status.success : colors.border.light}`,
+          borderRadius: borderRadius.xl,
+          padding: spacing.lg,
+          marginBottom: spacing.xl,
+          opacity: profileCompletion.photoComplete ? 1 : 0.5,
+          pointerEvents: profileCompletion.photoComplete ? 'auto' : 'none',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: profileCompletion.socialComplete ? 0 : spacing.lg }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: profileCompletion.socialComplete ? colors.status.success : 'rgba(212,175,55,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              {profileCompletion.socialComplete ? (
+                <Check size={18} style={{ color: '#fff' }} />
+              ) : (
+                <span style={{ color: colors.gold.primary, fontWeight: 'bold' }}>3</span>
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, margin: 0 }}>
+                Connect social media
+              </h4>
+              {profileCompletion.socialComplete ? (
+                <p style={{ fontSize: typography.fontSize.sm, color: colors.status.success, margin: 0 }}>Complete</p>
+              ) : (
+                <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, margin: 0 }}>At least one required</p>
+              )}
+            </div>
+          </div>
+
+          {!profileCompletion.socialComplete && (
+            <div style={{ marginTop: spacing.md }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: spacing.md }}>
+                <div style={{ position: 'relative' }}>
+                  <Instagram size={18} style={{
+                    position: 'absolute',
+                    left: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#E4405F'
+                  }} />
+                  <input
+                    type="text"
+                    value={profileCompletion.instagram}
+                    onChange={(e) => setProfileCompletion(prev => ({ ...prev, instagram: e.target.value }))}
+                    placeholder="Instagram handle"
+                    style={{ ...inputStyle, paddingLeft: '44px' }}
+                  />
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <AtSign size={18} style={{
+                    position: 'absolute',
+                    left: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#000'
+                  }} />
+                  <input
+                    type="text"
+                    value={profileCompletion.tiktok}
+                    onChange={(e) => setProfileCompletion(prev => ({ ...prev, tiktok: e.target.value }))}
+                    placeholder="TikTok handle"
+                    style={{ ...inputStyle, paddingLeft: '44px' }}
+                  />
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <AtSign size={18} style={{
+                    position: 'absolute',
+                    left: spacing.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: colors.text.muted
+                  }} />
+                  <input
+                    type="text"
+                    value={profileCompletion.twitter}
+                    onChange={(e) => setProfileCompletion(prev => ({ ...prev, twitter: e.target.value }))}
+                    placeholder="X (Twitter) handle"
+                    style={{ ...inputStyle, paddingLeft: '44px' }}
+                  />
+                </div>
+              </div>
+              {errors.social && (
+                <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
+                  {errors.social}
+                </p>
+              )}
+              <Button
+                onClick={handleSocialSubmit}
+                disabled={isSubmitting}
+                size="sm"
+                style={{ width: '100%' }}
+              >
+                {isSubmitting ? 'Saving...' : 'Save Social Accounts'}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Final submission */}
+        {allStepsComplete && (
+          <Button
+            onClick={handleFinalComplete}
+            style={{ width: '100%' }}
+          >
+            Complete Application
+          </Button>
+        )}
       </div>
     );
   }
