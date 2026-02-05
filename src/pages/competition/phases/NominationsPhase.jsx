@@ -56,11 +56,6 @@ export function NominationsPhase() {
         <WhoCompetes />
       </section>
 
-      {/* Hall of Winners - Past Champions */}
-      <section className="phase-section">
-        <HallOfWinnersSection />
-      </section>
-
       {/* Main CTA Card */}
       <section className="nomination-cta-card">
         <h3 className="nomination-cta-title">Are You An Elite?</h3>
@@ -81,6 +76,11 @@ export function NominationsPhase() {
             Nominate Someone
           </button>
         </div>
+      </section>
+
+      {/* Hall of Winners - Past Elites */}
+      <section className="phase-section">
+        <HallOfWinnersSection />
       </section>
 
       {/* Stats Row */}

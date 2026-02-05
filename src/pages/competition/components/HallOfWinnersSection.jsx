@@ -1,6 +1,7 @@
-import { Trophy, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import useAppSettings from '../../../hooks/useAppSettings';
+import { EliteRankCrown } from '../../../components/ui/icons';
 
 /**
  * Hall of Winners section for competition pages
@@ -27,11 +28,11 @@ export function HallOfWinnersSection() {
     <section className="hall-of-winners-section">
       <div className="hall-of-winners-header">
         <div className="hall-of-winners-icon">
-          <Trophy size={20} />
+          <EliteRankCrown size={24} />
         </div>
         <div className="hall-of-winners-title">
-          <span className="hall-of-winners-label">{year} Champions</span>
-          <h3>Hall of Winners</h3>
+          <span className="hall-of-winners-label">ELITES</span>
+          <h3>MOST ELIGIBLE {year}</h3>
         </div>
       </div>
 
