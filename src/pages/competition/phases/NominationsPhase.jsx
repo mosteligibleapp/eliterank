@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Users, Clock, X } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
@@ -16,11 +17,28 @@ import NominationForm from '../../../features/public-site/components/NominationF
 /**
  * Nominations phase view
  * Shows while nominations are open
+ *
+ * URL Parameters:
+ * - ?apply=self  - Auto-opens nomination modal with "Myself" selected
+ * - ?apply=other - Auto-opens nomination modal with "Someone Else" selected
+ * - ?apply=true  - Auto-opens nomination modal (shows selection screen)
  */
 export function NominationsPhase() {
   const { competition, refetch } = usePublicCompetition();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showNominationModal, setShowNominationModal] = useState(false);
   const [nominateOther, setNominateOther] = useState(false);
+
+  // Check for ?apply param to auto-open nomination modal
+  useEffect(() => {
+    const applyParam = searchParams.get('apply');
+    if (applyParam) {
+      setShowNominationModal(true);
+      // Clear the param from URL to prevent re-opening on refresh
+      searchParams.delete('apply');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleOpenNomination = (forOther = false) => {
     setNominateOther(forOther);
