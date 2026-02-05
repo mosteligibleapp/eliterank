@@ -300,21 +300,39 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
   // RENDER: Choose Type
   // ============================================
   if (step === 'choose') {
+    const isLoggedIn = !!user;
+
     return (
       <div style={{ textAlign: 'center', padding: spacing.xl }}>
-        <Crown size={48} style={{ color: colors.gold.primary, marginBottom: spacing.lg }} />
+        {/* Show profile photo if logged in */}
+        {isLoggedIn && profile?.avatar_url ? (
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: `url(${profile.avatar_url}) center/cover`,
+            border: `3px solid ${colors.gold.primary}`,
+            margin: '0 auto',
+            marginBottom: spacing.lg,
+          }} />
+        ) : (
+          <Crown size={48} style={{ color: colors.gold.primary, marginBottom: spacing.lg }} />
+        )}
 
         <h2 style={{ fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.sm }}>
-          Join the Competition
+          {isLoggedIn ? `Hey ${profile?.first_name || 'there'}!` : 'Join the Competition'}
         </h2>
         <p style={{ color: colors.text.secondary, marginBottom: spacing.xxl }}>
-          Apply to compete or nominate someone you know
+          {isLoggedIn
+            ? 'Ready to compete or know someone who should?'
+            : 'Apply to compete or nominate someone you know'
+          }
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md, maxWidth: '300px', margin: '0 auto' }}>
           <Button onClick={() => setStep('self-form')} style={{ width: '100%' }}>
             <User size={18} style={{ marginRight: spacing.sm }} />
-            Apply to Compete
+            {isLoggedIn ? 'Enter Competition' : 'Apply to Compete'}
           </Button>
 
           <Button variant="secondary" onClick={() => setStep('other-form')} style={{ width: '100%' }}>
@@ -330,13 +348,28 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
   // RENDER: Self Nomination Form
   // ============================================
   if (step === 'self-form') {
+    const isLoggedIn = !!user;
+    const hasProfilePhoto = profile?.avatar_url;
+
     return (
       <div style={{ padding: spacing.lg, maxWidth: '400px', margin: '0 auto' }}>
-        <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, textAlign: 'center', marginBottom: spacing.xl }}>
-          Apply to Compete
-        </h3>
+        {/* Personalized greeting for logged-in users */}
+        {isLoggedIn ? (
+          <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
+            <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.xs }}>
+              Hey {profile?.first_name || 'there'}!
+            </h3>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+              Ready to compete? Confirm your details below.
+            </p>
+          </div>
+        ) : (
+          <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, textAlign: 'center', marginBottom: spacing.xl }}>
+            Apply to Compete
+          </h3>
+        )}
 
-        {/* Photo (Optional) */}
+        {/* Photo - shows existing profile photo with change option */}
         <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
           <input
             type="file"
@@ -345,25 +378,50 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
             accept="image/*"
             style={{ display: 'none' }}
           />
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              width: '100px',
-              height: '100px',
-              borderRadius: '50%',
-              background: formData.photo ? `url(${formData.photo}) center/cover` : colors.background.secondary,
-              border: `2px dashed ${colors.border.light}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              margin: '0 auto',
-            }}
-          >
-            {!formData.photo && <Camera size={28} style={{ color: colors.text.muted }} />}
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                width: '100px',
+                height: '100px',
+                borderRadius: '50%',
+                background: formData.photo ? `url(${formData.photo}) center/cover` : colors.background.secondary,
+                border: formData.photo ? `3px solid ${colors.gold.primary}` : `2px dashed ${colors.border.light}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                margin: '0 auto',
+              }}
+            >
+              {!formData.photo && <Camera size={28} style={{ color: colors.text.muted }} />}
+            </div>
+            {/* Change badge for existing photos */}
+            {formData.photo && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  position: 'absolute',
+                  bottom: '0',
+                  right: '0',
+                  background: colors.background.secondary,
+                  border: `1px solid ${colors.border.light}`,
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <Camera size={14} style={{ color: colors.text.secondary }} />
+              </button>
+            )}
           </div>
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.sm }}>
-            Photo (optional)
+            {formData.photo ? 'Tap to change photo' : 'Add photo (optional)'}
           </p>
         </div>
 
@@ -391,7 +449,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
           </div>
         </div>
 
-        {/* Email */}
+        {/* Email - read-only if logged in */}
         <div style={{ marginBottom: spacing.lg }}>
           <label style={labelStyle}>Email *</label>
           <div style={{ position: 'relative' }}>
@@ -399,11 +457,29 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              style={{ ...inputStyle, paddingLeft: '44px', borderColor: errors.email ? colors.status.error : colors.border.light }}
+              onChange={(e) => !isLoggedIn && setFormData(prev => ({ ...prev, email: e.target.value }))}
+              readOnly={isLoggedIn}
+              style={{
+                ...inputStyle,
+                paddingLeft: '44px',
+                borderColor: errors.email ? colors.status.error : colors.border.light,
+                ...(isLoggedIn && {
+                  background: colors.background.tertiary,
+                  color: colors.text.secondary,
+                  cursor: 'not-allowed',
+                }),
+              }}
               placeholder="your@email.com"
             />
+            {isLoggedIn && (
+              <Check size={18} style={{ position: 'absolute', right: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.status.success }} />
+            )}
           </div>
+          {isLoggedIn && (
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+              Linked to your account
+            </p>
+          )}
           {errors.email && <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{errors.email}</p>}
         </div>
 
@@ -419,9 +495,15 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
             Back
           </Button>
           <Button onClick={handleSelfSubmit} disabled={isSubmitting} style={{ flex: 1 }}>
-            {isSubmitting ? 'Submitting...' : 'Submit'}
+            {isSubmitting ? 'Submitting...' : (isLoggedIn ? 'Enter Now' : 'Submit')}
           </Button>
         </div>
+
+        {isLoggedIn && (
+          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textAlign: 'center', marginTop: spacing.md }}>
+            Your profile is already linked to your account
+          </p>
+        )}
       </div>
     );
   }
