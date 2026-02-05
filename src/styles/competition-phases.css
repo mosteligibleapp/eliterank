@@ -733,32 +733,32 @@
   margin: 0;
 }
 
-/* Two-column content layout */
-.who-competes-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-xl);
-}
-
-@media (max-width: 600px) {
-  .who-competes-content {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-lg);
-  }
-}
-
-/* Left column - Traits stacked vertically */
-.who-competes-traits-column {
+/* Grid layout with aligned rows */
+.who-competes-grid {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
 }
 
+/* Each row contains one trait and one requirement side by side */
+.who-competes-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 600px) {
+  .who-competes-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Trait items (left column) */
 .trait-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
   background: rgba(0, 0, 0, 0.25);
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
@@ -769,18 +769,12 @@
   flex-shrink: 0;
 }
 
-/* Right column - Requirements stacked vertically */
-.who-competes-requirements-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
+/* Requirement rows (right column) */
 .requirement-row {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
   background: rgba(0, 0, 0, 0.25);
   border-radius: var(--radius-md);
 }
@@ -800,12 +794,14 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  line-height: 1.2;
 }
 
 .requirement-value {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
+  line-height: 1.3;
 }
 
 /* Hall of Winners Section */
