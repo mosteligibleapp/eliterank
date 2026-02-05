@@ -798,12 +798,6 @@
   gap: var(--spacing-md);
 }
 
-@media (max-width: 600px) {
-  .who-competes-row {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* Trait items (left column) */
 .trait-item {
   display: flex;
