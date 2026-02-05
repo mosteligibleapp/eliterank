@@ -1276,7 +1276,7 @@ export default function EliteRankCityModal({
               </div>
               <h2 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.lg }}>About EliteRank</h2>
               <p style={{ color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed, fontSize: typography.fontSize.md, marginBottom: spacing.lg }}>
-                EliteRank is a social competition platform where public voting determines who ranks at the top across categories that matter — from dating to founders to cultural moments. Competitors keep the money they raise through votes, making every campaign a chance to earn while building your personal brand.
+                EliteRank is a social competition platform where public voting determines who ranks at the top across categories that matter — from dating to creators and more. Elites are nominated, accepted by the host then begin rally support, campaign for a chance to win while building their fan base.
               </p>
               <p style={{ color: colors.text.tertiary, lineHeight: typography.lineHeight.relaxed, fontSize: typography.fontSize.sm, fontStyle: 'italic' }}>
                 Think American Idol meets GoFundMe — bracket-style tournaments where your network becomes your campaign team, the crowd decides who rises, and every vote puts money in your pocket.
@@ -1309,7 +1309,7 @@ export default function EliteRankCityModal({
                 {[
                   { step: '1', title: 'Enter', desc: 'Apply directly or accept a nomination to compete' },
                   { step: '2', title: 'Compete', desc: 'Rally your network, promote your profile, and gather votes each round' },
-                  { step: '3', title: 'Win', desc: 'Keep what you raised, plus winners take home the bonus pool, the title, exposure and more' },
+                  { step: '3', title: 'Win', desc: 'Winners take home a piece of the cash prize pool, the title, sponsored prizes, exposure and more' },
                 ].map(item => (
                   <div key={item.step} style={{
                     background: colors.background.card,
