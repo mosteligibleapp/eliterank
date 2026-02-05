@@ -704,7 +704,6 @@ export default function EliteRankCityModal({
                 }}>
                   <div style={{
                     animation: 'crownDrop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-                    filter: 'drop-shadow(0 0 12px rgba(212, 175, 55, 0.5)) drop-shadow(0 0 24px rgba(212, 175, 55, 0.25))',
                   }}>
                     <EliteRankCrown size={isMobile ? 64 : 80} />
                   </div>
