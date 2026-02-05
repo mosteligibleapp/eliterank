@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { ArrowRight, Users, Clock, X } from 'lucide-react';
-import { PrizePool } from '../components/PrizePool';
+import { Users, Clock, X } from 'lucide-react';
+import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
-import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
 import { Timeline } from '../components/Timeline';
 import { RulesAccordion } from '../components/RulesAccordion';
@@ -12,7 +11,6 @@ import { UpcomingEventCard } from '../components/UpcomingEventCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CompetitionFooter } from '../components/CompetitionFooter';
-import { formatNumber } from '../../../utils/formatters';
 import NominationForm from '../../../features/public-site/components/NominationForm';
 
 /**
@@ -20,7 +18,7 @@ import NominationForm from '../../../features/public-site/components/NominationF
  * Shows while nominations are open
  */
 export function NominationsPhase() {
-  const { competition, prizePool, contestants, refetch } = usePublicCompetition();
+  const { competition, refetch } = usePublicCompetition();
   const [showNominationModal, setShowNominationModal] = useState(false);
   const [nominateOther, setNominateOther] = useState(false);
 
@@ -40,9 +38,6 @@ export function NominationsPhase() {
     // Refresh data to show updated nomination count
     refetch?.();
   };
-
-  // Nomination count (contestants in nomination status)
-  const nominationCount = contestants?.length || 0;
 
   return (
     <div className="phase-view phase-nominations">
@@ -86,30 +81,26 @@ export function NominationsPhase() {
 
       {/* Stats Row */}
       <section className="phase-stats">
-        <div className="stat-card">
-          <Users size={20} className="stat-icon" />
-          <span className="stat-value">{formatNumber(nominationCount)}</span>
-          <span className="stat-label">Nominations</span>
-        </div>
-        <div className="stat-card stat-card-highlight">
-          <span className="stat-value">{prizePool?.formatted?.totalPrizePool}</span>
-          <span className="stat-label">Prize Pool</span>
-        </div>
         <div className="stat-card stat-card-urgent">
           <Clock size={20} className="stat-icon" />
           <CountdownDisplay label="" />
-          <span className="stat-label">Closes In</span>
+          <span className="stat-label">Nominations Close</span>
+        </div>
+        <div className="stat-card stat-card-highlight">
+          <span className="stat-value">5</span>
+          <span className="stat-label">Winners</span>
+          <span className="stat-sublabel">Season 2026</span>
+        </div>
+        <div className="stat-card">
+          <Users size={20} className="stat-icon" />
+          <span className="stat-value">200+</span>
+          <span className="stat-label">Nominations</span>
         </div>
       </section>
 
-      {/* Prize Breakdown */}
+      {/* Rewards */}
       <section className="phase-section">
-        <PrizePool />
-      </section>
-
-      {/* About Links */}
-      <section className="phase-section">
-        <AboutSection />
+        <Rewards />
       </section>
 
       <hr className="phase-divider" />

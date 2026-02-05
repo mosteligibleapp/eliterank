@@ -79,17 +79,18 @@ export default function EventsTab({
   }
 
   // Split into upcoming and past
-  const now = new Date();
+  // Use string comparison to avoid timezone issues
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
   const upcomingEvents = visibleEvents.filter(e => {
     if (e.status === 'completed') return false;
     if (!e.date) return true;
-    return new Date(e.date) >= now;
+    return e.date >= todayStr;
   }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const pastEvents = visibleEvents.filter(e => {
     if (e.status === 'completed') return true;
     if (!e.date) return false;
-    return new Date(e.date) < now;
+    return e.date < todayStr;
   }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const renderEventCard = (event, isPast = false) => (

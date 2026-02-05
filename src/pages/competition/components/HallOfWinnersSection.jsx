@@ -27,9 +27,7 @@ export function HallOfWinnersSection() {
   return (
     <section className="hall-of-winners-section">
       <div className="hall-of-winners-header">
-        <div className="hall-of-winners-icon">
-          <EliteRankCrown size={24} />
-        </div>
+        <EliteRankCrown size={28} className="hall-of-winners-crown" />
         <div className="hall-of-winners-title">
           <span className="hall-of-winners-label">ELITES</span>
           <h3>Most Eligible {year}</h3>

@@ -64,12 +64,13 @@ export default function EliteRankCityModal({
   // Check if user has dashboard access
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
   const [activeTab, setActiveTab] = useState('competitions');
+  const [showCrownAnimation, setShowCrownAnimation] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [competitions, setCompetitions] = useState([]);
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active'); // Default to Live competitions
   const [cityFilter, setCityFilter] = useState('all');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -457,7 +458,6 @@ export default function EliteRankCityModal({
         ...styleHelpers.hideScrollbar,
       }}>
         {[
-          { id: 'all', label: 'All' },
           { id: 'active', label: 'Live', dot: true },
           { id: 'upcoming', label: 'Coming Soon' },
           { id: 'complete', label: 'Completed' },
@@ -527,91 +527,94 @@ export default function EliteRankCityModal({
   const HallOfWinners = () => {
     // Use dynamic data from app settings
     const winners = hallOfWinnersData?.winners || [];
+    const year = hallOfWinnersData?.year || new Date().getFullYear();
     if (!winners.length) return null;
 
     return (
       <div style={{
         maxWidth: '900px',
         margin: '0 auto',
+        marginTop: spacing.xxxl,
         marginBottom: spacing.xxxl,
         padding: spacing.xl,
-        background: colors.background.card,
+        background: 'rgba(255, 255, 255, 0.05)',
         borderRadius: borderRadius.xl,
-        border: `1px solid ${colors.border.primary}`,
+        border: `1px solid rgba(255, 255, 255, 0.1)`,
       }}>
         {/* Header */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          alignItems: 'center',
+          gap: spacing.md,
           marginBottom: spacing.xl,
         }}>
+          <EliteRankCrown size={28} />
           <div>
             <p style={{
               fontSize: typography.fontSize.xs,
               color: colors.text.muted,
               textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              marginBottom: spacing.xs,
+              letterSpacing: '0.05em',
+              marginBottom: '2px',
             }}>
-              {hallOfWinnersData?.year || new Date().getFullYear()} Champions
+              ELITES
             </p>
             <h2 style={{
-              fontSize: isMobile ? typography.fontSize.xl : typography.fontSize['2xl'],
-              fontWeight: typography.fontWeight.bold,
-              color: colors.text.primary,
-            }}>
-              Hall of Winners
-            </h2>
-          </div>
-          <div style={{
-            textAlign: 'right',
-          }}>
-            <span style={{
               fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
               fontWeight: typography.fontWeight.bold,
-              color: colors.gold.primary,
+              color: colors.text.primary,
+              margin: 0,
             }}>
-              {hallOfWinnersData?.totalAwarded || '$0'}
-            </span>
-            <span style={{
-              fontSize: typography.fontSize.sm,
-              color: colors.text.secondary,
-              marginLeft: spacing.xs,
-            }}>
-              awarded
-            </span>
+              Most Eligible {year}
+            </h2>
           </div>
         </div>
 
         {/* Winners Grid */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(winners.length, 5)}, 1fr)`,
-          gap: spacing.md,
+          display: isMobile ? 'flex' : 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: spacing.sm,
         }}>
-          {winners.map((winner) => (
+          {winners.slice(0, 5).map((winner, index) => (
             <div
               key={winner.id}
               style={{
+                flex: isMobile ? '0 1 calc(50% - 8px)' : undefined,
+                minWidth: isMobile ? '140px' : undefined,
                 display: 'flex',
                 alignItems: 'center',
-                gap: spacing.md,
-                padding: spacing.lg,
-                background: colors.background.elevated,
-                borderRadius: borderRadius.lg,
-                border: winner.featured
-                  ? `1.5px solid ${colors.gold.primary}`
-                  : `1px solid ${colors.border.primary}`,
+                gap: spacing.sm,
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: 'rgba(0, 0, 0, 0.2)',
+                borderRadius: borderRadius.md,
+                border: `1px solid rgba(212, 175, 55, 0.15)`,
               }}
             >
+              {/* Rank */}
+              <div style={{
+                width: '22px',
+                height: '22px',
+                background: 'rgba(212, 175, 55, 0.2)',
+                borderRadius: '50%',
+                ...styleHelpers.flexCenter,
+                flexShrink: 0,
+                fontSize: typography.fontSize.xs,
+                fontWeight: typography.fontWeight.bold,
+                color: colors.gold.primary,
+              }}>
+                {index + 1}
+              </div>
+
               {/* Profile Image */}
               <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: borderRadius.lg,
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
                 background: colors.background.card,
-                border: `1px solid ${colors.border.secondary}`,
+                border: `2px solid rgba(212, 175, 55, 0.3)`,
                 ...styleHelpers.flexCenter,
                 flexShrink: 0,
                 overflow: 'hidden',
@@ -623,26 +626,34 @@ export default function EliteRankCityModal({
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : (
-                  <User size={24} style={{ color: colors.text.muted }} />
+                  <User size={18} style={{ color: colors.text.muted }} />
                 )}
               </div>
 
               {/* Info */}
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <p style={{
-                  fontSize: typography.fontSize.md,
+                  fontSize: typography.fontSize.sm,
                   fontWeight: typography.fontWeight.semibold,
                   color: colors.text.primary,
-                  marginBottom: '2px',
+                  marginBottom: '1px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}>
                   {winner.name}
                 </p>
-                <p style={{
-                  fontSize: typography.fontSize.sm,
-                  color: colors.text.secondary,
-                }}>
-                  {winner.city}
-                </p>
+                {winner.city && (
+                  <p style={{
+                    fontSize: typography.fontSize.xs,
+                    color: colors.text.muted,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {winner.city}
+                  </p>
+                )}
               </div>
             </div>
           ))}
@@ -683,6 +694,21 @@ export default function EliteRankCityModal({
               marginBottom: spacing.xl,
               padding: isMobile ? `${spacing.lg} 0` : `${spacing.xl} 0`,
             }}>
+              {/* Animated Crown */}
+              {showCrownAnimation && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  marginBottom: spacing.xl,
+                }}>
+                  <div style={{
+                    animation: 'crownDrop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                  }}>
+                    <EliteRankCrown size={isMobile ? 64 : 80} />
+                  </div>
+                </div>
+              )}
+
               {/* Season Status Badge - matches card styling */}
               <div style={{
                 display: 'inline-flex',
@@ -717,15 +743,14 @@ export default function EliteRankCityModal({
                 lineHeight: 1.15,
                 marginBottom: isMobile ? spacing.sm : spacing.md,
               }}>
-                <span style={{ color: '#ffffff', display: 'block' }}>Social Competitions</span>
                 <span style={{
                   display: 'block',
-                  background: 'linear-gradient(90deg, #f59e0b, #eab308)',
+                  background: 'linear-gradient(90deg, #f5d485, #d4af37)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
                 }}>
-                  for Top Talent
+                  Where the Best Get Recognized
                 </span>
               </h1>
 
@@ -747,13 +772,14 @@ export default function EliteRankCityModal({
                 padding: `${spacing.md} ${spacing.xl}`,
                 marginBottom: isMobile ? spacing.md : spacing.lg,
               }}>
-                <span style={{ color: '#a1a1aa', fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg }}>
-                  Think you're elite?{' '}
+                <span style={{ color: '#a1a1aa', fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg, display: 'block' }}>
+                  Think you're elite?
                 </span>
                 <span style={{
-                  color: '#eab308',
+                  color: '#d4af37',
                   fontWeight: typography.fontWeight.bold,
                   fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                  display: 'block',
                 }}>
                   Prove it.
                 </span>
@@ -766,37 +792,37 @@ export default function EliteRankCityModal({
                 color: '#ffffff',
                 marginBottom: isMobile ? spacing.sm : spacing.md,
               }}>
-                Enter <span style={{ color: '#eab308' }}>·</span> Compete <span style={{ color: '#eab308' }}>·</span> Win
+                Enter <span style={{ color: '#d4af37' }}>·</span> Compete <span style={{ color: '#d4af37' }}>·</span> Win
               </p>
 
               {/* Subtext */}
               <p style={{
                 fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                color: '#71717a',
               }}>
-                <span style={{ color: '#d4d4d8' }}>Fans decide </span>
-                <span style={{ color: '#71717a' }}>who earns the title and prize package.</span>
+                Fans decide who win
               </p>
             </div>
-
-            <HallOfWinners />
 
             <FilterBar />
 
             {/* Competition Grid */}
             {visibleCompetitions.length > 0 ? (
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile
-                  ? '1fr'
-                  : isTablet
-                    ? 'repeat(2, 1fr)'
-                    : `repeat(auto-fill, minmax(380px, 1fr))`,
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
                 gap: isMobile ? spacing.lg : spacing.xl,
                 maxWidth: '1400px',
                 margin: '0 auto',
               }}>
                 {visibleCompetitions.map((comp) => (
-                  <CompetitionCard key={comp.id} competition={comp} />
+                  <div key={comp.id} style={{
+                    flex: isMobile ? '1 1 100%' : isTablet ? '1 1 calc(50% - 16px)' : '1 1 380px',
+                    maxWidth: isMobile ? '100%' : isTablet ? 'calc(50% - 16px)' : '500px',
+                  }}>
+                    <CompetitionCard competition={comp} />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -816,20 +842,23 @@ export default function EliteRankCityModal({
                 <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
                   Try adjusting your filters or check back soon.
                 </p>
-                {(statusFilter !== 'all' || cityFilter !== 'all') && (
-                  <Button variant="outline" size="sm" onClick={() => { setStatusFilter('all'); setCityFilter('all'); }}>
+                {cityFilter !== 'all' && (
+                  <Button variant="outline" size="sm" onClick={() => { setStatusFilter('active'); setCityFilter('all'); }}>
                     Clear Filters
                   </Button>
                 )}
               </div>
             )}
+
+            <HallOfWinners />
           </div>
         );
 
       case 'events':
-        const now = new Date();
-        const upcomingEvents = events.filter(e => new Date(e.date) >= now).sort((a, b) => new Date(a.date) - new Date(b.date));
-        const pastEvents = events.filter(e => new Date(e.date) < now).sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Use string comparison to avoid timezone issues
+        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
+        const upcomingEvents = events.filter(e => e.date >= todayStr).sort((a, b) => new Date(a.date) - new Date(b.date));
+        const pastEvents = events.filter(e => e.date < todayStr).sort((a, b) => new Date(b.date) - new Date(a.date));
 
         const formatTime12h = (timeStr) => {
           if (!timeStr) return '';
@@ -1746,6 +1775,38 @@ export default function EliteRankCityModal({
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes crownDrop {
+          0% {
+            opacity: 0;
+            transform: translateY(-100px) scale(0.3) rotate(-20deg);
+          }
+          50% {
+            opacity: 1;
+            transform: translateY(10px) scale(1.2) rotate(5deg);
+          }
+          70% {
+            transform: translateY(-5px) scale(1.1) rotate(-3deg);
+          }
+          85% {
+            transform: translateY(3px) scale(1.05) rotate(1deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1) rotate(0deg);
+          }
+        }
+        @keyframes crownGlow {
+          0%, 100% {
+            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4)) drop-shadow(0 0 20px rgba(212, 175, 55, 0.2));
+          }
+          50% {
+            filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.8)) drop-shadow(0 0 40px rgba(212, 175, 55, 0.4)) drop-shadow(0 0 60px rgba(212, 175, 55, 0.2));
+          }
+        }
+        @keyframes crownFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
         }
         * {
           box-sizing: border-box;

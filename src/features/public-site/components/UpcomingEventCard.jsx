@@ -9,13 +9,14 @@ import { formatEventTime } from '../../../utils/formatters';
  */
 export default function UpcomingEventCard({ events = [], onViewAllEvents }) {
   // Filter to only public/visible events that are upcoming
-  const now = new Date();
+  // Use string comparison to avoid timezone issues
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
   const upcomingEvents = events
     .filter(e => {
       if (e.publicVisible === false) return false;
       if (e.status === 'completed') return false;
       if (!e.date) return true; // Include events without dates as upcoming
-      return new Date(e.date) >= now;
+      return e.date >= todayStr;
     })
     .sort((a, b) => {
       if (!a.date) return 1;
