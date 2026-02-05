@@ -3,7 +3,7 @@ import { Check, MapPin, Users, Heart, Calendar } from 'lucide-react';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 
 /**
- * "Who Competes?" section showing eligibility traits and requirements
+ * "Who Competes" section showing eligibility traits and requirements
  * Two-column layout with aligned rows: traits on left, requirements on right
  */
 export function WhoCompetes() {
@@ -41,7 +41,7 @@ export function WhoCompetes() {
     <div className="who-competes">
       <div className="who-competes-header">
         <EliteRankCrown size={28} className="who-competes-icon" />
-        <h3>Who Competes?</h3>
+        <h3>Who Competes</h3>
       </div>
 
       <div className="who-competes-grid">

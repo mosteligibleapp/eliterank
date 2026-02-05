@@ -85,11 +85,6 @@ export function NominationsPhase() {
         badgeVariant="active"
       />
 
-      {/* Who Competes */}
-      <section className="phase-section">
-        <WhoCompetes />
-      </section>
-
       {/* Main CTA Card */}
       <section className="nomination-cta-card">
         <h3 className="nomination-cta-title">Are You An Elite?</h3>
@@ -110,6 +105,11 @@ export function NominationsPhase() {
             Nominate Someone
           </button>
         </div>
+      </section>
+
+      {/* Who Competes */}
+      <section className="phase-section">
+        <WhoCompetes />
       </section>
 
       {/* Hall of Winners - Past Elites */}
