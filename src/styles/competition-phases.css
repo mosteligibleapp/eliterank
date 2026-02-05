@@ -404,7 +404,20 @@
 
 @media (max-width: 768px) {
   .phase-stats {
-    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+
+  .stat-card {
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+
+  .stat-value {
+    font-size: var(--font-size-lg);
+  }
+
+  .stat-label,
+  .stat-sublabel {
+    font-size: 10px;
   }
 }
 
