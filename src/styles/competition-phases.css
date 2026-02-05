@@ -3446,14 +3446,14 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
   display: flex;
-  align-items: flex-start;  /* Prevent content jumping when form changes size */
+  align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: var(--spacing-lg);
   padding-top: max(var(--spacing-lg), env(safe-area-inset-top));
   padding-bottom: max(var(--spacing-lg), env(safe-area-inset-bottom));
   overflow-y: auto;
-  overscroll-behavior: contain;  /* Prevent scroll chaining to body */
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -3461,10 +3461,9 @@
   position: relative;
   width: 100%;
   max-width: 480px;
-  max-height: none;  /* Allow container to grow, overlay handles scrolling */
-  margin-top: auto;  /* Center vertically when content is short */
-  margin-bottom: auto;
-  overflow-y: visible;  /* Let overlay handle scroll */
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -3475,18 +3474,20 @@
 @media (max-width: 640px) {
   .modal-overlay {
     padding: var(--spacing-md);
-    align-items: flex-start;
+    align-items: center;
   }
 
   .modal-container {
-    margin-top: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
+    max-height: 85vh;
+    max-height: 85dvh;
     border-radius: var(--radius-lg);
   }
 }
 
 .modal-nomination {
   max-width: 560px;
+  /* Fixed min-height to prevent layout shifts between steps */
+  min-height: 400px;
 }
 
 .modal-host {
