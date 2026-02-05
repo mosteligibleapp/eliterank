@@ -1070,17 +1070,6 @@ export default function EliteRankCityModal({
         return (
           <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
-                borderRadius: borderRadius.xl,
-                ...styleHelpers.flexCenter,
-                margin: '0 auto',
-                marginBottom: spacing.lg,
-              }}>
-                <Megaphone size={32} style={{ color: '#000' }} />
-              </div>
               <h2 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>News</h2>
               <p style={{ color: colors.text.secondary }}>Latest updates from Elite Rank</p>
             </div>
