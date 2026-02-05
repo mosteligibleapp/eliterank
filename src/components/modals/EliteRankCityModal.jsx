@@ -270,7 +270,7 @@ export default function EliteRankCityModal({
     const displayPhase = competition.accessible ? competition.phase : competition.status;
     const config = getPhaseDisplayConfig(displayPhase);
     const isClickable = competition.accessible || isPublished(competition.status);
-    const cityImage = getCityImage(competition.city);
+    const cityImage = getCityImage(competition.city, competition.name);
     const org = getOrg(competition.organizationId);
 
     const getCtaText = () => {
@@ -301,21 +301,28 @@ export default function EliteRankCityModal({
         }}
       >
         {/* Background Image */}
-        <div style={{
-          ...styleHelpers.absoluteFill,
-          backgroundImage: `url(${cityImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: isHovered ? 'scale(1.08)' : 'scale(1)',
-        }} />
+        <img
+          src={cityImage}
+          alt={competition.name}
+          loading="eager"
+          fetchpriority="high"
+          style={{
+            ...styleHelpers.absoluteFill,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center',
+            transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+          }}
+        />
 
         {/* Gradient Overlay */}
         <div style={{
           ...styleHelpers.absoluteFill,
           background: isMobile
-            ? 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%)'
-            : 'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.15) 100%)',
+            ? 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.4) 100%)'
+            : 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.4) 100%)',
           transition: 'opacity 0.3s',
           opacity: isHovered ? 0.9 : 1,
         }} />
@@ -1133,7 +1140,7 @@ export default function EliteRankCityModal({
             color: '#10b981',
             hoverBg: 'rgba(16, 185, 129, 0.08)',
             cta: 'Start a conversation',
-            action: () => window.location.href = 'mailto:hello@eliterank.com?subject=Partnership%20Inquiry',
+            action: () => window.location.href = 'mailto:info@eliterank.co?subject=Partnership%20Inquiry',
           },
         ];
 
@@ -1389,7 +1396,7 @@ export default function EliteRankCityModal({
               <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed, marginBottom: spacing.lg }}>
                 Host a competition on EliteRank. Bring your audience, we bring the infrastructure. Sponsors, media partners, and organizations can co-create categories or power competitions around cultural moments.
               </p>
-              <Button variant="outline" size="sm" onClick={() => window.location.href = 'mailto:hello@eliterank.com'}>Contact Us</Button>
+              <Button variant="outline" size="sm" onClick={() => window.location.href = 'mailto:info@eliterank.co'}>Contact Us</Button>
             </div>
           </div>
         );
@@ -1488,46 +1495,6 @@ export default function EliteRankCityModal({
               size={isMobile ? 36 : 40}
             />
 
-            {/* TEST PUSH NOTIFICATION BUTTON - REMOVE AFTER TESTING */}
-            {isAuthenticated && user?.id && (
-              <button
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/notifications/send', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        userIds: [user.id],
-                        title: '🎉 Test Notification',
-                        message: 'Push notifications are working!',
-                        url: 'https://eliterank.co'
-                      })
-                    });
-                    const data = await response.json();
-                    console.log('Notification sent:', data);
-                    alert('Test notification sent! Check your notifications.');
-                  } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error sending notification: ' + error.message);
-                  }
-                }}
-                style={{
-                  ...styleHelpers.flexCenter,
-                  width: isMobile ? '36px' : '40px',
-                  height: isMobile ? '36px' : '40px',
-                  background: colors.gold.primary,
-                  border: 'none',
-                  borderRadius: borderRadius.lg,
-                  color: colors.text.inverse,
-                  cursor: 'pointer',
-                  transition: `all ${transitions.fast}`,
-                }}
-                title="Test Push Notification"
-              >
-                <Bell size={18} />
-              </button>
-            )}
-            
             {!isFullPage && (
               <button onClick={onClose} style={{
                 background: 'none',
