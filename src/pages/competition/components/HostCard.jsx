@@ -40,7 +40,7 @@ export function HostCard() {
             <span className="host-card-name">{hostName || 'Competition Host'}</span>
             {host.bio && (
               <span className="host-card-bio">
-                {host.bio.length > 60 ? `${host.bio.substring(0, 60)}...` : host.bio}
+                {host.bio}
               </span>
             )}
             {host.city && (
