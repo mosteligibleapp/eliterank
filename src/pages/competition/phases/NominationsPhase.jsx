@@ -61,24 +61,26 @@ export function NominationsPhase() {
         <HallOfWinnersSection />
       </section>
 
-      {/* Main CTA */}
-      <section className="phase-cta-main">
-        <span className="cta-label">Think you qualify?</span>
-        <button
-          className="btn btn-primary btn-large"
-          onClick={() => handleOpenNomination(false)}
-        >
-          Start Your Nomination
-          <ArrowRight size={18} />
-        </button>
-        <span className="cta-alt">
-          or <button
-            className="link-button"
+      {/* Main CTA Card */}
+      <section className="nomination-cta-card">
+        <h3 className="nomination-cta-title">Are You An Elite?</h3>
+        <p className="nomination-cta-subtitle">
+          Apply now or nominate someone who deserves the spotlight.
+        </p>
+        <div className="nomination-cta-buttons">
+          <button
+            className="btn btn-primary btn-large"
+            onClick={() => handleOpenNomination(false)}
+          >
+            Apply Now
+          </button>
+          <button
+            className="btn btn-outline btn-large"
             onClick={() => handleOpenNomination(true)}
           >
-            nominate someone you know
+            Nominate Someone
           </button>
-        </span>
+        </div>
       </section>
 
       {/* Stats Row */}
