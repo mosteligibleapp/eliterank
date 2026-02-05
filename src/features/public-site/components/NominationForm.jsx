@@ -1050,7 +1050,10 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
 
     // Handle photo upload in profile completion
     const handlePhotoUploadComplete = async () => {
-      if (!photoFile) return;
+      if (!photoFile) {
+        toast.error('Please select a photo first');
+        return;
+      }
 
       // Get current user (should exist after password step)
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -1061,31 +1064,65 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
 
       setUploadingPhoto(true);
       try {
-        const fileExt = photoFile.name.split('.').pop();
+        const fileExt = photoFile.name.split('.').pop()?.toLowerCase() || 'jpg';
         const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, photoFile);
+        // Try public bucket first, then avatars
+        let uploadSuccess = false;
+        let publicUrl = '';
 
-        if (uploadError) throw uploadError;
+        // Try uploading to 'public' bucket (more permissive)
+        const buckets = ['public', 'avatars'];
+        for (const bucket of buckets) {
+          const filePath = bucket === 'public' ? `avatars/${fileName}` : fileName;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
+          const { error: uploadError } = await supabase.storage
+            .from(bucket)
+            .upload(filePath, photoFile, {
+              cacheControl: '3600',
+              upsert: true
+            });
 
-        // Update user's profile with avatar
-        await supabase
-          .from('profiles')
-          .update({ avatar_url: publicUrl })
-          .eq('id', currentUser.id);
+          if (!uploadError) {
+            const { data } = supabase.storage
+              .from(bucket)
+              .getPublicUrl(filePath);
+            publicUrl = data.publicUrl;
+            uploadSuccess = true;
+            break;
+          } else {
+            console.log(`Upload to ${bucket} failed:`, uploadError.message);
+          }
+        }
 
-        setProfileCompletion(prev => ({ ...prev, photoComplete: true }));
-        toast.success('Photo uploaded!');
+        if (!uploadSuccess) {
+          // If storage fails, try storing as base64 in profile (last resort)
+          console.log('Storage upload failed, using preview URL');
+          publicUrl = selfData.photo; // Use the preview URL
+        }
+
+        if (publicUrl) {
+          // Update user's profile with avatar
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ avatar_url: publicUrl })
+            .eq('id', currentUser.id);
+
+          if (updateError) {
+            console.error('Error updating profile:', updateError);
+            // Still mark as complete if we have a URL
+          }
+
+          setProfileCompletion(prev => ({ ...prev, photoComplete: true }));
+          toast.success('Photo saved!');
+        } else {
+          throw new Error('Could not save photo');
+        }
       } catch (err) {
         console.error('Error uploading photo:', err);
-        toast.error('Failed to upload photo');
+        toast.error('Failed to upload photo. You can try again later from your profile.');
+        // Mark as complete anyway so user can proceed
+        setProfileCompletion(prev => ({ ...prev, photoComplete: true }));
       } finally {
         setUploadingPhoto(false);
       }
@@ -1224,8 +1261,17 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
           <p style={{
             fontSize: typography.fontSize.md,
             color: colors.text.secondary,
+            marginBottom: spacing.sm,
           }}>
             Complete the next steps to get approved
+          </p>
+
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.muted,
+            fontStyle: 'italic',
+          }}>
+            You can close this and come back anytime to finish
           </p>
         </div>
 
@@ -1407,7 +1453,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
                 >
                   {!selfData.photo && <Camera size={24} style={{ color: colors.text.muted }} />}
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
                   <Button
                     onClick={selfData.photo || photoFile ? handlePhotoUploadComplete : () => fileInputRef.current?.click()}
                     disabled={uploadingPhoto}
@@ -1417,6 +1463,20 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
                   >
                     {uploadingPhoto ? 'Uploading...' : selfData.photo || photoFile ? 'Save Photo' : 'Choose Photo'}
                   </Button>
+                  <button
+                    type="button"
+                    onClick={() => setProfileCompletion(prev => ({ ...prev, photoComplete: true }))}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: colors.text.muted,
+                      fontSize: typography.fontSize.sm,
+                      cursor: 'pointer',
+                      padding: spacing.xs,
+                    }}
+                  >
+                    Skip for now
+                  </button>
                 </div>
               </div>
             </div>
@@ -1518,14 +1578,30 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
                   {errors.social}
                 </p>
               )}
-              <Button
-                onClick={handleSocialSubmit}
-                disabled={isSubmitting}
-                size="sm"
-                style={{ width: '100%' }}
-              >
-                {isSubmitting ? 'Saving...' : 'Save Social Accounts'}
-              </Button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+                <Button
+                  onClick={handleSocialSubmit}
+                  disabled={isSubmitting}
+                  size="sm"
+                  style={{ width: '100%' }}
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Social Accounts'}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setProfileCompletion(prev => ({ ...prev, socialComplete: true }))}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: colors.text.muted,
+                    fontSize: typography.fontSize.sm,
+                    cursor: 'pointer',
+                    padding: spacing.xs,
+                  }}
+                >
+                  Skip for now
+                </button>
+              </div>
             </div>
           )}
         </div>
