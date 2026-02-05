@@ -175,14 +175,14 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
 
     try {
       // Insert to nominees table (allows anonymous inserts)
+      // Only use columns that exist in deployed database
       const nomineeData = {
         competition_id: competitionId,
-        user_id: user?.id || null, // May be null if not logged in
+        user_id: user?.id || null,
         name: `${selfData.firstName} ${selfData.lastName}`.trim(),
         email: selfData.email,
         nominated_by: 'self',
-        status: 'pending', // Will become 'profile-complete' after steps done
-        profile_complete: false,
+        status: 'pending',
       };
 
       const { data: insertedNominee, error } = await supabase
@@ -231,16 +231,20 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     setSubmitError(null);
 
     try {
+      // Only use columns that exist in deployed database
+      // For phone nominations, store in email field with phone: prefix
+      const contactValue = thirdPartyData.contactValue;
+      const emailValue = thirdPartyData.contactType === 'email'
+        ? contactValue
+        : `phone:${contactValue}`;
+
       const nomineeData = {
         competition_id: competitionId,
         name: `${thirdPartyData.firstName} ${thirdPartyData.lastName}`.trim(),
-        email: thirdPartyData.contactType === 'email' ? thirdPartyData.contactValue : null,
-        phone: thirdPartyData.contactType === 'phone' ? thirdPartyData.contactValue : null,
+        email: emailValue,
         nominated_by: 'third_party',
         nominator_id: user?.id || null,
         nominator_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null,
-        nomination_reason: thirdPartyData.reason || null,
-        nominator_anonymous: thirdPartyData.isAnonymous,
         status: 'pending',
       };
 
@@ -1079,7 +1083,7 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
       setErrors({});
 
       try {
-        // Update user's profile with social handles
+        // Update user's profile with social handles (profiles table is source of truth)
         await supabase
           .from('profiles')
           .update({
@@ -1088,12 +1092,6 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
             twitter: twitter.trim() || null,
           })
           .eq('id', currentUser.id);
-
-        // Also update nominee record with instagram (for host visibility)
-        await supabase
-          .from('nominees')
-          .update({ instagram: instagram.trim() || null })
-          .eq('id', pendingContestantId);
 
         setProfileCompletion(prev => ({ ...prev, socialComplete: true }));
         toast.success('Social accounts saved!');
@@ -1109,12 +1107,10 @@ export default function NominationForm({ city, competitionId, onSubmit, onClose 
     const handleFinalComplete = async () => {
       try {
         // Update nominee status to profile-complete (awaiting host approval)
+        // Status alone is sufficient - no need for separate profile_complete column
         await supabase
           .from('nominees')
-          .update({
-            status: 'profile-complete',
-            profile_complete: true
-          })
+          .update({ status: 'profile-complete' })
           .eq('id', pendingContestantId);
 
         setIsSuccess(true);
