@@ -864,15 +864,7 @@
   margin-bottom: var(--spacing-lg);
 }
 
-.hall-of-winners-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #000;
+.hall-of-winners-crown {
   flex-shrink: 0;
 }
 
@@ -896,15 +888,25 @@
 }
 
 .hall-of-winners-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--spacing-sm);
 }
 
+@media (max-width: 600px) {
+  .hall-of-winners-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hall-of-winners-card {
+    flex: 0 1 calc(50% - var(--spacing-sm));
+    min-width: 140px;
+  }
+}
+
 .hall-of-winners-card {
-  flex: 0 1 calc(33.333% - var(--spacing-sm));
-  min-width: 140px;
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);

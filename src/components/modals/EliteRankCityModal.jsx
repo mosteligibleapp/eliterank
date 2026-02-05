@@ -547,16 +547,7 @@ export default function EliteRankCityModal({
           gap: spacing.md,
           marginBottom: spacing.xl,
         }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            background: `linear-gradient(135deg, ${colors.gold.primary}, ${colors.gold.dark || '#b8960c'})`,
-            borderRadius: borderRadius.md,
-            ...styleHelpers.flexCenter,
-            flexShrink: 0,
-          }}>
-            <EliteRankCrown size={24} color="#000" />
-          </div>
+          <EliteRankCrown size={28} />
           <div>
             <p style={{
               fontSize: typography.fontSize.xs,
@@ -580,7 +571,8 @@ export default function EliteRankCityModal({
 
         {/* Winners Grid */}
         <div style={{
-          display: 'flex',
+          display: isMobile ? 'flex' : 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
           flexWrap: 'wrap',
           justifyContent: 'center',
           gap: spacing.sm,
@@ -589,8 +581,8 @@ export default function EliteRankCityModal({
             <div
               key={winner.id}
               style={{
-                flex: isMobile ? '0 1 calc(50% - 8px)' : '0 1 calc(33.333% - 8px)',
-                minWidth: '140px',
+                flex: isMobile ? '0 1 calc(50% - 8px)' : undefined,
+                minWidth: isMobile ? '140px' : undefined,
                 display: 'flex',
                 alignItems: 'center',
                 gap: spacing.sm,
