@@ -788,8 +788,6 @@ export default function EliteRankCityModal({
               </p>
             </div>
 
-            <HallOfWinners />
-
             <FilterBar />
 
             {/* Competition Grid */}
@@ -833,6 +831,8 @@ export default function EliteRankCityModal({
                 )}
               </div>
             )}
+
+            <HallOfWinners />
           </div>
         );
 
