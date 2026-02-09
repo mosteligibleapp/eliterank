@@ -183,7 +183,6 @@ export async function generateShareCard({
   ctx.fillStyle = accentColor;
   ctx.font = '600 32px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
-  ctx.letterSpacing = '8px';
   ctx.fillText('E L I T E R A N K', CX, y);
   y += 50;
 
@@ -198,38 +197,38 @@ export async function generateShareCard({
 
   // Small diamond on the line
   drawSparkle(ctx, CX, y, 5, accentColor, 0.7);
-  y += 60;
+  y += 50;
 
   // "I'VE BEEN" small text
   ctx.fillStyle = '#a1a1aa';
   ctx.font = '500 30px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText("I'VE BEEN", CX, y);
-  y += 70;
+  y += 60;
 
   // "NOMINATED" hero text with glow
   ctx.save();
   ctx.shadowColor = accentColor;
   ctx.shadowBlur = 40;
   ctx.fillStyle = accentColor;
-  ctx.font = 'bold 96px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = 'bold 92px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('NOMINATED', CX, y);
   ctx.restore();
   // Second pass without shadow for crisp text
   ctx.fillStyle = accentColor;
-  ctx.font = 'bold 96px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = 'bold 92px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('NOMINATED', CX, y);
-  y += 55;
+  y += 50;
 
   // "for" + competition
   ctx.fillStyle = '#71717a';
   ctx.font = '400 28px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('for', CX, y);
-  y += 48;
+  y += 44;
 
   ctx.fillStyle = '#e4e4e7';
   ctx.font = '600 36px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText(competitionTitle || 'Competition', CX, y);
-  y += 44;
+  y += 40;
 
   // City + Season
   const metaParts = [];
@@ -240,20 +239,20 @@ export async function generateShareCard({
     ctx.font = '400 26px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(metaParts.join('  ·  '), CX, y);
   }
-  y += 80;
+  y += 65;
 
   // --- Photo ---
-  const photoRadius = 200;
+  const photoRadius = 160;
   const photoCY = y + photoRadius;
 
   // Outer glow behind photo
   ctx.save();
-  const photoGlow = ctx.createRadialGradient(CX, photoCY, photoRadius - 20, CX, photoCY, photoRadius + 80);
+  const photoGlow = ctx.createRadialGradient(CX, photoCY, photoRadius - 20, CX, photoCY, photoRadius + 60);
   photoGlow.addColorStop(0, `${accentColor}20`);
   photoGlow.addColorStop(1, 'transparent');
   ctx.fillStyle = photoGlow;
   ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 80, 0, Math.PI * 2);
+  ctx.arc(CX, photoCY, photoRadius + 60, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
@@ -282,11 +281,11 @@ export async function generateShareCard({
   ctx.arc(CX, photoCY, photoRadius + 6, 0, Math.PI * 2);
   ctx.stroke();
 
-  y = photoCY + photoRadius + 60;
+  y = photoCY + photoRadius + 50;
 
   // --- Name ---
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = 'bold 60px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
   // Truncate long names
   let displayName = name || 'Nominee';
@@ -324,12 +323,6 @@ export async function generateShareCard({
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('Vote at eliterank.co', CX, ctaY + ctaHeight / 2);
-
-  // --- Bottom branding line ---
-  ctx.fillStyle = '#52525b';
-  ctx.font = '400 20px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText('eliterank.co', CX, ctaY + ctaHeight + 50);
 
   // Convert to blob
   return new Promise((resolve) => {

@@ -100,37 +100,37 @@ export default function ShareableCard({
     ctx.lineTo(cx + lineW / 2, y);
     ctx.stroke();
     drawSparkle(cx, y, 5 * s, 0.7);
-    y += 60 * s;
+    y += 50 * s;
 
     // "I'VE BEEN"
     ctx.fillStyle = '#a1a1aa';
     ctx.font = `500 ${30 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
     ctx.fillText("I'VE BEEN", cx, y);
-    y += 70 * s;
+    y += 60 * s;
 
     // "NOMINATED" hero text with glow
     ctx.save();
     ctx.shadowColor = accentColor;
     ctx.shadowBlur = 20 * s;
     ctx.fillStyle = accentColor;
-    ctx.font = `bold ${96 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    ctx.font = `bold ${92 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
     ctx.fillText('NOMINATED', cx, y);
     ctx.restore();
     ctx.fillStyle = accentColor;
-    ctx.font = `bold ${96 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    ctx.font = `bold ${92 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
     ctx.fillText('NOMINATED', cx, y);
-    y += 55 * s;
+    y += 50 * s;
 
     // "for" + competition
     ctx.fillStyle = '#71717a';
     ctx.font = `400 ${28 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
     ctx.fillText('for', cx, y);
-    y += 48 * s;
+    y += 44 * s;
 
     ctx.fillStyle = '#e4e4e7';
     ctx.font = `600 ${36 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
     ctx.fillText(competitionTitle || 'Competition', cx, y);
-    y += 44 * s;
+    y += 40 * s;
 
     const metaParts = [];
     if (cityName) metaParts.push(cityName);
@@ -140,20 +140,20 @@ export default function ShareableCard({
       ctx.font = `400 ${26 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.fillText(metaParts.join('  ·  '), cx, y);
     }
-    y += 80 * s;
+    y += 65 * s;
 
     // --- Photo ---
-    const photoR = 200 * s;
+    const photoR = 160 * s;
     const photoCY = y + photoR;
 
     // Outer glow
     ctx.save();
-    const pGlow = ctx.createRadialGradient(cx, photoCY, photoR - 20 * s, cx, photoCY, photoR + 80 * s);
+    const pGlow = ctx.createRadialGradient(cx, photoCY, photoR - 20 * s, cx, photoCY, photoR + 60 * s);
     pGlow.addColorStop(0, `${accentColor}20`);
     pGlow.addColorStop(1, 'transparent');
     ctx.fillStyle = pGlow;
     ctx.beginPath();
-    ctx.arc(cx, photoCY, photoR + 80 * s, 0, Math.PI * 2);
+    ctx.arc(cx, photoCY, photoR + 60 * s, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -177,13 +177,11 @@ export default function ShareableCard({
     }
 
     function drawRings() {
-      // Outer thin ring
       ctx.strokeStyle = `${accentColor}30`;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(cx, photoCY, photoR + 16 * s, 0, Math.PI * 2);
       ctx.stroke();
-      // Inner gold ring
       ctx.strokeStyle = accentColor;
       ctx.lineWidth = 3 * s;
       ctx.beginPath();
@@ -192,14 +190,14 @@ export default function ShareableCard({
     }
 
     function drawBottom() {
-      let ry = photoCY + photoR + 60 * s;
+      let ry = photoCY + photoR + 50 * s;
 
       // Name
       ctx.fillStyle = '#ffffff';
-      ctx.font = `bold ${64 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `bold ${60 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText(name || 'Nominee', cx, ry);
-      ry += 48 * s;
+      ry += 44 * s;
 
       // Handle
       if (handle) {
