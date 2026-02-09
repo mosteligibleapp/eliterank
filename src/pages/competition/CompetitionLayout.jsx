@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useLocation, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   PublicCompetitionProvider,
@@ -22,6 +22,9 @@ import ActivityView from './views/ActivityView';
 // Shared components
 import { CompetitionHeader } from './components/CompetitionHeader';
 import VoteModal from '../../features/public-site/components/VoteModal';
+
+// Entry flow (lazy loaded)
+const EntryFlow = lazy(() => import('../../features/entry/EntryFlow'));
 
 /**
  * Inner layout component (has access to context)
@@ -113,6 +116,7 @@ function CompetitionLayoutInner() {
   }
 
   // Determine current view from URL
+  const isEntryView = location.pathname.endsWith('/enter');
   const isLeaderboardView = location.pathname.endsWith('/leaderboard');
   const isActivityView = location.pathname.endsWith('/activity');
   const isContestantView = location.pathname.includes('/e/');
@@ -120,6 +124,22 @@ function CompetitionLayoutInner() {
   const handleBack = () => {
     navigate('/');
   };
+
+  // Render entry flow as full-screen overlay
+  if (isEntryView) {
+    return (
+      <Suspense fallback={
+        <div className="competition-layout">
+          <div className="competition-loading">
+            <Loader className="loading-spinner" size={32} />
+            <p>Loading entry flow...</p>
+          </div>
+        </div>
+      }>
+        <EntryFlow />
+      </Suspense>
+    );
+  }
 
   // Hide floating buttons when modals are open
   const isModalOpen = showVoteModal || showProfileModal;

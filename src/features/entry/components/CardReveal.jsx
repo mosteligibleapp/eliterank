@@ -1,0 +1,155 @@
+import React, { useState, useEffect } from 'react';
+import { Download, Share2, Copy, Check } from 'lucide-react';
+import ShareableCard from './ShareableCard';
+import { generateShareCard, shareOrDownload, copyLink } from '../utils/shareUtils';
+import { getCompetitionTitle } from '../utils/eligibilityEngine';
+
+/**
+ * Card Reveal - Final step showing the generated card with share options
+ */
+export default function CardReveal({
+  competition,
+  submittedData,
+  onDone,
+}) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+
+  const title = getCompetitionTitle(competition);
+  const cityName = competition?.cityData?.name || competition?.city || '';
+  const season = competition?.season;
+  const accentColor = competition?.theme_primary || '#d4af37';
+
+  // Trigger reveal animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setRevealed(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleShare = async () => {
+    setIsGenerating(true);
+    try {
+      const blob = await generateShareCard({
+        name: submittedData.name,
+        photoUrl: submittedData.photoUrl,
+        handle: submittedData.handle,
+        competitionTitle: title,
+        cityName,
+        season: String(season || ''),
+        quote: submittedData.pitch,
+        accentColor,
+        isNomination: submittedData.isNomination,
+      });
+      await shareOrDownload(blob, `eliterank-${submittedData.name?.toLowerCase().replace(/\s+/g, '-')}.png`);
+    } catch (err) {
+      console.error('Share failed:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    setIsGenerating(true);
+    try {
+      const blob = await generateShareCard({
+        name: submittedData.name,
+        photoUrl: submittedData.photoUrl,
+        handle: submittedData.handle,
+        competitionTitle: title,
+        cityName,
+        season: String(season || ''),
+        quote: submittedData.pitch,
+        accentColor,
+        isNomination: submittedData.isNomination,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `eliterank-${submittedData.name?.toLowerCase().replace(/\s+/g, '-')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}${window.location.pathname.replace('/enter', '')}?apply=true`;
+    const success = await copyLink(url);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className={`entry-step entry-step-card ${revealed ? 'revealed' : ''}`}>
+      <div className="entry-card-reveal-header">
+        <h2 className="entry-step-title">
+          {submittedData.isNomination ? 'Nomination Sent!' : "You're In!"}
+        </h2>
+        <p className="entry-step-subtitle">
+          {submittedData.isNomination
+            ? `You nominated ${submittedData.name} for ${title}`
+            : `Your entry for ${title} has been submitted`}
+        </p>
+      </div>
+
+      {/* Card preview */}
+      <div className="entry-card-preview-wrap">
+        <ShareableCard
+          name={submittedData.name}
+          photoUrl={submittedData.photoUrl}
+          handle={submittedData.handle}
+          competitionTitle={title}
+          cityName={cityName}
+          season={season}
+          quote={submittedData.pitch}
+          accentColor={accentColor}
+          isNomination={submittedData.isNomination}
+        />
+      </div>
+
+      {/* Share actions */}
+      <div className="entry-share-actions">
+        <button
+          className="entry-btn-primary"
+          onClick={handleShare}
+          disabled={isGenerating}
+        >
+          <Share2 size={18} />
+          {isGenerating ? 'Generating...' : 'Share to Instagram Story'}
+        </button>
+
+        <div className="entry-share-row">
+          <button
+            className="entry-btn-secondary"
+            onClick={handleDownload}
+            disabled={isGenerating}
+          >
+            <Download size={16} />
+            Download
+          </button>
+
+          <button
+            className={`entry-btn-secondary ${copied ? 'copied' : ''}`}
+            onClick={handleCopyLink}
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+            {copied ? 'Copied!' : 'Copy Link'}
+          </button>
+        </div>
+      </div>
+
+      <button className="entry-btn-done" onClick={onDone}>
+        Done
+      </button>
+    </div>
+  );
+}
