@@ -38,7 +38,6 @@ export default function CardReveal({
         cityName,
         season: String(season || ''),
         accentColor,
-        isNomination: submittedData.isNomination,
       });
       await shareOrDownload(blob, `eliterank-${submittedData.name?.toLowerCase().replace(/\s+/g, '-')}.png`);
     } catch (err) {
@@ -59,7 +58,6 @@ export default function CardReveal({
         cityName,
         season: String(season || ''),
         accentColor,
-        isNomination: submittedData.isNomination,
       });
 
       const url = URL.createObjectURL(blob);
@@ -89,13 +87,11 @@ export default function CardReveal({
   return (
     <div className={`entry-step entry-step-card ${revealed ? 'revealed' : ''}`}>
       <div className="entry-card-reveal-header">
-        <h2 className="entry-step-title">
-          {submittedData.isNomination ? 'Nomination Sent!' : "You're In!"}
-        </h2>
+        <h2 className="entry-step-title">Nominated!</h2>
         <p className="entry-step-subtitle">
           {submittedData.isNomination
             ? `You nominated ${submittedData.name} for ${title}`
-            : `Your entry for ${title} has been submitted`}
+            : `You've been nominated for ${title}`}
         </p>
       </div>
 
@@ -109,7 +105,6 @@ export default function CardReveal({
           cityName={cityName}
           season={season}
           accentColor={accentColor}
-          isNomination={submittedData.isNomination}
         />
       </div>
 
