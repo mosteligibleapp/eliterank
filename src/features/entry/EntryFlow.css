@@ -602,6 +602,16 @@
   transform: scale(0.98);
 }
 
+.entry-btn-primary.entry-btn-outline {
+  background: transparent;
+  border: 2px solid #d4af37;
+  color: #d4af37;
+}
+
+.entry-btn-primary.entry-btn-outline:not(:disabled):active {
+  background: rgba(212, 175, 55, 0.1);
+}
+
 .entry-btn-secondary {
   flex: 1;
   min-height: 48px;

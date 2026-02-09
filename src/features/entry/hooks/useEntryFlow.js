@@ -232,6 +232,7 @@ export function useEntryFlow(competition, profile) {
         handle: nomineeData.instagram,
         pitch: nomineeData.reason,
         isNomination: true,
+        nominatorAnonymous: nominatorData.anonymous,
       });
 
       setCurrentStepIndex(steps.indexOf('card'));
@@ -241,6 +242,25 @@ export function useEntryFlow(competition, profile) {
       setIsSubmitting(false);
     }
   }, [competition, nomineeData, nominatorData, eligibilityAnswers, profile, steps]);
+
+  // Reset for nominating another person (keeps nominator info + eligibility)
+  const resetForNewNomination = useCallback(() => {
+    setNomineeData({
+      name: '',
+      email: '',
+      phone: '',
+      instagram: '',
+      age: '',
+      relationship: '',
+      photoFile: null,
+      photoPreview: '',
+      reason: '',
+    });
+    setSubmittedData(null);
+    setSubmitError('');
+    // Go back to the nominee info step
+    setCurrentStepIndex(steps.indexOf('nominee'));
+  }, [steps]);
 
   return {
     // State
@@ -270,6 +290,7 @@ export function useEntryFlow(competition, profile) {
     updateNominatorData,
     submitSelfEntry,
     submitNomination,
+    resetForNewNomination,
     setSubmitError,
   };
 }

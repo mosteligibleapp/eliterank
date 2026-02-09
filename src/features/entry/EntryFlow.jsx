@@ -135,7 +135,7 @@ export default function EntryFlow() {
 
       {/* Step content with slide animation */}
       <div className="entry-content" key={flow.currentStep}>
-        {renderStep(flow, competition, competitionTitle, handleDone)}
+        {renderStep(flow, competition, competitionTitle, handleDone, flow.resetForNewNomination)}
       </div>
     </div>
   );
@@ -144,7 +144,7 @@ export default function EntryFlow() {
 /**
  * Render the current step
  */
-function renderStep(flow, competition, competitionTitle, handleDone) {
+function renderStep(flow, competition, competitionTitle, handleDone, handleNominateAnother) {
   switch (flow.currentStep) {
     case 'mode':
       return (
@@ -241,6 +241,7 @@ function renderStep(flow, competition, competitionTitle, handleDone) {
           competition={competition}
           submittedData={flow.submittedData}
           onDone={handleDone}
+          onNominateAnother={handleNominateAnother}
         />
       );
 

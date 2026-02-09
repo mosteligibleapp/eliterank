@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Share2, Copy, Check } from 'lucide-react';
+import { Download, Share2, Copy, Check, UserPlus, Send } from 'lucide-react';
 import ShareableCard from './ShareableCard';
 import { generateShareCard, shareOrDownload, copyLink } from '../utils/shareUtils';
 import { getCompetitionTitle } from '../utils/eligibilityEngine';
@@ -11,6 +11,7 @@ export default function CardReveal({
   competition,
   submittedData,
   onDone,
+  onNominateAnother,
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -27,18 +28,20 @@ export default function CardReveal({
     return () => clearTimeout(timer);
   }, []);
 
+  const cardParams = {
+    name: submittedData.name,
+    photoUrl: submittedData.photoUrl,
+    handle: submittedData.handle,
+    competitionTitle: title,
+    cityName,
+    season: String(season || ''),
+    accentColor,
+  };
+
   const handleShare = async () => {
     setIsGenerating(true);
     try {
-      const blob = await generateShareCard({
-        name: submittedData.name,
-        photoUrl: submittedData.photoUrl,
-        handle: submittedData.handle,
-        competitionTitle: title,
-        cityName,
-        season: String(season || ''),
-        accentColor,
-      });
+      const blob = await generateShareCard(cardParams);
       await shareOrDownload(blob, `eliterank-${submittedData.name?.toLowerCase().replace(/\s+/g, '-')}.png`);
     } catch (err) {
       console.error('Share failed:', err);
@@ -50,16 +53,7 @@ export default function CardReveal({
   const handleDownload = async () => {
     setIsGenerating(true);
     try {
-      const blob = await generateShareCard({
-        name: submittedData.name,
-        photoUrl: submittedData.photoUrl,
-        handle: submittedData.handle,
-        competitionTitle: title,
-        cityName,
-        season: String(season || ''),
-        accentColor,
-      });
-
+      const blob = await generateShareCard(cardParams);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -84,12 +78,15 @@ export default function CardReveal({
     }
   };
 
+  const isThirdParty = submittedData.isNomination;
+  const isAnonymous = submittedData.nominatorAnonymous;
+
   return (
     <div className={`entry-step entry-step-card ${revealed ? 'revealed' : ''}`}>
       <div className="entry-card-reveal-header">
         <h2 className="entry-step-title">Nominated!</h2>
         <p className="entry-step-subtitle">
-          {submittedData.isNomination
+          {isThirdParty
             ? `You nominated ${submittedData.name} for ${title}`
             : `You've been nominated for ${title}`}
         </p>
@@ -110,38 +107,86 @@ export default function CardReveal({
 
       {/* Share actions */}
       <div className="entry-share-actions">
-        <button
-          className="entry-btn-primary"
-          onClick={handleShare}
-          disabled={isGenerating}
-        >
-          <Share2 size={18} />
-          {isGenerating ? 'Generating...' : 'Share to Instagram Story'}
-        </button>
+        {isThirdParty && !isAnonymous ? (
+          <>
+            {/* Third-party non-anonymous: share with nominee */}
+            <button
+              className="entry-btn-primary"
+              onClick={handleShare}
+              disabled={isGenerating}
+            >
+              <Send size={18} />
+              {isGenerating ? 'Generating...' : 'Share with Nominee'}
+            </button>
 
-        <div className="entry-share-row">
-          <button
-            className="entry-btn-secondary"
-            onClick={handleDownload}
-            disabled={isGenerating}
-          >
-            <Download size={16} />
-            Download
-          </button>
+            <div className="entry-share-row">
+              <button
+                className="entry-btn-secondary"
+                onClick={handleDownload}
+                disabled={isGenerating}
+              >
+                <Download size={16} />
+                Download
+              </button>
 
-          <button
-            className={`entry-btn-secondary ${copied ? 'copied' : ''}`}
-            onClick={handleCopyLink}
-          >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            {copied ? 'Copied!' : 'Copy Link'}
-          </button>
-        </div>
+              <button
+                className={`entry-btn-secondary ${copied ? 'copied' : ''}`}
+                onClick={handleCopyLink}
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? 'Copied!' : 'Copy Link'}
+              </button>
+            </div>
+
+            <button
+              className="entry-btn-primary entry-btn-outline"
+              onClick={onNominateAnother}
+            >
+              <UserPlus size={18} />
+              Nominate Another
+            </button>
+
+            <button className="entry-btn-done" onClick={onDone}>
+              I'm Done
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Self-entry or anonymous nomination: standard share flow */}
+            <button
+              className="entry-btn-primary"
+              onClick={handleShare}
+              disabled={isGenerating}
+            >
+              <Share2 size={18} />
+              {isGenerating ? 'Generating...' : 'Share to Instagram Story'}
+            </button>
+
+            <div className="entry-share-row">
+              <button
+                className="entry-btn-secondary"
+                onClick={handleDownload}
+                disabled={isGenerating}
+              >
+                <Download size={16} />
+                Download
+              </button>
+
+              <button
+                className={`entry-btn-secondary ${copied ? 'copied' : ''}`}
+                onClick={handleCopyLink}
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? 'Copied!' : 'Copy Link'}
+              </button>
+            </div>
+
+            <button className="entry-btn-done" onClick={onDone}>
+              Done
+            </button>
+          </>
+        )}
       </div>
-
-      <button className="entry-btn-done" onClick={onDone}>
-        Done
-      </button>
     </div>
   );
 }

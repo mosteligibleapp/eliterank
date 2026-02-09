@@ -14,11 +14,14 @@ export default function SelfDetailsStep({
     onChange({ [field]: e.target.value });
   };
 
+  const hasEmail = data.email.trim() && data.email.includes('@');
+  const hasPhone = data.phone.trim().length > 0;
+  const hasContact = hasEmail || hasPhone;
+
   const isValid =
     data.firstName.trim() &&
     data.lastName.trim() &&
-    data.email.trim() &&
-    data.email.includes('@') &&
+    hasContact &&
     data.age &&
     parseInt(data.age, 10) >= 18;
 
@@ -72,7 +75,7 @@ export default function SelfDetailsStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Email *</label>
+        <label className="entry-label">Email {!hasPhone ? '*' : ''}</label>
         <div className="entry-input-icon">
           <Mail size={18} />
           <input
@@ -87,7 +90,7 @@ export default function SelfDetailsStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Phone</label>
+        <label className="entry-label">Phone {!hasEmail ? '*' : ''}</label>
         <div className="entry-input-icon">
           <Phone size={18} />
           <input
@@ -100,6 +103,10 @@ export default function SelfDetailsStep({
           />
         </div>
       </div>
+
+      {!hasContact && (
+        <p className="entry-hint">Email or phone is required</p>
+      )}
 
       <div className="entry-form-field">
         <label className="entry-label">Instagram</label>
