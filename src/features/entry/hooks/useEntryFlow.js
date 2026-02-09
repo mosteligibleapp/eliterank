@@ -30,7 +30,7 @@ export function useEntryFlow(competition, profile) {
     email: profile?.email || '',
     phone: profile?.phone || '',
     instagram: profile?.instagram || '',
-    birthday: '',
+    age: profile?.age || '',
     photoFile: null,
     photoPreview: profile?.avatar_url || '',
     pitch: '',
@@ -77,6 +77,7 @@ export function useEntryFlow(competition, profile) {
         email: prev.email || profile.email || '',
         phone: prev.phone || profile.phone || '',
         instagram: prev.instagram || profile.instagram || '',
+        age: prev.age || profile.age || '',
         photoPreview: prev.photoPreview || profile.avatar_url || '',
       }));
     }
@@ -141,22 +142,11 @@ export function useEntryFlow(competition, profile) {
         instagram: selfData.instagram.trim() || null,
         bio: selfData.pitch.trim() || null,
         avatar_url: avatarUrl || null,
+        age: selfData.age ? parseInt(selfData.age, 10) : null,
         nominated_by: 'self',
         status: 'pending',
         eligibility_answers: eligibilityAnswers,
       };
-
-      // Calculate age from birthday if provided
-      if (selfData.birthday) {
-        const birthDate = new Date(selfData.birthday);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
-        record.age = age;
-      }
 
       // Link to user if logged in
       if (profile?.id) {

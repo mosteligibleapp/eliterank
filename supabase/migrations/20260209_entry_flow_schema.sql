@@ -9,6 +9,9 @@ ALTER TABLE nominees ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 -- Values: 'friend', 'coworker', 'family', 'other'
 ALTER TABLE nominees ADD COLUMN IF NOT EXISTS relationship TEXT;
 
+-- Add age column to nominees (stored as integer, displayed on profile)
+ALTER TABLE nominees ADD COLUMN IF NOT EXISTS age INTEGER;
+
 -- Create storage bucket for nomination/avatar photos
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('avatars', 'avatars', true)

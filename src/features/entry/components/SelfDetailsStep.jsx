@@ -18,7 +18,9 @@ export default function SelfDetailsStep({
     data.firstName.trim() &&
     data.lastName.trim() &&
     data.email.trim() &&
-    data.email.includes('@');
+    data.email.includes('@') &&
+    data.age &&
+    parseInt(data.age, 10) >= 18;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -56,12 +58,16 @@ export default function SelfDetailsStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Birthday</label>
+        <label className="entry-label">Age *</label>
         <input
-          type="date"
+          type="number"
           className="entry-input"
-          value={data.birthday}
-          onChange={handleChange('birthday')}
+          value={data.age}
+          onChange={handleChange('age')}
+          placeholder="Your age"
+          min="18"
+          max="99"
+          inputMode="numeric"
         />
       </div>
 
