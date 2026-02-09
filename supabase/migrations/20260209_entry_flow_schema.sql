@@ -12,6 +12,9 @@ ALTER TABLE nominees ADD COLUMN IF NOT EXISTS relationship TEXT;
 -- Add age column to nominees (stored as integer, displayed on profile)
 ALTER TABLE nominees ADD COLUMN IF NOT EXISTS age INTEGER;
 
+-- Add bio column for self-entry pitch (private, host review only)
+ALTER TABLE nominees ADD COLUMN IF NOT EXISTS bio TEXT;
+
 -- Create storage bucket for nomination/avatar photos
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('avatars', 'avatars', true)

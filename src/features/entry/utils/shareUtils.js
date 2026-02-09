@@ -92,7 +92,6 @@ function drawInitial(ctx, initial, cx, cy, radius, accentColor) {
  * @param {string} params.competitionTitle
  * @param {string} params.cityName
  * @param {string} params.season
- * @param {string} params.quote - Pitch or nomination reason
  * @param {string} params.accentColor - Theme primary color
  * @param {boolean} params.isNomination
  * @param {number} params.nominationCount - optional stats
@@ -105,7 +104,6 @@ export async function generateShareCard({
   competitionTitle,
   cityName,
   season,
-  quote,
   accentColor = '#d4af37',
   isNomination = false,
 }) {
@@ -220,43 +218,6 @@ export async function generateShareCard({
   ctx.fillText(pillText, SAFE_CENTER_X, y);
   ctx.textBaseline = 'alphabetic';
   y += pillHeight / 2 + 50;
-
-  // Quote
-  if (quote) {
-    ctx.fillStyle = '#e4e4e7';
-    ctx.font = `italic 30px -apple-system, BlinkMacSystemFont, sans-serif`;
-
-    // Word wrap the quote
-    const words = quote.split(' ');
-    let line = '';
-    const lines = [];
-    const maxWidth = SAFE_WIDTH - 40;
-
-    for (const word of words) {
-      const test = line ? `${line} ${word}` : word;
-      if (ctx.measureText(test).width > maxWidth) {
-        lines.push(line);
-        line = word;
-      } else {
-        line = test;
-      }
-    }
-    if (line) lines.push(line);
-
-    // Draw wrapped quote with quotation marks
-    const quoteLines = lines.slice(0, 3); // max 3 lines
-    ctx.fillStyle = `${accentColor}60`;
-    ctx.font = `bold 60px Georgia, serif`;
-    ctx.fillText('"', SAFE.left + 20, y);
-
-    ctx.fillStyle = '#e4e4e7';
-    ctx.font = `italic 28px -apple-system, BlinkMacSystemFont, sans-serif`;
-    for (const l of quoteLines) {
-      ctx.fillText(l, SAFE_CENTER_X, y);
-      y += 38;
-    }
-    y += 20;
-  }
 
   // CTA Button at bottom
   const ctaY = SAFE.bottom - 60;

@@ -11,7 +11,6 @@ export default function ShareableCard({
   competitionTitle,
   cityName,
   season,
-  quote,
   accentColor = '#d4af37',
   isNomination = false,
 }) {
@@ -172,31 +171,8 @@ export default function ShareableCard({
       ctx.textBaseline = 'alphabetic';
       ry += ph / 2 + 24 * scale;
 
-      // Quote
-      if (quote) {
-        ctx.fillStyle = '#e4e4e7';
-        ctx.font = `italic ${13 * scale}px -apple-system, BlinkMacSystemFont, sans-serif`;
-        const maxW = (w - 140 * scale);
-        const words = quote.split(' ');
-        let line = '';
-        const lines = [];
-        for (const word of words) {
-          const test = line ? `${line} ${word}` : word;
-          if (ctx.measureText(test).width > maxW) {
-            lines.push(line);
-            line = word;
-          } else {
-            line = test;
-          }
-        }
-        if (line) lines.push(line);
-        for (const l of lines.slice(0, 2)) {
-          ctx.fillText(l, cx, ry);
-          ry += 18 * scale;
-        }
-      }
     }
-  }, [name, photoUrl, handle, competitionTitle, cityName, season, quote, accentColor, isNomination, imageLoaded]);
+  }, [name, photoUrl, handle, competitionTitle, cityName, season, accentColor, isNomination, imageLoaded]);
 
   // Pre-load photo
   useEffect(() => {

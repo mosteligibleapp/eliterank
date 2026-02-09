@@ -37,7 +37,6 @@ export default function CardReveal({
         competitionTitle: title,
         cityName,
         season: String(season || ''),
-        quote: submittedData.pitch,
         accentColor,
         isNomination: submittedData.isNomination,
       });
@@ -59,7 +58,6 @@ export default function CardReveal({
         competitionTitle: title,
         cityName,
         season: String(season || ''),
-        quote: submittedData.pitch,
         accentColor,
         isNomination: submittedData.isNomination,
       });
@@ -110,7 +108,6 @@ export default function CardReveal({
           competitionTitle={title}
           cityName={cityName}
           season={season}
-          quote={submittedData.pitch}
           accentColor={accentColor}
           isNomination={submittedData.isNomination}
         />
