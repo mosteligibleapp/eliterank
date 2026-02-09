@@ -652,6 +652,13 @@
   margin: 8px 0;
 }
 
+.entry-hint {
+  color: #71717a;
+  font-size: 0.8125rem;
+  text-align: center;
+  margin: 4px 0 8px;
+}
+
 /* Card reveal */
 .entry-step-card {
   align-items: center;

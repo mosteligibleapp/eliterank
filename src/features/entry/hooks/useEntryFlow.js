@@ -39,6 +39,8 @@ export function useEntryFlow(competition, profile) {
   // Nomination data
   const [nomineeData, setNomineeData] = useState({
     name: '',
+    email: '',
+    phone: '',
     instagram: '',
     age: '',
     relationship: '',
@@ -195,6 +197,8 @@ export function useEntryFlow(competition, profile) {
       const record = {
         competition_id: competition.id,
         name: nomineeData.name.trim(),
+        email: nomineeData.email.trim() || null,
+        phone: nomineeData.phone.trim() || null,
         instagram: nomineeData.instagram.trim() || null,
         age: nomineeData.age ? parseInt(nomineeData.age, 10) : null,
         relationship: nomineeData.relationship || null,

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Instagram, Camera, X } from 'lucide-react';
+import { Instagram, Camera, X, Mail, Phone } from 'lucide-react';
 
 const RELATIONSHIPS = [
   { id: 'friend', label: 'Friend' },
@@ -36,7 +36,8 @@ export default function NomineeInfoStep({
     onChange({ photoFile: file, photoPreview: previewUrl });
   };
 
-  const isValid = data.name.trim();
+  const hasContact = (data.email && data.email.trim()) || (data.phone && data.phone.trim());
+  const isValid = data.name.trim() && hasContact;
 
   return (
     <div className="entry-step entry-step-nominee">
@@ -88,6 +89,39 @@ export default function NomineeInfoStep({
           placeholder="Full name"
         />
       </div>
+
+      <div className="entry-form-field">
+        <label className="entry-label">Their Email {!data.phone?.trim() ? '*' : ''}</label>
+        <div className="entry-input-icon">
+          <Mail size={18} />
+          <input
+            type="email"
+            className="entry-input"
+            value={data.email}
+            onChange={(e) => onChange({ email: e.target.value })}
+            placeholder="email@example.com"
+          />
+        </div>
+      </div>
+
+      <div className="entry-form-field">
+        <label className="entry-label">Their Phone {!data.email?.trim() ? '*' : ''}</label>
+        <div className="entry-input-icon">
+          <Phone size={18} />
+          <input
+            type="tel"
+            className="entry-input"
+            value={data.phone}
+            onChange={(e) => onChange({ phone: e.target.value })}
+            placeholder="(555) 555-5555"
+            inputMode="tel"
+          />
+        </div>
+      </div>
+
+      {!hasContact && (
+        <p className="entry-hint">Email or phone is required so we can reach them</p>
+      )}
 
       <div className="entry-form-field">
         <label className="entry-label">Instagram Handle</label>
