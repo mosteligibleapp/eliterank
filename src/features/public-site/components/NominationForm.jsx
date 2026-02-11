@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, User, Users, Mail, Phone, Instagram, Check, Share2, Copy, Twitter, Sparkles } from 'lucide-react';
+import { Crown, User, Users, Mail, Phone, Instagram, Check, Share2, Copy, Twitter } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -631,48 +631,36 @@ export default function NominationForm({ city, competitionId, onClose }) {
           ELITERANK
         </p>
 
-        {/* NOMINATED - Large glowing text */}
+        {/* NOMINATED - Large text */}
         <h2 style={{
-          fontSize: '2.5rem',
+          fontSize: '2rem',
           fontWeight: typography.fontWeight.bold,
           marginBottom: spacing.lg,
-          background: `linear-gradient(135deg, ${colors.gold.primary}, #f4d03f)`,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          textShadow: '0 0 40px rgba(212, 175, 55, 0.3)',
+          color: colors.gold.primary,
         }}>
           NOMINATED
         </h2>
 
         {/* Avatar circle with initial */}
         <div style={{
-          position: 'relative',
-          width: '120px',
-          height: '120px',
+          width: '100px',
+          height: '100px',
           margin: '0 auto',
           marginBottom: spacing.lg,
+          borderRadius: '50%',
+          border: `3px solid ${colors.gold.primary}`,
+          background: colors.background.secondary,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
-          <div style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: '50%',
-            border: `3px solid ${colors.gold.primary}`,
-            background: colors.background.secondary,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+          <span style={{
+            fontSize: '2.5rem',
+            fontWeight: typography.fontWeight.bold,
+            color: colors.gold.primary,
           }}>
-            <span style={{
-              fontSize: '3rem',
-              fontWeight: typography.fontWeight.bold,
-              color: colors.gold.primary,
-            }}>
-              {initial}
-            </span>
-          </div>
-          <Sparkles size={16} style={{ position: 'absolute', top: -5, right: 10, color: colors.gold.primary }} />
-          <Sparkles size={12} style={{ position: 'absolute', bottom: 5, left: 5, color: colors.gold.primary }} />
+            {initial}
+          </span>
         </div>
 
         {/* Nominee Name */}
@@ -819,13 +807,6 @@ export default function NominationForm({ city, competitionId, onClose }) {
         <Button onClick={onClose} variant="secondary" style={{ width: '100%' }}>
           Done
         </Button>
-
-        <style>{`
-          @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-          }
-        `}</style>
       </div>
     );
   }
@@ -849,48 +830,36 @@ export default function NominationForm({ city, competitionId, onClose }) {
           ELITERANK
         </p>
 
-        {/* NOMINATED - Large glowing text */}
+        {/* NOMINATED - Large text */}
         <h2 style={{
-          fontSize: '2.5rem',
+          fontSize: '2rem',
           fontWeight: typography.fontWeight.bold,
           marginBottom: spacing.lg,
-          background: `linear-gradient(135deg, ${colors.gold.primary}, #f4d03f)`,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          textShadow: '0 0 40px rgba(212, 175, 55, 0.3)',
+          color: colors.gold.primary,
         }}>
           NOMINATED
         </h2>
 
         {/* Avatar circle with initial */}
         <div style={{
-          position: 'relative',
-          width: '120px',
-          height: '120px',
+          width: '100px',
+          height: '100px',
           margin: '0 auto',
           marginBottom: spacing.lg,
+          borderRadius: '50%',
+          border: `3px solid ${colors.gold.primary}`,
+          background: colors.background.secondary,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
-          <div style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: '50%',
-            border: `3px solid ${colors.gold.primary}`,
-            background: colors.background.secondary,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+          <span style={{
+            fontSize: '2.5rem',
+            fontWeight: typography.fontWeight.bold,
+            color: colors.gold.primary,
           }}>
-            <span style={{
-              fontSize: '3rem',
-              fontWeight: typography.fontWeight.bold,
-              color: colors.gold.primary,
-            }}>
-              {initial}
-            </span>
-          </div>
-          <Sparkles size={16} style={{ position: 'absolute', top: -5, right: 10, color: colors.gold.primary }} />
-          <Sparkles size={12} style={{ position: 'absolute', bottom: 5, left: 5, color: colors.gold.primary }} />
+            {initial}
+          </span>
         </div>
 
         {/* Nominee Name */}
