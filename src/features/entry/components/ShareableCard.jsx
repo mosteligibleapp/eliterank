@@ -140,7 +140,7 @@ export default function ShareableCard({
       ctx.font = `400 ${26 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.fillText(metaParts.join('  ·  '), cx, y);
     }
-    y += 65 * s;
+    y += 90 * s; // Increased spacing before photo for better readability
 
     // --- Photo ---
     const photoR = 160 * s;
