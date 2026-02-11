@@ -239,7 +239,7 @@ export async function generateShareCard({
     ctx.font = '400 26px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(metaParts.join('  ·  '), CX, y);
   }
-  y += 90; // Increased spacing before photo for better readability
+  y += 140; // Large spacing before photo for visual breathing room
 
   // --- Photo ---
   const photoRadius = 160;
