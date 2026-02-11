@@ -221,30 +221,35 @@ export default function NominationForm({ city, competitionId, onClose }) {
     }
   };
 
+  // Get the nominee's display name for sharing
+  const getNomineeName = () => {
+    if (step === 'success-self') {
+      return `${selfData.firstName} ${selfData.lastName}`.trim();
+    }
+    return otherData.nomineeName.trim();
+  };
+
   const handleShareTwitter = () => {
-    const text = step === 'success-self'
-      ? `I've been nominated for Most Eligible ${city} Season 2026! Think you have what it takes?`
-      : `I just nominated someone for Most Eligible ${city} Season 2026! Know someone who deserves the spotlight?`;
+    const nomineeName = getNomineeName();
+    const text = `${nomineeName} has been nominated for Most Eligible ${city} Season 2026! Vote at eliterank.co`;
     const url = getShareUrl();
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
   };
 
   const handleShareInstagram = () => {
     // Instagram doesn't have a direct share URL, so we'll copy the message
-    const text = step === 'success-self'
-      ? `I've been nominated for Most Eligible ${city} Season 2026! Apply now: ${getShareUrl()}`
-      : `I just nominated someone for Most Eligible ${city} Season 2026! Nominate someone: ${getShareUrl()}`;
+    const nomineeName = getNomineeName();
+    const text = `${nomineeName} has been nominated for Most Eligible ${city} Season 2026! Vote at eliterank.co`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleNativeShare = async () => {
+    const nomineeName = getNomineeName();
     const shareData = {
       title: `Most Eligible ${city}`,
-      text: step === 'success-self'
-        ? `I've been nominated for Most Eligible ${city} Season 2026!`
-        : `I just nominated someone for Most Eligible ${city}!`,
+      text: `${nomineeName} has been nominated for Most Eligible ${city} Season 2026! Vote at eliterank.co`,
       url: getShareUrl(),
     };
     if (navigator.share) {
@@ -609,74 +614,108 @@ export default function NominationForm({ city, competitionId, onClose }) {
 
   // ========== SELF-NOMINATION SUCCESS SCREEN ==========
   if (step === 'success-self') {
+    const displayName = `${selfData.firstName} ${selfData.lastName}`.trim();
+    const initial = selfData.firstName ? selfData.firstName[0].toUpperCase() : '?';
+    const instagramHandle = selfData.instagram ? `@${selfData.instagram.replace('@', '')}` : null;
+
     return (
       <div style={{ textAlign: 'center', padding: spacing.xl }}>
-        {/* Animated crown/sparkle header */}
-        <div style={{
-          position: 'relative',
-          width: '100px',
-          height: '100px',
-          margin: '0 auto',
-          marginBottom: spacing.xl,
+        {/* ELITERANK Header */}
+        <p style={{
+          fontSize: typography.fontSize.sm,
+          letterSpacing: '0.3em',
+          color: colors.text.secondary,
+          marginBottom: spacing.md,
+          fontWeight: typography.fontWeight.medium,
         }}>
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
-            borderRadius: '50%',
-            animation: 'pulse 2s ease-in-out infinite',
-          }} />
-          <div style={{
-            position: 'absolute',
-            inset: '10px',
-            background: 'linear-gradient(135deg, rgba(212,175,55,0.6), rgba(212,175,55,0.2))',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Crown size={44} style={{ color: colors.gold.primary }} />
-          </div>
-          <Sparkles size={20} style={{ position: 'absolute', top: 0, right: 0, color: colors.gold.primary }} />
-          <Sparkles size={16} style={{ position: 'absolute', bottom: 10, left: 0, color: colors.gold.primary }} />
-        </div>
+          ELITERANK
+        </p>
 
+        {/* NOMINATED - Large glowing text */}
         <h2 style={{
-          fontSize: typography.fontSize.xxl,
+          fontSize: '2.5rem',
           fontWeight: typography.fontWeight.bold,
-          marginBottom: spacing.sm,
+          marginBottom: spacing.lg,
           background: `linear-gradient(135deg, ${colors.gold.primary}, #f4d03f)`,
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
+          textShadow: '0 0 40px rgba(212, 175, 55, 0.3)',
         }}>
-          You're In!
+          NOMINATED
         </h2>
 
-        <p style={{
-          fontSize: typography.fontSize.lg,
-          color: colors.text.primary,
-          marginBottom: spacing.xs,
-          fontWeight: typography.fontWeight.medium,
-        }}>
-          I've been nominated for
-        </p>
-
-        <p style={{
-          fontSize: typography.fontSize.xl,
-          fontWeight: typography.fontWeight.bold,
-          color: colors.gold.primary,
+        {/* Avatar circle with initial */}
+        <div style={{
+          position: 'relative',
+          width: '120px',
+          height: '120px',
+          margin: '0 auto',
           marginBottom: spacing.lg,
         }}>
+          <div style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            border: `3px solid ${colors.gold.primary}`,
+            background: colors.background.secondary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <span style={{
+              fontSize: '3rem',
+              fontWeight: typography.fontWeight.bold,
+              color: colors.gold.primary,
+            }}>
+              {initial}
+            </span>
+          </div>
+          <Sparkles size={16} style={{ position: 'absolute', top: -5, right: 10, color: colors.gold.primary }} />
+          <Sparkles size={12} style={{ position: 'absolute', bottom: 5, left: 5, color: colors.gold.primary }} />
+        </div>
+
+        {/* Nominee Name */}
+        <h3 style={{
+          fontSize: typography.fontSize.xl,
+          fontWeight: typography.fontWeight.bold,
+          color: colors.text.primary,
+          marginBottom: spacing.xs,
+        }}>
+          {displayName}
+        </h3>
+
+        {/* Instagram Handle */}
+        {instagramHandle && (
+          <p style={{
+            fontSize: typography.fontSize.md,
+            color: colors.text.secondary,
+            marginBottom: spacing.lg,
+          }}>
+            {instagramHandle}
+          </p>
+        )}
+
+        {/* Competition Info */}
+        <p style={{
+          fontSize: typography.fontSize.lg,
+          fontWeight: typography.fontWeight.semibold,
+          color: colors.text.primary,
+          marginBottom: spacing.xs,
+        }}>
           Most Eligible {city}
-          <br />
-          <span style={{ fontSize: typography.fontSize.md, color: colors.text.secondary }}>Season 2026</span>
+        </p>
+        <p style={{
+          fontSize: typography.fontSize.md,
+          color: colors.text.secondary,
+          marginBottom: spacing.xl,
+        }}>
+          Season 2026
         </p>
 
         <p style={{
-          color: colors.text.secondary,
+          color: colors.text.muted,
           fontSize: typography.fontSize.sm,
-          marginBottom: spacing.xl,
           maxWidth: '280px',
           margin: '0 auto',
           marginBottom: spacing.xl,
@@ -793,51 +832,108 @@ export default function NominationForm({ city, competitionId, onClose }) {
 
   // ========== THIRD-PARTY NOMINATION SUCCESS SCREEN ==========
   if (step === 'success-other') {
+    const displayName = otherData.nomineeName.trim();
+    const initial = displayName ? displayName[0].toUpperCase() : '?';
+    const instagramHandle = otherData.instagram ? `@${otherData.instagram.replace('@', '')}` : null;
+
     return (
       <div style={{ textAlign: 'center', padding: spacing.xl }}>
-        <div style={{
-          width: '80px',
-          height: '80px',
-          background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto',
-          marginBottom: spacing.xl,
-        }}>
-          <Check size={40} style={{ color: colors.gold.primary }} />
-        </div>
-
-        <h2 style={{
-          fontSize: typography.fontSize.xxl,
-          fontWeight: typography.fontWeight.bold,
+        {/* ELITERANK Header */}
+        <p style={{
+          fontSize: typography.fontSize.sm,
+          letterSpacing: '0.3em',
+          color: colors.text.secondary,
           marginBottom: spacing.md,
+          fontWeight: typography.fontWeight.medium,
         }}>
-          Nomination Sent!
+          ELITERANK
+        </p>
+
+        {/* NOMINATED - Large glowing text */}
+        <h2 style={{
+          fontSize: '2.5rem',
+          fontWeight: typography.fontWeight.bold,
+          marginBottom: spacing.lg,
+          background: `linear-gradient(135deg, ${colors.gold.primary}, #f4d03f)`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          textShadow: '0 0 40px rgba(212, 175, 55, 0.3)',
+        }}>
+          NOMINATED
         </h2>
 
-        <p style={{
-          fontSize: typography.fontSize.md,
+        {/* Avatar circle with initial */}
+        <div style={{
+          position: 'relative',
+          width: '120px',
+          height: '120px',
+          margin: '0 auto',
+          marginBottom: spacing.lg,
+        }}>
+          <div style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            border: `3px solid ${colors.gold.primary}`,
+            background: colors.background.secondary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <span style={{
+              fontSize: '3rem',
+              fontWeight: typography.fontWeight.bold,
+              color: colors.gold.primary,
+            }}>
+              {initial}
+            </span>
+          </div>
+          <Sparkles size={16} style={{ position: 'absolute', top: -5, right: 10, color: colors.gold.primary }} />
+          <Sparkles size={12} style={{ position: 'absolute', bottom: 5, left: 5, color: colors.gold.primary }} />
+        </div>
+
+        {/* Nominee Name */}
+        <h3 style={{
+          fontSize: typography.fontSize.xl,
+          fontWeight: typography.fontWeight.bold,
           color: colors.text.primary,
           marginBottom: spacing.xs,
         }}>
-          You nominated <strong>{otherData.nomineeName}</strong> for
-        </p>
+          {displayName}
+        </h3>
 
+        {/* Instagram Handle */}
+        {instagramHandle && (
+          <p style={{
+            fontSize: typography.fontSize.md,
+            color: colors.text.secondary,
+            marginBottom: spacing.lg,
+          }}>
+            {instagramHandle}
+          </p>
+        )}
+
+        {/* Competition Info */}
         <p style={{
           fontSize: typography.fontSize.lg,
-          fontWeight: typography.fontWeight.bold,
-          color: colors.gold.primary,
-          marginBottom: spacing.lg,
+          fontWeight: typography.fontWeight.semibold,
+          color: colors.text.primary,
+          marginBottom: spacing.xs,
         }}>
           Most Eligible {city}
         </p>
+        <p style={{
+          fontSize: typography.fontSize.md,
+          color: colors.text.secondary,
+          marginBottom: spacing.lg,
+        }}>
+          Season 2026
+        </p>
 
         <p style={{
-          color: colors.text.secondary,
+          color: colors.text.muted,
           fontSize: typography.fontSize.sm,
-          marginBottom: spacing.xl,
           maxWidth: '300px',
           margin: '0 auto',
           marginBottom: spacing.xl,
