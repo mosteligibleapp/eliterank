@@ -63,7 +63,7 @@ export default function EligibilityStep({
         disabled={fields.length > 0 && !allConfirmed}
         onClick={onNext}
       >
-        {fields.length === 0 ? 'Continue' : allConfirmed ? "I'm eligible — continue" : 'Confirm all to continue'}
+        {fields.length === 0 ? 'Continue' : allConfirmed ? (isSelf ? "I'm eligible — continue" : "They're eligible — continue") : 'Confirm all to continue'}
       </button>
     </div>
   );
