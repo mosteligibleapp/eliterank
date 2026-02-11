@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Users, Clock, X } from 'lucide-react';
+import { Users, Clock } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
@@ -11,70 +11,36 @@ import { HostCard } from '../components/HostCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CompetitionFooter } from '../components/CompetitionFooter';
-import NominationForm from '../../../features/public-site/components/NominationForm';
 
 /**
  * Nominations phase view
  * Shows while nominations are open
+ * CTA buttons navigate to /:orgSlug/:slug/enter (gamified entry flow)
  *
  * URL Parameters:
- * - ?apply=self  - Auto-opens nomination modal with "Myself" selected
- * - ?apply=other - Auto-opens nomination modal with "Someone Else" selected
- * - ?apply=true  - Auto-opens nomination modal (shows selection screen)
+ * - ?apply=self  - Auto-redirects to entry flow
+ * - ?apply=other - Auto-redirects to entry flow
+ * - ?apply=true  - Auto-redirects to entry flow
  */
 export function NominationsPhase() {
-  const { competition, refetch } = usePublicCompetition();
+  const { competition, orgSlug, competitionSlug } = usePublicCompetition();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [showNominationModal, setShowNominationModal] = useState(false);
-  const [nominateOther, setNominateOther] = useState(false);
+  const navigate = useNavigate();
 
-  // Check for ?apply param to auto-open nomination modal
+  const entryPath = `/${orgSlug}/${competitionSlug}/enter`;
+
+  // Auto-redirect if ?apply param is present
   useEffect(() => {
     const applyParam = searchParams.get('apply');
     if (applyParam) {
-      setShowNominationModal(true);
-      // Clear the param from URL to prevent re-opening on refresh
       searchParams.delete('apply');
       setSearchParams(searchParams, { replace: true });
+      navigate(entryPath);
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, navigate, entryPath]);
 
-  // Lock body scroll when modal is open to prevent background scrolling
-  useEffect(() => {
-    if (showNominationModal) {
-      // Save current scroll position and lock body
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-
-      return () => {
-        // Restore scroll position when modal closes
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [showNominationModal]);
-
-  const handleOpenNomination = (forOther = false) => {
-    setNominateOther(forOther);
-    setShowNominationModal(true);
-  };
-
-  const handleCloseNomination = () => {
-    setShowNominationModal(false);
-    setNominateOther(false);
-  };
-
-  const handleNominationSubmit = () => {
-    setShowNominationModal(false);
-    setNominateOther(false);
-    // Refresh data to show updated nomination count
-    refetch?.();
+  const handleEnter = () => {
+    navigate(entryPath);
   };
 
   return (
@@ -94,13 +60,13 @@ export function NominationsPhase() {
         <div className="nomination-cta-buttons">
           <button
             className="btn btn-primary btn-large"
-            onClick={() => handleOpenNomination(false)}
+            onClick={handleEnter}
           >
-            Apply Now
+            Enter Competition
           </button>
           <button
             className="btn btn-outline btn-large"
-            onClick={() => handleOpenNomination(true)}
+            onClick={handleEnter}
           >
             Nominate Someone
           </button>
@@ -125,14 +91,14 @@ export function NominationsPhase() {
           <span className="stat-label">Nominations Close</span>
         </div>
         <div className="stat-card stat-card-highlight">
-          <span className="stat-value">5</span>
+          <span className="stat-value">{competition?.number_of_winners || 5}</span>
           <span className="stat-label">Winners</span>
-          <span className="stat-sublabel">Season 2026</span>
+          <span className="stat-sublabel">Season {competition?.season || new Date().getFullYear()}</span>
         </div>
         <div className="stat-card">
           <Users size={20} className="stat-icon" />
-          <span className="stat-value">200+</span>
-          <span className="stat-label">Nominations</span>
+          <span className="stat-value">{competition?.total_contestants || 0}+</span>
+          <span className="stat-label">Entries</span>
         </div>
       </section>
 
@@ -154,26 +120,6 @@ export function NominationsPhase() {
 
       {/* Footer */}
       <CompetitionFooter />
-
-      {/* Nomination Modal */}
-      {showNominationModal && (
-        <div className="modal-overlay" onClick={handleCloseNomination}>
-          <div
-            className="modal-container modal-nomination"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button className="modal-close" onClick={handleCloseNomination}>
-              <X size={18} />
-            </button>
-            <NominationForm
-              city={competition?.city}
-              competitionId={competition?.id}
-              onSubmit={handleNominationSubmit}
-              onClose={handleCloseNomination}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
