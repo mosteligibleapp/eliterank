@@ -75,7 +75,7 @@ export default function SelfDetailsStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Email {!hasPhone ? '*' : ''}</label>
+        <label className="entry-label">Email {hasContact ? '' : '*'}</label>
         <div className="entry-input-icon">
           <Mail size={18} />
           <input
@@ -90,7 +90,7 @@ export default function SelfDetailsStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Phone {!hasEmail ? '*' : ''}</label>
+        <label className="entry-label">Phone {hasContact ? '' : '*'}</label>
         <div className="entry-input-icon">
           <Phone size={18} />
           <input

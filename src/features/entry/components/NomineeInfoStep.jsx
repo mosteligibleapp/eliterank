@@ -91,7 +91,7 @@ export default function NomineeInfoStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Their Email {!data.phone?.trim() ? '*' : ''}</label>
+        <label className="entry-label">Their Email {hasContact ? '' : '*'}</label>
         <div className="entry-input-icon">
           <Mail size={18} />
           <input
@@ -105,7 +105,7 @@ export default function NomineeInfoStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Their Phone {!data.email?.trim() ? '*' : ''}</label>
+        <label className="entry-label">Their Phone {hasContact ? '' : '*'}</label>
         <div className="entry-input-icon">
           <Phone size={18} />
           <input
@@ -120,7 +120,7 @@ export default function NomineeInfoStep({
       </div>
 
       {!hasContact && (
-        <p className="entry-hint">Email or phone is required so we can reach them</p>
+        <p className="entry-hint">Email or phone required so we can reach them</p>
       )}
 
       <div className="entry-form-field">
