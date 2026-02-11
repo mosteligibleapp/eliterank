@@ -20,15 +20,17 @@ export async function uploadPhoto(file, folder = 'nominations') {
     throw new Error('Please upload a JPG, PNG, or WebP image');
   }
 
-  // Try Supabase Storage first
+  // Try Supabase Storage with a 5s timeout, fall back to Vercel Blob
   try {
-    const url = await uploadToSupabase(file, folder);
+    const url = await Promise.race([
+      uploadToSupabase(file, folder),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+    ]);
     return url;
-  } catch (supabaseError) {
-    console.warn('Supabase Storage upload failed, falling back to Vercel Blob:', supabaseError.message);
+  } catch (err) {
+    console.warn('Supabase upload failed/timed out, falling back to Vercel Blob:', err.message);
   }
 
-  // Fallback to Vercel Blob (existing /api/upload endpoint)
   return uploadToVercelBlob(file, folder);
 }
 

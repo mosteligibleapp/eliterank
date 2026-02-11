@@ -128,14 +128,7 @@ function CompetitionLayoutInner() {
   // Render entry flow as full-screen overlay
   if (isEntryView) {
     return (
-      <Suspense fallback={
-        <div className="competition-layout">
-          <div className="competition-loading">
-            <Loader className="loading-spinner" size={32} />
-            <p>Loading entry flow...</p>
-          </div>
-        </div>
-      }>
+      <Suspense fallback={<div className="entry-flow" />}>
         <EntryFlow />
       </Suspense>
     );
