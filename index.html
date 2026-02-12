@@ -12,10 +12,14 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "3c3641e2-47de-4565-8e99-ef5cbb74d0f3",
-          allowLocalhostAsSecureOrigin: true,
-        });
+        try {
+          await OneSignal.init({
+            appId: "3c3641e2-47de-4565-8e99-ef5cbb74d0f3",
+            allowLocalhostAsSecureOrigin: true,
+          });
+        } catch (e) {
+          console.warn("OneSignal init failed:", e.message);
+        }
       });
     </script>
   </head>
