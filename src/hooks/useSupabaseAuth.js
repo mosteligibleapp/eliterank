@@ -15,19 +15,31 @@ export default function useSupabaseAuth() {
 
   const mountedRef = useRef(true);
 
-  // Simple profile fetch
+  // Simple profile fetch — also checks if user hosts any competitions
   const fetchProfile = useCallback(async (userId) => {
     if (!supabase || !userId) return null;
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+      const [profileResult, hostResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle(),
+        supabase
+          .from('competitions')
+          .select('id')
+          .eq('host_id', userId)
+          .limit(1),
+      ]);
 
-      if (fetchError) throw fetchError;
-      return data;
+      if (profileResult.error) throw profileResult.error;
+      if (!profileResult.data) return null;
+
+      return {
+        ...profileResult.data,
+        is_host: (hostResult.data?.length ?? 0) > 0,
+      };
     } catch {
       return null;
     }

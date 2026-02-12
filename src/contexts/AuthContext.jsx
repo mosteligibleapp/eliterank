@@ -28,8 +28,8 @@ export function AuthProvider({ children }) {
   // Check if user is super admin from Supabase profile
   const isSuperAdmin = profile?.is_super_admin === true;
 
-  // Check if user is host
-  const isHost = profile?.is_host === true || (profile && !isSuperAdmin);
+  // Check if user is host (derived from competitions table in useSupabaseAuth)
+  const isHost = profile?.is_host === true;
 
   // Derive host profile from Supabase profile
   const hostProfile = useMemo(() => {
