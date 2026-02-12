@@ -836,7 +836,7 @@ export default function EliteRankCityModal({
                 fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 color: '#71717a',
               }}>
-                Fans decide who win
+                Fans decide who wins
               </p>
             </div>
 
