@@ -575,10 +575,20 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         </div>
         {showActions && !isArchived && (
           <div style={{ display: 'flex', gap: spacing.sm }}>
-            <Button variant="approve" size="sm" onClick={() => approveNominee(nominee)}>
+            <Button variant="approve" size="sm" onClick={async () => {
+              const result = await approveNominee(nominee);
+              if (!result.success) {
+                alert(`Failed to approve: ${result.error}`);
+              }
+            }}>
               <CheckCircle size={14} />
             </Button>
-            <Button variant="reject" size="sm" onClick={() => rejectNominee(nominee.id)}>
+            <Button variant="reject" size="sm" onClick={async () => {
+              const result = await rejectNominee(nominee.id);
+              if (!result.success) {
+                alert(`Failed to reject: ${result.error}`);
+              }
+            }}>
               <XCircle size={14} />
             </Button>
             <Button variant="secondary" size="sm" onClick={() => archiveNominee(nominee.id)}>

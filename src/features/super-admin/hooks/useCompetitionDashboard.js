@@ -340,31 +340,20 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
-      const { error: updateError } = await supabase
-        .from('nominees')
-        .update({ status: 'approved', converted_to_contestant: true })
-        .eq('id', nominee.id);
-
-      if (updateError) throw updateError;
-
       // Find profile to link to contestant
       let linkedUserId = nominee.userId || null;
 
-      if (!linkedUserId) {
-        // Try to find profile by email first
-        if (nominee.email) {
-          const { data: profileByEmail } = await supabase
-            .from('profiles')
-            .select('id')
-            .ilike('email', nominee.email)
-            .limit(1)
-            .maybeSingle();
+      if (!linkedUserId && nominee.email) {
+        const { data: profileByEmail } = await supabase
+          .from('profiles')
+          .select('id')
+          .ilike('email', nominee.email)
+          .limit(1)
+          .maybeSingle();
 
-          if (profileByEmail?.id) {
-            linkedUserId = profileByEmail.id;
-          }
+        if (profileByEmail?.id) {
+          linkedUserId = profileByEmail.id;
         }
-
       }
 
       const contestantData = {
@@ -377,11 +366,22 @@ export function useCompetitionDashboard(competitionId) {
         user_id: linkedUserId,
       };
 
+      // Insert contestant FIRST — if this fails, nominee stays pending
       const { error: insertError } = await supabase
         .from('contestants')
         .insert(contestantData);
 
       if (insertError) throw insertError;
+
+      // Only mark nominee as approved after contestant was created
+      const { error: updateError } = await supabase
+        .from('nominees')
+        .update({ status: 'approved', converted_to_contestant: true })
+        .eq('id', nominee.id);
+
+      if (updateError) {
+        console.error('Nominee status update failed after contestant insert:', updateError);
+      }
 
       // Notify the nominee that they've been approved
       if (linkedUserId) {
