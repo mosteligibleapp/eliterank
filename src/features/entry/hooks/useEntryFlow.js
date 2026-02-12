@@ -148,6 +148,7 @@ export function useEntryFlow(competition, profile) {
         nominated_by: 'self',
         status: 'pending',
         eligibility_answers: eligibilityAnswers,
+        claimed_at: new Date().toISOString(), // Self-nominations are auto-accepted
       };
 
       // Link to user if logged in
@@ -217,13 +218,26 @@ export function useEntryFlow(competition, profile) {
         record.nominator_id = profile.id;
       }
 
-      const { error } = await supabase.from('nominees').insert(record);
+      const { data: inserted, error } = await supabase
+        .from('nominees')
+        .insert(record)
+        .select('id')
+        .single();
 
       if (error) {
         if (error.code === '23505') {
           throw new Error('This person has already been nominated for this competition.');
         }
         throw error;
+      }
+
+      // Send notification email to nominee immediately (fire-and-forget)
+      if (inserted?.id) {
+        supabase.functions.invoke('send-nomination-invite', {
+          body: { nominee_id: inserted.id },
+        }).catch((inviteErr) => {
+          console.warn('Failed to send nomination invite email:', inviteErr);
+        });
       }
 
       setSubmittedData({

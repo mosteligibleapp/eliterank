@@ -37,26 +37,80 @@ export default function PeopleTab({
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
   const archivedNominees = nominees.filter(n => n.status === 'archived');
 
+  // Whether a third-party nominee can be approved (must have accepted first)
+  const canApprove = (nominee) => {
+    if (nominee.nominatedBy === 'self') return true; // Self-nominations are auto-accepted
+    return !!nominee.claimedAt; // Third-party must have accepted
+  };
+
+  // Acceptance status badge for nominees
+  const AcceptanceStatus = ({ nominee }) => {
+    if (nominee.nominatedBy === 'self') {
+      return (
+        <span style={{
+          fontSize: typography.fontSize.xs,
+          padding: `2px ${spacing.sm}`,
+          borderRadius: borderRadius.sm,
+          background: 'rgba(212,175,55,0.15)',
+          color: colors.gold.primary,
+          whiteSpace: 'nowrap',
+        }}>
+          Self
+        </span>
+      );
+    }
+    if (nominee.claimedAt) {
+      return (
+        <span style={{
+          fontSize: typography.fontSize.xs,
+          padding: `2px ${spacing.sm}`,
+          borderRadius: borderRadius.sm,
+          background: 'rgba(34,197,94,0.15)',
+          color: '#22c55e',
+          whiteSpace: 'nowrap',
+        }}>
+          Accepted
+        </span>
+      );
+    }
+    return (
+      <span style={{
+        fontSize: typography.fontSize.xs,
+        padding: `2px ${spacing.sm}`,
+        borderRadius: borderRadius.sm,
+        background: 'rgba(251,191,36,0.15)',
+        color: '#fbbf24',
+        whiteSpace: 'nowrap',
+      }}>
+        Awaiting Response
+      </span>
+    );
+  };
+
   // Action buttons for nominee rows
   const NomineeActions = ({ nominee }) => {
     const isProcessing = processingId === nominee.id;
+    const approveDisabled = isProcessing || !canApprove(nominee);
     return (
-      <div style={{ display: 'flex', gap: spacing.xs }}>
+      <div style={{ display: 'flex', gap: spacing.xs, alignItems: 'center' }}>
+        <AcceptanceStatus nominee={nominee} />
         <button
           onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee.id); setProcessingId(null); }}
-          disabled={isProcessing}
+          disabled={approveDisabled}
+          title={!canApprove(nominee) ? 'Nominee must accept first' : 'Approve'}
           style={{
             padding: spacing.xs,
-            background: 'rgba(34,197,94,0.1)',
+            background: approveDisabled ? 'rgba(107,114,128,0.1)' : 'rgba(34,197,94,0.1)',
             border: 'none',
             borderRadius: borderRadius.sm,
-            cursor: 'pointer',
-            color: '#22c55e',
+            cursor: approveDisabled ? 'not-allowed' : 'pointer',
+            color: approveDisabled ? '#6b7280' : '#22c55e',
             minWidth: '32px',
             minHeight: '32px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            opacity: approveDisabled ? 0.5 : 1,
           }}
         >
           <CheckCircle size={16} />

@@ -342,22 +342,10 @@ export function useCompetitionDashboard(competitionId) {
     try {
       const { error: updateError } = await supabase
         .from('nominees')
-        .update({ status: 'approved' })
+        .update({ status: 'approved', converted_to_contestant: true })
         .eq('id', nominee.id);
 
       if (updateError) throw updateError;
-
-      // Send invite email if not already sent (for third-party nominations)
-      if (nominee.nominatedBy === 'third_party' || nominee.nominated_by === 'third_party') {
-        try {
-          await supabase.functions.invoke('send-nomination-invite', {
-            body: { nominee_id: nominee.id },
-          });
-        } catch (inviteErr) {
-          // Don't fail approval if invite fails - can be resent later
-          console.warn('Failed to send invite on approval:', inviteErr);
-        }
-      }
 
       // Find profile to link to contestant
       let linkedUserId = nominee.userId || null;
@@ -395,6 +383,23 @@ export function useCompetitionDashboard(competitionId) {
 
       if (insertError) throw insertError;
 
+      // Notify the nominee that they've been approved
+      if (linkedUserId) {
+        const cityName = data.competition?.city?.name || data.competition?.city || '';
+        const season = data.competition?.season || '';
+        try {
+          await supabase.from('notifications').insert({
+            user_id: linkedUserId,
+            type: 'nomination_approved',
+            title: "You're officially in!",
+            body: `Your nomination for Most Eligible ${cityName} ${season} has been approved. You're now a contestant!`.trim(),
+            competition_id: competitionId,
+          });
+        } catch (notifErr) {
+          console.warn('Failed to create approval notification:', notifErr);
+        }
+      }
+
       // Update profile's competition count if linked
       if (linkedUserId) {
         try {
@@ -431,7 +436,7 @@ export function useCompetitionDashboard(competitionId) {
       console.error('Error approving nominee:', err);
       return { success: false, error: err.message };
     }
-  }, [competitionId, fetchDashboardData]);
+  }, [competitionId, data.competition, fetchDashboardData]);
 
   const rejectNominee = useCallback(async (nomineeId) => {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
