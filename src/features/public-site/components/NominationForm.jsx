@@ -173,7 +173,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
     setError('');
 
     try {
-      const { error: dbError } = await supabase
+      const { data: inserted, error: dbError } = await supabase
         .from('nominees')
         .insert({
           competition_id: competitionId,
@@ -188,13 +188,24 @@ export default function NominationForm({ city, competitionId, onClose }) {
           nominator_anonymous: otherData.isAnonymous,
           nominator_notify: otherData.notifyMe,
           status: 'pending',
-        });
+        })
+        .select('id')
+        .single();
 
       if (dbError) {
         if (dbError.code === '23505') {
           throw new Error('This person has already been nominated.');
         }
         throw dbError;
+      }
+
+      // Send notification email to nominee (fire-and-forget)
+      if (inserted?.id) {
+        supabase.functions.invoke('send-nomination-invite', {
+          body: { nominee_id: inserted.id },
+        }).catch((inviteErr) => {
+          console.warn('Failed to send nomination invite email:', inviteErr);
+        });
       }
 
       setStep('success-other');
