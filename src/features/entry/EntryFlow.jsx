@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { usePublicCompetition } from '../../contexts/PublicCompetitionContext';
@@ -31,8 +31,18 @@ export default function EntryFlow() {
   const { profile } = useSupabaseAuth();
 
   const flow = useEntryFlow(competition, profile);
+  const flowRef = useRef(null);
 
   const competitionTitle = getCompetitionTitle(competition);
+
+  // Scroll to top on step change to prevent layout jump
+  useEffect(() => {
+    if (flowRef.current) {
+      flowRef.current.scrollTo({ top: 0 });
+    } else {
+      window.scrollTo({ top: 0 });
+    }
+  }, [flow.currentStep]);
 
   // Handle back to competition page
   const handleBack = () => {
@@ -101,7 +111,7 @@ export default function EntryFlow() {
   const currentDot = flow.currentStepIndex;
 
   return (
-    <div className="entry-flow">
+    <div className="entry-flow" ref={flowRef}>
       {/* Header with back button and progress */}
       {flow.currentStep !== 'card' && (
         <header className="entry-header">

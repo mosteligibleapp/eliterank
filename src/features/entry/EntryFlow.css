@@ -112,23 +112,21 @@
   margin: 0;
 }
 
-/* Content area with slide animation */
+/* Content area with fade animation */
 .entry-content {
   width: 100%;
   max-width: 480px;
   padding: 0 24px 40px;
-  animation: entrySlideUp 0.3s ease;
+  animation: entryFadeIn 0.25s ease;
   flex: 1;
 }
 
-@keyframes entrySlideUp {
+@keyframes entryFadeIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
