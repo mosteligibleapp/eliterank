@@ -240,6 +240,20 @@ serve(async (req) => {
             // Don't fail the whole operation, the post was created
           }
 
+          // Create in-app notifications for all contestants + host
+          const { error: notifError } = await supabase.rpc('create_competition_notification', {
+            p_competition_id: competition.id,
+            p_type: 'event_posted',
+            p_title: generatedPost.title,
+            p_body: `${competition.city} ${competition.season}: ${check.eventType.replace(/_/g, ' ')}`,
+            p_action_url: null,
+            p_metadata: JSON.stringify({ event_type: check.eventType }),
+          })
+
+          if (notifError) {
+            console.error(`Failed to create notifications for ${eventKey}:`, notifError)
+          }
+
           results.push({
             competition: `${competition.city} ${competition.season}`,
             event: check.eventType,

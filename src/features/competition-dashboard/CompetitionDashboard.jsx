@@ -3,7 +3,7 @@ import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
   Eye, Loader, AlertCircle
 } from 'lucide-react';
-import { Button, Badge, Avatar } from '../../components/ui';
+import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, AddPersonModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -217,13 +217,14 @@ export default function CompetitionDashboard({
           </div>
         </div>
 
-        {/* Right side: Preview + Logout */}
+        {/* Right side: Notifications + Preview + Logout */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: isMobile ? spacing.xs : spacing.md,
           flexShrink: 0,
         }}>
+          <NotificationBell size={isMobile ? 32 : 36} />
           {onViewPublicSite && (
             <button
               onClick={onViewPublicSite}

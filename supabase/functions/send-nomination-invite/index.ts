@@ -179,6 +179,28 @@ serve(async (req) => {
       inviteResult = { method: 'invite', user_id: data.user?.id }
     }
 
+    // Create in-app notification if user already has an account
+    if (existingUser) {
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: existingUser.id,
+          type: 'nominated',
+          title: "You've been nominated!",
+          body: `Someone nominated you for ${competitionName}`,
+          competition_id: competition.id,
+          action_url: `/claim/${nomineeData.invite_token}`,
+          metadata: {
+            nominator_name: nomineeData.nominator_anonymous ? null : nomineeData.nominator_name,
+            nomination_reason: nomineeData.nomination_reason,
+          },
+        })
+
+      if (notifError) {
+        console.error('Failed to create nomination notification:', notifError)
+      }
+    }
+
     // Update nominee with invite_sent_at
     const { error: updateError } = await supabase
       .from('nominees')

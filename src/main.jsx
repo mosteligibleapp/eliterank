@@ -5,12 +5,15 @@ import './index.css';
 import './styles/competition-phases.css';
 import App from './App.jsx';
 import { ToastProvider } from './contexts/ToastContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <ToastProvider>
-        <App />
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </ToastProvider>
     </BrowserRouter>
   </StrictMode>

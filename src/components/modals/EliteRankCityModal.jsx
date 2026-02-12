@@ -4,7 +4,7 @@ import {
   Activity, Info, Briefcase, Loader, User, Megaphone, Award, Building, Heart,
   Home, Search, Bell, Menu, ArrowRight, Play, ExternalLink
 } from 'lucide-react';
-import { Button, Badge, OrganizationLogo, ProfileIcon, EliteRankCrown, CrownIcon } from '../ui';
+import { Button, Badge, OrganizationLogo, ProfileIcon, NotificationBell, EliteRankCrown, CrownIcon } from '../ui';
 import { useSupabaseAuth, useAppSettings } from '../../hooks';
 import { colors, spacing, borderRadius, typography, shadows, transitions, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -1511,6 +1511,9 @@ export default function EliteRankCityModal({
 
           {/* Auth Actions */}
           <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
+            {isAuthenticated && (
+              <NotificationBell size={isMobile ? 36 : 40} />
+            )}
             <ProfileIcon
               isAuthenticated={isAuthenticated}
               user={user}

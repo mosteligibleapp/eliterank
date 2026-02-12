@@ -1122,8 +1122,6 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {/* Push Notifications - disabled temporarily */}
-      {/* {isAuthenticated && user?.id && <PushNotifications userId={user.id} />} */}
       {/* Main Public Page - Competitions Listing */}
       <EliteRankCityModal
         isOpen={true}

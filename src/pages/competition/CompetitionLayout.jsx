@@ -6,7 +6,7 @@ import {
 } from '../../contexts/PublicCompetitionContext';
 import { AlertCircle, Loader, X, ArrowLeft } from 'lucide-react';
 import { useSupabaseAuth } from '../../hooks';
-import { ProfileIcon } from '../../components/ui';
+import { ProfileIcon, NotificationBell } from '../../components/ui';
 
 // Phase view components
 import ComingSoonPhase from './phases/ComingSoonPhase';
@@ -150,9 +150,10 @@ function CompetitionLayoutInner() {
         </button>
       )}
 
-      {/* Floating Profile Icon - hidden when modal open */}
+      {/* Floating Profile & Notification Icons - hidden when modal open */}
       {!isModalOpen && (
-        <div className="competition-profile-btn">
+        <div className="competition-profile-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isAuthenticated && <NotificationBell size={40} />}
           <ProfileIcon
             isAuthenticated={isAuthenticated}
             user={user}
