@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState, useCallback } from 'react';
 import { colors, borderRadius, typography } from '../../styles/theme';
 
 function Avatar({
@@ -7,6 +7,8 @@ function Avatar({
   src,
   style = {},
 }) {
+  const [imgStatus, setImgStatus] = useState(src ? 'loading' : 'none');
+
   const initials = useMemo(() => {
     return name
       ? name
@@ -30,25 +32,37 @@ function Avatar({
     fontSize: size >= 80 ? '24px' : size >= 60 ? '18px' : '14px',
     overflow: 'hidden',
     flexShrink: 0,
+    position: 'relative',
     ...style,
   }), [size, style]);
 
-  if (src) {
-    return (
-      <div style={avatarStyle}>
+  const handleLoad = useCallback(() => setImgStatus('loaded'), []);
+  const handleError = useCallback(() => setImgStatus('error'), []);
+
+  return (
+    <div style={avatarStyle}>
+      {/* Always render initials as fallback underneath */}
+      {imgStatus !== 'loaded' && initials}
+      {src && imgStatus !== 'error' && (
         <img
           src={src}
           alt={name || 'Avatar'}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          onError={(e) => {
-            e.target.style.display = 'none';
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            opacity: imgStatus === 'loaded' ? 1 : 0,
+            transition: 'opacity 0.2s ease',
           }}
+          onLoad={handleLoad}
+          onError={handleError}
         />
-      </div>
-    );
-  }
-
-  return <div style={avatarStyle}>{initials}</div>;
+      )}
+    </div>
+  );
 }
 
 export default memo(Avatar);

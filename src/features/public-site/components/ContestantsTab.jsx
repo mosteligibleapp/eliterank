@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Crown, Sparkles, LogIn, Award } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -247,23 +247,10 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
             </div>
 
             {/* Profile Image */}
-            <div
-              style={{
-                width: '100%',
-                aspectRatio: '4/5',
-                background: '#1a1a24',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
+            <ContestantImage
+              src={contestant.avatarUrl || contestant.avatar_url || CONTESTANT_IMAGES[index] || CONTESTANT_IMAGES[0]}
+              name={contestant.name}
             >
-              <img
-                src={contestant.avatarUrl || contestant.avatar_url || CONTESTANT_IMAGES[index] || CONTESTANT_IMAGES[0]}
-                alt={contestant.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
               <div
                 style={{
                   position: 'absolute',
@@ -281,7 +268,7 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
                   {contestant.age} • {contestant.occupation}
                 </p>
               </div>
-            </div>
+            </ContestantImage>
 
             {/* Card Footer */}
             <div
@@ -336,6 +323,62 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ContestantImage({ src, name, children }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const handleError = useCallback(() => setImgFailed(true), []);
+  const handleLoad = useCallback(() => setImgLoaded(true), []);
+
+  const initial = name?.split(' ').pop()?.charAt(0) || '?';
+
+  return (
+    <div
+      style={{
+        width: '100%',
+        aspectRatio: '4/5',
+        background: '#1a1a24',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Initials fallback - always rendered underneath */}
+      {!imgLoaded && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '3rem',
+          fontWeight: 700,
+          color: 'rgba(255,255,255,0.15)',
+        }}>
+          {initial}
+        </div>
+      )}
+      {src && !imgFailed && (
+        <img
+          src={src}
+          alt={name}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            opacity: imgLoaded ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+          }}
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      )}
+      {children}
     </div>
   );
 }

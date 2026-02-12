@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users,
   Activity, Info, Briefcase, Loader, User, Megaphone, Award, Building, Heart,
@@ -529,6 +529,51 @@ export default function EliteRankCityModal({
   );
 
   // ============================================
+  // WINNER AVATAR - handles load/error gracefully
+  // ============================================
+  const WinnerAvatar = ({ src, name }) => {
+    const [failed, setFailed] = useState(false);
+    const [loaded, setLoaded] = useState(false);
+    const initial = name?.charAt(0) || '?';
+
+    return (
+      <div style={{
+        width: '36px',
+        height: '36px',
+        borderRadius: '50%',
+        background: colors.background.card,
+        border: `2px solid rgba(212, 175, 55, 0.3)`,
+        ...styleHelpers.flexCenter,
+        flexShrink: 0,
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        {(!src || failed || !loaded) && (
+          <User size={18} style={{ color: colors.text.muted }} />
+        )}
+        {src && !failed && (
+          <img
+            src={src}
+            alt={name}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: loaded ? 1 : 0,
+              transition: 'opacity 0.2s ease',
+            }}
+            onLoad={() => setLoaded(true)}
+            onError={() => setFailed(true)}
+          />
+        )}
+      </div>
+    );
+  };
+
+  // ============================================
   // HALL OF WINNERS - Champions showcase
   // ============================================
   const HallOfWinners = () => {
@@ -616,26 +661,10 @@ export default function EliteRankCityModal({
               </div>
 
               {/* Profile Image */}
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                background: colors.background.card,
-                border: `2px solid rgba(212, 175, 55, 0.3)`,
-                ...styleHelpers.flexCenter,
-                flexShrink: 0,
-                overflow: 'hidden',
-              }}>
-                {winner.imageUrl ? (
-                  <img
-                    src={winner.imageUrl}
-                    alt={winner.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <User size={18} style={{ color: colors.text.muted }} />
-                )}
-              </div>
+              <WinnerAvatar
+                src={winner.imageUrl}
+                name={winner.name}
+              />
 
               {/* Info */}
               <div style={{ minWidth: 0 }}>
@@ -807,7 +836,7 @@ export default function EliteRankCityModal({
                 fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 color: '#71717a',
               }}>
-                Fans decide who win
+                Fans decide who wins
               </p>
             </div>
 
