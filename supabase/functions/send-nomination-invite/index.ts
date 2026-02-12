@@ -147,8 +147,8 @@ serve(async (req) => {
 
     let inviteResult
 
-    if (existingUser) {
-      // User already has an account - send a magic link that lands on the claim page
+    // Helper: send a magic link to an existing user
+    const sendMagicLink = async () => {
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: nomineeEmail,
         options: {
@@ -160,18 +160,23 @@ serve(async (req) => {
           },
         },
       })
+      if (otpError) throw otpError
+      return { method: 'magic_link' }
+    }
 
-      if (otpError) {
+    if (existingUser) {
+      // User found in profiles - send magic link
+      try {
+        inviteResult = await sendMagicLink()
+      } catch (otpError) {
         console.error('OTP error:', otpError)
         return new Response(
-          JSON.stringify({ error: 'Failed to send login email', details: otpError.message }),
+          JSON.stringify({ error: 'Failed to send login email', details: (otpError as Error).message }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-
-      inviteResult = { method: 'magic_link' }
     } else {
-      // New user - send invite email
+      // No profile found - try to invite as new user
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(nomineeEmail, {
         redirectTo: authRedirectUrl,
         data: {
@@ -184,14 +189,21 @@ serve(async (req) => {
       })
 
       if (error) {
-        console.error('Invite error:', error)
-        return new Response(
-          JSON.stringify({ error: 'Failed to send invite', details: error.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        // User exists in auth but not in profiles — fall back to magic link
+        // (this happens when profiles are out of sync with auth.users)
+        console.warn('inviteUserByEmail failed, falling back to magic link:', error.message)
+        try {
+          inviteResult = await sendMagicLink()
+        } catch (otpError) {
+          console.error('Magic link fallback also failed:', otpError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to send invite', details: error.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      } else {
+        inviteResult = { method: 'invite', user_id: data.user?.id }
       }
-
-      inviteResult = { method: 'invite', user_id: data.user?.id }
     }
 
     // Create in-app notification if user already has an account
