@@ -110,9 +110,19 @@ serve(async (req) => {
     const competition = nomineeData.competition
     const competitionName = `Most Eligible ${competition.city} ${competition.season}`
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabase.auth.admin.listUsers()
-    const existingUser = existingUsers?.users?.find(u => u.email === nomineeData.email)
+    // Check if user already exists by querying profiles table
+    // (profiles.id references auth.users.id and email is unique)
+    // Note: listUsers() only returns the first page (~50 users) so it
+    // silently missed existing users once the user-base grew.
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .eq('email', nomineeData.email)
+      .maybeSingle()
+
+    const existingUser = existingProfile
+      ? { id: existingProfile.id, email: existingProfile.email }
+      : null
 
     let inviteResult
 
