@@ -100,12 +100,6 @@ export default function ShareableCard({
     ctx.lineTo(cx + lineW / 2, y);
     ctx.stroke();
     drawSparkle(cx, y, 5 * s, 0.7);
-    y += 50 * s;
-
-    // "I'VE BEEN"
-    ctx.fillStyle = '#a1a1aa';
-    ctx.font = `500 ${30 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
-    ctx.fillText("I'VE BEEN", cx, y);
     y += 60 * s;
 
     // "NOMINATED" hero text with glow
@@ -119,7 +113,7 @@ export default function ShareableCard({
     ctx.fillStyle = accentColor;
     ctx.font = `bold ${92 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
     ctx.fillText('NOMINATED', cx, y);
-    y += 50 * s;
+    y += 70 * s;
 
     // "for" + competition
     ctx.fillStyle = '#71717a';
@@ -140,7 +134,7 @@ export default function ShareableCard({
       ctx.font = `400 ${26 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.fillText(metaParts.join('  ·  '), cx, y);
     }
-    y += 65 * s;
+    y += 140 * s; // Large spacing before photo for visual breathing room
 
     // --- Photo ---
     const photoR = 160 * s;
@@ -190,7 +184,7 @@ export default function ShareableCard({
     }
 
     function drawBottom() {
-      let ry = photoCY + photoR + 50 * s;
+      let ry = photoCY + photoR + 90 * s;
 
       // Name
       ctx.fillStyle = '#ffffff';

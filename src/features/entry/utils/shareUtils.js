@@ -197,12 +197,6 @@ export async function generateShareCard({
 
   // Small diamond on the line
   drawSparkle(ctx, CX, y, 5, accentColor, 0.7);
-  y += 50;
-
-  // "I'VE BEEN" small text
-  ctx.fillStyle = '#a1a1aa';
-  ctx.font = '500 30px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText("I'VE BEEN", CX, y);
   y += 60;
 
   // "NOMINATED" hero text with glow
@@ -217,7 +211,7 @@ export async function generateShareCard({
   ctx.fillStyle = accentColor;
   ctx.font = 'bold 92px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('NOMINATED', CX, y);
-  y += 50;
+  y += 70;
 
   // "for" + competition
   ctx.fillStyle = '#71717a';
@@ -239,7 +233,7 @@ export async function generateShareCard({
     ctx.font = '400 26px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(metaParts.join('  ·  '), CX, y);
   }
-  y += 65;
+  y += 140; // Large spacing before photo for visual breathing room
 
   // --- Photo ---
   const photoRadius = 160;
@@ -281,7 +275,7 @@ export async function generateShareCard({
   ctx.arc(CX, photoCY, photoRadius + 6, 0, Math.PI * 2);
   ctx.stroke();
 
-  y = photoCY + photoRadius + 50;
+  y = photoCY + photoRadius + 90;
 
   // --- Name ---
   ctx.fillStyle = '#ffffff';
