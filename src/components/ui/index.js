@@ -9,6 +9,7 @@ export { default as InterestTag, HobbySelector } from './InterestTag';
 export { default as OrganizationLogo } from './OrganizationLogo';
 export { Toast, ToastContainer } from './Toast';
 export { default as ProfileIcon } from './ProfileIcon';
+export { default as NotificationBell } from './NotificationBell';
 
 // Custom icons
 export { EliteRankCrown, CrownIcon } from './icons';

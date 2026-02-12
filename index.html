@@ -8,20 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          await OneSignal.init({
-            appId: "3c3641e2-47de-4565-8e99-ef5cbb74d0f3",
-            allowLocalhostAsSecureOrigin: true,
-          });
-        } catch (e) {
-          console.warn("OneSignal init failed:", e.message);
-        }
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>
