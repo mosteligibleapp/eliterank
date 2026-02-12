@@ -77,9 +77,13 @@ serve(async (req) => {
       )
     }
 
-    // Build the redirect URL to the claim page with the invite token
+    // Build URLs for the nomination flow
     const nomineeDataPrelim = nominee as unknown as NomineeData
     const claimUrl = `${appUrl}/claim/${nomineeDataPrelim.invite_token}`
+    // Use base app URL for auth redirects — Supabase requires redirect URLs to be
+    // in the project's allowlist. The app's checkPendingNominations logic will
+    // detect the pending nomination after auth and show the accept/decline modal.
+    const authRedirectUrl = appUrl
 
     // Check if already sent (unless force_resend is true)
     if (nominee.invite_sent_at && !force_resend) {
@@ -106,9 +110,6 @@ serve(async (req) => {
     const competition = nomineeData.competition
     const competitionName = `Most Eligible ${competition.city} ${competition.season}`
 
-    // Use the claim URL built earlier
-    const redirectUrl = claimUrl
-
     // Check if user already exists
     const { data: existingUsers } = await supabase.auth.admin.listUsers()
     const existingUser = existingUsers?.users?.find(u => u.email === nomineeData.email)
@@ -116,28 +117,13 @@ serve(async (req) => {
     let inviteResult
 
     if (existingUser) {
-      // User already has an account - send a magic link instead
-      const { data, error } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: nomineeData.email,
-        options: {
-          redirectTo: redirectUrl,
-        },
-      })
-
-      if (error) {
-        console.error('Magic link error:', error)
-        return new Response(
-          JSON.stringify({ error: 'Failed to send magic link', details: error.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      // Send the magic link email using Supabase's built-in email
+      // User already has an account - send a magic link
+      // Use base app URL for redirect (must be in Supabase's allowed redirect URLs).
+      // After auth, the app detects pending nominations and shows the accept/decline modal.
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: nomineeData.email,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: authRedirectUrl,
           data: {
             nomination_invite: true,
             nominee_name: nomineeData.name,
@@ -158,7 +144,7 @@ serve(async (req) => {
     } else {
       // New user - send invite email
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(nomineeData.email, {
-        redirectTo: redirectUrl,
+        redirectTo: authRedirectUrl,
         data: {
           full_name: nomineeData.name,
           nomination_invite: true,
