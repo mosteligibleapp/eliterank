@@ -80,10 +80,10 @@ serve(async (req) => {
     // Build URLs for the nomination flow
     const nomineeDataPrelim = nominee as unknown as NomineeData
     const claimUrl = `${appUrl}/claim/${nomineeDataPrelim.invite_token}`
-    // Use base app URL for auth redirects — Supabase requires redirect URLs to be
-    // in the project's allowlist. The app's checkPendingNominations logic will
-    // detect the pending nomination after auth and show the accept/decline modal.
-    const authRedirectUrl = appUrl
+    // Redirect directly to the claim page after auth so the nominee
+    // lands on accept/decline immediately. Requires adding
+    // https://eliterank.co/claim/** to Supabase's redirect allowlist.
+    const authRedirectUrl = claimUrl
 
     // Check if already sent (unless force_resend is true)
     if (nominee.invite_sent_at && !force_resend) {
@@ -117,9 +117,7 @@ serve(async (req) => {
     let inviteResult
 
     if (existingUser) {
-      // User already has an account - send a magic link
-      // Use base app URL for redirect (must be in Supabase's allowed redirect URLs).
-      // After auth, the app detects pending nominations and shows the accept/decline modal.
+      // User already has an account - send a magic link that lands on the claim page
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: nomineeData.email,
         options: {
