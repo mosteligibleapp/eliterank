@@ -99,8 +99,29 @@ serve(async (req) => {
 
     const nomineeData = nominee as unknown as NomineeData
 
-    // Must have email to send invite
-    if (!nomineeData.email) {
+    // Resolve the nominee's email: use the email on the nominee record,
+    // or fall back to looking up their profile by phone/instagram when the
+    // nominator only provided a phone number.
+    let nomineeEmail = nomineeData.email || null
+
+    if (!nomineeEmail && nomineeData.phone) {
+      const { data: profileByPhone } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('phone', nomineeData.phone)
+        .maybeSingle()
+
+      if (profileByPhone?.email) {
+        nomineeEmail = profileByPhone.email
+        // Backfill the nominee record so future lookups don't need this fallback
+        await supabase
+          .from('nominees')
+          .update({ email: profileByPhone.email })
+          .eq('id', nomineeData.id)
+      }
+    }
+
+    if (!nomineeEmail) {
       return new Response(
         JSON.stringify({ error: 'Nominee does not have an email address' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -117,7 +138,7 @@ serve(async (req) => {
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('id, email')
-      .eq('email', nomineeData.email)
+      .eq('email', nomineeEmail)
       .maybeSingle()
 
     const existingUser = existingProfile
@@ -129,7 +150,7 @@ serve(async (req) => {
     if (existingUser) {
       // User already has an account - send a magic link that lands on the claim page
       const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: nomineeData.email,
+        email: nomineeEmail,
         options: {
           emailRedirectTo: authRedirectUrl,
           data: {
@@ -151,7 +172,7 @@ serve(async (req) => {
       inviteResult = { method: 'magic_link' }
     } else {
       // New user - send invite email
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(nomineeData.email, {
+      const { data, error } = await supabase.auth.admin.inviteUserByEmail(nomineeEmail, {
         redirectTo: authRedirectUrl,
         data: {
           full_name: nomineeData.name,
