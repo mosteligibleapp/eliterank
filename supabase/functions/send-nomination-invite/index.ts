@@ -99,8 +99,29 @@ serve(async (req) => {
 
     const nomineeData = nominee as unknown as NomineeData
 
-    // Must have email to send invite
-    if (!nomineeData.email) {
+    // Resolve the nominee's email: use the email on the nominee record,
+    // or fall back to looking up their profile by phone/instagram when the
+    // nominator only provided a phone number.
+    let nomineeEmail = nomineeData.email || null
+
+    if (!nomineeEmail && nomineeData.phone) {
+      const { data: profileByPhone } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('phone', nomineeData.phone)
+        .maybeSingle()
+
+      if (profileByPhone?.email) {
+        nomineeEmail = profileByPhone.email
+        // Backfill the nominee record so future lookups don't need this fallback
+        await supabase
+          .from('nominees')
+          .update({ email: profileByPhone.email })
+          .eq('id', nomineeData.id)
+      }
+    }
+
+    if (!nomineeEmail) {
       return new Response(
         JSON.stringify({ error: 'Nominee does not have an email address' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -110,16 +131,26 @@ serve(async (req) => {
     const competition = nomineeData.competition
     const competitionName = `Most Eligible ${competition.city} ${competition.season}`
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabase.auth.admin.listUsers()
-    const existingUser = existingUsers?.users?.find(u => u.email === nomineeData.email)
+    // Check if user already exists by querying profiles table
+    // (profiles.id references auth.users.id and email is unique)
+    // Note: listUsers() only returns the first page (~50 users) so it
+    // silently missed existing users once the user-base grew.
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .eq('email', nomineeEmail)
+      .maybeSingle()
+
+    const existingUser = existingProfile
+      ? { id: existingProfile.id, email: existingProfile.email }
+      : null
 
     let inviteResult
 
-    if (existingUser) {
-      // User already has an account - send a magic link that lands on the claim page
+    // Helper: send a magic link to an existing user
+    const sendMagicLink = async () => {
       const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: nomineeData.email,
+        email: nomineeEmail,
         options: {
           emailRedirectTo: authRedirectUrl,
           data: {
@@ -129,19 +160,24 @@ serve(async (req) => {
           },
         },
       })
+      if (otpError) throw otpError
+      return { method: 'magic_link' }
+    }
 
-      if (otpError) {
+    if (existingUser) {
+      // User found in profiles - send magic link
+      try {
+        inviteResult = await sendMagicLink()
+      } catch (otpError) {
         console.error('OTP error:', otpError)
         return new Response(
-          JSON.stringify({ error: 'Failed to send login email', details: otpError.message }),
+          JSON.stringify({ error: 'Failed to send login email', details: (otpError as Error).message }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-
-      inviteResult = { method: 'magic_link' }
     } else {
-      // New user - send invite email
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(nomineeData.email, {
+      // No profile found - try to invite as new user
+      const { data, error } = await supabase.auth.admin.inviteUserByEmail(nomineeEmail, {
         redirectTo: authRedirectUrl,
         data: {
           full_name: nomineeData.name,
@@ -153,14 +189,21 @@ serve(async (req) => {
       })
 
       if (error) {
-        console.error('Invite error:', error)
-        return new Response(
-          JSON.stringify({ error: 'Failed to send invite', details: error.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        // User exists in auth but not in profiles — fall back to magic link
+        // (this happens when profiles are out of sync with auth.users)
+        console.warn('inviteUserByEmail failed, falling back to magic link:', error.message)
+        try {
+          inviteResult = await sendMagicLink()
+        } catch (otpError) {
+          console.error('Magic link fallback also failed:', otpError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to send invite', details: error.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      } else {
+        inviteResult = { method: 'invite', user_id: data.user?.id }
       }
-
-      inviteResult = { method: 'invite', user_id: data.user?.id }
     }
 
     // Create in-app notification if user already has an account

@@ -48,18 +48,16 @@ export default function LoginPage({ onLogin, onBack }) {
     setIsLoading(true);
 
     try {
-      // FIRST: Check if user has an existing account (can log in with password)
-      // This is checked first so existing users can always use password login
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        },
-      });
+      // Check if user has an existing account by looking up their profile
+      // (Previously used signInWithOtp which sent an unwanted email every time)
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('email', email)
+        .limit(1)
+        .maybeSingle();
 
-      // If error contains "Signups not allowed" or similar, user doesn't exist
-      // If no error, user exists (OTP was sent but we won't use it)
-      const userExists = !otpError || !otpError.message?.includes('Signups not allowed');
+      const userExists = !!existingProfile;
 
       if (userExists) {
         // User has an existing account - let them log in with password
