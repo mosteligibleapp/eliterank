@@ -122,7 +122,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
             *,
             competition:competitions(
               id,
-              city,
+              city:cities(name),
               season,
               status,
               nomination_start,
@@ -232,7 +232,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         lastName: profile?.last_name || nominee?.name?.split(' ').slice(1).join(' ') || '',
         avatarUrl: profile?.avatar_url || '',
         bio: profile?.bio || '',
-        city: profile?.city || competition?.city || '',
+        city: profile?.city || competition?.city?.name || '',
       });
     }
   }, [profile, nominee, competition]);
@@ -603,8 +603,8 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   // Navigate to competition page
   const handleComplete = () => {
     const orgSlug = competition?.organization?.slug || 'most-eligible';
-    const citySlug = competition?.city
-      ? competition.city.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
+    const citySlug = competition?.city?.name
+      ? competition.city.name.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '')
       : '';
     const year = competition?.season || '';
 
@@ -1151,7 +1151,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
               marginBottom: spacing.xl,
               lineHeight: 1.6,
             }}>
-              Your nomination for <span style={{ color: colors.gold.primary }}>Most Eligible {competition?.city} {competition?.season}</span> is pending admin approval.
+              Your nomination for <span style={{ color: colors.gold.primary }}>Most Eligible {competition?.city?.name} {competition?.season}</span> is pending admin approval.
             </p>
             <Button onClick={onSuccess}>
               Explore Competitions
@@ -1199,7 +1199,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
             }}>
               Almost there! Complete your profile to finalize your entry for{' '}
               <span style={{ color: colors.gold.primary }}>
-                Most Eligible {competition?.city} {competition?.season}
+                Most Eligible {competition?.city?.name} {competition?.season}
               </span>
             </p>
           </div>
@@ -1403,7 +1403,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
             You've Been Nominated!
           </h1>
           <p style={{ fontSize: typography.fontSize.lg, color: colors.gold.primary }}>
-            Most Eligible {competition?.city} {competition?.season}
+            Most Eligible {competition?.city?.name} {competition?.season}
           </p>
         </div>
 
@@ -1464,7 +1464,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
               <MapPin size={14} style={{ color: colors.text.muted }} />
               <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                {competition?.city}
+                {competition?.city?.name}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
