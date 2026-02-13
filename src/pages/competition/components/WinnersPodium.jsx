@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown, Award, Medal, Trophy } from 'lucide-react';
 
@@ -6,7 +7,18 @@ import { Crown, Award, Medal, Trophy } from 'lucide-react';
  * Large display of top 3 with prizes
  */
 export function WinnersPodium() {
-  const { topThree, prizePool, openContestantProfile } = usePublicCompetition();
+  const { topThree, prizePool } = usePublicCompetition();
+  const location = useLocation();
+
+  // Build profile URL for winner using current URL as base
+  const getProfileUrl = (winner) => {
+    // Get the base competition path from current URL
+    // Remove trailing segments like /leaderboard, /activity, or /e/:slug
+    const basePath = location.pathname
+      .replace(/\/(leaderboard|activity|e\/[^/]+)\/?$/, '')
+      .replace(/\/$/, '');
+    return `${basePath}/e/${winner.slug || winner.id}`;
+  };
 
   if (!topThree?.length) return null;
 
@@ -36,10 +48,13 @@ export function WinnersPodium() {
           const isFirst = index === 0;
 
           return (
-            <div
+            <a
               key={winner.id}
+              href={getProfileUrl(winner)}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`podium-winner podium-winner-${index + 1} ${isFirst ? 'first-place' : ''}`}
-              onClick={() => openContestantProfile(winner)}
+              style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <div className="winner-place">
                 <Icon size={isFirst ? 32 : 24} />
@@ -60,7 +75,7 @@ export function WinnersPodium() {
                 <span className="winner-votes">{winner.votes?.toLocaleString()} votes</span>
                 <span className="winner-prize">{prizes[index]}</span>
               </div>
-            </div>
+            </a>
           );
         })}
       </div>
