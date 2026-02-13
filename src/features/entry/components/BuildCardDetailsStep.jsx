@@ -1,10 +1,12 @@
 import React from 'react';
-import { Mail, Phone, Instagram } from 'lucide-react';
+import { Mail, Phone, Instagram, MapPin } from 'lucide-react';
 
 /**
- * Self-entry details: name, birthday, email, phone, instagram
+ * BuildCardDetailsStep - Unified details for ALL nominees
+ * Collects: firstName, lastName, age, location, email/phone, instagram
+ * Pre-fills from profile (logged-in) or nominee record (third-party)
  */
-export default function SelfDetailsStep({
+export default function BuildCardDetailsStep({
   data,
   onChange,
   onNext,
@@ -14,16 +16,17 @@ export default function SelfDetailsStep({
     onChange({ [field]: e.target.value });
   };
 
-  const hasEmail = data.email.trim() && data.email.includes('@');
-  const hasPhone = data.phone.trim().length > 0;
+  const hasEmail = data.email?.trim() && data.email.includes('@');
+  const hasPhone = data.phone?.trim().length > 0;
   const hasContact = hasEmail || hasPhone;
 
   const isValid =
-    data.firstName.trim() &&
-    data.lastName.trim() &&
+    data.firstName?.trim() &&
+    data.lastName?.trim() &&
     hasContact &&
     data.age &&
-    parseInt(data.age, 10) >= 18;
+    parseInt(data.age, 10) >= 18 &&
+    data.location?.trim();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -41,7 +44,7 @@ export default function SelfDetailsStep({
           <input
             type="text"
             className="entry-input"
-            value={data.firstName}
+            value={data.firstName || ''}
             onChange={handleChange('firstName')}
             placeholder="First name"
             autoComplete="given-name"
@@ -52,7 +55,7 @@ export default function SelfDetailsStep({
           <input
             type="text"
             className="entry-input"
-            value={data.lastName}
+            value={data.lastName || ''}
             onChange={handleChange('lastName')}
             placeholder="Last name"
             autoComplete="family-name"
@@ -65,7 +68,7 @@ export default function SelfDetailsStep({
         <input
           type="number"
           className="entry-input"
-          value={data.age}
+          value={data.age || ''}
           onChange={handleChange('age')}
           placeholder="Your age"
           min="18"
@@ -75,13 +78,28 @@ export default function SelfDetailsStep({
       </div>
 
       <div className="entry-form-field">
+        <label className="entry-label">Location *</label>
+        <div className="entry-input-icon">
+          <MapPin size={18} />
+          <input
+            type="text"
+            className="entry-input"
+            value={data.location || ''}
+            onChange={handleChange('location')}
+            placeholder="e.g., Austin, TX"
+            autoComplete="address-level2"
+          />
+        </div>
+      </div>
+
+      <div className="entry-form-field">
         <label className="entry-label">Email {hasContact ? '' : '*'}</label>
         <div className="entry-input-icon">
           <Mail size={18} />
           <input
             type="email"
             className="entry-input"
-            value={data.email}
+            value={data.email || ''}
             onChange={handleChange('email')}
             placeholder="your@email.com"
             autoComplete="email"
@@ -96,7 +114,7 @@ export default function SelfDetailsStep({
           <input
             type="tel"
             className="entry-input"
-            value={data.phone}
+            value={data.phone || ''}
             onChange={handleChange('phone')}
             placeholder="(555) 555-5555"
             autoComplete="tel"
@@ -115,7 +133,7 @@ export default function SelfDetailsStep({
           <input
             type="text"
             className="entry-input"
-            value={data.instagram}
+            value={data.instagram || ''}
             onChange={(e) =>
               onChange({ instagram: e.target.value.replace('@', '') })
             }
