@@ -30,9 +30,12 @@ serve(async (req) => {
   }
 
   try {
-    const { nominee_id, force_resend } = await req.json()
+    const body = await req.json()
+    const { nominee_id, force_resend } = body
+    console.log('send-nomination-invite called with:', JSON.stringify(body))
 
     if (!nominee_id) {
+      console.error('Missing nominee_id in request body')
       return new Response(
         JSON.stringify({ error: 'nominee_id is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -44,6 +47,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
 
+    console.log('Config:', { supabaseUrl, appUrl, hasServiceKey: !!supabaseServiceKey })
+
     // Create Supabase client with service role (required for auth.admin)
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -53,6 +58,7 @@ serve(async (req) => {
     })
 
     // Fetch nominee with competition data
+    console.log('Fetching nominee:', nominee_id)
     const { data: nominee, error: fetchError } = await supabase
       .from('nominees')
       .select(`
@@ -71,11 +77,14 @@ serve(async (req) => {
       .single()
 
     if (fetchError || !nominee) {
+      console.error('Nominee query failed:', JSON.stringify({ fetchError, nominee_id, hasNominee: !!nominee }))
       return new Response(
         JSON.stringify({ error: 'Nominee not found', details: fetchError }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log('Found nominee:', JSON.stringify({ id: nominee.id, name: (nominee as any).name, email: (nominee as any).email }))
 
     // Build URLs for the nomination flow
     const nomineeDataPrelim = nominee as unknown as NomineeData
@@ -145,10 +154,13 @@ serve(async (req) => {
       ? { id: existingProfile.id, email: existingProfile.email }
       : null
 
+    console.log('User lookup result:', JSON.stringify({ nomineeEmail, existingUser, hasProfile: !!existingProfile }))
+
     let inviteResult
 
     // Helper: send a magic link to an existing user
     const sendMagicLink = async () => {
+      console.log('Sending magic link to:', nomineeEmail, 'redirectTo:', authRedirectUrl)
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: nomineeEmail,
         options: {
@@ -160,7 +172,11 @@ serve(async (req) => {
           },
         },
       })
-      if (otpError) throw otpError
+      if (otpError) {
+        console.error('signInWithOtp failed:', JSON.stringify(otpError))
+        throw otpError
+      }
+      console.log('Magic link sent successfully to:', nomineeEmail)
       return { method: 'magic_link' }
     }
 
@@ -177,6 +193,7 @@ serve(async (req) => {
       }
     } else {
       // No profile found - try to invite as new user
+      console.log('No profile found, inviting new user:', nomineeEmail)
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(nomineeEmail, {
         redirectTo: authRedirectUrl,
         data: {
@@ -237,6 +254,13 @@ serve(async (req) => {
     if (updateError) {
       console.error('Failed to update invite_sent_at:', updateError)
     }
+
+    console.log('send-nomination-invite completed successfully:', JSON.stringify({
+      nominee_id,
+      nomineeEmail,
+      ...inviteResult,
+      claim_url: claimUrl,
+    }))
 
     return new Response(
       JSON.stringify({
