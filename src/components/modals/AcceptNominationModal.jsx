@@ -3,6 +3,7 @@ import { Crown, Check, X, User, MapPin, Camera, Loader, AlertCircle, Quote } fro
 import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
+import { uploadPhoto } from '../../features/entry/utils/uploadPhoto';
 
 /**
  * AcceptNominationModal - In-app modal for existing users to accept/decline nominations
@@ -152,40 +153,15 @@ export default function AcceptNominationModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setFormErrors(prev => ({ ...prev, avatarUrl: 'Please select an image file' }));
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setFormErrors(prev => ({ ...prev, avatarUrl: 'Image must be less than 5MB' }));
-      return;
-    }
-
     setUploading(true);
     setFormErrors(prev => ({ ...prev, avatarUrl: null }));
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('public')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('public')
-        .getPublicUrl(filePath);
-
+      const publicUrl = await uploadPhoto(file, 'avatars');
       setFormData(prev => ({ ...prev, avatarUrl: publicUrl }));
     } catch (err) {
       console.error('Error uploading avatar:', err);
-      setFormErrors(prev => ({ ...prev, avatarUrl: 'Failed to upload image' }));
+      setFormErrors(prev => ({ ...prev, avatarUrl: err.message || 'Failed to upload image' }));
     } finally {
       setUploading(false);
     }
