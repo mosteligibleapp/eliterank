@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
 
-const SELF_STEPS = ['mode', 'eligibility', 'photo', 'details', 'pitch', 'card'];
+const SELF_STEPS_AUTH = ['mode', 'eligibility', 'photo', 'details', 'pitch', 'card'];
+const SELF_STEPS_ANON = ['mode', 'eligibility', 'photo', 'details', 'pitch', 'password', 'card'];
 const NOMINATE_STEPS = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'card'];
 
 /**
@@ -13,17 +14,21 @@ const NOMINATE_STEPS = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'c
  * @returns {Object} Flow state and actions
  */
 export function useEntryFlow(competition, profile) {
+  const isLoggedIn = !!profile?.id;
+
   // Flow state
   const [mode, setMode] = useState(null); // 'self' | 'nominate'
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submittedData, setSubmittedData] = useState(null);
+  const [nomineeId, setNomineeId] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Eligibility
   const [eligibilityAnswers, setEligibilityAnswers] = useState({});
 
-  // Self-entry data
+  // Self-entry data — now includes location
   const [selfData, setSelfData] = useState({
     firstName: profile?.first_name || '',
     lastName: profile?.last_name || '',
@@ -31,6 +36,7 @@ export function useEntryFlow(competition, profile) {
     phone: profile?.phone || '',
     instagram: profile?.instagram || '',
     age: profile?.age || '',
+    location: profile?.city || '',
     photoFile: null,
     photoPreview: profile?.avatar_url || '',
     pitch: '',
@@ -55,11 +61,12 @@ export function useEntryFlow(competition, profile) {
     anonymous: false,
   });
 
-  // Current steps list
-  const steps = useMemo(
-    () => (mode === 'nominate' ? NOMINATE_STEPS : SELF_STEPS),
-    [mode]
-  );
+  // Current steps list — self steps vary by auth state
+  const steps = useMemo(() => {
+    if (mode === 'nominate') return NOMINATE_STEPS;
+    if (mode === 'self') return isLoggedIn ? SELF_STEPS_AUTH : SELF_STEPS_ANON;
+    return SELF_STEPS_AUTH; // default before mode selected
+  }, [mode, isLoggedIn]);
 
   const currentStep = steps[currentStepIndex] || 'mode';
   const totalSteps = steps.length;
@@ -80,6 +87,7 @@ export function useEntryFlow(competition, profile) {
         phone: prev.phone || profile.phone || '',
         instagram: prev.instagram || profile.instagram || '',
         age: prev.age || profile.age || '',
+        location: prev.location || profile.city || '',
         photoPreview: prev.photoPreview || profile.avatar_url || '',
       }));
     }
@@ -121,6 +129,81 @@ export function useEntryFlow(competition, profile) {
     setNominatorData((prev) => ({ ...prev, ...updates }));
   }, []);
 
+  // ---- Early persistence: save after details step ----
+  const persistSelfProgress = useCallback(async (flowStage) => {
+    if (!competition?.id) return;
+    setSubmitError('');
+
+    try {
+      let avatarUrl = selfData.photoPreview;
+      if (selfData.photoFile) {
+        avatarUrl = await uploadPhoto(selfData.photoFile, 'avatars');
+      }
+
+      const fullName = `${selfData.firstName} ${selfData.lastName}`.trim();
+
+      const record = {
+        competition_id: competition.id,
+        name: fullName,
+        email: selfData.email?.trim() || null,
+        phone: selfData.phone?.trim() || null,
+        instagram: selfData.instagram?.trim() || null,
+        age: selfData.age ? parseInt(selfData.age, 10) : null,
+        city: selfData.location?.trim() || null,
+        avatar_url: avatarUrl || null,
+        nominated_by: 'self',
+        status: 'pending',
+        eligibility_answers: eligibilityAnswers,
+        claimed_at: new Date().toISOString(),
+        flow_stage: flowStage,
+      };
+
+      if (profile?.id) {
+        record.user_id = profile.id;
+      }
+
+      if (nomineeId) {
+        // Update existing early-persisted record
+        const { error } = await supabase
+          .from('nominees')
+          .update({
+            name: record.name,
+            email: record.email,
+            phone: record.phone,
+            instagram: record.instagram,
+            age: record.age,
+            city: record.city,
+            avatar_url: record.avatar_url,
+            flow_stage: flowStage,
+          })
+          .eq('id', nomineeId);
+        if (error) throw error;
+      } else {
+        // Insert new
+        const { data: inserted, error } = await supabase
+          .from('nominees')
+          .insert(record)
+          .select('id')
+          .single();
+
+        if (error) {
+          if (error.code === '23505') {
+            throw new Error('You have already entered this competition.');
+          }
+          throw error;
+        }
+        setNomineeId(inserted.id);
+      }
+
+      if (avatarUrl && avatarUrl !== selfData.photoPreview) {
+        setSelfData((prev) => ({ ...prev, photoPreview: avatarUrl }));
+      }
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to save progress');
+      throw err;
+    }
+  }, [competition, selfData, eligibilityAnswers, profile, nomineeId]);
+
   // Submit self-entry
   const submitSelfEntry = useCallback(async () => {
     if (!competition?.id) return;
@@ -137,7 +220,6 @@ export function useEntryFlow(competition, profile) {
       const fullName = `${selfData.firstName} ${selfData.lastName}`.trim();
 
       const record = {
-        competition_id: competition.id,
         name: fullName,
         email: selfData.email.trim(),
         phone: selfData.phone.trim() || null,
@@ -145,24 +227,55 @@ export function useEntryFlow(competition, profile) {
         bio: selfData.pitch.trim() || null,
         avatar_url: avatarUrl || null,
         age: selfData.age ? parseInt(selfData.age, 10) : null,
-        nominated_by: 'self',
-        status: 'pending',
-        eligibility_answers: eligibilityAnswers,
-        claimed_at: new Date().toISOString(), // Self-nominations are auto-accepted
+        city: selfData.location?.trim() || null,
+        flow_stage: 'card',
       };
 
-      // Link to user if logged in
       if (profile?.id) {
         record.user_id = profile.id;
       }
 
-      const { error } = await supabase.from('nominees').insert(record);
+      if (nomineeId) {
+        // Update the early-persisted record with final data
+        const { error } = await supabase
+          .from('nominees')
+          .update(record)
+          .eq('id', nomineeId);
 
-      if (error) {
-        if (error.code === '23505') {
-          throw new Error('You have already entered this competition.');
+        if (error) throw error;
+      } else {
+        // No early persist happened — insert full record
+        record.competition_id = competition.id;
+        record.nominated_by = 'self';
+        record.status = 'pending';
+        record.eligibility_answers = eligibilityAnswers;
+        record.claimed_at = new Date().toISOString();
+
+        const { error } = await supabase.from('nominees').insert(record);
+
+        if (error) {
+          if (error.code === '23505') {
+            throw new Error('You have already entered this competition.');
+          }
+          throw error;
         }
-        throw error;
+      }
+
+      // Update profile if logged in
+      if (profile?.id) {
+        await supabase
+          .from('profiles')
+          .update({
+            first_name: selfData.firstName.trim(),
+            last_name: selfData.lastName.trim(),
+            avatar_url: avatarUrl || undefined,
+            bio: selfData.pitch?.trim() || undefined,
+            city: selfData.location?.trim() || undefined,
+            age: selfData.age ? parseInt(selfData.age, 10) : undefined,
+            instagram: selfData.instagram?.trim() || undefined,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', profile.id);
       }
 
       setSubmittedData({
@@ -173,16 +286,89 @@ export function useEntryFlow(competition, profile) {
         isNomination: false,
       });
 
-      // Move to card reveal
-      setCurrentStepIndex(steps.indexOf('card'));
+      // Move to card reveal (skip password for logged-in) or to password step
+      if (!isLoggedIn) {
+        setCurrentStepIndex(steps.indexOf('password'));
+      } else {
+        setCurrentStepIndex(steps.indexOf('card'));
+      }
     } catch (err) {
       setSubmitError(err.message || 'Failed to submit entry');
     } finally {
       setIsSubmitting(false);
     }
-  }, [competition, selfData, eligibilityAnswers, profile, steps]);
+  }, [competition, selfData, eligibilityAnswers, profile, steps, isLoggedIn, nomineeId]);
 
-  // Submit nomination
+  // ---- Create account for anon self-nominees ----
+  const createAccount = useCallback(async (password) => {
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    try {
+      const email = selfData.email?.trim();
+      if (!email) throw new Error('Email is required to create an account');
+
+      const fullName = `${selfData.firstName} ${selfData.lastName}`.trim();
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            nominee_id: nomineeId,
+          },
+        },
+      });
+
+      if (signUpError) {
+        if (signUpError.message?.includes('already registered')) {
+          // Try login with password
+          const { data: signInData, error: signInError } =
+            await supabase.auth.signInWithPassword({ email, password });
+
+          if (signInError) {
+            throw new Error(
+              'An account with this email already exists. Please use your existing password.'
+            );
+          }
+          setCurrentUser(signInData.user);
+
+          if (signInData.user?.id && nomineeId) {
+            await supabase
+              .from('nominees')
+              .update({ user_id: signInData.user.id, flow_stage: 'password' })
+              .eq('id', nomineeId);
+          }
+        } else {
+          throw signUpError;
+        }
+      } else if (data?.user) {
+        setCurrentUser(data.user);
+
+        if (data.user.id && nomineeId) {
+          await supabase
+            .from('nominees')
+            .update({ user_id: data.user.id, flow_stage: 'password' })
+            .eq('id', nomineeId);
+        }
+      }
+
+      // Move to card
+      setCurrentStepIndex(steps.indexOf('card'));
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to create account');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [selfData, nomineeId, steps]);
+
+  // ---- Skip password ----
+  const skipPassword = useCallback(() => {
+    setCurrentStepIndex(steps.indexOf('card'));
+  }, [steps]);
+
+  // Submit nomination (unchanged — this is the nominator's flow, not the nominee's)
   const submitNomination = useCallback(async () => {
     if (!competition?.id) return;
     setIsSubmitting(true);
@@ -287,6 +473,7 @@ export function useEntryFlow(competition, profile) {
     isSubmitting,
     submitError,
     submittedData,
+    isLoggedIn,
 
     // Data
     eligibilityAnswers,
@@ -305,6 +492,9 @@ export function useEntryFlow(competition, profile) {
     submitSelfEntry,
     submitNomination,
     resetForNewNomination,
+    persistSelfProgress,
+    createAccount,
+    skipPassword,
     setSubmitError,
   };
 }

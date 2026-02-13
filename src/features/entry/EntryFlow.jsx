@@ -11,8 +11,9 @@ import CompetitionBanner from './components/CompetitionBanner';
 import ModeSelect from './components/ModeSelect';
 import EligibilityStep from './components/EligibilityStep';
 import PhotoUpload from './components/PhotoUpload';
-import SelfDetailsStep from './components/SelfDetailsStep';
+import BuildCardDetailsStep from './components/BuildCardDetailsStep';
 import SelfPitchStep from './components/SelfPitchStep';
+import CreatePasswordStep from './components/CreatePasswordStep';
 import NomineeInfoStep from './components/NomineeInfoStep';
 import WhyNominateStep from './components/WhyNominateStep';
 import NominatorInfoStep from './components/NominatorInfoStep';
@@ -55,6 +56,16 @@ export default function EntryFlow() {
 
   const handleDone = () => {
     navigate(`/${orgSlug}/${competitionSlug}`);
+  };
+
+  // Early persist after details step for self-entry
+  const handleDetailsNext = async () => {
+    try {
+      await flow.persistSelfProgress('details');
+      flow.next();
+    } catch {
+      // Error already set in hook — don't navigate
+    }
   };
 
   // Loading
@@ -145,7 +156,7 @@ export default function EntryFlow() {
 
       {/* Step content with slide animation */}
       <div className="entry-content" key={flow.currentStep}>
-        {renderStep(flow, competition, competitionTitle, handleDone, flow.resetForNewNomination)}
+        {renderStep(flow, competition, competitionTitle, handleDone, flow.resetForNewNomination, handleDetailsNext)}
       </div>
     </div>
   );
@@ -154,7 +165,7 @@ export default function EntryFlow() {
 /**
  * Render the current step
  */
-function renderStep(flow, competition, competitionTitle, handleDone, handleNominateAnother) {
+function renderStep(flow, competition, competitionTitle, handleDone, handleNominateAnother, handleDetailsNext) {
   switch (flow.currentStep) {
     case 'mode':
       return (
@@ -192,10 +203,10 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
 
     case 'details':
       return (
-        <SelfDetailsStep
+        <BuildCardDetailsStep
           data={flow.selfData}
           onChange={flow.updateSelfData}
-          onNext={flow.next}
+          onNext={handleDetailsNext}
           error={flow.submitError}
         />
       );
@@ -209,6 +220,18 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
           competition={competition}
+        />
+      );
+
+    case 'password':
+      return (
+        <CreatePasswordStep
+          email={flow.selfData.email}
+          onSubmit={flow.createAccount}
+          onSkip={flow.skipPassword}
+          isSubmitting={flow.isSubmitting}
+          error={flow.submitError}
+          isSettingPassword={false}
         />
       );
 

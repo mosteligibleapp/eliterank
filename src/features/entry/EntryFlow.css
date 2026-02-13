@@ -779,3 +779,181 @@
     height: 568px;
   }
 }
+
+/* =============================================================================
+   AcceptDeclineStep - Third-party nomination splash
+   ============================================================================= */
+.entry-step-accept {
+  align-items: center;
+}
+
+.entry-accept-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d4af37;
+  margin-bottom: 16px;
+}
+
+.entry-accept-competition {
+  font-size: 1.125rem;
+  color: #d4af37;
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+.entry-accept-details {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.entry-accept-nominator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #71717a;
+  font-size: 0.8125rem;
+  margin-bottom: 8px;
+}
+
+.entry-accept-nominator svg {
+  color: #d4af37;
+}
+
+.entry-accept-nominator-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.entry-accept-reason {
+  margin-top: 16px;
+}
+
+.entry-accept-reason-label {
+  font-size: 0.8125rem;
+  color: #71717a;
+  margin: 0 0 8px;
+}
+
+.entry-accept-quote {
+  font-size: 0.9375rem;
+  color: #ffffff;
+  font-style: italic;
+  line-height: 1.6;
+  padding: 12px 16px;
+  margin: 0;
+  background: rgba(212, 175, 55, 0.05);
+  border-radius: 10px;
+  border-left: 3px solid #d4af37;
+}
+
+.entry-accept-meta {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.entry-accept-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: #a1a1aa;
+}
+
+.entry-accept-meta-item svg {
+  color: #71717a;
+}
+
+.entry-accept-fine-print {
+  font-size: 0.8125rem;
+  color: #71717a;
+  text-align: center;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.entry-accept-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.entry-btn-decline {
+  flex: 1;
+  min-height: 56px;
+}
+
+.entry-btn-accept {
+  flex: 1;
+}
+
+.entry-accept-deadline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 0.8125rem;
+  color: #71717a;
+}
+
+/* =============================================================================
+   EligibilityConfirmStep - Read-only confirmation
+   ============================================================================= */
+.entry-step-eligibility-confirm .entry-eligibility-item {
+  cursor: default;
+}
+
+.entry-btn-ineligible {
+  width: 100%;
+  padding: 14px;
+  background: none;
+  border: none;
+  color: #71717a;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  margin-top: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-family: inherit;
+}
+
+.entry-btn-ineligible:active {
+  color: #ef4444;
+}
+
+/* =============================================================================
+   CreatePasswordStep
+   ============================================================================= */
+.entry-input-password {
+  position: relative;
+}
+
+.entry-password-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #52525b;
+  cursor: pointer;
+  padding: 4px;
+  z-index: 2;
+}
+
+.entry-password-toggle:active {
+  color: #a1a1aa;
+}
