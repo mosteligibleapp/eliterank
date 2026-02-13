@@ -17,9 +17,9 @@ interface NomineeData {
   nominator_anonymous: boolean
   competition: {
     id: string
-    city: string
     season: number
     nomination_end?: string
+    city: { name: string } | null
   }
 }
 
@@ -71,7 +71,7 @@ serve(async (req) => {
         nominator_name,
         nominator_anonymous,
         invite_sent_at,
-        competition:competitions(id, city, season, nomination_end)
+        competition:competitions(id, season, nomination_end, city:cities(name))
       `)
       .eq('id', nominee_id)
       .single()
@@ -138,7 +138,8 @@ serve(async (req) => {
     }
 
     const competition = nomineeData.competition
-    const competitionName = `Most Eligible ${competition.city} ${competition.season}`
+    const cityName = competition.city?.name || 'Unknown'
+    const competitionName = `Most Eligible ${cityName} ${competition.season}`
 
     // Check if user already exists by querying profiles table
     // (profiles.id references auth.users.id and email is unique)
