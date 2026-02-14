@@ -387,14 +387,16 @@ export function useBuildCardFlow({
         isNomination: false,
       });
 
-      // Move to card reveal
-      setCurrentStepIndex(steps.indexOf('card'));
+      // Advance to the next step. For third-party flows with needsPassword,
+      // the next step after 'pitch' is 'password' — jumping directly to
+      // 'card' would skip it.  Using next() respects the step order.
+      next();
     } catch (err) {
       setSubmitError(err.message || 'Failed to submit entry');
     } finally {
       setIsSubmitting(false);
     }
-  }, [cardData, currentUser, nomineeId, competition, eligibilityAnswers, steps]);
+  }, [cardData, currentUser, nomineeId, competition, eligibilityAnswers, steps, next]);
 
   // ---- Create account / set password ----
   const createAccount = useCallback(async (password) => {
