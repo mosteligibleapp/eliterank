@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
 
@@ -28,6 +28,11 @@ const NOMINATE_STEPS = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'c
  */
 export function useEntryFlow(competition, profile) {
   const isLoggedIn = !!profile?.id;
+
+  // Freeze the step array when mode is selected so that auth state changes
+  // mid-flow (e.g. after signUp in createAccount) don't swap ANON→AUTH steps
+  // and reset the user to the beginning.
+  const frozenStepsRef = useRef(null);
 
   // Flow state
   const [mode, setMode] = useState(null); // 'self' | 'nominate'
@@ -74,8 +79,10 @@ export function useEntryFlow(competition, profile) {
     anonymous: false,
   });
 
-  // Current steps list — self steps vary by auth state
+  // Current steps list — frozen once mode is selected so mid-flow auth
+  // changes (signUp) can't swap the array and invalidate the step index.
   const steps = useMemo(() => {
+    if (frozenStepsRef.current) return frozenStepsRef.current;
     if (mode === 'nominate') return NOMINATE_STEPS;
     if (mode === 'self') return isLoggedIn ? SELF_STEPS_AUTH : SELF_STEPS_ANON;
     return SELF_STEPS_AUTH; // default before mode selected
@@ -89,6 +96,13 @@ export function useEntryFlow(competition, profile) {
   // Select mode
   const selectMode = useCallback((selectedMode) => {
     setMode(selectedMode);
+
+    // Freeze steps based on auth state at the moment mode is chosen
+    if (selectedMode === 'nominate') {
+      frozenStepsRef.current = NOMINATE_STEPS;
+    } else if (selectedMode === 'self') {
+      frozenStepsRef.current = isLoggedIn ? SELF_STEPS_AUTH : SELF_STEPS_ANON;
+    }
 
     // Pre-fill self data from profile if available
     if (selectedMode === 'self' && profile) {
@@ -106,7 +120,7 @@ export function useEntryFlow(competition, profile) {
     }
 
     setCurrentStepIndex(1); // Move past mode select
-  }, [profile]);
+  }, [profile, isLoggedIn]);
 
   // Navigation
   const next = useCallback(() => {
@@ -117,7 +131,8 @@ export function useEntryFlow(competition, profile) {
   const back = useCallback(() => {
     setSubmitError('');
     if (currentStepIndex === 1) {
-      // Going back to mode select
+      // Going back to mode select — unfreeze steps
+      frozenStepsRef.current = null;
       setMode(null);
       setCurrentStepIndex(0);
     } else {
