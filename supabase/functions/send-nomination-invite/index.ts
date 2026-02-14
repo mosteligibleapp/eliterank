@@ -181,47 +181,19 @@ serve(async (req) => {
       return { method: 'magic_link' }
     }
 
-    if (existingUser) {
-      // User found in profiles - send magic link
-      try {
-        inviteResult = await sendMagicLink()
-      } catch (otpError) {
-        console.error('OTP error:', otpError)
-        return new Response(
-          JSON.stringify({ error: 'Failed to send login email', details: (otpError as Error).message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    } else {
-      // No profile found - try to invite as new user
-      console.log('No profile found, inviting new user:', nomineeEmail)
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(nomineeEmail, {
-        redirectTo: authRedirectUrl,
-        data: {
-          full_name: nomineeData.name,
-          nomination_invite: true,
-          nominee_id: nomineeData.id,
-          competition_id: competition.id,
-          competition_name: competitionName,
-        },
-      })
-
-      if (error) {
-        // User exists in auth but not in profiles — fall back to magic link
-        // (this happens when profiles are out of sync with auth.users)
-        console.warn('inviteUserByEmail failed, falling back to magic link:', error.message)
-        try {
-          inviteResult = await sendMagicLink()
-        } catch (otpError) {
-          console.error('Magic link fallback also failed:', otpError)
-          return new Response(
-            JSON.stringify({ error: 'Failed to send invite', details: error.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-      } else {
-        inviteResult = { method: 'invite', user_id: data.user?.id }
-      }
+    // Always send a magic link — works for both existing and new users.
+    // Previously we used admin.inviteUserByEmail() for new users, but that
+    // sends Supabase's generic "You have been invited to create a user"
+    // email instead of the nomination-branded magic link template.
+    // signInWithOtp() will auto-create the auth user if they don't exist.
+    try {
+      inviteResult = await sendMagicLink()
+    } catch (otpError) {
+      console.error('Magic link failed:', otpError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to send nomination email', details: (otpError as Error).message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Create in-app notification if user already has an account
