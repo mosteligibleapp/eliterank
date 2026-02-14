@@ -168,15 +168,25 @@ export function useBuildCardFlow({
 
   // ---- Early persistence: save progress after details step ----
   const persistProgress = useCallback(async (flowStage) => {
+    setIsSubmitting(true);
     setSubmitError('');
 
     try {
       const fullName = `${cardData.firstName} ${cardData.lastName}`.trim();
 
-      // Upload photo if new file
+      // Upload photo if new file — failures are non-blocking here so the
+      // user isn't stuck on the details step.  submitCard will retry.
       let avatarUrl = cardData.photoPreview;
       if (cardData.photoFile) {
-        avatarUrl = await uploadPhoto(cardData.photoFile, 'avatars');
+        try {
+          avatarUrl = await uploadPhoto(cardData.photoFile, 'avatars');
+        } catch (uploadErr) {
+          console.warn('Photo upload failed during persist, will retry on final submit:', uploadErr.message);
+          // Don't save local blob: URLs to DB — use the existing remote URL or null
+          avatarUrl = (cardData.photoPreview && !cardData.photoPreview.startsWith('blob:'))
+            ? cardData.photoPreview
+            : null;
+        }
       }
 
       const record = {
@@ -246,6 +256,8 @@ export function useBuildCardFlow({
     } catch (err) {
       setSubmitError(err.message || 'Failed to save progress');
       throw err;
+    } finally {
+      setIsSubmitting(false);
     }
   }, [cardData, currentUser, nomineeId, competition, eligibilityAnswers]);
 

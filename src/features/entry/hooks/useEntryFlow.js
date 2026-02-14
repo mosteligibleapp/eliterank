@@ -160,12 +160,20 @@ export function useEntryFlow(competition, profile) {
   // ---- Early persistence: save after details step ----
   const persistSelfProgress = useCallback(async (flowStage) => {
     if (!competition?.id) return;
+    setIsSubmitting(true);
     setSubmitError('');
 
     try {
       let avatarUrl = selfData.photoPreview;
       if (selfData.photoFile) {
-        avatarUrl = await uploadPhoto(selfData.photoFile, 'avatars');
+        try {
+          avatarUrl = await uploadPhoto(selfData.photoFile, 'avatars');
+        } catch (uploadErr) {
+          console.warn('Photo upload failed during persist, will retry on final submit:', uploadErr.message);
+          avatarUrl = (selfData.photoPreview && !selfData.photoPreview.startsWith('blob:'))
+            ? selfData.photoPreview
+            : null;
+        }
       }
 
       const fullName = `${selfData.firstName} ${selfData.lastName}`.trim();
@@ -244,6 +252,8 @@ export function useEntryFlow(competition, profile) {
     } catch (err) {
       setSubmitError(err.message || 'Failed to save progress');
       throw err;
+    } finally {
+      setIsSubmitting(false);
     }
   }, [competition, selfData, eligibilityAnswers, profile, nomineeId]);
 
