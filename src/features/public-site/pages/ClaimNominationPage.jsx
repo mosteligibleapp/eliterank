@@ -26,6 +26,13 @@ import '../../entry/EntryFlow.css';
 export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   const toast = useToast();
 
+  // Capture magic link indicator immediately before Supabase clears the URL hash.
+  const cameViaMagicLinkRef = useRef(() => {
+    const hash = window.location.hash;
+    return hash.includes('access_token') || hash.includes('type=magiclink');
+  });
+  const cameViaMagicLink = cameViaMagicLinkRef.current();
+
   // Auth state
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -150,23 +157,24 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     fetchNomination();
   }, [token]);
 
-  // Determine password needs after auth check
+  // Determine password needs after auth check.
+  // cameViaMagicLink was captured at mount time because Supabase clears the
+  // URL hash after processing tokens, so checking it here would be too late.
   useEffect(() => {
     if (loading || authLoading || !nominee) return;
 
-    const hash = window.location.hash;
-    const cameViaMagicLink = hash.includes('access_token') || hash.includes('type=magiclink');
-
     if (user && cameViaMagicLink) {
+      // Magic-link user — needs to set a password so they can log back in
       setNeedsPassword(true);
     } else if (!user) {
+      // No account at all — needs to create one
       setNeedsPassword(true);
     } else {
       setNeedsPassword(false);
     }
 
     setReady(true);
-  }, [loading, authLoading, user, nominee]);
+  }, [loading, authLoading, user, nominee, cameViaMagicLink]);
 
   // Initialize the Build Your Card flow
   const flow = useBuildCardFlow({
