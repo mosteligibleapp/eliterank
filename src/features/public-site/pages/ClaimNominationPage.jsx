@@ -369,7 +369,6 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
         <CreatePasswordStep
           email={flow.cardData.email}
           onSubmit={flow.createAccount}
-          onSkip={flow.skipPassword}
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
           isSettingPassword={!!user}

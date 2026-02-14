@@ -229,7 +229,6 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
         <CreatePasswordStep
           email={flow.selfData.email}
           onSubmit={flow.createAccount}
-          onSkip={flow.skipPassword}
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
           isSettingPassword={false}

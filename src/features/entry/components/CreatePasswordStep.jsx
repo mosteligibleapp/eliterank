@@ -9,12 +9,12 @@ import { Lock, Eye, EyeOff, Mail } from 'lucide-react';
  * - Magic-link third-party nominees (set password)
  * - Third-party nominees with no account (create account)
  *
- * "Skip for now" is allowed — data is already persisted from the details step.
+ * Password is required — skipping is not allowed because users who skip
+ * cannot log back in.
  */
 export default function CreatePasswordStep({
   email,
   onSubmit,
-  onSkip,
   isSubmitting,
   error,
   isSettingPassword, // true = existing user setting password, false = new signup
@@ -117,15 +117,6 @@ export default function CreatePasswordStep({
         {isSubmitting
           ? (isSettingPassword ? 'Setting password...' : 'Creating account...')
           : (isSettingPassword ? 'Set Password & Continue' : 'Create Account & Continue')}
-      </button>
-
-      <button
-        type="button"
-        className="entry-btn-done"
-        onClick={onSkip}
-        disabled={isSubmitting}
-      >
-        Skip for now
       </button>
     </form>
   );
