@@ -26,12 +26,13 @@ import '../../entry/EntryFlow.css';
 export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   const toast = useToast();
 
-  // Capture magic link indicator immediately before Supabase clears the URL hash.
-  const cameViaMagicLinkRef = useRef(() => {
-    const hash = window.location.hash;
-    return hash.includes('access_token') || hash.includes('type=magiclink');
-  });
-  const cameViaMagicLink = cameViaMagicLinkRef.current();
+  // Capture magic link indicator once at mount time. Supabase clears the URL
+  // hash after processing auth tokens, so this must be evaluated eagerly —
+  // reading window.location.hash on later renders would return an empty string.
+  const cameViaMagicLinkRef = useRef(
+    window.location.hash.includes('access_token') || window.location.hash.includes('type=magiclink')
+  );
+  const cameViaMagicLink = cameViaMagicLinkRef.current;
 
   // Auth state
   const [user, setUser] = useState(null);
