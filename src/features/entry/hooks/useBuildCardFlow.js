@@ -375,6 +375,8 @@ export function useBuildCardFlow({
     setSubmitError('');
 
     try {
+      let userId = currentUser?.id || null;
+
       if (currentUser) {
         // User exists (magic link) — just set password
         const { error } = await supabase.auth.updateUser({ password });
@@ -410,32 +412,52 @@ export function useBuildCardFlow({
             }
 
             setCurrentUser(signInData.user);
+            userId = signInData.user?.id;
 
             // Link user to nominee
-            if (signInData.user?.id && nomineeId) {
+            if (userId && nomineeId) {
               await supabase
                 .from('nominees')
-                .update({ user_id: signInData.user.id })
+                .update({ user_id: userId })
                 .eq('id', nomineeId);
             }
-
-            next();
-            return;
+          } else {
+            throw signUpError;
           }
-          throw signUpError;
-        }
-
-        if (data?.user) {
+        } else if (data?.user) {
           setCurrentUser(data.user);
+          userId = data.user.id;
 
           // Link user to nominee
-          if (data.user.id && nomineeId) {
+          if (userId && nomineeId) {
             await supabase
               .from('nominees')
-              .update({ user_id: data.user.id })
+              .update({ user_id: userId })
               .eq('id', nomineeId);
           }
         }
+      }
+
+      // Populate the profile with all card data now that the account exists.
+      // submitCard may have run before the user had an account, so the profile
+      // was only seeded with email/name by the DB trigger.
+      if (userId) {
+        const avatarUrl = (cardData.photoPreview && !cardData.photoPreview.startsWith('blob:'))
+          ? cardData.photoPreview : undefined;
+        await supabase
+          .from('profiles')
+          .update({
+            first_name: cardData.firstName.trim(),
+            last_name: cardData.lastName.trim(),
+            avatar_url: avatarUrl,
+            bio: cardData.pitch?.trim() || undefined,
+            city: cardData.location?.trim() || undefined,
+            age: cardData.age ? parseInt(cardData.age, 10) : undefined,
+            instagram: cardData.instagram?.trim() || undefined,
+            phone: cardData.phone?.trim() || undefined,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
       }
 
       next();

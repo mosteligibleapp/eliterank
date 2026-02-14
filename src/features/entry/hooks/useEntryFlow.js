@@ -426,6 +426,28 @@ export function useEntryFlow(competition, profile) {
         }
       }
 
+      // Populate the profile with all card data now that the account exists.
+      // submitSelfEntry skipped this because profile?.id was null at that point.
+      const userId = data?.user?.id || currentUser?.id;
+      if (userId) {
+        const avatarUrl = (selfData.photoPreview && !selfData.photoPreview.startsWith('blob:'))
+          ? selfData.photoPreview : undefined;
+        await supabase
+          .from('profiles')
+          .update({
+            first_name: selfData.firstName.trim(),
+            last_name: selfData.lastName.trim(),
+            avatar_url: avatarUrl,
+            bio: selfData.pitch?.trim() || undefined,
+            city: selfData.location?.trim() || undefined,
+            age: selfData.age ? parseInt(selfData.age, 10) : undefined,
+            instagram: selfData.instagram?.trim() || undefined,
+            phone: selfData.phone?.trim() || undefined,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+      }
+
       // Move to card
       setCurrentStepIndex(steps.indexOf('card'));
     } catch (err) {
@@ -433,7 +455,7 @@ export function useEntryFlow(competition, profile) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selfData, nomineeId, steps]);
+  }, [selfData, nomineeId, steps, currentUser]);
 
   // ---- Skip password — send magic link so they can claim their account later ----
   const skipPassword = useCallback(() => {

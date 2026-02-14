@@ -437,7 +437,7 @@
   position: relative;
 }
 
-.entry-input-icon svg {
+.entry-input-icon > svg {
   position: absolute;
   left: 16px;
   top: 50%;
@@ -939,6 +939,10 @@
    ============================================================================= */
 .entry-input-password {
   position: relative;
+}
+
+.entry-input-password .entry-input {
+  padding-right: 44px;
 }
 
 .entry-password-toggle {
