@@ -175,11 +175,11 @@ function renderModalStep(flow, competition, nomination, handleDecline, handleIne
         />
       );
 
-    case 'pitch':
+    case 'bio':
       return (
         <SelfPitchStep
-          pitch={flow.cardData.pitch}
-          onChange={(pitch) => flow.updateCardData({ pitch })}
+          bio={flow.cardData.bio}
+          onChange={(bio) => flow.updateCardData({ bio })}
           onSubmit={flow.submitCard}
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}

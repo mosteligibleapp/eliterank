@@ -212,11 +212,11 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
         />
       );
 
-    case 'pitch':
+    case 'bio':
       return (
         <SelfPitchStep
-          pitch={flow.selfData.pitch}
-          onChange={(pitch) => flow.updateSelfData({ pitch })}
+          bio={flow.selfData.bio}
+          onChange={(bio) => flow.updateSelfData({ bio })}
           onSubmit={flow.submitSelfEntry}
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
