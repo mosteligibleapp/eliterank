@@ -5,6 +5,21 @@
  */
 
 /**
+ * Safely resolve city name from competition data.
+ * Handles both shapes: `city: "Austin"` (string) and `city: {name: "Austin"}` (join object).
+ */
+export function getCityName(competition) {
+  if (!competition) return '';
+  // cityData.name (entry flow shape)
+  if (competition.cityData?.name) return competition.cityData.name;
+  // city as join object: city:cities(name) → {name: "..."}
+  if (competition.city && typeof competition.city === 'object') return competition.city.name || '';
+  // city as plain string
+  if (typeof competition.city === 'string') return competition.city;
+  return '';
+}
+
+/**
  * Generate eligibility confirmation fields based on competition data
  * @param {Object} competition - Full competition object with joined category, demographic, city
  * @returns {Array<{id: string, getLabel: (isSelf: boolean) => string, required: boolean}>}
@@ -15,7 +30,7 @@ export function generateEligibilityFields(competition) {
 
   const demographic = competition.demographic;
   const category = competition.category;
-  const cityName = competition.cityData?.name || competition.city;
+  const cityName = getCityName(competition);
   const radius = competition.eligibility_radius_miles;
 
   // 1. Location eligibility
@@ -114,7 +129,7 @@ export function getCompetitionTitle(competition) {
   if (competition.name) return competition.name;
 
   // Construct from category + city
-  const cityName = competition.cityData?.name || competition.city || '';
+  const cityName = getCityName(competition);
   const categoryName = competition.category?.name || '';
 
   if (categoryName && cityName) {

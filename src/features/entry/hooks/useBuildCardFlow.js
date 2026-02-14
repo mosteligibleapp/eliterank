@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
+import { getCityName } from '../utils/eligibilityEngine';
 
 /**
  * useBuildCardFlow - Unified "Build Your Card" orchestrator
@@ -63,7 +64,7 @@ export function useBuildCardFlow({
     firstName: profile?.first_name || nameParts[0] || '',
     lastName: profile?.last_name || nameParts.slice(1).join(' ') || '',
     age: profile?.age || nominee?.age || '',
-    location: profile?.city || competition?.city?.name || competition?.cityData?.name || '',
+    location: profile?.city || getCityName(competition) || '',
     email: profile?.email || nominee?.email || '',
     phone: profile?.phone || nominee?.phone || '',
     instagram: profile?.instagram || nominee?.instagram || '',
