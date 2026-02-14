@@ -375,6 +375,8 @@ export function useBuildCardFlow({
             updated_at: new Date().toISOString(),
           })
           .eq('id', currentUser.id);
+
+        window.dispatchEvent(new Event('profile-updated'));
       }
 
       setSubmittedData({
@@ -483,6 +485,9 @@ export function useBuildCardFlow({
             updated_at: new Date().toISOString(),
           })
           .eq('id', userId);
+
+        // Notify all useSupabaseAuth instances to refetch the profile
+        window.dispatchEvent(new Event('profile-updated'));
       }
 
       next();

@@ -114,6 +114,18 @@ export default function useSupabaseAuth() {
     };
   }, [loadProfile]);
 
+  // Listen for external profile updates (e.g. entry flow writing profile after account creation).
+  // Multiple components call useSupabaseAuth() independently — this event keeps them all in sync.
+  useEffect(() => {
+    const handler = () => {
+      if (mountedRef.current && user) {
+        loadProfile(user.id);
+      }
+    };
+    window.addEventListener('profile-updated', handler);
+    return () => window.removeEventListener('profile-updated', handler);
+  }, [user, loadProfile]);
+
   // Sign in
   const signIn = useCallback(async (email, password) => {
     if (!supabase) return { user: null, error: 'Supabase not configured' };
