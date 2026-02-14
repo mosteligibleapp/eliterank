@@ -3,6 +3,19 @@ import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
 import { getCityName } from '../utils/eligibilityEngine';
 
+// Columns added by 20260213 migration — strip if migration hasn't run yet
+const NEW_COLUMNS = ['city', 'flow_stage'];
+
+function stripNewColumns(record) {
+  const clean = { ...record };
+  NEW_COLUMNS.forEach((col) => delete clean[col]);
+  return clean;
+}
+
+function isSchemaError(error) {
+  return error?.message?.includes('schema cache') || error?.code === 'PGRST204';
+}
+
 /**
  * useBuildCardFlow - Unified "Build Your Card" orchestrator
  *
@@ -183,11 +196,17 @@ export function useBuildCardFlow({
 
       if (nomineeId) {
         // Update existing nominee record
-        const { error } = await supabase
+        let { error } = await supabase
           .from('nominees')
           .update(record)
           .eq('id', nomineeId);
 
+        if (error && isSchemaError(error)) {
+          ({ error } = await supabase
+            .from('nominees')
+            .update(stripNewColumns(record))
+            .eq('id', nomineeId));
+        }
         if (error) throw error;
       } else {
         // Insert new nominee record (self-entry early persist)
@@ -197,11 +216,19 @@ export function useBuildCardFlow({
         record.eligibility_answers = eligibilityAnswers;
         record.claimed_at = new Date().toISOString();
 
-        const { data: inserted, error } = await supabase
+        let { data: inserted, error } = await supabase
           .from('nominees')
           .insert(record)
           .select('id')
           .single();
+
+        if (error && isSchemaError(error)) {
+          ({ data: inserted, error } = await supabase
+            .from('nominees')
+            .insert(stripNewColumns(record))
+            .select('id')
+            .single());
+        }
 
         if (error) {
           if (error.code === '23505') {
@@ -254,10 +281,16 @@ export function useBuildCardFlow({
 
       if (nomineeId) {
         // Update existing
-        const { error } = await supabase
+        let { error } = await supabase
           .from('nominees')
           .update(record)
           .eq('id', nomineeId);
+        if (error && isSchemaError(error)) {
+          ({ error } = await supabase
+            .from('nominees')
+            .update(stripNewColumns(record))
+            .eq('id', nomineeId));
+        }
         if (error) throw error;
       } else {
         // Insert new (self-entry that skipped early persist)
@@ -267,11 +300,19 @@ export function useBuildCardFlow({
         record.eligibility_answers = eligibilityAnswers;
         record.claimed_at = new Date().toISOString();
 
-        const { data: inserted, error } = await supabase
+        let { data: inserted, error } = await supabase
           .from('nominees')
           .insert(record)
           .select('id')
           .single();
+
+        if (error && isSchemaError(error)) {
+          ({ data: inserted, error } = await supabase
+            .from('nominees')
+            .insert(stripNewColumns(record))
+            .select('id')
+            .single());
+        }
 
         if (error) {
           if (error.code === '23505') {
@@ -362,10 +403,7 @@ export function useBuildCardFlow({
             if (signInData.user?.id && nomineeId) {
               await supabase
                 .from('nominees')
-                .update({
-                  user_id: signInData.user.id,
-                  flow_stage: 'password',
-                })
+                .update({ user_id: signInData.user.id })
                 .eq('id', nomineeId);
             }
 
@@ -382,21 +420,10 @@ export function useBuildCardFlow({
           if (data.user.id && nomineeId) {
             await supabase
               .from('nominees')
-              .update({
-                user_id: data.user.id,
-                flow_stage: 'password',
-              })
+              .update({ user_id: data.user.id })
               .eq('id', nomineeId);
           }
         }
-      }
-
-      // Update flow stage
-      if (nomineeId) {
-        await supabase
-          .from('nominees')
-          .update({ flow_stage: 'password' })
-          .eq('id', nomineeId);
       }
 
       next();

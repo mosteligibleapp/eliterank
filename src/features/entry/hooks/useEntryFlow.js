@@ -2,6 +2,19 @@ import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
 
+// Columns added by 20260213 migration — strip if migration hasn't run yet
+const NEW_COLUMNS = ['city', 'flow_stage'];
+
+function stripNewColumns(record) {
+  const clean = { ...record };
+  NEW_COLUMNS.forEach((col) => delete clean[col]);
+  return clean;
+}
+
+function isSchemaError(error) {
+  return error?.message?.includes('schema cache') || error?.code === 'PGRST204';
+}
+
 const SELF_STEPS_AUTH = ['mode', 'eligibility', 'photo', 'details', 'pitch', 'card'];
 const SELF_STEPS_ANON = ['mode', 'eligibility', 'photo', 'details', 'pitch', 'password', 'card'];
 const NOMINATE_STEPS = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'card'];
@@ -164,27 +177,42 @@ export function useEntryFlow(competition, profile) {
 
       if (nomineeId) {
         // Update existing early-persisted record
-        const { error } = await supabase
+        const updateData = {
+          name: record.name,
+          email: record.email,
+          phone: record.phone,
+          instagram: record.instagram,
+          age: record.age,
+          city: record.city,
+          avatar_url: record.avatar_url,
+          flow_stage: flowStage,
+        };
+        let { error } = await supabase
           .from('nominees')
-          .update({
-            name: record.name,
-            email: record.email,
-            phone: record.phone,
-            instagram: record.instagram,
-            age: record.age,
-            city: record.city,
-            avatar_url: record.avatar_url,
-            flow_stage: flowStage,
-          })
+          .update(updateData)
           .eq('id', nomineeId);
+        if (error && isSchemaError(error)) {
+          ({ error } = await supabase
+            .from('nominees')
+            .update(stripNewColumns(updateData))
+            .eq('id', nomineeId));
+        }
         if (error) throw error;
       } else {
         // Insert new
-        const { data: inserted, error } = await supabase
+        let { data: inserted, error } = await supabase
           .from('nominees')
           .insert(record)
           .select('id')
           .single();
+
+        if (error && isSchemaError(error)) {
+          ({ data: inserted, error } = await supabase
+            .from('nominees')
+            .insert(stripNewColumns(record))
+            .select('id')
+            .single());
+        }
 
         if (error) {
           if (error.code === '23505') {
@@ -237,11 +265,17 @@ export function useEntryFlow(competition, profile) {
 
       if (nomineeId) {
         // Update the early-persisted record with final data
-        const { error } = await supabase
+        let { error } = await supabase
           .from('nominees')
           .update(record)
           .eq('id', nomineeId);
 
+        if (error && isSchemaError(error)) {
+          ({ error } = await supabase
+            .from('nominees')
+            .update(stripNewColumns(record))
+            .eq('id', nomineeId));
+        }
         if (error) throw error;
       } else {
         // No early persist happened — insert full record
@@ -251,11 +285,19 @@ export function useEntryFlow(competition, profile) {
         record.eligibility_answers = eligibilityAnswers;
         record.claimed_at = new Date().toISOString();
 
-        const { data: inserted, error } = await supabase
+        let { data: inserted, error } = await supabase
           .from('nominees')
           .insert(record)
           .select('id')
           .single();
+
+        if (error && isSchemaError(error)) {
+          ({ data: inserted, error } = await supabase
+            .from('nominees')
+            .insert(stripNewColumns(record))
+            .select('id')
+            .single());
+        }
 
         if (error) {
           if (error.code === '23505') {
@@ -342,7 +384,7 @@ export function useEntryFlow(competition, profile) {
           if (signInData.user?.id && nomineeId) {
             await supabase
               .from('nominees')
-              .update({ user_id: signInData.user.id, flow_stage: 'password' })
+              .update({ user_id: signInData.user.id })
               .eq('id', nomineeId);
           }
         } else {
@@ -354,7 +396,7 @@ export function useEntryFlow(competition, profile) {
         if (data.user.id && nomineeId) {
           await supabase
             .from('nominees')
-            .update({ user_id: data.user.id, flow_stage: 'password' })
+            .update({ user_id: data.user.id })
             .eq('id', nomineeId);
         }
       }
