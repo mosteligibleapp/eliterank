@@ -126,7 +126,32 @@ export default function LoginPage({ onLogin, onBack }) {
         return;
       }
 
-      // New user without nomination - go to signup
+      // No profile and no unclaimed nomination — but the user may have already
+      // completed the self-nomination flow (which sets claimed_at) and created
+      // an auth account.  Check for ANY claimed nominee record for this email.
+      // If one exists, the user likely has an auth account and should be sent
+      // to the password step rather than the signup form.
+      const { data: claimedNominees } = await supabase
+        .from('nominees')
+        .select('id, name, nominated_by')
+        .ilike('email', email)
+        .not('claimed_at', 'is', null)
+        .limit(1);
+
+      if (claimedNominees && claimedNominees.length > 0) {
+        // Pre-fill name from nominee data
+        if (claimedNominees[0].name) {
+          const nameParts = claimedNominees[0].name.split(' ');
+          setFirstName(nameParts[0] || '');
+          setLastName(nameParts.slice(1).join(' ') || '');
+        }
+        setIsNominee(true);
+        setStep('password');
+        setIsLoading(false);
+        return;
+      }
+
+      // Truly new user without any nomination - go to signup
       setStep('signup');
     } catch (err) {
       console.error('Email check error:', err);

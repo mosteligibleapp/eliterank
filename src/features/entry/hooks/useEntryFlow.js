@@ -384,11 +384,21 @@ export function useEntryFlow(competition, profile) {
 
       const fullName = `${selfData.firstName} ${selfData.lastName}`.trim();
 
+      // Track the resolved user id in a local variable so it's available
+      // immediately (React state via setCurrentUser is async).
+      let resolvedUserId = null;
+
+      // Pass first_name / last_name separately so the handle_new_user DB
+      // trigger can populate the profile row even if the subsequent UPDATE
+      // is blocked by RLS (e.g. when email confirmation is enabled and no
+      // session exists yet).
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
+            first_name: selfData.firstName.trim(),
+            last_name: selfData.lastName.trim(),
             full_name: fullName,
             nominee_id: nomineeId,
           },
@@ -406,32 +416,39 @@ export function useEntryFlow(competition, profile) {
               'An account with this email already exists. Please use your existing password.'
             );
           }
+          resolvedUserId = signInData.user?.id;
           setCurrentUser(signInData.user);
 
-          if (signInData.user?.id && nomineeId) {
+          if (resolvedUserId && nomineeId) {
             await supabase
               .from('nominees')
-              .update({ user_id: signInData.user.id })
+              .update({ user_id: resolvedUserId })
               .eq('id', nomineeId);
           }
         } else {
           throw signUpError;
         }
       } else if (data?.user) {
+        resolvedUserId = data.user.id;
         setCurrentUser(data.user);
 
-        if (data.user.id && nomineeId) {
+        if (resolvedUserId && nomineeId) {
           await supabase
             .from('nominees')
-            .update({ user_id: data.user.id })
+            .update({ user_id: resolvedUserId })
             .eq('id', nomineeId);
         }
       }
 
       // Populate the profile with all card data now that the account exists.
       // submitSelfEntry skipped this because profile?.id was null at that point.
-      const userId = data?.user?.id || currentUser?.id;
-      if (userId) {
+      //
+      // Note: if email confirmation is enabled the signUp call won't create a
+      // session, so this UPDATE may be blocked by RLS.  That's now OK because
+      // the trigger already received first_name/last_name via user metadata.
+      // We still attempt the update in case a session DOES exist (auto-confirm
+      // or the "already registered" sign-in path).
+      if (resolvedUserId) {
         const avatarUrl = (selfData.photoPreview && !selfData.photoPreview.startsWith('blob:'))
           ? selfData.photoPreview : undefined;
         await supabase
@@ -447,7 +464,7 @@ export function useEntryFlow(competition, profile) {
             phone: selfData.phone?.trim() || undefined,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', userId);
+          .eq('id', resolvedUserId);
 
         // Notify all useSupabaseAuth instances to refetch the profile
         window.dispatchEvent(new Event('profile-updated'));
@@ -460,7 +477,7 @@ export function useEntryFlow(competition, profile) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selfData, nomineeId, steps, currentUser]);
+  }, [selfData, nomineeId, steps]);
 
   // ---- Skip password — send magic link so they can claim their account later ----
   const skipPassword = useCallback(() => {
