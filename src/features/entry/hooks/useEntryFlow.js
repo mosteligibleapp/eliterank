@@ -251,7 +251,11 @@ export function useEntryFlow(competition, profile) {
         record.eligibility_answers = eligibilityAnswers;
         record.claimed_at = new Date().toISOString();
 
-        const { error } = await supabase.from('nominees').insert(record);
+        const { data: inserted, error } = await supabase
+          .from('nominees')
+          .insert(record)
+          .select('id')
+          .single();
 
         if (error) {
           if (error.code === '23505') {
@@ -259,6 +263,7 @@ export function useEntryFlow(competition, profile) {
           }
           throw error;
         }
+        if (inserted?.id) setNomineeId(inserted.id);
       }
 
       // Update profile if logged in
@@ -363,10 +368,17 @@ export function useEntryFlow(competition, profile) {
     }
   }, [selfData, nomineeId, steps]);
 
-  // ---- Skip password ----
+  // ---- Skip password — send magic link so they can claim their account later ----
   const skipPassword = useCallback(() => {
+    if (nomineeId) {
+      supabase.functions.invoke('send-nomination-invite', {
+        body: { nominee_id: nomineeId, force_resend: true },
+      }).catch((err) => {
+        console.warn('Failed to send account setup email:', err);
+      });
+    }
     setCurrentStepIndex(steps.indexOf('card'));
-  }, [steps]);
+  }, [steps, nomineeId]);
 
   // Submit nomination (unchanged — this is the nominator's flow, not the nominee's)
   const submitNomination = useCallback(async () => {

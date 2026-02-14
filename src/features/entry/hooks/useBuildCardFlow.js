@@ -407,10 +407,17 @@ export function useBuildCardFlow({
     }
   }, [currentUser, cardData, nomineeId, next]);
 
-  // ---- Skip password ----
+  // ---- Skip password — send magic link so they can claim their account later ----
   const skipPassword = useCallback(() => {
+    if (nomineeId) {
+      supabase.functions.invoke('send-nomination-invite', {
+        body: { nominee_id: nomineeId, force_resend: true },
+      }).catch((err) => {
+        console.warn('Failed to send account setup email:', err);
+      });
+    }
     next();
-  }, [next]);
+  }, [next, nomineeId]);
 
   // ---- Account collision: check if email exists ----
   const checkEmailExists = useCallback(async (email) => {
