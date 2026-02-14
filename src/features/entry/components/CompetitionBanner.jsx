@@ -1,6 +1,6 @@
 import React from 'react';
 import { Crown } from 'lucide-react';
-import { getCompetitionTitle } from '../utils/eligibilityEngine';
+import { getCompetitionTitle, getCityName } from '../utils/eligibilityEngine';
 
 /**
  * Competition banner shown at the top of the entry flow
@@ -8,7 +8,7 @@ import { getCompetitionTitle } from '../utils/eligibilityEngine';
  */
 export default function CompetitionBanner({ competition }) {
   const title = getCompetitionTitle(competition);
-  const cityName = competition?.cityData?.name || competition?.city || '';
+  const cityName = getCityName(competition);
   const season = competition?.season;
   const accentColor = competition?.theme_primary || '#d4af37';
 

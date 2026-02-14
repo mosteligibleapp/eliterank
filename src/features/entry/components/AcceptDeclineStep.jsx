@@ -1,5 +1,6 @@
 import React from 'react';
 import { Crown, User, MapPin, Calendar, Clock, Check, X } from 'lucide-react';
+import { getCityName } from '../utils/eligibilityEngine';
 
 /**
  * AcceptDeclineStep - Third-party nominees only
@@ -17,7 +18,7 @@ export default function AcceptDeclineStep({
     ? 'Someone special'
     : (nominee?.nominator_name || 'Someone');
 
-  const cityName = competition?.city?.name || '';
+  const cityName = getCityName(competition);
   const season = competition?.season || '';
 
   return (
