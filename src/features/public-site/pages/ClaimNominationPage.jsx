@@ -339,6 +339,7 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
           onChange={flow.updateCardData}
           onNext={handleDetailsNext}
           error={flow.submitError}
+          isSubmitting={flow.isSubmitting}
         />
       );
 

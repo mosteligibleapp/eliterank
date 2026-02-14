@@ -171,6 +171,7 @@ function renderModalStep(flow, competition, nomination, handleDecline, handleIne
           onChange={flow.updateCardData}
           onNext={handleDetailsNext}
           error={flow.submitError}
+          isSubmitting={flow.isSubmitting}
         />
       );
 

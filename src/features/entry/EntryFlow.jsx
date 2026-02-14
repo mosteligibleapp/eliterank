@@ -208,6 +208,7 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           onChange={flow.updateSelfData}
           onNext={handleDetailsNext}
           error={flow.submitError}
+          isSubmitting={flow.isSubmitting}
         />
       );
 

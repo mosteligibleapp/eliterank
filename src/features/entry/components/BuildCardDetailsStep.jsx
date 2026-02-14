@@ -11,6 +11,7 @@ export default function BuildCardDetailsStep({
   onChange,
   onNext,
   error,
+  isSubmitting,
 }) {
   const handleChange = (field) => (e) => {
     onChange({ [field]: e.target.value });
@@ -147,9 +148,9 @@ export default function BuildCardDetailsStep({
       <button
         type="submit"
         className="entry-btn-primary"
-        disabled={!isValid}
+        disabled={!isValid || isSubmitting}
       >
-        Continue
+        {isSubmitting ? 'Saving...' : 'Continue'}
       </button>
     </form>
   );
