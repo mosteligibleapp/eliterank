@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
 import { getCityName } from '../utils/eligibilityEngine';
@@ -77,7 +77,7 @@ export function useBuildCardFlow({
     firstName: profile?.first_name || nameParts[0] || '',
     lastName: profile?.last_name || nameParts.slice(1).join(' ') || '',
     age: profile?.age || nominee?.age || '',
-    location: profile?.city || getCityName(competition) || '',
+    location: profile?.city || nominee?.city || getCityName(competition) || '',
     email: profile?.email || nominee?.email || '',
     phone: profile?.phone || nominee?.phone || '',
     instagram: profile?.instagram || nominee?.instagram || '',
@@ -85,6 +85,31 @@ export function useBuildCardFlow({
     photoPreview: profile?.avatar_url || nominee?.avatar_url || '',
     pitch: '',
   });
+
+  // Sync nominee data when the async fetch completes (nominee goes from null → data).
+  // useState initial values are captured once; this effect fills empty fields when nominee loads.
+  useEffect(() => {
+    if (!nominee) return;
+
+    if (nominee.id && !nomineeId) {
+      setNomineeId(nominee.id);
+    }
+
+    setCardData((prev) => {
+      const parts = nominee.name?.split(' ') || [];
+      return {
+        ...prev,
+        firstName: prev.firstName || parts[0] || '',
+        lastName: prev.lastName || parts.slice(1).join(' ') || '',
+        age: prev.age || nominee.age || '',
+        location: prev.location || nominee.city || '',
+        email: prev.email || nominee.email || '',
+        phone: prev.phone || nominee.phone || '',
+        instagram: prev.instagram || nominee.instagram || '',
+        photoPreview: prev.photoPreview || nominee.avatar_url || '',
+      };
+    });
+  }, [nominee]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentStep = steps[currentStepIndex] || steps[0];
   const totalSteps = steps.length;
