@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Users, Clock } from 'lucide-react';
+import { Users, Clock, Crown } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
@@ -86,18 +86,25 @@ export function NominationsPhase() {
       {/* Stats Row */}
       <section className="phase-stats">
         <div className="stat-card stat-card-urgent">
-          <Clock size={20} className="stat-icon" />
+          <div className="stat-icon-wrap">
+            <Clock size={20} className="stat-icon" />
+          </div>
           <CountdownDisplay label="" />
           <span className="stat-label">Nominations Close</span>
         </div>
         <div className="stat-card stat-card-highlight">
+          <div className="stat-icon-wrap">
+            <Crown size={20} className="stat-icon" />
+          </div>
           <span className="stat-value">{competition?.number_of_winners || 5}</span>
           <span className="stat-label">Winners</span>
           <span className="stat-sublabel">Season {competition?.season || new Date().getFullYear()}</span>
         </div>
         <div className="stat-card">
-          <Users size={20} className="stat-icon" />
-          <span className="stat-value">{competition?.total_contestants || 0}+</span>
+          <div className="stat-icon-wrap">
+            <Users size={20} className="stat-icon" />
+          </div>
+          <span className="stat-value">200+</span>
           <span className="stat-label">Entries</span>
         </div>
       </section>
