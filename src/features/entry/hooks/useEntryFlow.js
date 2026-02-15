@@ -15,8 +15,8 @@ function isSchemaError(error) {
   return error?.message?.includes('schema cache') || error?.code === 'PGRST204';
 }
 
-const SELF_STEPS_AUTH = ['mode', 'eligibility', 'photo', 'details', 'pitch', 'card'];
-const SELF_STEPS_ANON = ['mode', 'eligibility', 'photo', 'details', 'pitch', 'password', 'card'];
+const SELF_STEPS_AUTH = ['mode', 'eligibility', 'photo', 'details', 'bio', 'card'];
+const SELF_STEPS_ANON = ['mode', 'eligibility', 'photo', 'details', 'bio', 'password', 'card'];
 const NOMINATE_STEPS = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'card'];
 
 /**
@@ -57,7 +57,7 @@ export function useEntryFlow(competition, profile) {
     location: profile?.city || '',
     photoFile: null,
     photoPreview: profile?.avatar_url || '',
-    pitch: '',
+    bio: '',
   });
 
   // Nomination data
@@ -190,12 +190,12 @@ export function useEntryFlow(competition, profile) {
         nominated_by: 'self',
         status: 'pending',
         eligibility_answers: eligibilityAnswers,
-        claimed_at: new Date().toISOString(),
         flow_stage: flowStage,
       };
 
       if (profile?.id) {
         record.user_id = profile.id;
+        // Logged-in users are already authenticated — claimed_at set at submitSelfEntry
       }
 
       if (nomineeId) {
@@ -277,7 +277,7 @@ export function useEntryFlow(competition, profile) {
         email: selfData.email.trim(),
         phone: selfData.phone.trim() || null,
         instagram: selfData.instagram.trim() || null,
-        bio: selfData.pitch.trim() || null,
+        bio: selfData.bio.trim() || null,
         avatar_url: avatarUrl || null,
         age: selfData.age ? parseInt(selfData.age, 10) : null,
         city: selfData.location?.trim() || null,
@@ -286,6 +286,8 @@ export function useEntryFlow(competition, profile) {
 
       if (profile?.id) {
         record.user_id = profile.id;
+        // Logged-in users don't have a password step — mark claimed now
+        record.claimed_at = new Date().toISOString();
       }
 
       if (nomineeId) {
@@ -308,7 +310,7 @@ export function useEntryFlow(competition, profile) {
         record.nominated_by = 'self';
         record.status = 'pending';
         record.eligibility_answers = eligibilityAnswers;
-        record.claimed_at = new Date().toISOString();
+        // claimed_at: already set above for logged-in; anon users get it at createAccount
 
         let { data: inserted, error } = await supabase
           .from('nominees')
@@ -341,7 +343,7 @@ export function useEntryFlow(competition, profile) {
             first_name: selfData.firstName.trim(),
             last_name: selfData.lastName.trim(),
             avatar_url: avatarUrl || undefined,
-            bio: selfData.pitch?.trim() || undefined,
+            bio: selfData.bio?.trim() || undefined,
             city: selfData.location?.trim() || undefined,
             age: selfData.age ? parseInt(selfData.age, 10) : undefined,
             instagram: selfData.instagram?.trim() || undefined,
@@ -356,7 +358,7 @@ export function useEntryFlow(competition, profile) {
         name: fullName,
         photoUrl: avatarUrl,
         handle: selfData.instagram,
-        pitch: selfData.pitch,
+        bio: selfData.bio,
         isNomination: false,
       });
 
@@ -422,7 +424,7 @@ export function useEntryFlow(competition, profile) {
           if (resolvedUserId && nomineeId) {
             await supabase
               .from('nominees')
-              .update({ user_id: resolvedUserId })
+              .update({ user_id: resolvedUserId, claimed_at: new Date().toISOString() })
               .eq('id', nomineeId);
           }
         } else {
@@ -435,7 +437,7 @@ export function useEntryFlow(competition, profile) {
         if (resolvedUserId && nomineeId) {
           await supabase
             .from('nominees')
-            .update({ user_id: resolvedUserId })
+            .update({ user_id: resolvedUserId, claimed_at: new Date().toISOString() })
             .eq('id', nomineeId);
         }
       }
@@ -457,7 +459,7 @@ export function useEntryFlow(competition, profile) {
             first_name: selfData.firstName.trim(),
             last_name: selfData.lastName.trim(),
             avatar_url: avatarUrl,
-            bio: selfData.pitch?.trim() || undefined,
+            bio: selfData.bio?.trim() || undefined,
             city: selfData.location?.trim() || undefined,
             age: selfData.age ? parseInt(selfData.age, 10) : undefined,
             instagram: selfData.instagram?.trim() || undefined,

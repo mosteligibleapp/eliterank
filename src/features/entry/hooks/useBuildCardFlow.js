@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
 import { getCityName } from '../utils/eligibilityEngine';
@@ -20,9 +20,9 @@ function isSchemaError(error) {
  * useBuildCardFlow - Unified "Build Your Card" orchestrator
  *
  * Three entry scenarios:
- * - 'self-auth':   Logged-in self-nominee  → eligibility, photo, details, pitch, card
- * - 'self-anon':   Not-logged-in self-nom  → eligibility, photo, details, pitch, password, card
- * - 'third-party': Third-party nominee     → accept, eligibility-confirm, photo, details, pitch, password?, card
+ * - 'self-auth':   Logged-in self-nominee  → eligibility, photo, details, bio, card
+ * - 'self-anon':   Not-logged-in self-nom  → eligibility, photo, details, bio, password, card
+ * - 'third-party': Third-party nominee     → accept, eligibility-confirm, photo, details, bio, password?, card
  *
  * @param {Object} options
  * @param {'self-auth'|'self-anon'|'third-party'} options.mode
@@ -44,17 +44,17 @@ export function useBuildCardFlow({
   const steps = useMemo(() => {
     switch (mode) {
       case 'self-auth':
-        return ['eligibility', 'photo', 'details', 'pitch', 'card'];
+        return ['eligibility', 'photo', 'details', 'bio', 'card'];
       case 'self-anon':
-        return ['eligibility', 'photo', 'details', 'pitch', 'password', 'card'];
+        return ['eligibility', 'photo', 'details', 'bio', 'password', 'card'];
       case 'third-party': {
-        const base = ['accept', 'eligibility-confirm', 'photo', 'details', 'pitch'];
+        const base = ['accept', 'eligibility-confirm', 'photo', 'details', 'bio'];
         if (needsPassword) base.push('password');
         base.push('card');
         return base;
       }
       default:
-        return ['photo', 'details', 'pitch', 'card'];
+        return ['photo', 'details', 'bio', 'card'];
     }
   }, [mode, needsPassword]);
 
@@ -83,7 +83,7 @@ export function useBuildCardFlow({
     instagram: profile?.instagram || nominee?.instagram || '',
     photoFile: null,
     photoPreview: profile?.avatar_url || nominee?.avatar_url || '',
-    pitch: '',
+    bio: profile?.bio || nominee?.bio || '',
   });
 
   // Sync nominee data when the async fetch completes (nominee goes from null → data).
@@ -107,9 +107,29 @@ export function useBuildCardFlow({
         phone: prev.phone || nominee.phone || '',
         instagram: prev.instagram || nominee.instagram || '',
         photoPreview: prev.photoPreview || nominee.avatar_url || '',
+        bio: prev.bio || nominee.bio || '',
       };
     });
   }, [nominee]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Resume: skip to the step after the last persisted flow_stage so returning
+  // users don't redo completed steps.  Runs once when nominee first loads.
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current || !nominee?.flow_stage || mode !== 'third-party') return;
+    resumedRef.current = true;
+
+    const stageToResumeStep = {
+      accepted: 'eligibility-confirm',
+      details: 'bio',
+      card: needsPassword ? 'password' : 'card',
+    };
+    const resumeStep = stageToResumeStep[nominee.flow_stage];
+    if (resumeStep) {
+      const idx = steps.indexOf(resumeStep);
+      if (idx > 0) setCurrentStepIndex(idx);
+    }
+  }, [nominee, steps, mode, needsPassword]);
 
   const currentStep = steps[currentStepIndex] || steps[0];
   const totalSteps = steps.length;
@@ -144,17 +164,23 @@ export function useBuildCardFlow({
 
     try {
       const updateData = {
-        claimed_at: new Date().toISOString(),
+        flow_stage: 'accepted',
       };
       if (currentUser?.id) {
         updateData.user_id = currentUser.id;
       }
 
-      const { error } = await supabase
+      let { error } = await supabase
         .from('nominees')
         .update(updateData)
         .eq('id', nominee.id);
 
+      if (error && isSchemaError(error)) {
+        ({ error } = await supabase
+          .from('nominees')
+          .update(stripNewColumns(updateData))
+          .eq('id', nominee.id));
+      }
       if (error) throw error;
       next();
     } catch (err) {
@@ -249,7 +275,10 @@ export function useBuildCardFlow({
         record.nominated_by = 'self';
         record.status = 'pending';
         record.eligibility_answers = eligibilityAnswers;
-        record.claimed_at = new Date().toISOString();
+        // claimed_at set later: at submitCard for logged-in users, at createAccount for anon
+        if (currentUser?.id) {
+          record.claimed_at = new Date().toISOString();
+        }
 
         let { data: inserted, error } = await supabase
           .from('nominees')
@@ -308,12 +337,16 @@ export function useBuildCardFlow({
         age: cardData.age ? parseInt(cardData.age, 10) : null,
         avatar_url: avatarUrl || null,
         city: cardData.location?.trim() || null,
-        bio: cardData.pitch?.trim() || null,
+        bio: cardData.bio?.trim() || null,
         flow_stage: 'card',
       };
 
       if (currentUser?.id) {
         record.user_id = currentUser.id;
+        // If no password step follows, this is the final step — mark claimed
+        if (!steps.includes('password') || steps.indexOf('password') < steps.indexOf('bio')) {
+          record.claimed_at = new Date().toISOString();
+        }
       }
 
       if (nomineeId) {
@@ -335,7 +368,10 @@ export function useBuildCardFlow({
         record.nominated_by = 'self';
         record.status = 'pending';
         record.eligibility_answers = eligibilityAnswers;
-        record.claimed_at = new Date().toISOString();
+        // Self-auth users (logged in, no password step) are done here
+        if (currentUser?.id) {
+          record.claimed_at = new Date().toISOString();
+        }
 
         let { data: inserted, error } = await supabase
           .from('nominees')
@@ -368,7 +404,7 @@ export function useBuildCardFlow({
             first_name: cardData.firstName.trim(),
             last_name: cardData.lastName.trim(),
             avatar_url: avatarUrl || undefined,
-            bio: cardData.pitch?.trim() || undefined,
+            bio: cardData.bio?.trim() || undefined,
             city: cardData.location?.trim() || undefined,
             age: cardData.age ? parseInt(cardData.age, 10) : undefined,
             instagram: cardData.instagram?.trim() || undefined,
@@ -383,12 +419,12 @@ export function useBuildCardFlow({
         name: fullName,
         photoUrl: avatarUrl,
         handle: cardData.instagram,
-        pitch: cardData.pitch,
+        bio: cardData.bio,
         isNomination: false,
       });
 
       // Advance to the next step. For third-party flows with needsPassword,
-      // the next step after 'pitch' is 'password' — jumping directly to
+      // the next step after 'bio' is 'password' — jumping directly to
       // 'card' would skip it.  Using next() respects the step order.
       next();
     } catch (err) {
@@ -443,11 +479,11 @@ export function useBuildCardFlow({
             setCurrentUser(signInData.user);
             userId = signInData.user?.id;
 
-            // Link user to nominee
+            // Link user to nominee and mark claimed
             if (userId && nomineeId) {
               await supabase
                 .from('nominees')
-                .update({ user_id: userId })
+                .update({ user_id: userId, claimed_at: new Date().toISOString() })
                 .eq('id', nomineeId);
             }
           } else {
@@ -457,11 +493,11 @@ export function useBuildCardFlow({
           setCurrentUser(data.user);
           userId = data.user.id;
 
-          // Link user to nominee
+          // Link user to nominee and mark claimed
           if (userId && nomineeId) {
             await supabase
               .from('nominees')
-              .update({ user_id: userId })
+              .update({ user_id: userId, claimed_at: new Date().toISOString() })
               .eq('id', nomineeId);
           }
         }
@@ -479,7 +515,7 @@ export function useBuildCardFlow({
             first_name: cardData.firstName.trim(),
             last_name: cardData.lastName.trim(),
             avatar_url: avatarUrl,
-            bio: cardData.pitch?.trim() || undefined,
+            bio: cardData.bio?.trim() || undefined,
             city: cardData.location?.trim() || undefined,
             age: cardData.age ? parseInt(cardData.age, 10) : undefined,
             instagram: cardData.instagram?.trim() || undefined,

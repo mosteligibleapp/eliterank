@@ -352,11 +352,11 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
         />
       );
 
-    case 'pitch':
+    case 'bio':
       return (
         <SelfPitchStep
-          pitch={flow.cardData.pitch}
-          onChange={(pitch) => flow.updateCardData({ pitch })}
+          bio={flow.cardData.bio}
+          onChange={(bio) => flow.updateCardData({ bio })}
           onSubmit={flow.submitCard}
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
@@ -369,7 +369,6 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
         <CreatePasswordStep
           email={flow.cardData.email}
           onSubmit={flow.createAccount}
-          onSkip={flow.skipPassword}
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
           isSettingPassword={!!user}

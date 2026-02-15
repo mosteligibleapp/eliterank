@@ -356,15 +356,15 @@ function PendingNominationsModal({ nominations, onSelect, onClose }) {
                 </div>
                 <div
                   style={{
-                    background: nom.claimed_at ? 'rgba(74, 222, 128, 0.2)' : 'rgba(212, 175, 55, 0.2)',
-                    color: nom.claimed_at ? '#4ade80' : '#d4af37',
+                    background: nom.flow_stage ? 'rgba(74, 222, 128, 0.2)' : 'rgba(212, 175, 55, 0.2)',
+                    color: nom.flow_stage ? '#4ade80' : '#d4af37',
                     fontSize: '0.75rem',
                     padding: '4px 8px',
                     borderRadius: '4px',
                     fontWeight: '500',
                   }}
                 >
-                  {nom.claimed_at ? 'Complete Profile' : 'Accept/Decline'}
+                  {nom.flow_stage ? 'Continue' : 'Accept/Decline'}
                 </div>
               </div>
             </button>
@@ -648,6 +648,7 @@ export default function App() {
           email,
           invite_token,
           claimed_at,
+          flow_stage,
           status,
           user_id,
           nominator_name,

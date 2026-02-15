@@ -212,11 +212,11 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
         />
       );
 
-    case 'pitch':
+    case 'bio':
       return (
         <SelfPitchStep
-          pitch={flow.selfData.pitch}
-          onChange={(pitch) => flow.updateSelfData({ pitch })}
+          bio={flow.selfData.bio}
+          onChange={(bio) => flow.updateSelfData({ bio })}
           onSubmit={flow.submitSelfEntry}
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
@@ -229,7 +229,6 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
         <CreatePasswordStep
           email={flow.selfData.email}
           onSubmit={flow.createAccount}
-          onSkip={flow.skipPassword}
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
           isSettingPassword={false}
