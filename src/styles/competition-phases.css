@@ -1055,7 +1055,7 @@
 
 .hall-of-winners-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: var(--spacing-md);
 }
 
@@ -1126,6 +1126,31 @@
   color: var(--color-text-primary);
   margin: 0;
   line-height: 1.3;
+}
+
+.hall-of-winners-intro-card {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
+  justify-content: center;
+}
+
+.hall-of-winners-intro-icon {
+  color: var(--color-primary);
+}
+
+.hall-of-winners-intro-number {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.hall-of-winners-intro-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* Countdown */

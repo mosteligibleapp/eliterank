@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Users, Clock, Crown } from 'lucide-react';
+import { Users, Clock } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
@@ -91,14 +91,6 @@ export function NominationsPhase() {
           </div>
           <CountdownDisplay label="" />
           <span className="stat-label">Nominations Close</span>
-        </div>
-        <div className="stat-card stat-card-highlight">
-          <div className="stat-icon-wrap">
-            <Crown size={20} className="stat-icon" />
-          </div>
-          <span className="stat-value">{competition?.number_of_winners || 5}</span>
-          <span className="stat-label">Winners</span>
-          <span className="stat-sublabel">Season {competition?.season || new Date().getFullYear()}</span>
         </div>
         <div className="stat-card">
           <div className="stat-icon-wrap">
