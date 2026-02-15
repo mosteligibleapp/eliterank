@@ -9,6 +9,7 @@ import EligibilityConfirmStep from '../../features/entry/components/EligibilityC
 import PhotoUpload from '../../features/entry/components/PhotoUpload';
 import BuildCardDetailsStep from '../../features/entry/components/BuildCardDetailsStep';
 import SelfPitchStep from '../../features/entry/components/SelfPitchStep';
+import CreatePasswordStep from '../../features/entry/components/CreatePasswordStep';
 import CardReveal from '../../features/entry/components/CardReveal';
 import CompetitionBanner from '../../features/entry/components/CompetitionBanner';
 
@@ -18,7 +19,7 @@ import '../../features/entry/EntryFlow.css';
  * AcceptNominationModal - In-app Build Your Card flow for existing logged-in users
  *
  * Wraps the unified step components inside a modal.
- * No password step needed — user is already authenticated.
+ * Includes password step — magic-link users may not have a password yet.
  */
 export default function AcceptNominationModal({
   isOpen,
@@ -38,7 +39,7 @@ export default function AcceptNominationModal({
     profile,
     user,
     nominee: nomination,
-    needsPassword: false, // Already logged in
+    needsPassword: true, // Always include — magic-link users need to set a password
   });
 
   // Scroll to top on step change
@@ -120,14 +121,14 @@ export default function AcceptNominationModal({
         )}
 
         <div className="entry-content" key={flow.currentStep}>
-          {renderModalStep(flow, competition, nomination, handleDecline, handleIneligible, handleDetailsNext, handleDone)}
+          {renderModalStep(flow, competition, nomination, handleDecline, handleIneligible, handleDetailsNext, handleDone, user)}
         </div>
       </div>
     </Modal>
   );
 }
 
-function renderModalStep(flow, competition, nomination, handleDecline, handleIneligible, handleDetailsNext, handleDone) {
+function renderModalStep(flow, competition, nomination, handleDecline, handleIneligible, handleDetailsNext, handleDone, user) {
   switch (flow.currentStep) {
     case 'accept':
       return (
@@ -184,6 +185,17 @@ function renderModalStep(flow, competition, nomination, handleDecline, handleIne
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
           competition={competition}
+        />
+      );
+
+    case 'password':
+      return (
+        <CreatePasswordStep
+          email={flow.cardData.email}
+          onSubmit={flow.createAccount}
+          isSubmitting={flow.isSubmitting}
+          error={flow.submitError}
+          isSettingPassword={!!user}
         />
       );
 
