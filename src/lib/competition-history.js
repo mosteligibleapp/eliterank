@@ -32,6 +32,7 @@ export async function getNominationsForUser(userId, userEmail) {
         )
       `)
       .neq('status', 'rejected')
+      .neq('status', 'declined')
       .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
       .order('created_at', { ascending: false });
 

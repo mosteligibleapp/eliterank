@@ -666,6 +666,7 @@ export default function App() {
         `)
         .eq('email', userEmail)
         .neq('status', 'rejected')
+        .neq('status', 'declined')
         .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
         .is('claimed_at', null);
 

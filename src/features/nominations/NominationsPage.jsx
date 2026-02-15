@@ -81,8 +81,8 @@ export default function NominationsPage({ competitionId, competitionName }) {
     // External nominees (no user_id)
     const external = activeNominees.filter(n => !n.hasProfile);
 
-    // Archived nominees
-    const archived = nominees.filter(n => n.status === 'archived');
+    // Archived + declined nominees
+    const archived = nominees.filter(n => n.status === 'archived' || n.status === 'declined');
 
     return {
       contestants,
@@ -307,6 +307,12 @@ export default function NominationsPage({ competitionId, competitionName }) {
                                 size="sm"
                               >
                                 {item.nominatedBy === 'self' ? 'Self-nominated' : 'Third-party'}
+                              </Badge>
+                            )}
+                            {/* Declined badge */}
+                            {item.status === 'declined' && (
+                              <Badge variant="error" size="sm">
+                                Declined
                               </Badge>
                             )}
                             {/* Profile linked badge */}

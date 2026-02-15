@@ -204,7 +204,7 @@ export function useBuildCardFlow({
     setSubmitError('');
 
     try {
-      const updateData = { status: 'rejected' };
+      const updateData = { status: 'declined' };
       if (currentUser?.id) {
         updateData.user_id = currentUser.id;
       }
