@@ -96,6 +96,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
             *,
             competition:competitions(
               id,
+              name,
               city:cities(name),
               season,
               status,
