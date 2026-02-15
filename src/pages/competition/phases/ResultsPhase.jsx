@@ -34,13 +34,17 @@ export function ResultsPhase() {
 
       {/* Final Stats */}
       <section className="phase-stats results-stats">
-        <div className="stat-card">
-          <Trophy size={20} className="stat-icon" />
+        <div className="stat-card stat-card-highlight">
+          <div className="stat-icon-wrap">
+            <Trophy size={20} className="stat-icon" />
+          </div>
           <span className="stat-value">{prizePool?.formatted?.totalPrizePool}</span>
           <span className="stat-label">Total Awarded</span>
         </div>
         <div className="stat-card">
-          <Users size={20} className="stat-icon" />
+          <div className="stat-icon-wrap">
+            <Users size={20} className="stat-icon" />
+          </div>
           <span className="stat-value">{formatNumber(leaderboardStats?.totalContestants)}</span>
           <span className="stat-label">Contestants</span>
         </div>
