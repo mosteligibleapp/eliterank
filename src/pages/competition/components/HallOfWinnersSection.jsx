@@ -42,15 +42,10 @@ export function HallOfWinnersSection() {
               {winner.imageUrl ? (
                 <img src={winner.imageUrl} alt={winner.name} />
               ) : (
-                <User size={20} />
+                <User size={32} />
               )}
             </div>
-            <div className="hall-of-winners-info">
-              <p className="hall-of-winners-name">{winner.name}</p>
-              {winner.city && (
-                <p className="hall-of-winners-city">{winner.city}</p>
-              )}
-            </div>
+            <p className="hall-of-winners-name">{winner.name}</p>
           </div>
         ))}
       </div>
