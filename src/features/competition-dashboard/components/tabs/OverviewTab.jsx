@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { Eye, Users, UserPlus, Star, Plus, Crown, Calendar, DollarSign, FileText, Pin, Edit, Trash2 } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Eye, Users, UserPlus, Star, Plus, Crown, Calendar, DollarSign, FileText, Pin, Edit, Trash2, Clock } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
-import { isLive } from '../../../../utils/competitionPhase';
+import { isLive, computeCompetitionPhase } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
 
@@ -51,6 +51,38 @@ export default function OverviewTab({
       .slice(0, 3);
   }, [events]);
 
+  // Live countdown for current phase
+  const computedPhase = computeCompetitionPhase(competition);
+  const phaseEndDate = useMemo(() => {
+    if (computedPhase === 'nomination') return competition?.nominationEnd;
+    if (computedPhase === 'voting') return competition?.votingEnd;
+    if (computedPhase === 'judging') return competition?.finalsDate;
+    return null;
+  }, [computedPhase, competition?.nominationEnd, competition?.votingEnd, competition?.finalsDate]);
+
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    if (!phaseEndDate) return;
+    const update = () => {
+      const diff = Math.max(0, new Date(phaseEndDate) - new Date());
+      setCountdown({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+      });
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [phaseEndDate]);
+
+  const phaseLabel = computedPhase === 'nomination' ? 'Nominations close in'
+    : computedPhase === 'voting' ? 'Voting closes in'
+    : computedPhase === 'judging' ? 'Finals in'
+    : '';
+
   const sponsorRevenue = (sponsors || []).reduce((sum, s) => sum + (s.amount || 0), 0);
   const totalRevenue = sponsorRevenue;
 
@@ -86,6 +118,67 @@ export default function OverviewTab({
       {/* Left Column */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
         <TimelineCard competition={competition} events={events} />
+
+        {/* Countdown + Entries Strip */}
+        {isLive(competition?.status) && phaseEndDate && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: `${spacing.md} ${isMobile ? spacing.md : spacing.lg}`,
+            borderRadius: borderRadius.lg,
+            background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.03))',
+            border: '1px solid rgba(34,197,94,0.15)',
+            marginTop: `-${spacing.md}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+              <Clock size={14} style={{ color: 'rgba(34,197,94,0.6)' }} />
+              <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginRight: spacing.xs }}>
+                {phaseLabel}
+              </span>
+              <div style={{ display: 'flex', gap: isMobile ? '6px' : spacing.sm }}>
+                {[
+                  { value: countdown.days, label: 'd' },
+                  { value: countdown.hours, label: 'h' },
+                  { value: countdown.minutes, label: 'm' },
+                  { value: countdown.seconds, label: 's' },
+                ].map(({ value, label }) => (
+                  <span key={label} style={{
+                    fontVariantNumeric: 'tabular-nums',
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.semibold,
+                    color: '#fff',
+                  }}>
+                    {String(value).padStart(2, '0')}
+                    <span style={{ color: colors.text.muted, fontWeight: 'normal', fontSize: typography.fontSize.xs }}>
+                      {label}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.xs,
+              padding: `${spacing.xs} ${spacing.sm}`,
+              background: 'rgba(212,175,55,0.1)',
+              borderRadius: borderRadius.pill,
+            }}>
+              <UserPlus size={12} style={{ color: colors.gold.primary }} />
+              <span style={{
+                fontSize: typography.fontSize.xs,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.gold.primary,
+              }}>
+                {totalNominees}
+              </span>
+              <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+                {totalNominees === 1 ? 'entry' : 'entries'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Key Metrics */}
         <div style={{
