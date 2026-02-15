@@ -1,5 +1,5 @@
-import React from 'react';
-import { Crown, User, MapPin, Calendar, Clock, Check, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Crown, User, MapPin, Calendar, Clock, Check, X, AlertTriangle } from 'lucide-react';
 import { getCityName } from '../utils/eligibilityEngine';
 
 /**
@@ -14,12 +14,51 @@ export default function AcceptDeclineStep({
   onDecline,
   processing,
 }) {
+  const [confirmingDecline, setConfirmingDecline] = useState(false);
+
   const nominatorDisplay = nominee?.nominator_anonymous
     ? 'Someone special'
     : (nominee?.nominator_name || 'Someone');
 
   const cityName = getCityName(competition);
   const season = competition?.season || '';
+
+  // Confirmation view
+  if (confirmingDecline) {
+    return (
+      <div className="entry-step entry-step-accept">
+        <div className="entry-accept-icon" style={{ color: '#ef4444' }}>
+          <AlertTriangle size={36} />
+        </div>
+
+        <h2 className="entry-step-title">Decline Nomination?</h2>
+        <p className="entry-accept-competition" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          Are you sure you want to decline your nomination for Most Eligible {cityName} {season}?
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>
+          This action cannot be undone.
+        </p>
+
+        <div className="entry-accept-actions" style={{ marginTop: '32px' }}>
+          <button
+            className="entry-btn-secondary"
+            onClick={() => setConfirmingDecline(false)}
+            disabled={processing}
+          >
+            Go Back
+          </button>
+          <button
+            className="entry-btn-secondary entry-btn-decline"
+            onClick={onDecline}
+            disabled={processing}
+          >
+            <X size={18} />
+            {processing ? 'Declining...' : 'Yes, Decline'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="entry-step entry-step-accept">
@@ -75,7 +114,7 @@ export default function AcceptDeclineStep({
       <div className="entry-accept-actions">
         <button
           className="entry-btn-secondary entry-btn-decline"
-          onClick={onDecline}
+          onClick={() => setConfirmingDecline(true)}
           disabled={processing}
         >
           <X size={18} />

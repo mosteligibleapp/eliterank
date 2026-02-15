@@ -204,7 +204,7 @@ export function useBuildCardFlow({
     setSubmitError('');
 
     try {
-      const updateData = { status: 'rejected' };
+      const updateData = { status: 'declined' };
       if (currentUser?.id) {
         updateData.user_id = currentUser.id;
       }
@@ -453,6 +453,14 @@ export function useBuildCardFlow({
         // User exists (magic link) — just set password
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
+
+        // Mark nominee as claimed now that password is set
+        if (userId && nomineeId) {
+          await supabase
+            .from('nominees')
+            .update({ user_id: userId, claimed_at: new Date().toISOString() })
+            .eq('id', nomineeId);
+        }
       } else {
         // New user — sign up
         const email = cardData.email?.trim();
