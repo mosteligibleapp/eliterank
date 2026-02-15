@@ -1215,7 +1215,7 @@ export default function CompetitionTeaser({
             {[
               { icon: UserPlus, title: 'Nominations', desc: 'Nominate yourself or someone you know to compete' },
               { icon: Star, title: 'Voting', desc: 'The public votes for their favorites throughout the season' },
-              { icon: Trophy, title: 'Finals', desc: 'Winners crowned at an exclusive finale event' },
+              { icon: Trophy, title: 'Finals', desc: 'Live crowning event, Judges reveal the Top 5 rank order' },
             ].map((item, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
                 <div style={{
