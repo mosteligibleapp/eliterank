@@ -25,13 +25,20 @@ function NominationCard({ nomination, onAcceptClick }) {
   const orgSlug = competition?.organization?.slug || 'most-eligible';
   const isUnclaimed = !nomination.claimed_at;
 
-  // Build the proper competition URL using the slug utilities
-  const competitionSlug = generateCompetitionSlug({
-    name: competitionName,
-    citySlug: slugify(cityName),
-    season,
-  });
-  const url = getCompetitionUrl(orgSlug, competitionSlug);
+  // Use database slug if available, otherwise fall back to ID-based URL
+  let url;
+  if (competition?.slug) {
+    url = getCompetitionUrl(orgSlug, competition.slug);
+  } else if (competition?.id) {
+    url = `/${orgSlug}/id/${competition.id}`;
+  } else {
+    const competitionSlug = generateCompetitionSlug({
+      name: competitionName,
+      citySlug: slugify(cityName),
+      season,
+    });
+    url = getCompetitionUrl(orgSlug, competitionSlug);
+  }
 
   return (
     <div

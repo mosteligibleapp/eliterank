@@ -66,6 +66,13 @@ export function useBuildCardFlow({
   const [nomineeId, setNomineeId] = useState(nominee?.id || null);
   const [currentUser, setCurrentUser] = useState(user);
 
+  // Sync currentUser when the user prop changes (e.g. auth loads after initial render)
+  useEffect(() => {
+    if (user && !currentUser) {
+      setCurrentUser(user);
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Eligibility (for self modes)
   const [eligibilityAnswers, setEligibilityAnswers] = useState(
     nominee?.eligibility_answers || {}
@@ -465,19 +472,31 @@ export function useBuildCardFlow({
         });
 
         if (signUpError) {
-          // Already registered — try login
           if (signUpError.message?.includes('already registered')) {
-            const { data: signInData, error: signInError } =
-              await supabase.auth.signInWithPassword({ email, password });
+            // Account exists — likely created via magic link. Check if we
+            // already have a session (user arrived via magic link but
+            // currentUser wasn't set due to timing).
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session?.user?.email?.toLowerCase() === email.toLowerCase()) {
+              // We have a valid session — just set the password
+              const { error: updateErr } = await supabase.auth.updateUser({ password });
+              if (updateErr) throw updateErr;
+              userId = sessionData.session.user.id;
+              setCurrentUser(sessionData.session.user);
+            } else {
+              // No matching session — try signing in with the password they just entered
+              const { data: signInData, error: signInError } =
+                await supabase.auth.signInWithPassword({ email, password });
 
-            if (signInError) {
-              throw new Error(
-                'An account with this email already exists. Please use your existing password or reset it.'
-              );
+              if (signInError) {
+                throw new Error(
+                  'An account with this email already exists. Please use your existing password or reset it.'
+                );
+              }
+
+              setCurrentUser(signInData.user);
+              userId = signInData.user?.id;
             }
-
-            setCurrentUser(signInData.user);
-            userId = signInData.user?.id;
 
             // Link user to nominee and mark claimed
             if (userId && nomineeId) {
