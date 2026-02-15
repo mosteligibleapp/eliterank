@@ -35,9 +35,9 @@ import { isCompetitionSlug, isIdRoute, isReservedPath, getCompetitionUrl, genera
 // Hooks
 import { useSupabaseAuth } from './hooks';
 
-// Modals (eagerly loaded for responsiveness)
-import { EliteRankCityModal } from './components/modals';
-import AcceptNominationModal from './components/modals/AcceptNominationModal';
+// Modals (lazy-loaded to reduce initial bundle)
+const EliteRankCityModal = lazy(() => import('./components/modals/EliteRankCityModal'));
+const AcceptNominationModal = lazy(() => import('./components/modals/AcceptNominationModal'));
 
 // =============================================================================
 // LAZY-LOADED FEATURE PAGES (Code Splitting)
@@ -1124,20 +1124,22 @@ export default function App() {
   return (
     <ErrorBoundary>
       {/* Main Public Page - Competitions Listing */}
-      <EliteRankCityModal
-        isOpen={true}
-        onClose={() => {}}
-        isFullPage={true}
-        onOpenCompetition={handleOpenCompetition}
-        onLogin={handleShowLogin}
-        onDashboard={isAuthenticated && hasDashboardAccess ? handleGoToDashboard : null}
-        onProfile={isAuthenticated ? handleShowProfile : null}
-        onRewards={isAuthenticated ? handleShowRewards : null}
-        isAuthenticated={isAuthenticated}
-        userRole={userRole}
-        userName={userName}
-        onLogout={handleLogout}
-      />
+      <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0a0a0f' }} />}>
+        <EliteRankCityModal
+          isOpen={true}
+          onClose={() => {}}
+          isFullPage={true}
+          onOpenCompetition={handleOpenCompetition}
+          onLogin={handleShowLogin}
+          onDashboard={isAuthenticated && hasDashboardAccess ? handleGoToDashboard : null}
+          onProfile={isAuthenticated ? handleShowProfile : null}
+          onRewards={isAuthenticated ? handleShowRewards : null}
+          isAuthenticated={isAuthenticated}
+          userRole={userRole}
+          userName={userName}
+          onLogout={handleLogout}
+        />
+      </Suspense>
 
       {/* User Profile Modal */}
       {showUserProfile && (
@@ -1248,15 +1250,17 @@ export default function App() {
 
       {/* Accept Nomination Modal - In-app accept/decline for existing users */}
       {acceptingNomination && (
-        <AcceptNominationModal
-          isOpen={true}
-          onClose={handleCloseAcceptModal}
-          nomination={acceptingNomination}
-          profile={profile}
-          user={user}
-          onAccept={handleAcceptNomination}
-          onDecline={handleDeclineNomination}
-        />
+        <Suspense fallback={null}>
+          <AcceptNominationModal
+            isOpen={true}
+            onClose={handleCloseAcceptModal}
+            nomination={acceptingNomination}
+            profile={profile}
+            user={user}
+            onAccept={handleAcceptNomination}
+            onDecline={handleDeclineNomination}
+          />
+        </Suspense>
       )}
     </ErrorBoundary>
   );

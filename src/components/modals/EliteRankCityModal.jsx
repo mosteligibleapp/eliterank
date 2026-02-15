@@ -100,14 +100,12 @@ export default function EliteRankCityModal({
       }
 
       try {
-        // Fetch only dynamic data - static data comes from cached hooks
-        // Note: competition_settings has been merged into competitions table
-        const [compsResult, votingRoundsResult, nominationPeriodsResult, eventsResult, announcementsResult] = await Promise.all([
+        // Fetch only essential data on initial load — events & announcements
+        // are deferred until their tabs are selected (see useEffect below).
+        const [compsResult, votingRoundsResult, nominationPeriodsResult] = await Promise.all([
           supabase.from('competitions').select('*').order('created_at', { ascending: false }),
           supabase.from('voting_rounds').select('*').order('round_order'),
           supabase.from('nomination_periods').select('*').order('period_order'),
-          supabase.from('events').select('*').order('date', { ascending: true }),
-          supabase.from('announcements').select('*').order('published_at', { ascending: false }),
         ]);
 
         // Group voting rounds by competition_id
@@ -200,21 +198,7 @@ export default function EliteRankCityModal({
           }));
         }
 
-        if (eventsResult.data) {
-          setEvents(eventsResult.data.map(event => {
-            const comp = compsResult.data?.find(c => c.id === event.competition_id);
-            const cityInfo = comp?.city_id ? citiesMap[comp.city_id] : null;
-            return { ...event, competitionName: comp?.name || 'Elite Rank', cityName: cityInfo?.name || 'Unknown' };
-          }));
-        }
-
-        if (announcementsResult.data) {
-          setAnnouncements(announcementsResult.data.map(a => {
-            const comp = compsResult.data?.find(c => c.id === a.competition_id);
-            const cityInfo = comp?.city_id ? citiesMap[comp.city_id] : null;
-            return { ...a, competitionName: comp?.name || 'Elite Rank', cityName: cityInfo?.name || 'Unknown' };
-          }));
-        }
+        // Events & announcements are fetched lazily when their tabs are selected
       } catch {
         // Silent fail
       } finally {
@@ -224,6 +208,37 @@ export default function EliteRankCityModal({
 
     if (isOpen && !citiesLoading && !orgsLoading && !profilesLoading) fetchData();
   }, [isOpen, citiesLoading, orgsLoading, profilesLoading, citiesMap, profilesMap]);
+
+  // Lazy-fetch events and announcements when their tabs are first selected
+  const [eventsFetched, setEventsFetched] = useState(false);
+  const [announcementsFetched, setAnnouncementsFetched] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'events' && !eventsFetched && competitions.length > 0) {
+      setEventsFetched(true);
+      supabase.from('events').select('*').order('date', { ascending: true })
+        .then(({ data }) => {
+          if (data) {
+            setEvents(data.map(event => {
+              const comp = competitions.find(c => c.id === event.competition_id);
+              return { ...event, competitionName: comp?.name || 'Elite Rank', cityName: comp?.city || 'Unknown' };
+            }));
+          }
+        });
+    }
+    if (activeTab === 'announcements' && !announcementsFetched && competitions.length > 0) {
+      setAnnouncementsFetched(true);
+      supabase.from('announcements').select('*').order('published_at', { ascending: false })
+        .then(({ data }) => {
+          if (data) {
+            setAnnouncements(data.map(a => {
+              const comp = competitions.find(c => c.id === a.competition_id);
+              return { ...a, competitionName: comp?.name || 'Elite Rank', cityName: comp?.city || 'Unknown' };
+            }));
+          }
+        });
+    }
+  }, [activeTab, eventsFetched, announcementsFetched, competitions]);
 
   // Memoized values
   const availableCities = useMemo(() =>
