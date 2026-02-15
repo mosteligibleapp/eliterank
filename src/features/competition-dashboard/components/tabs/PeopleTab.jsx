@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus
+  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check
 } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
@@ -28,6 +28,24 @@ export default function PeopleTab({
 }) {
   const { isMobile } = useResponsive();
   const [processingId, setProcessingId] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const handleCopyClaimLink = async (nominee) => {
+    if (!nominee.inviteToken) return;
+    const url = `${window.location.origin}/claim/${nominee.inviteToken}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    setCopiedId(nominee.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   // Categorize nominees
   const activeNominees = nominees.filter(n =>
@@ -91,9 +109,31 @@ export default function PeopleTab({
   const NomineeActions = ({ nominee }) => {
     const isProcessing = processingId === nominee.id;
     const approveDisabled = isProcessing || !canApprove(nominee);
+    const isCopied = copiedId === nominee.id;
     return (
       <div style={{ display: 'flex', gap: spacing.xs, alignItems: 'center' }}>
         <AcceptanceStatus nominee={nominee} />
+        {nominee.inviteToken && (
+          <button
+            onClick={() => handleCopyClaimLink(nominee)}
+            title={isCopied ? 'Copied!' : 'Copy claim link'}
+            style={{
+              padding: spacing.xs,
+              background: isCopied ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
+              border: 'none',
+              borderRadius: borderRadius.sm,
+              cursor: 'pointer',
+              color: isCopied ? '#22c55e' : '#3b82f6',
+              minWidth: '32px',
+              minHeight: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {isCopied ? <Check size={16} /> : <Link2 size={16} />}
+          </button>
+        )}
         <button
           onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee.id); setProcessingId(null); }}
           disabled={approveDisabled}
@@ -158,7 +198,7 @@ export default function PeopleTab({
   };
 
   // Person row component - shared between contestants and nominees
-  const PersonRow = ({ person, actions, dimmed }) => (
+  const PersonRow = ({ person, actions, dimmed, showVotes }) => (
     <div style={{
       display: 'flex',
       alignItems: 'center',
@@ -179,7 +219,7 @@ export default function PeopleTab({
           {person.name}
         </p>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-          {person.email || `${person.votes || 0} votes`}
+          {person.email}{showVotes ? `${person.email ? ' · ' : ''}${person.votes || 0} votes` : ''}
         </p>
       </div>
       {person.instagram && (
@@ -443,7 +483,7 @@ export default function PeopleTab({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {nomineesWithProfile.map(n => (
-                <PersonRow key={n.id} person={n} actions={<NomineeActions nominee={n} />} />
+                <PersonRow key={n.id} person={n} showVotes actions={<NomineeActions nominee={n} />} />
               ))}
             </div>
           )}
@@ -466,7 +506,7 @@ export default function PeopleTab({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {externalNominees.map(n => (
-                <PersonRow key={n.id} person={n} actions={<NomineeActions nominee={n} />} />
+                <PersonRow key={n.id} person={n} showVotes actions={<NomineeActions nominee={n} />} />
               ))}
             </div>
           )}
@@ -493,6 +533,7 @@ export default function PeopleTab({
                   key={n.id}
                   person={n}
                   dimmed
+                  showVotes
                   actions={
                     <button
                       onClick={async () => {
