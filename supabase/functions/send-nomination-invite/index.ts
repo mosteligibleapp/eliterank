@@ -14,6 +14,7 @@ interface NomineeData {
   invite_token: string
   nomination_reason?: string
   nominator_name?: string
+  nominator_email?: string
   nominator_anonymous: boolean
   competition: {
     id: string
@@ -69,6 +70,7 @@ serve(async (req) => {
         invite_token,
         nomination_reason,
         nominator_name,
+        nominator_email,
         nominator_anonymous,
         invite_sent_at,
         competition:competitions(id, season, nomination_end, city:cities(name))
@@ -128,6 +130,19 @@ serve(async (req) => {
           .update({ email: profileByPhone.email })
           .eq('id', nomineeData.id)
       }
+    }
+
+    // Last resort: if nominator provided their email and it matches the
+    // nominee (same person nominating themselves via the third-party form),
+    // use the nominator_email as the nominee's email.
+    if (!nomineeEmail && nomineeData.nominator_email) {
+      nomineeEmail = nomineeData.nominator_email
+      // Backfill so future lookups use the email directly
+      await supabase
+        .from('nominees')
+        .update({ email: nomineeData.nominator_email })
+        .eq('id', nomineeData.id)
+      console.log('Using nominator_email as nominee email:', nomineeEmail)
     }
 
     if (!nomineeEmail) {

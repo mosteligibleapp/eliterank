@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Users, UserCheck, UserPlus, Archive, ChevronDown, ChevronUp,
   ExternalLink, User, Mail, Phone, Instagram, Check, X, RotateCcw,
-  Loader, AlertCircle
+  Loader, AlertCircle, Link2
 } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -64,6 +64,27 @@ export default function NominationsPage({ competitionId, competitionName }) {
   });
 
   const [processingId, setProcessingId] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const handleCopyClaimLink = async (item) => {
+    if (!item.inviteToken) return;
+    const url = `${window.location.origin}/claim/${item.inviteToken}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(item.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopiedId(item.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
 
   // Categorize nominees
   const categorizedData = useMemo(() => {
@@ -367,6 +388,22 @@ export default function NominationsPage({ competitionId, competitionName }) {
                                 style={{ padding: `${spacing.xs} ${spacing.sm}` }}
                               >
                                 View Profile
+                              </Button>
+                            )}
+
+                            {/* Copy claim link button */}
+                            {!isContestants && item.inviteToken && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                icon={copiedId === item.id ? Check : Link2}
+                                onClick={() => handleCopyClaimLink(item)}
+                                style={{
+                                  padding: `${spacing.xs} ${spacing.sm}`,
+                                  ...(copiedId === item.id ? { color: colors.status.success, borderColor: colors.status.success } : {}),
+                                }}
+                              >
+                                {copiedId === item.id ? 'Copied!' : 'Claim Link'}
                               </Button>
                             )}
 
