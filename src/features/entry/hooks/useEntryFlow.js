@@ -409,17 +409,27 @@ export function useEntryFlow(competition, profile) {
 
       if (signUpError) {
         if (signUpError.message?.includes('already registered')) {
-          // Try login with password
-          const { data: signInData, error: signInError } =
-            await supabase.auth.signInWithPassword({ email, password });
+          // Account exists — check if we already have a session (e.g. magic link)
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session?.user?.email?.toLowerCase() === email.toLowerCase()) {
+            // Valid session — just set the password
+            const { error: updateErr } = await supabase.auth.updateUser({ password });
+            if (updateErr) throw updateErr;
+            resolvedUserId = sessionData.session.user.id;
+            setCurrentUser(sessionData.session.user);
+          } else {
+            // No matching session — try signing in with password
+            const { data: signInData, error: signInError } =
+              await supabase.auth.signInWithPassword({ email, password });
 
-          if (signInError) {
-            throw new Error(
-              'An account with this email already exists. Please use your existing password.'
-            );
+            if (signInError) {
+              throw new Error(
+                'An account with this email already exists. Please use your existing password.'
+              );
+            }
+            resolvedUserId = signInData.user?.id;
+            setCurrentUser(signInData.user);
           }
-          resolvedUserId = signInData.user?.id;
-          setCurrentUser(signInData.user);
 
           if (resolvedUserId && nomineeId) {
             await supabase
