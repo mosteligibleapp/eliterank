@@ -31,7 +31,11 @@ export default function PeopleTab({
   const [copiedId, setCopiedId] = useState(null);
 
   const handleCopyClaimLink = async (nominee) => {
-    if (!nominee.inviteToken) return;
+    if (!nominee.inviteToken) {
+      setCopiedId(`no-link-${nominee.id}`);
+      setTimeout(() => setCopiedId(null), 2000);
+      return;
+    }
     const url = `${window.location.origin}/claim/${nominee.inviteToken}`;
     try {
       await navigator.clipboard.writeText(url);
@@ -113,27 +117,30 @@ export default function PeopleTab({
     return (
       <div style={{ display: 'flex', gap: spacing.xs, alignItems: 'center' }}>
         <AcceptanceStatus nominee={nominee} />
-        {nominee.inviteToken && (
-          <button
-            onClick={() => handleCopyClaimLink(nominee)}
-            title={isCopied ? 'Copied!' : 'Copy claim link'}
-            style={{
-              padding: spacing.xs,
-              background: isCopied ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
-              border: 'none',
-              borderRadius: borderRadius.sm,
-              cursor: 'pointer',
-              color: isCopied ? '#22c55e' : '#3b82f6',
-              minWidth: '32px',
-              minHeight: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {isCopied ? <Check size={16} /> : <Link2 size={16} />}
-          </button>
-        )}
+        {(() => {
+          const noLink = copiedId === `no-link-${nominee.id}`;
+          return (
+            <button
+              onClick={() => handleCopyClaimLink(nominee)}
+              title={isCopied ? 'Copied!' : noLink ? 'No claim link' : 'Copy claim link'}
+              style={{
+                padding: spacing.xs,
+                background: isCopied ? 'rgba(34,197,94,0.1)' : noLink ? 'rgba(239,68,68,0.1)' : 'rgba(59,130,246,0.1)',
+                border: 'none',
+                borderRadius: borderRadius.sm,
+                cursor: 'pointer',
+                color: isCopied ? '#22c55e' : noLink ? '#ef4444' : '#3b82f6',
+                minWidth: '32px',
+                minHeight: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isCopied ? <Check size={16} /> : <Link2 size={16} />}
+            </button>
+          );
+        })()}
         <button
           onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee.id); setProcessingId(null); }}
           disabled={approveDisabled}
