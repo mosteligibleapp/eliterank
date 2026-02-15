@@ -47,7 +47,7 @@ export function Timeline() {
       type: 'finale',
       date: finaleDate,
       title: 'Finals Event',
-      subtitle: 'Live finale & winner announcement',
+      subtitle: 'Live crowning event, Judges reveal the Top 5 rank order',
       status: getFinaleStatus(finaleDate),
       isFinale: true,
     });
