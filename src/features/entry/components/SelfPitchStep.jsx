@@ -22,7 +22,7 @@ export default function SelfPitchStep({
     <div className="entry-step entry-step-pitch">
       <h2 className="entry-step-title">Your bio</h2>
       <p className="entry-step-subtitle">
-        Tell people why you're the <strong>{title}</strong>{cityName ? ` in ${cityName}` : ''}.
+        Tell people why you should win <strong>{title}</strong>.
       </p>
 
       <div className="entry-form-field">
