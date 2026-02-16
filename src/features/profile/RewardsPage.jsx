@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, Gift, Package, ExternalLink, Clock, Check, Link2, Plus, Loader, AlertCircle } from 'lucide-react';
+import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, Loader, AlertCircle } from 'lucide-react';
 import { Panel, Button, Badge } from '../../components/ui';
-import { colors, spacing, borderRadius, typography, gradients } from '../../styles/theme';
+import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks';
@@ -164,8 +164,6 @@ export default function RewardsPage({ hostProfile }) {
 
   if (!hostProfile) return null;
 
-  const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
-
   // Separate claimable rewards by status
   const pendingRewards = claimableRewards.filter(a => a.status === 'pending');
   const activeRewards = claimableRewards.filter(a => ['claimed', 'shipped', 'active'].includes(a.status));
@@ -176,65 +174,6 @@ export default function RewardsPage({ hostProfile }) {
 
   return (
     <div>
-      {/* Simplified Profile Banner */}
-      <Panel style={{ marginBottom: isMobile ? spacing.lg : spacing.xxl }}>
-        <div
-          style={{
-            height: isMobile ? '140px' : '200px',
-            background: hostProfile.coverImage
-              ? `url(${hostProfile.coverImage}) center/cover`
-              : gradients.cover,
-            position: 'relative',
-          }}
-        />
-        <div style={{ padding: isMobile ? `0 ${spacing.lg} ${spacing.lg}` : `0 ${spacing.xxxl} ${spacing.xxxl}`, marginTop: isMobile ? '-40px' : '-60px' }}>
-          <div style={{ display: 'flex', gap: isMobile ? spacing.md : spacing.xxl, alignItems: isMobile ? 'center' : 'flex-end', flexWrap: 'wrap' }}>
-            <div
-              style={{
-                width: isMobile ? '100px' : '140px',
-                height: isMobile ? '100px' : '140px',
-                borderRadius: borderRadius.xxl,
-                background: hostProfile.avatarUrl
-                  ? `url(${hostProfile.avatarUrl}) center/cover`
-                  : 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
-                border: isMobile ? '3px solid #1a1a24' : '4px solid #1a1a24',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: isMobile ? '32px' : '42px',
-                fontWeight: typography.fontWeight.semibold,
-                color: colors.gold.primary,
-                flexShrink: 0,
-              }}
-            >
-              {!hostProfile.avatarUrl && initials}
-            </div>
-            <div style={{ flex: 1, paddingBottom: isMobile ? 0 : spacing.sm, minWidth: 0 }}>
-              <h1 style={{
-                fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.hero,
-                fontWeight: typography.fontWeight.bold,
-                color: '#fff',
-                wordBreak: 'break-word',
-              }}>
-                {hostProfile.firstName} {hostProfile.lastName}
-              </h1>
-              {hostProfile.city && (
-                <p style={{
-                  color: colors.text.secondary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                  marginTop: spacing.sm,
-                  fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg
-                }}>
-                  <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </Panel>
-
       {/* Loading State */}
       {loading && (
         <Panel>

@@ -76,23 +76,25 @@ export default function ProfileView({ hostProfile, onEdit }) {
             >
               {copied ? 'Copied!' : 'Share'}
             </Button>
-            <Button
-              onClick={onEdit}
-              icon={Edit}
-              size={isMobile ? 'sm' : 'md'}
-              style={{
-                background: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(8px)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.2)',
-              }}
-            >
-              {isMobile ? 'Edit' : 'Edit Profile'}
-            </Button>
+            {onEdit && (
+              <Button
+                onClick={onEdit}
+                icon={Edit}
+                size={isMobile ? 'sm' : 'md'}
+                style={{
+                  background: 'rgba(0,0,0,0.5)',
+                  backdropFilter: 'blur(8px)',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                }}
+              >
+                {isMobile ? 'Edit' : 'Edit Profile'}
+              </Button>
+            )}
           </div>
         </div>
         <div style={{ padding: isMobile ? `0 ${spacing.lg} ${spacing.lg}` : `0 ${spacing.xxxl} ${spacing.xxxl}`, marginTop: isMobile ? '-40px' : '-60px', position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', gap: isMobile ? spacing.md : spacing.xxl, alignItems: isMobile ? 'center' : 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? spacing.md : spacing.xxl, alignItems: isMobile ? 'center' : 'flex-end', flexWrap: 'wrap' }}>
             <div
               style={{
                 width: isMobile ? '100px' : '140px',
@@ -113,7 +115,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
             >
               {!hostProfile.avatarUrl && initials}
             </div>
-            <div style={{ flex: 1, paddingBottom: isMobile ? 0 : spacing.sm, minWidth: 0 }}>
+            <div style={{ flex: 1, paddingBottom: isMobile ? 0 : spacing.sm, minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
               <h1 style={{
                 fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.hero,
                 fontWeight: typography.fontWeight.bold,
@@ -127,6 +129,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                   color: colors.text.secondary,
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: isMobile ? 'center' : 'flex-start',
                   gap: spacing.sm,
                   marginTop: spacing.sm,
                   fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg
@@ -142,6 +145,20 @@ export default function ProfileView({ hostProfile, onEdit }) {
       <div style={{ display: 'grid', gridTemplateColumns: isSmall ? '1fr' : '2fr 1fr', gap: isMobile ? spacing.lg : spacing.xxl }}>
         {/* Left Column */}
         <div>
+          {/* Competitions Section - First box */}
+          <ProfileCompetitions
+            userId={hostProfile?.id}
+            userEmail={hostProfile?.email}
+            user={{ id: hostProfile?.id, email: hostProfile?.email }}
+            profile={{
+              first_name: hostProfile?.firstName,
+              last_name: hostProfile?.lastName,
+              avatar_url: hostProfile?.avatarUrl,
+              bio: hostProfile?.bio,
+              city: hostProfile?.city,
+            }}
+          />
+
           {/* Bio Section */}
           <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
             <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
@@ -165,6 +182,96 @@ export default function ProfileView({ hostProfile, onEdit }) {
             </div>
           </Panel>
 
+          {/* Photo Gallery */}
+          <Panel>
+            <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
+              <h3 style={{
+                fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+                fontWeight: typography.fontWeight.semibold,
+                marginBottom: spacing.lg,
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.md
+              }}>
+                <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
+              </h3>
+              {isMobile ? (
+                gallery.length > 0 ? (
+                  <div
+                    className="hide-scrollbar"
+                    style={{
+                      display: 'flex',
+                      overflowX: 'auto',
+                      scrollSnapType: 'x mandatory',
+                      gap: spacing.sm,
+                      WebkitOverflowScrolling: 'touch',
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none',
+                    }}
+                  >
+                    {gallery.map((imageUrl, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          flex: '0 0 100%',
+                          scrollSnapAlign: 'start',
+                          aspectRatio: '4 / 3',
+                          background: `url(${imageUrl}) center/cover`,
+                          borderRadius: borderRadius.lg,
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{
+                    aspectRatio: '4 / 3',
+                    background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
+                    borderRadius: borderRadius.lg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Camera size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                  </div>
+                )
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
+                  {gallery.length > 0 ? (
+                    gallery.map((imageUrl, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          aspectRatio: '1',
+                          background: `url(${imageUrl}) center/cover`,
+                          borderRadius: borderRadius.lg,
+                        }}
+                      />
+                    ))
+                  ) : (
+                    [1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        style={{
+                          aspectRatio: '1',
+                          background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
+                          borderRadius: borderRadius.lg,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Camera size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </Panel>
+        </div>
+
+        {/* Right Column */}
+        <div>
           {/* Hobbies Section */}
           {hostProfile.hobbies && hostProfile.hobbies.length > 0 && (
             <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
@@ -190,56 +297,6 @@ export default function ProfileView({ hostProfile, onEdit }) {
             </Panel>
           )}
 
-          {/* Photo Gallery */}
-          <Panel>
-            <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
-              <h3 style={{
-                fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-                fontWeight: typography.fontWeight.semibold,
-                marginBottom: spacing.lg,
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.md
-              }}>
-                <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: isMobile ? spacing.sm : spacing.md }}>
-                {gallery.length > 0 ? (
-                  gallery.map((imageUrl, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        aspectRatio: '1',
-                        background: `url(${imageUrl}) center/cover`,
-                        borderRadius: borderRadius.lg,
-                      }}
-                    />
-                  ))
-                ) : (
-                  // Show placeholders if no gallery images
-                  [1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      style={{
-                        aspectRatio: '1',
-                        background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
-                        borderRadius: borderRadius.lg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Camera size={isMobile ? 20 : 24} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </Panel>
-        </div>
-
-        {/* Right Column */}
-        <div>
           {/* Social Links */}
           {socialLinks.length > 0 && (
             <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
@@ -311,20 +368,6 @@ export default function ProfileView({ hostProfile, onEdit }) {
               </div>
             </Panel>
           )}
-
-          {/* Competitions Section - Shows all competitions user is part of */}
-          <ProfileCompetitions
-            userId={hostProfile?.id}
-            userEmail={hostProfile?.email}
-            user={{ id: hostProfile?.id, email: hostProfile?.email }}
-            profile={{
-              first_name: hostProfile?.firstName,
-              last_name: hostProfile?.lastName,
-              avatar_url: hostProfile?.avatarUrl,
-              bio: hostProfile?.bio,
-              city: hostProfile?.city,
-            }}
-          />
 
           {/* Competition Stats */}
           {competitionStats && (competitionStats.totalCompetitions > 0 || competitionStats.totalVotes > 0) && (

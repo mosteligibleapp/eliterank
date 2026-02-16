@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Crown, MapPin, Star, ExternalLink, UserPlus, Clock } from 'lucide-react';
-import { Panel, Badge, Button } from '../../../components/ui';
+import { Panel, Badge, Button, EliteRankCrown } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
@@ -16,44 +16,95 @@ const STATUS_LABELS = {
   publish: 'Coming Soon',
 };
 
-function NominationCard({ nomination, onAcceptClick }) {
-  const { isMobile } = useResponsive();
-  const competition = nomination?.competition;
-  const competitionName = competition?.name || 'Competition';
-  const cityName = competition?.city?.name || '';
-  const season = competition?.season || '';
+function getCompetitionLink(competition) {
   const orgSlug = competition?.organization?.slug || 'most-eligible';
-  const isUnclaimed = !nomination.claimed_at;
-
-  // Use database slug if available, otherwise fall back to ID-based URL
-  let url;
   if (competition?.slug) {
-    url = getCompetitionUrl(orgSlug, competition.slug);
-  } else if (competition?.id) {
-    url = `/${orgSlug}/id/${competition.id}`;
-  } else {
-    const competitionSlug = generateCompetitionSlug({
-      name: competitionName,
-      citySlug: slugify(cityName),
-      season,
-    });
-    url = getCompetitionUrl(orgSlug, competitionSlug);
+    return getCompetitionUrl(orgSlug, competition.slug);
   }
+  if (competition?.id) {
+    return `/${orgSlug}/id/${competition.id}`;
+  }
+  const cityName = competition?.city?.name || competition?.city || '';
+  const generatedSlug = generateCompetitionSlug({
+    name: competition?.name,
+    citySlug: slugify(cityName),
+    season: competition?.season || '',
+  });
+  return getCompetitionUrl(orgSlug, generatedSlug);
+}
+
+function RoleBadge({ role }) {
+  switch (role) {
+    case 'nominee':
+      return (
+        <Badge variant="gold" size="sm" pill>
+          <UserPlus size={10} style={{ marginRight: '4px' }} />
+          Nominee
+        </Badge>
+      );
+    case 'host':
+      return (
+        <Badge variant="purple" size="sm" pill>
+          <Crown size={10} style={{ marginRight: '4px' }} />
+          Host
+        </Badge>
+      );
+    case 'winner':
+      return (
+        <Badge variant="gold" size="sm" pill>
+          <Trophy size={10} style={{ marginRight: '4px' }} />
+          Winner
+        </Badge>
+      );
+    case 'contestant':
+      return (
+        <Badge variant="success" size="sm" pill>
+          <Star size={10} style={{ marginRight: '4px' }} />
+          Contestant
+        </Badge>
+      );
+    default:
+      return null;
+  }
+}
+
+function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAcceptClick, nominatorName, isCompact }) {
+  const isActive = ['voting', 'nomination', 'live'].includes(status);
+  const isWinner = role === 'winner';
+
+  const bgColor = isUnclaimed
+    ? 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))'
+    : isWinner
+    ? 'linear-gradient(135deg, rgba(212,175,55,0.12), rgba(212,175,55,0.04))'
+    : isActive
+    ? 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.02))'
+    : 'rgba(255,255,255,0.03)';
+
+  const borderColor = isUnclaimed
+    ? '1px solid rgba(212,175,55,0.3)'
+    : isWinner
+    ? '1px solid rgba(212,175,55,0.25)'
+    : isActive
+    ? '1px solid rgba(34,197,94,0.2)'
+    : '1px solid rgba(255,255,255,0.05)';
 
   return (
     <div
       style={{
-        background: isUnclaimed
-          ? 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))'
-          : 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.05))',
-        border: isUnclaimed
-          ? '1px solid rgba(212,175,55,0.3)'
-          : '1px solid rgba(139,92,246,0.2)',
+        background: bgColor,
+        border: borderColor,
         borderRadius: borderRadius.lg,
-        padding: isMobile ? spacing.md : spacing.lg,
+        padding: isCompact ? spacing.md : spacing.lg,
+        overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: isCompact ? 'column' : 'row',
+        justifyContent: 'space-between',
+        alignItems: isCompact ? 'flex-start' : 'center',
+        gap: spacing.sm,
+      }}>
         <a
           href={url}
           style={{
@@ -62,123 +113,58 @@ function NominationCard({ nomination, onAcceptClick }) {
             gap: spacing.sm,
             textDecoration: 'none',
             color: colors.text.primary,
+            minWidth: 0,
+            maxWidth: '100%',
           }}
         >
-          <MapPin size={14} style={{ color: isUnclaimed ? colors.gold.primary : colors.accent.purple }} />
-          <span style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>
-            {competitionName}
+          <MapPin size={14} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+          <span style={{
+            fontWeight: typography.fontWeight.semibold,
+            fontSize: typography.fontSize.sm,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {name}
           </span>
-          <ExternalLink size={12} style={{ color: colors.text.tertiary }} />
+          <ExternalLink size={12} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
         </a>
 
-        {isUnclaimed ? (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => onAcceptClick(nomination)}
-            style={{ fontSize: typography.fontSize.xs }}
-          >
-            Accept or Decline
-          </Button>
-        ) : (
-          <Badge variant="purple" size="sm" pill>
-            <Clock size={10} style={{ marginRight: '4px' }} />
-            Awaiting Approval
-          </Badge>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+          <RoleBadge role={role} />
+          {isUnclaimed && nomination ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => onAcceptClick(nomination)}
+              style={{ fontSize: typography.fontSize.xs }}
+            >
+              Accept or Decline
+            </Button>
+          ) : status ? (
+            <Badge variant={isActive ? 'success' : 'default'} size="sm" pill>
+              {isActive && '● '}{STATUS_LABELS[status] || status}
+            </Badge>
+          ) : null}
+        </div>
       </div>
 
-      {/* Show nominator info for unclaimed */}
-      {isUnclaimed && nomination.nominator_name && !nomination.nominator_anonymous && (
+      {/* Show nominator info for unclaimed nominations */}
+      {isUnclaimed && nominatorName && (
         <p style={{
           marginTop: spacing.sm,
           fontSize: typography.fontSize.xs,
           color: colors.text.secondary,
         }}>
-          Nominated by {nomination.nominator_name}
+          Nominated by {nominatorName}
         </p>
       )}
     </div>
   );
 }
 
-function CompetitionCard({ competition, role, contestantData }) {
-  const { isMobile } = useResponsive();
-  const isHost = role === 'host';
-  const cityName = competition?.city?.name || competition?.city || '';
-  const season = competition?.season || '';
-  const status = competition?.status || 'upcoming';
-  const isActive = ['voting', 'nomination', 'live'].includes(status);
-  const isWinner = contestantData?.status === 'winner';
-  const orgSlug = competition?.organization?.slug || 'most-eligible';
-
-  // Use database slug if available, otherwise fall back to ID-based URL
-  let url;
-  if (competition?.slug) {
-    url = getCompetitionUrl(orgSlug, competition.slug);
-  } else if (competition?.id) {
-    url = `/${orgSlug}/id/${competition.id}`;
-  } else {
-    const generatedSlug = generateCompetitionSlug({
-      name: competition?.name,
-      citySlug: slugify(cityName),
-      season,
-    });
-    url = getCompetitionUrl(orgSlug, generatedSlug);
-  }
-
-  return (
-    <a
-      href={url}
-      style={{
-        display: 'block',
-        background: isWinner
-          ? 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))'
-          : isActive
-          ? 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.02))'
-          : 'rgba(255,255,255,0.03)',
-        border: isWinner
-          ? '1px solid rgba(212,175,55,0.3)'
-          : isActive
-          ? '1px solid rgba(34,197,94,0.2)'
-          : '1px solid rgba(255,255,255,0.05)',
-        borderRadius: borderRadius.lg,
-        padding: isMobile ? spacing.md : spacing.lg,
-        textDecoration: 'none',
-        transition: 'all 0.2s ease',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
-            <MapPin size={14} style={{ color: isHost ? colors.accent.purple : colors.gold.primary }} />
-            <span style={{ fontWeight: typography.fontWeight.semibold, color: colors.text.primary, fontSize: typography.fontSize.sm }}>
-              {cityName || competition?.name || 'Competition'} {season}
-            </span>
-          </div>
-          {contestantData && (
-            <span style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>
-              {contestantData.votes?.toLocaleString() || 0} votes
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-          {isWinner ? (
-            <Badge variant="gold" size="sm"><Trophy size={12} /> Winner</Badge>
-          ) : (
-            <Badge variant={isActive ? 'success' : 'default'} size="sm" pill>
-              {isActive && '● '}{STATUS_LABELS[status] || status}
-            </Badge>
-          )}
-          <ExternalLink size={14} style={{ color: colors.text.tertiary }} />
-        </div>
-      </div>
-    </a>
-  );
-}
-
 export default function ProfileCompetitions({ userId, userEmail, user, profile }) {
-  const { isMobile } = useResponsive();
+  const { isMobile, isSmall } = useResponsive();
   const [hostedCompetitions, setHostedCompetitions] = useState([]);
   const [contestantEntries, setContestantEntries] = useState([]);
   const [nominations, setNominations] = useState([]);
@@ -194,13 +180,11 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
   };
 
   const handleAccept = () => {
-    // Remove the accepted nomination from the list (it's now claimed)
     setNominations(prev => prev.filter(n => n.id !== selectedNomination?.id));
     setSelectedNomination(null);
   };
 
   const handleDecline = () => {
-    // Remove the declined nomination from the list
     setNominations(prev => prev.filter(n => n.id !== selectedNomination?.id));
     setSelectedNomination(null);
   };
@@ -248,85 +232,80 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
     );
   }
 
+  // Build unified list of all competition entries
+  const entries = [];
+
+  // Add nominations
+  nominations.forEach(nom => {
+    const competition = nom?.competition;
+    entries.push({
+      id: `nom-${nom.id}`,
+      name: competition?.name || 'Competition',
+      url: getCompetitionLink(competition),
+      role: 'nominee',
+      status: competition?.status,
+      isUnclaimed: !nom.claimed_at,
+      nomination: nom,
+      nominatorName: !nom.nominator_anonymous ? nom.nominator_name : null,
+    });
+  });
+
+  // Add hosted competitions
+  hostedCompetitions.forEach(comp => {
+    entries.push({
+      id: `host-${comp.id}`,
+      name: `${comp?.city?.name || comp?.city || comp?.name || 'Competition'} ${comp?.season || ''}`.trim(),
+      url: getCompetitionLink(comp),
+      role: 'host',
+      status: comp?.status,
+    });
+  });
+
+  // Add contestant entries
+  contestantEntries.forEach(entry => {
+    const comp = entry.competition;
+    const isWinner = entry?.status === 'winner';
+    entries.push({
+      id: `contestant-${entry.id}`,
+      name: `${comp?.city?.name || comp?.city || comp?.name || 'Competition'} ${comp?.season || ''}`.trim(),
+      url: getCompetitionLink(comp),
+      role: isWinner ? 'winner' : 'contestant',
+      status: comp?.status,
+    });
+  });
+
   return (
     <>
-      {/* Nominations Section */}
-      {hasNominations && (
-        <Panel style={{ marginBottom: spacing.xl }}>
-          <div style={{ padding: isMobile ? spacing.lg : spacing.xl }}>
-            <h3 style={{
-              fontSize: typography.fontSize.lg,
-              fontWeight: typography.fontWeight.semibold,
-              marginBottom: spacing.lg,
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm
-            }}>
-              <UserPlus size={18} style={{ color: colors.gold.primary }} /> Nominations
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {nominations.map(nom => (
-                <NominationCard
-                  key={nom.id}
-                  nomination={nom}
-                  onAcceptClick={handleOpenAcceptModal}
-                />
-              ))}
-            </div>
+      <Panel style={{ marginBottom: spacing.xl }}>
+        <div style={{ padding: isSmall ? spacing.lg : spacing.xl }}>
+          <h3 style={{
+            fontSize: isSmall ? typography.fontSize.lg : typography.fontSize.xl,
+            fontWeight: typography.fontWeight.semibold,
+            marginBottom: spacing.lg,
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.md,
+          }}>
+            <EliteRankCrown size={isSmall ? 18 : 22} /> Competitions
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+            {entries.map(entry => (
+              <CompetitionRow
+                key={entry.id}
+                name={entry.name}
+                url={entry.url}
+                role={entry.role}
+                status={entry.status}
+                isUnclaimed={entry.isUnclaimed}
+                nomination={entry.nomination}
+                onAcceptClick={handleOpenAcceptModal}
+                nominatorName={entry.nominatorName}
+                isCompact={isSmall}
+              />
+            ))}
           </div>
-        </Panel>
-      )}
-
-      {/* Hosting Section */}
-      {hasHosted && (
-        <Panel style={{ marginBottom: spacing.xl }}>
-          <div style={{ padding: isMobile ? spacing.lg : spacing.xl }}>
-            <h3 style={{
-              fontSize: typography.fontSize.lg,
-              fontWeight: typography.fontWeight.semibold,
-              marginBottom: spacing.lg,
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm
-            }}>
-              <Crown size={18} style={{ color: colors.accent.purple }} /> Hosting
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {hostedCompetitions.map(comp => (
-                <CompetitionCard key={comp.id} competition={comp} role="host" />
-              ))}
-            </div>
-          </div>
-        </Panel>
-      )}
-
-      {/* Contestant Section */}
-      {hasContestant && (
-        <Panel style={{ marginBottom: spacing.xl }}>
-          <div style={{ padding: isMobile ? spacing.lg : spacing.xl }}>
-            <h3 style={{
-              fontSize: typography.fontSize.lg,
-              fontWeight: typography.fontWeight.semibold,
-              marginBottom: spacing.lg,
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm
-            }}>
-              <Star size={18} style={{ color: colors.gold.primary }} /> Competed
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {contestantEntries.map(entry => (
-                <CompetitionCard
-                  key={entry.id}
-                  competition={entry.competition}
-                  role="contestant"
-                  contestantData={entry}
-                />
-              ))}
-            </div>
-          </div>
-        </Panel>
-      )}
+        </div>
+      </Panel>
 
       {/* Accept Nomination Modal */}
       {selectedNomination && (

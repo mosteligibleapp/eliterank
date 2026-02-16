@@ -49,7 +49,6 @@ const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
 const RewardsPage = lazy(() => import('./features/profile/RewardsPage'));
 const ClaimNominationPage = lazy(() => import('./features/public-site/pages/ClaimNominationPage'));
 const CompetitionLayout = lazy(() => import('./pages/competition/CompetitionLayout'));
-const PublicProfileView = lazy(() => import('./features/public-site/components/PublicProfileView'));
 
 // Shared competition dashboard for both host and superadmin
 import { CompetitionDashboard } from './features/competition-dashboard';
@@ -1253,16 +1252,67 @@ export default function App() {
 
       {/* Shared Public Profile View */}
       {viewPublicProfile && (
-        <Suspense fallback={<LoadingScreen message="Loading profile..." />}>
-          <PublicProfileView
-            profile={viewPublicProfile}
-            role="contestant"
-            onBack={() => {
-              setViewPublicProfile(null);
-              navigate('/', { replace: true });
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: '#0a0a0f',
+            zIndex: 200,
+            overflow: 'auto',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '24px',
             }}
-          />
-        </Suspense>
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+              <button
+                onClick={() => {
+                  setViewPublicProfile(null);
+                  navigate('/', { replace: true });
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}
+              >
+                ← Back to Competitions
+              </button>
+            </div>
+            <Suspense fallback={<LoadingScreen message="Loading profile..." />}>
+              <ProfilePage
+                hostProfile={{
+                  id: viewPublicProfile.id,
+                  firstName: viewPublicProfile.first_name || '',
+                  lastName: viewPublicProfile.last_name || '',
+                  bio: viewPublicProfile.bio || '',
+                  city: viewPublicProfile.city || '',
+                  instagram: viewPublicProfile.instagram || '',
+                  twitter: viewPublicProfile.twitter || '',
+                  linkedin: viewPublicProfile.linkedin || '',
+                  tiktok: viewPublicProfile.tiktok || '',
+                  hobbies: Array.isArray(viewPublicProfile.interests) ? viewPublicProfile.interests : [],
+                  avatarUrl: viewPublicProfile.avatar_url || '',
+                  coverImage: viewPublicProfile.cover_image || '',
+                  gallery: Array.isArray(viewPublicProfile.gallery) ? viewPublicProfile.gallery : [],
+                  email: viewPublicProfile.email || '',
+                }}
+                isEditing={false}
+              />
+            </Suspense>
+          </div>
+        </div>
       )}
 
       {/* Pending Nominations Modal */}
