@@ -467,6 +467,10 @@
   color: #ef4444;
 }
 
+.stat-card .countdown-icon {
+  display: none;
+}
+
 .stat-icon-wrap {
   width: 40px;
   height: 40px;
