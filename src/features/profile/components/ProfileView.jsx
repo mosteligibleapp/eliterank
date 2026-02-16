@@ -142,6 +142,20 @@ export default function ProfileView({ hostProfile, onEdit }) {
         </div>
       </Panel>
 
+      {/* Competitions Section - Full width, first box */}
+      <ProfileCompetitions
+        userId={hostProfile?.id}
+        userEmail={hostProfile?.email}
+        user={{ id: hostProfile?.id, email: hostProfile?.email }}
+        profile={{
+          first_name: hostProfile?.firstName,
+          last_name: hostProfile?.lastName,
+          avatar_url: hostProfile?.avatarUrl,
+          bio: hostProfile?.bio,
+          city: hostProfile?.city,
+        }}
+      />
+
       <div style={{ display: 'grid', gridTemplateColumns: isSmall ? '1fr' : '2fr 1fr', gap: isMobile ? spacing.lg : spacing.xxl }}>
         {/* Left Column */}
         <div>
@@ -314,20 +328,6 @@ export default function ProfileView({ hostProfile, onEdit }) {
               </div>
             </Panel>
           )}
-
-          {/* Competitions Section - Shows all competitions user is part of */}
-          <ProfileCompetitions
-            userId={hostProfile?.id}
-            userEmail={hostProfile?.email}
-            user={{ id: hostProfile?.id, email: hostProfile?.email }}
-            profile={{
-              first_name: hostProfile?.firstName,
-              last_name: hostProfile?.lastName,
-              avatar_url: hostProfile?.avatarUrl,
-              bio: hostProfile?.bio,
-              city: hostProfile?.city,
-            }}
-          />
 
           {/* Competition Stats */}
           {competitionStats && (competitionStats.totalCompetitions > 0 || competitionStats.totalVotes > 0) && (
