@@ -71,25 +71,21 @@
 .org-logo {
   width: 80px;
   height: 80px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--color-primary), #f4d03f);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.3);
 }
 
 .org-logo img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .org-logo svg {
-  color: var(--color-bg-primary);
-  width: 40px;
-  height: 40px;
+  color: var(--color-primary);
+  width: 80px;
+  height: 80px;
 }
 
 .org-presented-by {
@@ -406,6 +402,13 @@
   margin-bottom: var(--spacing-2xl);
 }
 
+.phase-stats-centered {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 @media (max-width: 768px) {
   .phase-stats {
     gap: var(--spacing-sm);
@@ -431,52 +434,41 @@
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-xl) var(--spacing-lg);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.15);
   border-radius: var(--radius-xl);
   text-align: center;
   position: relative;
-  overflow: hidden;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-}
-
-.stat-card-highlight {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.03));
-  border-color: rgba(212, 175, 55, 0.25);
-}
-
-.stat-card-highlight::before {
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.6), transparent);
 }
 
 .stat-card-highlight .stat-value {
-  color: #d4af37;
+  color: var(--color-primary);
 }
 
 .stat-card-highlight .stat-icon {
-  color: #d4af37;
+  color: var(--color-primary);
 }
 
 .stat-card-urgent {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.03));
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-.stat-card-urgent::before {
-  background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.5), transparent);
+  border-color: rgba(239, 68, 68, 0.25);
 }
 
 .stat-card-urgent .stat-icon {
   color: #ef4444;
+}
+
+.stat-card-urgent .stat-icon-wrap {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.stat-card-urgent .stat-value,
+.stat-card-urgent .countdown-value,
+.stat-card-urgent .countdown-number {
+  color: #ef4444;
+}
+
+.stat-card .countdown-icon {
+  display: none;
 }
 
 .stat-icon-wrap {
@@ -486,15 +478,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--color-primary-rgb), 0.1);
 }
 
 .stat-card-highlight .stat-icon-wrap {
-  background: rgba(212, 175, 55, 0.15);
+  background: rgba(var(--color-primary-rgb), 0.15);
 }
 
 .stat-card-urgent .stat-icon-wrap {
-  background: rgba(239, 68, 68, 0.12);
+  background: rgba(var(--color-primary-rgb), 0.15);
 }
 
 .stat-icon {
@@ -1055,37 +1047,39 @@
 
 .hall-of-winners-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--spacing-sm);
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--spacing-md);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .hall-of-winners-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    grid-template-columns: repeat(3, 1fr);
   }
+}
 
-  .hall-of-winners-card {
-    flex: 0 1 calc(50% - var(--spacing-sm));
-    min-width: 140px;
+@media (max-width: 480px) {
+  .hall-of-winners-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 .hall-of-winners-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-sm);
   background: rgba(0, 0, 0, 0.2);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   border: 1px solid rgba(var(--color-primary-rgb), 0.15);
+  text-align: center;
+  position: relative;
 }
 
 .hall-of-winners-rank {
-  width: 22px;
-  height: 22px;
-  background: rgba(var(--color-primary-rgb), 0.2);
+  width: 24px;
+  height: 24px;
+  background: rgba(var(--color-primary-rgb), 0.25);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1093,15 +1087,17 @@
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
-  flex-shrink: 0;
+  position: absolute;
+  top: var(--spacing-sm);
+  left: var(--spacing-sm);
 }
 
 .hall-of-winners-avatar {
-  width: 32px;
-  height: 32px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background: var(--color-bg-elevated);
-  border: 1px solid rgba(var(--color-primary-rgb), 0.3);
+  border: 2px solid rgba(var(--color-primary-rgb), 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1116,25 +1112,37 @@
   object-fit: cover;
 }
 
-.hall-of-winners-info {
-  flex: 1;
-  min-width: 0;
-}
-
 .hall-of-winners-name {
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   margin: 0;
+  line-height: 1.3;
 }
 
-.hall-of-winners-city {
+.hall-of-winners-intro-card {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
+  justify-content: center;
+}
+
+.hall-of-winners-intro-icon {
+  color: var(--color-primary);
+}
+
+.hall-of-winners-intro-number {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.hall-of-winners-intro-text {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* Countdown */

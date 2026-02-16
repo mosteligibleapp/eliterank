@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Users, Clock, Crown } from 'lucide-react';
+import { Users, Clock } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
@@ -73,32 +73,14 @@ export function NominationsPhase() {
         </div>
       </section>
 
-      {/* Who Competes */}
-      <section className="phase-section">
-        <WhoCompetes />
-      </section>
-
-      {/* Hall of Winners - Past Elites */}
-      <section className="phase-section">
-        <HallOfWinnersSection />
-      </section>
-
-      {/* Stats Row */}
-      <section className="phase-stats">
+      {/* Stats Row - Centered below CTA */}
+      <section className="phase-stats phase-stats-centered">
         <div className="stat-card stat-card-urgent">
           <div className="stat-icon-wrap">
             <Clock size={20} className="stat-icon" />
           </div>
           <CountdownDisplay label="" />
           <span className="stat-label">Nominations Close</span>
-        </div>
-        <div className="stat-card stat-card-highlight">
-          <div className="stat-icon-wrap">
-            <Crown size={20} className="stat-icon" />
-          </div>
-          <span className="stat-value">{competition?.number_of_winners || 5}</span>
-          <span className="stat-label">Winners</span>
-          <span className="stat-sublabel">Season {competition?.season || new Date().getFullYear()}</span>
         </div>
         <div className="stat-card">
           <div className="stat-icon-wrap">
@@ -107,6 +89,16 @@ export function NominationsPhase() {
           <span className="stat-value">200+</span>
           <span className="stat-label">Entries</span>
         </div>
+      </section>
+
+      {/* Who Competes */}
+      <section className="phase-section">
+        <WhoCompetes />
+      </section>
+
+      {/* Hall of Winners - Past Elites */}
+      <section className="phase-section">
+        <HallOfWinnersSection />
       </section>
 
       {/* Rewards */}
