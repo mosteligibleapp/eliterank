@@ -95,14 +95,15 @@ function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAc
         border: borderColor,
         borderRadius: borderRadius.lg,
         padding: isMobile ? spacing.md : spacing.lg,
+        overflow: 'hidden',
       }}
     >
       <div style={{
         display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-start' : 'center',
         gap: spacing.sm,
-        flexWrap: 'wrap',
       }}>
         <a
           href={url}
@@ -113,7 +114,7 @@ function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAc
             textDecoration: 'none',
             color: colors.text.primary,
             minWidth: 0,
-            flex: 1,
+            maxWidth: '100%',
           }}
         >
           <MapPin size={14} style={{ color: colors.gold.primary, flexShrink: 0 }} />
@@ -129,7 +130,7 @@ function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAc
           <ExternalLink size={12} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
         </a>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
           <RoleBadge role={role} />
           {isUnclaimed && nomination ? (
             <Button

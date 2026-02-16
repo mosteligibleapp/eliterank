@@ -49,7 +49,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
   ].filter(link => link.handle);
 
   return (
-    <div>
+    <div style={{ maxWidth: '100%', overflowX: 'hidden' }}>
       {/* Hero Section */}
       <Panel style={{ marginBottom: isMobile ? spacing.lg : spacing.xxl }}>
         <div
