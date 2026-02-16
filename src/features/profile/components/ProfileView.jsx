@@ -17,7 +17,8 @@ export default function ProfileView({ hostProfile, onEdit }) {
   }, [hostProfile?.id]);
 
   const handleShare = async () => {
-    const url = window.location.href;
+    const baseUrl = window.location.origin;
+    const url = hostProfile?.id ? `${baseUrl}/?viewProfile=${hostProfile.id}` : window.location.href;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
