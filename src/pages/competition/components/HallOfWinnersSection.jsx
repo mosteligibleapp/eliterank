@@ -35,11 +35,6 @@ export function HallOfWinnersSection() {
       </div>
 
       <div className="hall-of-winners-grid">
-        <div className="hall-of-winners-card hall-of-winners-intro-card">
-          <Crown size={28} className="hall-of-winners-intro-icon" />
-          <span className="hall-of-winners-intro-number">{competition?.number_of_winners || 5}</span>
-          <span className="hall-of-winners-intro-text">Winners Each Year</span>
-        </div>
         {winners.slice(0, 5).map((winner, index) => (
           <div key={winner.id} className="hall-of-winners-card">
             <div className="hall-of-winners-rank">{index + 1}</div>
@@ -53,6 +48,11 @@ export function HallOfWinnersSection() {
             <p className="hall-of-winners-name">{winner.name}</p>
           </div>
         ))}
+        <div className="hall-of-winners-card hall-of-winners-intro-card">
+          <Crown size={28} className="hall-of-winners-intro-icon" />
+          <span className="hall-of-winners-intro-number">{competition?.number_of_winners || 5}</span>
+          <span className="hall-of-winners-intro-text">Winners Each Year</span>
+        </div>
       </div>
     </section>
   );

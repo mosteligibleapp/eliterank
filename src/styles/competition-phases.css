@@ -406,6 +406,13 @@
   margin-bottom: var(--spacing-2xl);
 }
 
+.phase-stats-centered {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 @media (max-width: 768px) {
   .phase-stats {
     gap: var(--spacing-sm);

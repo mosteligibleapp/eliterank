@@ -73,18 +73,8 @@ export function NominationsPhase() {
         </div>
       </section>
 
-      {/* Who Competes */}
-      <section className="phase-section">
-        <WhoCompetes />
-      </section>
-
-      {/* Hall of Winners - Past Elites */}
-      <section className="phase-section">
-        <HallOfWinnersSection />
-      </section>
-
-      {/* Stats Row */}
-      <section className="phase-stats">
+      {/* Stats Row - Centered below CTA */}
+      <section className="phase-stats phase-stats-centered">
         <div className="stat-card stat-card-urgent">
           <div className="stat-icon-wrap">
             <Clock size={20} className="stat-icon" />
@@ -99,6 +89,16 @@ export function NominationsPhase() {
           <span className="stat-value">200+</span>
           <span className="stat-label">Entries</span>
         </div>
+      </section>
+
+      {/* Who Competes */}
+      <section className="phase-section">
+        <WhoCompetes />
+      </section>
+
+      {/* Hall of Winners - Past Elites */}
+      <section className="phase-section">
+        <HallOfWinnersSection />
       </section>
 
       {/* Rewards */}
