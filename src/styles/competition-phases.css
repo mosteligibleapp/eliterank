@@ -453,8 +453,22 @@
   color: var(--color-primary);
 }
 
+.stat-card-urgent {
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
 .stat-card-urgent .stat-icon {
-  color: var(--color-primary);
+  color: #ef4444;
+}
+
+.stat-card-urgent .stat-icon-wrap {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.stat-card-urgent .stat-value,
+.stat-card-urgent .countdown-value,
+.stat-card-urgent .countdown-number {
+  color: #ef4444;
 }
 
 .stat-icon-wrap {
