@@ -68,7 +68,7 @@ function RoleBadge({ role }) {
   }
 }
 
-function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAcceptClick, nominatorName, isMobile }) {
+function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAcceptClick, nominatorName, isCompact }) {
   const isActive = ['voting', 'nomination', 'live'].includes(status);
   const isWinner = role === 'winner';
 
@@ -94,15 +94,15 @@ function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAc
         background: bgColor,
         border: borderColor,
         borderRadius: borderRadius.lg,
-        padding: isMobile ? spacing.md : spacing.lg,
+        padding: isCompact ? spacing.md : spacing.lg,
         overflow: 'hidden',
       }}
     >
       <div style={{
         display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
+        flexDirection: isCompact ? 'column' : 'row',
         justifyContent: 'space-between',
-        alignItems: isMobile ? 'flex-start' : 'center',
+        alignItems: isCompact ? 'flex-start' : 'center',
         gap: spacing.sm,
       }}>
         <a
@@ -164,7 +164,7 @@ function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAc
 }
 
 export default function ProfileCompetitions({ userId, userEmail, user, profile }) {
-  const { isMobile } = useResponsive();
+  const { isMobile, isSmall } = useResponsive();
   const [hostedCompetitions, setHostedCompetitions] = useState([]);
   const [contestantEntries, setContestantEntries] = useState([]);
   const [nominations, setNominations] = useState([]);
@@ -277,16 +277,16 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
   return (
     <>
       <Panel style={{ marginBottom: spacing.xl }}>
-        <div style={{ padding: isMobile ? spacing.lg : spacing.xl }}>
+        <div style={{ padding: isSmall ? spacing.lg : spacing.xl }}>
           <h3 style={{
-            fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+            fontSize: isSmall ? typography.fontSize.lg : typography.fontSize.xl,
             fontWeight: typography.fontWeight.semibold,
             marginBottom: spacing.lg,
             display: 'flex',
             alignItems: 'center',
             gap: spacing.md,
           }}>
-            <EliteRankCrown size={isMobile ? 18 : 22} /> Competitions
+            <EliteRankCrown size={isSmall ? 18 : 22} /> Competitions
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
             {entries.map(entry => (
@@ -300,7 +300,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
                 nomination={entry.nomination}
                 onAcceptClick={handleOpenAcceptModal}
                 nominatorName={entry.nominatorName}
-                isMobile={isMobile}
+                isCompact={isSmall}
               />
             ))}
           </div>
