@@ -182,31 +182,6 @@ export default function ProfileView({ hostProfile, onEdit }) {
             </div>
           </Panel>
 
-          {/* Hobbies Section */}
-          {hostProfile.hobbies && hostProfile.hobbies.length > 0 && (
-            <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
-              <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
-                <h3 style={{
-                  fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-                  fontWeight: typography.fontWeight.semibold,
-                  marginBottom: spacing.lg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md
-                }}>
-                  <Heart size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Interests
-                </h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-                  {hostProfile.hobbies.map((hobby) => (
-                    <InterestTag key={hobby} size={isMobile ? 'md' : 'lg'}>
-                      {hobby}
-                    </InterestTag>
-                  ))}
-                </div>
-              </div>
-            </Panel>
-          )}
-
           {/* Photo Gallery */}
           <Panel>
             <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
@@ -220,7 +195,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
               }}>
                 <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: isMobile ? spacing.sm : spacing.md }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: isMobile ? spacing.sm : spacing.md }}>
                 {gallery.length > 0 ? (
                   gallery.map((imageUrl, index) => (
                     <div
@@ -257,6 +232,31 @@ export default function ProfileView({ hostProfile, onEdit }) {
 
         {/* Right Column */}
         <div>
+          {/* Hobbies Section */}
+          {hostProfile.hobbies && hostProfile.hobbies.length > 0 && (
+            <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
+              <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
+                <h3 style={{
+                  fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+                  fontWeight: typography.fontWeight.semibold,
+                  marginBottom: spacing.lg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.md
+                }}>
+                  <Heart size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Interests
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
+                  {hostProfile.hobbies.map((hobby) => (
+                    <InterestTag key={hobby} size={isMobile ? 'md' : 'lg'}>
+                      {hobby}
+                    </InterestTag>
+                  ))}
+                </div>
+              </div>
+            </Panel>
+          )}
+
           {/* Social Links */}
           {socialLinks.length > 0 && (
             <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
