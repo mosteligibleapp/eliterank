@@ -180,25 +180,11 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             )}
           </div>
         </div>
-        <div style={{
-          display: 'flex',
-          gap: spacing.sm,
-          ...(isMobile && { marginTop: spacing.sm })
-        }}>
-          {!isMobile && (
-            <Button variant="secondary" onClick={onCancel} size={isMobile ? 'sm' : 'md'}>
-              Cancel
-            </Button>
-          )}
-          <Button
-            onClick={onSave}
-            icon={Save}
-            size={isMobile ? 'md' : 'md'}
-            fullWidth={isMobile}
-          >
-            Save Changes
+        {!isMobile && (
+          <Button variant="secondary" onClick={onCancel} size="md">
+            Cancel
           </Button>
-        </div>
+        )}
       </div>
 
       {/* Cover & Avatar */}
@@ -510,7 +496,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
           marginBottom: isMobile ? spacing.xxl : 0,
         }}
       >
-        Save Profile
+        Save Changes
       </Button>
 
       {/* Spin animation */}
