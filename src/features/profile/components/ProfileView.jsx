@@ -215,7 +215,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                         style={{
                           flex: '0 0 100%',
                           scrollSnapAlign: 'start',
-                          aspectRatio: '3 / 4',
+                          aspectRatio: '4 / 3',
                           background: `url(${imageUrl}) center/cover`,
                           borderRadius: borderRadius.lg,
                         }}
@@ -224,7 +224,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                   </div>
                 ) : (
                   <div style={{
-                    aspectRatio: '3 / 4',
+                    aspectRatio: '4 / 3',
                     background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
                     borderRadius: borderRadius.lg,
                     display: 'flex',
