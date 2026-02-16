@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Users, Clock } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
@@ -76,9 +76,6 @@ export function NominationsPhase() {
       {/* Stats Row - Centered below CTA */}
       <section className="phase-stats phase-stats-centered">
         <div className="stat-card stat-card-urgent">
-          <div className="stat-icon-wrap">
-            <Clock size={20} className="stat-icon" />
-          </div>
           <CountdownDisplay label="" />
           <span className="stat-label">Nominations Close</span>
         </div>
