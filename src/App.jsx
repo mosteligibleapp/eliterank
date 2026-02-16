@@ -49,6 +49,7 @@ const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
 const RewardsPage = lazy(() => import('./features/profile/RewardsPage'));
 const ClaimNominationPage = lazy(() => import('./features/public-site/pages/ClaimNominationPage'));
 const CompetitionLayout = lazy(() => import('./pages/competition/CompetitionLayout'));
+const PublicProfileView = lazy(() => import('./features/public-site/components/PublicProfileView'));
 
 // Shared competition dashboard for both host and superadmin
 import { CompetitionDashboard } from './features/competition-dashboard';
@@ -466,6 +467,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState(VIEW.PUBLIC);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
+  const [viewPublicProfile, setViewPublicProfile] = useState(null);
 
   // Claim nomination state
   const [claimToken, setClaimToken] = useState(null);
@@ -566,6 +568,16 @@ export default function App() {
         setCurrentView(VIEW.HOST_DASHBOARD);
       }
       navigate('/', { replace: true });
+    } else if (params.get('viewProfile')) {
+      const profileId = params.get('viewProfile');
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single()
+        .then(({ data }) => {
+          if (data) setViewPublicProfile(data);
+        });
     }
   }, [location.search, isAuthenticated, hasDashboardAccess, userRole, navigate]);
 
@@ -665,8 +677,7 @@ export default function App() {
           )
         `)
         .eq('email', userEmail)
-        .neq('status', 'rejected')
-        .neq('status', 'declined')
+        .not('status', 'in', '("rejected","declined")')
         .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
         .is('claimed_at', null);
 
@@ -1238,6 +1249,20 @@ export default function App() {
             </Suspense>
           </div>
         </div>
+      )}
+
+      {/* Shared Public Profile View */}
+      {viewPublicProfile && (
+        <Suspense fallback={<LoadingScreen message="Loading profile..." />}>
+          <PublicProfileView
+            profile={viewPublicProfile}
+            role="contestant"
+            onBack={() => {
+              setViewPublicProfile(null);
+              navigate('/', { replace: true });
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Pending Nominations Modal */}
