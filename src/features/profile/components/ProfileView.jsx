@@ -195,37 +195,77 @@ export default function ProfileView({ hostProfile, onEdit }) {
               }}>
                 <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: isMobile ? spacing.sm : spacing.md }}>
-                {gallery.length > 0 ? (
-                  gallery.map((imageUrl, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        aspectRatio: '1',
-                        background: `url(${imageUrl}) center/cover`,
-                        borderRadius: borderRadius.lg,
-                      }}
-                    />
-                  ))
+              {isMobile ? (
+                gallery.length > 0 ? (
+                  <div
+                    className="hide-scrollbar"
+                    style={{
+                      display: 'flex',
+                      overflowX: 'auto',
+                      scrollSnapType: 'x mandatory',
+                      gap: spacing.sm,
+                      WebkitOverflowScrolling: 'touch',
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none',
+                    }}
+                  >
+                    {gallery.map((imageUrl, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          flex: '0 0 100%',
+                          scrollSnapAlign: 'start',
+                          aspectRatio: '3 / 4',
+                          background: `url(${imageUrl}) center/cover`,
+                          borderRadius: borderRadius.lg,
+                        }}
+                      />
+                    ))}
+                  </div>
                 ) : (
-                  // Show placeholders if no gallery images
-                  [1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      style={{
-                        aspectRatio: '1',
-                        background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
-                        borderRadius: borderRadius.lg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Camera size={isMobile ? 20 : 24} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                    </div>
-                  ))
-                )}
-              </div>
+                  <div style={{
+                    aspectRatio: '3 / 4',
+                    background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
+                    borderRadius: borderRadius.lg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Camera size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                  </div>
+                )
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
+                  {gallery.length > 0 ? (
+                    gallery.map((imageUrl, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          aspectRatio: '1',
+                          background: `url(${imageUrl}) center/cover`,
+                          borderRadius: borderRadius.lg,
+                        }}
+                      />
+                    ))
+                  ) : (
+                    [1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        style={{
+                          aspectRatio: '1',
+                          background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
+                          borderRadius: borderRadius.lg,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Camera size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </Panel>
         </div>
