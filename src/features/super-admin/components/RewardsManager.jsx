@@ -164,12 +164,14 @@ export default function RewardsManager() {
             description: rewardData.description,
             image_url: rewardData.imageUrl,
             product_url: rewardData.productUrl,
-            terms: rewardData.terms,
-            commission_rate: rewardData.commissionRate || null,
+            terms: rewardData.isAffiliate ? rewardData.terms : null,
+            commission_rate: rewardData.isAffiliate ? (rewardData.commissionRate || null) : null,
             cash_value: rewardData.cashValue || null,
-            requires_promotion: rewardData.requiresPromotion,
+            requires_promotion: rewardData.isAffiliate ? rewardData.requiresPromotion : false,
             claim_deadline_days: rewardData.claimDeadlineDays || 7,
             status: rewardData.status,
+            reward_type: rewardData.rewardType,
+            is_affiliate: rewardData.isAffiliate,
           })
           .eq('id', editingReward.id);
 
@@ -185,12 +187,14 @@ export default function RewardsManager() {
             description: rewardData.description,
             image_url: rewardData.imageUrl,
             product_url: rewardData.productUrl,
-            terms: rewardData.terms,
-            commission_rate: rewardData.commissionRate || null,
+            terms: rewardData.isAffiliate ? rewardData.terms : null,
+            commission_rate: rewardData.isAffiliate ? (rewardData.commissionRate || null) : null,
             cash_value: rewardData.cashValue || null,
-            requires_promotion: rewardData.requiresPromotion,
+            requires_promotion: rewardData.isAffiliate ? rewardData.requiresPromotion : false,
             claim_deadline_days: rewardData.claimDeadlineDays || 7,
             status: rewardData.status || 'active',
+            reward_type: rewardData.rewardType,
+            is_affiliate: rewardData.isAffiliate,
           });
 
         if (error) throw error;
@@ -514,9 +518,35 @@ export default function RewardsManager() {
                                 {reward.status}
                               </Badge>
                             </div>
-                            <p style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary, marginBottom: spacing.sm }}>
-                              {reward.brand_name}
-                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+                              <p style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary }}>
+                                {reward.brand_name}
+                              </p>
+                              <Badge
+                                size="sm"
+                                style={{
+                                  background: reward.reward_type === 'winners_only'
+                                    ? 'rgba(212,175,55,0.15)'
+                                    : 'rgba(34,197,94,0.15)',
+                                  color: reward.reward_type === 'winners_only'
+                                    ? colors.gold.primary
+                                    : '#22c55e',
+                                }}
+                              >
+                                {reward.reward_type === 'winners_only' ? 'Winners Only' : 'All Nominees'}
+                              </Badge>
+                              {reward.is_affiliate && (
+                                <Badge
+                                  size="sm"
+                                  style={{
+                                    background: 'rgba(139,92,246,0.15)',
+                                    color: '#a78bfa',
+                                  }}
+                                >
+                                  Affiliate
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           <div style={{ display: 'flex', gap: spacing.sm }}>
                             <Button
