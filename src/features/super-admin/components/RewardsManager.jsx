@@ -255,7 +255,7 @@ export default function RewardsManager() {
         if (compError) throw compError;
       }
 
-      // Then, create contestant assignments (for claiming) if any selected
+      // Create contestant assignments (for claiming) if any selected
       if (assignmentData.contestantIds && assignmentData.contestantIds.length > 0) {
         // Get contestant competition mappings
         const { data: contestantData } = await supabase
@@ -282,6 +282,35 @@ export default function RewardsManager() {
           .upsert(contestantAssignmentsToCreate, { onConflict: 'reward_id,contestant_id' });
 
         if (assignError) throw assignError;
+      }
+
+      // Create nominee assignments (for claiming) if any selected
+      if (assignmentData.nomineeIds && assignmentData.nomineeIds.length > 0) {
+        // Get nominee competition mappings
+        const { data: nomineeData } = await supabase
+          .from('nominees')
+          .select('id, competition_id')
+          .in('id', assignmentData.nomineeIds);
+
+        const nomineeCompMap = {};
+        (nomineeData || []).forEach(n => {
+          nomineeCompMap[n.id] = n.competition_id;
+        });
+
+        const nomineeAssignmentsToCreate = assignmentData.nomineeIds.map(nomineeId => ({
+          reward_id: assigningReward.id,
+          competition_id: nomineeCompMap[nomineeId],
+          nominee_id: nomineeId,
+          discount_code: null,
+          tracking_link: null,
+          status: 'pending',
+        }));
+
+        const { error: nomineeError } = await supabase
+          .from('reward_assignments')
+          .upsert(nomineeAssignmentsToCreate, { onConflict: 'reward_id,nominee_id' });
+
+        if (nomineeError) throw nomineeError;
       }
 
       await Promise.all([fetchAssignments(), fetchCompetitionAssignments()]);
