@@ -230,7 +230,18 @@ export default function RewardsManager() {
     if (!supabase) return;
 
     try {
-      // First, create competition assignments (for visibility)
+      // Remove unselected competition assignments
+      if (assignmentData.removedCompetitionIds && assignmentData.removedCompetitionIds.length > 0) {
+        const { error: removeError } = await supabase
+          .from('reward_competition_assignments')
+          .delete()
+          .eq('reward_id', assigningReward.id)
+          .in('competition_id', assignmentData.removedCompetitionIds);
+
+        if (removeError) throw removeError;
+      }
+
+      // Create competition assignments (for visibility)
       if (assignmentData.competitionIds && assignmentData.competitionIds.length > 0) {
         const competitionAssignmentsToCreate = assignmentData.competitionIds.map(competitionId => ({
           reward_id: assigningReward.id,

@@ -30,14 +30,14 @@ export default function AssignRewardModal({
   useEffect(() => {
     if (isOpen) {
       setStep(STEPS.COMPETITIONS);
-      setSelectedCompetitions([]);
+      setSelectedCompetitions([...existingCompetitionAssignments]);
       setContestants([]);
       setSelectedContestants([]);
       setSelectAllContestants(false);
       setSearchQuery('');
       setCompetitionSearchQuery('');
     }
-  }, [isOpen]);
+  }, [isOpen, existingCompetitionAssignments]);
 
   // Fetch contestants for selected competitions
   const fetchContestants = useCallback(async () => {
@@ -162,11 +162,16 @@ export default function AssignRewardModal({
     setSearchQuery('');
   };
 
+  // Compute which existing assignments were removed
+  const removedCompetitionIds = existingCompetitionAssignments.filter(
+    id => !selectedCompetitions.includes(id)
+  );
+
   // Assign to competitions only (make visible)
   const handleAssignToCompetitions = () => {
-    if (selectedCompetitions.length === 0) return;
     onAssign({
       competitionIds: selectedCompetitions,
+      removedCompetitionIds,
       contestantIds: [],
     });
   };
@@ -175,6 +180,7 @@ export default function AssignRewardModal({
   const handleAssignToContestants = () => {
     onAssign({
       competitionIds: selectedCompetitions,
+      removedCompetitionIds,
       contestantIds: selectedContestants,
     });
   };
@@ -196,9 +202,11 @@ export default function AssignRewardModal({
             <Button
               variant="secondary"
               onClick={handleAssignToCompetitions}
-              disabled={selectedCompetitions.length === 0}
+              disabled={selectedCompetitions.length === 0 && removedCompetitionIds.length === 0}
             >
-              Assign to {selectedCompetitions.length} Competition{selectedCompetitions.length !== 1 ? 's' : ''} Only
+              {selectedCompetitions.length === 0 && removedCompetitionIds.length > 0
+                ? `Remove from ${removedCompetitionIds.length} Competition${removedCompetitionIds.length !== 1 ? 's' : ''}`
+                : `Assign to ${selectedCompetitions.length} Competition${selectedCompetitions.length !== 1 ? 's' : ''} Only`}
             </Button>
             <Button
               onClick={handleNextStep}
@@ -347,20 +355,19 @@ export default function AssignRewardModal({
                   return (
                     <div
                       key={comp.id}
-                      onClick={() => !alreadyAssigned && toggleCompetition(comp.id)}
+                      onClick={() => toggleCompetition(comp.id)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: spacing.md,
                         padding: spacing.md,
                         borderBottom: index < filteredCompetitions.length - 1 ? `1px solid ${colors.border.light}` : 'none',
-                        cursor: alreadyAssigned ? 'not-allowed' : 'pointer',
+                        cursor: 'pointer',
                         background: isSelected
-                          ? 'rgba(212,175,55,0.1)'
-                          : alreadyAssigned
-                            ? 'rgba(34,197,94,0.05)'
-                            : 'transparent',
-                        opacity: alreadyAssigned ? 0.7 : 1,
+                          ? alreadyAssigned
+                            ? 'rgba(34,197,94,0.1)'
+                            : 'rgba(212,175,55,0.1)'
+                          : 'transparent',
                       }}
                     >
                       {/* Checkbox */}
@@ -369,19 +376,19 @@ export default function AssignRewardModal({
                         height: '20px',
                         borderRadius: borderRadius.sm,
                         border: `2px solid ${
-                          alreadyAssigned
-                            ? '#22c55e'
-                            : isSelected
-                              ? colors.gold.primary
-                              : colors.border.light
+                          isSelected
+                            ? alreadyAssigned ? '#22c55e' : colors.gold.primary
+                            : colors.border.light
                         }`,
-                        background: isSelected ? colors.gold.primary : alreadyAssigned ? '#22c55e' : 'transparent',
+                        background: isSelected
+                          ? alreadyAssigned ? '#22c55e' : colors.gold.primary
+                          : 'transparent',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
                       }}>
-                        {(isSelected || alreadyAssigned) && (
+                        {isSelected && (
                           <Check size={14} style={{ color: alreadyAssigned ? '#fff' : '#000' }} />
                         )}
                       </div>
@@ -411,12 +418,12 @@ export default function AssignRewardModal({
                       {alreadyAssigned && (
                         <span style={{
                           fontSize: typography.fontSize.xs,
-                          color: '#22c55e',
-                          background: 'rgba(34,197,94,0.1)',
+                          color: isSelected ? '#22c55e' : colors.text.muted,
+                          background: isSelected ? 'rgba(34,197,94,0.1)' : 'rgba(107,114,128,0.1)',
                           padding: `${spacing.xs} ${spacing.sm}`,
                           borderRadius: borderRadius.sm,
                         }}>
-                          Already visible
+                          {isSelected ? 'Already visible' : 'Will be removed'}
                         </span>
                       )}
                     </div>
