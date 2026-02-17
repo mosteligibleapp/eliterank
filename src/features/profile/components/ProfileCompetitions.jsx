@@ -254,7 +254,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
   hostedCompetitions.forEach(comp => {
     entries.push({
       id: `host-${comp.id}`,
-      name: `${comp?.city?.name || comp?.city || comp?.name || 'Competition'} ${comp?.season || ''}`.trim(),
+      name: comp?.name || `${comp?.city?.name || comp?.city || 'Competition'} ${comp?.season || ''}`.trim(),
       url: getCompetitionLink(comp),
       role: 'host',
       status: comp?.status,
@@ -267,7 +267,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
     const isWinner = entry?.status === 'winner';
     entries.push({
       id: `contestant-${entry.id}`,
-      name: `${comp?.city?.name || comp?.city || comp?.name || 'Competition'} ${comp?.season || ''}`.trim(),
+      name: comp?.name || `${comp?.city?.name || comp?.city || 'Competition'} ${comp?.season || ''}`.trim(),
       url: getCompetitionLink(comp),
       role: isWinner ? 'winner' : 'contestant',
       status: comp?.status,
@@ -288,7 +288,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
           }}>
             <EliteRankCrown size={isSmall ? 18 : 22} /> Competitions
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, alignItems: 'flex-start' }}>
             {entries.map(entry => (
               <CompetitionRow
                 key={entry.id}
