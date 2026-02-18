@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, Loader, AlertCircle } from 'lucide-react';
 import { Panel, Button, Badge } from '../../components/ui';
+import ClaimRewardModal from '../../components/modals/ClaimRewardModal';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
@@ -25,7 +26,7 @@ export default function RewardsPage({ hostProfile }) {
   const [claimableRewards, setClaimableRewards] = useState([]); // Individual assignments (can claim)
   const [visibleRewards, setVisibleRewards] = useState([]); // Competition assignments (visible only)
   const [loading, setLoading] = useState(true);
-  const [claimingId, setClaimingId] = useState(null);
+  const [claimingAssignment, setClaimingAssignment] = useState(null); // Assignment being claimed (opens modal)
   const [addingLinkId, setAddingLinkId] = useState(null);
   const [newLink, setNewLink] = useState('');
 
@@ -152,28 +153,9 @@ export default function RewardsPage({ hostProfile }) {
     fetchRewards();
   }, [fetchRewards]);
 
-  // Claim a reward
-  const handleClaim = async (assignmentId) => {
-    if (!supabase) return;
-
-    setClaimingId(assignmentId);
-    try {
-      const { error } = await supabase
-        .from('reward_assignments')
-        .update({
-          status: 'claimed',
-          claimed_at: new Date().toISOString(),
-        })
-        .eq('id', assignmentId);
-
-      if (error) throw error;
-      await fetchRewards();
-    } catch (err) {
-      console.error('Error claiming reward:', err);
-      alert('Failed to claim reward. Please try again.');
-    } finally {
-      setClaimingId(null);
-    }
+  // Open claim modal for a reward assignment
+  const handleStartClaim = (assignment) => {
+    setClaimingAssignment(assignment);
   };
 
   // Add content link
@@ -254,8 +236,7 @@ export default function RewardsPage({ hostProfile }) {
                   key={assignment.id}
                   assignment={assignment}
                   isMobile={isMobile}
-                  onClaim={() => handleClaim(assignment.id)}
-                  claiming={claimingId === assignment.id}
+                  onClaim={() => handleStartClaim(assignment)}
                 />
               ))}
             </div>
@@ -420,6 +401,15 @@ export default function RewardsPage({ hostProfile }) {
         </Panel>
       )}
 
+      {/* Claim Reward Modal */}
+      <ClaimRewardModal
+        isOpen={!!claimingAssignment}
+        onClose={() => setClaimingAssignment(null)}
+        assignment={claimingAssignment}
+        userId={user?.id}
+        onClaimed={fetchRewards}
+      />
+
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
@@ -437,7 +427,6 @@ function RewardCard({
   assignment,
   isMobile,
   onClaim,
-  claiming,
   addingLinkId,
   setAddingLinkId,
   newLink,
@@ -520,11 +509,10 @@ function RewardCard({
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
             <Button
               onClick={onClaim}
-              disabled={claiming}
-              icon={claiming ? Loader : Check}
+              icon={Gift}
               style={{ background: '#eab308', color: '#000' }}
             >
-              {claiming ? 'Claiming...' : 'Claim Reward'}
+              Claim Reward
             </Button>
             {daysRemaining !== null && (
               <p style={{ fontSize: typography.fontSize.sm, color: daysRemaining <= 2 ? '#ef4444' : colors.text.muted }}>

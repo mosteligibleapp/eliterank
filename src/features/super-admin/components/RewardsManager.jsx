@@ -69,7 +69,7 @@ export default function RewardsManager() {
         .from('reward_assignments')
         .select(`
           *,
-          reward:rewards(id, name, brand_name, image_url),
+          reward:rewards(id, name, brand_name, image_url, is_affiliate),
           competition:competitions(id, name, city, season),
           contestant:contestants(id, name, user_id, profile:profiles(first_name, last_name, email, avatar_url)),
           nominee:nominees(id, name, email, avatar_url)
@@ -762,6 +762,7 @@ function AssignmentRow({ assignment, onUpdate, showRewardInfo = false, isLast = 
   const [code, setCode] = useState(assignment.discount_code || '');
   const [link, setLink] = useState(assignment.tracking_link || '');
 
+  const isAffiliate = assignment.reward?.is_affiliate;
   const isNomineeAssignment = !assignment.contestant_id && !!assignment.nominee_id;
   const contestantName = isNomineeAssignment
     ? (assignment.nominee?.name || 'Unknown Nominee')
@@ -838,58 +839,126 @@ function AssignmentRow({ assignment, onUpdate, showRewardInfo = false, isLast = 
         </p>
       </div>
 
-      {/* Code & Link */}
+      {/* Shipping Address */}
+      <div style={{ width: '160px' }}>
+        {assignment.shipping_address ? (
+          <div>
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Shipping:</p>
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary, lineHeight: 1.4 }}>
+              {assignment.shipping_address.street}
+              {assignment.shipping_address.apt ? `, ${assignment.shipping_address.apt}` : ''}
+              <br />
+              {assignment.shipping_address.city}, {assignment.shipping_address.state} {assignment.shipping_address.zip}
+            </p>
+          </div>
+        ) : (
+          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, fontStyle: 'italic' }}>
+            {assignment.status === 'pending' ? 'Awaiting claim' : 'No address'}
+          </p>
+        )}
+      </div>
+
+      {/* Code & Link (affiliate rewards) */}
       <div style={{ width: '200px' }}>
-        {isEditing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
-            <input
-              type="text"
-              placeholder="Discount code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              style={{
-                padding: spacing.sm,
-                background: colors.background.secondary,
-                border: `1px solid ${colors.border.light}`,
-                borderRadius: borderRadius.sm,
-                color: colors.text.primary,
-                fontSize: typography.fontSize.xs,
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Tracking link"
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-              style={{
-                padding: spacing.sm,
-                background: colors.background.secondary,
-                border: `1px solid ${colors.border.light}`,
-                borderRadius: borderRadius.sm,
-                color: colors.text.primary,
-                fontSize: typography.fontSize.xs,
-              }}
-            />
-            <div style={{ display: 'flex', gap: spacing.xs }}>
-              <button
-                onClick={handleSave}
+        {isAffiliate ? (
+          isEditing ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
+              <input
+                type="text"
+                placeholder="Discount code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
                 style={{
-                  flex: 1,
-                  padding: spacing.xs,
-                  background: colors.gold.primary,
-                  border: 'none',
+                  padding: spacing.sm,
+                  background: colors.background.secondary,
+                  border: `1px solid ${colors.border.light}`,
                   borderRadius: borderRadius.sm,
-                  color: '#000',
+                  color: colors.text.primary,
                   fontSize: typography.fontSize.xs,
-                  cursor: 'pointer',
                 }}
-              >
-                Save
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
+              />
+              <input
+                type="text"
+                placeholder="Tracking link"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
                 style={{
-                  padding: spacing.xs,
+                  padding: spacing.sm,
+                  background: colors.background.secondary,
+                  border: `1px solid ${colors.border.light}`,
+                  borderRadius: borderRadius.sm,
+                  color: colors.text.primary,
+                  fontSize: typography.fontSize.xs,
+                }}
+              />
+              <div style={{ display: 'flex', gap: spacing.xs }}>
+                <button
+                  onClick={handleSave}
+                  style={{
+                    flex: 1,
+                    padding: spacing.xs,
+                    background: colors.gold.primary,
+                    border: 'none',
+                    borderRadius: borderRadius.sm,
+                    color: '#000',
+                    fontSize: typography.fontSize.xs,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  style={{
+                    padding: spacing.xs,
+                    background: 'transparent',
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.sm,
+                    color: colors.text.secondary,
+                    fontSize: typography.fontSize.xs,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {assignment.discount_code ? (
+                <p style={{ fontSize: typography.fontSize.xs, marginBottom: spacing.xs }}>
+                  <span style={{ color: colors.text.muted }}>Code: </span>
+                  <span style={{ color: colors.text.primary, fontFamily: 'monospace' }}>{assignment.discount_code}</span>
+                </p>
+              ) : null}
+              {assignment.tracking_link ? (
+                <a
+                  href={assignment.tracking_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    fontSize: typography.fontSize.xs,
+                    color: colors.gold.primary,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <Link2 size={12} />
+                  Tracking Link
+                </a>
+              ) : null}
+              {!assignment.discount_code && !assignment.tracking_link && (
+                <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, fontStyle: 'italic' }}>
+                  No code/link yet
+                </p>
+              )}
+              <button
+                onClick={() => setIsEditing(true)}
+                style={{
+                  marginTop: spacing.xs,
+                  padding: `${spacing.xs} ${spacing.sm}`,
                   background: 'transparent',
                   border: `1px solid ${colors.border.light}`,
                   borderRadius: borderRadius.sm,
@@ -898,57 +967,14 @@ function AssignmentRow({ assignment, onUpdate, showRewardInfo = false, isLast = 
                   cursor: 'pointer',
                 }}
               >
-                Cancel
+                Edit
               </button>
             </div>
-          </div>
+          )
         ) : (
-          <div>
-            {assignment.discount_code ? (
-              <p style={{ fontSize: typography.fontSize.xs, marginBottom: spacing.xs }}>
-                <span style={{ color: colors.text.muted }}>Code: </span>
-                <span style={{ color: colors.text.primary, fontFamily: 'monospace' }}>{assignment.discount_code}</span>
-              </p>
-            ) : null}
-            {assignment.tracking_link ? (
-              <a
-                href={assignment.tracking_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.xs,
-                  fontSize: typography.fontSize.xs,
-                  color: colors.gold.primary,
-                  textDecoration: 'none',
-                }}
-              >
-                <Link2 size={12} />
-                Tracking Link
-              </a>
-            ) : null}
-            {!assignment.discount_code && !assignment.tracking_link && (
-              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, fontStyle: 'italic' }}>
-                No code/link yet
-              </p>
-            )}
-            <button
-              onClick={() => setIsEditing(true)}
-              style={{
-                marginTop: spacing.xs,
-                padding: `${spacing.xs} ${spacing.sm}`,
-                background: 'transparent',
-                border: `1px solid ${colors.border.light}`,
-                borderRadius: borderRadius.sm,
-                color: colors.text.secondary,
-                fontSize: typography.fontSize.xs,
-                cursor: 'pointer',
-              }}
-            >
-              Edit
-            </button>
-          </div>
+          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, fontStyle: 'italic' }}>
+            Non-affiliate
+          </p>
         )}
       </div>
 
