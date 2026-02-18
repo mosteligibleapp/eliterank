@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Check, Upload, Camera, Loader, X } from 'lucide-react';
+import { Check, Upload, Camera, Loader, X, Trophy, Users, Link2 } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useModalForm } from '../../hooks';
@@ -17,7 +17,14 @@ const INITIAL_STATE = {
   requiresPromotion: true,
   claimDeadlineDays: '7',
   status: 'active',
+  rewardType: 'all_nominees',
+  isAffiliate: false,
 };
+
+const REWARD_TYPE_OPTIONS = [
+  { value: 'all_nominees', label: 'All Nominees', icon: Users, description: 'Available to all nominees in the competition' },
+  { value: 'winners_only', label: 'Winners Only', icon: Trophy, description: 'Exclusive prize for competition winners' },
+];
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active', color: '#22c55e' },
@@ -50,6 +57,8 @@ export default function RewardModal({
       requiresPromotion: reward.requires_promotion ?? true,
       claimDeadlineDays: reward.claim_deadline_days?.toString() || '7',
       status: reward.status || 'active',
+      rewardType: reward.reward_type || 'all_nominees',
+      isAffiliate: reward.is_affiliate ?? false,
     };
   }, [reward]);
 
@@ -188,13 +197,100 @@ export default function RewardModal({
           />
         </div>
 
+        {/* Reward Type */}
+        <div>
+          <label style={labelStyle}>Who is this for?</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.sm }}>
+            {REWARD_TYPE_OPTIONS.map((option) => {
+              const Icon = option.icon;
+              const isActive = form.rewardType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => updateField('rewardType', option.value)}
+                  style={{
+                    padding: spacing.md,
+                    borderRadius: borderRadius.lg,
+                    border: `2px solid ${isActive ? colors.gold.primary : colors.border.light}`,
+                    background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                  }}
+                >
+                  <Icon size={20} style={{ color: isActive ? colors.gold.primary : colors.text.muted, flexShrink: 0 }} />
+                  <div>
+                    <p style={{
+                      fontWeight: typography.fontWeight.medium,
+                      fontSize: typography.fontSize.sm,
+                      color: isActive ? colors.gold.primary : colors.text.primary,
+                    }}>
+                      {option.label}
+                    </p>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: '2px' }}>
+                      {option.description}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Affiliate Toggle */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: spacing.md,
+          padding: spacing.md,
+          background: form.isAffiliate ? 'rgba(212,175,55,0.05)' : 'transparent',
+          border: `1px solid ${form.isAffiliate ? 'rgba(212,175,55,0.2)' : colors.border.light}`,
+          borderRadius: borderRadius.lg,
+        }}>
+          <button
+            onClick={() => updateField('isAffiliate', !form.isAffiliate)}
+            style={{
+              width: '48px',
+              height: '28px',
+              borderRadius: '14px',
+              background: form.isAffiliate ? colors.gold.primary : colors.background.secondary,
+              border: `1px solid ${form.isAffiliate ? colors.gold.primary : colors.border.light}`,
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'all 0.2s',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{
+              position: 'absolute',
+              top: '3px',
+              left: form.isAffiliate ? '23px' : '3px',
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              background: '#fff',
+              transition: 'left 0.2s',
+            }} />
+          </button>
+          <div>
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>
+              Affiliate Program
+            </p>
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+              Includes commission tracking and promotion requirements
+            </p>
+          </div>
+        </div>
+
         {/* Description */}
         <div>
           <label style={labelStyle}>Description</label>
           <textarea
             value={form.description}
             onChange={(e) => updateField('description', e.target.value)}
-            placeholder="Describe the reward and what contestants receive..."
+            placeholder="Describe the reward and what recipients receive..."
             rows={3}
             style={{
               ...inputStyle,
@@ -308,70 +404,75 @@ export default function RewardModal({
           placeholder="https://..."
         />
 
-        {/* Terms */}
-        <div>
-          <label style={labelStyle}>Promotion Terms & Requirements</label>
-          <textarea
-            value={form.terms}
-            onChange={(e) => updateField('terms', e.target.value)}
-            placeholder="Describe what contestants must do to remain compliant (e.g., post 1 video per week mentioning the product)..."
-            rows={3}
-            style={{
-              ...inputStyle,
-              resize: 'vertical',
-              fontFamily: 'inherit',
-            }}
-          />
-        </div>
+        {/* Days to Claim */}
+        <Input
+          label="Days to Claim"
+          type="number"
+          value={form.claimDeadlineDays}
+          onChange={(e) => updateField('claimDeadlineDays', e.target.value)}
+          placeholder="7"
+        />
 
-        {/* Commission & Deadline */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
-          <Input
-            label="Commission Rate (%)"
-            type="number"
-            value={form.commissionRate}
-            onChange={(e) => updateField('commissionRate', e.target.value)}
-            placeholder="e.g., 20"
-          />
-          <Input
-            label="Days to Claim"
-            type="number"
-            value={form.claimDeadlineDays}
-            onChange={(e) => updateField('claimDeadlineDays', e.target.value)}
-            placeholder="7"
-          />
-        </div>
+        {/* Affiliate-specific fields */}
+        {form.isAffiliate && (
+          <>
+            {/* Terms */}
+            <div>
+              <label style={labelStyle}>Promotion Terms & Requirements</label>
+              <textarea
+                value={form.terms}
+                onChange={(e) => updateField('terms', e.target.value)}
+                placeholder="Describe what recipients must do to remain compliant (e.g., post 1 video per week mentioning the product)..."
+                rows={3}
+                style={{
+                  ...inputStyle,
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
 
-        {/* Requires Promotion Toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-          <button
-            onClick={() => updateField('requiresPromotion', !form.requiresPromotion)}
-            style={{
-              width: '48px',
-              height: '28px',
-              borderRadius: '14px',
-              background: form.requiresPromotion ? colors.gold.primary : colors.background.secondary,
-              border: `1px solid ${form.requiresPromotion ? colors.gold.primary : colors.border.light}`,
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'all 0.2s',
-            }}
-          >
-            <span style={{
-              position: 'absolute',
-              top: '3px',
-              left: form.requiresPromotion ? '23px' : '3px',
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              background: '#fff',
-              transition: 'left 0.2s',
-            }} />
-          </button>
-          <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-            Requires social media promotion
-          </span>
-        </div>
+            {/* Commission Rate */}
+            <Input
+              label="Commission Rate (%)"
+              type="number"
+              value={form.commissionRate}
+              onChange={(e) => updateField('commissionRate', e.target.value)}
+              placeholder="e.g., 20"
+            />
+
+            {/* Requires Promotion Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+              <button
+                onClick={() => updateField('requiresPromotion', !form.requiresPromotion)}
+                style={{
+                  width: '48px',
+                  height: '28px',
+                  borderRadius: '14px',
+                  background: form.requiresPromotion ? colors.gold.primary : colors.background.secondary,
+                  border: `1px solid ${form.requiresPromotion ? colors.gold.primary : colors.border.light}`,
+                  cursor: 'pointer',
+                  position: 'relative',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <span style={{
+                  position: 'absolute',
+                  top: '3px',
+                  left: form.requiresPromotion ? '23px' : '3px',
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: '#fff',
+                  transition: 'left 0.2s',
+                }} />
+              </button>
+              <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                Requires social media promotion
+              </span>
+            </div>
+          </>
+        )}
 
         {/* Status */}
         <div>

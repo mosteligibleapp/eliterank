@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Check, Users, Search, Loader, ChevronRight, ChevronLeft, Crown } from 'lucide-react';
+import { Check, Users, Search, Loader, ChevronRight, ChevronLeft, Crown, UserPlus } from 'lucide-react';
 import { Modal, Button, Badge } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 
 const STEPS = {
   COMPETITIONS: 'competitions',
-  CONTESTANTS: 'contestants',
+  PEOPLE: 'people',
 };
 
 export default function AssignRewardModal({
@@ -19,9 +19,9 @@ export default function AssignRewardModal({
 }) {
   const [step, setStep] = useState(STEPS.COMPETITIONS);
   const [selectedCompetitions, setSelectedCompetitions] = useState([]);
-  const [contestants, setContestants] = useState([]);
-  const [selectedContestants, setSelectedContestants] = useState([]);
-  const [selectAllContestants, setSelectAllContestants] = useState(false);
+  const [people, setPeople] = useState([]);
+  const [selectedPeople, setSelectedPeople] = useState([]);
+  const [selectAllPeople, setSelectAllPeople] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [competitionSearchQuery, setCompetitionSearchQuery] = useState('');
@@ -31,44 +31,61 @@ export default function AssignRewardModal({
     if (isOpen) {
       setStep(STEPS.COMPETITIONS);
       setSelectedCompetitions([...existingCompetitionAssignments]);
-      setContestants([]);
-      setSelectedContestants([]);
-      setSelectAllContestants(false);
+      setPeople([]);
+      setSelectedPeople([]);
+      setSelectAllPeople(false);
       setSearchQuery('');
       setCompetitionSearchQuery('');
     }
   }, [isOpen, existingCompetitionAssignments]);
 
-  // Fetch contestants for selected competitions
-  const fetchContestants = useCallback(async () => {
+  // Fetch contestants and nominees for selected competitions
+  const fetchPeople = useCallback(async () => {
     if (selectedCompetitions.length === 0 || !supabase) {
-      setContestants([]);
+      setPeople([]);
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('contestants')
-        .select(`
-          id,
-          name,
-          user_id,
-          competition_id,
-          profile:profiles(first_name, last_name, email, avatar_url)
-        `)
-        .in('competition_id', selectedCompetitions)
-        .order('name');
+      // Fetch contestants and nominees in parallel
+      const [contestantsRes, nomineesRes, existingAssignmentsRes] = await Promise.all([
+        supabase
+          .from('contestants')
+          .select(`
+            id,
+            name,
+            user_id,
+            competition_id,
+            profile:profiles(first_name, last_name, email, avatar_url)
+          `)
+          .in('competition_id', selectedCompetitions)
+          .order('name'),
+        supabase
+          .from('nominees')
+          .select(`
+            id,
+            name,
+            email,
+            avatar_url,
+            user_id,
+            competition_id,
+            status,
+            converted_to_contestant
+          `)
+          .in('competition_id', selectedCompetitions)
+          .not('status', 'in', '("rejected","declined")')
+          .order('name'),
+        supabase
+          .from('reward_assignments')
+          .select('contestant_id, nominee_id')
+          .eq('reward_id', reward?.id),
+      ]);
 
-      if (error) throw error;
+      if (contestantsRes.error) throw contestantsRes.error;
 
-      // Check existing individual assignments
-      const { data: existingAssignments } = await supabase
-        .from('reward_assignments')
-        .select('contestant_id')
-        .eq('reward_id', reward?.id);
-
-      const assignedIds = new Set((existingAssignments || []).map(a => a.contestant_id));
+      const assignedContestantIds = new Set((existingAssignmentsRes.data || []).filter(a => a.contestant_id).map(a => a.contestant_id));
+      const assignedNomineeIds = new Set((existingAssignmentsRes.data || []).filter(a => a.nominee_id).map(a => a.nominee_id));
 
       // Get competition names for display
       const competitionMap = {};
@@ -76,19 +93,46 @@ export default function AssignRewardModal({
         competitionMap[c.id] = c.name || `${c.cityName || c.city} ${c.season}`;
       });
 
-      setContestants((data || []).map(c => ({
-        ...c,
+      // Build contestants list
+      const contestantPeople = (contestantsRes.data || []).map(c => ({
+        id: `contestant-${c.id}`,
+        sourceId: c.id,
+        type: 'contestant',
         displayName: c.profile
           ? `${c.profile.first_name || ''} ${c.profile.last_name || ''}`.trim() || c.name
           : c.name,
         email: c.profile?.email,
         avatarUrl: c.profile?.avatar_url,
+        competitionId: c.competition_id,
         competitionName: competitionMap[c.competition_id] || 'Unknown',
-        alreadyAssigned: assignedIds.has(c.id),
-      })));
+        alreadyAssigned: assignedContestantIds.has(c.id),
+      }));
+
+      // Build nominees list (exclude those already converted to contestants)
+      const convertedNomineeIds = new Set(
+        (nomineesRes.data || [])
+          .filter(n => n.converted_to_contestant)
+          .map(n => n.id)
+      );
+
+      const nomineePeople = (nomineesRes.data || [])
+        .filter(n => !n.converted_to_contestant)
+        .map(n => ({
+          id: `nominee-${n.id}`,
+          sourceId: n.id,
+          type: 'nominee',
+          displayName: n.name || n.email || 'Unknown',
+          email: n.email,
+          avatarUrl: n.avatar_url,
+          competitionId: n.competition_id,
+          competitionName: competitionMap[n.competition_id] || 'Unknown',
+          alreadyAssigned: assignedNomineeIds.has(n.id),
+        }));
+
+      setPeople([...contestantPeople, ...nomineePeople]);
     } catch (err) {
-      console.error('Error fetching contestants:', err);
-      setContestants([]);
+      console.error('Error fetching people:', err);
+      setPeople([]);
     } finally {
       setLoading(false);
     }
@@ -116,49 +160,49 @@ export default function AssignRewardModal({
     return existingCompetitionAssignments.includes(competitionId);
   };
 
-  // Filter contestants by search
-  const filteredContestants = contestants.filter(c =>
-    c.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    c.competitionName.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter people by search
+  const filteredPeople = people.filter(p =>
+    p.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.email && p.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    p.competitionName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Available contestants (not already individually assigned)
-  const availableContestants = filteredContestants.filter(c => !c.alreadyAssigned);
+  // Available people (not already individually assigned)
+  const availablePeople = filteredPeople.filter(p => !p.alreadyAssigned);
 
-  // Toggle contestant selection
-  const toggleContestant = (contestantId) => {
-    setSelectedContestants(prev => {
-      if (prev.includes(contestantId)) {
-        return prev.filter(id => id !== contestantId);
+  // Toggle person selection
+  const togglePerson = (personId) => {
+    setSelectedPeople(prev => {
+      if (prev.includes(personId)) {
+        return prev.filter(id => id !== personId);
       } else {
-        return [...prev, contestantId];
+        return [...prev, personId];
       }
     });
   };
 
-  // Toggle select all contestants
-  const handleSelectAllContestants = () => {
-    if (selectAllContestants) {
-      setSelectedContestants([]);
+  // Toggle select all people
+  const handleSelectAllPeople = () => {
+    if (selectAllPeople) {
+      setSelectedPeople([]);
     } else {
-      setSelectedContestants(availableContestants.map(c => c.id));
+      setSelectedPeople(availablePeople.map(p => p.id));
     }
-    setSelectAllContestants(!selectAllContestants);
+    setSelectAllPeople(!selectAllPeople);
   };
 
-  // Move to contestant selection step
+  // Move to people selection step
   const handleNextStep = () => {
     if (selectedCompetitions.length === 0) return;
-    fetchContestants();
-    setStep(STEPS.CONTESTANTS);
+    fetchPeople();
+    setStep(STEPS.PEOPLE);
   };
 
   // Go back to competition selection
   const handlePrevStep = () => {
     setStep(STEPS.COMPETITIONS);
-    setSelectedContestants([]);
-    setSelectAllContestants(false);
+    setSelectedPeople([]);
+    setSelectAllPeople(false);
     setSearchQuery('');
   };
 
@@ -167,21 +211,37 @@ export default function AssignRewardModal({
     id => !selectedCompetitions.includes(id)
   );
 
+  // Extract contestant and nominee IDs from selected people
+  const getAssignmentIds = () => {
+    const contestantIds = [];
+    const nomineeIds = [];
+    selectedPeople.forEach(id => {
+      const person = people.find(p => p.id === id);
+      if (!person) return;
+      if (person.type === 'contestant') contestantIds.push(person.sourceId);
+      else if (person.type === 'nominee') nomineeIds.push(person.sourceId);
+    });
+    return { contestantIds, nomineeIds };
+  };
+
   // Assign to competitions only (make visible)
   const handleAssignToCompetitions = () => {
     onAssign({
       competitionIds: selectedCompetitions,
       removedCompetitionIds,
       contestantIds: [],
+      nomineeIds: [],
     });
   };
 
-  // Assign to specific contestants
-  const handleAssignToContestants = () => {
+  // Assign to specific people
+  const handleAssignToPeople = () => {
+    const { contestantIds, nomineeIds } = getAssignmentIds();
     onAssign({
       competitionIds: selectedCompetitions,
       removedCompetitionIds,
-      contestantIds: selectedContestants,
+      contestantIds,
+      nomineeIds,
     });
   };
 
@@ -213,7 +273,7 @@ export default function AssignRewardModal({
               icon={ChevronRight}
               disabled={selectedCompetitions.length === 0}
             >
-              Select Contestants
+              Select People
             </Button>
           </>
         ) : (
@@ -222,11 +282,11 @@ export default function AssignRewardModal({
               Back
             </Button>
             <Button
-              onClick={handleAssignToContestants}
+              onClick={handleAssignToPeople}
               icon={Check}
-              disabled={selectedContestants.length === 0}
+              disabled={selectedPeople.length === 0}
             >
-              Assign to {selectedContestants.length} Contestant{selectedContestants.length !== 1 ? 's' : ''}
+              Assign to {selectedPeople.length} {selectedPeople.length !== 1 ? 'People' : 'Person'}
             </Button>
           </>
         )
@@ -282,14 +342,14 @@ export default function AssignRewardModal({
             alignItems: 'center',
             gap: spacing.xs,
             padding: `${spacing.xs} ${spacing.md}`,
-            background: step === STEPS.CONTESTANTS ? 'rgba(212,175,55,0.2)' : colors.background.secondary,
+            background: step === STEPS.PEOPLE ? 'rgba(212,175,55,0.2)' : colors.background.secondary,
             borderRadius: borderRadius.full,
             fontSize: typography.fontSize.sm,
-            color: step === STEPS.CONTESTANTS ? colors.gold.primary : colors.text.muted,
+            color: step === STEPS.PEOPLE ? colors.gold.primary : colors.text.muted,
             fontWeight: typography.fontWeight.medium,
           }}>
             <Users size={14} />
-            2. Contestants
+            2. People
           </div>
         </div>
 
@@ -450,14 +510,14 @@ export default function AssignRewardModal({
             )}
 
             <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-              Assigning to competitions makes the reward visible to all contestants.
-              Click "Select Contestants" to also enable claiming for specific people.
+              Assigning to competitions makes the reward visible to all contestants and nominees.
+              Click "Select People" to also enable claiming for specific individuals.
             </p>
           </>
         )}
 
-        {/* Step 2: Contestant Selection */}
-        {step === STEPS.CONTESTANTS && (
+        {/* Step 2: People Selection (Contestants + Nominees) */}
+        {step === STEPS.PEOPLE && (
           <>
             {/* Search & Select All */}
             <div style={{ display: 'flex', gap: spacing.md, alignItems: 'center' }}>
@@ -471,7 +531,7 @@ export default function AssignRewardModal({
                 }} />
                 <input
                   type="text"
-                  placeholder="Search contestants..."
+                  placeholder="Search contestants & nominees..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -489,14 +549,14 @@ export default function AssignRewardModal({
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={handleSelectAllContestants}
-                disabled={availableContestants.length === 0}
+                onClick={handleSelectAllPeople}
+                disabled={availablePeople.length === 0}
               >
-                {selectAllContestants ? 'Deselect All' : 'Select All'}
+                {selectAllPeople ? 'Deselect All' : 'Select All'}
               </Button>
             </div>
 
-            {/* Contestants List */}
+            {/* People List */}
             <div style={{
               maxHeight: '300px',
               overflowY: 'auto',
@@ -512,36 +572,36 @@ export default function AssignRewardModal({
                   color: colors.text.secondary,
                 }}>
                   <Loader size={24} style={{ animation: 'spin 1s linear infinite', marginRight: spacing.sm }} />
-                  Loading contestants...
+                  Loading contestants & nominees...
                 </div>
-              ) : filteredContestants.length === 0 ? (
+              ) : filteredPeople.length === 0 ? (
                 <div style={{
                   textAlign: 'center',
                   padding: spacing.xl,
                   color: colors.text.muted,
                 }}>
-                  {contestants.length === 0
-                    ? 'No contestants in selected competitions'
-                    : 'No contestants match your search'}
+                  {people.length === 0
+                    ? 'No contestants or nominees in selected competitions'
+                    : 'No people match your search'}
                 </div>
               ) : (
-                filteredContestants.map((contestant, index) => (
+                filteredPeople.map((person, index) => (
                   <div
-                    key={contestant.id}
-                    onClick={() => !contestant.alreadyAssigned && toggleContestant(contestant.id)}
+                    key={person.id}
+                    onClick={() => !person.alreadyAssigned && togglePerson(person.id)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: spacing.md,
                       padding: spacing.md,
-                      borderBottom: index < filteredContestants.length - 1 ? `1px solid ${colors.border.light}` : 'none',
-                      cursor: contestant.alreadyAssigned ? 'not-allowed' : 'pointer',
-                      background: selectedContestants.includes(contestant.id)
+                      borderBottom: index < filteredPeople.length - 1 ? `1px solid ${colors.border.light}` : 'none',
+                      cursor: person.alreadyAssigned ? 'not-allowed' : 'pointer',
+                      background: selectedPeople.includes(person.id)
                         ? 'rgba(212,175,55,0.1)'
-                        : contestant.alreadyAssigned
+                        : person.alreadyAssigned
                           ? 'rgba(107,114,128,0.1)'
                           : 'transparent',
-                      opacity: contestant.alreadyAssigned ? 0.6 : 1,
+                      opacity: person.alreadyAssigned ? 0.6 : 1,
                     }}
                   >
                     {/* Checkbox */}
@@ -550,19 +610,19 @@ export default function AssignRewardModal({
                       height: '20px',
                       borderRadius: borderRadius.sm,
                       border: `2px solid ${
-                        contestant.alreadyAssigned
+                        person.alreadyAssigned
                           ? colors.text.muted
-                          : selectedContestants.includes(contestant.id)
+                          : selectedPeople.includes(person.id)
                             ? colors.gold.primary
                             : colors.border.light
                       }`,
-                      background: selectedContestants.includes(contestant.id) ? colors.gold.primary : 'transparent',
+                      background: selectedPeople.includes(person.id) ? colors.gold.primary : 'transparent',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      {selectedContestants.includes(contestant.id) && (
+                      {selectedPeople.includes(person.id) && (
                         <Check size={14} style={{ color: '#000' }} />
                       )}
                     </div>
@@ -572,9 +632,11 @@ export default function AssignRewardModal({
                       width: '36px',
                       height: '36px',
                       borderRadius: borderRadius.full,
-                      background: contestant.avatarUrl
-                        ? `url(${contestant.avatarUrl}) center/cover`
-                        : 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+                      background: person.avatarUrl
+                        ? `url(${person.avatarUrl}) center/cover`
+                        : person.type === 'nominee'
+                          ? 'linear-gradient(135deg, #d4af37, #f5d669)'
+                          : 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -583,20 +645,36 @@ export default function AssignRewardModal({
                       color: '#fff',
                       flexShrink: 0,
                     }}>
-                      {!contestant.avatarUrl && contestant.displayName.charAt(0)}
+                      {!person.avatarUrl && person.displayName.charAt(0)}
                     </div>
 
                     {/* Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        fontSize: typography.fontSize.sm,
-                        fontWeight: typography.fontWeight.medium,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {contestant.displayName}
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                        <p style={{
+                          fontSize: typography.fontSize.sm,
+                          fontWeight: typography.fontWeight.medium,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {person.displayName}
+                        </p>
+                        <Badge
+                          size="sm"
+                          style={{
+                            background: person.type === 'nominee'
+                              ? 'rgba(212,175,55,0.15)'
+                              : 'rgba(34,197,94,0.15)',
+                            color: person.type === 'nominee'
+                              ? colors.gold.primary
+                              : '#22c55e',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {person.type === 'nominee' ? 'Nominee' : 'Contestant'}
+                        </Badge>
+                      </div>
                       <p style={{
                         fontSize: typography.fontSize.xs,
                         color: colors.text.muted,
@@ -604,12 +682,12 @@ export default function AssignRewardModal({
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                       }}>
-                        {contestant.competitionName}
+                        {person.competitionName}
                       </p>
                     </div>
 
                     {/* Already Assigned Badge */}
-                    {contestant.alreadyAssigned && (
+                    {person.alreadyAssigned && (
                       <span style={{
                         fontSize: typography.fontSize.xs,
                         color: colors.text.muted,
@@ -626,7 +704,7 @@ export default function AssignRewardModal({
             </div>
 
             {/* Selection Summary */}
-            {selectedContestants.length > 0 && (
+            {selectedPeople.length > 0 && (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -638,7 +716,7 @@ export default function AssignRewardModal({
                 fontSize: typography.fontSize.sm,
               }}>
                 <Users size={18} />
-                {selectedContestants.length} contestant{selectedContestants.length !== 1 ? 's' : ''} will be able to claim
+                {selectedPeople.length} {selectedPeople.length !== 1 ? 'people' : 'person'} will be able to claim
               </div>
             )}
           </>
