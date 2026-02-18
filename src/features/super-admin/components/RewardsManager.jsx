@@ -71,7 +71,8 @@ export default function RewardsManager() {
           *,
           reward:rewards(id, name, brand_name, image_url),
           competition:competitions(id, name, city, season),
-          contestant:contestants(id, name, user_id, profile:profiles(first_name, last_name, email, avatar_url))
+          contestant:contestants(id, name, user_id, profile:profiles(first_name, last_name, email, avatar_url)),
+          nominee:nominees(id, name, email, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
@@ -761,9 +762,18 @@ function AssignmentRow({ assignment, onUpdate, showRewardInfo = false, isLast = 
   const [code, setCode] = useState(assignment.discount_code || '');
   const [link, setLink] = useState(assignment.tracking_link || '');
 
-  const contestantName = assignment.contestant?.profile
-    ? `${assignment.contestant.profile.first_name || ''} ${assignment.contestant.profile.last_name || ''}`.trim()
-    : assignment.contestant?.name || 'Unknown';
+  const isNomineeAssignment = !assignment.contestant_id && !!assignment.nominee_id;
+  const contestantName = isNomineeAssignment
+    ? (assignment.nominee?.name || 'Unknown Nominee')
+    : assignment.contestant?.profile
+      ? `${assignment.contestant.profile.first_name || ''} ${assignment.contestant.profile.last_name || ''}`.trim()
+      : assignment.contestant?.name || 'Unknown';
+  const avatarUrl = isNomineeAssignment
+    ? assignment.nominee?.avatar_url
+    : assignment.contestant?.profile?.avatar_url;
+  const email = isNomineeAssignment
+    ? assignment.nominee?.email
+    : assignment.contestant?.profile?.email;
 
   const handleSave = () => {
     onUpdate(assignment.id, {
@@ -794,8 +804,8 @@ function AssignmentRow({ assignment, onUpdate, showRewardInfo = false, isLast = 
             width: '32px',
             height: '32px',
             borderRadius: borderRadius.full,
-            background: assignment.contestant?.profile?.avatar_url
-              ? `url(${assignment.contestant.profile.avatar_url}) center/cover`
+            background: avatarUrl
+              ? `url(${avatarUrl}) center/cover`
               : 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
             display: 'flex',
             alignItems: 'center',
@@ -804,14 +814,17 @@ function AssignmentRow({ assignment, onUpdate, showRewardInfo = false, isLast = 
             fontWeight: typography.fontWeight.bold,
             color: '#fff',
           }}>
-            {!assignment.contestant?.profile?.avatar_url && contestantName.charAt(0)}
+            {!avatarUrl && contestantName.charAt(0)}
           </div>
           <div>
             <p style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>
               {contestantName}
+              {isNomineeAssignment && (
+                <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginLeft: spacing.xs }}>(nominee)</span>
+              )}
             </p>
             <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-              {assignment.contestant?.profile?.email}
+              {email}
             </p>
           </div>
         </div>
