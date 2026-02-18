@@ -39,64 +39,105 @@ export default function RewardsPage({ hostProfile }) {
     }
 
     try {
-      // First get all contestants for this user
-      const { data: contestants, error: contestantError } = await supabase
-        .from('contestants')
-        .select('id, competition_id')
-        .eq('user_id', user.id);
+      // Fetch contestants and nominees for this user in parallel
+      const [contestantsRes, nomineesRes] = await Promise.all([
+        supabase
+          .from('contestants')
+          .select('id, competition_id')
+          .eq('user_id', user.id),
+        supabase
+          .from('nominees')
+          .select('id, competition_id')
+          .eq('user_id', user.id),
+      ]);
 
-      if (contestantError) throw contestantError;
+      if (contestantsRes.error) throw contestantsRes.error;
+      if (nomineesRes.error) throw nomineesRes.error;
 
-      if (!contestants || contestants.length === 0) {
+      const contestants = contestantsRes.data || [];
+      const nominees = nomineesRes.data || [];
+
+      const contestantIds = contestants.map(c => c.id);
+      const nomineeIds = nominees.map(n => n.id);
+      const competitionIds = [
+        ...new Set([
+          ...contestants.map(c => c.competition_id),
+          ...nominees.map(n => n.competition_id),
+        ]),
+      ];
+
+      if (contestantIds.length === 0 && nomineeIds.length === 0) {
         setClaimableRewards([]);
         setVisibleRewards([]);
         setLoading(false);
         return;
       }
 
-      const contestantIds = contestants.map(c => c.id);
-      const competitionIds = contestants.map(c => c.competition_id);
+      const rewardSelect = `
+        *,
+        reward:rewards(*),
+        competition:competitions(
+          id,
+          name,
+          season,
+          city:cities(name)
+        )
+      `;
 
-      // Get individual assignments (claimable rewards)
-      const { data: individualAssignments, error: indError } = await supabase
-        .from('reward_assignments')
-        .select(`
-          *,
-          reward:rewards(*),
-          competition:competitions(
-            id,
-            name,
-            season,
-            city:cities(name)
-          )
-        `)
-        .in('contestant_id', contestantIds)
-        .order('created_at', { ascending: false });
+      // Fetch individual assignments for contestants and nominees in parallel
+      const assignmentQueries = [];
 
-      if (indError) throw indError;
-      setClaimableRewards(individualAssignments || []);
+      if (contestantIds.length > 0) {
+        assignmentQueries.push(
+          supabase
+            .from('reward_assignments')
+            .select(rewardSelect)
+            .in('contestant_id', contestantIds)
+            .order('created_at', { ascending: false })
+        );
+      }
+
+      if (nomineeIds.length > 0) {
+        assignmentQueries.push(
+          supabase
+            .from('reward_assignments')
+            .select(rewardSelect)
+            .in('nominee_id', nomineeIds)
+            .order('created_at', { ascending: false })
+        );
+      }
+
+      const assignmentResults = await Promise.all(assignmentQueries);
+
+      // Merge all individual assignments, deduplicating by id
+      const allAssignments = [];
+      const seenIds = new Set();
+      for (const res of assignmentResults) {
+        if (res.error) throw res.error;
+        for (const a of (res.data || [])) {
+          if (!seenIds.has(a.id)) {
+            seenIds.add(a.id);
+            allAssignments.push(a);
+          }
+        }
+      }
+      setClaimableRewards(allAssignments);
 
       // Get competition-level assignments (visible rewards)
-      const { data: compAssignments, error: compError } = await supabase
-        .from('reward_competition_assignments')
-        .select(`
-          *,
-          reward:rewards(*),
-          competition:competitions(
-            id,
-            name,
-            season,
-            city:cities(name)
-          )
-        `)
-        .in('competition_id', competitionIds)
-        .order('created_at', { ascending: false });
+      let visibleOnly = [];
+      if (competitionIds.length > 0) {
+        const { data: compAssignments, error: compError } = await supabase
+          .from('reward_competition_assignments')
+          .select(rewardSelect)
+          .in('competition_id', competitionIds)
+          .order('created_at', { ascending: false });
 
-      if (compError) throw compError;
+        if (compError) throw compError;
 
-      // Filter out rewards that user already has individual assignment for
-      const claimableRewardIds = new Set((individualAssignments || []).map(a => a.reward_id));
-      const visibleOnly = (compAssignments || []).filter(ca => !claimableRewardIds.has(ca.reward_id));
+        // Filter out rewards that user already has individual assignment for
+        const claimableRewardIds = new Set(allAssignments.map(a => a.reward_id));
+        visibleOnly = (compAssignments || []).filter(ca => !claimableRewardIds.has(ca.reward_id));
+      }
       setVisibleRewards(visibleOnly);
     } catch (err) {
       console.error('Error fetching rewards:', err);
