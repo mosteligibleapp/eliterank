@@ -18,7 +18,7 @@ export default function CardReveal({
   const [revealed, setRevealed] = useState(false);
 
   const title = getCompetitionTitle(competition);
-  const cityName = competition?.cityData?.name || competition?.city || '';
+  const cityName = getCityName(competition);
   const season = competition?.season;
   const accentColor = competition?.theme_primary || '#d4af37';
 

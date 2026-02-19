@@ -1,5 +1,5 @@
 import React from 'react';
-import { getCompetitionTitle } from '../utils/eligibilityEngine';
+import { getCompetitionTitle, getCityName } from '../utils/eligibilityEngine';
 
 const MAX_CHARS = 150;
 
@@ -15,7 +15,7 @@ export default function SelfPitchStep({
   competition,
 }) {
   const title = getCompetitionTitle(competition);
-  const cityName = competition?.cityData?.name || competition?.city || '';
+  const cityName = getCityName(competition);
   const remaining = MAX_CHARS - (bio?.length || 0);
 
   return (
