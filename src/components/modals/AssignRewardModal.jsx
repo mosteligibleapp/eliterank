@@ -109,12 +109,6 @@ export default function AssignRewardModal({
       }));
 
       // Build nominees list (exclude those already converted to contestants)
-      const convertedNomineeIds = new Set(
-        (nomineesRes.data || [])
-          .filter(n => n.converted_to_contestant)
-          .map(n => n.id)
-      );
-
       const nomineePeople = (nomineesRes.data || [])
         .filter(n => !n.converted_to_contestant)
         .map(n => ({
@@ -129,7 +123,12 @@ export default function AssignRewardModal({
           alreadyAssigned: assignedNomineeIds.has(n.id),
         }));
 
-      setPeople([...contestantPeople, ...nomineePeople]);
+      const allPeople = [...contestantPeople, ...nomineePeople];
+      setPeople(allPeople);
+
+      // Pre-select already-assigned people so they can be deselected to remove
+      const preSelected = allPeople.filter(p => p.alreadyAssigned).map(p => p.id);
+      setSelectedPeople(preSelected);
     } catch (err) {
       console.error('Error fetching people:', err);
       setPeople([]);
@@ -167,8 +166,8 @@ export default function AssignRewardModal({
     p.competitionName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Available people (not already individually assigned)
-  const availablePeople = filteredPeople.filter(p => !p.alreadyAssigned);
+  // Available people for select all (all filtered people)
+  const availablePeople = filteredPeople;
 
   // Toggle person selection
   const togglePerson = (personId) => {
@@ -211,17 +210,27 @@ export default function AssignRewardModal({
     id => !selectedCompetitions.includes(id)
   );
 
-  // Extract contestant and nominee IDs from selected people
+  // Extract contestant and nominee IDs from selected people, and removed assignments
   const getAssignmentIds = () => {
     const contestantIds = [];
     const nomineeIds = [];
+    const removedContestantIds = [];
+    const removedNomineeIds = [];
+
     selectedPeople.forEach(id => {
       const person = people.find(p => p.id === id);
       if (!person) return;
       if (person.type === 'contestant') contestantIds.push(person.sourceId);
       else if (person.type === 'nominee') nomineeIds.push(person.sourceId);
     });
-    return { contestantIds, nomineeIds };
+
+    // Find already-assigned people that were deselected
+    people.filter(p => p.alreadyAssigned && !selectedPeople.includes(p.id)).forEach(person => {
+      if (person.type === 'contestant') removedContestantIds.push(person.sourceId);
+      else if (person.type === 'nominee') removedNomineeIds.push(person.sourceId);
+    });
+
+    return { contestantIds, nomineeIds, removedContestantIds, removedNomineeIds };
   };
 
   // Assign to competitions only (make visible)
@@ -236,12 +245,14 @@ export default function AssignRewardModal({
 
   // Assign to specific people
   const handleAssignToPeople = () => {
-    const { contestantIds, nomineeIds } = getAssignmentIds();
+    const { contestantIds, nomineeIds, removedContestantIds, removedNomineeIds } = getAssignmentIds();
     onAssign({
       competitionIds: selectedCompetitions,
       removedCompetitionIds,
       contestantIds,
       nomineeIds,
+      removedContestantIds,
+      removedNomineeIds,
     });
   };
 
@@ -284,9 +295,19 @@ export default function AssignRewardModal({
             <Button
               onClick={handleAssignToPeople}
               icon={Check}
-              disabled={selectedPeople.length === 0}
+              disabled={selectedPeople.length === 0 && people.filter(p => p.alreadyAssigned).length === 0}
             >
-              Assign to {selectedPeople.length} {selectedPeople.length !== 1 ? 'People' : 'Person'}
+              {(() => {
+                const newPeople = selectedPeople.filter(id => {
+                  const person = people.find(p => p.id === id);
+                  return person && !person.alreadyAssigned;
+                });
+                const removedPeople = people.filter(p => p.alreadyAssigned && !selectedPeople.includes(p.id));
+                const parts = [];
+                if (newPeople.length > 0) parts.push(`Assign ${newPeople.length}`);
+                if (removedPeople.length > 0) parts.push(`Remove ${removedPeople.length}`);
+                return parts.length > 0 ? parts.join(' & ') : 'Save Changes';
+              })()}
             </Button>
           </>
         )
@@ -585,23 +606,26 @@ export default function AssignRewardModal({
                     : 'No people match your search'}
                 </div>
               ) : (
-                filteredPeople.map((person, index) => (
+                filteredPeople.map((person, index) => {
+                  const isSelected = selectedPeople.includes(person.id);
+                  const isDeselected = person.alreadyAssigned && !isSelected;
+
+                  return (
                   <div
                     key={person.id}
-                    onClick={() => !person.alreadyAssigned && togglePerson(person.id)}
+                    onClick={() => togglePerson(person.id)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: spacing.md,
                       padding: spacing.md,
                       borderBottom: index < filteredPeople.length - 1 ? `1px solid ${colors.border.light}` : 'none',
-                      cursor: person.alreadyAssigned ? 'not-allowed' : 'pointer',
-                      background: selectedPeople.includes(person.id)
-                        ? 'rgba(212,175,55,0.1)'
-                        : person.alreadyAssigned
-                          ? 'rgba(107,114,128,0.1)'
+                      cursor: 'pointer',
+                      background: isDeselected
+                        ? 'rgba(239,68,68,0.05)'
+                        : isSelected
+                          ? 'rgba(212,175,55,0.1)'
                           : 'transparent',
-                      opacity: person.alreadyAssigned ? 0.6 : 1,
                     }}
                   >
                     {/* Checkbox */}
@@ -610,19 +634,19 @@ export default function AssignRewardModal({
                       height: '20px',
                       borderRadius: borderRadius.sm,
                       border: `2px solid ${
-                        person.alreadyAssigned
-                          ? colors.text.muted
-                          : selectedPeople.includes(person.id)
+                        isDeselected
+                          ? '#ef4444'
+                          : isSelected
                             ? colors.gold.primary
                             : colors.border.light
                       }`,
-                      background: selectedPeople.includes(person.id) ? colors.gold.primary : 'transparent',
+                      background: isSelected ? colors.gold.primary : 'transparent',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      {selectedPeople.includes(person.id) && (
+                      {isSelected && (
                         <Check size={14} style={{ color: '#000' }} />
                       )}
                     </div>
@@ -690,16 +714,17 @@ export default function AssignRewardModal({
                     {person.alreadyAssigned && (
                       <span style={{
                         fontSize: typography.fontSize.xs,
-                        color: colors.text.muted,
-                        background: colors.background.secondary,
+                        color: isDeselected ? '#ef4444' : colors.text.muted,
+                        background: isDeselected ? 'rgba(239,68,68,0.1)' : colors.background.secondary,
                         padding: `${spacing.xs} ${spacing.sm}`,
                         borderRadius: borderRadius.sm,
                       }}>
-                        Can claim
+                        {isDeselected ? 'Will be removed' : 'Assigned'}
                       </span>
                     )}
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
 

@@ -260,6 +260,28 @@ export default function RewardsManager() {
         if (compError) throw compError;
       }
 
+      // Remove deselected contestant assignments
+      if (assignmentData.removedContestantIds && assignmentData.removedContestantIds.length > 0) {
+        const { error: removeContError } = await supabase
+          .from('reward_assignments')
+          .delete()
+          .eq('reward_id', assigningReward.id)
+          .in('contestant_id', assignmentData.removedContestantIds);
+
+        if (removeContError) throw removeContError;
+      }
+
+      // Remove deselected nominee assignments
+      if (assignmentData.removedNomineeIds && assignmentData.removedNomineeIds.length > 0) {
+        const { error: removeNomError } = await supabase
+          .from('reward_assignments')
+          .delete()
+          .eq('reward_id', assigningReward.id)
+          .in('nominee_id', assignmentData.removedNomineeIds);
+
+        if (removeNomError) throw removeNomError;
+      }
+
       // Create contestant assignments (for claiming) if any selected
       if (assignmentData.contestantIds && assignmentData.contestantIds.length > 0) {
         // Get contestant competition mappings
