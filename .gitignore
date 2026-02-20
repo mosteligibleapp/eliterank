@@ -24,3 +24,4 @@ npm-debug.log*
 .env.local
 .env.*.local
 supabase/.temp/
+.vercel
