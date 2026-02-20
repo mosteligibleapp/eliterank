@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getCompetitionPhase } from '../utils/getCompetitionPhase';
 import {
@@ -56,6 +56,11 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Track whether we've successfully loaded data at least once.
+  // On re-fetches (e.g. after auth state changes mid-flow) we skip the
+  // loading spinner so the user keeps seeing the page they're already on.
+  const hasLoadedOnceRef = useRef(false);
+
   const isDemoMode = !isSupabaseConfigured();
 
   // Fetch competition data - simplified lookup (ID or slug only)
@@ -72,7 +77,10 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       return;
     }
 
-    setLoading(true);
+    // Only show loading spinner on initial load, not on background re-fetches
+    if (!hasLoadedOnceRef.current) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -168,6 +176,7 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       console.error('Error fetching competition:', err);
       setError(err);
     } finally {
+      hasLoadedOnceRef.current = true;
       setLoading(false);
     }
   }, [orgSlug, competitionSlug, competitionId, isDemoMode]);
