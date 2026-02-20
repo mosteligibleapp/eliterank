@@ -1,43 +1,31 @@
 import React from 'react';
-import { colors, borderRadius, spacing, typography, transitions } from '../../styles/theme';
+
+const sizeClasses = {
+  sm: 'px-2 py-0.5 text-xs',
+  md: 'px-3 py-1 text-sm',
+  lg: 'px-4 py-2 text-base',
+};
 
 export default function InterestTag({ children, selected = false, onClick, size = 'md' }) {
-  const sizeStyles = {
-    sm: {
-      padding: `3px ${spacing.sm}`,
-      fontSize: typography.fontSize.xs,
-    },
-    md: {
-      padding: `5px ${spacing.md}`,
-      fontSize: typography.fontSize.sm,
-    },
-    lg: {
-      padding: `${spacing.sm} ${spacing.lg}`,
-      fontSize: typography.fontSize.base,
-    },
-  };
-
-  const tagStyle = {
-    ...sizeStyles[size],
-    background: selected ? colors.gold.primary : 'rgba(212,175,55,0.1)',
-    color: selected ? '#0a0a0f' : colors.gold.primary,
-    borderRadius: borderRadius.xxl,
-    fontWeight: typography.fontWeight.medium,
-    cursor: onClick ? 'pointer' : 'default',
-    border: 'none',
-    transition: `all ${transitions.fast}`,
-    display: 'inline-block',
-  };
+  const baseClasses = `
+    rounded-full font-medium border-none transition-all duration-150 inline-block
+    ${sizeClasses[size] || sizeClasses.md}
+    ${selected 
+      ? 'bg-gold text-bg-primary' 
+      : 'bg-gold/10 text-gold'
+    }
+    ${onClick ? 'cursor-pointer hover:bg-gold/20' : 'cursor-default'}
+  `;
 
   if (onClick) {
     return (
-      <button style={tagStyle} onClick={onClick}>
+      <button className={baseClasses} onClick={onClick}>
         {children}
       </button>
     );
   }
 
-  return <span style={tagStyle}>{children}</span>;
+  return <span className={baseClasses}>{children}</span>;
 }
 
 // Hobby selector for forms
@@ -52,16 +40,10 @@ export function HobbySelector({ hobbies = [], selected = [], onChange, max = 8 }
 
   return (
     <div>
-      <p
-        style={{
-          fontSize: typography.fontSize.base,
-          color: colors.text.secondary,
-          marginBottom: spacing.lg,
-        }}
-      >
+      <p className="text-base text-gray-400 mb-4">
         Select up to {max} hobbies ({selected.length}/{max})
       </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
+      <div className="flex flex-wrap gap-2">
         {hobbies.map((hobby) => (
           <InterestTag
             key={hobby}

@@ -16,3 +16,6 @@ export { default as useLeaderboard } from './useLeaderboard';
 
 // App settings
 export { default as useAppSettings } from './useAppSettings';
+
+// Zustand bridge hooks
+export { default as useAuthWithZustand } from './useAuthWithZustand';
