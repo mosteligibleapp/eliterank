@@ -659,7 +659,6 @@ export default function App() {
           email,
           invite_token,
           claimed_at,
-          flow_stage,
           status,
           user_id,
           nominator_name,
