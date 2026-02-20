@@ -1,10 +1,10 @@
 import React, { memo, useMemo, useState, useCallback } from 'react';
-import { colors, borderRadius, typography } from '../../styles/theme';
 
 function Avatar({
   name,
   size = 44,
   src,
+  className = '',
   style = {},
 }) {
   const [imgStatus, setImgStatus] = useState(src ? 'loading' : 'none');
@@ -19,44 +19,24 @@ function Avatar({
       : '?';
   }, [name]);
 
-  const avatarStyle = useMemo(() => ({
-    width: `${size}px`,
-    height: `${size}px`,
-    borderRadius: borderRadius.full,
-    background: 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.gold.primary,
-    fontSize: size >= 80 ? '24px' : size >= 60 ? '18px' : '14px',
-    overflow: 'hidden',
-    flexShrink: 0,
-    position: 'relative',
-    ...style,
-  }), [size, style]);
+  // Determine font size class based on avatar size
+  const fontSizeClass = size >= 80 ? 'text-2xl' : size >= 60 ? 'text-lg' : 'text-sm';
 
   const handleLoad = useCallback(() => setImgStatus('loaded'), []);
   const handleError = useCallback(() => setImgStatus('error'), []);
 
   return (
-    <div style={avatarStyle}>
+    <div 
+      className={`rounded-full bg-gradient-to-br from-gold/30 to-gold/10 flex items-center justify-center font-semibold text-gold overflow-hidden shrink-0 relative ${fontSizeClass} ${className}`}
+      style={{ width: `${size}px`, height: `${size}px`, ...style }}
+    >
       {/* Always render initials as fallback underneath */}
       {imgStatus !== 'loaded' && initials}
       {src && imgStatus !== 'error' && (
         <img
           src={src}
           alt={name || 'Avatar'}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            opacity: imgStatus === 'loaded' ? 1 : 0,
-            transition: 'opacity 0.2s ease',
-          }}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${imgStatus === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
           onLoad={handleLoad}
           onError={handleError}
         />

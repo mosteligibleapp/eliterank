@@ -1,31 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { Check, X, AlertCircle, Info } from 'lucide-react';
-import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
 const TOAST_TYPES = {
   success: {
     icon: Check,
-    bg: 'rgba(34, 197, 94, 0.15)',
-    border: 'rgba(34, 197, 94, 0.3)',
-    color: '#22c55e',
+    bgClass: 'bg-green-500/15',
+    borderClass: 'border-green-500/30',
+    iconColor: 'text-green-500',
   },
   error: {
     icon: X,
-    bg: 'rgba(239, 68, 68, 0.15)',
-    border: 'rgba(239, 68, 68, 0.3)',
-    color: '#ef4444',
+    bgClass: 'bg-red-500/15',
+    borderClass: 'border-red-500/30',
+    iconColor: 'text-red-500',
   },
   warning: {
     icon: AlertCircle,
-    bg: 'rgba(251, 191, 36, 0.15)',
-    border: 'rgba(251, 191, 36, 0.3)',
-    color: '#fbbf24',
+    bgClass: 'bg-yellow-400/15',
+    borderClass: 'border-yellow-400/30',
+    iconColor: 'text-yellow-400',
   },
   info: {
     icon: Info,
-    bg: 'rgba(59, 130, 246, 0.15)',
-    border: 'rgba(59, 130, 246, 0.3)',
-    color: '#3b82f6',
+    bgClass: 'bg-blue-500/15',
+    borderClass: 'border-blue-500/30',
+    iconColor: 'text-blue-500',
   },
 };
 
@@ -50,59 +49,27 @@ export function Toast({ id, type = 'success', message, onDismiss, duration = 400
 
   return (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: spacing.md,
-        padding: `${spacing.md} ${spacing.lg}`,
-        background: config.bg,
-        border: `1px solid ${config.border}`,
-        borderRadius: borderRadius.lg,
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-        minWidth: '300px',
-        maxWidth: '450px',
-        animation: isExiting ? 'slideOut 0.3s ease-out forwards' : 'slideIn 0.3s ease-out',
-      }}
+      className={`
+        flex items-center gap-4 px-4 py-3 border rounded-lg shadow-lg
+        min-w-[300px] max-w-[450px]
+        ${config.bgClass} ${config.borderClass}
+        ${isExiting ? 'animate-slide-out' : 'animate-slide-in'}
+      `}
     >
       <div
-        style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: borderRadius.full,
-          background: config.bg,
-          border: `1px solid ${config.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
+        className={`
+          w-8 h-8 rounded-full flex items-center justify-center shrink-0
+          ${config.bgClass} border ${config.borderClass}
+        `}
       >
-        <Icon size={16} style={{ color: config.color }} />
+        <Icon size={16} className={config.iconColor} />
       </div>
-      <p style={{
-        flex: 1,
-        fontSize: typography.fontSize.sm,
-        color: colors.text.primary,
-        margin: 0,
-      }}>
+      <p className="flex-1 text-sm text-white m-0">
         {message}
       </p>
       <button
         onClick={handleDismiss}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          padding: spacing.xs,
-          cursor: 'pointer',
-          color: colors.text.muted,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: borderRadius.sm,
-          transition: 'color 0.2s',
-        }}
-        onMouseEnter={(e) => e.target.style.color = colors.text.primary}
-        onMouseLeave={(e) => e.target.style.color = colors.text.muted}
+        className="bg-transparent border-none p-1 cursor-pointer text-gray-500 flex items-center justify-center rounded hover:text-white transition-colors"
       >
         <X size={16} />
       </button>
@@ -135,19 +102,15 @@ export function ToastContainer({ toasts, onDismiss }) {
               opacity: 0;
             }
           }
+          .animate-slide-in {
+            animation: slideIn 0.3s ease-out;
+          }
+          .animate-slide-out {
+            animation: slideOut 0.3s ease-out forwards;
+          }
         `}
       </style>
-      <div
-        style={{
-          position: 'fixed',
-          top: spacing.xl,
-          right: spacing.xl,
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: spacing.md,
-        }}
-      >
+      <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-4">
         {toasts.map((toast) => (
           <Toast key={toast.id} {...toast} onDismiss={onDismiss} />
         ))}

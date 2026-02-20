@@ -1,6 +1,5 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { colors, borderRadius, spacing, typography } from '../../styles/theme';
 
 export default function Modal({
   isOpen,
@@ -9,104 +8,53 @@ export default function Modal({
   children,
   footer,
   maxWidth = '500px',
-  headerStyle = {},
+  headerClassName = '',
   centered = false,
   hideCloseButton = false,
 }) {
   if (!isOpen) return null;
 
-  const overlayStyle = {
-    position: 'fixed',
-    inset: 0,
-    background: colors.background.overlay,
-    backdropFilter: 'blur(8px)',
-    display: 'flex',
-    alignItems: centered ? 'center' : 'flex-start',
-    justifyContent: 'center',
-    zIndex: 50,
-    padding: spacing.lg,
-    paddingTop: centered ? spacing.lg : spacing.xl,
-    overflowY: 'auto',
-  };
-
-  const modalStyle = {
-    position: 'relative',
-    background: colors.background.card,
-    border: `1px solid ${colors.border.light}`,
-    borderRadius: borderRadius.xxl,
-    width: '100%',
-    maxWidth,
-    marginBottom: spacing.xl,
-  };
-
-  const headerBaseStyle = {
-    padding: spacing.xl,
-    borderBottom: `1px solid ${colors.border.lighter}`,
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    ...headerStyle,
-  };
-
-  const titleStyle = {
-    fontSize: typography.fontSize.xxl,
-    fontWeight: typography.fontWeight.semibold,
-  };
-
-  const closeButtonStyle = {
-    background: 'none',
-    border: 'none',
-    color: colors.text.secondary,
-    cursor: 'pointer',
-    padding: spacing.sm,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const bodyStyle = {
-    padding: spacing.xxl,
-  };
-
-  const footerStyle = {
-    padding: spacing.xl,
-    borderTop: `1px solid ${colors.border.lighter}`,
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: spacing.md,
-  };
-
   // If no title, show minimal header with just close button
   const showFullHeader = title && title.trim() !== '';
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+    <div 
+      className={`fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center z-50 p-6 overflow-y-auto ${centered ? 'items-center pt-6' : 'items-start pt-8'}`}
+      onClick={onClose}
+    >
+      <div 
+        className="relative bg-bg-card border border-border-primary rounded-3xl w-full mb-8"
+        style={{ maxWidth }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {showFullHeader ? (
-          <div style={headerBaseStyle}>
-            <h2 style={titleStyle}>{title}</h2>
+          <div className={`p-6 border-b border-border-secondary flex justify-between items-center ${headerClassName}`}>
+            <h2 className="text-2xl font-semibold">{title}</h2>
             {!hideCloseButton && (
-              <button style={closeButtonStyle} onClick={onClose}>
+              <button 
+                className="bg-transparent border-none text-gray-400 cursor-pointer p-2 flex items-center justify-center hover:text-white transition-colors"
+                onClick={onClose}
+              >
                 <X size={24} />
               </button>
             )}
           </div>
         ) : !hideCloseButton ? (
           <button
-            style={{
-              ...closeButtonStyle,
-              position: 'absolute',
-              top: spacing.md,
-              right: spacing.md,
-              zIndex: 10,
-            }}
+            className="absolute top-4 right-4 z-10 bg-transparent border-none text-gray-400 cursor-pointer p-2 flex items-center justify-center hover:text-white transition-colors"
             onClick={onClose}
           >
             <X size={24} />
           </button>
         ) : null}
-        <div style={showFullHeader ? bodyStyle : hideCloseButton ? { padding: 0 } : { ...bodyStyle, paddingTop: spacing.xl }}>{children}</div>
-        {footer && <div style={footerStyle}>{footer}</div>}
+        <div className={showFullHeader ? 'p-8' : hideCloseButton ? '' : 'p-8 pt-10'}>
+          {children}
+        </div>
+        {footer && (
+          <div className="p-6 border-t border-border-secondary flex justify-end gap-4">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
