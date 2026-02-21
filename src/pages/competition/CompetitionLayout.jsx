@@ -29,9 +29,6 @@ const EntryFlow = lazy(() => import('../../features/entry/EntryFlow'));
 // Contestant Guide (lazy loaded)
 const ContestantGuide = lazy(() => import('../../features/contestant-guide/ContestantGuide'));
 
-// Share Cards (lazy loaded)
-const MyCardsSection = lazy(() => import('../../features/achievement-cards/MyCardsSection').then(m => ({ default: m.MyCardsSection })));
-
 /**
  * Inner layout component (has access to context)
  */
@@ -55,9 +52,6 @@ function CompetitionLayoutInner() {
 
   // Guide modal state
   const [showGuide, setShowGuide] = useState(false);
-  
-  // Share Cards modal state
-  const [showCards, setShowCards] = useState(false);
 
   // Auth state for profile icon
   const {
@@ -94,14 +88,6 @@ function CompetitionLayoutInner() {
 
   const handleCloseGuide = () => {
     setShowGuide(false);
-  };
-
-  const handleShareCards = () => {
-    setShowCards(true);
-  };
-
-  const handleCloseCards = () => {
-    setShowCards(false);
   };
 
   const handleLogout = async () => {
@@ -189,7 +175,7 @@ function CompetitionLayoutInner() {
   }, [user?.id, user?.email, allContestants]);
 
   // Hide floating buttons when modals are open
-  const isModalOpen = showVoteModal || showProfileModal || showGuide || showCards;
+  const isModalOpen = showVoteModal || showProfileModal || showGuide;
 
   return (
     <div className="competition-layout">
@@ -216,7 +202,6 @@ function CompetitionLayoutInner() {
             onLogout={handleLogout}
             onProfile={handleProfile}
             onRewards={handleRewards}
-            onShareCards={currentContestant ? handleShareCards : null}
             onHowToCompete={handleHowToCompete}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
@@ -271,19 +256,6 @@ function CompetitionLayoutInner() {
             mode="page"
             onClose={handleCloseGuide}
             onComplete={handleCloseGuide}
-          />
-        </Suspense>
-      )}
-
-      {/* Share Cards Modal */}
-      {showCards && currentContestant && (
-        <Suspense fallback={null}>
-          <MyCardsSection
-            contestant={currentContestant}
-            competition={competition}
-            organization={organization}
-            votingRounds={votingRounds}
-            onClose={handleCloseCards}
           />
         </Suspense>
       )}

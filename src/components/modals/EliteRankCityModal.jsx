@@ -1513,7 +1513,35 @@ export default function EliteRankCityModal({
           {/* Auth Actions */}
           <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
             {isAuthenticated && (
-              <NotificationBell size={isMobile ? 36 : 40} />
+              <>
+                <button
+                  onClick={() => window.location.href = '/achievements'}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    padding: `${spacing.sm} ${spacing.md}`,
+                    background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05))',
+                    border: '1px solid rgba(212, 175, 55, 0.3)',
+                    borderRadius: borderRadius.lg,
+                    color: colors.gold.primary,
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.semibold,
+                    cursor: 'pointer',
+                    transition: `all ${transitions.fast}`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.1))';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05))';
+                  }}
+                >
+                  <Trophy size={16} />
+                  {!isMobile && 'Achievements'}
+                </button>
+                <NotificationBell size={isMobile ? 36 : 40} />
+              </>
             )}
             <ProfileIcon
               isAuthenticated={isAuthenticated}
