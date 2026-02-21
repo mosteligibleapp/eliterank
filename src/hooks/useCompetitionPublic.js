@@ -319,6 +319,8 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
     error,
     isDemoMode,
     refetch,
+    // All contestants (including pending) - for checking if user is a contestant
+    allContestants: contestants,
   };
 }
 

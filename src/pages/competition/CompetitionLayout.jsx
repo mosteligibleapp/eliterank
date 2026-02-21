@@ -48,6 +48,7 @@ function CompetitionLayoutInner() {
     about,
     contestants,
     organization,
+    allContestants,
   } = usePublicCompetition();
   const location = useLocation();
   const navigate = useNavigate();
@@ -175,16 +176,17 @@ function CompetitionLayoutInner() {
   }
 
   // Find if current user is a contestant in this competition
+  // Uses allContestants (includes pending/nominated) not just active leaderboard
   // Match by user_id OR email (for nominees who haven't fully linked account)
   const currentContestant = useMemo(() => {
-    if (!contestants || contestants.length === 0) return null;
+    if (!allContestants || allContestants.length === 0) return null;
     if (!user?.id && !user?.email) return null;
     
-    return contestants.find(c => 
+    return allContestants.find(c => 
       (user?.id && c.user_id === user.id) || 
       (user?.email && c.email?.toLowerCase() === user.email.toLowerCase())
     );
-  }, [user?.id, user?.email, contestants]);
+  }, [user?.id, user?.email, allContestants]);
 
   // Hide floating buttons when modals are open
   const isModalOpen = showVoteModal || showProfileModal || showGuide || showCards;
