@@ -5,8 +5,8 @@
  * Uses React Router v6 declarative routing.
  */
 
-import React, { lazy, Suspense, useState, useCallback } from 'react';
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense, useCallback } from 'react';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 
 // Route guards and utilities
 import ProtectedRoute, { ROLE } from './ProtectedRoute';
@@ -48,10 +48,8 @@ function SuspenseWrapper({ children, message = 'Loading...' }) {
  */
 export default function AppRoutes() {
   const location = useLocation();
-  
-  // State for login flow - shows login as modal overlay on home
-  const [showLoginOverlay, setShowLoginOverlay] = useState(false);
-  
+  const navigate = useNavigate();
+
   // Check if this is a competition route
   const pathParts = location.pathname.split('/').filter(Boolean);
   const isCompetitionRoute =
@@ -62,8 +60,8 @@ export default function AppRoutes() {
 
   // Handlers for HomePage
   const handleShowLogin = useCallback(() => {
-    setShowLoginOverlay(true);
-  }, []);
+    navigate('/login');
+  }, [navigate]);
 
   const handleShowProfile = useCallback(() => {
     // Navigate to profile page
