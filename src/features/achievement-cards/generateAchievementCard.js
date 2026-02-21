@@ -10,55 +10,79 @@ const CARD_HEIGHT = 1920;
 const CX = CARD_WIDTH / 2;
 
 /**
- * Achievement types with display config
+ * Base achievement types - these are starting points
+ * Actual titles should be dynamic based on competition config
  */
 export const ACHIEVEMENT_TYPES = {
+  // Entry milestones
   nominated: {
     title: 'NOMINATED',
     subtitle: 'for',
-    emoji: '🎯',
   },
   contestant: {
     title: 'COMPETING',
     subtitle: 'in',
-    emoji: '✨',
   },
-  advancing: {
-    title: 'ADVANCING',
+  
+  // Round advancement - title should be dynamic (e.g., "TOP 25", "TOP 12")
+  advanced: {
+    title: 'ADVANCED', // Override with customTitle like "TOP 25"
     subtitle: 'in',
-    emoji: '🔥',
   },
-  top20: {
-    title: 'TOP 20',
-    subtitle: 'in',
-    emoji: '⭐',
-  },
-  top10: {
-    title: 'TOP 10',
-    subtitle: 'in',
-    emoji: '🌟',
-  },
-  top5: {
-    title: 'TOP 5',
-    subtitle: 'in',
-    emoji: '💫',
-  },
+  
+  // Final round
   finalist: {
     title: 'FINALIST',
     subtitle: 'in',
-    emoji: '🏆',
   },
+  
+  // Placements - title should be dynamic (e.g., "1ST PLACE", "2ND PLACE")
   winner: {
     title: 'WINNER',
     subtitle: 'of',
-    emoji: '👑',
   },
-  runner_up: {
-    title: 'RUNNER UP',
+  placement: {
+    title: 'PLACED', // Override with customTitle like "2ND PLACE"
     subtitle: 'in',
-    emoji: '🥈',
   },
 };
+
+/**
+ * Generate achievement title based on round advancement
+ * @param {number} advancingCount - How many contestants advance
+ * @returns {string} Title like "TOP 25"
+ */
+export function getAdvancementTitle(advancingCount) {
+  return `TOP ${advancingCount}`;
+}
+
+/**
+ * Generate placement title
+ * @param {number} place - 1, 2, 3, etc.
+ * @returns {string} Title like "1ST PLACE", "2ND PLACE"
+ */
+export function getPlacementTitle(place) {
+  if (place === 1) return 'WINNER';
+  
+  const suffix = place === 2 ? 'ND' : place === 3 ? 'RD' : 'TH';
+  return `${place}${suffix} PLACE`;
+}
+
+/**
+ * Generate round advancement title from round data
+ * @param {Object} round - Voting round object
+ * @param {Object} nextRound - Next round (if any)
+ * @returns {string} Title like "TOP 25" or round title
+ */
+export function getRoundAdvancementTitle(round, nextRound) {
+  if (nextRound?.contestants_advance) {
+    return `TOP ${nextRound.contestants_advance}`;
+  }
+  if (round?.title) {
+    return `${round.title.toUpperCase()} QUALIFIER`;
+  }
+  return 'ADVANCED';
+}
 
 /**
  * Load an image from URL
