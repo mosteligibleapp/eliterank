@@ -76,7 +76,7 @@ export default function AchievementsPage() {
         `)
         .order('created_at', { ascending: false });
 
-      // Match by user_id or email
+      // Match by user_id or email (case-insensitive for email)
       if (user?.id && user?.email) {
         query = query.or(`user_id.eq.${user.id},email.ilike.${user.email}`);
       } else if (user?.id) {
@@ -84,6 +84,8 @@ export default function AchievementsPage() {
       } else if (user?.email) {
         query = query.ilike('email', user.email);
       }
+      
+      console.log('Fetching achievements for:', { userId: user?.id, email: user?.email });
 
       const { data, error } = await query;
 
