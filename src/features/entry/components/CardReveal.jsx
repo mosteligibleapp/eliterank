@@ -2,20 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { Download, Share2, Copy, Check, UserPlus, Send } from 'lucide-react';
 import ShareableCard from './ShareableCard';
 import { generateShareCard, shareOrDownload, copyLink } from '../utils/shareUtils';
-import { getCompetitionTitle } from '../utils/eligibilityEngine';
+import { getCompetitionTitle, getCityName } from '../utils/eligibilityEngine';
+import { ContestantGuide } from '../../contestant-guide';
 
 /**
  * Card Reveal - Final step showing the generated card with share options
+ * For self-entries, shows ContestantGuide after the card reveal before completing.
  */
 export default function CardReveal({
   competition,
   submittedData,
   onDone,
   onNominateAnother,
+  // Optional: pass these for richer guide content
+  votingRounds = [],
+  prizePool,
+  about,
+  phase,
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const title = getCompetitionTitle(competition);
   const cityName = getCityName(competition);
@@ -80,6 +88,36 @@ export default function CardReveal({
 
   const isThirdParty = submittedData.isNomination;
   const isAnonymous = submittedData.nominatorAnonymous;
+  const isSelfEntry = !isThirdParty;
+
+  // For self-entries: show guide before completing
+  const handleDoneClick = () => {
+    if (isSelfEntry && !showGuide) {
+      setShowGuide(true);
+    } else {
+      onDone?.();
+    }
+  };
+
+  // Guide completed - finish the flow
+  const handleGuideComplete = () => {
+    onDone?.();
+  };
+
+  // If showing guide, render it instead of the card reveal
+  if (showGuide) {
+    return (
+      <ContestantGuide
+        competition={competition}
+        votingRounds={votingRounds}
+        prizePool={prizePool}
+        about={about}
+        phase={phase}
+        mode="splash"
+        onComplete={handleGuideComplete}
+      />
+    );
+  }
 
   return (
     <div className={`entry-step entry-step-card ${revealed ? 'revealed' : ''}`}>
@@ -146,7 +184,7 @@ export default function CardReveal({
               Nominate Another
             </button>
 
-            <button className="entry-btn-done" onClick={onDone}>
+            <button className="entry-btn-done" onClick={handleDoneClick}>
               I'm Done
             </button>
           </>
@@ -181,8 +219,8 @@ export default function CardReveal({
               </button>
             </div>
 
-            <button className="entry-btn-done" onClick={onDone}>
-              Done
+            <button className="entry-btn-done" onClick={handleDoneClick}>
+              {isSelfEntry ? 'Continue' : 'Done'}
             </button>
           </>
         )}

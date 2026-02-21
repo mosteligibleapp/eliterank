@@ -28,7 +28,17 @@ import './EntryFlow.css';
  */
 export default function EntryFlow() {
   const navigate = useNavigate();
-  const { competition, loading, error, phase, orgSlug, competitionSlug } = usePublicCompetition();
+  const { 
+    competition, 
+    loading, 
+    error, 
+    phase, 
+    orgSlug, 
+    competitionSlug,
+    votingRounds,
+    prizePool,
+    about,
+  } = usePublicCompetition();
   const { profile } = useSupabaseAuth();
 
   const flow = useEntryFlow(competition, profile);
@@ -156,7 +166,12 @@ export default function EntryFlow() {
 
       {/* Step content with slide animation */}
       <div className="entry-content" key={flow.currentStep}>
-        {renderStep(flow, competition, competitionTitle, handleDone, flow.resetForNewNomination, handleDetailsNext)}
+        {renderStep(flow, competition, competitionTitle, handleDone, flow.resetForNewNomination, handleDetailsNext, {
+          votingRounds,
+          prizePool,
+          about,
+          phase,
+        })}
       </div>
     </div>
   );
@@ -165,7 +180,7 @@ export default function EntryFlow() {
 /**
  * Render the current step
  */
-function renderStep(flow, competition, competitionTitle, handleDone, handleNominateAnother, handleDetailsNext) {
+function renderStep(flow, competition, competitionTitle, handleDone, handleNominateAnother, handleDetailsNext, guideContext = {}) {
   switch (flow.currentStep) {
     case 'mode':
       return (
@@ -275,6 +290,10 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           submittedData={flow.submittedData}
           onDone={handleDone}
           onNominateAnother={handleNominateAnother}
+          votingRounds={guideContext.votingRounds}
+          prizePool={guideContext.prizePool}
+          about={guideContext.about}
+          phase={guideContext.phase}
         />
       );
 

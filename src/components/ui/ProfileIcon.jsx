@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift } from 'lucide-react';
+import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb } from 'lucide-react';
 import { colors, borderRadius, spacing, typography, shadows, transitions } from '../../styles/theme';
 import Avatar from './Avatar';
 
@@ -16,6 +16,7 @@ function ProfileIcon({
   onProfile,
   onRewards,
   onDashboard,
+  onHowToCompete,
   hasDashboardAccess = false,
   size = 36,
 }) {
@@ -210,6 +211,24 @@ function ProfileIcon({
               >
                 <Gift size={16} />
                 Rewards
+              </button>
+            )}
+
+            {onHowToCompete && (
+              <button
+                onClick={() => handleMenuClick(onHowToCompete)}
+                style={menuItemStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.interactive.hover;
+                  e.currentTarget.style.color = colors.text.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = colors.text.secondary;
+                }}
+              >
+                <Lightbulb size={16} />
+                How to Compete
               </button>
             )}
 

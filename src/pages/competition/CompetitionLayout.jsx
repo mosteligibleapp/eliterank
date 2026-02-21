@@ -26,13 +26,29 @@ import VoteModal from '../../features/public-site/components/VoteModal';
 // Entry flow (lazy loaded)
 const EntryFlow = lazy(() => import('../../features/entry/EntryFlow'));
 
+// Contestant Guide (lazy loaded)
+const ContestantGuide = lazy(() => import('../../features/contestant-guide/ContestantGuide').then(m => ({ default: m.ContestantGuide })));
+
 /**
  * Inner layout component (has access to context)
  */
 function CompetitionLayoutInner() {
-  const { loading, error, competition, phase, showVoteModal, showProfileModal } = usePublicCompetition();
+  const { 
+    loading, 
+    error, 
+    competition, 
+    phase, 
+    showVoteModal, 
+    showProfileModal,
+    votingRounds,
+    prizePool,
+    about,
+  } = usePublicCompetition();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Guide modal state
+  const [showGuide, setShowGuide] = useState(false);
 
   // Auth state for profile icon
   const {
@@ -61,6 +77,14 @@ function CompetitionLayoutInner() {
 
   const handleRewards = () => {
     navigate('/?rewards=true');
+  };
+
+  const handleHowToCompete = () => {
+    setShowGuide(true);
+  };
+
+  const handleCloseGuide = () => {
+    setShowGuide(false);
   };
 
   const handleLogout = async () => {
@@ -135,7 +159,7 @@ function CompetitionLayoutInner() {
   }
 
   // Hide floating buttons when modals are open
-  const isModalOpen = showVoteModal || showProfileModal;
+  const isModalOpen = showVoteModal || showProfileModal || showGuide;
 
   return (
     <div className="competition-layout">
@@ -162,6 +186,7 @@ function CompetitionLayoutInner() {
             onLogout={handleLogout}
             onProfile={handleProfile}
             onRewards={handleRewards}
+            onHowToCompete={isAuthenticated ? handleHowToCompete : null}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
             size={40}
@@ -202,6 +227,22 @@ function CompetitionLayoutInner() {
 
       {/* Modals rendered at layout level */}
       <ContestantModals />
+
+      {/* Contestant Guide Modal */}
+      {showGuide && (
+        <Suspense fallback={null}>
+          <ContestantGuide
+            competition={competition}
+            votingRounds={votingRounds}
+            prizePool={prizePool}
+            about={about}
+            phase={phase}
+            mode="page"
+            onClose={handleCloseGuide}
+            onComplete={handleCloseGuide}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
