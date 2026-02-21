@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, MapPin, Clock, ExternalLink, Crown } from 'lucide-react';
+import { Calendar, ExternalLink, Crown } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatEventTime } from '../../../utils/formatters';
 
@@ -26,22 +26,25 @@ export default function UpcomingEventCard({ events = [], onViewAllEvents }) {
 
   const nextEvent = upcomingEvents[0] || null;
 
-  // Format date for display
-  const formatEventDate = (dateStr) => {
+  const formatDateBadge = (dateStr, timeStr) => {
     if (!dateStr) return 'Date TBD';
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
+    const eventDate = new Date(dateStr + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isToday = eventDate.getTime() === today.getTime();
+    const datePart = isToday
+      ? 'TODAY'
+      : eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+    if (timeStr) {
+      return `${datePart}  •  ${formatEventTime(timeStr)}`;
+    }
+    return datePart;
   };
 
   return (
     <div
       style={{
         background: colors.background.card,
-        border: `1px solid ${colors.border.light}`,
         borderRadius: borderRadius.xl,
         overflow: 'hidden',
       }}
@@ -50,7 +53,7 @@ export default function UpcomingEventCard({ events = [], onViewAllEvents }) {
       <div
         style={{
           padding: `${spacing.md} ${spacing.lg}`,
-          borderBottom: `1px solid ${colors.border.light}`,
+          borderBottom: `1px solid ${colors.border.secondary}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -91,125 +94,97 @@ export default function UpcomingEventCard({ events = [], onViewAllEvents }) {
       </div>
 
       {/* Content */}
-      <div style={{ padding: spacing.lg }}>
+      <div style={{ padding: spacing.md }}>
         {nextEvent ? (
-          <div>
-            {/* Event Image or Fallback */}
-            {nextEvent.imageUrl ? (
-              <div
-                style={{
-                  width: '100%',
-                  height: '120px',
-                  borderRadius: borderRadius.lg,
-                  marginBottom: spacing.md,
-                  background: `url(${nextEvent.imageUrl}) center/cover no-repeat`,
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: '100%',
-                  height: '80px',
-                  borderRadius: borderRadius.lg,
-                  marginBottom: spacing.md,
-                  background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(139,92,246,0.1) 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Crown size={32} style={{ color: 'rgba(212,175,55,0.4)' }} />
-              </div>
-            )}
+          <a
+            href={nextEvent.ticketUrl || undefined}
+            target={nextEvent.ticketUrl ? '_blank' : undefined}
+            rel={nextEvent.ticketUrl ? 'noopener noreferrer' : undefined}
+            style={{
+              display: 'block',
+              textDecoration: 'none',
+              color: 'inherit',
+              borderRadius: borderRadius.lg,
+              overflow: 'hidden',
+              cursor: nextEvent.ticketUrl ? 'pointer' : 'default',
+            }}
+          >
+            {/* Event Image with date badge */}
+            <div style={{
+              width: '100%',
+              aspectRatio: '16 / 9',
+              borderRadius: borderRadius.lg,
+              overflow: 'hidden',
+              position: 'relative',
+              background: nextEvent.imageUrl
+                ? `url(${nextEvent.imageUrl}) center/cover no-repeat`
+                : 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(139,92,246,0.1) 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              {!nextEvent.imageUrl && (
+                <Crown size={28} style={{ color: 'rgba(212,175,55,0.4)' }} />
+              )}
 
-            {/* Event Name */}
-            <h4
-              style={{
-                fontSize: typography.fontSize.md,
+              {/* Bottom gradient */}
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '50%',
+                background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 100%)',
+                pointerEvents: 'none',
+              }} />
+
+              {/* Date badge */}
+              <div style={{
+                position: 'absolute',
+                bottom: spacing.sm,
+                left: spacing.sm,
+                background: 'rgba(0,0,0,0.7)',
+                backdropFilter: 'blur(12px)',
+                borderRadius: borderRadius.md,
+                padding: `2px ${spacing.sm}`,
+                fontSize: '0.6875rem',
                 fontWeight: typography.fontWeight.semibold,
                 color: colors.text.primary,
-                marginBottom: spacing.sm,
-              }}
-            >
-              {nextEvent.name}
-            </h4>
-
-            {/* Event Details */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
-              {/* Date */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                  fontSize: typography.fontSize.sm,
-                  color: colors.text.secondary,
-                }}
-              >
-                <Calendar size={14} style={{ flexShrink: 0 }} />
-                <span>{formatEventDate(nextEvent.date)}</span>
+                letterSpacing: '0.3px',
+              }}>
+                {formatDateBadge(nextEvent.date, nextEvent.time)}
               </div>
-
-              {/* Time */}
-              {nextEvent.time && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.sm,
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  <Clock size={14} style={{ flexShrink: 0 }} />
-                  <span>{formatEventTime(nextEvent.time)}</span>
-                </div>
-              )}
-
-              {/* Location */}
-              {(nextEvent.location || nextEvent.venue) && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.sm,
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  <MapPin size={14} style={{ flexShrink: 0 }} />
-                  <span>{nextEvent.location || nextEvent.venue}</span>
-                </div>
-              )}
             </div>
 
-            {/* Ticket Link */}
-            {nextEvent.ticketUrl && (
-              <a
-                href={nextEvent.ticketUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+            {/* Event info below image */}
+            <div style={{ padding: `${spacing.sm} 0 0` }}>
+              <h4
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: spacing.xs,
-                  width: '100%',
-                  padding: `${spacing.sm} ${spacing.md}`,
-                  marginTop: spacing.md,
-                  background: `linear-gradient(135deg, ${colors.gold.primary}, ${colors.gold.light || '#f4d03f'})`,
-                  color: '#0a0a0f',
-                  borderRadius: borderRadius.md,
                   fontSize: typography.fontSize.sm,
                   fontWeight: typography.fontWeight.semibold,
-                  textDecoration: 'none',
+                  color: colors.text.primary,
+                  marginBottom: '2px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                Get Tickets
-                <ExternalLink size={12} />
-              </a>
-            )}
-          </div>
+                {nextEvent.name}
+              </h4>
+
+              {(nextEvent.location || nextEvent.venue) && (
+                <p style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.secondary,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {nextEvent.location || nextEvent.venue}
+                </p>
+              )}
+            </div>
+          </a>
         ) : (
           /* No Upcoming Events */
           <div style={{ textAlign: 'center', padding: spacing.lg }}>

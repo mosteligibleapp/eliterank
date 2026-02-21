@@ -1,5 +1,5 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Calendar, MapPin, Clock, ExternalLink, Crown, ChevronRight } from 'lucide-react';
+import { Calendar, Crown, ChevronRight } from 'lucide-react';
 import { formatEventTime } from '../../../utils/formatters';
 
 /**
@@ -32,16 +32,23 @@ export function UpcomingEventCard({ onViewAllEvents }) {
   const nextEvent = upcomingEvents[0] || null;
   const totalEvents = events?.length || 0;
 
-  // Format date for display
-  const formatEventDate = (dateStr) => {
+  const formatDateBadge = (dateStr, timeStr) => {
     if (!dateStr) return 'Date TBD';
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
+    const eventDate = new Date(dateStr + 'T00:00:00');
+    const isToday = eventDate.getTime() === today.getTime();
+    const datePart = isToday
+      ? 'TODAY'
+      : eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+    if (timeStr) {
+      return `${datePart}  •  ${formatEventTime(timeStr)}`;
+    }
+    return datePart;
   };
+
+  const CardTag = nextEvent?.ticket_url ? 'a' : 'div';
+  const cardProps = nextEvent?.ticket_url
+    ? { href: nextEvent.ticket_url, target: '_blank', rel: 'noopener noreferrer' }
+    : {};
 
   return (
     <div className="upcoming-event-card">
@@ -60,54 +67,33 @@ export function UpcomingEventCard({ onViewAllEvents }) {
 
       {nextEvent ? (
         <div className="upcoming-event-content">
-          {/* Event Image */}
-          {nextEvent.image_url ? (
-            <div
-              className="event-image"
-              style={{ backgroundImage: `url(${nextEvent.image_url})` }}
-            />
-          ) : (
-            <div className="event-image event-image-placeholder">
-              <Crown size={28} />
-            </div>
-          )}
-
-          {/* Event Details */}
-          <div className="event-details">
-            <h5 className="event-name">{nextEvent.name}</h5>
-
-            <div className="event-meta">
-              <span className="event-meta-item">
-                <Calendar size={12} />
-                {formatEventDate(nextEvent.date)}
-              </span>
-              {nextEvent.time && (
-                <span className="event-meta-item">
-                  <Clock size={12} />
-                  {formatEventTime(nextEvent.time)}
-                </span>
+          <CardTag className="upcoming-event-link" {...cardProps}>
+            {/* Image with date badge */}
+            <div className="event-image-wrapper">
+              {nextEvent.image_url ? (
+                <div
+                  className="event-image"
+                  style={{ backgroundImage: `url(${nextEvent.image_url})` }}
+                />
+              ) : (
+                <div className="event-image event-image-placeholder">
+                  <Crown size={28} />
+                </div>
               )}
+              <div className="event-image-gradient" />
+              <div className="event-date-badge">
+                {formatDateBadge(nextEvent.date, nextEvent.time)}
+              </div>
+            </div>
+
+            {/* Event info below image */}
+            <div className="event-details">
+              <h5 className="event-name">{nextEvent.name}</h5>
               {nextEvent.location && (
-                <span className="event-meta-item">
-                  <MapPin size={12} />
-                  {nextEvent.location}
-                </span>
+                <p className="event-location">{nextEvent.location}</p>
               )}
             </div>
-
-            {/* Ticket Link */}
-            {nextEvent.ticket_url && (
-              <a
-                href={nextEvent.ticket_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-primary btn-small event-tickets-btn"
-              >
-                Get Tickets
-                <ExternalLink size={12} />
-              </a>
-            )}
-          </div>
+          </CardTag>
         </div>
       ) : (
         <div className="upcoming-event-empty">
