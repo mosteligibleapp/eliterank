@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, Sparkles, Edit2, Plus, Crown } from 'lucide-react';
 import { Button } from '../../../components/ui';
-import { colors, spacing, borderRadius, typography, shadows } from '../../../styles/theme';
+import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatEventTime } from '../../../utils/formatters';
 
 export default function EventsTab({
@@ -120,66 +120,63 @@ export default function EventsTab({
         {...wrapperProps}
         style={{
           display: 'block',
-          background: colors.background.card,
-          borderRadius: borderRadius.xxl,
-          overflow: 'hidden',
-          opacity: isPast ? 0.7 : 1,
+          opacity: isPast ? 0.6 : 1,
           position: 'relative',
           textDecoration: 'none',
           color: 'inherit',
-          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          transition: 'transform 0.2s ease, opacity 0.2s ease',
           cursor: event.ticketUrl && !isPast ? 'pointer' : 'default',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.transform = 'scale(1.02)';
-          e.currentTarget.style.boxShadow = shadows.cardHover;
+          if (!isPast) e.currentTarget.style.transform = 'scale(1.02)';
         }}
         onMouseLeave={e => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = 'none';
         }}
       >
-        {/* Edit button */}
-        {canEdit && onEditEvent && (
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEditEvent(event); }}
-            style={{
-              position: 'absolute',
-              top: spacing.md,
-              right: spacing.md,
-              zIndex: 2,
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.xs,
-              padding: `${spacing.xs} ${spacing.sm}`,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: borderRadius.md,
-              color: colors.text.secondary,
-              cursor: 'pointer',
-              fontSize: typography.fontSize.xs,
-            }}
-          >
-            <Edit2 size={12} />
-            Edit
-          </button>
-        )}
-
         {/* Cover Image */}
         <div style={{
           width: '100%',
-          aspectRatio: '4 / 3',
+          aspectRatio: '3 / 2',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          position: 'relative',
           background: event.imageUrl
             ? `url(${event.imageUrl}) center/cover no-repeat`
             : 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(139,92,246,0.1) 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          position: 'relative',
         }}>
           {!event.imageUrl && (
             <Crown size={56} style={{ color: 'rgba(212,175,55,0.35)' }} />
+          )}
+
+          {/* Edit button */}
+          {canEdit && onEditEvent && (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEditEvent(event); }}
+              style={{
+                position: 'absolute',
+                top: spacing.md,
+                right: spacing.md,
+                zIndex: 2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+                padding: `${spacing.xs} ${spacing.sm}`,
+                background: 'rgba(0,0,0,0.6)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: borderRadius.md,
+                color: colors.text.secondary,
+                cursor: 'pointer',
+                fontSize: typography.fontSize.xs,
+              }}
+            >
+              <Edit2 size={12} />
+              Edit
+            </button>
           )}
 
           {/* Bottom gradient fade */}
@@ -189,7 +186,7 @@ export default function EventsTab({
             left: 0,
             right: 0,
             height: '50%',
-            background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%)',
+            background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 100%)',
             pointerEvents: 'none',
           }} />
 
@@ -198,10 +195,10 @@ export default function EventsTab({
             position: 'absolute',
             bottom: spacing.md,
             left: spacing.md,
-            background: 'rgba(0,0,0,0.7)',
+            background: 'rgba(0,0,0,0.75)',
             backdropFilter: 'blur(12px)',
-            borderRadius: borderRadius.lg,
-            padding: `${spacing.xs} ${spacing.md}`,
+            borderRadius: '20px',
+            padding: `5px ${spacing.md}`,
             fontSize: typography.fontSize.xs,
             fontWeight: typography.fontWeight.semibold,
             color: colors.text.primary,
@@ -217,8 +214,8 @@ export default function EventsTab({
               left: spacing.md,
               background: 'rgba(0,0,0,0.6)',
               backdropFilter: 'blur(8px)',
-              borderRadius: borderRadius.md,
-              padding: `${spacing.xs} ${spacing.sm}`,
+              borderRadius: '20px',
+              padding: `4px ${spacing.sm}`,
               fontSize: typography.fontSize.xs,
               color: colors.text.tertiary,
               textTransform: 'uppercase',
@@ -229,13 +226,13 @@ export default function EventsTab({
           )}
         </div>
 
-        {/* Card Body */}
-        <div style={{ padding: `${spacing.md} ${spacing.lg} ${spacing.lg}` }}>
+        {/* Event Info */}
+        <div style={{ padding: `${spacing.sm} 2px 0` }}>
           <h3 style={{
             fontSize: typography.fontSize.md,
-            fontWeight: typography.fontWeight.semibold,
+            fontWeight: typography.fontWeight.bold,
             color: colors.text.primary,
-            marginBottom: spacing.xs,
+            marginBottom: '2px',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -246,7 +243,7 @@ export default function EventsTab({
           {(event.location || event.venue) && (
             <p style={{
               fontSize: typography.fontSize.sm,
-              color: colors.text.secondary,
+              color: colors.text.tertiary,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -295,7 +292,7 @@ export default function EventsTab({
           }}>
             Upcoming
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: spacing.lg }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.xl }}>
             {upcomingEvents.map(event => renderEventCard(event))}
           </div>
         </div>
@@ -312,7 +309,7 @@ export default function EventsTab({
           }}>
             Past Events
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: spacing.lg }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.xl }}>
             {pastEvents.map(event => renderEventCard(event, true))}
           </div>
         </div>

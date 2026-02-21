@@ -104,8 +104,6 @@ export default function UpcomingEventCard({ events = [], onViewAllEvents }) {
               display: 'block',
               textDecoration: 'none',
               color: 'inherit',
-              borderRadius: borderRadius.lg,
-              overflow: 'hidden',
               cursor: nextEvent.ticketUrl ? 'pointer' : 'default',
             }}
           >
@@ -113,7 +111,7 @@ export default function UpcomingEventCard({ events = [], onViewAllEvents }) {
             <div style={{
               width: '100%',
               aspectRatio: '16 / 9',
-              borderRadius: borderRadius.lg,
+              borderRadius: '14px',
               overflow: 'hidden',
               position: 'relative',
               background: nextEvent.imageUrl
@@ -143,10 +141,10 @@ export default function UpcomingEventCard({ events = [], onViewAllEvents }) {
                 position: 'absolute',
                 bottom: spacing.sm,
                 left: spacing.sm,
-                background: 'rgba(0,0,0,0.7)',
+                background: 'rgba(0,0,0,0.75)',
                 backdropFilter: 'blur(12px)',
-                borderRadius: borderRadius.md,
-                padding: `2px ${spacing.sm}`,
+                borderRadius: '20px',
+                padding: `3px ${spacing.sm}`,
                 fontSize: '0.6875rem',
                 fontWeight: typography.fontWeight.semibold,
                 color: colors.text.primary,
@@ -157,11 +155,11 @@ export default function UpcomingEventCard({ events = [], onViewAllEvents }) {
             </div>
 
             {/* Event info below image */}
-            <div style={{ padding: `${spacing.sm} 0 0` }}>
+            <div style={{ padding: `${spacing.sm} 2px 0` }}>
               <h4
                 style={{
                   fontSize: typography.fontSize.sm,
-                  fontWeight: typography.fontWeight.semibold,
+                  fontWeight: typography.fontWeight.bold,
                   color: colors.text.primary,
                   marginBottom: '2px',
                   overflow: 'hidden',
@@ -175,7 +173,7 @@ export default function UpcomingEventCard({ events = [], onViewAllEvents }) {
               {(nextEvent.location || nextEvent.venue) && (
                 <p style={{
                   fontSize: typography.fontSize.xs,
-                  color: colors.text.secondary,
+                  color: colors.text.tertiary,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
