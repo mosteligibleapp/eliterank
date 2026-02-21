@@ -177,6 +177,9 @@ export default function useSupabaseAuth() {
       // Silent fail on signout
     }
 
+    // Also clear local hook state (Supabase onAuthStateChange will fire,
+    // but clearing eagerly avoids stale reads between the signOut call
+    // and the async event callback)
     setUser(null);
     setProfile(null);
   }, []);
