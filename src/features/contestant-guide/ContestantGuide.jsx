@@ -213,7 +213,7 @@ export default function ContestantGuide({
 /**
  * Generate dynamic guide content based on competition configuration
  */
-function generateGuideContent({ competition, votingRounds, prizePool, about, phase }) {
+function generateGuideContent({ competition, votingRounds = [], prizePool, about, phase }) {
   const competitionName = competition?.name || 'the competition';
   const cityName = competition?.city || 'your city';
   const pricePerVote = competition?.price_per_vote || 1;
@@ -221,9 +221,10 @@ function generateGuideContent({ competition, votingRounds, prizePool, about, pha
   const prizeMinimum = prizePool?.minimum || competition?.prize_pool_minimum || 1000;
   const currentPrize = prizePool?.total || prizeMinimum;
   
-  // Count voting rounds (not judging)
-  const votingRoundCount = votingRounds.filter(r => r.round_type === 'voting').length || 3;
-  const hasResurrection = votingRounds.some(r => 
+  // Count voting rounds (not judging) - default to 3 if no data
+  const rounds = votingRounds || [];
+  const votingRoundCount = rounds.filter(r => r.round_type === 'voting').length || 3;
+  const hasResurrection = rounds.some(r => 
     r.round_type === 'resurrection' || r.title?.toLowerCase().includes('resurrection')
   );
 
