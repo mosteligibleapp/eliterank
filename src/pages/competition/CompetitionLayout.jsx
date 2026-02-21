@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useMemo } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useLocation, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   PublicCompetitionProvider,
@@ -45,7 +45,6 @@ function CompetitionLayoutInner() {
     about,
     contestants,
     organization,
-    allContestants,
   } = usePublicCompetition();
   const location = useLocation();
   const navigate = useNavigate();
@@ -160,19 +159,6 @@ function CompetitionLayoutInner() {
       </Suspense>
     );
   }
-
-  // Find if current user is a contestant in this competition
-  // Uses allContestants (includes pending/nominated) not just active leaderboard
-  // Match by user_id OR email (for nominees who haven't fully linked account)
-  const currentContestant = useMemo(() => {
-    if (!allContestants || allContestants.length === 0) return null;
-    if (!user?.id && !user?.email) return null;
-    
-    return allContestants.find(c => 
-      (user?.id && c.user_id === user.id) || 
-      (user?.email && c.email?.toLowerCase() === user.email.toLowerCase())
-    );
-  }, [user?.id, user?.email, allContestants]);
 
   // Hide floating buttons when modals are open
   const isModalOpen = showVoteModal || showProfileModal || showGuide;

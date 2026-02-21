@@ -47,7 +47,6 @@ export function PublicCompetitionProvider({
     loading: competitionLoading,
     error: competitionError,
     refetch: refetchCompetition,
-    allContestants,
   } = competitionData;
 
   // Leaderboard data (only fetch if we have a competition)
@@ -177,9 +176,6 @@ export function PublicCompetitionProvider({
 
       // Actions
       refetch: refetchCompetition,
-
-      // All contestants including pending (for checking if user is contestant)
-      allContestants,
     }),
     [
       orgSlug,
@@ -209,7 +205,6 @@ export function PublicCompetitionProvider({
       loading,
       error,
       refetchCompetition,
-      allContestants,
     ]
   );
 
