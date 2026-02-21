@@ -4,12 +4,13 @@
  * Renders EliteRankCityModal in full-page mode as the main landing experience.
  */
 
-import React, { lazy, Suspense, useCallback } from 'react';
+import React, { lazy, Suspense, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore, useUserRole, useHasDashboardAccess, useUserName, ROLES } from '../stores';
 import { getCompetitionUrl, generateCompetitionSlug } from '../utils/slugs';
 
 const EliteRankCityModal = lazy(() => import('../components/modals/EliteRankCityModal'));
+const ContestantGuide = lazy(() => import('../features/contestant-guide/ContestantGuide').then(m => ({ default: m.ContestantGuide })));
 
 /**
  * HomePage Component
@@ -70,6 +71,17 @@ export default function HomePage({
     navigate('/');
   }, [signOut, navigate]);
 
+  // Guide modal state (generic guide for home page)
+  const [showGuide, setShowGuide] = useState(false);
+
+  const handleHowToCompete = useCallback(() => {
+    setShowGuide(true);
+  }, []);
+
+  const handleCloseGuide = useCallback(() => {
+    setShowGuide(false);
+  }, []);
+
   return (
     <Suspense fallback={<div className="min-h-screen bg-bg-primary" />}>
       <EliteRankCityModal
@@ -81,11 +93,24 @@ export default function HomePage({
         onDashboard={isAuthenticated && hasDashboardAccess ? handleGoToDashboard : null}
         onProfile={isAuthenticated ? onShowProfile : null}
         onRewards={isAuthenticated ? onShowRewards : null}
+        onHowToCompete={handleHowToCompete}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
         userName={userName}
         onLogout={handleLogout}
       />
+
+      {/* Generic Contestant Guide (no specific competition) */}
+      {showGuide && (
+        <Suspense fallback={null}>
+          <ContestantGuide
+            competition={null}
+            mode="page"
+            onClose={handleCloseGuide}
+            onComplete={handleCloseGuide}
+          />
+        </Suspense>
+      )}
     </Suspense>
   );
 }
