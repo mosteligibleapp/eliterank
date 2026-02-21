@@ -175,10 +175,16 @@ function CompetitionLayoutInner() {
   }
 
   // Find if current user is a contestant in this competition
+  // Match by user_id OR email (for nominees who haven't fully linked account)
   const currentContestant = useMemo(() => {
-    if (!user?.id || !contestants) return null;
-    return contestants.find(c => c.user_id === user.id);
-  }, [user?.id, contestants]);
+    if (!contestants || contestants.length === 0) return null;
+    if (!user?.id && !user?.email) return null;
+    
+    return contestants.find(c => 
+      (user?.id && c.user_id === user.id) || 
+      (user?.email && c.email?.toLowerCase() === user.email.toLowerCase())
+    );
+  }, [user?.id, user?.email, contestants]);
 
   // Hide floating buttons when modals are open
   const isModalOpen = showVoteModal || showProfileModal || showGuide || showCards;
