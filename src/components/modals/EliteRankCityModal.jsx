@@ -1054,7 +1054,7 @@ export default function EliteRankCityModal({
         };
 
         return (
-          <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: isMobile ? '100%' : '500px', margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
               <div style={{
                 display: 'flex',
@@ -1076,7 +1076,7 @@ export default function EliteRankCityModal({
                 <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.lg }}>
                   Upcoming
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: spacing.lg }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.lg }}>
                   {upcomingEvents.map(event => renderEventCard(event))}
                 </div>
               </div>
@@ -1085,7 +1085,7 @@ export default function EliteRankCityModal({
             {pastEvents.length > 0 && (
               <div>
                 <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.secondary, marginBottom: spacing.lg }}>Past Events</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: spacing.lg }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.lg }}>
                   {pastEvents.slice(0, 6).map(event => renderEventCard(event, true))}
                 </div>
               </div>
