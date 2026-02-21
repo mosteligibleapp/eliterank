@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Calendar, Clock, Sparkles, Edit2, Plus, ExternalLink, Crown } from 'lucide-react';
+import { Calendar, Sparkles, Edit2, Plus, Crown } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatEventTime } from '../../../utils/formatters';
@@ -93,184 +93,168 @@ export default function EventsTab({
     return e.date < todayStr;
   }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  const renderEventCard = (event, isPast = false) => (
-    <div
-      key={event.id}
-      style={{
-        background: colors.background.card,
-        border: `1px solid ${colors.border.light}`,
-        borderRadius: borderRadius.xxl,
-        overflow: 'hidden',
-        opacity: isPast ? 0.75 : 1,
-        position: 'relative',
-      }}
-    >
-      {/* Edit button */}
-      {canEdit && onEditEvent && (
-        <button
-          onClick={() => onEditEvent(event)}
-          style={{
-            position: 'absolute',
-            top: spacing.md,
-            left: spacing.md,
-            zIndex: 2,
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.xs,
-            padding: `${spacing.xs} ${spacing.sm}`,
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: borderRadius.md,
-            color: colors.text.secondary,
-            cursor: 'pointer',
-            fontSize: typography.fontSize.xs,
-          }}
-        >
-          <Edit2 size={12} />
-          Edit
-        </button>
-      )}
+  const formatDateBadge = (dateStr, timeStr) => {
+    if (!dateStr) return 'Date TBD';
+    const eventDate = new Date(dateStr + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isToday = eventDate.getTime() === today.getTime();
+    const datePart = isToday
+      ? 'TODAY'
+      : eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+    if (timeStr) {
+      return `${datePart}  •  ${formatEventTime(timeStr)}`;
+    }
+    return datePart;
+  };
 
-      {/* Cover Image */}
-      <div style={{
-        width: '100%',
-        height: '200px',
-        background: event.imageUrl
-          ? `url(${event.imageUrl}) center/cover no-repeat`
-          : 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(139,92,246,0.1) 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-      }}>
-        {!event.imageUrl && (
-          <Crown size={56} style={{ color: 'rgba(212,175,55,0.35)' }} />
-        )}
+  const renderEventCard = (event, isPast = false) => {
+    const CardWrapper = event.ticketUrl && !isPast ? 'a' : 'div';
+    const wrapperProps = event.ticketUrl && !isPast
+      ? { href: event.ticketUrl, target: '_blank', rel: 'noopener noreferrer' }
+      : {};
 
-        {/* Date badge */}
+    return (
+      <CardWrapper
+        key={event.id}
+        {...wrapperProps}
+        style={{
+          display: 'block',
+          opacity: isPast ? 0.6 : 1,
+          position: 'relative',
+          textDecoration: 'none',
+          color: 'inherit',
+          transition: 'transform 0.2s ease, opacity 0.2s ease',
+          cursor: event.ticketUrl && !isPast ? 'pointer' : 'default',
+        }}
+        onMouseEnter={e => {
+          if (!isPast) e.currentTarget.style.transform = 'scale(1.02)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'scale(1)';
+        }}
+      >
+        {/* Cover Image */}
         <div style={{
-          position: 'absolute',
-          top: spacing.md,
-          right: spacing.md,
-          background: 'rgba(10,10,15,0.85)',
-          backdropFilter: 'blur(8px)',
-          borderRadius: borderRadius.lg,
-          padding: `${spacing.sm} ${spacing.md}`,
-          textAlign: 'center',
-          minWidth: '56px',
+          width: '100%',
+          aspectRatio: '3 / 2',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          position: 'relative',
+          background: event.imageUrl
+            ? `url(${event.imageUrl}) center/cover no-repeat`
+            : 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(139,92,246,0.1) 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
-          <div style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.gold.primary,
-            fontWeight: typography.fontWeight.bold,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}>
-            {event.date
-              ? new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' })
-              : 'TBD'}
-          </div>
-          <div style={{
-            fontSize: typography.fontSize.xxl,
-            fontWeight: typography.fontWeight.bold,
-            color: colors.text.primary,
-            lineHeight: 1,
-          }}>
-            {event.date ? new Date(event.date + 'T00:00:00').getDate() : '?'}
-          </div>
-        </div>
+          {!event.imageUrl && (
+            <Crown size={56} style={{ color: 'rgba(212,175,55,0.35)' }} />
+          )}
 
-        {isPast && (
+          {/* Edit button */}
+          {canEdit && onEditEvent && (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEditEvent(event); }}
+              style={{
+                position: 'absolute',
+                top: spacing.md,
+                right: spacing.md,
+                zIndex: 2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+                padding: `${spacing.xs} ${spacing.sm}`,
+                background: 'rgba(0,0,0,0.6)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: borderRadius.md,
+                color: colors.text.secondary,
+                cursor: 'pointer',
+                fontSize: typography.fontSize.xs,
+              }}
+            >
+              <Edit2 size={12} />
+              Edit
+            </button>
+          )}
+
+          {/* Bottom gradient fade */}
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '50%',
+            background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 100%)',
+            pointerEvents: 'none',
+          }} />
+
+          {/* Date/time badge */}
           <div style={{
             position: 'absolute',
             bottom: spacing.md,
             left: spacing.md,
-            background: 'rgba(255,255,255,0.15)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: borderRadius.md,
-            padding: `${spacing.xs} ${spacing.sm}`,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: '20px',
+            padding: `5px ${spacing.md}`,
             fontSize: typography.fontSize.xs,
-            color: colors.text.secondary,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            letterSpacing: '0.3px',
           }}>
-            Past Event
+            {formatDateBadge(event.date, event.time)}
           </div>
-        )}
-      </div>
 
-      {/* Card Body */}
-      <div style={{ padding: spacing.xl }}>
-        <h3 style={{
-          fontSize: typography.fontSize.xl,
-          fontWeight: typography.fontWeight.bold,
-          color: colors.text.primary,
-          marginBottom: spacing.sm,
-        }}>
-          {event.name}
-        </h3>
-
-        {event.description && (
-          <p style={{
-            color: colors.text.secondary,
-            fontSize: typography.fontSize.sm,
-            lineHeight: 1.6,
-            marginBottom: spacing.lg,
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}>
-            {event.description}
-          </p>
-        )}
-
-        {/* Meta info */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-          {event.time && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              <Clock size={14} style={{ flexShrink: 0 }} />
-              <span>{formatEventTime(event.time)}</span>
-            </div>
-          )}
-          {(event.location || event.venue) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              <MapPin size={14} style={{ flexShrink: 0 }} />
-              <span>{event.location || event.venue}</span>
+          {isPast && (
+            <div style={{
+              position: 'absolute',
+              top: spacing.md,
+              left: spacing.md,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: '20px',
+              padding: `4px ${spacing.sm}`,
+              fontSize: typography.fontSize.xs,
+              color: colors.text.tertiary,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}>
+              Past Event
             </div>
           )}
         </div>
 
-        {/* Ticket link */}
-        {event.ticketUrl && !isPast && (
-          <a
-            href={event.ticketUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: spacing.sm,
-              width: '100%',
-              padding: `${spacing.md} ${spacing.xl}`,
-              background: `linear-gradient(135deg, ${colors.gold.primary}, ${colors.gold.light || '#f4d03f'})`,
-              color: '#0a0a0f',
-              borderRadius: borderRadius.lg,
+        {/* Event Info */}
+        <div style={{ padding: `${spacing.sm} 2px 0` }}>
+          <h3 style={{
+            fontSize: typography.fontSize.md,
+            fontWeight: typography.fontWeight.bold,
+            color: colors.text.primary,
+            marginBottom: '2px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {event.name}
+          </h3>
+
+          {(event.location || event.venue) && (
+            <p style={{
               fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.bold,
-              textDecoration: 'none',
-              marginTop: spacing.lg,
-            }}
-          >
-            Get Tickets
-            <ExternalLink size={14} />
-          </a>
-        )}
-      </div>
-    </div>
-  );
+              color: colors.text.tertiary,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {event.location || event.venue}
+            </p>
+          )}
+        </div>
+      </CardWrapper>
+    );
+  };
 
   return (
     <div>
@@ -308,7 +292,7 @@ export default function EventsTab({
           }}>
             Upcoming
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: spacing.xl }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.xl }}>
             {upcomingEvents.map(event => renderEventCard(event))}
           </div>
         </div>
@@ -325,7 +309,7 @@ export default function EventsTab({
           }}>
             Past Events
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: spacing.xl }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.xl }}>
             {pastEvents.map(event => renderEventCard(event, true))}
           </div>
         </div>
