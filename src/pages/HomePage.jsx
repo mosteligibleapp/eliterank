@@ -10,7 +10,7 @@ import { useAuthStore, useUserRole, useHasDashboardAccess, useUserName, ROLES } 
 import { getCompetitionUrl, generateCompetitionSlug } from '../utils/slugs';
 
 const EliteRankCityModal = lazy(() => import('../components/modals/EliteRankCityModal'));
-const ContestantGuide = lazy(() => import('../features/contestant-guide/ContestantGuide').then(m => ({ default: m.ContestantGuide })));
+const ContestantGuide = lazy(() => import('../features/contestant-guide/ContestantGuide'));
 
 /**
  * HomePage Component

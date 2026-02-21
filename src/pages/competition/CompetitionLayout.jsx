@@ -27,7 +27,7 @@ import VoteModal from '../../features/public-site/components/VoteModal';
 const EntryFlow = lazy(() => import('../../features/entry/EntryFlow'));
 
 // Contestant Guide (lazy loaded)
-const ContestantGuide = lazy(() => import('../../features/contestant-guide/ContestantGuide').then(m => ({ default: m.ContestantGuide })));
+const ContestantGuide = lazy(() => import('../../features/contestant-guide/ContestantGuide'));
 
 /**
  * Inner layout component (has access to context)
