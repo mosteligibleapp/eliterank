@@ -178,15 +178,7 @@ export default function useAuthWithZustand() {
   }, [setError]);
 
   const signOut = useCallback(async () => {
-    if (!supabase) return;
-
-    try {
-      await supabase.auth.signOut();
-    } catch {
-      // Silent fail on signout
-    }
-
-    signOutStore();
+    await signOutStore();
   }, [signOutStore]);
 
   const updateProfile = useCallback(async (updates) => {

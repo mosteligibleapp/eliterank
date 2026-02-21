@@ -8,6 +8,7 @@
  */
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { supabase } from '../lib/supabase';
 
 // User roles (aligned with database schema)
 export const ROLES = Object.freeze({
@@ -48,14 +49,19 @@ export const useAuthStore = create(
         profile: state.profile ? { ...state.profile, ...updates } : null,
       })),
 
-      // Sign out - clear all auth state
-      signOut: () => set({
-        user: null,
-        profile: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      }),
+      // Sign out - clear Supabase session and all auth state
+      signOut: async () => {
+        if (supabase) {
+          try { await supabase.auth.signOut(); } catch { /* silent */ }
+        }
+        set({
+          user: null,
+          profile: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        });
+      },
 
       // ========== Selectors (Computed-like) ==========
       // These are functions that compute values from state
