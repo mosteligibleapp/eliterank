@@ -77,25 +77,70 @@ export default function AchievementsPage() {
         .order('created_at', { ascending: false });
 
       // Match by user_id or email (case-insensitive for email)
-      if (user?.id && user?.email) {
-        query = query.or(`user_id.eq.${user.id},email.ilike.${user.email}`);
-      } else if (user?.id) {
-        query = query.eq('user_id', user.id);
-      } else if (user?.email) {
-        query = query.ilike('email', user.email);
+      // Note: Using separate queries to avoid .or() escaping issues with emails
+      console.log('Fetching achievements for:', { userId: user?.id, email: user?.email });
+      
+      let data = [];
+      
+      if (user?.id) {
+        const { data: byUserId, error: err1 } = await query.eq('user_id', user.id);
+        if (err1) throw err1;
+        data = byUserId || [];
       }
       
-      console.log('Fetching achievements for:', { userId: user?.id, email: user?.email });
-
-      const { data, error } = await query;
-
-      if (error) throw error;
+      // Also check by email if we have one (for nominees without linked accounts)
+      if (user?.email) {
+        const emailQuery = supabase
+          .from('contestants')
+          .select(`
+            *,
+            competition:competitions (
+              id,
+              name,
+              slug,
+              city,
+              season,
+              status,
+              theme_primary,
+              number_of_winners,
+              organization:organizations (
+                id,
+                name,
+                slug,
+                logo_url
+              ),
+              voting_rounds (
+                id,
+                title,
+                round_order,
+                contestants_advance,
+                round_type
+              )
+            )
+          `)
+          .ilike('email', user.email)
+          .order('created_at', { ascending: false });
+        
+        const { data: byEmail, error: err2 } = await emailQuery;
+        if (err2) throw err2;
+        
+        // Merge, avoiding duplicates
+        const existingIds = new Set(data.map(r => r.id));
+        (byEmail || []).forEach(r => {
+          if (!existingIds.has(r.id)) {
+            data.push(r);
+          }
+        });
+      }
       
       // Filter to only show active/visible competitions
+      // Include nominations and voting stages too
       const filtered = (data || []).filter(c => 
         c.competition && 
-        ['publish', 'published', 'live', 'completed'].includes(c.competition.status?.toLowerCase())
+        ['publish', 'published', 'live', 'completed', 'nominations', 'voting', 'active'].includes(c.competition.status?.toLowerCase())
       );
+      
+      console.log('Found contestant records:', filtered.length, filtered.map(r => ({ id: r.id, compStatus: r.competition?.status, status: r.status })));
       
       setContestantRecords(filtered);
       
