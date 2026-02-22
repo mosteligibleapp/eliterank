@@ -82,7 +82,6 @@ export default function AchievementsPage() {
         status,
         user_id,
         converted_to_contestant,
-        converted_to_contestant_id,
         competition:competitions (
           id,
           name,
@@ -168,7 +167,6 @@ export default function AchievementsPage() {
           n.competition &&
           ['publish', 'published', 'live', 'completed'].includes(n.competition.status?.toLowerCase()) &&
           !n.converted_to_contestant &&
-          !n.converted_to_contestant_id &&
           !contestantCompetitionIds.has(n.competition?.id)
         )
         .map(n => ({
