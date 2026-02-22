@@ -33,13 +33,18 @@ export default function AcceptNominationModal({
   const competition = nomination?.competition;
   const contentRef = useRef(null);
 
+  // If the user already has an account with a profile, they already have a
+  // password — skip the password step. Only show it for magic-link users who
+  // haven't set a password yet (no profile) or anonymous users.
+  const userHasAccount = !!(user && profile);
+
   const flow = useBuildCardFlow({
     mode: 'third-party',
     competition,
     profile,
     user,
     nominee: nomination,
-    needsPassword: true, // Always include — magic-link users need to set a password
+    needsPassword: !userHasAccount,
   });
 
   // Scroll to top on step change
@@ -86,8 +91,8 @@ export default function AcceptNominationModal({
   const canGoBack = flow.currentStep !== 'accept' && flow.currentStep !== 'card';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="480px">
-      <div className="entry-flow" ref={contentRef} style={{ minHeight: 'auto', maxHeight: '85vh', overflow: 'auto' }}>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="480px" centered>
+      <div className="entry-flow entry-flow--modal" ref={contentRef}>
         {/* Header with progress */}
         {flow.currentStep !== 'card' && (
           <header className="entry-header" style={{ position: 'relative' }}>
