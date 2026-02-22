@@ -52,7 +52,7 @@ export default function AchievementsPage() {
           id,
           name,
           slug,
-          city,
+          city:cities(name),
           season,
           status,
           theme_primary,
@@ -82,12 +82,11 @@ export default function AchievementsPage() {
         status,
         user_id,
         converted_to_contestant,
-        converted_to_contestant_id,
         competition:competitions (
           id,
           name,
           slug,
-          city,
+          city:cities(name),
           season,
           status,
           theme_primary,
@@ -101,40 +100,53 @@ export default function AchievementsPage() {
       `;
 
       // Build separate queries by user_id and email to avoid PostgREST .or()
-      // parsing issues with email addresses containing dots
-      const queries = [];
+      // parsing issues with email addresses containing dots.
+      // Track contestant vs nominee queries separately for correct deduplication.
+      const contestantQueries = [];
+      const nomineeQueries = [];
 
       if (user?.id) {
-        queries.push(
-          supabase.from('contestants').select(contestantSelect).eq('user_id', user.id).order('created_at', { ascending: false }),
+        contestantQueries.push(
+          supabase.from('contestants').select(contestantSelect).eq('user_id', user.id).order('created_at', { ascending: false })
+        );
+        nomineeQueries.push(
           supabase.from('nominees').select(nomineeSelect).eq('user_id', user.id).not('status', 'in', '("rejected")').order('created_at', { ascending: false })
         );
       }
       if (user?.email) {
-        queries.push(
-          supabase.from('contestants').select(contestantSelect).eq('email', user.email).order('created_at', { ascending: false }),
+        contestantQueries.push(
+          supabase.from('contestants').select(contestantSelect).eq('email', user.email).order('created_at', { ascending: false })
+        );
+        nomineeQueries.push(
           supabase.from('nominees').select(nomineeSelect).eq('email', user.email).not('status', 'in', '("rejected")').order('created_at', { ascending: false })
         );
       }
 
-      const results = await Promise.all(queries);
+      const [contestantResults, nomineeResults] = await Promise.all([
+        Promise.all(contestantQueries),
+        Promise.all(nomineeQueries),
+      ]);
 
       // Merge and deduplicate results by id
       const contestantMap = new Map();
-      const nomineeMap = new Map();
-
-      for (const result of results) {
+      for (const result of contestantResults) {
         if (result.error) {
-          console.error('Error fetching records:', result.error);
+          console.error('Error fetching contestant records:', result.error);
           continue;
         }
         for (const row of result.data || []) {
-          // Distinguish contestants from nominees by checking for contestant-specific fields
-          if ('votes' in row || 'rank' in row || 'current_round' in row) {
-            if (!contestantMap.has(row.id)) contestantMap.set(row.id, row);
-          } else {
-            if (!nomineeMap.has(row.id)) nomineeMap.set(row.id, row);
-          }
+          if (!contestantMap.has(row.id)) contestantMap.set(row.id, row);
+        }
+      }
+
+      const nomineeMap = new Map();
+      for (const result of nomineeResults) {
+        if (result.error) {
+          console.error('Error fetching nominee records:', result.error);
+          continue;
+        }
+        for (const row of result.data || []) {
+          if (!nomineeMap.has(row.id)) nomineeMap.set(row.id, row);
         }
       }
 
@@ -155,7 +167,6 @@ export default function AchievementsPage() {
           n.competition &&
           ['publish', 'published', 'live', 'completed'].includes(n.competition.status?.toLowerCase()) &&
           !n.converted_to_contestant &&
-          !n.converted_to_contestant_id &&
           !contestantCompetitionIds.has(n.competition?.id)
         )
         .map(n => ({
@@ -285,7 +296,7 @@ export default function AchievementsPage() {
         name: record.name,
         photoUrl: record.avatar_url,
         handle: record.instagram,
-        competitionName: competition?.name || `Most Eligible ${competition?.city}`,
+        competitionName: competition?.name || `Most Eligible ${competition?.city?.name}`,
         season: competition?.season?.toString(),
         organizationName: organization?.name || 'Most Eligible',
         organizationLogoUrl: organization?.logo_url,
@@ -300,7 +311,7 @@ export default function AchievementsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${cardOption.type}-${competition?.city || 'card'}.png`;
+      a.download = `${cardOption.type}-${competition?.city?.name || 'card'}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -327,7 +338,7 @@ export default function AchievementsPage() {
         name: record.name,
         photoUrl: record.avatar_url,
         handle: record.instagram,
-        competitionName: competition?.name || `Most Eligible ${competition?.city}`,
+        competitionName: competition?.name || `Most Eligible ${competition?.city?.name}`,
         season: competition?.season?.toString(),
         organizationName: organization?.name || 'Most Eligible',
         organizationLogoUrl: organization?.logo_url,
@@ -351,7 +362,7 @@ export default function AchievementsPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${cardOption.type}-${competition?.city || 'card'}.png`;
+        a.download = `${cardOption.type}-${competition?.city?.name || 'card'}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -447,7 +458,7 @@ export default function AchievementsPage() {
                 <div className="achievements-competition-info">
                   <h2>{competition?.name || 'Competition'}</h2>
                   <span className="achievements-competition-meta">
-                    {competition?.city} · {competition?.season}
+                    {competition?.city?.name} · {competition?.season}
                     {isNomineeOnly && ' · Nominated'}
                     {!isNomineeOnly && record.status === 'active' && ' · Active'}
                     {!isNomineeOnly && record.status === 'winner' && ' · Winner'}
