@@ -23,7 +23,7 @@ export default function Modal({
       onClick={onClose}
     >
       <div 
-        className="relative bg-bg-card border border-border-primary rounded-3xl w-full mb-8"
+        className="relative bg-bg-card border border-border-primary rounded-3xl w-full mb-8 overflow-hidden"
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
       >

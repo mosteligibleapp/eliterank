@@ -86,8 +86,8 @@ export default function AcceptNominationModal({
   const canGoBack = flow.currentStep !== 'accept' && flow.currentStep !== 'card';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="480px">
-      <div className="entry-flow" ref={contentRef} style={{ minHeight: 'auto', maxHeight: '85vh', overflow: 'auto' }}>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="480px" centered>
+      <div className="entry-flow entry-flow--modal" ref={contentRef}>
         {/* Header with progress */}
         {flow.currentStep !== 'card' && (
           <header className="entry-header" style={{ position: 'relative' }}>
