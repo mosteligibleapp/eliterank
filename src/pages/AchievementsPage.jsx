@@ -45,92 +45,76 @@ export default function AchievementsPage() {
 
     setLoading(true);
     try {
-      // Query contestants where user_id matches OR email matches
-      let query = supabase
-        .from('contestants')
-        .select(`
-          *,
-          competition:competitions (
+      const selectQuery = `
+        *,
+        competition:competitions (
+          id,
+          name,
+          slug,
+          city,
+          season,
+          status,
+          theme_primary,
+          number_of_winners,
+          organization:organizations (
             id,
             name,
             slug,
-            city,
-            season,
-            status,
-            theme_primary,
-            number_of_winners,
-            organization:organizations (
-              id,
-              name,
-              slug,
-              logo_url
-            ),
-            voting_rounds (
-              id,
-              title,
-              round_order,
-              contestants_advance,
-              round_type
-            )
+            logo_url
+          ),
+          voting_rounds (
+            id,
+            title,
+            round_order,
+            contestants_advance,
+            round_type
           )
-        `)
-        .order('created_at', { ascending: false });
+        )
+      `;
 
       // Match by user_id or email (case-insensitive for email)
-      // Note: Using separate queries to avoid .or() escaping issues with emails
       console.log('Fetching achievements for:', { userId: user?.id, email: user?.email });
       
       let data = [];
       
+      // Query contestants by user_id
       if (user?.id) {
-        const { data: byUserId, error: err1 } = await query.eq('user_id', user.id);
-        if (err1) throw err1;
-        data = byUserId || [];
+        console.log('Querying contestants by user_id:', user.id);
+        const { data: byUserId, error: err1 } = await supabase
+          .from('contestants')
+          .select(selectQuery)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (err1) {
+          console.error('Error fetching contestants by user_id:', err1);
+        } else {
+          data = byUserId || [];
+          console.log('Contestants by user_id:', data.length);
+        }
       }
       
-      // Also check by email if we have one (for nominees without linked accounts)
+      // Also check by email if we have one
       if (user?.email) {
-        const emailQuery = supabase
+        console.log('Querying contestants by email:', user.email);
+        const { data: byEmail, error: err2 } = await supabase
           .from('contestants')
-          .select(`
-            *,
-            competition:competitions (
-              id,
-              name,
-              slug,
-              city,
-              season,
-              status,
-              theme_primary,
-              number_of_winners,
-              organization:organizations (
-                id,
-                name,
-                slug,
-                logo_url
-              ),
-              voting_rounds (
-                id,
-                title,
-                round_order,
-                contestants_advance,
-                round_type
-              )
-            )
-          `)
+          .select(selectQuery)
           .ilike('email', user.email)
           .order('created_at', { ascending: false });
         
-        const { data: byEmail, error: err2 } = await emailQuery;
-        if (err2) throw err2;
-        
-        // Merge, avoiding duplicates
-        const existingIds = new Set(data.map(r => r.id));
-        (byEmail || []).forEach(r => {
-          if (!existingIds.has(r.id)) {
-            data.push(r);
-          }
-        });
+        if (err2) {
+          console.error('Error fetching contestants by email:', err2);
+        } else if (byEmail) {
+          // Merge, avoiding duplicates
+          const existingIds = new Set(data.map(r => r.id));
+          byEmail.forEach(r => {
+            if (!existingIds.has(r.id)) {
+              data.push(r);
+            }
+          });
+          console.log('Contestants after email merge:', data.length);
+        }
       }
       
       // Also query nominees table (for people who haven't converted to contestants yet)
