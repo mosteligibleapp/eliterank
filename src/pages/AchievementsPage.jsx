@@ -133,6 +133,74 @@ export default function AchievementsPage() {
         });
       }
       
+      // Also query nominees table (for people who haven't converted to contestants yet)
+      const nomineeSelect = `
+        *,
+        competition:competitions (
+          id,
+          name,
+          slug,
+          city,
+          season,
+          status,
+          theme_primary,
+          number_of_winners,
+          organization:organizations (
+            id,
+            name,
+            slug,
+            logo_url
+          ),
+          voting_rounds (
+            id,
+            title,
+            round_order,
+            contestants_advance,
+            round_type
+          )
+        )
+      `;
+      
+      if (user?.id) {
+        const { data: nomineesByUserId, error: nErr1 } = await supabase
+          .from('nominees')
+          .select(nomineeSelect)
+          .eq('user_id', user.id)
+          .eq('converted_to_contestant', false)
+          .order('created_at', { ascending: false });
+        
+        if (!nErr1 && nomineesByUserId) {
+          const existingIds = new Set(data.map(r => r.id));
+          nomineesByUserId.forEach(r => {
+            if (!existingIds.has(r.id)) {
+              // Mark as nominee for card generation
+              r._isNominee = true;
+              data.push(r);
+            }
+          });
+        }
+      }
+      
+      if (user?.email) {
+        const { data: nomineesByEmail, error: nErr2 } = await supabase
+          .from('nominees')
+          .select(nomineeSelect)
+          .ilike('email', user.email)
+          .eq('converted_to_contestant', false)
+          .order('created_at', { ascending: false });
+        
+        if (!nErr2 && nomineesByEmail) {
+          const existingIds = new Set(data.map(r => r.id));
+          nomineesByEmail.forEach(r => {
+            if (!existingIds.has(r.id)) {
+              // Mark as nominee for card generation
+              r._isNominee = true;
+              data.push(r);
+            }
+          });
+        }
+      }
+      
       // Filter to only show active/visible competitions
       // Include nominations and voting stages too
       const filtered = (data || []).filter(c => 
@@ -140,7 +208,7 @@ export default function AchievementsPage() {
         ['publish', 'published', 'live', 'completed', 'nominations', 'voting', 'active'].includes(c.competition.status?.toLowerCase())
       );
       
-      console.log('Found contestant records:', filtered.length, filtered.map(r => ({ id: r.id, compStatus: r.competition?.status, status: r.status })));
+      console.log('Found records (contestants + nominees):', filtered.length, filtered.map(r => ({ id: r.id, compStatus: r.competition?.status, status: r.status, isNominee: r._isNominee })));
       
       setContestantRecords(filtered);
       
