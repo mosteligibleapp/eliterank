@@ -162,6 +162,7 @@ export default function AchievementsPage() {
       `;
       
       if (user?.id) {
+        console.log('Querying nominees by user_id:', user.id);
         const { data: nomineesByUserId, error: nErr1 } = await supabase
           .from('nominees')
           .select(nomineeSelect)
@@ -169,7 +170,12 @@ export default function AchievementsPage() {
           .eq('converted_to_contestant', false)
           .order('created_at', { ascending: false });
         
-        if (!nErr1 && nomineesByUserId) {
+        console.log('Nominees by user_id result:', { count: nomineesByUserId?.length, error: nErr1 });
+        
+        if (nErr1) {
+          console.error('Error fetching nominees by user_id:', nErr1);
+        }
+        if (nomineesByUserId && nomineesByUserId.length > 0) {
           const existingIds = new Set(data.map(r => r.id));
           nomineesByUserId.forEach(r => {
             if (!existingIds.has(r.id)) {
@@ -182,6 +188,7 @@ export default function AchievementsPage() {
       }
       
       if (user?.email) {
+        console.log('Querying nominees by email:', user.email);
         const { data: nomineesByEmail, error: nErr2 } = await supabase
           .from('nominees')
           .select(nomineeSelect)
@@ -189,7 +196,12 @@ export default function AchievementsPage() {
           .eq('converted_to_contestant', false)
           .order('created_at', { ascending: false });
         
-        if (!nErr2 && nomineesByEmail) {
+        console.log('Nominees by email result:', { count: nomineesByEmail?.length, error: nErr2 });
+        
+        if (nErr2) {
+          console.error('Error fetching nominees by email:', nErr2);
+        }
+        if (nomineesByEmail && nomineesByEmail.length > 0) {
           const existingIds = new Set(data.map(r => r.id));
           nomineesByEmail.forEach(r => {
             if (!existingIds.has(r.id)) {
