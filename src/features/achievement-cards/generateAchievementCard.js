@@ -267,34 +267,30 @@ export async function generateAchievementCard({
   if (organizationLogoUrl) {
     try {
       const logo = await loadImage(organizationLogoUrl);
-      const maxH = 70;
-      const maxW = 360;
+      const maxH = 140;
+      const maxW = 600;
       let logoW = logo.width;
       let logoH = logo.height;
       if (logoH > maxH) { logoW = (maxH / logoH) * logoW; logoH = maxH; }
       if (logoW > maxW) { logoH = (maxW / logoW) * logoH; logoW = maxW; }
-      ctx.globalAlpha = 0.9;
       ctx.drawImage(logo, CX - logoW / 2, y - logoH / 2, logoW, logoH);
-      ctx.globalAlpha = 1;
-      y += logoH / 2 + 30;
+      y += logoH / 2 + 40;
     } catch {
       ctx.fillStyle = `${accentColor}cc`;
-      ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.letterSpacing = '6px';
+      ctx.font = '500 36px -apple-system, BlinkMacSystemFont, sans-serif';
       ctx.fillText(organizationName.toUpperCase(), CX, y);
-      ctx.letterSpacing = '0px';
-      y += 40;
+      y += 50;
     }
   } else {
     ctx.fillStyle = `${accentColor}cc`;
-    ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = '500 36px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(organizationName.toUpperCase(), CX, y);
-    y += 40;
+    y += 50;
   }
 
   // Decorative divider below org
   drawDecorativeLine(ctx, CX, y, 260, accentColor);
-  y += 60;
+  y += 50;
 
   // === PHOTO (hero element) ===
   const photoRadius = 200;
@@ -391,20 +387,11 @@ export async function generateAchievementCard({
     ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
   }
 
-  // Glow pass
+  // Subtle glow pass
   ctx.save();
   ctx.shadowColor = accentColor;
-  ctx.shadowBlur = 50;
+  ctx.shadowBlur = 15;
   ctx.fillStyle = accentColor;
-  ctx.fillText(displayTitle, CX, y);
-  ctx.restore();
-
-  // Second glow pass for intensity
-  ctx.save();
-  ctx.shadowColor = accentColor;
-  ctx.shadowBlur = 20;
-  ctx.fillStyle = accentColor;
-  ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
   ctx.fillText(displayTitle, CX, y);
   ctx.restore();
 
@@ -415,25 +402,25 @@ export async function generateAchievementCard({
   y += titleFontSize * 0.6 + 10;
 
   // Subtitle
-  ctx.fillStyle = '#71717a';
-  ctx.font = '400 28px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#a1a1aa';
+  ctx.font = '400 36px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText(subtitle, CX, y);
-  y += 48;
+  y += 56;
 
   // Competition name
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = '600 36px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = '600 46px -apple-system, BlinkMacSystemFont, sans-serif';
   let compDisplay = competitionName || 'the competition';
-  if (ctx.measureText(compDisplay).width > 860) {
-    ctx.font = '600 30px -apple-system, BlinkMacSystemFont, sans-serif';
+  if (ctx.measureText(compDisplay).width > 900) {
+    ctx.font = '600 38px -apple-system, BlinkMacSystemFont, sans-serif';
   }
   ctx.fillText(compDisplay, CX, y);
-  y += 44;
+  y += 52;
 
   // Season
   if (season) {
-    ctx.fillStyle = '#52525b';
-    ctx.font = '400 26px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '500 34px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(season, CX, y);
   }
 
@@ -457,7 +444,7 @@ export async function generateAchievementCard({
   }
 
   // === CTA BUTTON ===
-  const ctaY = 1680;
+  const ctaY = y + 80;
   const ctaHeight = 68;
   const ctaText = 'www.eliterank.co';
 

@@ -287,18 +287,10 @@ export async function generateShareCard({
   y += 60;
 
   // === ACHIEVEMENT TITLE ===
-  // Glow pass
+  // Subtle glow pass
   ctx.save();
   ctx.shadowColor = accentColor;
-  ctx.shadowBlur = 50;
-  ctx.fillStyle = accentColor;
-  ctx.font = 'bold 88px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText('NOMINATED', CX, y);
-  ctx.restore();
-
-  ctx.save();
-  ctx.shadowColor = accentColor;
-  ctx.shadowBlur = 20;
+  ctx.shadowBlur = 15;
   ctx.fillStyle = accentColor;
   ctx.font = 'bold 88px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('NOMINATED', CX, y);
@@ -311,27 +303,27 @@ export async function generateShareCard({
   y += 66;
 
   // Subtitle
-  ctx.fillStyle = '#71717a';
-  ctx.font = '400 28px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#a1a1aa';
+  ctx.font = '400 36px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('for', CX, y);
-  y += 48;
+  y += 56;
 
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = '600 36px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = '600 46px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText(competitionTitle || 'Competition', CX, y);
-  y += 44;
+  y += 52;
 
   const metaParts = [];
   if (cityName) metaParts.push(cityName);
   if (season) metaParts.push(season);
   if (metaParts.length) {
-    ctx.fillStyle = '#52525b';
-    ctx.font = '400 26px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '500 34px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(metaParts.join('  ·  '), CX, y);
   }
 
   // === CTA ===
-  const ctaY = 1680;
+  const ctaY = y + 80;
   const ctaHeight = 68;
   const ctaWidth = 480;
   const ctaX = CX - ctaWidth / 2;
