@@ -1,5 +1,6 @@
 /**
- * AchievementsPage - Shows share cards for all competitions the user is a contestant in
+ * AchievementsPage - Shows share cards for all competitions the user is in
+ * (as a contestant or nominee)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -29,15 +30,15 @@ import './AchievementsPage.css';
 export default function AchievementsPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useSupabaseAuth();
-  
+
   const [loading, setLoading] = useState(true);
-  const [contestantRecords, setContestantRecords] = useState([]);
+  const [achievementRecords, setAchievementRecords] = useState([]);
   const [expandedCompetition, setExpandedCompetition] = useState(null);
   const [generating, setGenerating] = useState(null);
   const [shareStatus, setShareStatus] = useState(null);
 
-  // Fetch all competitions the user is a contestant in
-  const fetchContestantRecords = useCallback(async () => {
+  // Fetch all competitions the user is in (as contestant or nominee)
+  const fetchAchievementRecords = useCallback(async () => {
     if (!user?.id && !user?.email) {
       setLoading(false);
       return;
@@ -45,8 +46,8 @@ export default function AchievementsPage() {
 
     setLoading(true);
     try {
-      // Query contestants where user_id matches OR email matches
-      let query = supabase
+      // 1. Query contestants
+      let contestantQuery = supabase
         .from('contestants')
         .select(`
           *,
@@ -76,47 +77,133 @@ export default function AchievementsPage() {
         `)
         .order('created_at', { ascending: false });
 
-      // Match by user_id or email (case-insensitive for email)
       if (user?.id && user?.email) {
-        query = query.or(`user_id.eq.${user.id},email.ilike.${user.email}`);
+        contestantQuery = contestantQuery.or(`user_id.eq.${user.id},email.eq.${user.email}`);
       } else if (user?.id) {
-        query = query.eq('user_id', user.id);
+        contestantQuery = contestantQuery.eq('user_id', user.id);
       } else if (user?.email) {
-        query = query.ilike('email', user.email);
+        contestantQuery = contestantQuery.eq('email', user.email);
       }
-      
-      console.log('Fetching achievements for:', { userId: user?.id, email: user?.email });
 
-      const { data, error } = await query;
+      // 2. Query nominees (for users who are nominated but not yet contestants)
+      let nomineeQuery = supabase
+        .from('nominees')
+        .select(`
+          id,
+          name,
+          email,
+          avatar_url,
+          instagram,
+          status,
+          user_id,
+          converted_to_contestant,
+          converted_to_contestant_id,
+          competition:competitions (
+            id,
+            name,
+            slug,
+            city,
+            season,
+            status,
+            theme_primary,
+            organization:organizations (
+              id,
+              name,
+              slug,
+              logo_url
+            )
+          )
+        `)
+        .not('status', 'in', '("rejected")')
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Filter to only show active/visible competitions
-      const filtered = (data || []).filter(c => 
-        c.competition && 
+      if (user?.id && user?.email) {
+        nomineeQuery = nomineeQuery.or(`user_id.eq.${user.id},email.eq.${user.email}`);
+      } else if (user?.id) {
+        nomineeQuery = nomineeQuery.eq('user_id', user.id);
+      } else if (user?.email) {
+        nomineeQuery = nomineeQuery.eq('email', user.email);
+      }
+
+      // Run both queries in parallel
+      const [contestantResult, nomineeResult] = await Promise.all([
+        contestantQuery,
+        nomineeQuery,
+      ]);
+
+      if (contestantResult.error) {
+        console.error('Error fetching contestant records:', contestantResult.error);
+      }
+      if (nomineeResult.error) {
+        console.error('Error fetching nominee records:', nomineeResult.error);
+      }
+
+      const contestants = (contestantResult.data || []).filter(c =>
+        c.competition &&
         ['publish', 'published', 'live', 'completed'].includes(c.competition.status?.toLowerCase())
       );
-      
-      setContestantRecords(filtered);
-      
+
+      // Track which competition IDs already have contestant records
+      const contestantCompetitionIds = new Set(
+        contestants.map(c => c.competition?.id).filter(Boolean)
+      );
+
+      // Filter nominees: only keep those not already represented as contestants,
+      // and not already converted to a contestant
+      const nomineeRecords = (nomineeResult.data || [])
+        .filter(n =>
+          n.competition &&
+          ['publish', 'published', 'live', 'completed'].includes(n.competition.status?.toLowerCase()) &&
+          !n.converted_to_contestant &&
+          !n.converted_to_contestant_id &&
+          !contestantCompetitionIds.has(n.competition?.id)
+        )
+        .map(n => ({
+          ...n,
+          _source: 'nominee',
+        }));
+
+      // Mark contestant records
+      const contestantRecords = contestants.map(c => ({
+        ...c,
+        _source: 'contestant',
+      }));
+
+      const merged = [...contestantRecords, ...nomineeRecords];
+
+      setAchievementRecords(merged);
+
       // Auto-expand first one if only one
-      if (filtered.length === 1) {
-        setExpandedCompetition(filtered[0].competition?.id);
+      if (merged.length === 1) {
+        setExpandedCompetition(merged[0].competition?.id);
       }
     } catch (err) {
-      console.error('Error fetching contestant records:', err);
+      console.error('Error fetching achievement records:', err);
     } finally {
       setLoading(false);
     }
   }, [user?.id, user?.email]);
 
   useEffect(() => {
-    fetchContestantRecords();
-  }, [fetchContestantRecords]);
+    fetchAchievementRecords();
+  }, [fetchAchievementRecords]);
 
-  // Get available cards for a contestant record
+  // Get available cards for a record
   const getAvailableCards = (record) => {
     const cards = [];
+
+    // Nominee-only records can only show the "Nominated" card
+    if (record._source === 'nominee') {
+      cards.push({
+        type: 'nominated',
+        title: 'NOMINATED',
+        description: 'Share that you\'ve been nominated!',
+        icon: <Sparkles size={20} />,
+      });
+      return cards;
+    }
+
+    // Contestant records
     const status = record.status || 'pending';
     const currentRound = record.current_round || 1;
     const rank = record.rank;
@@ -144,7 +231,7 @@ export default function AchievementsPage() {
     if (currentRound > 1 && status === 'active') {
       const advancedToRound = votingRounds.find(r => r.round_order === currentRound);
       const advanceCount = advancedToRound?.contestants_advance;
-      
+
       if (advanceCount) {
         cards.push({
           type: 'advanced',
@@ -203,7 +290,7 @@ export default function AchievementsPage() {
         organizationName: organization?.name || 'Most Eligible',
         organizationLogoUrl: organization?.logo_url,
         accentColor: competition?.theme_primary || '#d4af37',
-        voteUrl: competition?.slug 
+        voteUrl: competition?.slug
           ? `mosteligible.co/${organization?.slug || 'most-eligible'}/${competition.slug}`
           : 'mosteligible.co',
         rank: cardOption.rank,
@@ -245,7 +332,7 @@ export default function AchievementsPage() {
         organizationName: organization?.name || 'Most Eligible',
         organizationLogoUrl: organization?.logo_url,
         accentColor: competition?.theme_primary || '#d4af37',
-        voteUrl: competition?.slug 
+        voteUrl: competition?.slug
           ? `mosteligible.co/${organization?.slug || 'most-eligible'}/${competition.slug}`
           : 'mosteligible.co',
         rank: cardOption.rank,
@@ -288,7 +375,7 @@ export default function AchievementsPage() {
       <div className="achievements-page">
         <div className="achievements-empty">
           <ImagePlus size={48} />
-          <h2>Sign in to view your achievementss</h2>
+          <h2>Sign in to view your achievements</h2>
           <p>Access your share cards for all competitions you're in</p>
           <button onClick={() => navigate('/?login=true')} className="achievements-btn-primary">
             Sign In
@@ -304,14 +391,14 @@ export default function AchievementsPage() {
       <div className="achievements-page">
         <div className="achievements-loading">
           <Loader size={32} className="spinning" />
-          <p>Loading your achievementss...</p>
+          <p>Loading your achievements...</p>
         </div>
       </div>
     );
   }
 
   // No competitions
-  if (contestantRecords.length === 0) {
+  if (achievementRecords.length === 0) {
     return (
       <div className="achievements-page">
         <header className="achievements-header">
@@ -322,7 +409,7 @@ export default function AchievementsPage() {
         </header>
         <div className="achievements-empty">
           <ImagePlus size={48} />
-          <h2>No active achievementss</h2>
+          <h2>No active achievements</h2>
           <p>You're not currently competing in any competitions</p>
           <button onClick={() => navigate('/')} className="achievements-btn-primary">
             Explore Competitions
@@ -345,10 +432,11 @@ export default function AchievementsPage() {
       </header>
 
       <div className="achievements-list">
-        {contestantRecords.map((record) => {
+        {achievementRecords.map((record) => {
           const competition = record.competition;
           const isExpanded = expandedCompetition === competition?.id;
           const cards = getAvailableCards(record);
+          const isNomineeOnly = record._source === 'nominee';
 
           return (
             <div key={record.id} className="achievements-competition">
@@ -360,9 +448,10 @@ export default function AchievementsPage() {
                   <h2>{competition?.name || 'Competition'}</h2>
                   <span className="achievements-competition-meta">
                     {competition?.city} · {competition?.season}
-                    {record.status === 'active' && ' · Active'}
-                    {record.status === 'winner' && ' · Winner'}
-                    {record.status === 'pending' && ' · Pending'}
+                    {isNomineeOnly && ' · Nominated'}
+                    {!isNomineeOnly && record.status === 'active' && ' · Active'}
+                    {!isNomineeOnly && record.status === 'winner' && ' · Winner'}
+                    {!isNomineeOnly && record.status === 'pending' && ' · Pending'}
                   </span>
                 </div>
                 {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
