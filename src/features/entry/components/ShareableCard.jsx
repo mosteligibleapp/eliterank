@@ -318,13 +318,9 @@ export default function ShareableCard({
       ctx.font = `bold ${26 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Vote at eliterank.co', cx, ctaY + ctaH / 2);
+      ctx.fillText('www.eliterank.co', cx, ctaY + ctaH / 2);
       ctx.textBaseline = 'alphabetic';
 
-      // Bottom branding
-      ctx.fillStyle = '#3f3f46';
-      ctx.font = `400 ${20 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
-      ctx.fillText('eliterank.co', cx, 1820 * s);
     }
 
     if (photoUrl && imageLoaded) {

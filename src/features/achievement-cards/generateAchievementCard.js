@@ -459,7 +459,7 @@ export async function generateAchievementCard({
   // === CTA BUTTON ===
   const ctaY = 1680;
   const ctaHeight = 68;
-  const ctaText = voteUrl ? `Vote at ${voteUrl.replace(/^https?:\/\//, '')}` : 'Vote for me';
+  const ctaText = 'www.eliterank.co';
 
   ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif';
   const ctaTextWidth = ctx.measureText(ctaText).width;
@@ -491,12 +491,6 @@ export async function generateAchievementCard({
   ctx.strokeStyle = 'rgba(255,255,255,0.2)';
   ctx.lineWidth = 1;
   ctx.stroke();
-
-  // === BOTTOM BRANDING ===
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = '#3f3f46';
-  ctx.font = '400 20px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText('eliterank.co', CX, 1820);
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png');

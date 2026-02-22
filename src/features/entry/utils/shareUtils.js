@@ -352,18 +352,12 @@ export async function generateShareCard({
   ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('Vote at eliterank.co', CX, ctaY + ctaHeight / 2);
+  ctx.fillText('www.eliterank.co', CX, ctaY + ctaHeight / 2);
 
   roundRect(ctx, ctaX, ctaY, ctaWidth, ctaHeight, ctaHeight / 2);
   ctx.strokeStyle = 'rgba(255,255,255,0.2)';
   ctx.lineWidth = 1;
   ctx.stroke();
-
-  // Bottom branding
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = '#3f3f46';
-  ctx.font = '400 20px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText('eliterank.co', CX, 1820);
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png');
