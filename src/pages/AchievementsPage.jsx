@@ -46,99 +46,99 @@ export default function AchievementsPage() {
 
     setLoading(true);
     try {
-      // 1. Query contestants
-      let contestantQuery = supabase
-        .from('contestants')
-        .select(`
-          *,
-          competition:competitions (
-            id,
-            name,
-            slug,
-            city,
-            season,
-            status,
-            theme_primary,
-            number_of_winners,
-            organization:organizations (
-              id,
-              name,
-              slug,
-              logo_url
-            ),
-            voting_rounds (
-              id,
-              title,
-              round_order,
-              contestants_advance,
-              round_type
-            )
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (user?.id && user?.email) {
-        contestantQuery = contestantQuery.or(`user_id.eq.${user.id},email.eq."${user.email}"`);
-      } else if (user?.id) {
-        contestantQuery = contestantQuery.eq('user_id', user.id);
-      } else if (user?.email) {
-        contestantQuery = contestantQuery.eq('email', user.email);
-      }
-
-      // 2. Query nominees (for users who are nominated but not yet contestants)
-      let nomineeQuery = supabase
-        .from('nominees')
-        .select(`
+      const contestantSelect = `
+        *,
+        competition:competitions (
           id,
           name,
-          email,
-          avatar_url,
-          instagram,
+          slug,
+          city,
+          season,
           status,
-          user_id,
-          converted_to_contestant,
-          converted_to_contestant_id,
-          competition:competitions (
+          theme_primary,
+          number_of_winners,
+          organization:organizations (
             id,
             name,
             slug,
-            city,
-            season,
-            status,
-            theme_primary,
-            organization:organizations (
-              id,
-              name,
-              slug,
-              logo_url
-            )
+            logo_url
+          ),
+          voting_rounds (
+            id,
+            title,
+            round_order,
+            contestants_advance,
+            round_type
           )
-        `)
-        .not('status', 'in', '("rejected")')
-        .order('created_at', { ascending: false });
+        )
+      `;
 
-      if (user?.id && user?.email) {
-        nomineeQuery = nomineeQuery.or(`user_id.eq.${user.id},email.eq."${user.email}"`);
-      } else if (user?.id) {
-        nomineeQuery = nomineeQuery.eq('user_id', user.id);
-      } else if (user?.email) {
-        nomineeQuery = nomineeQuery.eq('email', user.email);
+      const nomineeSelect = `
+        id,
+        name,
+        email,
+        avatar_url,
+        instagram,
+        status,
+        user_id,
+        converted_to_contestant,
+        converted_to_contestant_id,
+        competition:competitions (
+          id,
+          name,
+          slug,
+          city,
+          season,
+          status,
+          theme_primary,
+          organization:organizations (
+            id,
+            name,
+            slug,
+            logo_url
+          )
+        )
+      `;
+
+      // Build separate queries by user_id and email to avoid PostgREST .or()
+      // parsing issues with email addresses containing dots
+      const queries = [];
+
+      if (user?.id) {
+        queries.push(
+          supabase.from('contestants').select(contestantSelect).eq('user_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('nominees').select(nomineeSelect).eq('user_id', user.id).not('status', 'in', '("rejected")').order('created_at', { ascending: false })
+        );
+      }
+      if (user?.email) {
+        queries.push(
+          supabase.from('contestants').select(contestantSelect).eq('email', user.email).order('created_at', { ascending: false }),
+          supabase.from('nominees').select(nomineeSelect).eq('email', user.email).not('status', 'in', '("rejected")').order('created_at', { ascending: false })
+        );
       }
 
-      // Run both queries in parallel
-      const [contestantResult, nomineeResult] = await Promise.all([
-        contestantQuery,
-        nomineeQuery,
-      ]);
+      const results = await Promise.all(queries);
 
-      if (contestantResult.error) {
-        console.error('Error fetching contestant records:', contestantResult.error);
-      }
-      if (nomineeResult.error) {
-        console.error('Error fetching nominee records:', nomineeResult.error);
+      // Merge and deduplicate results by id
+      const contestantMap = new Map();
+      const nomineeMap = new Map();
+
+      for (const result of results) {
+        if (result.error) {
+          console.error('Error fetching records:', result.error);
+          continue;
+        }
+        for (const row of result.data || []) {
+          // Distinguish contestants from nominees by checking for contestant-specific fields
+          if ('votes' in row || 'rank' in row || 'current_round' in row) {
+            if (!contestantMap.has(row.id)) contestantMap.set(row.id, row);
+          } else {
+            if (!nomineeMap.has(row.id)) nomineeMap.set(row.id, row);
+          }
+        }
       }
 
-      const contestants = (contestantResult.data || []).filter(c =>
+      const contestants = [...contestantMap.values()].filter(c =>
         c.competition &&
         ['publish', 'published', 'live', 'completed'].includes(c.competition.status?.toLowerCase())
       );
@@ -150,7 +150,7 @@ export default function AchievementsPage() {
 
       // Filter nominees: only keep those not already represented as contestants,
       // and not already converted to a contestant
-      const nomineeRecords = (nomineeResult.data || [])
+      const nomineeRecords = [...nomineeMap.values()]
         .filter(n =>
           n.competition &&
           ['publish', 'published', 'live', 'completed'].includes(n.competition.status?.toLowerCase()) &&

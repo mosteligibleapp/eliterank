@@ -8,50 +8,65 @@ export async function getNominationsForUser(userId, userEmail) {
   if (!supabase || (!userId && !userEmail)) return [];
 
   try {
-    let query = supabase
-      .from('nominees')
-      .select(`
+    const selectStr = `
+      id,
+      name,
+      email,
+      status,
+      claimed_at,
+      user_id,
+      nominator_name,
+      nominator_anonymous,
+      nomination_reason,
+      invite_token,
+      competition:competitions(
         id,
         name,
-        email,
+        slug,
+        season,
         status,
-        claimed_at,
-        user_id,
-        nominator_name,
-        nominator_anonymous,
-        nomination_reason,
-        invite_token,
-        competition:competitions(
-          id,
-          name,
-          slug,
-          season,
-          status,
-          city:cities(name),
-          organization:organizations(name, slug)
-        )
-      `)
-      .not('status', 'in', '("rejected","declined")')
-      .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
-      .order('created_at', { ascending: false });
+        city:cities(name),
+        organization:organizations(name, slug)
+      )
+    `;
 
-    // Filter by user_id OR email
-    if (userId && userEmail) {
-      query = query.or(`user_id.eq.${userId},email.eq."${userEmail}"`);
-    } else if (userId) {
-      query = query.eq('user_id', userId);
-    } else if (userEmail) {
-      query = query.eq('email', userEmail);
+    // Run separate queries by user_id and email to avoid PostgREST .or()
+    // parsing issues with email addresses containing dots
+    const queries = [];
+    if (userId) {
+      queries.push(
+        supabase.from('nominees').select(selectStr)
+          .eq('user_id', userId)
+          .not('status', 'in', '("rejected","declined")')
+          .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
+          .order('created_at', { ascending: false })
+      );
+    }
+    if (userEmail) {
+      queries.push(
+        supabase.from('nominees').select(selectStr)
+          .eq('email', userEmail)
+          .not('status', 'in', '("rejected","declined")')
+          .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
+          .order('created_at', { ascending: false })
+      );
     }
 
-    const { data, error } = await query;
+    const results = await Promise.all(queries);
 
-    if (error) {
-      console.error('Error fetching nominations:', error);
-      return [];
+    // Merge and deduplicate by id
+    const seen = new Map();
+    for (const result of results) {
+      if (result.error) {
+        console.error('Error fetching nominations:', result.error);
+        continue;
+      }
+      for (const row of result.data || []) {
+        if (!seen.has(row.id)) seen.set(row.id, row);
+      }
     }
 
-    return data || [];
+    return [...seen.values()];
   } catch (err) {
     console.error('Error in getNominationsForUser:', err);
     return [];
