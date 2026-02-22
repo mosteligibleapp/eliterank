@@ -180,7 +180,7 @@ export default function LoginPage({ onLogin, onBack }) {
       if (signInError) {
         setError(signInError);
       } else if (user) {
-        onLogin({
+        await onLogin({
           id: user.id,
           email: user.email,
           name: user.user_metadata?.first_name || email.split('@')[0],
