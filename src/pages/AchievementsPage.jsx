@@ -78,7 +78,7 @@ export default function AchievementsPage() {
         .order('created_at', { ascending: false });
 
       if (user?.id && user?.email) {
-        contestantQuery = contestantQuery.or(`user_id.eq.${user.id},email.eq.${user.email}`);
+        contestantQuery = contestantQuery.or(`user_id.eq.${user.id},email.eq."${user.email}"`);
       } else if (user?.id) {
         contestantQuery = contestantQuery.eq('user_id', user.id);
       } else if (user?.email) {
@@ -118,7 +118,7 @@ export default function AchievementsPage() {
         .order('created_at', { ascending: false });
 
       if (user?.id && user?.email) {
-        nomineeQuery = nomineeQuery.or(`user_id.eq.${user.id},email.eq.${user.email}`);
+        nomineeQuery = nomineeQuery.or(`user_id.eq.${user.id},email.eq."${user.email}"`);
       } else if (user?.id) {
         nomineeQuery = nomineeQuery.eq('user_id', user.id);
       } else if (user?.email) {

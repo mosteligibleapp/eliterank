@@ -37,7 +37,7 @@ export async function getNominationsForUser(userId, userEmail) {
 
     // Filter by user_id OR email
     if (userId && userEmail) {
-      query = query.or(`user_id.eq.${userId},email.eq.${userEmail}`);
+      query = query.or(`user_id.eq.${userId},email.eq."${userEmail}"`);
     } else if (userId) {
       query = query.eq('user_id', userId);
     } else if (userEmail) {
