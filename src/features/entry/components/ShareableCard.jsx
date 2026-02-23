@@ -231,18 +231,10 @@ export default function ShareableCard({
       drawDecorativeLine(cx, ry, 300 * s);
       ry += 60 * s;
 
-      // NOMINATED with glow
+      // NOMINATED with subtle glow
       ctx.save();
       ctx.shadowColor = accentColor;
-      ctx.shadowBlur = 50 * s;
-      ctx.fillStyle = accentColor;
-      ctx.font = `bold ${88 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
-      ctx.fillText('NOMINATED', cx, ry);
-      ctx.restore();
-
-      ctx.save();
-      ctx.shadowColor = accentColor;
-      ctx.shadowBlur = 20 * s;
+      ctx.shadowBlur = 15 * s;
       ctx.fillStyle = accentColor;
       ctx.font = `bold ${88 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.fillText('NOMINATED', cx, ry);
@@ -254,27 +246,27 @@ export default function ShareableCard({
       ry += 66 * s;
 
       // Subtitle
-      ctx.fillStyle = '#71717a';
-      ctx.font = `400 ${28 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.fillStyle = '#a1a1aa';
+      ctx.font = `400 ${36 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.fillText('for', cx, ry);
-      ry += 48 * s;
+      ry += 56 * s;
 
       ctx.fillStyle = '#e4e4e7';
-      ctx.font = `600 ${36 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `600 ${46 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.fillText(competitionTitle || 'Competition', cx, ry);
-      ry += 44 * s;
+      ry += 52 * s;
 
       const metaParts = [];
       if (cityName) metaParts.push(cityName);
       if (season) metaParts.push(String(season));
       if (metaParts.length) {
-        ctx.fillStyle = '#52525b';
-        ctx.font = `400 ${26 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+        ctx.fillStyle = '#a1a1aa';
+        ctx.font = `500 ${34 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
         ctx.fillText(metaParts.join('  ·  '), cx, ry);
       }
 
       // CTA
-      const ctaY = 1680 * s;
+      const ctaY = ry + 80 * s;
       const ctaW = 480 * s;
       const ctaH = 68 * s;
       const ctaX = cx - ctaW / 2;
