@@ -275,7 +275,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
         <div>
           {/* Bonus Votes Checklist - only for own profile */}
           {onEdit && hostProfile?.id && (
-            <ProfileBonusVotes userId={hostProfile.id} />
+            <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} />
           )}
 
           {/* Hobbies Section */}
