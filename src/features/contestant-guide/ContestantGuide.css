@@ -180,6 +180,29 @@
   margin-top: 2px;
 }
 
+.guide-subpoints {
+  padding-left: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.guide-subpoint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+}
+
+.guide-subpoint-dash {
+  color: var(--guide-gold);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
 /* Pro tip */
 .guide-tip {
   display: flex;
@@ -375,10 +398,7 @@
   gap: 10px;
 }
 
-.guide-section-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+.guide-section-list > li {
   font-size: 14px;
   color: var(--guide-text);
   line-height: 1.5;
@@ -388,6 +408,41 @@
   color: var(--guide-gold);
   flex-shrink: 0;
   margin-top: 3px;
+}
+
+.guide-section-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.guide-section-list-item svg {
+  color: var(--guide-gold);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.guide-section-sublist {
+  list-style: none;
+  padding: 6px 0 0 26px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guide-section-sublist li {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  padding: 0;
+}
+
+.guide-section-sublist li::before {
+  content: '—';
+  color: var(--guide-gold);
+  opacity: 0.6;
+  margin-right: 8px;
 }
 
 .guide-section-tip {
