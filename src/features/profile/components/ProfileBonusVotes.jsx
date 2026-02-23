@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import { getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
@@ -6,6 +6,8 @@ import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS } from '../../../lib/bonusVotes';
 import { spacing, typography, colors } from '../../../styles/theme';
+
+const ContestantGuide = lazy(() => import('../../../features/contestant-guide/ContestantGuide'));
 
 /**
  * Default bonus task definitions for building client-side checklist for nominees.
@@ -26,6 +28,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
   const { profile } = useAuthContextSafe();
   const toast = useToast();
   const hasCheckedProfile = useRef(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const {
     tasks, loading, awarding,
@@ -55,12 +58,17 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     return () => window.removeEventListener('profile-updated', handler);
   }, []);
 
+  const handleGuideComplete = async () => {
+    setShowGuide(false);
+    const result = await markHowToWinViewed();
+    if (result?.success) {
+      toast?.success?.(`+${result.votes_awarded} bonus votes for reviewing How to Win!`);
+    }
+  };
+
   const handleTaskAction = async (taskKey) => {
     if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
-      const result = await markHowToWinViewed();
-      if (result?.success) {
-        toast?.success?.(`+${result.votes_awarded} bonus votes for reviewing How to Win!`);
-      }
+      setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
       const shareUrl = window.location.href;
       if (navigator.share) {
@@ -92,30 +100,42 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
   if (loading || tasks.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: spacing.xl }}>
-      {competitionName && (
-        <p style={{
-          fontSize: typography.fontSize.xs,
-          color: colors.text.secondary,
-          marginBottom: spacing.sm,
-          fontWeight: typography.fontWeight.medium,
-        }}>
-          {competitionName}
-        </p>
+    <>
+      <div style={{ marginBottom: spacing.xl }}>
+        {competitionName && (
+          <p style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.text.secondary,
+            marginBottom: spacing.sm,
+            fontWeight: typography.fontWeight.medium,
+          }}>
+            {competitionName}
+          </p>
+        )}
+        <BonusVotesChecklist
+          tasks={tasks}
+          loading={loading}
+          awarding={awarding}
+          completedCount={completedCount}
+          totalCount={totalCount}
+          totalBonusVotesEarned={totalBonusVotesEarned}
+          totalBonusVotesAvailable={totalBonusVotesAvailable}
+          progress={progress}
+          allCompleted={allCompleted}
+          onTaskAction={handleTaskAction}
+        />
+      </div>
+      {showGuide && (
+        <Suspense fallback={null}>
+          <ContestantGuide
+            competition={null}
+            mode="page"
+            onClose={() => setShowGuide(false)}
+            onComplete={handleGuideComplete}
+          />
+        </Suspense>
       )}
-      <BonusVotesChecklist
-        tasks={tasks}
-        loading={loading}
-        awarding={awarding}
-        completedCount={completedCount}
-        totalCount={totalCount}
-        totalBonusVotesEarned={totalBonusVotesEarned}
-        totalBonusVotesAvailable={totalBonusVotesAvailable}
-        progress={progress}
-        allCompleted={allCompleted}
-        onTaskAction={handleTaskAction}
-      />
-    </div>
+    </>
   );
 }
 
@@ -126,6 +146,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
  */
 function NomineeBonusVotes({ competitionName, profile }) {
   const toast = useToast();
+  const [showGuide, setShowGuide] = useState(false);
 
   // Evaluate task completion from profile data
   const tasks = useMemo(() => {
@@ -167,7 +188,9 @@ function NomineeBonusVotes({ competitionName, profile }) {
   const allCompleted = totalCount > 0 && completedCount === totalCount;
 
   const handleTaskAction = async (taskKey) => {
-    if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
+    if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
+      setShowGuide(true);
+    } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
       const shareUrl = window.location.href;
       if (navigator.share) {
         try {
@@ -184,28 +207,40 @@ function NomineeBonusVotes({ competitionName, profile }) {
   };
 
   return (
-    <div style={{ marginBottom: spacing.xl }}>
-      {competitionName && (
-        <p style={{
-          fontSize: typography.fontSize.xs,
-          color: colors.text.secondary,
-          marginBottom: spacing.sm,
-          fontWeight: typography.fontWeight.medium,
-        }}>
-          {competitionName}
-        </p>
+    <>
+      <div style={{ marginBottom: spacing.xl }}>
+        {competitionName && (
+          <p style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.text.secondary,
+            marginBottom: spacing.sm,
+            fontWeight: typography.fontWeight.medium,
+          }}>
+            {competitionName}
+          </p>
+        )}
+        <BonusVotesChecklist
+          tasks={tasks}
+          completedCount={completedCount}
+          totalCount={totalCount}
+          totalBonusVotesEarned={totalBonusVotesEarned}
+          totalBonusVotesAvailable={totalBonusVotesAvailable}
+          progress={progress}
+          allCompleted={allCompleted}
+          onTaskAction={handleTaskAction}
+        />
+      </div>
+      {showGuide && (
+        <Suspense fallback={null}>
+          <ContestantGuide
+            competition={null}
+            mode="page"
+            onClose={() => setShowGuide(false)}
+            onComplete={() => setShowGuide(false)}
+          />
+        </Suspense>
       )}
-      <BonusVotesChecklist
-        tasks={tasks}
-        completedCount={completedCount}
-        totalCount={totalCount}
-        totalBonusVotesEarned={totalBonusVotesEarned}
-        totalBonusVotesAvailable={totalBonusVotesAvailable}
-        progress={progress}
-        allCompleted={allCompleted}
-        onTaskAction={handleTaskAction}
-      />
-    </div>
+    </>
   );
 }
 

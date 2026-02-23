@@ -1,9 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS } from '../../../lib/bonusVotes';
+
+const ContestantGuide = lazy(() => import('../../../features/contestant-guide/ContestantGuide'));
 
 /**
  * ContestantBonusVotes - Wraps the BonusVotesChecklist for the public competition page.
@@ -13,6 +15,7 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
   const { profile } = useAuthContextSafe();
   const toast = useToast();
   const hasCheckedProfile = useRef(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const bonusVotes = useBonusVotes(competitionId, contestantId, userId);
 
@@ -54,18 +57,18 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
     return () => window.removeEventListener('profile-updated', handler);
   }, []);
 
+  const handleGuideComplete = async () => {
+    setShowGuide(false);
+    const result = await markHowToWinViewed();
+    if (result?.success) {
+      toast?.success?.(`+${result.votes_awarded} bonus votes for reviewing How to Win!`);
+    }
+  };
+
   // Handle task actions (e.g., clicking "view how to win" or "share profile")
   const handleTaskAction = async (taskKey) => {
     if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
-      // Scroll to rules section, then award
-      const rulesSection = document.querySelector('.rules-accordion');
-      if (rulesSection) {
-        rulesSection.scrollIntoView({ behavior: 'smooth' });
-      }
-      const result = await markHowToWinViewed();
-      if (result?.success) {
-        toast?.success?.(`+${result.votes_awarded} bonus votes for reviewing How to Win!`);
-      }
+      setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
       // Attempt to use Web Share API or copy link
       const shareUrl = window.location.href;
@@ -103,17 +106,29 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
   if (loading || tasks.length === 0) return null;
 
   return (
-    <BonusVotesChecklist
-      tasks={tasks}
-      loading={loading}
-      awarding={awarding}
-      completedCount={completedCount}
-      totalCount={totalCount}
-      totalBonusVotesEarned={totalBonusVotesEarned}
-      totalBonusVotesAvailable={totalBonusVotesAvailable}
-      progress={progress}
-      allCompleted={allCompleted}
-      onTaskAction={handleTaskAction}
-    />
+    <>
+      <BonusVotesChecklist
+        tasks={tasks}
+        loading={loading}
+        awarding={awarding}
+        completedCount={completedCount}
+        totalCount={totalCount}
+        totalBonusVotesEarned={totalBonusVotesEarned}
+        totalBonusVotesAvailable={totalBonusVotesAvailable}
+        progress={progress}
+        allCompleted={allCompleted}
+        onTaskAction={handleTaskAction}
+      />
+      {showGuide && (
+        <Suspense fallback={null}>
+          <ContestantGuide
+            competition={null}
+            mode="page"
+            onClose={() => setShowGuide(false)}
+            onComplete={handleGuideComplete}
+          />
+        </Suspense>
+      )}
+    </>
   );
 }
