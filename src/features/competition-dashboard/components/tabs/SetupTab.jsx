@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Calendar, User, Star, Plus, Trash2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, CheckCircle, XCircle } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
+import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats } from '../../../../lib/bonusVotes';
+import { isSupabaseConfigured } from '../../../../lib/supabase';
 
 // Helper to format currency from cents
 const formatCurrency = (cents) => {
@@ -51,6 +53,50 @@ export default function SetupTab({
 }) {
   const { isMobile } = useResponsive();
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
+
+  // Bonus votes state
+  const [bonusTasks, setBonusTasks] = useState([]);
+  const [bonusStats, setBonusStats] = useState(null);
+  const [bonusLoading, setBonusLoading] = useState(false);
+  const [settingUp, setSettingUp] = useState(false);
+
+  const competitionId = competition?.id;
+
+  const loadBonusTasks = useCallback(async () => {
+    if (!competitionId || !isSupabaseConfigured()) return;
+    setBonusLoading(true);
+    const [tasksResult, statsResult] = await Promise.all([
+      getBonusVoteTasks(competitionId),
+      getBonusVoteCompletionStats(competitionId),
+    ]);
+    setBonusTasks(tasksResult.tasks);
+    setBonusStats(statsResult.stats);
+    setBonusLoading(false);
+  }, [competitionId]);
+
+  useEffect(() => {
+    loadBonusTasks();
+  }, [loadBonusTasks]);
+
+  const handleSetupBonusTasks = async () => {
+    if (!competitionId) return;
+    setSettingUp(true);
+    await setupDefaultBonusTasks(competitionId);
+    await loadBonusTasks();
+    setSettingUp(false);
+  };
+
+  const handleToggleBonusTask = async (taskId, currentEnabled) => {
+    await updateBonusVoteTask(taskId, { enabled: !currentEnabled });
+    setBonusTasks(prev => prev.map(t => t.id === taskId ? { ...t, enabled: !currentEnabled } : t));
+  };
+
+  const handleUpdateBonusVotes = async (taskId, newVotes) => {
+    const votes = parseInt(newVotes, 10);
+    if (isNaN(votes) || votes < 0) return;
+    await updateBonusVoteTask(taskId, { votes_awarded: votes });
+    setBonusTasks(prev => prev.map(t => t.id === taskId ? { ...t, votes_awarded: votes } : t));
+  };
 
   // View-only field component - stacked layout for better mobile display
   const ViewOnlyField = ({ label, value, icon: Icon }) => (
@@ -401,6 +447,167 @@ export default function SetupTab({
                 );
               })}
             </div>
+          )}
+        </div>
+      </Panel>
+
+      {/* Bonus Votes Section */}
+      <Panel
+        title="Bonus Votes"
+        icon={Gift}
+        collapsible
+        defaultCollapsed={false}
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          {bonusLoading ? (
+            <p style={{ color: colors.text.secondary, textAlign: 'center', padding: spacing.lg }}>
+              Loading bonus vote tasks...
+            </p>
+          ) : bonusTasks.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl }}>
+              <Gift size={48} style={{ marginBottom: spacing.md, opacity: 0.5, color: colors.gold.primary }} />
+              <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
+                Bonus votes reward contestants for completing tasks like filling out their profile or reviewing competition info. Set up the default tasks to get started.
+              </p>
+              <Button
+                onClick={handleSetupBonusTasks}
+                disabled={settingUp}
+                icon={Plus}
+              >
+                {settingUp ? 'Setting up...' : 'Enable Bonus Votes'}
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Stats summary */}
+              {bonusStats && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)',
+                  gap: spacing.sm,
+                  marginBottom: spacing.lg,
+                }}>
+                  <div style={{
+                    padding: spacing.md,
+                    background: 'rgba(212,175,55,0.08)',
+                    borderRadius: borderRadius.lg,
+                    border: '1px solid rgba(212,175,55,0.15)',
+                  }}>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Active Tasks</p>
+                    <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
+                      {bonusTasks.filter(t => t.enabled).length}
+                    </p>
+                  </div>
+                  <div style={{
+                    padding: spacing.md,
+                    background: 'rgba(34,197,94,0.08)',
+                    borderRadius: borderRadius.lg,
+                    border: '1px solid rgba(34,197,94,0.15)',
+                  }}>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Total Completions</p>
+                    <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.status.success }}>
+                      {bonusStats.totalCompletions}
+                    </p>
+                  </div>
+                  <div style={{
+                    padding: spacing.md,
+                    background: 'rgba(59,130,246,0.08)',
+                    borderRadius: borderRadius.lg,
+                    border: '1px solid rgba(59,130,246,0.15)',
+                    ...(isMobile ? { gridColumn: 'span 2' } : {}),
+                  }}>
+                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Bonus Votes Awarded</p>
+                    <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.status.info }}>
+                      {bonusStats.totalBonusVotes}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
+                Contestants earn bonus votes by completing these tasks. Toggle tasks on/off or adjust the vote reward.
+              </p>
+
+              {/* Task list */}
+              <div style={{ display: 'grid', gap: spacing.sm }}>
+                {bonusTasks.map((task) => (
+                  <div key={task.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    padding: spacing.md,
+                    background: task.enabled ? colors.background.secondary : 'rgba(100,100,100,0.08)',
+                    borderRadius: borderRadius.lg,
+                    border: `1px solid ${task.enabled ? colors.border.primary : 'rgba(100,100,100,0.15)'}`,
+                    opacity: task.enabled ? 1 : 0.6,
+                  }}>
+                    {/* Toggle */}
+                    <button
+                      onClick={() => handleToggleBonusTask(task.id, task.enabled)}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: borderRadius.md,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: task.enabled ? 'rgba(34,197,94,0.15)' : 'rgba(100,100,100,0.15)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {task.enabled ? (
+                        <CheckCircle size={18} style={{ color: colors.status.success }} />
+                      ) : (
+                        <XCircle size={18} style={{ color: colors.text.muted }} />
+                      )}
+                    </button>
+
+                    {/* Task info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.base }}>
+                        {task.label}
+                      </p>
+                      <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
+                        {task.description || task.task_key}
+                      </p>
+                    </div>
+
+                    {/* Vote amount editor */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flexShrink: 0 }}>
+                      <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>+</span>
+                      <input
+                        type="number"
+                        value={task.votes_awarded}
+                        onChange={(e) => handleUpdateBonusVotes(task.id, e.target.value)}
+                        min="0"
+                        max="100"
+                        style={{
+                          width: '48px',
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          background: colors.background.card,
+                          border: `1px solid ${colors.border.primary}`,
+                          borderRadius: borderRadius.sm,
+                          color: colors.gold.primary,
+                          fontSize: typography.fontSize.sm,
+                          fontWeight: typography.fontWeight.semibold,
+                          textAlign: 'center',
+                        }}
+                      />
+                      <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>votes</span>
+                    </div>
+
+                    {/* Completion count */}
+                    {bonusStats?.completionsByTask?.[task.id] && (
+                      <Badge variant="success" size="sm">
+                        {bonusStats.completionsByTask[task.id]} done
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </Panel>
