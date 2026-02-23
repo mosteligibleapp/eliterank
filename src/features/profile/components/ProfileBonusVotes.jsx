@@ -15,10 +15,9 @@ const ContestantGuide = lazy(() => import('../../../features/contestant-guide/Co
 const DEFAULT_BONUS_TASKS = [
   { task_key: 'complete_profile', label: 'Complete your profile', description: 'Fill out all profile fields including name, bio, city, and age', votes_awarded: 10, sort_order: 1 },
   { task_key: 'add_photo', label: 'Add a profile photo', description: 'Upload a profile photo so voters can see you', votes_awarded: 5, sort_order: 2 },
-  { task_key: 'add_bio', label: 'Write your bio', description: 'Tell voters about yourself with a compelling bio', votes_awarded: 5, sort_order: 3 },
-  { task_key: 'add_social', label: 'Link a social account', description: 'Connect your Instagram, Twitter, or TikTok', votes_awarded: 5, sort_order: 4 },
-  { task_key: 'view_how_to_win', label: 'Review How to Win info', description: 'Read through the competition rules and tips', votes_awarded: 5, sort_order: 5 },
-  { task_key: 'share_profile', label: 'Share your profile', description: 'Share your contestant profile link externally', votes_awarded: 5, sort_order: 6 },
+  { task_key: 'add_social', label: 'Link a social account', description: 'Connect your Instagram, Twitter, or TikTok', votes_awarded: 5, sort_order: 3 },
+  { task_key: 'view_how_to_win', label: 'Review How to Win info', description: 'Read through the competition rules and tips', votes_awarded: 5, sort_order: 4 },
+  { task_key: 'share_profile', label: 'Share your profile', description: 'Share your contestant profile link externally', votes_awarded: 5, sort_order: 5 },
 ];
 
 /**
@@ -165,9 +164,6 @@ function NomineeBonusVotes({ competitionName, profile }) {
           break;
         case 'add_photo':
           completed = hasPhoto;
-          break;
-        case 'add_bio':
-          completed = hasBio;
           break;
         case 'add_social':
           completed = hasSocial;

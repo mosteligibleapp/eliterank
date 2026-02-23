@@ -6,7 +6,6 @@ import { supabase, isSupabaseConfigured } from './supabase';
 export const BONUS_TASK_KEYS = {
   COMPLETE_PROFILE: 'complete_profile',
   ADD_PHOTO: 'add_photo',
-  ADD_BIO: 'add_bio',
   ADD_SOCIAL: 'add_social',
   VIEW_HOW_TO_WIN: 'view_how_to_win',
   SHARE_PROFILE: 'share_profile',
@@ -210,12 +209,6 @@ export async function checkAndAwardProfileBonuses(competitionId, contestantId, u
   // Check add_photo: has avatar_url
   if (profile.avatar_url) {
     const result = await awardBonusVotes(competitionId, contestantId, userId, BONUS_TASK_KEYS.ADD_PHOTO);
-    if (result.success) awarded.push(result);
-  }
-
-  // Check add_bio: has bio
-  if (hasBio) {
-    const result = await awardBonusVotes(competitionId, contestantId, userId, BONUS_TASK_KEYS.ADD_BIO);
     if (result.success) awarded.push(result);
   }
 
