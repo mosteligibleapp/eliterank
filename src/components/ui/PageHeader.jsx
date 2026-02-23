@@ -13,7 +13,7 @@ import './PageHeader.css';
  * Provides consistent navigation: back button (left), title (center-left), profile icon (right).
  * Used on Profile, Rewards, Achievements, and any other non-competition page.
  */
-function PageHeader({ title, subtitle, onBack, backLabel = 'Back', children }) {
+function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompete, children }) {
   const navigate = useNavigate();
   const { user, profile, isAuthenticated, signOut } = useSupabaseAuth();
   const userRole = getUserRole(profile);
@@ -58,6 +58,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', children }) {
           onProfile={handleProfile}
           onRewards={handleRewards}
           onAchievements={handleAchievements}
+          onHowToCompete={onHowToCompete}
           onDashboard={hasDashboardAccess ? handleDashboard : null}
           hasDashboardAccess={hasDashboardAccess}
           size={36}
