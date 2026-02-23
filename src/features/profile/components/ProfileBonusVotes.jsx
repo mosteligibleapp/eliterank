@@ -122,9 +122,10 @@ export default function ProfileBonusVotes({ userId }) {
     }
 
     getContestantCompetitions(userId).then(entries => {
+      // Show for all competitions except completed ones
       const active = entries.filter(entry => {
         const status = entry.competition?.status;
-        return ['voting', 'nomination', 'live'].includes(status);
+        return status && status !== 'completed';
       });
       setActiveEntries(active);
       setLoading(false);
