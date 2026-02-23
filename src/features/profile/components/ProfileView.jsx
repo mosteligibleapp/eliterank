@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, FileText, Heart, Camera, Globe, TrendingUp, Share2, Check } from 'lucide-react';
-import { Panel, Button, InterestTag } from '../../../components/ui';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check } from 'lucide-react';
+import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
@@ -135,7 +135,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                   marginTop: spacing.sm,
                   fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg
                 }}>
-                  <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}
+                  <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}{hostProfile.age ? `, ${hostProfile.age}` : ''}
                 </p>
               )}
             </div>
@@ -275,32 +275,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
         <div>
           {/* Bonus Votes Checklist - only for own profile */}
           {onEdit && hostProfile?.id && (
-            <ProfileBonusVotes userId={hostProfile.id} />
-          )}
-
-          {/* Hobbies Section */}
-          {hostProfile.hobbies && hostProfile.hobbies.length > 0 && (
-            <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
-              <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
-                <h3 style={{
-                  fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-                  fontWeight: typography.fontWeight.semibold,
-                  marginBottom: spacing.lg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md
-                }}>
-                  <Heart size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Interests
-                </h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-                  {hostProfile.hobbies.map((hobby) => (
-                    <InterestTag key={hobby} size={isMobile ? 'md' : 'lg'}>
-                      {hobby}
-                    </InterestTag>
-                  ))}
-                </div>
-              </div>
-            </Panel>
+            <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} />
           )}
 
           {/* Social Links */}

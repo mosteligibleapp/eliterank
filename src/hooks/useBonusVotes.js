@@ -4,6 +4,7 @@ import {
   getBonusVoteStatus,
   awardBonusVotes,
   checkAndAwardProfileBonuses,
+  setupDefaultBonusTasks,
   BONUS_TASK_KEYS,
 } from '../lib/bonusVotes';
 
@@ -22,7 +23,7 @@ export function useBonusVotes(competitionId, contestantId, userId) {
 
   const isDemoMode = !isSupabaseConfigured();
 
-  // Fetch bonus vote status
+  // Fetch bonus vote status, auto-setup tasks if none exist
   const fetchStatus = useCallback(async () => {
     if (!competitionId || !contestantId || isDemoMode) {
       setLoading(false);
@@ -30,7 +31,17 @@ export function useBonusVotes(competitionId, contestantId, userId) {
     }
 
     setLoading(true);
-    const { tasks: fetchedTasks } = await getBonusVoteStatus(competitionId, contestantId);
+    let { tasks: fetchedTasks } = await getBonusVoteStatus(competitionId, contestantId);
+
+    // Auto-setup default bonus tasks if none exist for this competition
+    if (fetchedTasks.length === 0) {
+      const setupResult = await setupDefaultBonusTasks(competitionId);
+      if (setupResult.success) {
+        const refetched = await getBonusVoteStatus(competitionId, contestantId);
+        fetchedTasks = refetched.tasks;
+      }
+    }
+
     setTasks(fetchedTasks);
     setLoading(false);
   }, [competitionId, contestantId, isDemoMode]);

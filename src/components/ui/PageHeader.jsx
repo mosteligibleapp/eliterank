@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useSupabaseAuth } from '../../hooks';
@@ -6,6 +6,8 @@ import { getUserRole, ROLE } from '../../routes/ProtectedRoute';
 import ProfileIcon from './ProfileIcon';
 import NotificationBell from './NotificationBell';
 import './PageHeader.css';
+
+const ContestantGuide = lazy(() => import('../../features/contestant-guide/ContestantGuide'));
 
 /**
  * PageHeader - Standardized sticky header for all user-facing pages
@@ -17,6 +19,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   const navigate = useNavigate();
   const { user, profile, isAuthenticated, signOut } = useSupabaseAuth();
   const userRole = getUserRole(profile);
+  const [showGuide, setShowGuide] = useState(false);
 
   const handleBack = onBack || (() => navigate('/'));
   const handleProfile = () => navigate('/profile');
@@ -28,43 +31,59 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
     navigate('/');
   };
 
+  const handleHowToCompete = onHowToCompete || (() => setShowGuide(true));
+
   const hasDashboardAccess = userRole === ROLE.HOST || userRole === ROLE.SUPER_ADMIN;
 
   return (
-    <header className="page-header">
-      <button
-        className="page-header__back"
-        onClick={handleBack}
-        aria-label={backLabel}
-      >
-        <ArrowLeft size={20} />
-      </button>
+    <>
+      <header className="page-header">
+        <button
+          className="page-header__back"
+          onClick={handleBack}
+          aria-label={backLabel}
+        >
+          <ArrowLeft size={20} />
+        </button>
 
-      <div className="page-header__title-group">
-        <h1 className="page-header__title">{title}</h1>
-        {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
-      </div>
+        <div className="page-header__title-group">
+          <h1 className="page-header__title">{title}</h1>
+          {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
+        </div>
 
-      {children}
+        {children}
 
-      <div className="page-header__actions">
-        {isAuthenticated && <NotificationBell size={36} />}
-        <ProfileIcon
-          isAuthenticated={isAuthenticated}
-          user={user}
-          profile={profile}
-          onLogin={() => navigate('/?login=true')}
-          onLogout={handleLogout}
-          onProfile={handleProfile}
-          onRewards={handleRewards}
-          onAchievements={handleAchievements}
-          onHowToCompete={onHowToCompete}
-          onDashboard={hasDashboardAccess ? handleDashboard : null}
-          hasDashboardAccess={hasDashboardAccess}
-          size={36}
-        />
-      </div>
-    </header>
+        <div className="page-header__actions">
+          {isAuthenticated && <NotificationBell size={36} />}
+          <ProfileIcon
+            isAuthenticated={isAuthenticated}
+            user={user}
+            profile={profile}
+            onLogin={() => navigate('/?login=true')}
+            onLogout={handleLogout}
+            onProfile={handleProfile}
+            onRewards={handleRewards}
+            onAchievements={handleAchievements}
+            onHowToCompete={handleHowToCompete}
+            onDashboard={hasDashboardAccess ? handleDashboard : null}
+            hasDashboardAccess={hasDashboardAccess}
+            size={36}
+          />
+        </div>
+      </header>
+
+      {/* Generic Contestant Guide (when no parent provides onHowToCompete) */}
+      {!onHowToCompete && showGuide && (
+        <Suspense fallback={null}>
+          <ContestantGuide
+            competition={null}
+            mode="page"
+            onClose={() => setShowGuide(false)}
+            onComplete={() => setShowGuide(false)}
+          />
+        </Suspense>
+      )}
+    </>
   );
 }
 
