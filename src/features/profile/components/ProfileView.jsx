@@ -5,6 +5,7 @@ import { colors, spacing, borderRadius, typography, gradients } from '../../../s
 import { getCompetitionStats } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
 import ProfileCompetitions from './ProfileCompetitions';
+import ProfileBonusVotes from './ProfileBonusVotes';
 
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
@@ -272,6 +273,11 @@ export default function ProfileView({ hostProfile, onEdit }) {
 
         {/* Right Column */}
         <div>
+          {/* Bonus Votes Checklist - only for own profile */}
+          {onEdit && hostProfile?.id && (
+            <ProfileBonusVotes userId={hostProfile.id} />
+          )}
+
           {/* Hobbies Section */}
           {hostProfile.hobbies && hostProfile.hobbies.length > 0 && (
             <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
