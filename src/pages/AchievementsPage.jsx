@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
   ImagePlus,
   Download,
   Share2,
@@ -20,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
 import { supabase } from '../lib/supabase';
+import { PageHeader } from '../components/ui';
 import {
   generateAchievementCard,
   getAdvancementTitle,
@@ -412,12 +412,7 @@ export default function AchievementsPage() {
   if (achievementRecords.length === 0) {
     return (
       <div className="achievements-page">
-        <header className="achievements-header">
-          <button className="achievements-back" onClick={() => navigate('/')}>
-            <ArrowLeft size={20} />
-          </button>
-          <h1>My Achievements</h1>
-        </header>
+        <PageHeader title="My Achievements" />
         <div className="achievements-empty">
           <ImagePlus size={48} />
           <h2>No active achievements</h2>
@@ -432,15 +427,7 @@ export default function AchievementsPage() {
 
   return (
     <div className="achievements-page">
-      <header className="achievements-header">
-        <button className="achievements-back" onClick={() => navigate('/')}>
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <h1>My Achievements</h1>
-          <p>Share cards for your competitions</p>
-        </div>
-      </header>
+      <PageHeader title="My Achievements" subtitle="Share cards for your competitions" />
 
       <div className="achievements-list">
         {achievementRecords.map((record) => {
