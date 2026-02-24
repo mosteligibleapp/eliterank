@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getCompetitionUrl, getCompetitionUrlById } from '../utils/slugs';
 import { PageHeader } from '../components/ui';
 import LoadingScreen from '../components/common/LoadingScreen';
 
@@ -18,6 +19,7 @@ export default function ViewPublicProfilePage() {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [backUrl, setBackUrl] = useState('/');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -28,31 +30,52 @@ export default function ViewPublicProfilePage() {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', profileId)
-          .maybeSingle();
+        // Fetch profile and their most recent competition entry in parallel
+        const [profileResult, contestantResult] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', profileId)
+            .maybeSingle(),
+          supabase
+            .from('contestants')
+            .select('competition_id, competition:competitions(id, slug, organization:organizations(slug))')
+            .eq('user_id', profileId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
 
-        if (fetchError) throw fetchError;
+        if (profileResult.error) throw profileResult.error;
 
-        if (data) {
+        if (profileResult.data) {
           setProfileData({
-            id: data.id,
-            firstName: data.first_name || '',
-            lastName: data.last_name || '',
-            bio: data.bio || '',
-            city: data.city || '',
-            instagram: data.instagram || '',
-            twitter: data.twitter || '',
-            linkedin: data.linkedin || '',
-            tiktok: data.tiktok || '',
-            hobbies: Array.isArray(data.interests) ? data.interests : [],
-            avatarUrl: data.avatar_url || '',
-            coverImage: data.cover_image || '',
-            gallery: Array.isArray(data.gallery) ? data.gallery : [],
-            email: data.email || '',
+            id: profileResult.data.id,
+            firstName: profileResult.data.first_name || '',
+            lastName: profileResult.data.last_name || '',
+            bio: profileResult.data.bio || '',
+            city: profileResult.data.city || '',
+            instagram: profileResult.data.instagram || '',
+            twitter: profileResult.data.twitter || '',
+            linkedin: profileResult.data.linkedin || '',
+            tiktok: profileResult.data.tiktok || '',
+            hobbies: Array.isArray(profileResult.data.interests) ? profileResult.data.interests : [],
+            avatarUrl: profileResult.data.avatar_url || '',
+            coverImage: profileResult.data.cover_image || '',
+            gallery: Array.isArray(profileResult.data.gallery) ? profileResult.data.gallery : [],
+            email: profileResult.data.email || '',
           });
+
+          // Build back URL from their competition
+          const comp = contestantResult?.data?.competition;
+          if (comp) {
+            const orgSlug = comp.organization?.slug || 'most-eligible';
+            if (comp.slug) {
+              setBackUrl(getCompetitionUrl(orgSlug, comp.slug));
+            } else if (comp.id) {
+              setBackUrl(getCompetitionUrlById(orgSlug, comp.id));
+            }
+          }
         } else {
           setError('This profile is not available. You may need to log in to view it.');
         }
@@ -66,8 +89,8 @@ export default function ViewPublicProfilePage() {
   }, [profileId]);
 
   const handleBack = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
+    navigate(backUrl);
+  }, [navigate, backUrl]);
 
   const displayName = profileData
     ? `${profileData.firstName} ${profileData.lastName}`.trim() || 'Profile'
