@@ -13,7 +13,7 @@ const ContestantGuide = lazy(() => import('../../../features/contestant-guide/Co
  * Default bonus task definitions for building client-side checklist for nominees.
  */
 const DEFAULT_BONUS_TASKS = [
-  { task_key: 'complete_profile', label: 'Complete your profile', description: 'Fill out all profile fields including name, bio, city, and age', votes_awarded: 10, sort_order: 1 },
+  { task_key: 'complete_profile', label: 'Complete your profile', description: 'Fill out your name, bio, and city', votes_awarded: 10, sort_order: 1 },
   { task_key: 'add_photo', label: 'Add a profile photo', description: 'Upload a profile photo so voters can see you', votes_awarded: 5, sort_order: 2 },
   { task_key: 'add_social', label: 'Link a social account', description: 'Connect your Instagram, Twitter, or TikTok', votes_awarded: 5, sort_order: 3 },
   { task_key: 'view_how_to_win', label: 'Review How to Win info', description: 'Read through the competition rules and tips', votes_awarded: 5, sort_order: 4 },
@@ -173,7 +173,6 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
     const hasName = !!(profile?.first_name || profile?.firstName || profile?.name);
     const hasBio = !!(profile?.bio && profile.bio.length > 0);
     const hasCity = !!(profile?.city && profile.city.length > 0);
-    const hasAge = !!(profile?.age && profile.age > 0);
     const hasPhoto = !!(profile?.avatar_url || profile?.avatarUrl);
     const hasSocial = !!(profile?.instagram || profile?.twitter || profile?.tiktok || profile?.linkedin);
 
@@ -181,7 +180,7 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
       let completed = false;
       switch (task.task_key) {
         case 'complete_profile':
-          completed = hasName && hasBio && hasCity && hasAge;
+          completed = hasName && hasBio && hasCity;
           break;
         case 'add_photo':
           completed = hasPhoto;
