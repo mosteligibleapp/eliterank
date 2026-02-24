@@ -40,9 +40,9 @@ export default function UserRewardsPage() {
   }, [profile, user?.email]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', overflow: 'auto' }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', overflowX: 'hidden' }}>
       <PageHeader title="Rewards" />
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
         <Suspense fallback={<LoadingScreen message="Loading rewards..." />}>
           <RewardsPage hostProfile={hostProfile} />
         </Suspense>

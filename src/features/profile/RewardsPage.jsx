@@ -229,7 +229,7 @@ export default function RewardsPage({ hostProfile }) {
             Action Required ({pendingRewards.length})
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.xl }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: spacing.xl }}>
             {pendingRewards.map(assignment => (
               <RewardCard
                 key={assignment.id}
@@ -258,7 +258,7 @@ export default function RewardsPage({ hostProfile }) {
             Your Rewards ({activeRewards.length})
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.xl }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: spacing.xl }}>
             {activeRewards.map(assignment => (
               <RewardCard
                 key={assignment.id}
@@ -291,7 +291,7 @@ export default function RewardsPage({ hostProfile }) {
             Past Rewards ({completedRewards.length})
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.xl, opacity: 0.6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: spacing.xl, opacity: 0.6 }}>
             {completedRewards.map(assignment => (
               <RewardCard
                 key={assignment.id}
@@ -326,7 +326,7 @@ export default function RewardsPage({ hostProfile }) {
             These rewards are available for your competition. Check back soon to claim!
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: spacing.xl }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: spacing.xl }}>
             {visibleRewards.map(assignment => (
               <VisibleRewardCard
                 key={assignment.id}
@@ -410,6 +410,8 @@ function RewardCard({
     <div
       style={{
         display: 'block',
+        overflow: 'hidden',
+        minWidth: 0,
         transition: 'transform 0.2s ease',
       }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; }}
@@ -741,6 +743,8 @@ function VisibleRewardCard({ assignment, isMobile }) {
     <div
       style={{
         display: 'block',
+        overflow: 'hidden',
+        minWidth: 0,
         opacity: 0.85,
         transition: 'transform 0.2s ease, opacity 0.2s ease',
       }}
