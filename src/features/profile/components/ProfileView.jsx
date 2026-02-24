@@ -7,6 +7,7 @@ import { useResponsive } from '../../../hooks/useResponsive';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import ProfileRewardsCard from './ProfileRewardsCard';
+import BonusVotesEarnedBadge from './BonusVotesEarnedBadge';
 
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
@@ -246,6 +247,11 @@ export default function ProfileView({ hostProfile, onEdit }) {
 
         {/* Right Column */}
         <div>
+          {/* Bonus Votes Earned Badge - visible to everyone */}
+          {hostProfile?.id && (
+            <BonusVotesEarnedBadge userId={hostProfile.id} />
+          )}
+
           {/* Rewards Card - only for own profile */}
           {onEdit && hostProfile?.id && (
             <ProfileRewardsCard userId={hostProfile.id} />
