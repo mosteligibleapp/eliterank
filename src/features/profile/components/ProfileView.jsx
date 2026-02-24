@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats } from '../../../lib/competition-history';
@@ -140,6 +140,49 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 }}>
                   <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}{hostProfile.age ? `, ${hostProfile.age}` : ''}
                 </p>
+              )}
+              {competitionStats && competitionStats.totalVotes > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: isMobile ? 'center' : 'flex-start',
+                  gap: spacing.md,
+                  marginTop: spacing.md,
+                  flexWrap: 'wrap',
+                }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    padding: `${spacing.xs} ${spacing.md}`,
+                    background: 'rgba(212,175,55,0.1)',
+                    border: '1px solid rgba(212,175,55,0.2)',
+                    borderRadius: borderRadius.pill,
+                    fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.gold.primary,
+                  }}>
+                    <Heart size={isMobile ? 14 : 16} style={{ fill: colors.gold.primary }} />
+                    {competitionStats.totalVotes.toLocaleString()} votes
+                  </span>
+                  {competitionStats.wins > 0 && (
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                      padding: `${spacing.xs} ${spacing.md}`,
+                      background: 'rgba(212,175,55,0.1)',
+                      border: '1px solid rgba(212,175,55,0.2)',
+                      borderRadius: borderRadius.pill,
+                      fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                      fontWeight: typography.fontWeight.semibold,
+                      color: colors.gold.primary,
+                    }}>
+                      <TrendingUp size={isMobile ? 14 : 16} />
+                      {competitionStats.wins} {competitionStats.wins === 1 ? 'win' : 'wins'}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>
