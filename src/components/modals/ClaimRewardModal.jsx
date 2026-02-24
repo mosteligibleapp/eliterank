@@ -9,12 +9,12 @@ const STEPS = {
   CONFIRM: 'confirm',
 };
 
-// Login-style input (compact, matches auth form)
+// Matches LoginPage inputStyleNoIcon exactly
 const inputStyle = {
   width: '100%',
   padding: `${spacing.md} ${spacing.lg}`,
   background: colors.background.secondary,
-  border: `1px solid ${colors.border.primary}`,
+  border: `1px solid ${colors.border.secondary}`,
   borderRadius: borderRadius.lg,
   color: colors.text.primary,
   fontSize: typography.fontSize.md,
@@ -24,18 +24,33 @@ const inputStyle = {
   boxSizing: 'border-box',
 };
 
+// Matches LoginPage labelStyle
 const labelStyle = {
   display: 'block',
   fontSize: typography.fontSize.sm,
-  fontWeight: typography.fontWeight.medium,
   color: colors.text.secondary,
-  marginBottom: '6px',
+  marginBottom: spacing.sm,
+  fontWeight: typography.fontWeight.medium,
 };
 
-const fieldStyle = {
-  marginBottom: '14px',
+// Matches LoginPage handleInputFocus / handleInputBlur
+const handleInputFocus = (e) => {
+  e.target.style.borderColor = colors.gold.primary;
+  e.target.style.boxShadow = '0 0 0 3px rgba(212,175,55,0.1)';
+};
+const handleInputBlur = (e) => {
+  e.target.style.borderColor = colors.border.secondary;
+  e.target.style.boxShadow = 'none';
 };
 
+// Matches LoginPage formStyle
+const formStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: spacing.lg,
+};
+
+// Matches LoginPage buttonStyle
 const primaryBtnStyle = {
   width: '100%',
   padding: spacing.lg,
@@ -52,7 +67,7 @@ const primaryBtnStyle = {
   gap: spacing.sm,
   boxShadow: shadows.gold,
   transition: 'all 0.2s ease',
-  marginTop: spacing.lg,
+  marginTop: spacing.md,
   fontFamily: 'inherit',
 };
 
@@ -211,7 +226,7 @@ export default function ClaimRewardModal({
       isOpen={isOpen}
       onClose={onClose}
       title=""
-      maxWidth="400px"
+      maxWidth="440px"
       centered
     >
       {loading ? (
@@ -243,7 +258,7 @@ export default function ClaimRewardModal({
               padding: `${spacing.sm} ${spacing.md}`,
               background: 'rgba(34,197,94,0.08)',
               border: '1px solid rgba(34,197,94,0.15)',
-              borderRadius: borderRadius.lg,
+              borderRadius: borderRadius.md,
               marginBottom: spacing.lg,
             }}>
               <MapPin size={14} style={{ color: colors.status.success, flexShrink: 0 }} />
@@ -253,73 +268,75 @@ export default function ClaimRewardModal({
             </div>
           )}
 
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Street Address *</label>
-            <input
-              type="text"
-              style={inputStyle}
-              value={address.street}
-              onChange={(e) => setAddress(prev => ({ ...prev, street: e.target.value }))}
-              placeholder="123 Main St"
-              autoComplete="street-address"
-              onFocus={(e) => { e.target.style.borderColor = 'rgba(212,175,55,0.5)'; e.target.style.boxShadow = '0 0 0 2px rgba(212,175,55,0.15)'; }}
-              onBlur={(e) => { e.target.style.borderColor = colors.border.primary; e.target.style.boxShadow = 'none'; }}
-            />
-          </div>
-
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Apt / Suite / Unit</label>
-            <input
-              type="text"
-              style={inputStyle}
-              value={address.apt}
-              onChange={(e) => setAddress(prev => ({ ...prev, apt: e.target.value }))}
-              placeholder="Apt 4B (optional)"
-              onFocus={(e) => { e.target.style.borderColor = 'rgba(212,175,55,0.5)'; e.target.style.boxShadow = '0 0 0 2px rgba(212,175,55,0.15)'; }}
-              onBlur={(e) => { e.target.style.borderColor = colors.border.primary; e.target.style.boxShadow = 'none'; }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: spacing.md }}>
-            <div style={{ ...fieldStyle, flex: 1 }}>
-              <label style={labelStyle}>City *</label>
+          <div style={formStyle}>
+            <div>
+              <label style={labelStyle}>Street Address *</label>
               <input
                 type="text"
                 style={inputStyle}
-                value={address.city}
-                onChange={(e) => setAddress(prev => ({ ...prev, city: e.target.value }))}
-                placeholder="Miami"
-                autoComplete="address-level2"
-                onFocus={(e) => { e.target.style.borderColor = 'rgba(212,175,55,0.5)'; e.target.style.boxShadow = '0 0 0 2px rgba(212,175,55,0.15)'; }}
-                onBlur={(e) => { e.target.style.borderColor = colors.border.primary; e.target.style.boxShadow = 'none'; }}
+                value={address.street}
+                onChange={(e) => setAddress(prev => ({ ...prev, street: e.target.value }))}
+                placeholder="123 Main St"
+                autoComplete="street-address"
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
               />
             </div>
-            <div style={{ ...fieldStyle, width: '72px', flexShrink: 0 }}>
-              <label style={labelStyle}>State *</label>
+
+            <div>
+              <label style={labelStyle}>Apt / Suite / Unit</label>
               <input
                 type="text"
                 style={inputStyle}
-                value={address.state}
-                onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
-                placeholder="FL"
-                maxLength={2}
-                autoComplete="address-level1"
-                onFocus={(e) => { e.target.style.borderColor = 'rgba(212,175,55,0.5)'; e.target.style.boxShadow = '0 0 0 2px rgba(212,175,55,0.15)'; }}
-                onBlur={(e) => { e.target.style.borderColor = colors.border.primary; e.target.style.boxShadow = 'none'; }}
+                value={address.apt}
+                onChange={(e) => setAddress(prev => ({ ...prev, apt: e.target.value }))}
+                placeholder="Apt 4B (optional)"
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
               />
             </div>
-            <div style={{ ...fieldStyle, width: '90px', flexShrink: 0 }}>
-              <label style={labelStyle}>ZIP *</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={address.zip}
-                onChange={(e) => setAddress(prev => ({ ...prev, zip: e.target.value.slice(0, 10) }))}
-                placeholder="33101"
-                autoComplete="postal-code"
-                onFocus={(e) => { e.target.style.borderColor = 'rgba(212,175,55,0.5)'; e.target.style.boxShadow = '0 0 0 2px rgba(212,175,55,0.15)'; }}
-                onBlur={(e) => { e.target.style.borderColor = colors.border.primary; e.target.style.boxShadow = 'none'; }}
-              />
+
+            <div style={{ display: 'flex', gap: spacing.md }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>City *</label>
+                <input
+                  type="text"
+                  style={inputStyle}
+                  value={address.city}
+                  onChange={(e) => setAddress(prev => ({ ...prev, city: e.target.value }))}
+                  placeholder="Miami"
+                  autoComplete="address-level2"
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                />
+              </div>
+              <div style={{ width: '72px', flexShrink: 0 }}>
+                <label style={labelStyle}>State *</label>
+                <input
+                  type="text"
+                  style={inputStyle}
+                  value={address.state}
+                  onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
+                  placeholder="FL"
+                  maxLength={2}
+                  autoComplete="address-level1"
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                />
+              </div>
+              <div style={{ width: '90px', flexShrink: 0 }}>
+                <label style={labelStyle}>ZIP *</label>
+                <input
+                  type="text"
+                  style={inputStyle}
+                  value={address.zip}
+                  onChange={(e) => setAddress(prev => ({ ...prev, zip: e.target.value.slice(0, 10) }))}
+                  placeholder="33101"
+                  autoComplete="postal-code"
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                />
+              </div>
             </div>
           </div>
 

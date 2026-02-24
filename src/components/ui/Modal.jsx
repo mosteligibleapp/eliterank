@@ -19,7 +19,7 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 p-6 overflow-y-auto"
+      className={`fixed inset-0 bg-black/80 backdrop-blur-sm flex ${centered ? 'items-center' : 'items-start'} justify-center z-50 p-6 overflow-y-auto`}
       onClick={onClose}
     >
       <div
