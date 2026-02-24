@@ -110,23 +110,6 @@ export default function ClaimRewardModal({
 
   if (!assignment || !reward) return null;
 
-  const inputStyle = {
-    width: '100%',
-    padding: spacing.md,
-    background: colors.background.secondary,
-    border: `1px solid ${colors.border.light}`,
-    borderRadius: borderRadius.md,
-    color: colors.text.primary,
-    fontSize: typography.fontSize.md,
-  };
-
-  const labelStyle = {
-    display: 'block',
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    marginBottom: spacing.xs,
-  };
-
   return (
     <Modal
       isOpen={isOpen}
@@ -169,15 +152,16 @@ export default function ClaimRewardModal({
           <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
         </div>
       ) : step === STEPS.ADDRESS ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+        <div>
           {/* Reward Summary */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: spacing.md,
             padding: spacing.md,
-            background: colors.background.secondary,
+            background: 'rgba(255,255,255,0.05)',
             borderRadius: borderRadius.lg,
+            marginBottom: spacing.lg,
           }}>
             <div style={{
               width: '48px',
@@ -212,7 +196,8 @@ export default function ClaimRewardModal({
               padding: spacing.md,
               background: 'rgba(34,197,94,0.1)',
               border: '1px solid rgba(34,197,94,0.2)',
-              borderRadius: borderRadius.md,
+              borderRadius: borderRadius.lg,
+              marginBottom: spacing.lg,
             }}>
               <MapPin size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
               <p style={{ fontSize: typography.fontSize.sm, color: '#22c55e' }}>
@@ -221,56 +206,41 @@ export default function ClaimRewardModal({
             </div>
           )}
 
-          {/* Address Form */}
-          <div>
-            <label style={labelStyle}>Street Address *</label>
-            <input
-              value={address.street}
-              onChange={(e) => setAddress(prev => ({ ...prev, street: e.target.value }))}
-              placeholder="123 Main St"
-              style={inputStyle}
-            />
-          </div>
+          {/* Address Form — uses site-wide Input component */}
+          <Input
+            label="Street Address *"
+            value={address.street}
+            onChange={(e) => setAddress(prev => ({ ...prev, street: e.target.value }))}
+            placeholder="123 Main St"
+          />
 
-          <div>
-            <label style={labelStyle}>Apt / Suite / Unit</label>
-            <input
-              value={address.apt}
-              onChange={(e) => setAddress(prev => ({ ...prev, apt: e.target.value }))}
-              placeholder="Apt 4B (optional)"
-              style={inputStyle}
-            />
-          </div>
+          <Input
+            label="Apt / Suite / Unit"
+            value={address.apt}
+            onChange={(e) => setAddress(prev => ({ ...prev, apt: e.target.value }))}
+            placeholder="Apt 4B (optional)"
+          />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', gap: spacing.md }}>
-            <div>
-              <label style={labelStyle}>City *</label>
-              <input
-                value={address.city}
-                onChange={(e) => setAddress(prev => ({ ...prev, city: e.target.value }))}
-                placeholder="Miami"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>State *</label>
-              <input
-                value={address.state}
-                onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
-                placeholder="FL"
-                maxLength={2}
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>ZIP *</label>
-              <input
-                value={address.zip}
-                onChange={(e) => setAddress(prev => ({ ...prev, zip: e.target.value.slice(0, 10) }))}
-                placeholder="33101"
-                style={inputStyle}
-              />
-            </div>
+            <Input
+              label="City *"
+              value={address.city}
+              onChange={(e) => setAddress(prev => ({ ...prev, city: e.target.value }))}
+              placeholder="Miami"
+            />
+            <Input
+              label="State *"
+              value={address.state}
+              onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
+              placeholder="FL"
+              maxLength={2}
+            />
+            <Input
+              label="ZIP *"
+              value={address.zip}
+              onChange={(e) => setAddress(prev => ({ ...prev, zip: e.target.value.slice(0, 10) }))}
+              placeholder="33101"
+            />
           </div>
         </div>
       ) : (
