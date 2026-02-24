@@ -201,13 +201,12 @@ export async function checkAndAwardProfileBonuses(competitionId, contestantId, u
 
   const awarded = [];
 
-  // Check complete_profile: has name, bio, city, and age
+  // Check complete_profile: has name, bio, and city
   const hasName = !!(profile.first_name || profile.name);
   const hasBio = !!(profile.bio && profile.bio.length > 0);
   const hasCity = !!(profile.city && profile.city.length > 0);
-  const hasAge = !!(profile.age && profile.age > 0);
 
-  if (hasName && hasBio && hasCity && hasAge) {
+  if (hasName && hasBio && hasCity) {
     const result = await awardBonusVotes(competitionId, contestantId, userId, BONUS_TASK_KEYS.COMPLETE_PROFILE);
     if (result.success) awarded.push(result);
   }
