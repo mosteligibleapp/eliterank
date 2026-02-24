@@ -1,16 +1,13 @@
 /**
  * Share Utilities
- * Canvas-based shareable card generation and share/download
+ * Canvas-based shareable card generation and share/download.
+ * Premium photo-first design for Instagram Stories (1080x1920).
  */
 
 const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1920;
-
 const CX = CARD_WIDTH / 2;
 
-/**
- * Load an image from a URL into an HTMLImageElement
- */
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -21,9 +18,6 @@ function loadImage(src) {
   });
 }
 
-/**
- * Draw rounded rectangle path
- */
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -38,9 +32,6 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-/**
- * Draw a 4-pointed sparkle star
- */
 function drawSparkle(ctx, x, y, size, color, alpha = 1) {
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -56,15 +47,11 @@ function drawSparkle(ctx, x, y, size, color, alpha = 1) {
   ctx.restore();
 }
 
-/**
- * Draw a circular clipped image
- */
 function drawCircularImage(ctx, img, cx, cy, radius) {
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.clip();
-  // Cover-fit the image into the circle
   const imgAspect = img.width / img.height;
   let drawW, drawH, drawX, drawY;
   if (imgAspect > 1) {
@@ -82,9 +69,6 @@ function drawCircularImage(ctx, img, cx, cy, radius) {
   ctx.restore();
 }
 
-/**
- * Draw stylized initial when no photo is available
- */
 function drawInitial(ctx, initial, cx, cy, radius, accentColor) {
   ctx.save();
   ctx.beginPath();
@@ -103,18 +87,31 @@ function drawInitial(ctx, initial, cx, cy, radius, accentColor) {
   ctx.fillText(initial.toUpperCase(), cx, cy + 4);
 }
 
+function drawDecorativeLine(ctx, cx, y, width, color) {
+  const lineGradL = ctx.createLinearGradient(cx - width / 2, y, cx - 20, y);
+  lineGradL.addColorStop(0, 'transparent');
+  lineGradL.addColorStop(1, `${color}60`);
+  ctx.strokeStyle = lineGradL;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - width / 2, y);
+  ctx.lineTo(cx - 20, y);
+  ctx.stroke();
+
+  const lineGradR = ctx.createLinearGradient(cx + 20, y, cx + width / 2, y);
+  lineGradR.addColorStop(0, `${color}60`);
+  lineGradR.addColorStop(1, 'transparent');
+  ctx.strokeStyle = lineGradR;
+  ctx.beginPath();
+  ctx.moveTo(cx + 20, y);
+  ctx.lineTo(cx + width / 2, y);
+  ctx.stroke();
+
+  drawSparkle(ctx, cx, y, 6, color, 0.8);
+}
+
 /**
- * Generate a shareable PNG card — premium, social-ready design
- *
- * @param {Object} params
- * @param {string} params.name
- * @param {string} params.photoUrl
- * @param {string} params.handle - Instagram handle
- * @param {string} params.competitionTitle
- * @param {string} params.cityName
- * @param {string} params.season
- * @param {string} params.accentColor - Theme primary color
- * @returns {Promise<Blob>}
+ * Generate a shareable PNG card -- premium photo-first design
  */
 export async function generateShareCard({
   name,
@@ -130,127 +127,100 @@ export async function generateShareCard({
   canvas.height = CARD_HEIGHT;
   const ctx = canvas.getContext('2d');
 
-  // --- Background layers ---
-  // Base dark gradient
+  // === BACKGROUND ===
   const bgGrad = ctx.createLinearGradient(0, 0, 0, CARD_HEIGHT);
-  bgGrad.addColorStop(0, '#08080a');
-  bgGrad.addColorStop(0.3, '#0e0e12');
-  bgGrad.addColorStop(0.7, '#0e0e12');
-  bgGrad.addColorStop(1, '#08080a');
+  bgGrad.addColorStop(0, '#050507');
+  bgGrad.addColorStop(0.15, '#0a0a10');
+  bgGrad.addColorStop(0.4, '#0e0e14');
+  bgGrad.addColorStop(0.6, '#0c0c12');
+  bgGrad.addColorStop(0.85, '#0a0a10');
+  bgGrad.addColorStop(1, '#050507');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-  // Large accent glow behind photo area
-  ctx.save();
-  const glow1 = ctx.createRadialGradient(CX, 1050, 0, CX, 1050, 600);
-  glow1.addColorStop(0, `${accentColor}18`);
-  glow1.addColorStop(0.5, `${accentColor}08`);
+  // Warm glow behind photo
+  const glow1 = ctx.createRadialGradient(CX, 620, 0, CX, 620, 500);
+  glow1.addColorStop(0, `${accentColor}20`);
+  glow1.addColorStop(0.4, `${accentColor}0c`);
   glow1.addColorStop(1, 'transparent');
   ctx.fillStyle = glow1;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-  ctx.restore();
 
-  // Top accent glow
-  ctx.save();
-  const glow2 = ctx.createRadialGradient(CX, 350, 0, CX, 350, 400);
-  glow2.addColorStop(0, `${accentColor}12`);
+  // Secondary glow behind achievement
+  const glow2 = ctx.createRadialGradient(CX, 1150, 0, CX, 1150, 400);
+  glow2.addColorStop(0, `${accentColor}14`);
+  glow2.addColorStop(0.5, `${accentColor}08`);
   glow2.addColorStop(1, 'transparent');
   ctx.fillStyle = glow2;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-  ctx.restore();
 
-  // --- Sparkle decorations ---
+  // Bottom glow
+  const glow3 = ctx.createRadialGradient(CX, 1700, 0, CX, 1700, 300);
+  glow3.addColorStop(0, `${accentColor}10`);
+  glow3.addColorStop(1, 'transparent');
+  ctx.fillStyle = glow3;
+  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+
+  // === SPARKLES ===
   const sparkles = [
-    { x: 180, y: 320, size: 14, alpha: 0.5 },
-    { x: 900, y: 380, size: 10, alpha: 0.4 },
-    { x: 140, y: 720, size: 8, alpha: 0.3 },
-    { x: 940, y: 680, size: 12, alpha: 0.45 },
-    { x: 200, y: 1400, size: 10, alpha: 0.35 },
-    { x: 880, y: 1350, size: 14, alpha: 0.5 },
-    { x: 160, y: 1100, size: 6, alpha: 0.25 },
-    { x: 920, y: 1050, size: 8, alpha: 0.3 },
-    { x: 300, y: 1550, size: 8, alpha: 0.3 },
-    { x: 780, y: 1500, size: 10, alpha: 0.4 },
+    { x: 120, y: 180, size: 8, alpha: 0.3 },
+    { x: 960, y: 200, size: 10, alpha: 0.35 },
+    { x: 200, y: 260, size: 5, alpha: 0.2 },
+    { x: 880, y: 270, size: 6, alpha: 0.25 },
+    { x: 160, y: 440, size: 14, alpha: 0.5 },
+    { x: 920, y: 480, size: 12, alpha: 0.45 },
+    { x: 130, y: 620, size: 6, alpha: 0.2 },
+    { x: 950, y: 580, size: 8, alpha: 0.3 },
+    { x: 180, y: 780, size: 10, alpha: 0.35 },
+    { x: 900, y: 740, size: 16, alpha: 0.5 },
+    { x: 140, y: 980, size: 6, alpha: 0.2 },
+    { x: 940, y: 1020, size: 8, alpha: 0.25 },
+    { x: 100, y: 1150, size: 12, alpha: 0.4 },
+    { x: 980, y: 1130, size: 10, alpha: 0.35 },
+    { x: 160, y: 1280, size: 5, alpha: 0.15 },
+    { x: 920, y: 1300, size: 7, alpha: 0.2 },
+    { x: 200, y: 1500, size: 10, alpha: 0.3 },
+    { x: 880, y: 1460, size: 14, alpha: 0.45 },
+    { x: 140, y: 1650, size: 6, alpha: 0.2 },
+    { x: 940, y: 1680, size: 8, alpha: 0.25 },
+    { x: 300, y: 1780, size: 5, alpha: 0.15 },
+    { x: 780, y: 1800, size: 7, alpha: 0.2 },
+    { x: 260, y: 360, size: 4, alpha: 0.12 },
+    { x: 820, y: 340, size: 3, alpha: 0.1 },
+    { x: 240, y: 1100, size: 4, alpha: 0.12 },
+    { x: 840, y: 1400, size: 3, alpha: 0.1 },
   ];
   for (const s of sparkles) {
     drawSparkle(ctx, s.x, s.y, s.size, accentColor, s.alpha);
   }
 
-  // --- Top branding ---
-  let y = 340;
-
-  // ELITERANK wordmark
-  ctx.fillStyle = accentColor;
-  ctx.font = '600 32px -apple-system, BlinkMacSystemFont, sans-serif';
+  // === BRANDING (top) ===
+  let y = 200;
   ctx.textAlign = 'center';
+  ctx.fillStyle = `${accentColor}cc`;
+  ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('E L I T E R A N K', CX, y);
-  y += 50;
-
-  // Thin decorative line
-  const lineW = 220;
-  ctx.strokeStyle = `${accentColor}50`;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(CX - lineW / 2, y);
-  ctx.lineTo(CX + lineW / 2, y);
-  ctx.stroke();
-
-  // Small diamond on the line
-  drawSparkle(ctx, CX, y, 5, accentColor, 0.7);
-  y += 60;
-
-  // "NOMINATED" hero text with glow
-  ctx.save();
-  ctx.shadowColor = accentColor;
-  ctx.shadowBlur = 40;
-  ctx.fillStyle = accentColor;
-  ctx.font = 'bold 92px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText('NOMINATED', CX, y);
-  ctx.restore();
-  // Second pass without shadow for crisp text
-  ctx.fillStyle = accentColor;
-  ctx.font = 'bold 92px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText('NOMINATED', CX, y);
-  y += 70;
-
-  // "for" + competition
-  ctx.fillStyle = '#71717a';
-  ctx.font = '400 28px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText('for', CX, y);
-  y += 44;
-
-  ctx.fillStyle = '#e4e4e7';
-  ctx.font = '600 36px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText(competitionTitle || 'Competition', CX, y);
   y += 40;
 
-  // City + Season
-  const metaParts = [];
-  if (cityName) metaParts.push(cityName);
-  if (season) metaParts.push(season);
-  if (metaParts.length) {
-    ctx.fillStyle = '#71717a';
-    ctx.font = '400 26px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(metaParts.join('  ·  '), CX, y);
-  }
-  y += 140; // Large spacing before photo for visual breathing room
+  drawDecorativeLine(ctx, CX, y, 260, accentColor);
+  y += 60;
 
-  // --- Photo ---
-  const photoRadius = 160;
+  // === PHOTO (hero) ===
+  const photoRadius = 200;
   const photoCY = y + photoRadius;
 
-  // Outer glow behind photo
+  // Glow behind photo
   ctx.save();
-  const photoGlow = ctx.createRadialGradient(CX, photoCY, photoRadius - 20, CX, photoCY, photoRadius + 60);
-  photoGlow.addColorStop(0, `${accentColor}20`);
-  photoGlow.addColorStop(1, 'transparent');
-  ctx.fillStyle = photoGlow;
+  const outerGlow = ctx.createRadialGradient(CX, photoCY, photoRadius * 0.5, CX, photoCY, photoRadius + 100);
+  outerGlow.addColorStop(0, `${accentColor}18`);
+  outerGlow.addColorStop(0.6, `${accentColor}0a`);
+  outerGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = outerGlow;
   ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 60, 0, Math.PI * 2);
+  ctx.arc(CX, photoCY, photoRadius + 100, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  // Photo or initial
   if (photoUrl) {
     try {
       const img = await loadImage(photoUrl);
@@ -262,77 +232,133 @@ export async function generateShareCard({
     drawInitial(ctx, name?.charAt(0) || '?', CX, photoCY, photoRadius, accentColor);
   }
 
-  // Gold ring — double ring for premium look
-  ctx.strokeStyle = `${accentColor}30`;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 16, 0, Math.PI * 2);
-  ctx.stroke();
-
+  // Triple ring
   ctx.strokeStyle = accentColor;
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(CX, photoCY, photoRadius + 6, 0, Math.PI * 2);
   ctx.stroke();
 
-  y = photoCY + photoRadius + 90;
+  ctx.strokeStyle = `${accentColor}20`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(CX, photoCY, photoRadius + 18, 0, Math.PI * 2);
+  ctx.stroke();
 
-  // --- Name ---
+  ctx.strokeStyle = `${accentColor}12`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(CX, photoCY, photoRadius + 30, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Ring sparkles
+  drawSparkle(ctx, CX - photoRadius - 10, photoCY - 40, 5, accentColor, 0.5);
+  drawSparkle(ctx, CX + photoRadius + 14, photoCY + 30, 4, accentColor, 0.4);
+  drawSparkle(ctx, CX - 30, photoCY - photoRadius - 12, 5, accentColor, 0.45);
+  drawSparkle(ctx, CX + 50, photoCY + photoRadius + 15, 4, accentColor, 0.35);
+
+  y = photoCY + photoRadius + 70;
+
+  // === NAME ===
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 60px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = 'bold 56px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
-  // Truncate long names
+  ctx.textBaseline = 'alphabetic';
   let displayName = name || 'Nominee';
-  if (ctx.measureText(displayName).width > 800) {
-    while (ctx.measureText(displayName + '...').width > 800 && displayName.length > 0) {
+  if (ctx.measureText(displayName).width > 860) {
+    while (ctx.measureText(displayName + '...').width > 860 && displayName.length > 0) {
       displayName = displayName.slice(0, -1);
     }
     displayName += '...';
   }
   ctx.fillText(displayName, CX, y);
-  y += 48;
+  y += 46;
 
-  // Handle
   if (handle) {
-    ctx.fillStyle = '#a1a1aa';
-    ctx.font = '400 30px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#9a9aaa';
+    ctx.font = '400 28px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(`@${handle.replace('@', '')}`, CX, y);
+    y += 40;
   }
 
-  // --- CTA at bottom ---
-  const ctaY = 1640;
-  const ctaWidth = 440;
-  const ctaHeight = 60;
+  // === DIVIDER ===
+  y += 30;
+  drawDecorativeLine(ctx, CX, y, 300, accentColor);
+  y += 60;
+
+  // === ACHIEVEMENT TITLE ===
+  // Subtle glow pass
+  ctx.save();
+  ctx.shadowColor = accentColor;
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 88px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText('NOMINATED', CX, y);
+  ctx.restore();
+
+  // Crisp pass
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 88px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText('NOMINATED', CX, y);
+  y += 66;
+
+  // Subtitle
+  ctx.fillStyle = '#a1a1aa';
+  ctx.font = '400 36px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText('for', CX, y);
+  y += 56;
+
+  ctx.fillStyle = '#e4e4e7';
+  ctx.font = '600 46px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText(competitionTitle || 'Competition', CX, y);
+  y += 52;
+
+  const metaParts = [];
+  if (cityName) metaParts.push(cityName);
+  if (season) metaParts.push(season);
+  if (metaParts.length) {
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '500 34px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(metaParts.join('  ·  '), CX, y);
+  }
+
+  // === CTA ===
+  const ctaY = y + 80;
+  const ctaHeight = 68;
+  const ctaWidth = 480;
   const ctaX = CX - ctaWidth / 2;
 
+  ctx.save();
+  ctx.shadowColor = `${accentColor}40`;
+  ctx.shadowBlur = 30;
+  ctx.shadowOffsetY = 4;
   roundRect(ctx, ctaX, ctaY, ctaWidth, ctaHeight, ctaHeight / 2);
-  const ctaGrad = ctx.createLinearGradient(ctaX, ctaY, ctaX + ctaWidth, ctaY);
+  const ctaGrad = ctx.createLinearGradient(ctaX, ctaY, ctaX + ctaWidth, ctaY + ctaHeight);
   ctaGrad.addColorStop(0, accentColor);
   ctaGrad.addColorStop(1, '#f4d03f');
   ctx.fillStyle = ctaGrad;
   ctx.fill();
+  ctx.restore();
 
   ctx.fillStyle = '#0a0a0c';
   ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('Vote at eliterank.co', CX, ctaY + ctaHeight / 2);
+  ctx.fillText('www.eliterank.co', CX, ctaY + ctaHeight / 2);
 
-  // Convert to blob
+  roundRect(ctx, ctaX, ctaY, ctaWidth, ctaHeight, ctaHeight / 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png');
   });
 }
 
-/**
- * Share or download the generated card
- * @param {Blob} blob - PNG blob
- * @param {string} fileName
- */
 export async function shareOrDownload(blob, fileName = 'eliterank-nomination.png') {
   const file = new File([blob], fileName, { type: 'image/png' });
 
-  // Try native share with file (works on mobile)
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({
@@ -346,14 +372,10 @@ export async function shareOrDownload(blob, fileName = 'eliterank-nomination.png
     }
   }
 
-  // Fallback: download
   downloadBlob(blob, fileName);
   return 'downloaded';
 }
 
-/**
- * Download a blob as a file
- */
 export function downloadBlob(blob, fileName) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -365,9 +387,6 @@ export function downloadBlob(blob, fileName) {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Copy a URL to clipboard
- */
 export async function copyLink(url) {
   try {
     await navigator.clipboard.writeText(url);

@@ -4187,24 +4187,28 @@
   position: fixed;
   top: var(--spacing-lg);
   left: var(--spacing-lg);
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 50%;
-  color: var(--color-text-secondary);
+  color: #ffffff;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   z-index: 100;
 }
 
 .competition-back-btn:hover {
-  background: var(--color-bg-tertiary);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(212, 175, 55, 0.5);
+  color: #d4af37;
+}
+
+.competition-back-btn:active {
+  transform: scale(0.94);
 }
 
 .competition-profile-btn {

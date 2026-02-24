@@ -247,7 +247,7 @@ function ProfileIcon({
                 }}
               >
                 <Lightbulb size={16} />
-                How to Compete
+                How to Win
               </button>
             )}
 

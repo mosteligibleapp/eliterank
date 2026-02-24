@@ -16,6 +16,14 @@
   overflow-x: hidden;
 }
 
+/* Modal variant — used when entry-flow is inside a Modal dialog */
+.entry-flow.entry-flow--modal {
+  min-height: auto;
+  max-height: 75vh;
+  overflow-y: auto;
+  background: transparent;
+}
+
 /* Header */
 .entry-header {
   position: sticky;

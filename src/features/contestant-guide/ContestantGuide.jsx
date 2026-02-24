@@ -106,12 +106,27 @@ export default function ContestantGuide({
             <p className="guide-subtitle">{section.subtitle}</p>
             
             <div className="guide-points">
-              {section.points.map((point, idx) => (
-                <div key={idx} className="guide-point">
-                  <CheckCircle size={18} className="guide-point-icon" />
-                  <span>{point}</span>
-                </div>
-              ))}
+              {section.points.map((point, idx) => {
+                const isNested = typeof point === 'object' && point.subpoints;
+                return (
+                  <div key={idx}>
+                    <div className="guide-point">
+                      <CheckCircle size={18} className="guide-point-icon" />
+                      <span>{isNested ? point.text : point}</span>
+                    </div>
+                    {isNested && (
+                      <div className="guide-subpoints">
+                        {point.subpoints.map((sub, sIdx) => (
+                          <div key={sIdx} className="guide-subpoint">
+                            <span className="guide-subpoint-dash">—</span>
+                            <span>{sub}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {section.tip && (
@@ -169,12 +184,24 @@ export default function ContestantGuide({
             </div>
 
             <ul className="guide-section-list">
-              {section.points.map((point, pIdx) => (
-                <li key={pIdx}>
-                  <CheckCircle size={16} />
-                  <span>{point}</span>
-                </li>
-              ))}
+              {section.points.map((point, pIdx) => {
+                const isNested = typeof point === 'object' && point.subpoints;
+                return (
+                  <li key={pIdx}>
+                    <div className="guide-section-list-item">
+                      <CheckCircle size={16} />
+                      <span>{isNested ? point.text : point}</span>
+                    </div>
+                    {isNested && (
+                      <ul className="guide-section-sublist">
+                        {point.subpoints.map((sub, sIdx) => (
+                          <li key={sIdx}>{sub}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
 
             {section.tip && (
@@ -241,7 +268,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
       points: [
         `Compete against other contestants from ${cityName}`,
         `${votingRoundCount} voting rounds with eliminations each round`,
-        `Top ${numWinners} finishers win cash prizes`,
+        `Top ${numWinners} finishers win prizes — 1st place takes home cash`,
         hasResurrection ? 'Resurrection round gives eliminated contestants a second chance!' : 'Every vote counts toward your ranking',
       ].filter(Boolean),
       tip: 'The more votes you get, the higher you rank. Top performers advance to the next round!',
@@ -296,13 +323,18 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     {
       icon: <Gift size={48} className="guide-icon guide-icon--green" />,
       title: 'Prize Pool',
-      subtitle: 'Real cash prizes for top finishers',
+      subtitle: 'Real prizes. Real bragging rights.',
       points: [
-        `Guaranteed minimum: $${prizeMinimum.toLocaleString()}`,
-        'Prize pool grows with every paid vote purchased',
-        '50% of all vote purchases go directly to the prize pool',
-        `Top ${numWinners} finishers win cash prizes`,
-        '1st place receives the largest share',
+        'All winners earn the title and hold it for one year',
+        {
+          text: '1st place takes home a cash prize',
+          subpoints: [
+            `$${prizeMinimum.toLocaleString()} guaranteed minimum — grows with every paid vote`,
+            'Winner may keep the prize or donate to a verified 501(c)(3) of their choice',
+            'Contestants donating to charity are encouraged to promote their cause throughout the competition',
+          ],
+        },
+        `All ${numWinners} winners receive a sponsor prize package`,
       ],
       tip: `Current prize pool: $${currentPrize.toLocaleString()}+ — and growing!`,
     },

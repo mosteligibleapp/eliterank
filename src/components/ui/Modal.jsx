@@ -18,12 +18,12 @@ export default function Modal({
   const showFullHeader = title && title.trim() !== '';
 
   return (
-    <div 
-      className={`fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center z-50 p-6 overflow-y-auto ${centered ? 'items-center pt-6' : 'items-start pt-8'}`}
+    <div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 p-6 overflow-y-auto"
       onClick={onClose}
     >
-      <div 
-        className="relative bg-bg-card border border-border-primary rounded-3xl w-full mb-8"
+      <div
+        className={`relative bg-bg-card border border-border-primary rounded-3xl w-full overflow-hidden ${centered ? 'my-auto' : 'mt-2 mb-8'}`}
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
       >

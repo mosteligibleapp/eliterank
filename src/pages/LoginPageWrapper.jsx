@@ -7,7 +7,7 @@
  * - Return URL handling
  */
 
-import React, { lazy, Suspense, useCallback, useState, useEffect } from 'react';
+import React, { lazy, Suspense, useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useSupabaseAuth } from '../hooks';
@@ -70,50 +70,54 @@ async function checkPendingNominations(userEmail) {
   }
 }
 
-export default function LoginPageWrapper({ 
-  onPendingNominations 
+export default function LoginPageWrapper({
+  onPendingNominations
 }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated, user } = useSupabaseAuth();
-  
+  const { isAuthenticated, user, loading } = useSupabaseAuth();
+
   // Return URL from query params
   const returnTo = searchParams.get('returnTo');
+
+  // Track whether user is actively logging in through the form.
+  // This prevents the auto-redirect useEffect from racing with handleLogin.
+  const isLoggingInRef = useRef(false);
 
   const handleBack = useCallback(() => {
     navigate('/');
   }, [navigate]);
 
   const handleLogin = useCallback(async (userData) => {
+    isLoggingInRef.current = true;
+
     // Check for pending nominations first
     if (userData?.email) {
       const pending = await checkPendingNominations(userData.email);
 
       if (pending?.length && onPendingNominations) {
         onPendingNominations(pending);
-        navigate('/');
+        navigate('/', { replace: true });
         return;
       }
     }
 
     // No pending nominations - normal flow
     if (returnTo) {
-      navigate(decodeURIComponent(returnTo));
+      navigate(decodeURIComponent(returnTo), { replace: true });
     } else {
-      navigate('/');
+      navigate('/', { replace: true });
     }
   }, [returnTo, navigate, onPendingNominations]);
 
-  // If already authenticated, redirect
+  // If already authenticated (e.g. navigated to /login while logged in), redirect.
+  // Skip this redirect when the user is actively logging in through the form —
+  // handleLogin manages the post-login navigation including pending-nomination checks.
   useEffect(() => {
-    if (isAuthenticated) {
-      if (returnTo) {
-        navigate(decodeURIComponent(returnTo));
-      } else {
-        navigate('/');
-      }
+    if (!loading && isAuthenticated && !isLoggingInRef.current) {
+      navigate(returnTo ? decodeURIComponent(returnTo) : '/', { replace: true });
     }
-  }, [isAuthenticated, returnTo, navigate]);
+  }, [loading, isAuthenticated, returnTo, navigate]);
 
   return (
     <Suspense fallback={<LoadingScreen message="Loading login..." />}>
