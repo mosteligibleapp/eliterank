@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Heart, Star } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { Panel } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
@@ -66,20 +66,13 @@ export default function BonusVotesEarnedBadge({ userId, bonusVotes }) {
 
             {/* Text */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.sm,
+              <h3 style={{
+                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.text.primary,
               }}>
-                <h3 style={{
-                  fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
-                  fontWeight: typography.fontWeight.semibold,
-                  color: colors.text.primary,
-                }}>
-                  All Bonus Votes Earned
-                </h3>
-                <Star size={isMobile ? 14 : 16} style={{ color: colors.gold.primary, fill: colors.gold.primary }} />
-              </div>
+                All Bonus Votes Earned
+              </h3>
               <p style={{
                 fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.sm,
                 color: colors.text.secondary,

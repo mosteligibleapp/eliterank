@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
-import { Heart, Star, X } from 'lucide-react';
+import { Heart, X } from 'lucide-react';
 import { getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
@@ -49,16 +49,13 @@ function AllCompleteConfirmation({ totalBonusVotesEarned, onDismiss }) {
         <Heart size={20} style={{ color: '#22c55e', fill: '#22c55e' }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-          <span style={{
-            fontSize: typography.fontSize.md,
-            fontWeight: typography.fontWeight.semibold,
-            color: colors.text.primary,
-          }}>
-            All Bonus Votes Earned!
-          </span>
-          <Star size={14} style={{ color: colors.gold.primary, fill: colors.gold.primary }} />
-        </div>
+        <span style={{
+          fontSize: typography.fontSize.md,
+          fontWeight: typography.fontWeight.semibold,
+          color: colors.text.primary,
+        }}>
+          All Bonus Votes Earned!
+        </span>
         <p style={{
           fontSize: typography.fontSize.xs,
           color: colors.text.secondary,
