@@ -49,6 +49,16 @@ export const useAuthStore = create(
         profile: state.profile ? { ...state.profile, ...updates } : null,
       })),
 
+      // Clear auth state without calling Supabase signOut.
+      // Used by onAuthStateChange(SIGNED_OUT) to avoid triggering another signOut cycle.
+      clearAuth: () => set({
+        user: null,
+        profile: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      }),
+
       // Sign out - clear Supabase session and all auth state
       signOut: async () => {
         if (supabase) {

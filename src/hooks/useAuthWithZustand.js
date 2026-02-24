@@ -24,6 +24,7 @@ export default function useAuthWithZustand() {
   const setLoading = useAuthStore((state) => state.setLoading);
   const setError = useAuthStore((state) => state.setError);
   const signOutStore = useAuthStore((state) => state.signOut);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
   const updateProfileField = useAuthStore((state) => state.updateProfileField);
   
   // Get current state for actions
@@ -113,7 +114,9 @@ export default function useAuthWithZustand() {
         if (event === 'SIGNED_IN' && currentUser) {
           loadProfile(currentUser.id);
         } else if (event === 'SIGNED_OUT') {
-          signOutStore();
+          // Use clearAuth (not signOutStore) to avoid calling supabase.auth.signOut()
+          // again, which would trigger another onAuthStateChange and loop.
+          clearAuth();
         }
       }
     );
@@ -124,7 +127,7 @@ export default function useAuthWithZustand() {
       mountedRef.current = false;
       subscription.unsubscribe();
     };
-  }, [setUser, setProfile, setLoading, setError, signOutStore, loadProfile]);
+  }, [setUser, setProfile, setLoading, setError, clearAuth, loadProfile]);
 
   // Listen for external profile updates
   useEffect(() => {
