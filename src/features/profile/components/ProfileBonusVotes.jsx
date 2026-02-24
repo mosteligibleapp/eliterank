@@ -69,7 +69,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
       setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
-      const shareUrl = window.location.href;
+      const shareUrl = `${window.location.origin}/profile/${userId}`;
       if (navigator.share) {
         try {
           await navigator.share({ title: 'Check out my profile!', url: shareUrl });
@@ -143,7 +143,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
  * Tasks are evaluated based on profile data — no contestant_id needed.
  * When converted to contestant, the real system auto-awards earned votes.
  */
-function NomineeBonusVotes({ competitionName, profile }) {
+function NomineeBonusVotes({ competitionName, profile, userId }) {
   const toast = useToast();
   const [showGuide, setShowGuide] = useState(false);
 
@@ -187,7 +187,7 @@ function NomineeBonusVotes({ competitionName, profile }) {
     if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
       setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
-      const shareUrl = window.location.href;
+      const shareUrl = userId ? `${window.location.origin}/profile/${userId}` : window.location.href;
       if (navigator.share) {
         try {
           await navigator.share({ title: 'Check out my profile!', url: shareUrl });
@@ -298,6 +298,7 @@ export default function ProfileBonusVotes({ userId, userEmail, profile }) {
           key={nom.id}
           competitionName={totalEntries > 1 ? nom.competition?.name : null}
           profile={profile}
+          userId={userId}
         />
       ))}
     </div>
