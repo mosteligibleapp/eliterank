@@ -10,6 +10,8 @@ export default class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
+    // Clear the chunk-error reload flag on successful mount
+    try { sessionStorage.removeItem('chunk-error-reload'); } catch {}
   }
 
   static getDerivedStateFromError(error) {
@@ -18,8 +20,29 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo });
-    // Log to error reporting service if needed
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    // Auto-reload once for chunk load failures (stale deployment cache)
+    if (this.isChunkLoadError(error)) {
+      const reloadKey = 'chunk-error-reload';
+      if (!sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, '1');
+        window.location.reload();
+        return;
+      }
+      // Already tried reloading once — clear flag so next navigation can retry
+      sessionStorage.removeItem(reloadKey);
+    }
+  }
+
+  isChunkLoadError(error) {
+    const msg = error?.message || '';
+    return (
+      msg.includes('MIME type') ||
+      msg.includes('Loading chunk') ||
+      msg.includes('Failed to fetch dynamically imported module') ||
+      error?.name === 'ChunkLoadError'
+    );
   }
 
   handleReset = () => {
