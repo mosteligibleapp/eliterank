@@ -227,9 +227,18 @@ export default function AppShell({ children }) {
     closeAcceptNomination();
   }, [closeAcceptNomination]);
 
-  // Show loading while checking auth
+  // Don't show separate loading screen for auth - let route-level Suspense handle it
+  // This prevents the "double loading screen" effect
+  // Auth state will be available by the time components need it
   if (authLoading) {
-    return <LoadingScreen message="Loading..." />;
+    // Return a minimal invisible placeholder to prevent layout shift
+    // The route's Suspense fallback will show the actual loading UI
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: '#0a0a0c',
+      }} />
+    );
   }
 
   return (
