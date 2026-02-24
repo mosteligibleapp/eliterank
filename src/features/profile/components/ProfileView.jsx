@@ -6,6 +6,7 @@ import { getCompetitionStats } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
+import ProfileRewardsCard from './ProfileRewardsCard';
 
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
@@ -184,21 +185,21 @@ export default function ProfileView({ hostProfile, onEdit }) {
             </div>
           </Panel>
 
-          {/* Photo Gallery */}
-          <Panel>
-            <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
-              <h3 style={{
-                fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-                fontWeight: typography.fontWeight.semibold,
-                marginBottom: spacing.lg,
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.md
-              }}>
-                <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
-              </h3>
-              {isMobile ? (
-                gallery.length > 0 ? (
+          {/* Photo Gallery - only shown when user has photos */}
+          {gallery.length > 0 && (
+            <Panel>
+              <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
+                <h3 style={{
+                  fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+                  fontWeight: typography.fontWeight.semibold,
+                  marginBottom: spacing.lg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.md
+                }}>
+                  <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
+                </h3>
+                {isMobile ? (
                   <div
                     className="hide-scrollbar"
                     style={{
@@ -225,21 +226,8 @@ export default function ProfileView({ hostProfile, onEdit }) {
                     ))}
                   </div>
                 ) : (
-                  <div style={{
-                    aspectRatio: '4 / 3',
-                    background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
-                    borderRadius: borderRadius.lg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Camera size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                  </div>
-                )
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
-                  {gallery.length > 0 ? (
-                    gallery.map((imageUrl, index) => (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
+                    {gallery.map((imageUrl, index) => (
                       <div
                         key={index}
                         style={{
@@ -248,32 +236,21 @@ export default function ProfileView({ hostProfile, onEdit }) {
                           borderRadius: borderRadius.lg,
                         }}
                       />
-                    ))
-                  ) : (
-                    [1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        style={{
-                          aspectRatio: '1',
-                          background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',
-                          borderRadius: borderRadius.lg,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Camera size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          </Panel>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Panel>
+          )}
         </div>
 
         {/* Right Column */}
         <div>
+          {/* Rewards Card - only for own profile */}
+          {onEdit && hostProfile?.id && (
+            <ProfileRewardsCard userId={hostProfile.id} />
+          )}
+
           {/* Bonus Votes Checklist - only for own profile */}
           {onEdit && hostProfile?.id && (
             <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} />
