@@ -193,6 +193,55 @@ export async function getBonusVoteCompletionStats(competitionId) {
 }
 
 /**
+ * Check if a user has earned all bonus votes in any active competition.
+ * Used to display the "All Bonus Votes Earned" badge on profiles.
+ *
+ * @param {string} userId - The user's profile UUID
+ * @returns {Promise<{ allEarned: boolean, totalEarned: number, totalAvailable: number }>}
+ */
+export async function getAllBonusVotesEarnedStatus(userId) {
+  const result = { allEarned: false, totalEarned: 0, totalAvailable: 0 };
+
+  if (!supabase || !userId) return result;
+
+  try {
+    // Get the user's contestant entries for non-completed competitions
+    const { data: contestants, error: cErr } = await supabase
+      .from('contestants')
+      .select('id, competition_id, competition:competitions(status)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (cErr || !contestants?.length) return result;
+
+    // Check active competitions (non-completed)
+    const activeEntries = contestants.filter(c => c.competition?.status && c.competition.status !== 'completed');
+    if (activeEntries.length === 0) return result;
+
+    // Check the most recent active competition
+    const entry = activeEntries[0];
+    const { tasks } = await getBonusVoteStatus(entry.competition_id, entry.id);
+
+    // Filter out deprecated tasks
+    const activeTasks = tasks.filter(t => !DEPRECATED_TASK_KEYS.has(t.task_key));
+    if (activeTasks.length === 0) return result;
+
+    const earned = activeTasks.filter(t => t.completed).reduce((sum, t) => sum + t.votes_awarded, 0);
+    const available = activeTasks.reduce((sum, t) => sum + t.votes_awarded, 0);
+    const completedCount = activeTasks.filter(t => t.completed).length;
+
+    return {
+      allEarned: completedCount === activeTasks.length,
+      totalEarned: earned,
+      totalAvailable: available,
+    };
+  } catch (err) {
+    console.error('Error checking all bonus votes status:', err);
+    return result;
+  }
+}
+
+/**
  * Check profile completeness and auto-award applicable bonus votes
  * Call this after profile updates to check if any new tasks are completed
  */

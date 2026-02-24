@@ -152,19 +152,38 @@ export async function getCompetitionStats(userId) {
   if (!supabase || !userId) return defaultStats;
 
   try {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('total_votes_received, total_competitions, wins, best_placement')
-      .eq('id', userId)
-      .single();
+    const [profileResult, contestantsResult] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('total_votes_received, total_competitions, wins, best_placement')
+        .eq('id', userId)
+        .single(),
+      supabase
+        .from('contestants')
+        .select('votes, rank, status')
+        .eq('user_id', userId),
+    ]);
 
-    if (error || !profile) return defaultStats;
+    const profile = profileResult.data;
+    const contestants = contestantsResult.data || [];
+
+    // Calculate from contestants as source of truth for votes
+    const contestantVotes = contestants.reduce((sum, c) => sum + (c.votes || 0), 0);
+    const contestantWins = contestants.filter(c => c.status === 'winner').length;
+    const bestRank = contestants.reduce((best, c) => {
+      if (c.rank && (best === null || c.rank < best)) return c.rank;
+      return best;
+    }, null);
+
+    const profileVotes = profile?.total_votes_received || 0;
+    const profileComps = profile?.total_competitions || 0;
+    const profileWins = profile?.wins || 0;
 
     return {
-      totalCompetitions: profile.total_competitions || 0,
-      totalVotes: profile.total_votes_received || 0,
-      wins: profile.wins || 0,
-      bestPlacement: profile.best_placement,
+      totalCompetitions: Math.max(profileComps, contestants.length),
+      totalVotes: Math.max(profileVotes, contestantVotes),
+      wins: Math.max(profileWins, contestantWins),
+      bestPlacement: profile?.best_placement || bestRank,
     };
   } catch (err) {
     console.error('Error in getCompetitionStats:', err);

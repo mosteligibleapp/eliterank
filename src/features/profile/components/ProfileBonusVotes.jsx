@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
+import { Heart, X } from 'lucide-react';
 import { getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS } from '../../../lib/bonusVotes';
-import { spacing, typography, colors } from '../../../styles/theme';
+import { spacing, typography, colors, borderRadius } from '../../../styles/theme';
 
 const ContestantGuide = lazy(() => import('../../../features/contestant-guide/ContestantGuide'));
 
@@ -21,13 +22,91 @@ const DEFAULT_BONUS_TASKS = [
 ];
 
 /**
+ * Compact confirmation shown when all bonus votes are earned.
+ * Displays a summary and a dismiss button.
+ */
+function AllCompleteConfirmation({ totalBonusVotesEarned, onDismiss }) {
+  return (
+    <div style={{
+      background: 'rgba(34, 197, 94, 0.06)',
+      border: '1px solid rgba(34, 197, 94, 0.25)',
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg,
+      display: 'flex',
+      alignItems: 'center',
+      gap: spacing.md,
+    }}>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        borderRadius: borderRadius.lg,
+        background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.08))',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <Heart size={20} style={{ color: '#22c55e', fill: '#22c55e' }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{
+          fontSize: typography.fontSize.md,
+          fontWeight: typography.fontWeight.semibold,
+          color: colors.text.primary,
+        }}>
+          All Bonus Votes Earned!
+        </span>
+        <p style={{
+          fontSize: typography.fontSize.xs,
+          color: colors.text.secondary,
+          marginTop: '2px',
+        }}>
+          +{totalBonusVotesEarned} votes added to your total
+        </p>
+        <p style={{
+          fontSize: typography.fontSize.xs,
+          color: colors.text.muted,
+          marginTop: '2px',
+          fontStyle: 'italic',
+        }}>
+          Stay tuned for more bonus vote opportunities
+        </p>
+      </div>
+      {onDismiss && (
+        <button
+          onClick={onDismiss}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: spacing.xs,
+            cursor: 'pointer',
+            color: colors.text.muted,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          aria-label="Dismiss"
+        >
+          <X size={16} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
  * Renders the bonus votes checklist for a contestant (DB-backed).
  */
-function CompetitionBonusVotes({ competitionId, contestantId, userId, competitionName }) {
+function CompetitionBonusVotes({ competitionId, contestantId, userId, competitionName, onBonusVotesLoaded }) {
   const { profile } = useAuthContextSafe();
   const toast = useToast();
   const hasCheckedProfile = useRef(false);
   const [showGuide, setShowGuide] = useState(false);
+  const dismissKey = `bonus_dismissed_${contestantId}`;
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(dismissKey) === 'true'; } catch { return false; }
+  });
 
   const {
     tasks, loading, awarding,
@@ -36,6 +115,13 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     progress, allCompleted,
     checkProfile, awardTask, markHowToWinViewed, markProfileShared,
   } = useBonusVotes(competitionId, contestantId, userId);
+
+  // Report bonus votes to parent
+  useEffect(() => {
+    if (!loading && tasks.length > 0 && onBonusVotesLoaded) {
+      onBonusVotesLoaded({ totalEarned: totalBonusVotesEarned, totalAvailable: totalBonusVotesAvailable, allCompleted });
+    }
+  }, [loading, totalBonusVotesEarned, totalBonusVotesAvailable, allCompleted, tasks.length, onBonusVotesLoaded]);
 
   // Auto-check profile completeness and award applicable bonuses
   useEffect(() => {
@@ -56,6 +142,19 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     window.addEventListener('profile-updated', handler);
     return () => window.removeEventListener('profile-updated', handler);
   }, []);
+
+  // Reset dismissed state if new tasks are added (not all complete anymore)
+  useEffect(() => {
+    if (!allCompleted && dismissed) {
+      setDismissed(false);
+      try { localStorage.removeItem(dismissKey); } catch { /* ignore */ }
+    }
+  }, [allCompleted, dismissed, dismissKey]);
+
+  const handleDismiss = useCallback(() => {
+    setDismissed(true);
+    try { localStorage.setItem(dismissKey, 'true'); } catch { /* ignore */ }
+  }, [dismissKey]);
 
   const handleGuideComplete = async () => {
     setShowGuide(false);
@@ -97,6 +196,19 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
   };
 
   if (loading || tasks.length === 0) return null;
+
+  // All tasks complete - show compact confirmation or nothing if dismissed
+  if (allCompleted) {
+    if (dismissed) return null;
+    return (
+      <div style={{ marginBottom: spacing.xl }}>
+        <AllCompleteConfirmation
+          totalBonusVotesEarned={totalBonusVotesEarned}
+          onDismiss={handleDismiss}
+        />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -143,9 +255,14 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
  * Tasks are evaluated based on profile data — no contestant_id needed.
  * When converted to contestant, the real system auto-awards earned votes.
  */
-function NomineeBonusVotes({ competitionName, profile, userId }) {
+function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoaded }) {
   const toast = useToast();
   const [showGuide, setShowGuide] = useState(false);
+  const dismissKey = userId ? `bonus_dismissed_nominee_${userId}` : null;
+  const [dismissed, setDismissed] = useState(() => {
+    if (!dismissKey) return false;
+    try { return localStorage.getItem(dismissKey) === 'true'; } catch { return false; }
+  });
 
   // Load persisted action-task completions from localStorage
   const storageKey = userId ? `nominee_bonus_tasks_${userId}` : null;
@@ -206,6 +323,26 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
   const allCompleted = totalCount > 0 && completedCount === totalCount;
 
+  // Report bonus votes to parent
+  useEffect(() => {
+    if (onBonusVotesLoaded) {
+      onBonusVotesLoaded({ totalEarned: totalBonusVotesEarned, totalAvailable: totalBonusVotesAvailable, allCompleted });
+    }
+  }, [totalBonusVotesEarned, totalBonusVotesAvailable, allCompleted, onBonusVotesLoaded]);
+
+  // Reset dismissed state if not all complete anymore
+  useEffect(() => {
+    if (!allCompleted && dismissed) {
+      setDismissed(false);
+      if (dismissKey) try { localStorage.removeItem(dismissKey); } catch { /* ignore */ }
+    }
+  }, [allCompleted, dismissed, dismissKey]);
+
+  const handleDismiss = useCallback(() => {
+    setDismissed(true);
+    if (dismissKey) try { localStorage.setItem(dismissKey, 'true'); } catch { /* ignore */ }
+  }, [dismissKey]);
+
   const handleGuideComplete = () => {
     setShowGuide(false);
     if (!actionCompleted[BONUS_TASK_KEYS.VIEW_HOW_TO_WIN]) {
@@ -245,6 +382,19 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
       }
     }
   };
+
+  // All tasks complete - show compact confirmation or nothing if dismissed
+  if (allCompleted) {
+    if (dismissed) return null;
+    return (
+      <div style={{ marginBottom: spacing.xl }}>
+        <AllCompleteConfirmation
+          totalBonusVotesEarned={totalBonusVotesEarned}
+          onDismiss={handleDismiss}
+        />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -288,7 +438,7 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
  * ProfileBonusVotes - Shows bonus votes checklists on the user's profile page
  * for any active competitions they're a contestant or nominee in.
  */
-export default function ProfileBonusVotes({ userId, userEmail, profile }) {
+export default function ProfileBonusVotes({ userId, userEmail, profile, onBonusVotesLoaded }) {
   const [contestantEntries, setContestantEntries] = useState([]);
   const [nomineeEntries, setNomineeEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -335,6 +485,7 @@ export default function ProfileBonusVotes({ userId, userEmail, profile }) {
           contestantId={entry.id}
           userId={userId}
           competitionName={totalEntries > 1 ? entry.competition?.name : null}
+          onBonusVotesLoaded={onBonusVotesLoaded}
         />
       ))}
       {nomineeEntries.map(nom => (
@@ -343,6 +494,7 @@ export default function ProfileBonusVotes({ userId, userEmail, profile }) {
           competitionName={totalEntries > 1 ? nom.competition?.name : null}
           profile={profile}
           userId={userId}
+          onBonusVotesLoaded={onBonusVotesLoaded}
         />
       ))}
     </div>

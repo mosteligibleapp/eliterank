@@ -68,7 +68,7 @@ function RoleBadge({ role }) {
   }
 }
 
-function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAcceptClick, nominatorName, isCompact }) {
+function CompetitionRow({ name, url, role, status, votes, isUnclaimed, nomination, onAcceptClick, nominatorName, isCompact }) {
   const isActive = ['voting', 'nomination', 'live'].includes(status);
   const isWinner = role === 'winner';
 
@@ -132,6 +132,11 @@ function CompetitionRow({ name, url, role, status, isUnclaimed, nomination, onAc
 
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
           <RoleBadge role={role} />
+          {votes > 0 && (
+            <Badge variant="gold" size="sm" pill>
+              {votes.toLocaleString()} votes
+            </Badge>
+          )}
           {isUnclaimed && nomination ? (
             <Button
               variant="primary"
@@ -271,6 +276,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
       url: getCompetitionLink(comp),
       role: isWinner ? 'winner' : 'contestant',
       status: comp?.status,
+      votes: entry.votes || 0,
     });
   });
 
@@ -296,6 +302,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
                 url={entry.url}
                 role={entry.role}
                 status={entry.status}
+                votes={entry.votes}
                 isUnclaimed={entry.isUnclaimed}
                 nomination={entry.nomination}
                 onAcceptClick={handleOpenAcceptModal}

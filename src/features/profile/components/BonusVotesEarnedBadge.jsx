@@ -1,0 +1,97 @@
+import { useState, useEffect } from 'react';
+import { Heart } from 'lucide-react';
+import { Panel } from '../../../components/ui';
+import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { getAllBonusVotesEarnedStatus } from '../../../lib/bonusVotes';
+
+/**
+ * BonusVotesEarnedBadge - Displays a trophy badge on the profile when
+ * the user has earned all bonus votes. Visible to both the user and the public.
+ *
+ * Works for both contestants (DB query) and nominees (bonusVotes prop from parent).
+ */
+export default function BonusVotesEarnedBadge({ userId, bonusVotes }) {
+  const { isMobile } = useResponsive();
+  const [dbStatus, setDbStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    getAllBonusVotesEarnedStatus(userId)
+      .then(setDbStatus)
+      .catch(() => setDbStatus(null))
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  // Use DB status for contestants, or bonusVotes prop for nominees
+  const status = dbStatus?.allEarned
+    ? dbStatus
+    : (bonusVotes?.allCompleted ? { allEarned: true, totalEarned: bonusVotes.totalEarned } : null);
+
+  if (loading || !status?.allEarned) return null;
+
+  return (
+    <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl, overflow: 'hidden' }}>
+      <div style={{
+        borderTop: '2px solid rgba(34, 197, 94, 0.6)',
+      }}>
+        <div style={{
+          padding: isMobile ? spacing.lg : spacing.xxl,
+          background: 'rgba(34, 197, 94, 0.04)',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.md,
+          }}>
+            {/* Trophy icon */}
+            <div style={{
+              width: isMobile ? '44px' : '52px',
+              height: isMobile ? '44px' : '52px',
+              borderRadius: borderRadius.xl,
+              background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.08))',
+              border: '1px solid rgba(34,197,94,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Heart size={isMobile ? 22 : 26} style={{ color: '#22c55e', fill: '#22c55e' }} />
+            </div>
+
+            {/* Text */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 style={{
+                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.text.primary,
+              }}>
+                All Bonus Votes Earned
+              </h3>
+              <p style={{
+                fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.sm,
+                color: colors.text.secondary,
+                marginTop: '2px',
+              }}>
+                {status.totalEarned} bonus votes earned
+              </p>
+              <p style={{
+                fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.sm,
+                color: colors.text.muted,
+                marginTop: '2px',
+                fontStyle: 'italic',
+              }}>
+                Stay tuned for more bonus vote opportunities
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
