@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
-import { Trophy, Star, X } from 'lucide-react';
+import { Heart, Star, X } from 'lucide-react';
 import { getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
@@ -46,7 +46,7 @@ function AllCompleteConfirmation({ totalBonusVotesEarned, onDismiss }) {
         justifyContent: 'center',
         flexShrink: 0,
       }}>
-        <Trophy size={20} style={{ color: '#22c55e' }} />
+        <Heart size={20} style={{ color: '#22c55e', fill: '#22c55e' }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
@@ -65,6 +65,14 @@ function AllCompleteConfirmation({ totalBonusVotesEarned, onDismiss }) {
           marginTop: '2px',
         }}>
           +{totalBonusVotesEarned} votes added to your total
+        </p>
+        <p style={{
+          fontSize: typography.fontSize.xs,
+          color: colors.text.muted,
+          marginTop: '2px',
+          fontStyle: 'italic',
+        }}>
+          Stay tuned for more bonus vote opportunities
         </p>
       </div>
       {onDismiss && (

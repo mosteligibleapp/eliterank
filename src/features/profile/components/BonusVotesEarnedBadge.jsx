@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Star } from 'lucide-react';
+import { Heart, Star } from 'lucide-react';
 import { Panel } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
@@ -61,7 +61,7 @@ export default function BonusVotesEarnedBadge({ userId, bonusVotes }) {
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <Trophy size={isMobile ? 22 : 26} style={{ color: '#22c55e' }} />
+              <Heart size={isMobile ? 22 : 26} style={{ color: '#22c55e', fill: '#22c55e' }} />
             </div>
 
             {/* Text */}
@@ -86,6 +86,14 @@ export default function BonusVotesEarnedBadge({ userId, bonusVotes }) {
                 marginTop: '2px',
               }}>
                 {status.totalEarned} bonus votes earned
+              </p>
+              <p style={{
+                fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.sm,
+                color: colors.text.muted,
+                marginTop: '2px',
+                fontStyle: 'italic',
+              }}>
+                Stay tuned for more bonus vote opportunities
               </p>
             </div>
           </div>
