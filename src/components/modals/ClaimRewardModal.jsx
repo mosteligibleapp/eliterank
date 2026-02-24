@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Check, MapPin, FileText, ChevronRight, Loader, AlertTriangle, Package } from 'lucide-react';
-import { Modal, Button, Input } from '../ui';
-import { colors, spacing, borderRadius, typography } from '../../styles/theme';
+import { Modal, Button } from '../ui';
 import { supabase } from '../../lib/supabase';
+import '../../features/entry/EntryFlow.css';
 
 const STEPS = {
   ADDRESS: 'address',
@@ -114,59 +114,24 @@ export default function ClaimRewardModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={step === STEPS.ADDRESS ? 'Shipping Address' : 'Confirm Claim'}
-      maxWidth="500px"
-      footer={
-        step === STEPS.ADDRESS ? (
-          <>
-            <Button variant="secondary" onClick={onClose} style={{ width: 'auto' }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => setStep(STEPS.CONFIRM)}
-              disabled={!isAddressComplete}
-              icon={ChevronRight}
-            >
-              {hasExistingAddress ? 'Confirm Address' : 'Continue'}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button variant="secondary" onClick={() => setStep(STEPS.ADDRESS)} style={{ width: 'auto' }}>
-              Back
-            </Button>
-            <Button
-              onClick={handleClaim}
-              disabled={claiming || (isAffiliate && reward?.terms && !termsAccepted)}
-              icon={claiming ? Loader : Check}
-              style={{ background: '#22c55e', borderColor: '#22c55e' }}
-            >
-              {claiming ? 'Claiming...' : 'Claim Reward'}
-            </Button>
-          </>
-        )
-      }
+      title=""
+      maxWidth="480px"
     >
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: spacing.xxl }}>
-          <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+        <div className="entry-loading" style={{ minHeight: '200px' }}>
+          <div className="entry-spinner" />
         </div>
       ) : step === STEPS.ADDRESS ? (
-        <div>
+        <div className="entry-step">
+          <h2 className="entry-step-title">Shipping Address</h2>
+          <p className="entry-step-subtitle">Where should we send your reward?</p>
+
           {/* Reward Summary */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.md,
-            padding: spacing.md,
-            background: 'rgba(255,255,255,0.05)',
-            borderRadius: borderRadius.lg,
-            marginBottom: spacing.lg,
-          }}>
+          <div className="entry-nominee-photo-row" style={{ marginBottom: '20px' }}>
             <div style={{
               width: '48px',
               height: '48px',
-              borderRadius: borderRadius.md,
+              borderRadius: '12px',
               background: reward.image_url
                 ? `url(${reward.image_url}) center/cover`
                 : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
@@ -175,13 +140,13 @@ export default function ClaimRewardModal({
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              {!reward.image_url && <Package size={20} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
+              {!reward.image_url && <Package size={20} style={{ color: '#d4af37', opacity: 0.5 }} />}
             </div>
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold }}>
+              <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#ffffff', margin: 0 }}>
                 {reward.name}
               </p>
-              <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary }}>
+              <p style={{ fontSize: '0.8125rem', color: '#d4af37', margin: '2px 0 0' }}>
                 {reward.brand_name}
               </p>
             </div>
@@ -192,73 +157,106 @@ export default function ClaimRewardModal({
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: spacing.sm,
-              padding: spacing.md,
-              background: 'rgba(34,197,94,0.1)',
+              gap: '10px',
+              padding: '14px 16px',
+              background: 'rgba(34,197,94,0.08)',
               border: '1px solid rgba(34,197,94,0.2)',
-              borderRadius: borderRadius.lg,
-              marginBottom: spacing.lg,
+              borderRadius: '12px',
+              marginBottom: '20px',
             }}>
               <MapPin size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
-              <p style={{ fontSize: typography.fontSize.sm, color: '#22c55e' }}>
-                We have a shipping address on file. Please confirm or update it below.
+              <p style={{ fontSize: '0.8125rem', color: '#22c55e', margin: 0 }}>
+                Address on file. Confirm or update below.
               </p>
             </div>
           )}
 
-          {/* Address Form — uses site-wide Input component */}
-          <Input
-            label="Street Address *"
-            value={address.street}
-            onChange={(e) => setAddress(prev => ({ ...prev, street: e.target.value }))}
-            placeholder="123 Main St"
-          />
-
-          <Input
-            label="Apt / Suite / Unit"
-            value={address.apt}
-            onChange={(e) => setAddress(prev => ({ ...prev, apt: e.target.value }))}
-            placeholder="Apt 4B (optional)"
-          />
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', gap: spacing.md }}>
-            <Input
-              label="City *"
-              value={address.city}
-              onChange={(e) => setAddress(prev => ({ ...prev, city: e.target.value }))}
-              placeholder="Miami"
-            />
-            <Input
-              label="State *"
-              value={address.state}
-              onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
-              placeholder="FL"
-              maxLength={2}
-            />
-            <Input
-              label="ZIP *"
-              value={address.zip}
-              onChange={(e) => setAddress(prev => ({ ...prev, zip: e.target.value.slice(0, 10) }))}
-              placeholder="33101"
+          {/* Address Form */}
+          <div className="entry-form-field">
+            <label className="entry-label">Street Address *</label>
+            <input
+              type="text"
+              className="entry-input"
+              value={address.street}
+              onChange={(e) => setAddress(prev => ({ ...prev, street: e.target.value }))}
+              placeholder="123 Main St"
+              autoComplete="street-address"
             />
           </div>
+
+          <div className="entry-form-field">
+            <label className="entry-label">Apt / Suite / Unit</label>
+            <input
+              type="text"
+              className="entry-input"
+              value={address.apt}
+              onChange={(e) => setAddress(prev => ({ ...prev, apt: e.target.value }))}
+              placeholder="Apt 4B (optional)"
+            />
+          </div>
+
+          <div className="entry-form-row">
+            <div className="entry-form-field">
+              <label className="entry-label">City *</label>
+              <input
+                type="text"
+                className="entry-input"
+                value={address.city}
+                onChange={(e) => setAddress(prev => ({ ...prev, city: e.target.value }))}
+                placeholder="Miami"
+                autoComplete="address-level2"
+              />
+            </div>
+            <div className="entry-form-field" style={{ maxWidth: '80px' }}>
+              <label className="entry-label">State *</label>
+              <input
+                type="text"
+                className="entry-input"
+                value={address.state}
+                onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
+                placeholder="FL"
+                maxLength={2}
+                autoComplete="address-level1"
+              />
+            </div>
+            <div className="entry-form-field" style={{ maxWidth: '100px' }}>
+              <label className="entry-label">ZIP *</label>
+              <input
+                type="text"
+                className="entry-input"
+                value={address.zip}
+                onChange={(e) => setAddress(prev => ({ ...prev, zip: e.target.value.slice(0, 10) }))}
+                placeholder="33101"
+                autoComplete="postal-code"
+              />
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <button
+            className="entry-btn-primary"
+            onClick={() => setStep(STEPS.CONFIRM)}
+            disabled={!isAddressComplete}
+          >
+            {hasExistingAddress ? 'Confirm Address' : 'Continue'}
+            <ChevronRight size={18} />
+          </button>
+          <button className="entry-btn-done" onClick={onClose}>
+            Cancel
+          </button>
         </div>
       ) : (
         /* Step 2: Review & Confirm */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+        <div className="entry-step">
+          <h2 className="entry-step-title">Confirm Claim</h2>
+          <p className="entry-step-subtitle">Review your details before claiming</p>
+
           {/* Reward Summary */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.md,
-            padding: spacing.md,
-            background: colors.background.secondary,
-            borderRadius: borderRadius.lg,
-          }}>
+          <div className="entry-nominee-photo-row" style={{ marginBottom: '16px' }}>
             <div style={{
               width: '48px',
               height: '48px',
-              borderRadius: borderRadius.md,
+              borderRadius: '12px',
               background: reward.image_url
                 ? `url(${reward.image_url}) center/cover`
                 : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
@@ -267,13 +265,13 @@ export default function ClaimRewardModal({
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              {!reward.image_url && <Package size={20} style={{ color: colors.gold.primary, opacity: 0.5 }} />}
+              {!reward.image_url && <Package size={20} style={{ color: '#d4af37', opacity: 0.5 }} />}
             </div>
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold }}>
+              <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#ffffff', margin: 0 }}>
                 {reward.name}
               </p>
-              <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary }}>
+              <p style={{ fontSize: '0.8125rem', color: '#d4af37', margin: '2px 0 0' }}>
                 {reward.brand_name}
                 {reward.cash_value && <span style={{ color: '#22c55e' }}> — ${reward.cash_value} value</span>}
               </p>
@@ -282,18 +280,19 @@ export default function ClaimRewardModal({
 
           {/* Shipping Address Confirmation */}
           <div style={{
-            padding: spacing.md,
-            background: colors.background.secondary,
-            borderRadius: borderRadius.lg,
-            border: `1px solid ${colors.border.light}`,
+            padding: '16px',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '14px',
+            marginBottom: '16px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-              <MapPin size={16} style={{ color: colors.gold.primary }} />
-              <p style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.text.primary }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <MapPin size={16} style={{ color: '#d4af37' }} />
+              <p style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#a1a1aa', margin: 0 }}>
                 Ships to
               </p>
             </div>
-            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.6 }}>
+            <p style={{ fontSize: '0.9375rem', color: '#ffffff', lineHeight: 1.6, margin: 0 }}>
               {address.street}{address.apt ? `, ${address.apt}` : ''}<br />
               {address.city}, {address.state} {address.zip}
             </p>
@@ -302,23 +301,24 @@ export default function ClaimRewardModal({
           {/* Promotion Terms (affiliate rewards only) */}
           {isAffiliate && reward.terms && (
             <div style={{
-              padding: spacing.md,
-              background: 'rgba(234,179,8,0.08)',
-              borderRadius: borderRadius.lg,
-              border: '1px solid rgba(234,179,8,0.2)',
+              padding: '16px',
+              background: 'rgba(234,179,8,0.06)',
+              border: '1px solid rgba(234,179,8,0.15)',
+              borderRadius: '14px',
+              marginBottom: '16px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                 <FileText size={16} style={{ color: '#eab308' }} />
-                <p style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: '#eab308' }}>
+                <p style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#eab308', margin: 0 }}>
                   Promotion Requirements
                 </p>
               </div>
-              <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.6, marginBottom: spacing.md }}>
+              <p style={{ fontSize: '0.875rem', color: '#a1a1aa', lineHeight: 1.6, margin: '0 0 12px' }}>
                 {reward.terms}
               </p>
 
               {reward.commission_rate && (
-                <p style={{ fontSize: typography.fontSize.sm, color: '#a78bfa', marginBottom: spacing.md }}>
+                <p style={{ fontSize: '0.875rem', color: '#a78bfa', margin: '0 0 14px' }}>
                   You'll earn <strong>{reward.commission_rate}%</strong> commission on referral sales.
                 </p>
               )}
@@ -326,34 +326,30 @@ export default function ClaimRewardModal({
               {/* Accept Terms Checkbox */}
               <button
                 onClick={() => setTermsAccepted(prev => !prev)}
+                className={`entry-eligibility-item ${termsAccepted ? 'checked' : ''}`}
                 style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: spacing.sm,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  padding: 0,
+                  padding: '12px 14px',
+                  marginBottom: 0,
+                  background: termsAccepted ? 'rgba(212, 175, 55, 0.08)' : 'rgba(255, 255, 255, 0.04)',
+                  border: `1px solid ${termsAccepted ? 'rgba(212, 175, 55, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
                 }}
               >
                 <div style={{
                   width: '20px',
                   height: '20px',
-                  borderRadius: borderRadius.sm,
-                  border: `2px solid ${termsAccepted ? colors.gold.primary : colors.border.light}`,
-                  background: termsAccepted ? colors.gold.primary : 'transparent',
+                  borderRadius: '6px',
+                  border: `2px solid ${termsAccepted ? '#d4af37' : 'rgba(255, 255, 255, 0.2)'}`,
+                  background: termsAccepted ? '#d4af37' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  marginTop: '1px',
-                  transition: 'all 0.2s',
+                  transition: 'all 0.2s ease',
                 }}>
                   {termsAccepted && <Check size={14} style={{ color: '#000' }} />}
                 </div>
-                <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                  I understand and agree to the promotion requirements above
+                <span style={{ fontSize: '0.8125rem', color: termsAccepted ? '#ffffff' : '#a1a1aa' }}>
+                  I agree to the promotion requirements
                 </span>
               </button>
             </div>
@@ -362,36 +358,59 @@ export default function ClaimRewardModal({
           {/* Non-affiliate: simple confirmation */}
           {!isAffiliate && (
             <div style={{
-              padding: spacing.md,
-              background: 'rgba(34,197,94,0.08)',
-              borderRadius: borderRadius.lg,
-              border: '1px solid rgba(34,197,94,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '14px 16px',
+              background: 'rgba(34,197,94,0.06)',
+              border: '1px solid rgba(34,197,94,0.12)',
+              borderRadius: '12px',
+              marginBottom: '16px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                <Check size={16} style={{ color: '#22c55e' }} />
-                <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                  This reward will be shipped to your address above. No promotion requirements.
-                </p>
-              </div>
+              <Check size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
+              <p style={{ fontSize: '0.8125rem', color: '#a1a1aa', margin: 0 }}>
+                This reward will be shipped to your address. No promotion requirements.
+              </p>
             </div>
           )}
 
           {/* Warning */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm }}>
-            <AlertTriangle size={14} style={{ color: colors.text.muted, flexShrink: 0, marginTop: '2px' }} />
-            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, lineHeight: 1.5 }}>
-              By claiming, you confirm your shipping address is correct and you are ready to receive this reward.
-            </p>
+          <p className="entry-hint" style={{ marginBottom: '20px' }}>
+            By claiming, you confirm your address is correct and you are ready to receive this reward.
+          </p>
+
+          {/* Buttons */}
+          <div className="entry-accept-actions">
+            <button
+              className="entry-btn-secondary entry-btn-decline"
+              onClick={() => setStep(STEPS.ADDRESS)}
+            >
+              Back
+            </button>
+            <button
+              className="entry-btn-primary entry-btn-accept"
+              onClick={handleClaim}
+              disabled={claiming || (isAffiliate && reward?.terms && !termsAccepted)}
+              style={{
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                marginTop: 0,
+              }}
+            >
+              {claiming ? (
+                <>
+                  <Loader size={18} style={{ animation: 'entrySpin 0.8s linear infinite' }} />
+                  Claiming...
+                </>
+              ) : (
+                <>
+                  <Check size={18} />
+                  Claim Reward
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </Modal>
   );
 }
