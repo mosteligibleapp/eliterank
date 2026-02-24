@@ -1,426 +1,339 @@
-import React, { useState, useEffect } from 'react';
-import { Crown, Trophy, Sparkles, Loader } from 'lucide-react';
-import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Trophy, Loader } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import WinnersShowcase from './WinnersShowcase';
 
-export default function WinnersTab({ city, season, winners = [], competitionId, onViewProfile }) {
-  const [loadedWinners, setLoadedWinners] = useState([]);
+/**
+ * WinnersTab - Public winners display for competition pages
+ * 
+ * This component wraps WinnersShowcase and handles data fetching
+ * for integration with PublicSitePage.
+ * 
+ * Features:
+ * - Auto-fetches winners from competition.winners array
+ * - Fetches competition stats (total votes, contestants)
+ * - Fetches past seasons for historical display
+ * - Supports both passed-in winners prop and auto-fetch
+ * 
+ * @param {Object} props
+ * @param {string} props.city - City name for display
+ * @param {string} props.season - Season identifier (e.g., "2025")
+ * @param {Array} props.winners - Pre-loaded winners (optional)
+ * @param {string} props.competitionId - Competition ID for auto-fetch
+ * @param {Function} props.onViewProfile - Callback when viewing a profile
+ * @param {string} props.variant - Display variant: 'full' | 'compact' | 'hero-only'
+ */
+export default function WinnersTab({
+  city = '',
+  season = '',
+  winners: propWinners = [],
+  competitionId,
+  onViewProfile,
+  variant = 'full',
+  competition: propCompetition = null,
+  organization: propOrganization = null,
+}) {
+  const [winners, setWinners] = useState([]);
+  const [stats, setStats] = useState({});
+  const [pastSeasons, setPastSeasons] = useState([]);
+  const [competition, setCompetition] = useState(propCompetition);
+  const [organization, setOrganization] = useState(propOrganization);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Fetch winners from competition if competitionId is provided
+  // Fetch winners and related data
   useEffect(() => {
-    const fetchWinners = async () => {
-      // If winners already provided as profiles, use them
-      if (winners.length > 0 && winners[0]?.first_name) {
-        setLoadedWinners(winners);
-        setLoading(false);
-        return;
-      }
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
 
-      // If competitionId provided, fetch from database
-      if (competitionId && supabase) {
-        try {
-          // Get competition with winners
+      try {
+        // If winners already provided as full profiles, use them
+        if (propWinners.length > 0 && propWinners[0]?.first_name) {
+          // Ensure winners have vote counts if available
+          const winnersWithVotes = propWinners.map((w, i) => ({
+            ...w,
+            votes: w.votes || w.total_votes || 0,
+            rank: w.rank || i + 1,
+          }));
+          setWinners(winnersWithVotes);
+          setLoading(false);
+          return;
+        }
+
+        // If competitionId provided, fetch from database
+        if (competitionId && supabase) {
+          // Fetch competition with winners array and stats
           const { data: compData, error: compError } = await supabase
             .from('competitions')
-            .select('winners')
+            .select(`
+              id,
+              name,
+              city,
+              season,
+              slug,
+              winners,
+              organization_id,
+              theme_primary
+            `)
             .eq('id', competitionId)
             .single();
+          
+          // Store competition data for share cards
+          if (compData) {
+            setCompetition(compData);
+          }
 
-          if (compError || !compData?.winners?.length) {
-            setLoadedWinners([]);
+          if (compError) {
+            console.error('Error fetching competition:', compError);
+            setWinners([]);
             setLoading(false);
             return;
           }
 
-          // Fetch winner profiles with all fields
+          if (!compData?.winners?.length) {
+            setWinners([]);
+            setLoading(false);
+            return;
+          }
+
+          // Fetch winner profiles
           const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
             .select('*')
             .in('id', compData.winners);
 
-          if (profilesError || !profiles) {
-            setLoadedWinners([]);
+          if (profilesError) {
+            console.error('Error fetching profiles:', profilesError);
+            setWinners([]);
             setLoading(false);
             return;
           }
 
-          // Maintain order from winner IDs
+          // Fetch vote counts for winners from contestants table
+          const { data: contestantData } = await supabase
+            .from('contestants')
+            .select('profile_id, votes, rank')
+            .eq('competition_id', competitionId)
+            .in('profile_id', compData.winners);
+
+          // Build vote lookup
+          const voteLookup = {};
+          if (contestantData) {
+            contestantData.forEach(c => {
+              voteLookup[c.profile_id] = {
+                votes: c.votes || 0,
+                rank: c.rank,
+              };
+            });
+          }
+
+          // Maintain order from winner IDs and add vote data
           const orderedWinners = compData.winners
-            .map(id => profiles.find(p => p.id === id))
+            .map((id, index) => {
+              const profile = profiles?.find(p => p.id === id);
+              if (!profile) return null;
+              
+              const voteData = voteLookup[id] || {};
+              return {
+                ...profile,
+                votes: voteData.votes || 0,
+                rank: voteData.rank || index + 1,
+              };
+            })
             .filter(Boolean);
 
-          setLoadedWinners(orderedWinners);
-        } catch (err) {
-          console.error('Error fetching winners:', err);
-          setLoadedWinners([]);
+          setWinners(orderedWinners);
+
+          // Fetch competition stats
+          const { data: statsData } = await supabase
+            .from('contestants')
+            .select('votes')
+            .eq('competition_id', competitionId);
+
+          if (statsData) {
+            const totalVotes = statsData.reduce((sum, c) => sum + (c.votes || 0), 0);
+            setStats({
+              totalVotes,
+              totalContestants: statsData.length,
+              // Could add totalVoters if tracked separately
+            });
+          }
+
+          // Fetch organization for share cards
+          if (compData.organization_id) {
+            const { data: orgData } = await supabase
+              .from('organizations')
+              .select('id, name, logo_url')
+              .eq('id', compData.organization_id)
+              .single();
+            
+            if (orgData) {
+              setOrganization(orgData);
+            }
+          }
+
+          // Fetch past seasons (other completed competitions for same org/city)
+          if (compData.organization_id && compData.city) {
+            const { data: pastData } = await supabase
+              .from('competitions')
+              .select(`
+                id,
+                season,
+                city,
+                winners
+              `)
+              .eq('organization_id', compData.organization_id)
+              .eq('city', compData.city)
+              .eq('status', 'completed')
+              .neq('id', competitionId)
+              .order('season', { ascending: false })
+              .limit(5);
+
+            if (pastData && pastData.length > 0) {
+              // Fetch champion profiles for past seasons
+              const championIds = pastData
+                .map(p => p.winners?.[0])
+                .filter(Boolean);
+
+              if (championIds.length > 0) {
+                const { data: championProfiles } = await supabase
+                  .from('profiles')
+                  .select('id, first_name, last_name, avatar_url')
+                  .in('id', championIds);
+
+                const champLookup = {};
+                if (championProfiles) {
+                  championProfiles.forEach(p => {
+                    champLookup[p.id] = p;
+                  });
+                }
+
+                const pastWithChamps = pastData.map(p => ({
+                  ...p,
+                  champion: p.winners?.[0] ? champLookup[p.winners[0]] : null,
+                }));
+
+                setPastSeasons(pastWithChamps);
+              } else {
+                setPastSeasons(pastData);
+              }
+            }
+          }
+        } else {
+          // No competition ID and no pre-loaded winners
+          setWinners([]);
         }
-      } else {
-        setLoadedWinners([]);
+      } catch (err) {
+        console.error('Error in WinnersTab fetch:', err);
+        setError(err.message);
+        setWinners([]);
       }
+
       setLoading(false);
     };
 
-    fetchWinners();
-  }, [competitionId, winners]);
+    fetchData();
+  }, [competitionId, propWinners]);
 
-  const getProfileName = (profile) => {
-    if (!profile) return 'Unknown';
-    const firstName = profile.first_name || '';
-    const lastName = profile.last_name || '';
-    const fullName = `${firstName} ${lastName}`.trim();
-    return fullName || profile.email || 'Unknown';
-  };
-
+  // Loading state
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
-        <Loader size={48} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary, marginBottom: spacing.lg }} />
-        <p style={{ color: colors.text.secondary }}>Loading winners...</p>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '64px 24px',
+        minHeight: '400px',
+      }}>
+        <Loader
+          size={48}
+          style={{
+            animation: 'spin 1s linear infinite',
+            color: '#d4af37',
+            marginBottom: '16px',
+          }}
+        />
+        <p style={{ color: '#a1a1aa' }}>Loading winners...</p>
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
 
-  if (!loadedWinners || loadedWinners.length === 0) {
+  // Error state
+  if (error) {
     return (
-      <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
-        <Trophy size={64} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
-        <h2 style={{ fontSize: typography.fontSize.xl, marginBottom: spacing.md, color: '#fff' }}>
-          Winners
-        </h2>
-        <p style={{ color: colors.text.secondary }}>
-          No winners have been announced yet.
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '64px 24px',
+        textAlign: 'center',
+      }}>
+        <Trophy size={48} style={{ color: '#71717a', marginBottom: '16px' }} />
+        <h3 style={{ color: '#ffffff', marginBottom: '8px' }}>
+          Unable to load winners
+        </h3>
+        <p style={{ color: '#a1a1aa' }}>
+          Please try again later.
         </p>
       </div>
     );
   }
 
-  const grandWinner = loadedWinners[0];
-  const runnerUps = loadedWinners.slice(1);
-
-  return (
-    <div>
-      {/* Hero Section */}
+  // Empty state
+  if (!winners || winners.length === 0) {
+    return (
       <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '64px 24px',
         textAlign: 'center',
-        marginBottom: spacing.xxxl,
+        minHeight: '400px',
       }}>
-        <h1 style={{
-          fontSize: 'clamp(32px, 6vw, 56px)',
-          fontWeight: typography.fontWeight.bold,
-          color: '#fff',
-          marginBottom: spacing.md,
-          lineHeight: 1.1,
+        <Trophy size={64} style={{ color: '#71717a', marginBottom: '16px' }} />
+        <h2 style={{
+          fontSize: '1.25rem',
+          fontWeight: 700,
+          color: '#ffffff',
+          marginBottom: '8px',
         }}>
-          Congratulations to
-          <span style={{ display: 'block', color: colors.gold.primary }}>{city}'s Most Eligible!</span>
-        </h1>
-
+          Winners Coming Soon
+        </h2>
         <p style={{
-          fontSize: typography.fontSize.lg,
-          color: colors.text.secondary,
-          maxWidth: '600px',
-          margin: '0 auto',
-          lineHeight: 1.6,
-        }}>
-          Thank you to everyone who participated, voted, and made this season unforgettable.
-        </p>
-      </div>
-
-      {/* Grand Winner Card */}
-      {grandWinner && (
-        <div style={{
+          fontSize: '1rem',
+          color: '#a1a1aa',
           maxWidth: '400px',
-          margin: '0 auto',
-          marginBottom: spacing.xxxl,
         }}>
-          <div
-            onClick={() => onViewProfile?.(grandWinner)}
-            style={{
-              background: colors.background.card,
-              border: `2px solid ${colors.gold.primary}`,
-              borderRadius: borderRadius.xxl,
-              overflow: 'hidden',
-              position: 'relative',
-              cursor: 'pointer',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 12px 40px rgba(212,175,55,0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            {/* Crown Badge */}
-            <div style={{
-              position: 'absolute',
-              top: spacing.md,
-              left: spacing.md,
-              width: '48px',
-              height: '48px',
-              borderRadius: borderRadius.lg,
-              background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2,
-              boxShadow: '0 4px 12px rgba(212,175,55,0.4)',
-            }}>
-              <Crown size={28} style={{ color: '#000' }} />
-            </div>
-
-            {/* Winner Badge */}
-            <div style={{
-              position: 'absolute',
-              top: spacing.md,
-              right: spacing.md,
-              padding: `${spacing.xs} ${spacing.md}`,
-              background: 'rgba(212,175,55,0.9)',
-              borderRadius: borderRadius.pill,
-              zIndex: 2,
-            }}>
-              <span style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold, color: '#000', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Winner
-              </span>
-            </div>
-
-            {/* Profile Image/Avatar */}
-            <div style={{
-              width: '100%',
-              aspectRatio: '4/5',
-              background: grandWinner.avatar_url
-                ? `url(${grandWinner.avatar_url}) center/cover`
-                : 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.1))',
-              position: 'relative',
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              {!grandWinner.avatar_url && (
-                <span style={{
-                  fontSize: '120px',
-                  fontWeight: typography.fontWeight.bold,
-                  color: colors.gold.primary,
-                  opacity: 0.5,
-                }}>
-                  {getProfileName(grandWinner).charAt(0).toUpperCase()}
-                </span>
-              )}
-              <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                padding: `${spacing.xxxl} ${spacing.lg} ${spacing.lg}`,
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.95))',
-              }}>
-                <p style={{
-                  fontSize: typography.fontSize.xs,
-                  color: colors.gold.primary,
-                  textTransform: 'uppercase',
-                  letterSpacing: '2px',
-                  marginBottom: spacing.xs,
-                  fontWeight: typography.fontWeight.semibold,
-                }}>
-                  Season {season} Champion
-                </p>
-                <h2 style={{
-                  fontSize: typography.fontSize.xxl,
-                  fontWeight: typography.fontWeight.bold,
-                  color: '#fff',
-                  marginBottom: spacing.xs,
-                }}>
-                  {getProfileName(grandWinner)}
-                </h2>
-              </div>
-            </div>
-
-            {/* Card Footer */}
-            <div style={{
-              padding: `${spacing.lg} ${spacing.xl}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: colors.background.cardHover,
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.sm,
-                color: colors.gold.primary,
-              }}>
-                <Trophy size={20} />
-                <span style={{ fontWeight: typography.fontWeight.semibold }}>Grand Champion</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Runner Ups */}
-      {runnerUps.length > 0 && (
-        <div style={{ marginBottom: spacing.xxxl }}>
-          <h3 style={{
-            fontSize: typography.fontSize.xl,
-            fontWeight: typography.fontWeight.semibold,
-            color: '#fff',
-            marginBottom: spacing.xl,
-            textAlign: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: spacing.sm,
-          }}>
-            <Sparkles size={24} style={{ color: colors.gold.primary }} />
-            Other Winners
-          </h3>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: spacing.xl,
-            justifyContent: 'center',
-          }}>
-            {runnerUps.map((winner, index) => (
-              <div
-                key={winner.id}
-                onClick={() => onViewProfile?.(winner)}
-                style={{
-                  background: colors.background.card,
-                  border: `1px solid rgba(212,175,55,0.3)`,
-                  borderRadius: borderRadius.xxl,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(212,175,55,0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                {/* Rank Badge */}
-                <div style={{
-                  position: 'absolute',
-                  top: spacing.md,
-                  left: spacing.md,
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: borderRadius.md,
-                  background: 'rgba(212,175,55,0.2)',
-                  backdropFilter: 'blur(8px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 2,
-                }}>
-                  <Crown size={18} style={{ color: colors.gold.primary }} />
-                </div>
-
-                {/* Profile Image/Avatar */}
-                <div style={{
-                  width: '100%',
-                  aspectRatio: '4/5',
-                  background: winner.avatar_url
-                    ? `url(${winner.avatar_url}) center/cover`
-                    : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05))',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  {!winner.avatar_url && (
-                    <span style={{
-                      fontSize: '80px',
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.gold.primary,
-                      opacity: 0.3,
-                    }}>
-                      {getProfileName(winner).charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    padding: `${spacing.xxxl} ${spacing.lg} ${spacing.md}`,
-                    background: 'linear-gradient(transparent, rgba(0,0,0,0.95))',
-                  }}>
-                    <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, marginBottom: '2px', color: '#fff' }}>
-                      {getProfileName(winner)}
-                    </h3>
-                  </div>
-                </div>
-
-                {/* Card Footer */}
-                <div style={{
-                  padding: `${spacing.md} ${spacing.lg}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: colors.background.cardHover,
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                    padding: `${spacing.xs} ${spacing.md}`,
-                    background: 'rgba(212,175,55,0.15)',
-                    borderRadius: borderRadius.pill,
-                    color: colors.gold.primary,
-                    fontSize: typography.fontSize.xs,
-                    fontWeight: typography.fontWeight.medium,
-                  }}>
-                    <Trophy size={12} />
-                    Winner
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Thank You Message */}
-      <div style={{
-        textAlign: 'center',
-        padding: spacing.xxl,
-        background: 'rgba(212,175,55,0.05)',
-        borderRadius: borderRadius.xl,
-        border: `1px solid ${colors.border.gold}`,
-      }}>
-        <Trophy size={48} style={{ color: colors.gold.primary, marginBottom: spacing.lg }} />
-        <h3 style={{
-          fontSize: typography.fontSize.xl,
-          fontWeight: typography.fontWeight.semibold,
-          color: '#fff',
-          marginBottom: spacing.md,
-        }}>
-          Thank You, {city}!
-        </h3>
-        <p style={{
-          fontSize: typography.fontSize.md,
-          color: colors.text.secondary,
-          maxWidth: '500px',
-          margin: '0 auto',
-          lineHeight: 1.6,
-        }}>
-          Season {season} was incredible thanks to our amazing contestants, dedicated voters, and supportive sponsors.
-          See you next season!
+          {city ? `${city}'s ` : ''}winners haven't been announced yet.
+          Check back soon!
         </p>
       </div>
+    );
+  }
 
-    </div>
+  // Render the showcase
+  return (
+    <WinnersShowcase
+      competitionId={competitionId}
+      city={city}
+      season={season}
+      winners={winners}
+      pastSeasons={pastSeasons}
+      stats={stats}
+      onViewProfile={onViewProfile}
+      variant={variant}
+      competition={competition}
+      organization={organization}
+    />
   );
 }
