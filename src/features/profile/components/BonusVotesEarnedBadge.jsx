@@ -8,10 +8,12 @@ import { getAllBonusVotesEarnedStatus } from '../../../lib/bonusVotes';
 /**
  * BonusVotesEarnedBadge - Displays a trophy badge on the profile when
  * the user has earned all bonus votes. Visible to both the user and the public.
+ *
+ * Works for both contestants (DB query) and nominees (bonusVotes prop from parent).
  */
-export default function BonusVotesEarnedBadge({ userId }) {
+export default function BonusVotesEarnedBadge({ userId, bonusVotes }) {
   const { isMobile } = useResponsive();
-  const [status, setStatus] = useState(null);
+  const [dbStatus, setDbStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,10 +23,15 @@ export default function BonusVotesEarnedBadge({ userId }) {
     }
 
     getAllBonusVotesEarnedStatus(userId)
-      .then(setStatus)
-      .catch(() => setStatus(null))
+      .then(setDbStatus)
+      .catch(() => setDbStatus(null))
       .finally(() => setLoading(false));
   }, [userId]);
+
+  // Use DB status for contestants, or bonusVotes prop for nominees
+  const status = dbStatus?.allEarned
+    ? dbStatus
+    : (bonusVotes?.allCompleted ? { allEarned: true, totalEarned: bonusVotes.totalEarned } : null);
 
   if (loading || !status?.allEarned) return null;
 

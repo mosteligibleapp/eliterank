@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
@@ -12,12 +12,17 @@ import BonusVotesEarnedBadge from './BonusVotesEarnedBadge';
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
   const [competitionStats, setCompetitionStats] = useState(null);
+  const [bonusVotes, setBonusVotes] = useState(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!hostProfile?.id) return;
     getCompetitionStats(hostProfile.id).then(setCompetitionStats).catch(console.error);
   }, [hostProfile?.id]);
+
+  const handleBonusVotesLoaded = useCallback((data) => {
+    setBonusVotes(data);
+  }, []);
 
   const handleShare = async () => {
     if (!hostProfile?.id) return; // Profile not loaded yet
@@ -141,49 +146,62 @@ export default function ProfileView({ hostProfile, onEdit }) {
                   <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}{hostProfile.age ? `, ${hostProfile.age}` : ''}
                 </p>
               )}
-              {competitionStats && competitionStats.totalVotes > 0 && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: isMobile ? 'center' : 'flex-start',
-                  gap: spacing.md,
-                  marginTop: spacing.md,
-                  flexWrap: 'wrap',
-                }}>
-                  <span style={{
-                    display: 'inline-flex',
+              {(() => {
+                // For contestants, totalVotes already includes bonus votes (DB-level).
+                // For nominees with 0 stats, use their client-side bonus votes earned.
+                const statsVotes = competitionStats?.totalVotes || 0;
+                const nomineeBonusVotes = (!statsVotes && bonusVotes?.totalEarned) ? bonusVotes.totalEarned : 0;
+                const displayVotes = statsVotes + nomineeBonusVotes;
+                const wins = competitionStats?.wins || 0;
+
+                if (displayVotes <= 0 && wins <= 0) return null;
+
+                return (
+                  <div style={{
+                    display: 'flex',
                     alignItems: 'center',
-                    gap: spacing.xs,
-                    padding: `${spacing.xs} ${spacing.md}`,
-                    background: 'rgba(212,175,55,0.1)',
-                    border: '1px solid rgba(212,175,55,0.2)',
-                    borderRadius: borderRadius.pill,
-                    fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                    fontWeight: typography.fontWeight.semibold,
-                    color: colors.gold.primary,
+                    justifyContent: isMobile ? 'center' : 'flex-start',
+                    gap: spacing.md,
+                    marginTop: spacing.md,
+                    flexWrap: 'wrap',
                   }}>
-                    <Heart size={isMobile ? 14 : 16} style={{ fill: colors.gold.primary }} />
-                    {competitionStats.totalVotes.toLocaleString()} votes
-                  </span>
-                  {competitionStats.wins > 0 && (
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: spacing.xs,
-                      padding: `${spacing.xs} ${spacing.md}`,
-                      background: 'rgba(212,175,55,0.1)',
-                      border: '1px solid rgba(212,175,55,0.2)',
-                      borderRadius: borderRadius.pill,
-                      fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                      fontWeight: typography.fontWeight.semibold,
-                      color: colors.gold.primary,
-                    }}>
-                      <TrendingUp size={isMobile ? 14 : 16} />
-                      {competitionStats.wins} {competitionStats.wins === 1 ? 'win' : 'wins'}
-                    </span>
-                  )}
-                </div>
-              )}
+                    {displayVotes > 0 && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: spacing.xs,
+                        padding: `${spacing.xs} ${spacing.md}`,
+                        background: 'rgba(212,175,55,0.1)',
+                        border: '1px solid rgba(212,175,55,0.2)',
+                        borderRadius: borderRadius.pill,
+                        fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                        fontWeight: typography.fontWeight.semibold,
+                        color: colors.gold.primary,
+                      }}>
+                        <Heart size={isMobile ? 14 : 16} style={{ fill: colors.gold.primary }} />
+                        {displayVotes.toLocaleString()} votes
+                      </span>
+                    )}
+                    {wins > 0 && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: spacing.xs,
+                        padding: `${spacing.xs} ${spacing.md}`,
+                        background: 'rgba(212,175,55,0.1)',
+                        border: '1px solid rgba(212,175,55,0.2)',
+                        borderRadius: borderRadius.pill,
+                        fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                        fontWeight: typography.fontWeight.semibold,
+                        color: colors.gold.primary,
+                      }}>
+                        <TrendingUp size={isMobile ? 14 : 16} />
+                        {wins} {wins === 1 ? 'win' : 'wins'}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -292,7 +310,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
         <div>
           {/* Bonus Votes Earned Badge - visible to everyone */}
           {hostProfile?.id && (
-            <BonusVotesEarnedBadge userId={hostProfile.id} />
+            <BonusVotesEarnedBadge userId={hostProfile.id} bonusVotes={bonusVotes} />
           )}
 
           {/* Rewards Card - only for own profile */}
@@ -302,7 +320,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
 
           {/* Bonus Votes Checklist - only for own profile */}
           {onEdit && hostProfile?.id && (
-            <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} />
+            <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} onBonusVotesLoaded={handleBonusVotesLoaded} />
           )}
 
           {/* Social Links */}
