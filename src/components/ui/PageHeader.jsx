@@ -27,8 +27,10 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   const handleAchievements = () => navigate('/achievements');
   const handleDashboard = () => navigate('/dashboard');
   const handleLogout = async () => {
-    await signOut();
+    // Navigate away from protected route FIRST to prevent ProtectedRoute
+    // from redirecting to /?login=true while signOut clears Zustand state.
     navigate('/');
+    await signOut();
   };
 
   const handleHowToCompete = onHowToCompete || (() => setShowGuide(true));
