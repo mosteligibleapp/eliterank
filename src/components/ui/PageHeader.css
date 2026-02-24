@@ -92,4 +92,9 @@
     height: 36px;
     min-width: 36px;
   }
+
+  .page-header__actions button {
+    width: 36px !important;
+    height: 36px !important;
+  }
 }
