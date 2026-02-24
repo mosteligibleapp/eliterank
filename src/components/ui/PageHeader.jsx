@@ -54,7 +54,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
         {children}
 
         <div className="page-header__actions">
-          {isAuthenticated && <NotificationBell size={36} />}
+          {isAuthenticated && <NotificationBell size={40} />}
           <ProfileIcon
             isAuthenticated={isAuthenticated}
             user={user}
@@ -67,7 +67,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             onHowToCompete={handleHowToCompete}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
-            size={36}
+            size={40}
           />
         </div>
       </header>

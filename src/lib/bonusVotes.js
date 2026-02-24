@@ -12,6 +12,12 @@ export const BONUS_TASK_KEYS = {
 };
 
 /**
+ * Deprecated task keys - filtered out on the frontend.
+ * "add_bio" is redundant since "complete_profile" already requires a bio.
+ */
+export const DEPRECATED_TASK_KEYS = new Set(['add_bio']);
+
+/**
  * Setup default bonus vote tasks for a competition
  * Called when a competition is created or when an admin enables bonus votes
  */

@@ -6,6 +6,7 @@ import {
   checkAndAwardProfileBonuses,
   setupDefaultBonusTasks,
   BONUS_TASK_KEYS,
+  DEPRECATED_TASK_KEYS,
 } from '../lib/bonusVotes';
 
 /**
@@ -42,7 +43,9 @@ export function useBonusVotes(competitionId, contestantId, userId) {
       }
     }
 
-    setTasks(fetchedTasks);
+    // Filter out deprecated tasks (e.g. add_bio, which is covered by complete_profile)
+    const filteredTasks = fetchedTasks.filter(t => !DEPRECATED_TASK_KEYS.has(t.task_key));
+    setTasks(filteredTasks);
     setLoading(false);
   }, [competitionId, contestantId, isDemoMode]);
 
