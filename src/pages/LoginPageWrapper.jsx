@@ -97,7 +97,7 @@ export default function LoginPageWrapper({
 
       if (pending?.length && onPendingNominations) {
         onPendingNominations(pending);
-        navigate('/', { replace: true });
+        navigate('/profile', { replace: true });
         return;
       }
     }
@@ -106,7 +106,7 @@ export default function LoginPageWrapper({
     if (returnTo) {
       navigate(decodeURIComponent(returnTo), { replace: true });
     } else {
-      navigate('/', { replace: true });
+      navigate('/profile', { replace: true });
     }
   }, [returnTo, navigate, onPendingNominations]);
 
@@ -115,7 +115,7 @@ export default function LoginPageWrapper({
   // handleLogin manages the post-login navigation including pending-nomination checks.
   useEffect(() => {
     if (!loading && isAuthenticated && !isLoggingInRef.current) {
-      navigate(returnTo ? decodeURIComponent(returnTo) : '/', { replace: true });
+      navigate(returnTo ? decodeURIComponent(returnTo) : '/profile', { replace: true });
     }
   }, [loading, isAuthenticated, returnTo, navigate]);
 

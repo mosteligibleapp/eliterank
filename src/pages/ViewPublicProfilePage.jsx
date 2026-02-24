@@ -32,7 +32,7 @@ export default function ViewPublicProfilePage() {
           .from('profiles')
           .select('*')
           .eq('id', profileId)
-          .single();
+          .maybeSingle();
 
         if (fetchError) throw fetchError;
 
@@ -54,7 +54,7 @@ export default function ViewPublicProfilePage() {
             email: data.email || '',
           });
         } else {
-          setError('Profile not found');
+          setError('This profile is not available. You may need to log in to view it.');
         }
       } catch (err) {
         setError(err.message || 'Failed to load profile');
@@ -98,20 +98,36 @@ export default function ViewPublicProfilePage() {
           <p style={{ color: '#9ca3af', marginBottom: '2rem' }}>
             {error || 'The requested profile could not be found.'}
           </p>
-          <button
-            onClick={() => navigate('/')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
-              color: '#0a0a0f',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
-            Back to Home
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => navigate(`/login?returnTo=${encodeURIComponent(`/profile/${profileId}`)}`)}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
+                color: '#0a0a0f',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Log In to View
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Back to Home
+            </button>
+          </div>
         </div>
       </div>
     );

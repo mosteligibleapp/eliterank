@@ -52,7 +52,19 @@ export const useAuthStore = create(
       // Sign out - clear Supabase session and all auth state
       signOut: async () => {
         if (supabase) {
-          try { await supabase.auth.signOut(); } catch { /* silent */ }
+          try {
+            await supabase.auth.signOut({ scope: 'local' });
+          } catch {
+            // If signOut API fails, manually clear Supabase tokens from localStorage
+            try {
+              const keys = Object.keys(localStorage);
+              for (const key of keys) {
+                if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                  localStorage.removeItem(key);
+                }
+              }
+            } catch { /* storage not available */ }
+          }
         }
         set({
           user: null,
