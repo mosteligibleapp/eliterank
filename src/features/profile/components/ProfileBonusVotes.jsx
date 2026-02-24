@@ -147,7 +147,28 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
   const toast = useToast();
   const [showGuide, setShowGuide] = useState(false);
 
-  // Evaluate task completion from profile data
+  // Load persisted action-task completions from localStorage
+  const storageKey = userId ? `nominee_bonus_tasks_${userId}` : null;
+  const [actionCompleted, setActionCompleted] = useState(() => {
+    if (!storageKey) return {};
+    try {
+      return JSON.parse(localStorage.getItem(storageKey) || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const markActionCompleted = (taskKey) => {
+    setActionCompleted(prev => {
+      const next = { ...prev, [taskKey]: true };
+      if (storageKey) {
+        try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* ignore */ }
+      }
+      return next;
+    });
+  };
+
+  // Evaluate task completion from profile data + action tracking
   const tasks = useMemo(() => {
     const hasName = !!(profile?.first_name || profile?.firstName || profile?.name);
     const hasBio = !!(profile?.bio && profile.bio.length > 0);
@@ -168,13 +189,16 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
         case 'add_social':
           completed = hasSocial;
           break;
-        // view_how_to_win and share_profile stay uncompleted for nominees
+        case 'view_how_to_win':
+        case 'share_profile':
+          completed = !!actionCompleted[task.task_key];
+          break;
         default:
           completed = false;
       }
       return { ...task, id: task.task_key, completed };
     });
-  }, [profile]);
+  }, [profile, actionCompleted]);
 
   const completedCount = tasks.filter(t => t.completed).length;
   const totalCount = tasks.length;
@@ -182,6 +206,15 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
   const totalBonusVotesAvailable = tasks.reduce((sum, t) => sum + t.votes_awarded, 0);
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
   const allCompleted = totalCount > 0 && completedCount === totalCount;
+
+  const handleGuideComplete = () => {
+    setShowGuide(false);
+    if (!actionCompleted[BONUS_TASK_KEYS.VIEW_HOW_TO_WIN]) {
+      markActionCompleted(BONUS_TASK_KEYS.VIEW_HOW_TO_WIN);
+      const task = DEFAULT_BONUS_TASKS.find(t => t.task_key === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN);
+      toast?.success?.(`+${task?.votes_awarded || 5} bonus votes for reviewing How to Win!`);
+    }
+  };
 
   const handleTaskAction = async (taskKey) => {
     if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
@@ -191,12 +224,24 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
       if (navigator.share) {
         try {
           await navigator.share({ title: 'Check out my profile!', url: shareUrl });
-          toast?.success?.('Profile link shared!');
+          if (!actionCompleted[BONUS_TASK_KEYS.SHARE_PROFILE]) {
+            markActionCompleted(BONUS_TASK_KEYS.SHARE_PROFILE);
+            const task = DEFAULT_BONUS_TASKS.find(t => t.task_key === BONUS_TASK_KEYS.SHARE_PROFILE);
+            toast?.success?.(`+${task?.votes_awarded || 5} bonus votes for sharing!`);
+          } else {
+            toast?.success?.('Profile link shared!');
+          }
         } catch { /* user cancelled */ }
       } else {
         try {
           await navigator.clipboard.writeText(shareUrl);
-          toast?.success?.('Profile link copied to clipboard!');
+          if (!actionCompleted[BONUS_TASK_KEYS.SHARE_PROFILE]) {
+            markActionCompleted(BONUS_TASK_KEYS.SHARE_PROFILE);
+            const task = DEFAULT_BONUS_TASKS.find(t => t.task_key === BONUS_TASK_KEYS.SHARE_PROFILE);
+            toast?.success?.(`Link copied! +${task?.votes_awarded || 5} bonus votes for sharing!`);
+          } else {
+            toast?.success?.('Profile link copied to clipboard!');
+          }
         } catch { /* clipboard not available */ }
       }
     }
@@ -232,7 +277,7 @@ function NomineeBonusVotes({ competitionName, profile, userId }) {
             competition={null}
             mode="page"
             onClose={() => setShowGuide(false)}
-            onComplete={() => setShowGuide(false)}
+            onComplete={handleGuideComplete}
           />
         </Suspense>
       )}
