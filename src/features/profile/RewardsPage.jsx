@@ -229,7 +229,7 @@ export default function RewardsPage({ hostProfile }) {
             Action Required ({pendingRewards.length})
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: spacing.xl }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? spacing.md : spacing.xl }}>
             {pendingRewards.map(assignment => (
               <RewardCard
                 key={assignment.id}
@@ -258,7 +258,7 @@ export default function RewardsPage({ hostProfile }) {
             Your Rewards ({activeRewards.length})
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: spacing.xl }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? spacing.md : spacing.xl }}>
             {activeRewards.map(assignment => (
               <RewardCard
                 key={assignment.id}
@@ -291,7 +291,7 @@ export default function RewardsPage({ hostProfile }) {
             Past Rewards ({completedRewards.length})
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: spacing.xl, opacity: 0.6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? spacing.md : spacing.xl, opacity: 0.6 }}>
             {completedRewards.map(assignment => (
               <RewardCard
                 key={assignment.id}
@@ -326,7 +326,7 @@ export default function RewardsPage({ hostProfile }) {
             These rewards are available for your competition. Check back soon to claim!
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: spacing.xl }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? spacing.md : spacing.xl }}>
             {visibleRewards.map(assignment => (
               <VisibleRewardCard
                 key={assignment.id}
@@ -421,7 +421,7 @@ function RewardCard({
       <div style={{
         width: '100%',
         aspectRatio: '3 / 2',
-        borderRadius: borderRadius.xl,
+        borderRadius: isMobile ? borderRadius.lg : borderRadius.xl,
         overflow: 'hidden',
         position: 'relative',
         background: reward?.image_url
@@ -431,7 +431,7 @@ function RewardCard({
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {!reward?.image_url && <Package size={56} style={{ color: 'rgba(212,175,55,0.35)' }} />}
+        {!reward?.image_url && <Package size={isMobile ? 32 : 56} style={{ color: 'rgba(212,175,55,0.35)' }} />}
 
         {/* Bottom gradient fade */}
         <div style={{
@@ -447,12 +447,12 @@ function RewardCard({
         {/* Status badge - bottom left */}
         <div style={{
           position: 'absolute',
-          bottom: spacing.md,
-          left: spacing.md,
+          bottom: isMobile ? spacing.sm : spacing.md,
+          left: isMobile ? spacing.sm : spacing.md,
           background: statusConfig.color,
           borderRadius: '20px',
-          padding: `4px ${spacing.md}`,
-          fontSize: typography.fontSize.xs,
+          padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
+          fontSize: isMobile ? '10px' : typography.fontSize.xs,
           fontWeight: typography.fontWeight.semibold,
           color: '#000',
           letterSpacing: '0.3px',
@@ -464,16 +464,20 @@ function RewardCard({
         {reward?.brand_name && (
           <div style={{
             position: 'absolute',
-            top: spacing.md,
-            left: spacing.md,
+            top: isMobile ? spacing.sm : spacing.md,
+            left: isMobile ? spacing.sm : spacing.md,
             background: 'rgba(0,0,0,0.65)',
             backdropFilter: 'blur(8px)',
             borderRadius: '20px',
-            padding: `4px ${spacing.sm}`,
-            fontSize: typography.fontSize.xs,
+            padding: isMobile ? `2px ${spacing.xs}` : `4px ${spacing.sm}`,
+            fontSize: isMobile ? '10px' : typography.fontSize.xs,
             color: colors.gold.primary,
             fontWeight: typography.fontWeight.medium,
             letterSpacing: '0.3px',
+            maxWidth: isMobile ? '80%' : 'none',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}>
             {reward.brand_name}
           </div>
@@ -483,13 +487,13 @@ function RewardCard({
         {reward?.cash_value && (
           <div style={{
             position: 'absolute',
-            bottom: spacing.md,
-            right: spacing.md,
+            bottom: isMobile ? spacing.sm : spacing.md,
+            right: isMobile ? spacing.sm : spacing.md,
             background: 'rgba(34, 197, 94, 0.9)',
             backdropFilter: 'blur(8px)',
             borderRadius: '20px',
-            padding: `4px ${spacing.md}`,
-            fontSize: typography.fontSize.xs,
+            padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
+            fontSize: isMobile ? '10px' : typography.fontSize.xs,
             fontWeight: typography.fontWeight.bold,
             color: '#fff',
           }}>
@@ -501,29 +505,29 @@ function RewardCard({
         {isPending && daysRemaining !== null && (
           <div style={{
             position: 'absolute',
-            top: spacing.md,
-            right: spacing.md,
+            top: isMobile ? spacing.sm : spacing.md,
+            right: isMobile ? spacing.sm : spacing.md,
             background: daysRemaining <= 2 ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.65)',
             backdropFilter: 'blur(8px)',
             borderRadius: '20px',
-            padding: `4px ${spacing.sm}`,
-            fontSize: typography.fontSize.xs,
+            padding: isMobile ? `2px ${spacing.xs}` : `4px ${spacing.sm}`,
+            fontSize: isMobile ? '10px' : typography.fontSize.xs,
             fontWeight: typography.fontWeight.semibold,
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
-            gap: spacing.xs,
+            gap: '2px',
           }}>
-            <Clock size={12} />
-            {daysRemaining}d left
+            <Clock size={isMobile ? 10 : 12} />
+            {daysRemaining}d
           </div>
         )}
       </div>
 
       {/* Card Info */}
-      <div style={{ padding: `${spacing.md} 2px 0` }}>
+      <div style={{ padding: `${isMobile ? spacing.sm : spacing.md} 2px 0` }}>
         <h3 style={{
-          fontSize: typography.fontSize.md,
+          fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
           fontWeight: typography.fontWeight.bold,
           color: colors.text.primary,
           marginBottom: '2px',
@@ -534,7 +538,7 @@ function RewardCard({
           {reward?.name}
         </h3>
 
-        {reward?.description && (
+        {reward?.description && !isMobile && (
           <p style={{
             fontSize: typography.fontSize.sm,
             color: colors.text.tertiary,
@@ -550,47 +554,51 @@ function RewardCard({
         )}
 
         <p style={{
-          fontSize: typography.fontSize.xs,
+          fontSize: isMobile ? '10px' : typography.fontSize.xs,
           color: colors.text.muted,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}>
-          From: {assignment.competition?.name || assignment.competition?.city?.name || 'Unknown'}
+          {assignment.competition?.name || assignment.competition?.city?.name || 'Unknown'}
         </p>
 
         {/* Pending: Claim Button */}
         {isPending && (
-          <div style={{ marginTop: spacing.md }}>
+          <div style={{ marginTop: isMobile ? spacing.sm : spacing.md }}>
             <Button
               onClick={onClaim}
-              icon={Gift}
-              style={{ background: '#eab308', color: '#000', width: '100%' }}
+              icon={isMobile ? undefined : Gift}
+              size={isMobile ? 'sm' : undefined}
+              style={{ background: '#eab308', color: '#000', width: '100%', fontSize: isMobile ? '11px' : undefined }}
             >
-              Claim Reward
+              Claim
             </Button>
           </div>
         )}
 
         {/* Active: Show code/link and content links */}
         {canAddLinks && (
-          <div style={{ marginTop: spacing.md }}>
+          <div style={{ marginTop: isMobile ? spacing.sm : spacing.md }}>
             {/* Discount Code & Tracking Link */}
             {(assignment.discount_code || assignment.tracking_link) && (
               <div style={{
                 display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                gap: spacing.md,
-                marginBottom: spacing.md,
-                padding: spacing.md,
+                flexDirection: 'column',
+                gap: isMobile ? spacing.sm : spacing.md,
+                marginBottom: isMobile ? spacing.sm : spacing.md,
+                padding: isMobile ? spacing.sm : spacing.md,
                 background: colors.background.card,
-                borderRadius: borderRadius.lg,
+                borderRadius: isMobile ? borderRadius.md : borderRadius.lg,
                 border: `1px solid ${colors.border.primary}`,
               }}>
                 {assignment.discount_code && (
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>
-                      Discount Code
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: isMobile ? '10px' : typography.fontSize.xs, color: colors.text.muted, marginBottom: '2px' }}>
+                      Code
                     </p>
                     <p style={{
-                      fontSize: typography.fontSize.lg,
+                      fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.lg,
                       fontWeight: typography.fontWeight.bold,
                       color: colors.gold.primary,
                       fontFamily: 'monospace',
@@ -603,36 +611,31 @@ function RewardCard({
                   </div>
                 )}
                 {assignment.tracking_link && (
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>
-                      Tracking Link
-                    </p>
-                    <a
-                      href={assignment.tracking_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        fontSize: typography.fontSize.sm,
-                        color: colors.gold.primary,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <Link2 size={14} />
-                      Open Link
-                      <ExternalLink size={12} />
-                    </a>
-                  </div>
+                  <a
+                    href={assignment.tracking_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                      fontSize: isMobile ? '11px' : typography.fontSize.sm,
+                      color: colors.gold.primary,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <Link2 size={isMobile ? 12 : 14} />
+                    Track
+                    <ExternalLink size={isMobile ? 10 : 12} />
+                  </a>
                 )}
               </div>
             )}
 
             {/* Content Links */}
             <div>
-              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
-                Your Content ({assignment.content_links?.length || 0})
+              <p style={{ fontSize: isMobile ? '10px' : typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
+                Content ({assignment.content_links?.length || 0})
               </p>
 
               {assignment.content_links?.length > 0 && (
@@ -646,21 +649,21 @@ function RewardCard({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: spacing.sm,
-                        fontSize: typography.fontSize.sm,
+                        gap: isMobile ? spacing.xs : spacing.sm,
+                        fontSize: isMobile ? '11px' : typography.fontSize.sm,
                         color: colors.text.secondary,
                         textDecoration: 'none',
-                        padding: `${spacing.sm} ${spacing.md}`,
+                        padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
                         background: colors.background.card,
                         borderRadius: borderRadius.md,
                         border: `1px solid ${colors.border.secondary}`,
                       }}
                     >
-                      <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                      <Check size={isMobile ? 12 : 14} style={{ color: '#22c55e', flexShrink: 0 }} />
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                         {link}
                       </span>
-                      <ExternalLink size={14} style={{ flexShrink: 0 }} />
+                      <ExternalLink size={isMobile ? 10 : 14} style={{ flexShrink: 0 }} />
                     </a>
                   ))}
                 </div>
@@ -668,29 +671,29 @@ function RewardCard({
 
               {/* Add Link Form */}
               {addingLinkId === assignment.id ? (
-                <div style={{ display: 'flex', gap: spacing.sm, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
                   <input
                     type="url"
-                    placeholder="Paste your content link..."
+                    placeholder={isMobile ? 'Paste link...' : 'Paste your content link...'}
                     value={newLink}
                     onChange={(e) => setNewLink(e.target.value)}
                     style={{
-                      flex: 1,
-                      minWidth: isMobile ? '100%' : 0,
-                      padding: `${spacing.sm} ${spacing.md}`,
+                      width: '100%',
+                      padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
                       background: colors.background.card,
                       border: `1px solid ${colors.border.primary}`,
                       borderRadius: borderRadius.md,
                       color: colors.text.primary,
-                      fontSize: typography.fontSize.sm,
+                      fontSize: isMobile ? '11px' : typography.fontSize.sm,
                       outline: 'none',
+                      boxSizing: 'border-box',
                     }}
                   />
                   <div style={{ display: 'flex', gap: spacing.sm }}>
-                    <Button size="sm" onClick={onAddLink} disabled={!newLink.trim()}>
+                    <Button size="sm" onClick={onAddLink} disabled={!newLink.trim()} style={{ flex: 1, fontSize: isMobile ? '11px' : undefined }}>
                       Add
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => setAddingLinkId(null)}>
+                    <Button size="sm" variant="secondary" onClick={() => setAddingLinkId(null)} style={{ flex: 1, fontSize: isMobile ? '11px' : undefined }}>
                       Cancel
                     </Button>
                   </div>
@@ -699,11 +702,11 @@ function RewardCard({
                 <Button
                   size="sm"
                   variant="secondary"
-                  icon={Plus}
+                  icon={isMobile ? undefined : Plus}
                   onClick={() => setAddingLinkId(assignment.id)}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', fontSize: isMobile ? '11px' : undefined }}
                 >
-                  Add Content Link
+                  {isMobile ? '+ Add Link' : 'Add Content Link'}
                 </Button>
               )}
             </div>
@@ -711,16 +714,24 @@ function RewardCard({
             {/* Terms Reminder */}
             {reward?.terms && (
               <div style={{
-                marginTop: spacing.md,
-                padding: spacing.md,
+                marginTop: isMobile ? spacing.sm : spacing.md,
+                padding: isMobile ? spacing.sm : spacing.md,
                 background: 'rgba(234,179,8,0.08)',
-                borderRadius: borderRadius.lg,
+                borderRadius: isMobile ? borderRadius.md : borderRadius.lg,
                 border: '1px solid rgba(234,179,8,0.15)',
               }}>
-                <p style={{ fontSize: typography.fontSize.xs, color: '#eab308', fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs }}>
-                  Promotion Requirements
+                <p style={{ fontSize: isMobile ? '10px' : typography.fontSize.xs, color: '#eab308', fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs }}>
+                  Requirements
                 </p>
-                <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.5 }}>
+                <p style={{
+                  fontSize: isMobile ? '11px' : typography.fontSize.sm,
+                  color: colors.text.secondary,
+                  lineHeight: 1.4,
+                  display: '-webkit-box',
+                  WebkitLineClamp: isMobile ? 3 : 10,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}>
                   {reward.terms}
                 </p>
               </div>
@@ -755,7 +766,7 @@ function VisibleRewardCard({ assignment, isMobile }) {
       <div style={{
         width: '100%',
         aspectRatio: '3 / 2',
-        borderRadius: borderRadius.xl,
+        borderRadius: isMobile ? borderRadius.lg : borderRadius.xl,
         overflow: 'hidden',
         position: 'relative',
         background: reward?.image_url
@@ -765,7 +776,7 @@ function VisibleRewardCard({ assignment, isMobile }) {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {!reward?.image_url && <Package size={56} style={{ color: 'rgba(212,175,55,0.35)' }} />}
+        {!reward?.image_url && <Package size={isMobile ? 32 : 56} style={{ color: 'rgba(212,175,55,0.35)' }} />}
 
         {/* Bottom gradient fade */}
         <div style={{
@@ -781,13 +792,13 @@ function VisibleRewardCard({ assignment, isMobile }) {
         {/* Coming Soon badge - bottom left */}
         <div style={{
           position: 'absolute',
-          bottom: spacing.md,
-          left: spacing.md,
+          bottom: isMobile ? spacing.sm : spacing.md,
+          left: isMobile ? spacing.sm : spacing.md,
           background: 'rgba(107, 114, 128, 0.85)',
           backdropFilter: 'blur(8px)',
           borderRadius: '20px',
-          padding: `4px ${spacing.md}`,
-          fontSize: typography.fontSize.xs,
+          padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
+          fontSize: isMobile ? '10px' : typography.fontSize.xs,
           fontWeight: typography.fontWeight.semibold,
           color: '#fff',
           letterSpacing: '0.3px',
@@ -799,16 +810,20 @@ function VisibleRewardCard({ assignment, isMobile }) {
         {reward?.brand_name && (
           <div style={{
             position: 'absolute',
-            top: spacing.md,
-            left: spacing.md,
+            top: isMobile ? spacing.sm : spacing.md,
+            left: isMobile ? spacing.sm : spacing.md,
             background: 'rgba(0,0,0,0.65)',
             backdropFilter: 'blur(8px)',
             borderRadius: '20px',
-            padding: `4px ${spacing.sm}`,
-            fontSize: typography.fontSize.xs,
+            padding: isMobile ? `2px ${spacing.xs}` : `4px ${spacing.sm}`,
+            fontSize: isMobile ? '10px' : typography.fontSize.xs,
             color: colors.gold.primary,
             fontWeight: typography.fontWeight.medium,
             letterSpacing: '0.3px',
+            maxWidth: isMobile ? '80%' : 'none',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}>
             {reward.brand_name}
           </div>
@@ -818,13 +833,13 @@ function VisibleRewardCard({ assignment, isMobile }) {
         {reward?.cash_value && (
           <div style={{
             position: 'absolute',
-            bottom: spacing.md,
-            right: spacing.md,
+            bottom: isMobile ? spacing.sm : spacing.md,
+            right: isMobile ? spacing.sm : spacing.md,
             background: 'rgba(34, 197, 94, 0.9)',
             backdropFilter: 'blur(8px)',
             borderRadius: '20px',
-            padding: `4px ${spacing.md}`,
-            fontSize: typography.fontSize.xs,
+            padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
+            fontSize: isMobile ? '10px' : typography.fontSize.xs,
             fontWeight: typography.fontWeight.bold,
             color: '#fff',
           }}>
@@ -834,9 +849,9 @@ function VisibleRewardCard({ assignment, isMobile }) {
       </div>
 
       {/* Card Info */}
-      <div style={{ padding: `${spacing.md} 2px 0` }}>
+      <div style={{ padding: `${isMobile ? spacing.sm : spacing.md} 2px 0` }}>
         <h3 style={{
-          fontSize: typography.fontSize.md,
+          fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
           fontWeight: typography.fontWeight.bold,
           color: colors.text.primary,
           marginBottom: '2px',
@@ -847,7 +862,7 @@ function VisibleRewardCard({ assignment, isMobile }) {
           {reward?.name}
         </h3>
 
-        {reward?.description && (
+        {reward?.description && !isMobile && (
           <p style={{
             fontSize: typography.fontSize.sm,
             color: colors.text.tertiary,
@@ -863,23 +878,26 @@ function VisibleRewardCard({ assignment, isMobile }) {
         )}
 
         <p style={{
-          fontSize: typography.fontSize.xs,
+          fontSize: isMobile ? '10px' : typography.fontSize.xs,
           color: colors.text.muted,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}>
-          From: {assignment.competition?.name || assignment.competition?.city?.name || 'Unknown'}
+          {assignment.competition?.name || assignment.competition?.city?.name || 'Unknown'}
         </p>
 
         {/* Commission Info (if applicable) */}
         {reward?.commission_rate && (
           <div style={{
-            marginTop: spacing.md,
-            padding: `${spacing.sm} ${spacing.md}`,
+            marginTop: isMobile ? spacing.sm : spacing.md,
+            padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
             background: 'rgba(139, 92, 246, 0.08)',
-            borderRadius: borderRadius.lg,
+            borderRadius: isMobile ? borderRadius.md : borderRadius.lg,
             border: '1px solid rgba(139, 92, 246, 0.15)',
           }}>
-            <p style={{ fontSize: typography.fontSize.xs, color: '#a78bfa', fontWeight: typography.fontWeight.medium }}>
-              Earn up to {reward.commission_rate}% commission on referrals
+            <p style={{ fontSize: isMobile ? '10px' : typography.fontSize.xs, color: '#a78bfa', fontWeight: typography.fontWeight.medium }}>
+              {isMobile ? `${reward.commission_rate}% commission` : `Earn up to ${reward.commission_rate}% commission on referrals`}
             </p>
           </div>
         )}
