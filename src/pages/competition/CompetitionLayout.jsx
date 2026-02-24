@@ -5,19 +5,19 @@ import {
   usePublicCompetition,
 } from '../../contexts/PublicCompetitionContext';
 import { AlertCircle, Loader, X, ArrowLeft } from 'lucide-react';
-import { useSupabaseAuth } from '../../hooks';
+import { useAuthStore } from '../../stores';
 import { ProfileIcon, NotificationBell } from '../../components/ui';
 
-// Phase view components
-import ComingSoonPhase from './phases/ComingSoonPhase';
-import NominationsPhase from './phases/NominationsPhase';
-import VotingPhase from './phases/VotingPhase';
-import BetweenRoundsPhase from './phases/BetweenRoundsPhase';
-import ResultsPhase from './phases/ResultsPhase';
+// Phase view components (lazy-loaded — only the active phase is needed)
+const ComingSoonPhase = lazy(() => import('./phases/ComingSoonPhase'));
+const NominationsPhase = lazy(() => import('./phases/NominationsPhase'));
+const VotingPhase = lazy(() => import('./phases/VotingPhase'));
+const BetweenRoundsPhase = lazy(() => import('./phases/BetweenRoundsPhase'));
+const ResultsPhase = lazy(() => import('./phases/ResultsPhase'));
 
-// View components for different pages
-import LeaderboardView from './views/LeaderboardView';
-import ActivityView from './views/ActivityView';
+// View components for different pages (lazy-loaded)
+const LeaderboardView = lazy(() => import('./views/LeaderboardView'));
+const ActivityView = lazy(() => import('./views/ActivityView'));
 
 // Shared components
 import { CompetitionHeader } from './components/CompetitionHeader';
@@ -52,13 +52,11 @@ function CompetitionLayoutInner() {
   // Guide modal state
   const [showGuide, setShowGuide] = useState(false);
 
-  // Auth state for profile icon
-  const {
-    user,
-    profile,
-    isAuthenticated,
-    signOut,
-  } = useSupabaseAuth();
+  // Auth state for profile icon (from Zustand — avoids duplicate getSession calls)
+  const user = useAuthStore(s => s.user);
+  const profile = useAuthStore(s => s.profile);
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const signOut = useAuthStore(s => s.signOut);
 
   // Check if user has dashboard access
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
@@ -218,13 +216,15 @@ function CompetitionLayoutInner() {
             badgeVariant="live"
           />
         )}
-        {phase?.isVoting && isLeaderboardView ? (
-          <LeaderboardView />
-        ) : phase?.isVoting && isActivityView ? (
-          <ActivityView />
-        ) : (
-          <PhaseContent phase={phase} />
-        )}
+        <Suspense fallback={null}>
+          {phase?.isVoting && isLeaderboardView ? (
+            <LeaderboardView />
+          ) : phase?.isVoting && isActivityView ? (
+            <ActivityView />
+          ) : (
+            <PhaseContent phase={phase} />
+          )}
+        </Suspense>
       </main>
 
       {/* Modals rendered at layout level */}
@@ -333,7 +333,8 @@ function ContestantModals() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, isAuthenticated } = useSupabaseAuth();
+  const user = useAuthStore(s => s.user);
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const [voteCount, setVoteCount] = useState(1);
 
   // Build current round info for VoteModal

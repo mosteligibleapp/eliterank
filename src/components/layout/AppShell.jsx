@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuthWithZustand } from '../../hooks';
 import { useAuthStore, useUIStore } from '../../stores';
-import { ErrorBoundary, LoadingScreen } from '../common';
+import { ErrorBoundary } from '../common';
 
 const AcceptNominationModal = lazy(() => import('../modals/AcceptNominationModal'));
 
@@ -156,7 +156,6 @@ export default function AppShell({ children }) {
   // Get auth state from Zustand store
   const user = useAuthStore(s => s.user);
   const profile = useAuthStore(s => s.profile);
-  const authLoading = useAuthStore(s => s.isLoading);
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   // Get UI state from Zustand store
@@ -226,11 +225,6 @@ export default function AppShell({ children }) {
   const handleCloseAcceptModal = useCallback(() => {
     closeAcceptNomination();
   }, [closeAcceptNomination]);
-
-  // Show loading while checking auth
-  if (authLoading) {
-    return <LoadingScreen message="Loading..." />;
-  }
 
   return (
     <ErrorBoundary>
