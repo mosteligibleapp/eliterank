@@ -26,6 +26,7 @@ export const useAuthStore = create(
       isAuthenticated: false,
       isLoading: true,
       error: null,
+      passwordRecoveryPending: false,
 
       // ========== Derived/Computed Values ==========
       // Note: Zustand doesn't have true computed properties like MobX,
@@ -44,6 +45,8 @@ export const useAuthStore = create(
 
       setError: (error) => set({ error }),
 
+      setPasswordRecoveryPending: (pending) => set({ passwordRecoveryPending: pending }),
+
       // Update profile partially (for real-time profile edits)
       updateProfileField: (updates) => set((state) => ({
         profile: state.profile ? { ...state.profile, ...updates } : null,
@@ -57,6 +60,7 @@ export const useAuthStore = create(
         isAuthenticated: false,
         isLoading: false,
         error: null,
+        passwordRecoveryPending: false,
       }),
 
       // Sign out - clear Supabase session and all auth state

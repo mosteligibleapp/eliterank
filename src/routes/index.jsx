@@ -11,6 +11,7 @@ import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-
 // Route guards and utilities
 import ProtectedRoute, { ROLE } from './ProtectedRoute';
 import { isCompetitionSlug, isIdRoute, isReservedPath } from '../utils/slugs';
+import { useAuthStore } from '../stores';
 
 // Common components
 import LoadingScreen from '../components/common/LoadingScreen';
@@ -54,9 +55,17 @@ export default function AppRoutes() {
 
   // Check for password reset flow
   // Supabase sends users to: your-site.com?reset=true#access_token=xxx&type=recovery
+  // Note: Supabase's JS client auto-processes the hash and calls replaceState,
+  // removing both hash and query params before React renders. The inline script
+  // in index.html captures the recovery state into sessionStorage before that happens.
+  // The Zustand store flag is set by the PASSWORD_RECOVERY auth event as a fallback.
+  const passwordRecoveryPending = useAuthStore(s => s.passwordRecoveryPending);
+  const setPasswordRecoveryPending = useAuthStore(s => s.setPasswordRecoveryPending);
   const searchParams = new URLSearchParams(location.search);
-  const isResetFlow = searchParams.get('reset') === 'true' || 
-    location.hash.includes('type=recovery');
+  const isResetFlow = searchParams.get('reset') === 'true' ||
+    location.hash.includes('type=recovery') ||
+    sessionStorage.getItem('passwordRecoveryPending') === 'true' ||
+    passwordRecoveryPending;
 
   // Check if this is a competition route
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -82,13 +91,17 @@ export default function AppRoutes() {
   }, []);
 
   const handleResetComplete = useCallback(() => {
-    // Clear the URL params and navigate to home
+    // Clear recovery flags and navigate to home
+    try { sessionStorage.removeItem('passwordRecoveryPending'); } catch(e) {}
+    setPasswordRecoveryPending(false);
     navigate('/', { replace: true });
-  }, [navigate]);
+  }, [navigate, setPasswordRecoveryPending]);
 
   const handleResetBack = useCallback(() => {
+    try { sessionStorage.removeItem('passwordRecoveryPending'); } catch(e) {}
+    setPasswordRecoveryPending(false);
     navigate('/login', { replace: true });
-  }, [navigate]);
+  }, [navigate, setPasswordRecoveryPending]);
 
   // Password reset flow - intercept before other routes
   if (isResetFlow) {

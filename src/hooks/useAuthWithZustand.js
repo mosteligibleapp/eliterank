@@ -26,6 +26,7 @@ export default function useAuthWithZustand() {
   const signOutStore = useAuthStore((state) => state.signOut);
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const updateProfileField = useAuthStore((state) => state.updateProfileField);
+  const setPasswordRecoveryPending = useAuthStore((state) => state.setPasswordRecoveryPending);
   
   // Get current state for actions
   const user = useAuthStore((state) => state.user);
@@ -111,7 +112,12 @@ export default function useAuthWithZustand() {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
-        if (event === 'SIGNED_IN' && currentUser) {
+        if (event === 'PASSWORD_RECOVERY') {
+          // Supabase detected a password recovery token - set flag so AppRoutes
+          // can show ResetPasswordPage even if the URL was already cleaned up.
+          setPasswordRecoveryPending(true);
+          try { sessionStorage.setItem('passwordRecoveryPending', 'true'); } catch(e) {}
+        } else if (event === 'SIGNED_IN' && currentUser) {
           loadProfile(currentUser.id);
         } else if (event === 'SIGNED_OUT') {
           // Use clearAuth (not signOutStore) to avoid calling supabase.auth.signOut()
@@ -127,7 +133,7 @@ export default function useAuthWithZustand() {
       mountedRef.current = false;
       subscription.unsubscribe();
     };
-  }, [setUser, setProfile, setLoading, setError, clearAuth, loadProfile]);
+  }, [setUser, setProfile, setLoading, setError, clearAuth, loadProfile, setPasswordRecoveryPending]);
 
   // Listen for external profile updates
   useEffect(() => {

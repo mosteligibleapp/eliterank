@@ -11,6 +11,19 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Detect password recovery flow BEFORE Supabase module loads and clears the URL hash.
+      // Supabase's createClient() with detectSessionInUrl:true processes the hash fragment
+      // and calls replaceState, removing both the hash and query params from the URL.
+      // This inline script runs before any module scripts, capturing the state early.
+      (function() {
+        var hash = window.location.hash;
+        var search = window.location.search;
+        if (hash.indexOf('type=recovery') !== -1 || search.indexOf('reset=true') !== -1) {
+          try { sessionStorage.setItem('passwordRecoveryPending', 'true'); } catch(e) {}
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
