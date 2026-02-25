@@ -1107,6 +1107,17 @@ export default function EliteRankCityModal({
         return (
           <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: spacing.lg,
+              }}>
+                <div style={{
+                  animation: 'crownFloat 3s ease-in-out infinite, crownGlow 2s ease-in-out infinite',
+                }}>
+                  <EliteRankCrown size={isMobile ? 64 : 80} />
+                </div>
+              </div>
               <h2 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>News</h2>
               <p style={{ color: colors.text.secondary }}>Latest updates from Elite Rank</p>
             </div>
@@ -1189,6 +1200,17 @@ export default function EliteRankCityModal({
           <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '1000px', margin: '0 auto' }}>
             {/* Hero Section */}
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl, padding: isMobile ? `${spacing.xl} 0` : `${spacing.xxl} 0` }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: spacing.lg,
+              }}>
+                <div style={{
+                  animation: 'crownFloat 3s ease-in-out infinite, crownGlow 2s ease-in-out infinite',
+                }}>
+                  <EliteRankCrown size={isMobile ? 64 : 80} />
+                </div>
+              </div>
               <h2 style={{
                 fontSize: isMobile ? typography.fontSize['3xl'] : typography.fontSize['4xl'],
                 fontWeight: typography.fontWeight.bold,
@@ -1300,6 +1322,17 @@ export default function EliteRankCityModal({
           <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '900px', margin: '0 auto' }}>
             {/* Hero Section */}
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: spacing.lg,
+              }}>
+                <div style={{
+                  animation: 'crownFloat 3s ease-in-out infinite, crownGlow 2s ease-in-out infinite',
+                }}>
+                  <EliteRankCrown size={isMobile ? 64 : 80} />
+                </div>
+              </div>
               <h2 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.lg }}>About EliteRank</h2>
               <p style={{ color: colors.text.secondary, lineHeight: typography.lineHeight.relaxed, fontSize: typography.fontSize.md, marginBottom: spacing.lg }}>
                 EliteRank is a social competition platform where public voting determines who ranks at the top across categories that matter — from dating to creators and more. Elites are nominated, accepted by the host then begin rally support, campaign for a chance to win while building their fan base.
