@@ -8,6 +8,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- CRITICAL: Check for password recovery BEFORE any modules load -->
+    <!-- Supabase will clear the hash when it initializes, so we must capture it first -->
+    <script>
+      (function() {
+        var hash = window.location.hash;
+        var search = window.location.search;
+        var href = window.location.href;
+        console.log('[index.html] Checking recovery. hash:', hash, 'search:', search);
+        if (hash.indexOf('type=recovery') !== -1 || search.indexOf('reset=true') !== -1 || href.indexOf('type=recovery') !== -1) {
+          console.log('[index.html] PASSWORD RECOVERY DETECTED');
+          sessionStorage.setItem('passwordRecoveryPending', 'true');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
