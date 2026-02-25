@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, Check, FileText, MapPin, Clock, ArrowLeft, ChevronRight, Newspaper } from 'lucide-react';
-import { Badge } from '../../../components/ui';
+import { Badge, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, gradients } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
 
@@ -96,8 +96,34 @@ function parseArticleContent(content) {
   return blocks;
 }
 
+/* ─── Organization Byline ─── */
+function OrgByline({ competition, size = 'md' }) {
+  const orgName = competition?.organization?.name || 'Most Eligible';
+  const orgLogo = competition?.organization?.logo_url;
+  const logoSize = size === 'sm' ? 20 : 28;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: size === 'sm' ? '6px' : spacing.sm }}>
+      <OrganizationLogo
+        logo={orgLogo}
+        size={logoSize}
+        style={{ borderRadius: borderRadius.sm }}
+      />
+      <span
+        style={{
+          fontSize: size === 'sm' ? typography.fontSize.xs : typography.fontSize.sm,
+          fontWeight: typography.fontWeight.semibold,
+          color: colors.text.secondary,
+        }}
+      >
+        {orgName}
+      </span>
+    </div>
+  );
+}
+
 /* ─── Full Article Detail View ─── */
-function ArticleDetail({ post, onBack, isMobile }) {
+function ArticleDetail({ post, onBack, isMobile, competition }) {
   const typeConfig = TYPE_CONFIG[post.type] || TYPE_CONFIG.announcement;
   const TypeIcon = typeConfig.icon;
   const blocks = parseArticleContent(post.content || '');
@@ -127,34 +153,37 @@ function ArticleDetail({ post, onBack, isMobile }) {
       </button>
 
       <article style={{ maxWidth: '680px' }}>
-        {/* Category */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              background: typeConfig.bgColor,
-              borderRadius: borderRadius.md,
-            }}
-          >
-            <TypeIcon size={12} style={{ color: typeConfig.color }} />
-            <span
+        {/* Org byline + category row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg, flexWrap: 'wrap', gap: spacing.sm }}>
+          <OrgByline competition={competition} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+            <div
               style={{
-                fontSize: typography.fontSize.xs,
-                fontWeight: typography.fontWeight.bold,
-                color: typeConfig.color,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                background: typeConfig.bgColor,
+                borderRadius: borderRadius.md,
               }}
             >
-              {typeConfig.label}
-            </span>
+              <TypeIcon size={12} style={{ color: typeConfig.color }} />
+              <span
+                style={{
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.bold,
+                  color: typeConfig.color,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {typeConfig.label}
+              </span>
+            </div>
+            {post.pinned && (
+              <Badge variant="gold" size="sm" uppercase icon={MapPin}>PINNED</Badge>
+            )}
           </div>
-          {post.pinned && (
-            <Badge variant="gold" size="sm" uppercase icon={MapPin}>PINNED</Badge>
-          )}
         </div>
 
         {/* Headline */}
@@ -259,7 +288,7 @@ function ArticleDetail({ post, onBack, isMobile }) {
 }
 
 /* ─── Feed: Featured Hero Card ─── */
-function FeaturedCard({ post, onClick, isMobile }) {
+function FeaturedCard({ post, onClick, isMobile, competition }) {
   const typeConfig = TYPE_CONFIG[post.type] || TYPE_CONFIG.announcement;
   const TypeIcon = typeConfig.icon;
   const timeAgo = getTimeAgo(post.date);
@@ -292,17 +321,9 @@ function FeaturedCard({ post, onClick, isMobile }) {
       <div style={{ height: '3px', background: gradients.gold }} />
 
       <div style={{ padding: isMobile ? spacing.xl : spacing.xxl }}>
-        {/* Top row: category + time */}
+        {/* Top row: org byline + time */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-            <TypeIcon size={13} style={{ color: typeConfig.color }} />
-            <span style={{ fontSize: typography.fontSize.xs, color: typeConfig.color, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {typeConfig.label}
-            </span>
-            {post.pinned && (
-              <Badge variant="gold" size="sm" uppercase icon={MapPin}>PINNED</Badge>
-            )}
-          </div>
+          <OrgByline competition={competition} size="sm" />
           <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
             {timeAgo}
           </span>
@@ -353,7 +374,7 @@ function FeaturedCard({ post, onClick, isMobile }) {
 }
 
 /* ─── Feed: Compact Headline Card ─── */
-function HeadlineCard({ post, onClick, isMobile }) {
+function HeadlineCard({ post, onClick, isMobile, competition }) {
   const typeConfig = TYPE_CONFIG[post.type] || TYPE_CONFIG.announcement;
   const TypeIcon = typeConfig.icon;
   const timeAgo = getTimeAgo(post.date);
@@ -382,21 +403,12 @@ function HeadlineCard({ post, onClick, isMobile }) {
         e.currentTarget.style.background = colors.background.card;
       }}
     >
-      {/* Left: icon circle */}
-      <div
-        style={{
-          width: isMobile ? '40px' : '48px',
-          height: isMobile ? '40px' : '48px',
-          minWidth: isMobile ? '40px' : '48px',
-          background: typeConfig.bgColor,
-          borderRadius: borderRadius.lg,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <TypeIcon size={isMobile ? 18 : 20} style={{ color: typeConfig.color }} />
-      </div>
+      {/* Left: org logo */}
+      <OrganizationLogo
+        logo={competition?.organization?.logo_url}
+        size={isMobile ? 40 : 48}
+        style={{ borderRadius: borderRadius.lg }}
+      />
 
       {/* Center: headline + meta */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -416,6 +428,10 @@ function HeadlineCard({ post, onClick, isMobile }) {
           {post.title}
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+            {competition?.organization?.name || 'Most Eligible'}
+          </span>
+          <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, opacity: 0.4 }}>·</span>
           <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
             {timeAgo}
           </span>
@@ -448,7 +464,7 @@ function HeadlineCard({ post, onClick, isMobile }) {
 }
 
 /* ─── Main Component ─── */
-export default function AnnouncementsTab({ announcements = [], city = 'Your City', season }) {
+export default function AnnouncementsTab({ announcements = [], city = 'Your City', season, competition }) {
   const { isMobile } = useResponsive();
   const [selectedPost, setSelectedPost] = useState(null);
 
@@ -467,6 +483,7 @@ export default function AnnouncementsTab({ announcements = [], city = 'Your City
         post={selectedPost}
         onBack={() => setSelectedPost(null)}
         isMobile={isMobile}
+        competition={competition}
       />
     );
   }
@@ -531,6 +548,7 @@ export default function AnnouncementsTab({ announcements = [], city = 'Your City
               post={featured}
               onClick={() => setSelectedPost(featured)}
               isMobile={isMobile}
+              competition={competition}
             />
           )}
 
@@ -541,6 +559,7 @@ export default function AnnouncementsTab({ announcements = [], city = 'Your City
               post={post}
               onClick={() => setSelectedPost(post)}
               isMobile={isMobile}
+              competition={competition}
             />
           ))}
         </div>
