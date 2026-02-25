@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Check, FileText, MapPin, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { Sparkles, Check, FileText, MapPin, ChevronDown, ChevronUp, Clock, Newspaper } from 'lucide-react';
 import { Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, gradients } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
@@ -14,18 +14,7 @@ function formatArticleDate(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
-    weekday: 'long',
     month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function formatShortDate(dateString) {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
@@ -37,350 +26,372 @@ function getTimeAgo(dateString) {
   const diffMs = now - date;
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffHours / 24);
-
   if (diffHours < 1) return 'Just now';
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return null;
 }
 
-/** Format content into paragraphs by splitting on double-newlines */
-function ContentBody({ content, collapsed, maxLines = 4 }) {
-  if (!content) return null;
+/**
+ * Split content into paragraphs intelligently.
+ * Tries double-newlines first, then single newlines, then splits long
+ * single-block text into ~2-sentence chunks so expanded articles are readable.
+ */
+function splitIntoParagraphs(content) {
+  if (!content) return [];
 
-  const paragraphs = content.split(/\n\n+/).filter(Boolean);
+  // First try double newlines
+  let parts = content.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
+  if (parts.length > 1) return parts;
 
+  // Try single newlines
+  parts = content.split(/\n/).map(s => s.trim()).filter(Boolean);
+  if (parts.length > 1) return parts;
+
+  // Single block — split by sentences, group every 2-3
+  const sentences = content.match(/[^.!?]+[.!?]+/g);
+  if (!sentences || sentences.length <= 2) return [content];
+
+  const paragraphs = [];
+  for (let i = 0; i < sentences.length; i += 2) {
+    const chunk = sentences.slice(i, i + 2).join(' ').trim();
+    if (chunk) paragraphs.push(chunk);
+  }
+  return paragraphs;
+}
+
+/** Extract the first sentence as a lead/summary */
+function extractLead(content) {
+  if (!content) return { lead: '', rest: '' };
+  const match = content.match(/^(.+?[.!?])\s+(.+)$/s);
+  if (match) return { lead: match[1].trim(), rest: match[2].trim() };
+  // If no sentence boundary found, take first 120 chars
+  if (content.length > 120) {
+    const breakpoint = content.lastIndexOf(' ', 120);
+    return {
+      lead: content.slice(0, breakpoint > 60 ? breakpoint : 120) + '...',
+      rest: content.slice(breakpoint > 60 ? breakpoint : 120).trim(),
+    };
+  }
+  return { lead: content, rest: '' };
+}
+
+/** Category badge */
+function TypeBadge({ type }) {
+  const config = TYPE_CONFIG[type] || TYPE_CONFIG.announcement;
+  const Icon = config.icon;
   return (
     <div
       style={{
-        ...(collapsed
-          ? {
-              display: '-webkit-box',
-              WebkitLineClamp: maxLines,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }
-          : {}),
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '3px 8px',
+        background: config.bgColor,
+        borderRadius: borderRadius.sm,
       }}
     >
-      {paragraphs.map((paragraph, idx) => (
-        <p
-          key={idx}
-          style={{
-            color: colors.text.secondary,
-            fontSize: typography.fontSize.md,
-            lineHeight: '1.75',
-            marginBottom: idx < paragraphs.length - 1 ? spacing.lg : 0,
-          }}
-        >
-          {paragraph.trim()}
-        </p>
-      ))}
+      <Icon size={11} style={{ color: config.color }} />
+      <span
+        style={{
+          fontSize: '0.6875rem',
+          fontWeight: typography.fontWeight.bold,
+          color: config.color,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {config.label}
+      </span>
     </div>
   );
 }
 
-/** Featured/hero article for the first or pinned announcement */
-function FeaturedArticle({ post }) {
+/** Featured/hero article — first or pinned announcement */
+function FeaturedArticle({ post, isMobile }) {
   const [expanded, setExpanded] = useState(false);
-  const { isMobile } = useResponsive();
-  const typeConfig = TYPE_CONFIG[post.type] || TYPE_CONFIG.announcement;
-  const TypeIcon = typeConfig.icon;
+  const { lead, rest } = extractLead(post.content || '');
   const timeAgo = getTimeAgo(post.date);
-  const isLongContent = post.content && post.content.length > 300;
+  const hasMore = rest.length > 0;
+  const paragraphs = splitIntoParagraphs(rest);
 
   return (
     <article
       style={{
         position: 'relative',
-        background: `linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(28,28,31,0.95) 60%)`,
-        border: `1px solid rgba(212,175,55,0.2)`,
+        background: colors.background.card,
+        border: `1px solid rgba(212,175,55,0.25)`,
         borderRadius: borderRadius.xxl,
-        padding: isMobile ? spacing.xl : spacing.xxxl,
-        marginBottom: spacing.xxl,
+        overflow: 'hidden',
+        marginBottom: spacing.xl,
       }}
     >
-      {/* Gold accent bar */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: isMobile ? spacing.xl : spacing.xxxl,
-          right: isMobile ? spacing.xl : spacing.xxxl,
-          height: '2px',
-          background: gradients.gold,
-          borderRadius: '0 0 2px 2px',
-        }}
-      />
+      {/* Gold top bar */}
+      <div style={{ height: '3px', background: gradients.gold }} />
 
-      {/* Category & badges row */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.sm,
-          marginBottom: spacing.lg,
-          flexWrap: 'wrap',
-        }}
-      >
+      <div style={{ padding: isMobile ? spacing.xl : `${spacing.xxl} ${spacing.xxxl}` }}>
+        {/* Meta row */}
         <div
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: spacing.xs,
-            padding: `${spacing.xs} ${spacing.sm}`,
-            background: typeConfig.bgColor,
-            borderRadius: borderRadius.sm,
+            gap: spacing.sm,
+            marginBottom: spacing.lg,
+            flexWrap: 'wrap',
           }}
         >
-          <TypeIcon size={12} style={{ color: typeConfig.color }} />
-          <span
-            style={{
-              fontSize: typography.fontSize.xs,
-              fontWeight: typography.fontWeight.bold,
-              color: typeConfig.color,
-              letterSpacing: typography.letterSpacing.wider,
-              textTransform: 'uppercase',
-            }}
-          >
-            {typeConfig.label}
+          <TypeBadge type={post.type} />
+          {post.pinned && (
+            <Badge variant="gold" size="sm" uppercase icon={MapPin}>
+              PINNED
+            </Badge>
+          )}
+          <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginLeft: 'auto' }}>
+            {timeAgo || formatArticleDate(post.date)}
           </span>
         </div>
 
-        {post.pinned && (
-          <Badge variant="gold" size="sm" uppercase icon={MapPin}>
-            PINNED
-          </Badge>
+        {/* Headline */}
+        <h2
+          style={{
+            fontSize: isMobile ? typography.fontSize['2xl'] : typography.fontSize['4xl'],
+            fontWeight: typography.fontWeight.bold,
+            color: colors.text.primary,
+            lineHeight: '1.2',
+            marginBottom: spacing.lg,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {post.title}
+        </h2>
+
+        {/* Dateline divider */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.sm,
+            marginBottom: spacing.xl,
+            paddingBottom: spacing.md,
+            borderBottom: `1px solid ${colors.border.primary}`,
+          }}
+        >
+          <Clock size={12} style={{ color: colors.text.muted }} />
+          <span style={{ fontSize: typography.fontSize.sm, color: colors.text.tertiary }}>
+            {formatArticleDate(post.date)}
+          </span>
+        </div>
+
+        {/* Lead sentence — larger, lighter color */}
+        <p
+          style={{
+            fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+            lineHeight: '1.7',
+            color: colors.text.secondary,
+            marginBottom: hasMore ? spacing.lg : 0,
+            fontWeight: typography.fontWeight.normal,
+          }}
+        >
+          {lead}
+        </p>
+
+        {/* Expanded body */}
+        {hasMore && expanded && (
+          <div style={{ marginTop: spacing.md }}>
+            {paragraphs.map((p, idx) => (
+              <p
+                key={idx}
+                style={{
+                  fontSize: typography.fontSize.md,
+                  lineHeight: '1.8',
+                  color: colors.text.secondary,
+                  marginBottom: idx < paragraphs.length - 1 ? spacing.lg : 0,
+                }}
+              >
+                {p}
+              </p>
+            ))}
+          </div>
         )}
-        {timeAgo && (
-          <span
+
+        {/* Toggle */}
+        {hasMore && (
+          <button
+            onClick={() => setExpanded(!expanded)}
             style={{
-              fontSize: typography.fontSize.xs,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              marginTop: spacing.lg,
+              padding: `${spacing.sm} ${spacing.lg}`,
+              background: 'rgba(212,175,55,0.08)',
+              border: `1px solid rgba(212,175,55,0.2)`,
+              borderRadius: borderRadius.pill,
               color: colors.gold.primary,
+              fontSize: typography.fontSize.sm,
               fontWeight: typography.fontWeight.semibold,
-              marginLeft: 'auto',
+              cursor: 'pointer',
+              transition: `all ${transitions.fast}`,
             }}
           >
-            {timeAgo}
-          </span>
+            {expanded ? (
+              <>Show less <ChevronUp size={14} /></>
+            ) : (
+              <>Continue reading <ChevronDown size={14} /></>
+            )}
+          </button>
         )}
       </div>
-
-      {/* Headline */}
-      <h2
-        style={{
-          fontSize: isMobile ? typography.fontSize['2xl'] : typography.fontSize['4xl'],
-          fontWeight: typography.fontWeight.bold,
-          color: colors.text.primary,
-          lineHeight: typography.lineHeight.tight,
-          marginBottom: spacing.md,
-          letterSpacing: typography.letterSpacing.tight,
-        }}
-      >
-        {post.title}
-      </h2>
-
-      {/* Dateline */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.sm,
-          marginBottom: spacing.xl,
-          paddingBottom: spacing.lg,
-          borderBottom: `1px solid rgba(255,255,255,0.06)`,
-        }}
-      >
-        <Clock size={13} style={{ color: colors.text.muted }} />
-        <span
-          style={{
-            fontSize: typography.fontSize.sm,
-            color: colors.text.tertiary,
-            fontWeight: typography.fontWeight.medium,
-          }}
-        >
-          {formatArticleDate(post.date)}
-        </span>
-      </div>
-
-      {/* Body */}
-      <ContentBody content={post.content} collapsed={!expanded && isLongContent} maxLines={6} />
-
-      {/* Read more toggle */}
-      {isLongContent && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: spacing.xs,
-            marginTop: spacing.lg,
-            padding: 0,
-            background: 'none',
-            border: 'none',
-            color: colors.gold.primary,
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.semibold,
-            cursor: 'pointer',
-            transition: `opacity ${transitions.fast}`,
-          }}
-        >
-          {expanded ? (
-            <>
-              Show less <ChevronUp size={14} />
-            </>
-          ) : (
-            <>
-              Continue reading <ChevronDown size={14} />
-            </>
-          )}
-        </button>
-      )}
     </article>
   );
 }
 
-/** Standard article card for non-featured announcements */
-function ArticleCard({ post, isLast }) {
+/** Standard article card */
+function ArticleCard({ post, isMobile }) {
   const [expanded, setExpanded] = useState(false);
-  const { isMobile } = useResponsive();
-  const typeConfig = TYPE_CONFIG[post.type] || TYPE_CONFIG.announcement;
-  const TypeIcon = typeConfig.icon;
+  const { lead, rest } = extractLead(post.content || '');
   const timeAgo = getTimeAgo(post.date);
-  const isLongContent = post.content && post.content.length > 200;
+  const hasMore = rest.length > 0;
+  const paragraphs = splitIntoParagraphs(rest);
   const postDate = new Date(post.date);
-  const now = new Date();
-  const diffHours = Math.floor((now - postDate) / (1000 * 60 * 60));
-  const isNew = diffHours < 24;
+  const isNew = (new Date() - postDate) / (1000 * 60 * 60) < 24;
 
   return (
     <article
       style={{
-        padding: isMobile ? `${spacing.xl} 0` : `${spacing.xxl} 0`,
-        borderBottom: isLast ? 'none' : `1px solid rgba(255,255,255,0.06)`,
+        background: colors.background.card,
+        border: `1px solid ${colors.border.primary}`,
+        borderRadius: borderRadius.xl,
+        overflow: 'hidden',
+        transition: `border-color ${transitions.fast}`,
       }}
     >
-      {/* Category & meta row */}
+      {/* Thin accent line based on type */}
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.sm,
-          marginBottom: spacing.md,
-          flexWrap: 'wrap',
+          height: '2px',
+          background: (TYPE_CONFIG[post.type] || TYPE_CONFIG.announcement).color,
+          opacity: 0.5,
         }}
-      >
+      />
+
+      <div style={{ padding: isMobile ? spacing.lg : spacing.xl }}>
+        {/* Meta row */}
         <div
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: spacing.xs,
-            padding: `3px ${spacing.sm}`,
-            background: typeConfig.bgColor,
-            borderRadius: borderRadius.sm,
+            gap: spacing.sm,
+            marginBottom: spacing.md,
+            flexWrap: 'wrap',
           }}
         >
-          <TypeIcon size={11} style={{ color: typeConfig.color }} />
-          <span
-            style={{
-              fontSize: '0.6875rem',
-              fontWeight: typography.fontWeight.bold,
-              color: typeConfig.color,
-              letterSpacing: typography.letterSpacing.wider,
-              textTransform: 'uppercase',
-            }}
-          >
-            {typeConfig.label}
+          <TypeBadge type={post.type} />
+          <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+            {formatArticleDate(post.date)}
           </span>
+          {post.pinned && (
+            <Badge variant="gold" size="sm" uppercase icon={MapPin}>PINNED</Badge>
+          )}
+          {isNew && !post.pinned && (
+            <span
+              style={{
+                fontSize: '0.625rem',
+                fontWeight: typography.fontWeight.bold,
+                color: colors.gold.primary,
+                letterSpacing: '0.05em',
+                background: 'rgba(212,175,55,0.1)',
+                padding: '2px 6px',
+                borderRadius: borderRadius.sm,
+              }}
+            >
+              NEW
+            </span>
+          )}
+          {timeAgo && (
+            <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginLeft: 'auto' }}>
+              {timeAgo}
+            </span>
+          )}
         </div>
 
-        <span
+        {/* Title */}
+        <h3
           style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
+            fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+            fontWeight: typography.fontWeight.bold,
+            color: colors.text.primary,
+            lineHeight: '1.3',
+            marginBottom: spacing.sm,
+            letterSpacing: '-0.01em',
           }}
         >
-          {formatShortDate(post.date)}
-        </span>
+          {post.title}
+        </h3>
 
-        {post.pinned && (
-          <Badge variant="gold" size="sm" uppercase icon={MapPin}>
-            PINNED
-          </Badge>
+        {/* Lead preview — always visible, 2 lines max */}
+        <p
+          style={{
+            fontSize: typography.fontSize.base,
+            lineHeight: '1.6',
+            color: colors.text.secondary,
+            marginBottom: 0,
+            ...(!expanded ? {
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            } : {}),
+          }}
+        >
+          {lead}
+        </p>
+
+        {/* Expanded body */}
+        {hasMore && expanded && (
+          <div style={{ marginTop: spacing.md }}>
+            {paragraphs.map((p, idx) => (
+              <p
+                key={idx}
+                style={{
+                  fontSize: typography.fontSize.base,
+                  lineHeight: '1.7',
+                  color: colors.text.secondary,
+                  marginBottom: idx < paragraphs.length - 1 ? spacing.md : 0,
+                }}
+              >
+                {p}
+              </p>
+            ))}
+          </div>
         )}
-        {isNew && !post.pinned && (
-          <span
+
+        {/* Toggle */}
+        {hasMore && (
+          <button
+            onClick={() => setExpanded(!expanded)}
             style={{
-              fontSize: '0.6875rem',
-              fontWeight: typography.fontWeight.bold,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              marginTop: spacing.md,
+              padding: 0,
+              background: 'none',
+              border: 'none',
               color: colors.gold.primary,
-              letterSpacing: typography.letterSpacing.wide,
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.semibold,
+              cursor: 'pointer',
             }}
           >
-            NEW
-          </span>
-        )}
-
-        {timeAgo && (
-          <span
-            style={{
-              fontSize: typography.fontSize.xs,
-              color: colors.text.muted,
-              marginLeft: 'auto',
-            }}
-          >
-            {timeAgo}
-          </span>
+            {expanded ? (
+              <>Show less <ChevronUp size={14} /></>
+            ) : (
+              <>Read more <ChevronDown size={14} /></>
+            )}
+          </button>
         )}
       </div>
-
-      {/* Title */}
-      <h3
-        style={{
-          fontSize: isMobile ? typography.fontSize.xl : typography.fontSize['2xl'],
-          fontWeight: typography.fontWeight.bold,
-          color: colors.text.primary,
-          lineHeight: typography.lineHeight.snug,
-          marginBottom: spacing.md,
-          letterSpacing: typography.letterSpacing.tight,
-        }}
-      >
-        {post.title}
-      </h3>
-
-      {/* Body */}
-      <ContentBody content={post.content} collapsed={!expanded && isLongContent} maxLines={3} />
-
-      {/* Read more toggle */}
-      {isLongContent && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: spacing.xs,
-            marginTop: spacing.md,
-            padding: 0,
-            background: 'none',
-            border: 'none',
-            color: colors.gold.primary,
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.semibold,
-            cursor: 'pointer',
-            transition: `opacity ${transitions.fast}`,
-          }}
-        >
-          {expanded ? (
-            <>
-              Show less <ChevronUp size={14} />
-            </>
-          ) : (
-            <>
-              Read more <ChevronDown size={14} />
-            </>
-          )}
-        </button>
-      )}
     </article>
   );
 }
@@ -395,78 +406,39 @@ export default function AnnouncementsTab({ announcements = [], city = 'Your City
   });
 
   const competitionName = season ? `Most Eligible ${city} ${season}` : `Most Eligible ${city}`;
-
   const featured = sortedAnnouncements[0];
   const remaining = sortedAnnouncements.slice(1);
 
   return (
-    <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+    <div>
       {/* Page header */}
-      <div
-        style={{
-          textAlign: 'center',
-          marginBottom: spacing.xxxl,
-          paddingBottom: spacing.xl,
-        }}
-      >
+      <div style={{ textAlign: 'center', marginBottom: spacing.xxl }}>
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: spacing.sm,
-            marginBottom: spacing.md,
+            marginBottom: spacing.sm,
           }}
         >
-          <div
-            style={{
-              width: '32px',
-              height: '1px',
-              background: colors.gold.primary,
-              opacity: 0.4,
-            }}
-          />
-          <span
-            style={{
-              fontSize: typography.fontSize.xs,
-              fontWeight: typography.fontWeight.bold,
-              color: colors.gold.primary,
-              letterSpacing: typography.letterSpacing.widest,
-              textTransform: 'uppercase',
-            }}
-          >
-            Newsroom
-          </span>
-          <div
-            style={{
-              width: '32px',
-              height: '1px',
-              background: colors.gold.primary,
-              opacity: 0.4,
-            }}
-          />
+          <div style={{ width: 24, height: 1, background: colors.gold.primary, opacity: 0.4 }} />
+          <Newspaper size={14} style={{ color: colors.gold.primary, opacity: 0.6 }} />
+          <div style={{ width: 24, height: 1, background: colors.gold.primary, opacity: 0.4 }} />
         </div>
         <h1
           style={{
             fontSize: isMobile ? typography.fontSize['3xl'] : typography.fontSize['5xl'],
             fontWeight: typography.fontWeight.bold,
             color: colors.text.primary,
-            marginBottom: spacing.sm,
-            letterSpacing: typography.letterSpacing.tight,
-            lineHeight: typography.lineHeight.tight,
+            marginBottom: spacing.xs,
+            letterSpacing: '-0.02em',
+            lineHeight: '1.1',
           }}
         >
-          News & Announcements
+          News & Updates
         </h1>
-        <p
-          style={{
-            color: colors.text.tertiary,
-            fontSize: typography.fontSize.md,
-            maxWidth: '480px',
-            margin: '0 auto',
-            lineHeight: typography.lineHeight.relaxed,
-          }}
-        >
-          The latest updates from {competitionName}
+        <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+          Latest from {competitionName}
         </p>
       </div>
 
@@ -475,58 +447,26 @@ export default function AnnouncementsTab({ announcements = [], city = 'Your City
         <div
           style={{
             textAlign: 'center',
-            padding: isMobile ? spacing.xxl : spacing.xxxl,
+            padding: spacing.xxxl,
             background: colors.background.card,
             borderRadius: borderRadius.xxl,
             border: `1px solid ${colors.border.secondary}`,
           }}
         >
-          <FileText
-            size={40}
-            style={{ color: colors.text.muted, marginBottom: spacing.lg, opacity: 0.4 }}
-          />
-          <p
-            style={{
-              color: colors.text.secondary,
-              fontSize: typography.fontSize.lg,
-              marginBottom: spacing.xs,
-            }}
-          >
+          <Newspaper size={40} style={{ color: colors.text.muted, marginBottom: spacing.lg, opacity: 0.3 }} />
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg, marginBottom: spacing.xs }}>
             No articles yet
           </p>
-          <p
-            style={{
-              color: colors.text.muted,
-              fontSize: typography.fontSize.sm,
-            }}
-          >
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
             Check back soon for updates
           </p>
         </div>
       ) : (
-        <div>
-          {/* Featured article */}
-          {featured && <FeaturedArticle post={featured} />}
-
-          {/* Remaining articles */}
-          {remaining.length > 0 && (
-            <div
-              style={{
-                background: colors.background.card,
-                border: `1px solid ${colors.border.secondary}`,
-                borderRadius: borderRadius.xxl,
-                padding: isMobile ? `0 ${spacing.xl}` : `0 ${spacing.xxl}`,
-              }}
-            >
-              {remaining.map((post, i) => (
-                <ArticleCard
-                  key={post.id}
-                  post={post}
-                  isLast={i === remaining.length - 1}
-                />
-              ))}
-            </div>
-          )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+          {featured && <FeaturedArticle post={featured} isMobile={isMobile} />}
+          {remaining.map((post) => (
+            <ArticleCard key={post.id} post={post} isMobile={isMobile} />
+          ))}
         </div>
       )}
     </div>
