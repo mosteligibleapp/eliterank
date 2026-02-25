@@ -1,4 +1,28 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "mosteligiblechi.com"
+        }
+      ],
+      "destination": "https://eliterank.co/most-eligible/most-eligible-chicago-2026",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.mosteligiblechi.com"
+        }
+      ],
+      "destination": "https://eliterank.co/most-eligible/most-eligible-chicago-2026",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
