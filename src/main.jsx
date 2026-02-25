@@ -12,10 +12,23 @@ import { NotificationProvider } from './contexts/NotificationContext';
 (function checkPasswordRecovery() {
   const hash = window.location.hash;
   const search = window.location.search;
+  const fullUrl = window.location.href;
   
-  if (hash.includes('type=recovery') || search.includes('reset=true')) {
-    console.log('[main.jsx] Password recovery detected, setting flag');
+  console.log('[main.jsx] Checking for recovery. Hash:', hash, 'Search:', search);
+  console.log('[main.jsx] Full URL:', fullUrl);
+  
+  // Check multiple ways the recovery might be indicated
+  const isRecovery = 
+    hash.includes('type=recovery') || 
+    search.includes('reset=true') ||
+    fullUrl.includes('type=recovery');
+  
+  if (isRecovery) {
+    console.log('[main.jsx] PASSWORD RECOVERY DETECTED - setting flag');
     sessionStorage.setItem('passwordRecoveryPending', 'true');
+  } else {
+    console.log('[main.jsx] No recovery detected. Current sessionStorage value:', 
+      sessionStorage.getItem('passwordRecoveryPending'));
   }
 })();
 

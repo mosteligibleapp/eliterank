@@ -66,9 +66,21 @@ export default function AppRoutes() {
   // Also check URL in case store hasn't been updated yet
   const searchParams = new URLSearchParams(location.search);
   const urlHasRecovery = searchParams.get('reset') === 'true' || 
-    location.hash.includes('type=recovery');
+    location.hash.includes('type=recovery') ||
+    window.location.href.includes('type=recovery');
   
   const isResetFlow = passwordRecoveryPending || sessionStorageRecovery || urlHasRecovery;
+  
+  // Debug logging
+  console.log('[routes] Recovery check:', {
+    passwordRecoveryPending,
+    sessionStorageRecovery,
+    urlHasRecovery,
+    isResetFlow,
+    hash: location.hash,
+    search: location.search,
+    href: window.location.href,
+  });
 
   // Check if this is a competition route
   const pathParts = location.pathname.split('/').filter(Boolean);
