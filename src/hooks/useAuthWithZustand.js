@@ -26,6 +26,7 @@ export default function useAuthWithZustand() {
   const signOutStore = useAuthStore((state) => state.signOut);
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const updateProfileField = useAuthStore((state) => state.updateProfileField);
+  const setPasswordRecoveryPending = useAuthStore((state) => state.setPasswordRecoveryPending);
   
   // Get current state for actions
   const user = useAuthStore((state) => state.user);
@@ -81,9 +82,24 @@ export default function useAuthWithZustand() {
       return;
     }
 
+    // Check if we're in a password recovery flow from URL
+    const checkRecoveryFromUrl = () => {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (hash.includes('type=recovery') || search.includes('reset=true')) {
+        console.log('Recovery flow detected from URL');
+        setPasswordRecoveryPending(true);
+        return true;
+      }
+      return false;
+    };
+
     // Get initial session
     const initAuth = async () => {
       try {
+        // Check URL for recovery params before getting session
+        const isRecovery = checkRecoveryFromUrl();
+        
         const { data: { session } } = await supabase.auth.getSession();
 
         if (mountedRef.current) {
@@ -111,7 +127,14 @@ export default function useAuthWithZustand() {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
-        if (event === 'SIGNED_IN' && currentUser) {
+        if (event === 'PASSWORD_RECOVERY') {
+          // User clicked password reset link - show reset form
+          console.log('PASSWORD_RECOVERY event detected');
+          setPasswordRecoveryPending(true);
+          if (currentUser) {
+            loadProfile(currentUser.id);
+          }
+        } else if (event === 'SIGNED_IN' && currentUser) {
           loadProfile(currentUser.id);
         } else if (event === 'SIGNED_OUT') {
           // Use clearAuth (not signOutStore) to avoid calling supabase.auth.signOut()

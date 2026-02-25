@@ -11,6 +11,7 @@ import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-
 // Route guards and utilities
 import ProtectedRoute, { ROLE } from './ProtectedRoute';
 import { isCompetitionSlug, isIdRoute, isReservedPath } from '../utils/slugs';
+import { useAuthStore } from '../stores';
 
 // Common components
 import LoadingScreen from '../components/common/LoadingScreen';
@@ -52,11 +53,18 @@ export default function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Check for password reset flow
-  // Supabase sends users to: your-site.com?reset=true#access_token=xxx&type=recovery
+  // Check for password reset flow from Zustand store
+  // The store flag is set by useAuthWithZustand when PASSWORD_RECOVERY event fires
+  // or when URL contains recovery params on initial load
+  const passwordRecoveryPending = useAuthStore((state) => state.passwordRecoveryPending);
+  const clearPasswordRecovery = useAuthStore((state) => state.clearPasswordRecovery);
+  
+  // Also check URL in case store hasn't been updated yet
   const searchParams = new URLSearchParams(location.search);
-  const isResetFlow = searchParams.get('reset') === 'true' || 
+  const urlHasRecovery = searchParams.get('reset') === 'true' || 
     location.hash.includes('type=recovery');
+  
+  const isResetFlow = passwordRecoveryPending || urlHasRecovery;
 
   // Check if this is a competition route
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -82,13 +90,15 @@ export default function AppRoutes() {
   }, []);
 
   const handleResetComplete = useCallback(() => {
-    // Clear the URL params and navigate to home
+    // Clear the recovery flag and URL params, then navigate to home
+    clearPasswordRecovery();
     navigate('/', { replace: true });
-  }, [navigate]);
+  }, [navigate, clearPasswordRecovery]);
 
   const handleResetBack = useCallback(() => {
+    clearPasswordRecovery();
     navigate('/login', { replace: true });
-  }, [navigate]);
+  }, [navigate, clearPasswordRecovery]);
 
   // Password reset flow - intercept before other routes
   if (isResetFlow) {

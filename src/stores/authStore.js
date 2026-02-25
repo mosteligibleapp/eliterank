@@ -26,6 +26,9 @@ export const useAuthStore = create(
       isAuthenticated: false,
       isLoading: true,
       error: null,
+      
+      // Password recovery flow - set when user clicks recovery link
+      passwordRecoveryPending: false,
 
       // ========== Derived/Computed Values ==========
       // Note: Zustand doesn't have true computed properties like MobX,
@@ -43,6 +46,10 @@ export const useAuthStore = create(
       setLoading: (isLoading) => set({ isLoading }),
 
       setError: (error) => set({ error }),
+
+      // Password recovery actions
+      setPasswordRecoveryPending: (pending) => set({ passwordRecoveryPending: pending }),
+      clearPasswordRecovery: () => set({ passwordRecoveryPending: false }),
 
       // Update profile partially (for real-time profile edits)
       updateProfileField: (updates) => set((state) => ({
