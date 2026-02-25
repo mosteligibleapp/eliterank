@@ -164,8 +164,30 @@
   transition: background 0.2s ease;
 }
 
+.achievements-card--clickable {
+  width: 100%;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
 .achievements-card:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.achievements-card-view {
+  font-size: 13px;
+  font-weight: 500;
+  color: #d4af37;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.achievements-card--clickable:hover .achievements-card-view {
+  opacity: 1;
 }
 
 .achievements-card-icon {
@@ -245,6 +267,123 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Card Preview Modal */
+.achievements-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+
+.achievements-preview-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-height: 90vh;
+  width: 100%;
+  max-width: 360px;
+}
+
+.achievements-preview-close {
+  position: absolute;
+  top: -44px;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.achievements-preview-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.achievements-preview-card {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0a0a0c;
+}
+
+.achievements-preview-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.achievements-preview-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  color: rgba(255, 255, 255, 0.6);
+  gap: 16px;
+}
+
+.achievements-preview-loading svg {
+  color: #d4af37;
+}
+
+.achievements-preview-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.achievements-preview-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.achievements-preview-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.achievements-preview-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.achievements-preview-btn--primary {
+  background: linear-gradient(135deg, #d4af37, #c9a227);
+  color: #000;
+}
+
+.achievements-preview-btn--primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e0bc45, #d4af37);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
 }
 
 /* Mobile adjustments */

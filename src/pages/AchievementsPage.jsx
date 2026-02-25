@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
+  X,
 } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
 import { supabase } from '../lib/supabase';
@@ -36,6 +37,7 @@ export default function AchievementsPage() {
   const [expandedCompetition, setExpandedCompetition] = useState(null);
   const [generating, setGenerating] = useState(null);
   const [shareStatus, setShareStatus] = useState(null);
+  const [previewModal, setPreviewModal] = useState({ open: false, record: null, card: null, imageUrl: null, loading: false });
 
   // Fetch all competitions the user is in (as contestant or nominee)
   const fetchAchievementRecords = useCallback(async () => {
@@ -281,37 +283,65 @@ export default function AchievementsPage() {
     return cards;
   };
 
-  // Generate and download a card
-  const handleDownload = async (record, cardOption) => {
-    const key = `${record.id}-${cardOption.type}`;
-    setGenerating(key);
+  // Build generation params for a record + card option
+  const getCardParams = (record, cardOption) => {
+    const competition = record.competition;
+    const organization = competition?.organization;
+    return {
+      achievementType: cardOption.type,
+      customTitle: cardOption.customTitle,
+      name: record.name,
+      photoUrl: record.avatar_url,
+      handle: record.instagram,
+      competitionName: competition?.name || `Most Eligible ${competition?.city?.name}`,
+      season: competition?.season?.toString(),
+      organizationName: organization?.name || 'Most Eligible',
+      organizationLogoUrl: organization?.logo_url,
+      accentColor: competition?.theme_primary || '#d4af37',
+      voteUrl: competition?.slug
+        ? `mosteligible.co/${organization?.slug || 'most-eligible'}/${competition.slug}`
+        : 'mosteligible.co',
+      rank: cardOption.rank,
+    };
+  };
 
+  // Open preview modal and generate card image
+  const handleShowCard = async (record, cardOption) => {
+    setPreviewModal({ open: true, record, card: cardOption, imageUrl: null, loading: true });
     try {
-      const competition = record.competition;
-      const organization = competition?.organization;
+      const blob = await generateAchievementCard(getCardParams(record, cardOption));
+      const url = URL.createObjectURL(blob);
+      setPreviewModal(prev => ({ ...prev, imageUrl: url, loading: false }));
+    } catch (err) {
+      console.error('Card generation failed:', err);
+      setPreviewModal(prev => ({ ...prev, loading: false }));
+    }
+  };
 
-      const blob = await generateAchievementCard({
-        achievementType: cardOption.type,
-        customTitle: cardOption.customTitle,
-        name: record.name,
-        photoUrl: record.avatar_url,
-        handle: record.instagram,
-        competitionName: competition?.name || `Most Eligible ${competition?.city?.name}`,
-        season: competition?.season?.toString(),
-        organizationName: organization?.name || 'Most Eligible',
-        organizationLogoUrl: organization?.logo_url,
-        accentColor: competition?.theme_primary || '#d4af37',
-        voteUrl: competition?.slug
-          ? `mosteligible.co/${organization?.slug || 'most-eligible'}/${competition.slug}`
-          : 'mosteligible.co',
-        rank: cardOption.rank,
-      });
+  const closePreview = () => {
+    if (previewModal.imageUrl) URL.revokeObjectURL(previewModal.imageUrl);
+    setPreviewModal({ open: false, record: null, card: null, imageUrl: null, loading: false });
+  };
 
-      // Download
+  // Download from existing preview blob URL, or generate fresh
+  const handlePreviewDownload = async () => {
+    const { record, card, imageUrl } = previewModal;
+    if (!record || !card) return;
+    const competition = record.competition;
+
+    setGenerating('preview-download');
+    try {
+      let blob;
+      if (imageUrl) {
+        const resp = await fetch(imageUrl);
+        blob = await resp.blob();
+      } else {
+        blob = await generateAchievementCard(getCardParams(record, card));
+      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${cardOption.type}-${competition?.city?.name || 'card'}.png`;
+      a.download = `${card.type}-${competition?.city?.name || 'card'}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -323,53 +353,40 @@ export default function AchievementsPage() {
     }
   };
 
-  // Share a card
-  const handleShare = async (record, cardOption) => {
-    const key = `${record.id}-${cardOption.type}`;
-    setGenerating(key);
+  // Share from existing preview blob URL, or generate fresh
+  const handlePreviewShare = async () => {
+    const { record, card, imageUrl } = previewModal;
+    if (!record || !card) return;
+    const competition = record.competition;
 
+    setGenerating('preview-share');
     try {
-      const competition = record.competition;
-      const organization = competition?.organization;
-
-      const blob = await generateAchievementCard({
-        achievementType: cardOption.type,
-        customTitle: cardOption.customTitle,
-        name: record.name,
-        photoUrl: record.avatar_url,
-        handle: record.instagram,
-        competitionName: competition?.name || `Most Eligible ${competition?.city?.name}`,
-        season: competition?.season?.toString(),
-        organizationName: organization?.name || 'Most Eligible',
-        organizationLogoUrl: organization?.logo_url,
-        accentColor: competition?.theme_primary || '#d4af37',
-        voteUrl: competition?.slug
-          ? `mosteligible.co/${organization?.slug || 'most-eligible'}/${competition.slug}`
-          : 'mosteligible.co',
-        rank: cardOption.rank,
-      });
-
+      let blob;
+      if (imageUrl) {
+        const resp = await fetch(imageUrl);
+        blob = await resp.blob();
+      } else {
+        blob = await generateAchievementCard(getCardParams(record, card));
+      }
       const file = new File([blob], 'share-card.png', { type: 'image/png' });
 
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `I'm ${cardOption.title.toLowerCase()} in ${competition?.name}!`,
+          title: `I'm ${card.title.toLowerCase()} in ${competition?.name}!`,
         });
         setShareStatus('shared');
       } else {
-        // Fallback to download
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${cardOption.type}-${competition?.city?.name || 'card'}.png`;
+        a.download = `${card.type}-${competition?.city?.name || 'card'}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         setShareStatus('downloaded');
       }
-
       setTimeout(() => setShareStatus(null), 2000);
     } catch (err) {
       if (err.name !== 'AbortError') {
@@ -457,50 +474,83 @@ export default function AchievementsPage() {
 
               {isExpanded && (
                 <div className="achievements-cards">
-                  {cards.map((card) => {
-                    const key = `${record.id}-${card.type}`;
-                    const isGenerating = generating === key;
-
-                    return (
-                      <div key={card.type} className="achievements-card">
-                        <div className="achievements-card-icon">{card.icon}</div>
-                        <div className="achievements-card-info">
-                          <h3>{card.title}</h3>
-                          <p>{card.description}</p>
-                        </div>
-                        <div className="achievements-card-actions">
-                          <button
-                            className="achievements-card-btn"
-                            onClick={() => handleDownload(record, card)}
-                            disabled={isGenerating}
-                            title="Download"
-                          >
-                            {isGenerating ? <Loader size={16} className="spinning" /> : <Download size={16} />}
-                          </button>
-                          <button
-                            className="achievements-card-btn achievements-card-btn--primary"
-                            onClick={() => handleShare(record, card)}
-                            disabled={isGenerating}
-                            title="Share"
-                          >
-                            {isGenerating ? (
-                              <Loader size={16} className="spinning" />
-                            ) : shareStatus ? (
-                              <Check size={16} />
-                            ) : (
-                              <Share2 size={16} />
-                            )}
-                          </button>
-                        </div>
+                  {cards.map((card) => (
+                    <button
+                      key={card.type}
+                      className="achievements-card achievements-card--clickable"
+                      onClick={() => handleShowCard(record, card)}
+                    >
+                      <div className="achievements-card-icon">{card.icon}</div>
+                      <div className="achievements-card-info">
+                        <h3>{card.title}</h3>
+                        <p>{card.description}</p>
                       </div>
-                    );
-                  })}
+                      <span className="achievements-card-view">View</span>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* Card Preview Modal */}
+      {previewModal.open && (
+        <div className="achievements-preview-overlay" onClick={closePreview}>
+          <div className="achievements-preview-modal" onClick={e => e.stopPropagation()}>
+            <button className="achievements-preview-close" onClick={closePreview}>
+              <X size={20} />
+            </button>
+
+            <div className="achievements-preview-card">
+              {previewModal.loading ? (
+                <div className="achievements-preview-loading">
+                  <Loader size={32} className="spinning" />
+                  <p>Generating your card...</p>
+                </div>
+              ) : previewModal.imageUrl ? (
+                <img
+                  src={previewModal.imageUrl}
+                  alt={`${previewModal.card?.title} card`}
+                  className="achievements-preview-image"
+                />
+              ) : (
+                <div className="achievements-preview-loading">
+                  <p>Failed to generate card</p>
+                </div>
+              )}
+            </div>
+
+            {!previewModal.loading && previewModal.imageUrl && (
+              <div className="achievements-preview-actions">
+                <button
+                  className="achievements-preview-btn"
+                  onClick={handlePreviewDownload}
+                  disabled={generating === 'preview-download'}
+                >
+                  {generating === 'preview-download' ? <Loader size={18} className="spinning" /> : <Download size={18} />}
+                  <span>Download</span>
+                </button>
+                <button
+                  className="achievements-preview-btn achievements-preview-btn--primary"
+                  onClick={handlePreviewShare}
+                  disabled={generating === 'preview-share'}
+                >
+                  {generating === 'preview-share' ? (
+                    <Loader size={18} className="spinning" />
+                  ) : shareStatus ? (
+                    <Check size={18} />
+                  ) : (
+                    <Share2 size={18} />
+                  )}
+                  <span>{shareStatus === 'shared' ? 'Shared!' : shareStatus === 'downloaded' ? 'Saved!' : 'Share'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
