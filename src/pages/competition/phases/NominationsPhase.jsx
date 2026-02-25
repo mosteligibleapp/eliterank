@@ -23,7 +23,7 @@ import { CompetitionFooter } from '../components/CompetitionFooter';
  * - ?apply=true  - Auto-redirects to entry flow
  */
 export function NominationsPhase() {
-  const { competition, orgSlug, competitionSlug } = usePublicCompetition();
+  const { competition, orgSlug, competitionSlug, votingRounds, about, events } = usePublicCompetition();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -113,7 +113,7 @@ export function NominationsPhase() {
         <Timeline />
         <div className="sidebar-stack">
           <HostCard />
-          <RulesAccordion />
+          <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
         </div>
       </section>
 
