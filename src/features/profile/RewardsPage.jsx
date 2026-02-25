@@ -553,6 +553,26 @@ function RewardCard({
           </p>
         )}
 
+        {reward?.product_url && (
+          <a
+            href={reward.product_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: spacing.xs,
+              fontSize: isMobile ? '11px' : typography.fontSize.sm,
+              color: colors.gold.primary,
+              textDecoration: 'none',
+              marginBottom: spacing.xs,
+            }}
+          >
+            <ExternalLink size={isMobile ? 12 : 14} />
+            View Product
+          </a>
+        )}
+
         <p style={{
           fontSize: isMobile ? '10px' : typography.fontSize.xs,
           color: colors.text.muted,
@@ -875,6 +895,26 @@ function VisibleRewardCard({ assignment, isMobile }) {
           }}>
             {reward.description}
           </p>
+        )}
+
+        {reward?.product_url && (
+          <a
+            href={reward.product_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: spacing.xs,
+              fontSize: isMobile ? '11px' : typography.fontSize.sm,
+              color: colors.gold.primary,
+              textDecoration: 'none',
+              marginBottom: spacing.xs,
+            }}
+          >
+            <ExternalLink size={isMobile ? 12 : 14} />
+            View Product
+          </a>
         )}
 
         <p style={{
