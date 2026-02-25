@@ -296,7 +296,7 @@ export default function SettingsTab({
                   borderRadius: borderRadius.lg,
                 }}>
                   {sponsor.logoUrl ? (
-                    <img src={sponsor.logoUrl} alt={sponsor.name} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain' }} />
+                    <img src={sponsor.logoUrl} alt={sponsor.name} loading="lazy" width={48} height={48} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain' }} />
                   ) : (
                     <div style={{ width: 48, height: 48, background: 'rgba(212,175,55,0.2)', borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Star size={24} style={{ color: colors.gold.primary }} />

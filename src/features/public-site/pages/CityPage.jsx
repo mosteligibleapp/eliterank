@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   MapPin, Crown, Calendar, ChevronRight, Loader, Building2
 } from 'lucide-react';
-import { Button } from '../../../components/ui';
+import { Button, CompetitionPageSkeleton } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { STATUS_CONFIG, COMPETITION_STATUS, US_STATES } from '../../../types/competition';
@@ -102,17 +102,8 @@ export default function CityPage() {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: colors.background.primary,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />
-          <p style={{ marginTop: spacing.md, color: colors.text.secondary }}>Loading...</p>
-        </div>
+      <div style={{ minHeight: '100vh', background: colors.background.primary }}>
+        <CompetitionPageSkeleton />
       </div>
     );
   }

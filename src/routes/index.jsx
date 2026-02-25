@@ -13,8 +13,13 @@ import ProtectedRoute, { ROLE } from './ProtectedRoute';
 import { isCompetitionSlug, isIdRoute, isReservedPath } from '../utils/slugs';
 
 // Common components
-import LoadingScreen from '../components/common/LoadingScreen';
 import ErrorBoundary from '../components/common/ErrorBoundary';
+import {
+  HomeFeedSkeleton,
+  ProfileSkeleton,
+  DashboardSkeleton,
+  CompetitionPageSkeleton,
+} from '../components/ui/Skeleton';
 
 // Lazy-loaded pages
 const HomePage = lazy(() => import('../pages/HomePage'));
@@ -30,12 +35,12 @@ const AchievementsPage = lazy(() => import('../pages/AchievementsPage'));
 const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLayout'));
 
 /**
- * Suspense wrapper with consistent loading screen
+ * Suspense wrapper with contextual skeleton loading
  */
-function SuspenseWrapper({ children, message = 'Loading...' }) {
+function SuspenseWrapper({ children, fallback }) {
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingScreen message={message} />}>
+      <Suspense fallback={fallback || <HomeFeedSkeleton />}>
         {children}
       </Suspense>
     </ErrorBoundary>
@@ -93,10 +98,10 @@ export default function AppRoutes() {
   // Password reset flow - intercept before other routes
   if (isResetFlow) {
     return (
-      <SuspenseWrapper message="Loading...">
-        <ResetPasswordPage 
-          onComplete={handleResetComplete} 
-          onBack={handleResetBack} 
+      <SuspenseWrapper>
+        <ResetPasswordPage
+          onComplete={handleResetComplete}
+          onBack={handleResetBack}
         />
       </SuspenseWrapper>
     );
@@ -105,7 +110,7 @@ export default function AppRoutes() {
   // Competition routes - handle separately for cleaner organization
   if (isCompetitionRoute || isLegacyCompetitionRoute) {
     return (
-      <SuspenseWrapper message="Loading competition...">
+      <SuspenseWrapper fallback={<CompetitionPageSkeleton />}>
         <Routes>
           {/* ID-based lookup: /:orgSlug/id/:competitionId */}
           <Route path="/:orgSlug/id/:competitionId/*" element={<CompetitionLayout />} />
@@ -125,7 +130,7 @@ export default function AppRoutes() {
       <Route
         path="/"
         element={
-          <SuspenseWrapper>
+          <SuspenseWrapper fallback={<HomeFeedSkeleton />}>
             <HomePage
               onShowLogin={handleShowLogin}
               onShowProfile={handleShowProfile}
@@ -139,7 +144,7 @@ export default function AppRoutes() {
       <Route
         path="/login"
         element={
-          <SuspenseWrapper message="Loading login...">
+          <SuspenseWrapper>
             <LoginPageWrapper />
           </SuspenseWrapper>
         }
@@ -149,7 +154,7 @@ export default function AppRoutes() {
       <Route
         path="/claim/:token"
         element={
-          <SuspenseWrapper message="Loading nomination...">
+          <SuspenseWrapper>
             <ClaimPage />
           </SuspenseWrapper>
         }
@@ -157,7 +162,7 @@ export default function AppRoutes() {
       <Route
         path="/claim/:token/complete"
         element={
-          <SuspenseWrapper message="Loading nomination...">
+          <SuspenseWrapper>
             <ClaimPage />
           </SuspenseWrapper>
         }
@@ -168,7 +173,7 @@ export default function AppRoutes() {
         path="/profile"
         element={
           <ProtectedRoute>
-            <SuspenseWrapper message="Loading profile...">
+            <SuspenseWrapper fallback={<ProfileSkeleton />}>
               <UserProfilePage />
             </SuspenseWrapper>
           </ProtectedRoute>
@@ -179,7 +184,7 @@ export default function AppRoutes() {
         path="/rewards"
         element={
           <ProtectedRoute>
-            <SuspenseWrapper message="Loading rewards...">
+            <SuspenseWrapper fallback={<ProfileSkeleton />}>
               <UserRewardsPage />
             </SuspenseWrapper>
           </ProtectedRoute>
@@ -190,7 +195,7 @@ export default function AppRoutes() {
         path="/achievements"
         element={
           <ProtectedRoute>
-            <SuspenseWrapper message="Loading achievements...">
+            <SuspenseWrapper fallback={<ProfileSkeleton />}>
               <AchievementsPage />
             </SuspenseWrapper>
           </ProtectedRoute>
@@ -201,7 +206,7 @@ export default function AppRoutes() {
       <Route
         path="/profile/:profileId"
         element={
-          <SuspenseWrapper message="Loading profile...">
+          <SuspenseWrapper fallback={<ProfileSkeleton />}>
             <ViewPublicProfilePage />
           </SuspenseWrapper>
         }
@@ -212,7 +217,7 @@ export default function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute allowedRoles={[ROLE.HOST, ROLE.SUPER_ADMIN]}>
-            <SuspenseWrapper message="Loading dashboard...">
+            <SuspenseWrapper fallback={<DashboardSkeleton />}>
               <DashboardPage />
             </SuspenseWrapper>
           </ProtectedRoute>
@@ -224,7 +229,7 @@ export default function AppRoutes() {
         path="/admin"
         element={
           <ProtectedRoute allowedRoles={[ROLE.SUPER_ADMIN]}>
-            <SuspenseWrapper message="Loading admin dashboard...">
+            <SuspenseWrapper fallback={<DashboardSkeleton />}>
               <AdminPage />
             </SuspenseWrapper>
           </ProtectedRoute>

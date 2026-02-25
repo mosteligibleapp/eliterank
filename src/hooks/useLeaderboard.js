@@ -33,33 +33,9 @@ export function useLeaderboard(competitionId, options = {}) {
     try {
       const { data, error: fetchError } = await supabase
         .from('contestants')
-        .select(
-          `
-          id,
-          user_id,
-          name,
-          email,
-          age,
-          bio,
-          avatar_url,
-          instagram,
-          status,
-          votes,
-          rank,
-          trend,
-          city,
-          slug,
-          profile_views,
-          external_shares,
-          eliminated_in_round,
-          advancement_status,
-          current_round,
-          created_at,
-          updated_at
-        `
-        )
+        .select('id, user_id, name, avatar_url, bio, instagram, status, votes, rank, trend, slug, eliminated_in_round, advancement_status, current_round, created_at, updated_at')
         .eq('competition_id', competitionId)
-        .eq('status', 'active') // Only active contestants
+        .eq('status', 'active')
         .order('rank', { ascending: true, nullsFirst: false });
 
       if (fetchError) throw fetchError;

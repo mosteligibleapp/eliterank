@@ -237,7 +237,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
         />
       </div>
       {showGuide && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div />}>
           <ContestantGuide
             competition={null}
             mode="page"
@@ -421,7 +421,7 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
         />
       </div>
       {showGuide && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div />}>
           <ContestantGuide
             competition={null}
             mode="page"

@@ -76,7 +76,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
 
       {/* Generic Contestant Guide (when no parent provides onHowToCompete) */}
       {!onHowToCompete && showGuide && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div />}>
           <ContestantGuide
             competition={null}
             mode="page"

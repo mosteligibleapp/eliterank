@@ -12,5 +12,23 @@ export { default as ProfileIcon } from './ProfileIcon';
 export { default as NotificationBell } from './NotificationBell';
 export { default as PageHeader } from './PageHeader';
 
+// Skeleton loading components
+export {
+  Skeleton,
+  SkeletonText,
+  SkeletonCircle,
+  SkeletonCard,
+  SkeletonAvatar,
+  SkeletonGrid,
+  EventCardSkeleton,
+  EventsGridSkeleton,
+  CompetitionPageSkeleton,
+  ProfileSkeleton,
+  DashboardSkeleton,
+  HomeFeedSkeleton,
+  AnnouncementsSkeleton,
+  LeaderboardSkeleton,
+} from './Skeleton';
+
 // Custom icons
 export { EliteRankCrown, CrownIcon } from './icons';

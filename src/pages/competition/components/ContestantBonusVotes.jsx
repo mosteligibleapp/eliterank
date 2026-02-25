@@ -120,7 +120,7 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
         onTaskAction={handleTaskAction}
       />
       {showGuide && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div />}>
           <ContestantGuide
             competition={null}
             mode="page"

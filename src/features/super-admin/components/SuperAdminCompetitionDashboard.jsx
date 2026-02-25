@@ -4,7 +4,7 @@ import {
   User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, Archive, RotateCcw, ExternalLink,
   UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus
 } from 'lucide-react';
-import { Button, Badge, Avatar, StatCard } from '../../../components/ui';
+import { Button, Badge, Avatar, StatCard, DashboardSkeleton } from '../../../components/ui';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { EventModal, AddPersonModal, AnnouncementModal } from '../../../components/modals';
@@ -1112,20 +1112,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
     // Show loading state
     if (loading) {
       return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: spacing.xxxl,
-          gap: spacing.lg,
-        }}>
-          <Loader size={48} style={{ color: '#8b5cf6', animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg }}>
-            Loading competition data...
-          </p>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        </div>
+        <DashboardSkeleton />
       );
     }
 

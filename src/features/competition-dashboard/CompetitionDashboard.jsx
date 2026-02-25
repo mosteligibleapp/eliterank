@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
   Eye, Loader, AlertCircle
 } from 'lucide-react';
-import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
+import { Button, Badge, Avatar, NotificationBell, DashboardSkeleton } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, AddPersonModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
 
-// Import tab components
-import { OverviewTab, PeopleTab, ContentTab, SetupTab } from './components/tabs';
+// Lazy-load tab components so only the active tab's code is loaded
+const OverviewTab = lazy(() => import('./components/tabs/OverviewTab'));
+const PeopleTab = lazy(() => import('./components/tabs/PeopleTab'));
+const ContentTab = lazy(() => import('./components/tabs/ContentTab'));
+const SetupTab = lazy(() => import('./components/tabs/SetupTab'));
 
 // Consolidated 4-tab navigation
 const TABS = [
@@ -340,22 +343,7 @@ export default function CompetitionDashboard({
 
   const renderContent = () => {
     if (loading) {
-      return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: spacing.xxxl,
-          gap: spacing.lg,
-        }}>
-          <Loader size={48} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg }}>
-            Loading competition data...
-          </p>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        </div>
-      );
+      return <DashboardSkeleton />;
     }
 
     if (error) {
@@ -377,80 +365,88 @@ export default function CompetitionDashboard({
       );
     }
 
-    switch (activeTab) {
-      case 'dashboard':
-        return (
-          <OverviewTab
-            competition={competition}
-            contestants={data.contestants}
-            nominees={data.nominees}
-            sponsors={data.sponsors}
-            events={data.events}
-            announcements={data.announcements}
-            host={data.host}
-            isSuperAdmin={isSuperAdmin}
-            onViewPublicSite={onViewPublicSite}
-            onNavigateToTab={setActiveTab}
-            onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
-            onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
-            onAddAnnouncement={addAnnouncement}
-            onUpdateAnnouncement={updateAnnouncement}
-            onDeleteAnnouncement={deleteAnnouncement}
-            onTogglePin={toggleAnnouncementPin}
-          />
-        );
-      case 'people':
-        return (
-          <PeopleTab
-            competition={competition}
-            nominees={data.nominees}
-            contestants={data.contestants}
-            host={data.host}
-            isSuperAdmin={isSuperAdmin}
-            onRefresh={refresh}
-            onApproveNominee={approveNominee}
-            onRejectNominee={rejectNominee}
-            onArchiveNominee={archiveNominee}
-            onRestoreNominee={restoreNominee}
-            onOpenAddPersonModal={openAddPersonModal}
-            onShowHostAssignment={() => setShowHostAssignment(true)}
-            onRemoveHost={removeHost}
-          />
-        );
-      case 'content':
-        return (
-          <ContentTab
-            competition={competition}
-            announcements={data.announcements}
-            host={data.host}
-            isSuperAdmin={isSuperAdmin}
-            onRefresh={refresh}
-            onAddAnnouncement={addAnnouncement}
-            onUpdateAnnouncement={updateAnnouncement}
-            onDeleteAnnouncement={deleteAnnouncement}
-            onTogglePin={toggleAnnouncementPin}
-          />
-        );
-      case 'setup':
-        return (
-          <SetupTab
-            competition={competition}
-            judges={data.judges}
-            sponsors={data.sponsors}
-            events={data.events}
-            isSuperAdmin={isSuperAdmin}
-            onRefresh={refresh}
-            onDeleteJudge={deleteJudge}
-            onDeleteSponsor={deleteSponsor}
-            onDeleteEvent={deleteEvent}
-            onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
-            onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
-            onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
-          />
-        );
-      default:
-        return null;
-    }
+    const renderActiveTab = () => {
+      switch (activeTab) {
+        case 'dashboard':
+          return (
+            <OverviewTab
+              competition={competition}
+              contestants={data.contestants}
+              nominees={data.nominees}
+              sponsors={data.sponsors}
+              events={data.events}
+              announcements={data.announcements}
+              host={data.host}
+              isSuperAdmin={isSuperAdmin}
+              onViewPublicSite={onViewPublicSite}
+              onNavigateToTab={setActiveTab}
+              onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+              onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+              onAddAnnouncement={addAnnouncement}
+              onUpdateAnnouncement={updateAnnouncement}
+              onDeleteAnnouncement={deleteAnnouncement}
+              onTogglePin={toggleAnnouncementPin}
+            />
+          );
+        case 'people':
+          return (
+            <PeopleTab
+              competition={competition}
+              nominees={data.nominees}
+              contestants={data.contestants}
+              host={data.host}
+              isSuperAdmin={isSuperAdmin}
+              onRefresh={refresh}
+              onApproveNominee={approveNominee}
+              onRejectNominee={rejectNominee}
+              onArchiveNominee={archiveNominee}
+              onRestoreNominee={restoreNominee}
+              onOpenAddPersonModal={openAddPersonModal}
+              onShowHostAssignment={() => setShowHostAssignment(true)}
+              onRemoveHost={removeHost}
+            />
+          );
+        case 'content':
+          return (
+            <ContentTab
+              competition={competition}
+              announcements={data.announcements}
+              host={data.host}
+              isSuperAdmin={isSuperAdmin}
+              onRefresh={refresh}
+              onAddAnnouncement={addAnnouncement}
+              onUpdateAnnouncement={updateAnnouncement}
+              onDeleteAnnouncement={deleteAnnouncement}
+              onTogglePin={toggleAnnouncementPin}
+            />
+          );
+        case 'setup':
+          return (
+            <SetupTab
+              competition={competition}
+              judges={data.judges}
+              sponsors={data.sponsors}
+              events={data.events}
+              isSuperAdmin={isSuperAdmin}
+              onRefresh={refresh}
+              onDeleteJudge={deleteJudge}
+              onDeleteSponsor={deleteSponsor}
+              onDeleteEvent={deleteEvent}
+              onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
+              onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+              onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+            />
+          );
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <Suspense fallback={<DashboardSkeleton />}>
+        {renderActiveTab()}
+      </Suspense>
+    );
   };
 
   return (

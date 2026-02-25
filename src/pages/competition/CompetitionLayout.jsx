@@ -4,9 +4,10 @@ import {
   PublicCompetitionProvider,
   usePublicCompetition,
 } from '../../contexts/PublicCompetitionContext';
-import { AlertCircle, Loader, X, ArrowLeft } from 'lucide-react';
+import { AlertCircle, X, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '../../stores';
-import { ProfileIcon, NotificationBell } from '../../components/ui';
+import { ProfileIcon, NotificationBell, CompetitionPageSkeleton } from '../../components/ui';
+import { Skeleton, SkeletonText } from '../../components/ui/Skeleton';
 
 // Phase view components (lazy-loaded — only the active phase is needed)
 const ComingSoonPhase = lazy(() => import('./phases/ComingSoonPhase'));
@@ -30,15 +31,29 @@ const EntryFlow = lazy(() => import('../../features/entry/EntryFlow'));
 const ContestantGuide = lazy(() => import('../../features/contestant-guide/ContestantGuide'));
 
 /**
+ * Lightweight skeleton for the main competition content area.
+ * Used as a Suspense fallback while phase views or leaderboard/activity load.
+ */
+function CompetitionContentSkeleton() {
+  return (
+    <div style={{ padding: '24px 16px', maxWidth: 800, margin: '0 auto' }}>
+      <Skeleton width="60%" height={24} borderRadius={6} />
+      <Skeleton width="40%" height={16} borderRadius={4} style={{ marginTop: 12 }} />
+      <SkeletonText lines={4} lineHeight={14} gap={10} style={{ marginTop: 24 }} />
+    </div>
+  );
+}
+
+/**
  * Inner layout component (has access to context)
  */
 function CompetitionLayoutInner() {
-  const { 
-    loading, 
-    error, 
-    competition, 
-    phase, 
-    showVoteModal, 
+  const {
+    loading,
+    error,
+    competition,
+    phase,
+    showVoteModal,
     showProfileModal,
     votingRounds,
     prizePool,
@@ -95,10 +110,7 @@ function CompetitionLayoutInner() {
   if (loading) {
     return (
       <div className="competition-layout">
-        <div className="competition-loading">
-          <Loader className="loading-spinner" size={32} />
-          <p>Loading competition...</p>
-        </div>
+        <CompetitionPageSkeleton />
       </div>
     );
   }
@@ -216,7 +228,7 @@ function CompetitionLayoutInner() {
             badgeVariant="live"
           />
         )}
-        <Suspense fallback={null}>
+        <Suspense fallback={<CompetitionContentSkeleton />}>
           {phase?.isVoting && isLeaderboardView ? (
             <LeaderboardView />
           ) : phase?.isVoting && isActivityView ? (
@@ -232,7 +244,7 @@ function CompetitionLayoutInner() {
 
       {/* Contestant Guide Modal */}
       {showGuide && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div />}>
           <ContestantGuide
             competition={competition}
             votingRounds={votingRounds}

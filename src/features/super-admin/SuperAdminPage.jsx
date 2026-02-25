@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { Crown, MapPin, Users, Settings, Building2, Gift } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { HostAssignmentModal } from '../../components/modals';
-import CompetitionsManager from './components/CompetitionsManager';
-import HostsManager from './components/HostsManager';
-import CitiesManager from './components/CitiesManager';
-import OrganizationsManager from './components/OrganizationsManager';
-import RewardsManager from './components/RewardsManager';
-import SiteSettingsManager from './components/SiteSettingsManager';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { CompetitionDashboard } from '../competition-dashboard';
+
+const CompetitionsManager = lazy(() => import('./components/CompetitionsManager'));
+const HostsManager = lazy(() => import('./components/HostsManager'));
+const CitiesManager = lazy(() => import('./components/CitiesManager'));
+const OrganizationsManager = lazy(() => import('./components/OrganizationsManager'));
+const RewardsManager = lazy(() => import('./components/RewardsManager'));
+const SiteSettingsManager = lazy(() => import('./components/SiteSettingsManager'));
 
 const TABS = [
   { id: 'organizations', label: 'Organizations', shortLabel: 'Orgs', icon: Building2 },
@@ -211,7 +213,9 @@ export default function SuperAdminPage({ onLogout }) {
         margin: '0 auto',
         padding: isMobile ? spacing.md : spacing.xxl
       }}>
-        {renderContent()}
+        <Suspense fallback={<DashboardSkeleton />}>
+          {renderContent()}
+        </Suspense>
       </main>
     </div>
   );

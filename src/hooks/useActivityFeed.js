@@ -21,6 +21,7 @@ export function useActivityFeed(competitionId, options = {}) {
   const [error, setError] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const lastFetchedAt = useRef(null);
+  const contestantCache = useRef(new Map());
 
   const isDemoMode = !isSupabaseConfigured();
 
@@ -88,6 +89,13 @@ export function useActivityFeed(competitionId, options = {}) {
             trimmedActivities[trimmedActivities.length - 1].created_at;
         }
 
+        // Populate contestant cache from fetched data
+        for (const activity of trimmedActivities) {
+          if (activity.contestants) {
+            contestantCache.current.set(activity.contestants.id, activity.contestants);
+          }
+        }
+
         // Map activities with type info
         const mappedActivities = trimmedActivities.map((activity) => ({
           ...activity,
@@ -139,15 +147,19 @@ export function useActivityFeed(competitionId, options = {}) {
             return;
           }
 
-          // Fetch contestant data if needed
+          // Resolve contestant from cache or fetch once
           let contestant = null;
           if (payload.new.contestant_id) {
-            const { data } = await supabase
-              .from('contestants')
-              .select('id, name, slug, avatar_url')
-              .eq('id', payload.new.contestant_id)
-              .single();
-            contestant = data;
+            contestant = contestantCache.current.get(payload.new.contestant_id) || null;
+            if (!contestant) {
+              const { data } = await supabase
+                .from('contestants')
+                .select('id, name, slug, avatar_url')
+                .eq('id', payload.new.contestant_id)
+                .single();
+              contestant = data;
+              if (data) contestantCache.current.set(data.id, data);
+            }
           }
 
           const newActivity = {
