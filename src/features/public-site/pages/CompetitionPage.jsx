@@ -14,6 +14,7 @@ import {
 } from '../../../types/competition';
 import InterestForm from '../components/InterestForm';
 import UpcomingEventCard from '../components/UpcomingEventCard';
+import RealAnnouncementsTab from '../components/AnnouncementsTab';
 import { useOrganizations, useCities } from '../../../hooks/useCachedQuery';
 import { formatEventTime } from '../../../utils/formatters';
 
@@ -42,6 +43,7 @@ export default function CompetitionPage() {
   const [activeTab, setActiveTab] = useState('about');
   const [winners, setWinners] = useState([]);
   const [events, setEvents] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   // Find organization from cached data
   const organization = useMemo(() => {
@@ -104,6 +106,7 @@ export default function CompetitionPage() {
         ...compData,
         city: cityData?.name || 'Unknown City',  // Ensure city is a string for rendering
         cityData: cityData,  // Keep full city object for components that need it
+        organization: organization,  // Attach org for components that need logo/name
       });
 
       // Fetch winners if competition has them
@@ -135,6 +138,21 @@ export default function CompetitionPage() {
           location: e.location, description: e.description, imageUrl: e.image_url,
           ticketUrl: e.ticket_url, status: e.status, featured: e.featured,
           publicVisible: e.public_visible,
+        })));
+      }
+
+      // Fetch announcements for this competition
+      const { data: announcementsData } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('competition_id', compData.id)
+        .order('pinned', { ascending: false })
+        .order('published_at', { ascending: false });
+
+      if (announcementsData) {
+        setAnnouncements(announcementsData.map(a => ({
+          id: a.id, title: a.title, content: a.content, type: a.type || 'announcement',
+          date: a.published_at, pinned: a.pinned,
         })));
       }
     } catch (err) {
@@ -472,7 +490,12 @@ export default function CompetitionPage() {
                 <EventsTabContent events={events} />
               )}
               {activeTab === 'announcements' && (
-                <AnnouncementsTab competition={competition} />
+                <RealAnnouncementsTab
+                  announcements={announcements}
+                  city={competition?.city}
+                  season={competition?.season}
+                  competition={competition}
+                />
               )}
               {activeTab === 'rules' && (
                 <RulesTab competition={competition} />
@@ -983,19 +1006,6 @@ function EventsTabContent({ events }) {
   );
 }
 
-function AnnouncementsTab({ competition }) {
-  return (
-    <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
-      <Megaphone size={64} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
-      <h2 style={{ fontSize: typography.fontSize.xl, marginBottom: spacing.md }}>
-        Announcements
-      </h2>
-      <p style={{ color: colors.text.secondary }}>
-        Competition announcements and updates will be displayed here.
-      </p>
-    </div>
-  );
-}
 
 function RulesTab({ competition }) {
   if (!competition.rules || competition.rules.length === 0) {

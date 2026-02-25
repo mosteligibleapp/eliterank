@@ -608,7 +608,7 @@ export default function PublicSitePage({
                 />
               )}
               {activeTab === 'announcements' && (
-                <AnnouncementsTab announcements={displayAnnouncements} city={city} season={season} />
+                <AnnouncementsTab announcements={displayAnnouncements} city={city} season={season} competition={competition} />
               )}
             </div>
 

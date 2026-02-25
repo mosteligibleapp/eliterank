@@ -234,7 +234,7 @@ export default function EliteRankCityModal({
           if (data) {
             setAnnouncements(data.map(a => {
               const comp = competitions.find(c => c.id === a.competition_id);
-              return { ...a, competitionName: comp?.name || 'Elite Rank', cityName: comp?.city || 'Unknown' };
+              return { ...a, competitionName: comp?.name || 'Elite Rank', cityName: comp?.city || 'Unknown', organization: comp?.organization || null };
             }));
           }
         });
@@ -1120,6 +1120,17 @@ export default function EliteRankCityModal({
                     borderRadius: borderRadius.xl,
                     padding: spacing.xl,
                   }}>
+                    {/* Org logo + name */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+                      <OrganizationLogo
+                        logo={a.organization?.logo_url}
+                        size={28}
+                        style={{ borderRadius: borderRadius.sm }}
+                      />
+                      <span style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text.secondary }}>
+                        {a.organization?.name || 'Elite Rank'}
+                      </span>
+                    </div>
                     <div style={{ ...styleHelpers.flexBetween, marginBottom: spacing.md }}>
                       <Badge variant="info" size="xs">{a.cityName}</Badge>
                       <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
