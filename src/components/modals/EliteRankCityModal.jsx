@@ -1168,7 +1168,7 @@ export default function EliteRankCityModal({
             id: 'compete',
             icon: Trophy,
             title: 'Compete',
-            desc: "You've got what it takes. Enter a competition, rally your network, and let the crowd decide. Every vote you earn puts money in your pocket.",
+            desc: "You've got what it takes. Enter a competition, rally your network, and let the crowd decide who rises to the top. Winners take home cash prizes, the title, and bragging rights.",
             color: colors.gold.primary,
             hoverBg: `${colors.gold.primary}08`,
             cta: 'Apply to compete',

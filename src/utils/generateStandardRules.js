@@ -20,7 +20,9 @@ export function generateStandardRules({
 }) {
   const rules = [];
   const city = competition?.city || 'your city';
-  const numRounds = votingRounds.filter(r => r.round_type === 'voting').length;
+  const votingOnly = votingRounds.filter(r => r.round_type === 'voting');
+  // Fall back to all non-judging rounds if none are explicitly typed 'voting'
+  const numRounds = votingOnly.length || votingRounds.filter(r => r.round_type !== 'judging').length;
   const doubleVoteDays = events.filter(e => e.is_double_vote_day);
 
   // 1. Eligibility Requirements
@@ -154,20 +156,26 @@ function generateVotingContent({ competition }) {
  * Generate rounds & advancement content
  */
 function generateRoundsContent({ votingRounds, numRounds }) {
-  const votingOnly = votingRounds.filter(r => r.round_type === 'voting');
+  // Use voting-type rounds; fall back to all non-judging rounds
+  const relevantRounds = votingRounds.filter(r => r.round_type === 'voting');
+  const displayRounds = relevantRounds.length > 0
+    ? relevantRounds
+    : votingRounds.filter(r => r.round_type !== 'judging');
 
   const content = [
     `• This competition has ${numRounds} voting round${numRounds > 1 ? 's' : ''}`,
   ];
 
   // Add round-specific info if available
-  votingOnly.forEach((round, index) => {
-    const roundNum = index + 1;
-    const advanceInfo = round.contestants_advance
-      ? ` - Top ${round.contestants_advance} advance`
-      : '';
-    content.push(`• Round ${roundNum}: ${round.title || `Voting Round ${roundNum}`}${advanceInfo}`);
-  });
+  displayRounds
+    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
+    .forEach((round, index) => {
+      const roundNum = index + 1;
+      const advanceInfo = round.contestants_advance
+        ? ` - Top ${round.contestants_advance} advance`
+        : '';
+      content.push(`• Round ${roundNum}: ${round.title || `Voting Round ${roundNum}`}${advanceInfo}`);
+    });
 
   content.push('• Contestants in the bottom percentage each round are eliminated');
   content.push('• Final round determines the winners');

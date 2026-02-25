@@ -40,6 +40,9 @@ export function ActivityView() {
     events,
     prizePool,
     contestants,
+    competition,
+    votingRounds,
+    about,
   } = usePublicCompetition();
 
   // Find contestant by ID for avatar
@@ -102,7 +105,7 @@ export function ActivityView() {
 
           {/* Competition Rules */}
           <section className="activity-section">
-            <RulesAccordion />
+            <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
           </section>
         </div>
 

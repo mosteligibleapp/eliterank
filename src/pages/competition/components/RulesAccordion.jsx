@@ -1,49 +1,22 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { generateStandardRules } from '../../../utils/generateStandardRules';
 
 /**
- * Rules accordion with static rules content
+ * Rules accordion — generates rules dynamically from competition configuration.
+ * Falls back to sensible defaults when no competition data is provided.
  */
-export function RulesAccordion() {
+export function RulesAccordion({ competition, votingRounds = [], about, events = [] }) {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
-  const rules = [
-    {
-      id: 'voting',
-      title: 'Voting',
-      content: [
-        'One free vote per person, per day',
-        'Free votes reset at midnight (local time)',
-        'Additional votes can be purchased',
-        'Paid votes are applied immediately to selected contestants',
-        'Vote counts reset to zero at the start of each new round',
-        'You can vote for any contestant - vote for your favorites!',
-      ],
-    },
-    {
-      id: 'rounds',
-      title: 'Competition Rounds',
-      content: [
-        'This competition has 3 voting rounds',
-        'Round 1: Top 50 advance',
-        'Round 2: Top 25 advance',
-        'Round 3: Top 10 advance',
-        'Contestants in the bottom percentage each round are eliminated',
-        'Judges (not votes) determine the Rank of the 5 winners (1-5)',
-      ],
-    },
-    {
-      id: 'prizes',
-      title: 'Rewards & Prizes',
-      content: [
-        'Approved nominees (host selected to compete) have the opportunity to claim various rewards available in their profile and enter affiliate programs to earn commission',
-        'Cash Prize pool grows with every paid vote purchased',
-        '5 winners earn cash prizes',
-        'Cash prize pool value is determined at the end of the last voting round',
-        'Each of the 5 winners receive equal in-kind prize packages provided by the competition sponsors and Most Eligible',
-      ],
-    },
-  ];
+  const rules = generateStandardRules({ competition, votingRounds, about, events }).map(rule => ({
+    id: rule.id,
+    title: rule.section_title,
+    content: rule.section_content
+      .split('\n')
+      .map(line => line.replace(/^•\s*/, '').trim())
+      .filter(Boolean),
+  }));
 
   const toggle = (index) => {
     setExpandedIndex(expandedIndex === index ? null : index);
