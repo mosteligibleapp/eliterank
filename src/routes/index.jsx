@@ -19,6 +19,7 @@ import ErrorBoundary from '../components/common/ErrorBoundary';
 // Lazy-loaded pages
 const HomePage = lazy(() => import('../pages/HomePage'));
 const LoginPageWrapper = lazy(() => import('../pages/LoginPageWrapper'));
+const ResetPasswordPage = lazy(() => import('../features/auth/ResetPasswordPage'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 const ClaimPage = lazy(() => import('../pages/ClaimPage'));
 const UserProfilePage = lazy(() => import('../pages/UserProfilePage'));
@@ -51,6 +52,12 @@ export default function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Check for password reset flow
+  // Supabase sends users to: your-site.com?reset=true#access_token=xxx&type=recovery
+  const searchParams = new URLSearchParams(location.search);
+  const isResetFlow = searchParams.get('reset') === 'true' || 
+    location.hash.includes('type=recovery');
+
   // Check if this is a competition route
   const pathParts = location.pathname.split('/').filter(Boolean);
   const isCompetitionRoute =
@@ -73,6 +80,27 @@ export default function AppRoutes() {
     // Navigate to rewards page
     window.location.href = '/rewards';
   }, []);
+
+  const handleResetComplete = useCallback(() => {
+    // Clear the URL params and navigate to home
+    navigate('/', { replace: true });
+  }, [navigate]);
+
+  const handleResetBack = useCallback(() => {
+    navigate('/login', { replace: true });
+  }, [navigate]);
+
+  // Password reset flow - intercept before other routes
+  if (isResetFlow) {
+    return (
+      <SuspenseWrapper message="Loading...">
+        <ResetPasswordPage 
+          onComplete={handleResetComplete} 
+          onBack={handleResetBack} 
+        />
+      </SuspenseWrapper>
+    );
+  }
 
   // Competition routes - handle separately for cleaner organization
   if (isCompetitionRoute || isLegacyCompetitionRoute) {

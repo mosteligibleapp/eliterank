@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
 
@@ -19,6 +19,14 @@ const SELF_STEPS_AUTH = ['mode', 'eligibility', 'photo', 'details', 'bio', 'card
 const SELF_STEPS_ANON = ['mode', 'eligibility', 'photo', 'details', 'bio', 'password', 'card'];
 const NOMINATE_STEPS = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'card'];
 
+// Map flow_stage values to step names
+const FLOW_STAGE_TO_STEP = {
+  'details': 'bio', // After details is saved, next step is bio
+  'bio': 'password', // After bio is saved, next step is password (or card for logged in)
+  'password': 'card', // After password, show card
+  'card': 'card', // Already at card
+};
+
 /**
  * useEntryFlow - State management for the gamified entry/nomination flow
  *
@@ -29,6 +37,9 @@ const NOMINATE_STEPS = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'c
 export function useEntryFlow(competition, profile) {
   const isLoggedIn = !!profile?.id;
 
+  // Track if we've checked for existing progress
+  const hasCheckedProgressRef = useRef(false);
+  
   // Freeze the step array when mode is selected so that auth state changes
   // mid-flow (e.g. after signUp in createAccount) don't swap ANON→AUTH steps
   // and reset the user to the beginning.
@@ -92,6 +103,105 @@ export function useEntryFlow(competition, profile) {
   const totalSteps = steps.length;
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === steps.length - 1;
+
+  // Check for existing in-progress entry and resume from saved state
+  // This prevents the "loop" bug where users lose progress on page refresh
+  useEffect(() => {
+    if (hasCheckedProgressRef.current || !competition?.id) return;
+    hasCheckedProgressRef.current = true;
+
+    const checkExistingProgress = async () => {
+      try {
+        // Get user's email - from profile if logged in, or from session if exists
+        let userEmail = profile?.email;
+        
+        if (!userEmail) {
+          const { data: { session } } = await supabase.auth.getSession();
+          userEmail = session?.user?.email;
+        }
+
+        if (!userEmail) return; // Can't check without email
+
+        // Look for an existing self-nomination in progress for this competition
+        const { data: existingNominee, error } = await supabase
+          .from('nominees')
+          .select('*')
+          .eq('competition_id', competition.id)
+          .ilike('email', userEmail)
+          .eq('nominated_by', 'self')
+          .maybeSingle();
+
+        if (error || !existingNominee) return;
+
+        // Found existing entry - check if we should resume
+        const flowStage = existingNominee.flow_stage;
+        const hasClaimed = !!existingNominee.claimed_at;
+        
+        // If already claimed and completed, don't resume
+        if (hasClaimed && flowStage === 'card') {
+          return;
+        }
+
+        // Pre-fill data from existing nominee
+        const nameParts = (existingNominee.name || '').split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        setSelfData((prev) => ({
+          ...prev,
+          firstName: firstName || prev.firstName,
+          lastName: lastName || prev.lastName,
+          email: existingNominee.email || prev.email,
+          phone: existingNominee.phone || prev.phone,
+          instagram: existingNominee.instagram || prev.instagram,
+          age: existingNominee.age ? String(existingNominee.age) : prev.age,
+          location: existingNominee.city || prev.location,
+          photoPreview: existingNominee.avatar_url || prev.photoPreview,
+          bio: existingNominee.bio || prev.bio,
+        }));
+
+        if (existingNominee.eligibility_answers) {
+          setEligibilityAnswers(existingNominee.eligibility_answers);
+        }
+
+        // Set the nominee ID so updates go to the right record
+        setNomineeId(existingNominee.id);
+
+        // Set mode to self and freeze steps
+        setMode('self');
+        frozenStepsRef.current = isLoggedIn ? SELF_STEPS_AUTH : SELF_STEPS_ANON;
+
+        // Determine which step to resume from
+        if (flowStage && FLOW_STAGE_TO_STEP[flowStage]) {
+          const resumeStep = FLOW_STAGE_TO_STEP[flowStage];
+          // For logged in users, skip password step
+          const targetSteps = isLoggedIn ? SELF_STEPS_AUTH : SELF_STEPS_ANON;
+          let resumeIndex = targetSteps.indexOf(resumeStep);
+          
+          // If the step doesn't exist (e.g., password for logged-in users), 
+          // find the next available step
+          if (resumeIndex === -1) {
+            // If we're at password stage but logged in, go to card
+            if (resumeStep === 'password' && isLoggedIn) {
+              resumeIndex = targetSteps.indexOf('card');
+            } else {
+              resumeIndex = 1; // Default to after mode selection
+            }
+          }
+          
+          if (resumeIndex > 0) {
+            setCurrentStepIndex(resumeIndex);
+            console.log(`Resuming entry flow from step: ${targetSteps[resumeIndex]} (index ${resumeIndex})`);
+          }
+        }
+      } catch (err) {
+        console.warn('Error checking existing progress:', err);
+        // Don't block the flow if check fails
+      }
+    };
+
+    checkExistingProgress();
+  }, [competition?.id, profile?.email, isLoggedIn]);
 
   // Select mode
   const selectMode = useCallback((selectedMode) => {
