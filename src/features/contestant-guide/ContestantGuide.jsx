@@ -248,16 +248,28 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
   const prizeMinimum = prizePool?.minimum || competition?.prize_pool_minimum || 1000;
   const currentPrize = prizePool?.total || prizeMinimum;
   
-  // Count voting rounds (not judging) - default to 3 if no data
+  // Count rounds from actual data
   const rounds = votingRounds || [];
-  const votingRoundCount = rounds.filter(r => r.round_type === 'voting').length || 3;
-  const hasResurrection = rounds.some(r => 
+  const votingOnlyRounds = rounds.filter(r => r.round_type === 'voting');
+  // Use voting-type rounds if they exist, otherwise count all non-judging rounds
+  const votingRoundCount = votingOnlyRounds.length || rounds.filter(r => r.round_type !== 'judging').length || rounds.length;
+  const hasResurrection = rounds.some(r =>
     r.round_type === 'resurrection' || r.title?.toLowerCase().includes('resurrection')
   );
 
   // Determine what phase we're in for context
   const isVotingPhase = phase?.isVoting;
   const isNominationPhase = phase?.phase === 'nominations';
+
+  // Build round advancement details from actual data
+  const roundDetails = rounds
+    .filter(r => r.round_type !== 'judging')
+    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
+    .map((r, i) => {
+      const label = r.title || `Round ${i + 1}`;
+      const advance = r.contestants_advance ? ` — Top ${r.contestants_advance} advance` : '';
+      return `${label}${advance}`;
+    });
 
   const sections = [
     // Section 1: Welcome / How It Works
@@ -267,7 +279,12 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
       subtitle: `Here's how ${competitionName} works`,
       points: [
         `Compete against other contestants from ${cityName}`,
-        `${votingRoundCount} voting rounds with eliminations each round`,
+        votingRoundCount > 0
+          ? {
+              text: `${votingRoundCount} voting round${votingRoundCount !== 1 ? 's' : ''} with eliminations each round`,
+              subpoints: roundDetails.length > 0 ? roundDetails : undefined,
+            }
+          : 'Multiple voting rounds with eliminations each round',
         `Top ${numWinners} finishers win prizes — 1st place takes home cash`,
         hasResurrection ? 'Resurrection round gives eliminated contestants a second chance!' : 'Every vote counts toward your ranking',
       ].filter(Boolean),
