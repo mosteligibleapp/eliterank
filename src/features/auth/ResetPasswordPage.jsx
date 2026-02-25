@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { EliteRankCrown } from '../../components/ui';
 import { colors, gradients, shadows, borderRadius, spacing, typography } from '../../styles/theme';
@@ -7,8 +7,9 @@ import { supabase } from '../../lib/supabase';
 /**
  * ResetPasswordPage - Password reset flow
  * 
- * Handles the password reset when user clicks the email link.
- * Supabase passes recovery token in URL hash.
+ * Shown when user clicks the password reset link from email.
+ * By the time this renders, Supabase has already established a session
+ * from the recovery token. User just needs to set their new password.
  */
 export default function ResetPasswordPage({ onComplete, onBack }) {
   const [password, setPassword] = useState('');
@@ -17,58 +18,6 @@ export default function ResetPasswordPage({ onComplete, onBack }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-
-  // On mount, check if we have a valid recovery session
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        // Supabase automatically handles the recovery token from URL hash
-        // and establishes a session. We just need to check if we have one.
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          setError('Invalid or expired reset link. Please request a new one.');
-          setCheckingSession(false);
-          return;
-        }
-
-        if (session) {
-          setSessionReady(true);
-        } else {
-          // No session - might still be processing the hash
-          // Listen for auth state change
-          const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
-              setSessionReady(true);
-              setCheckingSession(false);
-            }
-          });
-
-          // Give it a moment, then check again
-          setTimeout(async () => {
-            const { data: { session: retrySession } } = await supabase.auth.getSession();
-            if (retrySession) {
-              setSessionReady(true);
-            } else if (!sessionReady) {
-              setError('Invalid or expired reset link. Please request a new one.');
-            }
-            setCheckingSession(false);
-          }, 2000);
-
-          return () => subscription.unsubscribe();
-        }
-      } catch (err) {
-        console.error('Check session error:', err);
-        setError('Something went wrong. Please try again.');
-      }
-      setCheckingSession(false);
-    };
-
-    checkSession();
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -111,7 +60,7 @@ export default function ResetPasswordPage({ onComplete, onBack }) {
     }
   };
 
-  // Styles (matching LoginPage)
+  // Styles (matching LoginPage exactly)
   const containerStyle = {
     minHeight: '100vh',
     background: gradients.background,
@@ -244,44 +193,12 @@ export default function ResetPasswordPage({ onComplete, onBack }) {
     e.target.style.boxShadow = 'none';
   };
 
-  // Loading state
-  if (checkingSession) {
-    return (
-      <div style={containerStyle}>
-        <div style={cardStyle}>
-          <div style={logoStyle}>
-            <EliteRankCrown size={56} />
-            <h1 style={{ ...titleStyle, marginTop: '8px' }}>
-              <span style={{ color: '#ffffff' }}>Elite</span>
-              <span style={{
-                background: 'linear-gradient(90deg, #d4af37, #c9a227)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>Rank</span>
-            </h1>
-            <p style={subtitleStyle}>Verifying reset link...</p>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', padding: spacing.xl }}>
-            <span style={{
-              width: '32px',
-              height: '32px',
-              border: '3px solid rgba(212,175,55,0.3)',
-              borderTopColor: colors.gold.primary,
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }} />
-          </div>
-        </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
   // Success state
   if (success) {
     return (
       <div style={containerStyle}>
+        <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.1) 0%, transparent 50%)', pointerEvents: 'none' }} />
+        
         <div style={cardStyle}>
           <div style={logoStyle}>
             <EliteRankCrown size={56} />
@@ -325,69 +242,6 @@ export default function ResetPasswordPage({ onComplete, onBack }) {
               Your password has been reset successfully. Redirecting you now...
             </p>
           </div>
-
-          <p style={footerStyle}>© 2025 EliteRank. All rights reserved.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state (invalid/expired link)
-  if (error && !sessionReady) {
-    return (
-      <div style={containerStyle}>
-        <div style={cardStyle}>
-          {onBack && (
-            <button
-              onClick={onBack}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.sm,
-                background: 'none',
-                border: 'none',
-                color: colors.text.secondary,
-                fontSize: typography.fontSize.sm,
-                cursor: 'pointer',
-                marginBottom: spacing.lg,
-                padding: 0,
-              }}
-            >
-              <ArrowLeft size={16} />
-              Back to login
-            </button>
-          )}
-
-          <div style={logoStyle}>
-            <EliteRankCrown size={56} />
-            <h1 style={{ ...titleStyle, marginTop: '8px' }}>
-              <span style={{ color: '#ffffff' }}>Elite</span>
-              <span style={{
-                background: 'linear-gradient(90deg, #d4af37, #c9a227)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>Rank</span>
-            </h1>
-          </div>
-
-          <div style={alertStyle('error')}>
-            <AlertCircle size={16} />
-            {error}
-          </div>
-
-          <button
-            onClick={onBack}
-            style={{
-              ...buttonStyle,
-              background: 'transparent',
-              border: `1px solid ${colors.border.light}`,
-              color: colors.text.secondary,
-              boxShadow: 'none',
-            }}
-          >
-            Request New Reset Link
-          </button>
 
           <p style={footerStyle}>© 2025 EliteRank. All rights reserved.</p>
         </div>
