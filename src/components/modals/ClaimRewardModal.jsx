@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, MapPin, FileText, ChevronRight, Loader, Package } from 'lucide-react';
+import { Check, MapPin, FileText, ChevronRight, Loader, Package, Link2 } from 'lucide-react';
 import { Modal } from '../ui';
 import { colors, spacing, borderRadius, typography, gradients, shadows } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
