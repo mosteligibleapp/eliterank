@@ -53,18 +53,22 @@ export default function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Check for password reset flow from Zustand store
-  // The store flag is set by useAuthWithZustand when PASSWORD_RECOVERY event fires
-  // or when URL contains recovery params on initial load
+  // Check for password reset flow from multiple sources:
+  // 1. Zustand store (set by auth listener)
+  // 2. sessionStorage (set by main.jsx before React mounts - most reliable)
+  // 3. URL params (fallback)
   const passwordRecoveryPending = useAuthStore((state) => state.passwordRecoveryPending);
   const clearPasswordRecovery = useAuthStore((state) => state.clearPasswordRecovery);
+  
+  // Check sessionStorage - this is set in main.jsx BEFORE Supabase clears the hash
+  const sessionStorageRecovery = sessionStorage.getItem('passwordRecoveryPending') === 'true';
   
   // Also check URL in case store hasn't been updated yet
   const searchParams = new URLSearchParams(location.search);
   const urlHasRecovery = searchParams.get('reset') === 'true' || 
     location.hash.includes('type=recovery');
   
-  const isResetFlow = passwordRecoveryPending || urlHasRecovery;
+  const isResetFlow = passwordRecoveryPending || sessionStorageRecovery || urlHasRecovery;
 
   // Check if this is a competition route
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -90,13 +94,16 @@ export default function AppRoutes() {
   }, []);
 
   const handleResetComplete = useCallback(() => {
-    // Clear the recovery flag and URL params, then navigate to home
+    // Clear ALL recovery flags and navigate to home
     clearPasswordRecovery();
+    sessionStorage.removeItem('passwordRecoveryPending');
     navigate('/', { replace: true });
   }, [navigate, clearPasswordRecovery]);
 
   const handleResetBack = useCallback(() => {
+    // Clear ALL recovery flags and navigate to login
     clearPasswordRecovery();
+    sessionStorage.removeItem('passwordRecoveryPending');
     navigate('/login', { replace: true });
   }, [navigate, clearPasswordRecovery]);
 
