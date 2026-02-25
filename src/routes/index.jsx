@@ -5,7 +5,7 @@
  * Uses React Router v6 declarative routing.
  */
 
-import React, { lazy, Suspense, useCallback } from 'react';
+import React, { lazy, Suspense, useCallback, useState, useEffect } from 'react';
 import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 
 // Route guards and utilities
@@ -53,34 +53,21 @@ export default function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Check for password reset flow from multiple sources:
-  // 1. Zustand store (set by auth listener)
-  // 2. sessionStorage (set by main.jsx before React mounts - most reliable)
-  // 3. URL params (fallback)
-  const passwordRecoveryPending = useAuthStore((state) => state.passwordRecoveryPending);
-  const clearPasswordRecovery = useAuthStore((state) => state.clearPasswordRecovery);
-  
-  // Check sessionStorage - this is set in main.jsx BEFORE Supabase clears the hash
-  const sessionStorageRecovery = sessionStorage.getItem('passwordRecoveryPending') === 'true';
-  
-  // Also check URL in case store hasn't been updated yet
-  const searchParams = new URLSearchParams(location.search);
-  const urlHasRecovery = searchParams.get('reset') === 'true' || 
-    location.hash.includes('type=recovery') ||
-    window.location.href.includes('type=recovery');
-  
-  const isResetFlow = passwordRecoveryPending || sessionStorageRecovery || urlHasRecovery;
-  
-  // Debug logging
-  console.log('[routes] Recovery check:', {
-    passwordRecoveryPending,
-    sessionStorageRecovery,
-    urlHasRecovery,
-    isResetFlow,
-    hash: location.hash,
-    search: location.search,
-    href: window.location.href,
+  // Check for password reset flow - use React state to persist across re-renders
+  // This is critical because Supabase will process the hash and trigger auth state
+  // changes which cause re-renders, but we need to KEEP showing the reset page
+  const [isResetFlow, setIsResetFlow] = useState(() => {
+    // Initialize from sessionStorage (set by main.jsx before React mounts)
+    const fromStorage = sessionStorage.getItem('passwordRecoveryPending') === 'true';
+    // Also check URL
+    const fromUrl = window.location.href.includes('type=recovery') || 
+      window.location.search.includes('reset=true');
+    const result = fromStorage || fromUrl;
+    console.log('[routes] Initial reset flow check:', { fromStorage, fromUrl, result });
+    return result;
   });
+  
+  const clearPasswordRecovery = useAuthStore((state) => state.clearPasswordRecovery);
 
   // Check if this is a competition route
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -107,6 +94,8 @@ export default function AppRoutes() {
 
   const handleResetComplete = useCallback(() => {
     // Clear ALL recovery flags and navigate to home
+    console.log('[routes] Reset complete - clearing flags');
+    setIsResetFlow(false);
     clearPasswordRecovery();
     sessionStorage.removeItem('passwordRecoveryPending');
     navigate('/', { replace: true });
@@ -114,6 +103,8 @@ export default function AppRoutes() {
 
   const handleResetBack = useCallback(() => {
     // Clear ALL recovery flags and navigate to login
+    console.log('[routes] Reset back - clearing flags');
+    setIsResetFlow(false);
     clearPasswordRecovery();
     sessionStorage.removeItem('passwordRecoveryPending');
     navigate('/login', { replace: true });
