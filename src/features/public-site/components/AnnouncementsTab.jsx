@@ -33,27 +33,75 @@ function getTimeAgo(dateString) {
   return formatArticleDate(dateString);
 }
 
-function splitIntoParagraphs(content) {
+/**
+ * Parse article content into structured blocks.
+ * Detects ALL-CAPS section headers, "Title:" sub-headers,
+ * bullet/number lists, and regular paragraphs.
+ * Returns [{ type: 'heading'|'paragraph'|'list-item', text }]
+ */
+function parseArticleContent(content) {
   if (!content) return [];
-  let parts = content.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
-  if (parts.length > 1) return parts;
-  parts = content.split(/\n/).map(s => s.trim()).filter(Boolean);
-  if (parts.length > 1) return parts;
-  const sentences = content.match(/[^.!?]+[.!?]+/g);
-  if (!sentences || sentences.length <= 3) return [content];
-  const paragraphs = [];
-  for (let i = 0; i < sentences.length; i += 3) {
-    const chunk = sentences.slice(i, i + 3).join(' ').trim();
-    if (chunk) paragraphs.push(chunk);
+
+  // First, try splitting on newlines
+  let lines = content.split(/\n/).map(s => s.trim()).filter(Boolean);
+
+  // If it's a single block, split on ALL-CAPS headers embedded in text
+  // e.g. "...some text. HOW IT WORKS Contestants are..." → split before "HOW IT WORKS"
+  if (lines.length <= 1 && content.length > 200) {
+    // Split before ALL-CAPS headers (2+ words, all uppercase, preceded by sentence-end)
+    const withBreaks = content.replace(
+      /([.!?])\s+([A-Z][A-Z\s&':]{4,}?)(?=\s+[A-Z][a-z])/g,
+      '$1\n\n$2\n\n'
+    );
+    // Also split before "Title:" patterns
+    const withMoreBreaks = withBreaks.replace(
+      /([.!?])\s+([A-Z][A-Za-z\s&']+:)\s+/g,
+      '$1\n\n$2\n\n'
+    );
+    lines = withMoreBreaks.split(/\n+/).map(s => s.trim()).filter(Boolean);
   }
-  return paragraphs;
+
+  // If still a single block, split by sentences into groups of 2-3
+  if (lines.length <= 1) {
+    const sentences = content.match(/[^.!?]+[.!?]+/g);
+    if (!sentences || sentences.length <= 2) return [{ type: 'paragraph', text: content }];
+    const blocks = [];
+    for (let i = 0; i < sentences.length; i += 2) {
+      blocks.push({ type: 'paragraph', text: sentences.slice(i, i + 2).join(' ').trim() });
+    }
+    return blocks;
+  }
+
+  // Parse each line into typed blocks
+  const blocks = [];
+  for (const line of lines) {
+    // ALL-CAPS heading (at least 3 chars, all uppercase letters/spaces/&)
+    if (/^[A-Z][A-Z\s&':\-]{2,}$/.test(line.replace(/:$/, ''))) {
+      blocks.push({ type: 'heading', text: line.replace(/:$/, '') });
+    }
+    // "Title:" style sub-header (short, ends with colon)
+    else if (/^[A-Z][A-Za-z\s&']+:$/.test(line) && line.length < 50) {
+      blocks.push({ type: 'heading', text: line.replace(/:$/, '') });
+    }
+    // Bullet or numbered list item
+    else if (/^[-•●◦]\s/.test(line) || /^\d+[.)]\s/.test(line)) {
+      blocks.push({ type: 'list-item', text: line.replace(/^[-•●◦]\s*/, '').replace(/^\d+[.)]\s*/, '') });
+    }
+    // Regular paragraph
+    else {
+      blocks.push({ type: 'paragraph', text: line });
+    }
+  }
+
+  return blocks;
 }
 
 /* ─── Full Article Detail View ─── */
 function ArticleDetail({ post, onBack, isMobile }) {
   const typeConfig = TYPE_CONFIG[post.type] || TYPE_CONFIG.announcement;
   const TypeIcon = typeConfig.icon;
-  const paragraphs = splitIntoParagraphs(post.content || '');
+  const blocks = parseArticleContent(post.content || '');
+  let isFirstParagraph = true;
 
   return (
     <div>
@@ -140,24 +188,70 @@ function ArticleDetail({ post, onBack, isMobile }) {
           </span>
         </div>
 
-        {/* Article body */}
+        {/* Article body — structured blocks */}
         <div>
-          {paragraphs.map((paragraph, idx) => (
-            <p
-              key={idx}
-              style={{
-                fontSize: idx === 0
-                  ? (isMobile ? typography.fontSize.lg : typography.fontSize.xl)
-                  : typography.fontSize.md,
-                lineHeight: '1.8',
-                color: idx === 0 ? colors.text.primary : colors.text.secondary,
-                fontWeight: idx === 0 ? typography.fontWeight.normal : typography.fontWeight.normal,
-                marginBottom: spacing.xl,
-              }}
-            >
-              {paragraph}
-            </p>
-          ))}
+          {blocks.map((block, idx) => {
+            if (block.type === 'heading') {
+              return (
+                <h3
+                  key={idx}
+                  style={{
+                    fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.text.primary,
+                    marginTop: idx > 0 ? spacing.xxl : 0,
+                    marginBottom: spacing.md,
+                    paddingBottom: spacing.sm,
+                    borderBottom: `1px solid ${colors.border.secondary}`,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {block.text}
+                </h3>
+              );
+            }
+
+            if (block.type === 'list-item') {
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    gap: spacing.md,
+                    marginBottom: spacing.sm,
+                    paddingLeft: spacing.md,
+                  }}
+                >
+                  <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.bold, flexShrink: 0 }}>
+                    &bull;
+                  </span>
+                  <p style={{ fontSize: typography.fontSize.md, lineHeight: '1.7', color: colors.text.secondary, margin: 0 }}>
+                    {block.text}
+                  </p>
+                </div>
+              );
+            }
+
+            // Paragraph — first one is styled as the lede
+            const isLede = isFirstParagraph;
+            if (isLede) isFirstParagraph = false;
+
+            return (
+              <p
+                key={idx}
+                style={{
+                  fontSize: isLede
+                    ? (isMobile ? typography.fontSize.lg : typography.fontSize.xl)
+                    : typography.fontSize.md,
+                  lineHeight: '1.8',
+                  color: isLede ? colors.text.primary : colors.text.secondary,
+                  marginBottom: spacing.lg,
+                }}
+              >
+                {block.text}
+              </p>
+            );
+          })}
         </div>
       </article>
     </div>
