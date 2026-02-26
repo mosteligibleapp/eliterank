@@ -42,11 +42,13 @@ export function ComingSoonPhase() {
           <span className="cta-title">Compete</span>
           <span className="cta-desc">Enter the arena</span>
         </button>
-        <button className="cta-card" onClick={() => openModal(INTEREST_TYPE.HOSTING)}>
-          <Users size={24} />
-          <span className="cta-title">Host</span>
-          <span className="cta-desc">Host a competition</span>
-        </button>
+        {!competition?.host && (
+          <button className="cta-card" onClick={() => openModal(INTEREST_TYPE.HOSTING)}>
+            <Users size={24} />
+            <span className="cta-title">Host</span>
+            <span className="cta-desc">Host a competition</span>
+          </button>
+        )}
         <button className="cta-card" onClick={() => openModal(INTEREST_TYPE.SPONSORING)}>
           <Briefcase size={24} />
           <span className="cta-title">Sponsor</span>
