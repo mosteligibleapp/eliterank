@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, CheckCircle, XCircle, Check, Edit } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
 import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats } from '../../../../lib/bonusVotes';
-import { isSupabaseConfigured } from '../../../../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../../../../lib/supabase';
+import { isFieldEditable, isFieldEditableForHost, getLockedReason } from '../../../../utils/fieldEditability';
+import { useToast } from '../../../../contexts/ToastContext';
 
 // Helper to format currency from cents
 const formatCurrency = (cents) => {
@@ -52,7 +54,117 @@ export default function SetupTab({
   onOpenEventModal,
 }) {
   const { isMobile } = useResponsive();
+  const toast = useToast();
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
+  const status = competition?.status || 'draft';
+
+  // Host-editable field state
+  const [compName, setCompName] = useState('');
+  const [numberOfWinners, setNumberOfWinners] = useState(5);
+  const [eligibilityRadius, setEligibilityRadius] = useState(100);
+  const [minContestants, setMinContestants] = useState(40);
+  const [maxContestants, setMaxContestants] = useState('');
+  const [hasCashPrize, setHasCashPrize] = useState(false);
+  const [cashPrizeSponsor, setCashPrizeSponsor] = useState('');
+  const [cashPrizeAmount, setCashPrizeAmount] = useState('');
+  const [detailsSaving, setDetailsSaving] = useState(false);
+  const [detailsSaved, setDetailsSaved] = useState(false);
+
+  // Initialize editable fields from competition
+  useEffect(() => {
+    if (competition) {
+      setCompName(competition.name || '');
+      setNumberOfWinners(competition.numberOfWinners || 5);
+      setEligibilityRadius(competition.eligibilityRadiusMiles ?? 100);
+      setMinContestants(competition.minContestants || 40);
+      setMaxContestants(competition.maxContestants || '');
+      setHasCashPrize(competition.hasCashPrize || false);
+      setCashPrizeSponsor(competition.cashPrizeSponsor || '');
+      setCashPrizeAmount(competition.cashPrizeAmount || '');
+    }
+  }, [competition]);
+
+  // Check editability for each field
+  const canEditName = isFieldEditable('name', status);
+  const canEditWinners = isFieldEditable('number_of_winners', status);
+  const canEditRadius = isFieldEditable('eligibility_radius', status);
+  const canEditMinContestants = isFieldEditableForHost('min_contestants', status, competition);
+  const canEditMaxContestants = isFieldEditableForHost('max_contestants', status, competition);
+  const canEditCashPrize = isFieldEditableForHost('has_cash_prize', status, competition);
+
+  const hasAnyEditableDetails = canEditName || canEditWinners || canEditRadius ||
+    canEditMinContestants || canEditMaxContestants || canEditCashPrize;
+
+  // Check if any editable details have changed
+  const hasDetailChanges = () => {
+    if (!competition) return false;
+    return (
+      (canEditName && compName !== (competition.name || '')) ||
+      (canEditWinners && numberOfWinners !== (competition.numberOfWinners || 5)) ||
+      (canEditRadius && eligibilityRadius !== (competition.eligibilityRadiusMiles ?? 100)) ||
+      (canEditMinContestants && minContestants !== (competition.minContestants || 40)) ||
+      (canEditMaxContestants && String(maxContestants) !== String(competition.maxContestants || '')) ||
+      (canEditCashPrize && hasCashPrize !== (competition.hasCashPrize || false)) ||
+      (canEditCashPrize && cashPrizeSponsor !== (competition.cashPrizeSponsor || '')) ||
+      (canEditCashPrize && String(cashPrizeAmount) !== String(competition.cashPrizeAmount || ''))
+    );
+  };
+
+  // Save editable competition details
+  const saveDetails = async () => {
+    if (!competition?.id) return;
+    setDetailsSaving(true);
+
+    try {
+      const updates = {};
+
+      if (canEditName && compName !== (competition.name || '')) {
+        updates.name = compName || null;
+      }
+      if (canEditWinners && numberOfWinners !== (competition.numberOfWinners || 5)) {
+        updates.number_of_winners = numberOfWinners;
+      }
+      if (canEditRadius && eligibilityRadius !== (competition.eligibilityRadiusMiles ?? 100)) {
+        updates.eligibility_radius_miles = eligibilityRadius;
+      }
+      if (canEditMinContestants && minContestants !== (competition.minContestants || 40)) {
+        updates.min_contestants = parseInt(minContestants, 10) || 40;
+      }
+      if (canEditMaxContestants && String(maxContestants) !== String(competition.maxContestants || '')) {
+        updates.max_contestants = maxContestants ? parseInt(maxContestants, 10) : null;
+      }
+      if (canEditCashPrize) {
+        if (hasCashPrize !== (competition.hasCashPrize || false)) {
+          updates.has_cash_prize = hasCashPrize;
+        }
+        if (cashPrizeSponsor !== (competition.cashPrizeSponsor || '')) {
+          updates.cash_prize_sponsor = cashPrizeSponsor || null;
+        }
+        if (String(cashPrizeAmount) !== String(competition.cashPrizeAmount || '')) {
+          updates.cash_prize_amount = cashPrizeAmount ? parseFloat(cashPrizeAmount) : null;
+        }
+      }
+
+      if (Object.keys(updates).length === 0) return;
+
+      const { error: updateError } = await supabase
+        .from('competitions')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', competition.id);
+
+      if (updateError) throw updateError;
+
+      setDetailsSaved(true);
+      setTimeout(() => setDetailsSaved(false), 2000);
+      toast.success('Competition details saved');
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.error('Error saving competition details:', err);
+      toast.error(`Failed to save: ${err.message}`);
+    } finally {
+      setDetailsSaving(false);
+    }
+  };
 
   // Bonus votes state
   const [bonusTasks, setBonusTasks] = useState([]);
@@ -98,6 +210,47 @@ export default function SetupTab({
     setBonusTasks(prev => prev.map(t => t.id === taskId ? { ...t, votes_awarded: votes } : t));
   };
 
+  // Shared input style for editable fields
+  const editInputStyle = {
+    width: '100%',
+    padding: `${spacing.xs} ${spacing.sm}`,
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: `1px solid ${colors.border.primary}`,
+    borderRadius: borderRadius.md,
+    color: colors.text.primary,
+    fontSize: typography.fontSize.sm,
+    outline: 'none',
+    boxSizing: 'border-box',
+  };
+
+  // Editable field wrapper - matches ViewOnlyField layout
+  const EditableField = ({ label, icon: Icon, children }) => (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: spacing.xs,
+      padding: isMobile ? spacing.md : `${spacing.md} ${spacing.lg}`,
+      background: colors.background.secondary,
+      borderRadius: borderRadius.md,
+      border: `1px solid rgba(212,175,55,0.3)`,
+      minHeight: '44px',
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spacing.xs,
+        color: colors.gold.primary,
+        fontSize: typography.fontSize.xs,
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+      }}>
+        {Icon && <Icon size={12} />}
+        <span>{label}</span>
+      </div>
+      {children}
+    </div>
+  );
+
   // View-only field component - stacked layout for better mobile display
   const ViewOnlyField = ({ label, value, icon: Icon }) => (
     <div style={{
@@ -141,10 +294,10 @@ export default function SetupTab({
 
   return (
     <div>
-      {/* Competition Details - View Only (Admin Controlled) - Open by default */}
+      {/* Competition Details - Mixed editable/view-only */}
       <Panel
         title="Competition Details"
-        icon={Lock}
+        icon={hasAnyEditableDetails ? Edit : Lock}
         action={
           <button
             onClick={() => setShowCompetitionDetails(!showCompetitionDetails)}
@@ -166,20 +319,22 @@ export default function SetupTab({
       >
         {showCompetitionDetails && (
           <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+            {/* Admin-locked slot fields */}
             <p style={{
               color: colors.text.muted,
-              fontSize: typography.fontSize.sm,
-              marginBottom: spacing.md,
+              fontSize: typography.fontSize.xs,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: spacing.sm,
             }}>
-              These settings are managed by the admin.
+              Franchise Slot (Admin Only)
             </p>
-
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, 1fr)',
               gap: spacing.sm,
+              marginBottom: spacing.lg,
             }}>
-              {/* Slot Fields */}
               <ViewOnlyField
                 label="Category"
                 value={competition?.categoryName}
@@ -200,8 +355,6 @@ export default function SetupTab({
                 value={competition?.season}
                 icon={Calendar}
               />
-
-              {/* Economics Fields */}
               <ViewOnlyField
                 label="Price per Vote"
                 value={competition?.pricePerVote ? `$${competition.pricePerVote.toFixed(2)}` : '$1.00'}
@@ -212,29 +365,287 @@ export default function SetupTab({
                 value={formatCurrency(competition?.minimumPrizeCents)}
                 icon={DollarSign}
               />
-              <ViewOnlyField
-                label="Number of Winners"
-                value={competition?.numberOfWinners}
-                icon={Star}
-              />
-              <ViewOnlyField
-                label="Eligibility Radius"
-                value={formatRadius(competition?.eligibilityRadiusMiles)}
-                icon={MapPin}
-              />
-
-              {/* Contestant Limits */}
-              <ViewOnlyField
-                label="Min Contestants"
-                value={competition?.minContestants || 40}
-                icon={Users}
-              />
-              <ViewOnlyField
-                label="Max Contestants"
-                value={competition?.maxContestants || 'No limit'}
-                icon={Users}
-              />
             </div>
+
+            {/* Host-editable fields */}
+            <p style={{
+              color: colors.text.muted,
+              fontSize: typography.fontSize.xs,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: spacing.sm,
+            }}>
+              Host Settings {!hasAnyEditableDetails && '(Locked)'}
+            </p>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: spacing.sm,
+              marginBottom: spacing.md,
+            }}>
+              {/* Competition Name */}
+              {canEditName ? (
+                <EditableField
+                  label="Competition Name"
+                  icon={Tag}
+                  isMobile={isMobile}
+                >
+                  <input
+                    type="text"
+                    value={compName}
+                    onChange={(e) => setCompName(e.target.value)}
+                    placeholder="Enter competition name"
+                    style={editInputStyle}
+                  />
+                </EditableField>
+              ) : (
+                <ViewOnlyField
+                  label="Competition Name"
+                  value={competition?.name}
+                  icon={Tag}
+                />
+              )}
+
+              {/* Number of Winners */}
+              {canEditWinners ? (
+                <EditableField
+                  label="Number of Winners"
+                  icon={Star}
+                  isMobile={isMobile}
+                >
+                  <select
+                    value={numberOfWinners}
+                    onChange={(e) => setNumberOfWinners(parseInt(e.target.value, 10))}
+                    style={editInputStyle}
+                  >
+                    {[1, 3, 5, 10, 15, 20].map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </EditableField>
+              ) : (
+                <ViewOnlyField
+                  label="Number of Winners"
+                  value={competition?.numberOfWinners}
+                  icon={Star}
+                />
+              )}
+
+              {/* Eligibility Radius */}
+              {canEditRadius ? (
+                <EditableField
+                  label="Eligibility Radius"
+                  icon={MapPin}
+                  isMobile={isMobile}
+                >
+                  <select
+                    value={eligibilityRadius}
+                    onChange={(e) => setEligibilityRadius(parseInt(e.target.value, 10))}
+                    style={editInputStyle}
+                  >
+                    <option value={0}>No restriction</option>
+                    <option value={10}>10 miles</option>
+                    <option value={25}>25 miles</option>
+                    <option value={50}>50 miles</option>
+                    <option value={100}>100 miles</option>
+                  </select>
+                </EditableField>
+              ) : (
+                <ViewOnlyField
+                  label="Eligibility Radius"
+                  value={formatRadius(competition?.eligibilityRadiusMiles)}
+                  icon={MapPin}
+                />
+              )}
+
+              {/* Min Contestants */}
+              {canEditMinContestants ? (
+                <EditableField
+                  label="Min Contestants"
+                  icon={Users}
+                  isMobile={isMobile}
+                >
+                  <input
+                    type="number"
+                    min={10}
+                    value={minContestants}
+                    onChange={(e) => setMinContestants(parseInt(e.target.value, 10) || 10)}
+                    style={editInputStyle}
+                  />
+                </EditableField>
+              ) : (
+                <ViewOnlyField
+                  label="Min Contestants"
+                  value={competition?.minContestants || 40}
+                  icon={Users}
+                />
+              )}
+
+              {/* Max Contestants */}
+              {canEditMaxContestants ? (
+                <EditableField
+                  label="Max Contestants"
+                  icon={Users}
+                  isMobile={isMobile}
+                >
+                  <input
+                    type="number"
+                    min={minContestants + 1}
+                    value={maxContestants}
+                    onChange={(e) => setMaxContestants(e.target.value)}
+                    placeholder="No limit"
+                    style={editInputStyle}
+                  />
+                </EditableField>
+              ) : (
+                <ViewOnlyField
+                  label="Max Contestants"
+                  value={competition?.maxContestants || 'No limit'}
+                  icon={Users}
+                />
+              )}
+            </div>
+
+            {/* Cash Prize Section */}
+            <div style={{
+              padding: spacing.md,
+              background: colors.background.secondary,
+              borderRadius: borderRadius.md,
+              border: `1px solid ${colors.border.lighter}`,
+              marginBottom: spacing.md,
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: hasCashPrize ? spacing.md : 0,
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                }}>
+                  <DollarSign size={14} style={{ color: colors.text.muted }} />
+                  <span style={{
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.medium,
+                  }}>
+                    Cash Prize
+                  </span>
+                  {!canEditCashPrize && (
+                    <Lock size={12} style={{ color: colors.text.muted, opacity: 0.4 }} />
+                  )}
+                </div>
+                <button
+                  onClick={() => canEditCashPrize && setHasCashPrize(!hasCashPrize)}
+                  disabled={!canEditCashPrize}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    padding: `${spacing.xs} ${spacing.sm}`,
+                    background: hasCashPrize ? 'rgba(34,197,94,0.15)' : 'rgba(100,100,100,0.15)',
+                    border: 'none',
+                    borderRadius: borderRadius.md,
+                    cursor: canEditCashPrize ? 'pointer' : 'not-allowed',
+                    opacity: canEditCashPrize ? 1 : 0.5,
+                    color: hasCashPrize ? colors.status.success : colors.text.muted,
+                    fontSize: typography.fontSize.sm,
+                  }}
+                >
+                  {hasCashPrize ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                  {hasCashPrize ? 'Yes' : 'No'}
+                </button>
+              </div>
+
+              {hasCashPrize && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: spacing.sm,
+                }}>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: typography.fontSize.xs,
+                      color: colors.text.muted,
+                      marginBottom: spacing.xs,
+                    }}>
+                      Sponsor (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={cashPrizeSponsor}
+                      onChange={(e) => setCashPrizeSponsor(e.target.value)}
+                      placeholder="Sponsor name"
+                      disabled={!canEditCashPrize}
+                      style={editInputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: typography.fontSize.xs,
+                      color: colors.text.muted,
+                      marginBottom: spacing.xs,
+                    }}>
+                      Amount
+                    </label>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: `1px solid ${colors.border.primary}`,
+                      borderRadius: borderRadius.md,
+                      overflow: 'hidden',
+                    }}>
+                      <span style={{
+                        padding: `${spacing.xs} ${spacing.sm}`,
+                        background: colors.background.tertiary,
+                        borderRight: `1px solid ${colors.border.primary}`,
+                        color: colors.text.muted,
+                        fontSize: typography.fontSize.sm,
+                      }}>
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={cashPrizeAmount}
+                        onChange={(e) => setCashPrizeAmount(e.target.value)}
+                        placeholder="0"
+                        disabled={!canEditCashPrize}
+                        style={{
+                          ...editInputStyle,
+                          border: 'none',
+                          borderRadius: 0,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Save Button for editable details */}
+            {hasAnyEditableDetails && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                paddingTop: spacing.md,
+                borderTop: `1px solid ${colors.border.primary}`,
+              }}>
+                <Button
+                  onClick={saveDetails}
+                  disabled={!hasDetailChanges() || detailsSaving}
+                  icon={detailsSaved ? Check : null}
+                  size="sm"
+                >
+                  {detailsSaving ? 'Saving...' : detailsSaved ? 'Saved' : 'Save Changes'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
         {!showCompetitionDetails && (
@@ -243,8 +654,17 @@ export default function SetupTab({
             color: colors.text.muted,
             fontSize: typography.fontSize.sm,
           }}>
-            <Lock size={14} style={{ display: 'inline', marginRight: spacing.xs, verticalAlign: 'middle' }} />
-            Admin-managed slot and economics settings. Click "Show" to view.
+            {hasAnyEditableDetails ? (
+              <>
+                <Edit size={14} style={{ display: 'inline', marginRight: spacing.xs, verticalAlign: 'middle' }} />
+                Competition details. Some fields are editable. Click "Show" to view.
+              </>
+            ) : (
+              <>
+                <Lock size={14} style={{ display: 'inline', marginRight: spacing.xs, verticalAlign: 'middle' }} />
+                Competition details are locked. Click "Show" to view.
+              </>
+            )}
           </div>
         )}
       </Panel>

@@ -304,12 +304,16 @@ export function useCompetitionDashboard(competitionId) {
           demographicId: competition.demographic_id,
           demographicName: competition.demographic?.label || null,
           demographicSlug: competition.demographic?.slug || null,
-          // Economics & Settings (admin-controlled)
+          // Economics & Settings
           pricePerVote: parseFloat(competition.price_per_vote) || 1.00,
           minimumPrizeCents: competition.minimum_prize_cents || 100000,
           eligibilityRadiusMiles: competition.eligibility_radius_miles || 100,
           minContestants: competition.min_contestants || 40,
           maxContestants: competition.max_contestants || null,
+          // Cash prize (host-editable until nominations close)
+          hasCashPrize: competition.has_cash_prize || false,
+          cashPrizeSponsor: competition.cash_prize_sponsor || '',
+          cashPrizeAmount: competition.cash_prize_amount || null,
         } : null,
       });
     } catch (err) {

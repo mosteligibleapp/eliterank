@@ -28,6 +28,8 @@ export {
   checkFieldsForWarning,
   getLockedReason,
   getEditWarning,
+  isBeforeNominationsClose,
+  isFieldEditableForHost,
 } from './fieldEditability';
 
 // Activity types

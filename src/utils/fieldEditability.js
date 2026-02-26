@@ -10,22 +10,29 @@
 const FIELD_RULES = {
   // SLOT FIELDS - Always locked (admin-controlled franchise definition)
   // These define the unique competition slot and cannot be changed by hosts
-  name: { draft: false, publish: false, live: false, completed: false },
   city: { draft: false, publish: false, live: false, completed: false },
   season: { draft: false, publish: false, live: false, completed: false },
   slug: { draft: false, publish: false, live: false, completed: false },
   category: { draft: false, publish: false, live: false, completed: false },
   demographic: { draft: false, publish: false, live: false, completed: false },
 
+  // HOST-EDITABLE UNTIL NOMINATIONS START (draft + publish only)
+  name: { draft: true, publish: true, live: false, completed: false },
+  number_of_winners: { draft: true, publish: true, live: false, completed: false },
+  eligibility_radius: { draft: true, publish: true, live: false, completed: false },
+
+  // HOST-EDITABLE UNTIL NOMINATIONS CLOSE (draft + publish + live w/ nom-close check)
+  // Components must also call isBeforeNominationsClose() during live status
+  min_contestants: { draft: true, publish: true, live: true, completed: false },
+  max_contestants: { draft: true, publish: true, live: true, completed: false },
+  has_cash_prize: { draft: true, publish: true, live: true, completed: false },
+  cash_prize_sponsor: { draft: true, publish: true, live: true, completed: false },
+  cash_prize_amount: { draft: true, publish: true, live: true, completed: false },
+
   // ECONOMICS FIELDS - Always locked (admin-controlled economics)
-  // These affect prize commitments and revenue structure
   prize_pool_minimum: { draft: false, publish: false, live: false, completed: false },
   minimum_prize: { draft: false, publish: false, live: false, completed: false },
-  number_of_winners: { draft: false, publish: false, live: false, completed: false },
   price_per_vote: { draft: false, publish: false, live: false, completed: false },
-  eligibility_radius: { draft: false, publish: false, live: false, completed: false },
-  min_contestants: { draft: false, publish: false, live: false, completed: false },
-  max_contestants: { draft: false, publish: false, live: false, completed: false },
 
   // About/Marketing - mostly editable
   about_tagline: { draft: true, publish: true, live: true, completed: false },
@@ -56,7 +63,6 @@ const FIELD_RULES = {
   sponsors: { draft: true, publish: true, live: true, completed: false },
 
   // Structure - locked once live
-  number_of_winners: { draft: true, publish: true, live: false, completed: false },
   selection_criteria: { draft: true, publish: true, live: false, completed: false },
   advancement_thresholds: { draft: true, publish: true, live: false, completed: false },
 
@@ -153,7 +159,6 @@ export function getLockedReason(fieldName, status) {
 
   // Always-locked fields (admin-controlled) - same message regardless of status
   const alwaysLockedReasons = {
-    name: 'Competition name is set by admin and defines the franchise slot.',
     city: 'City is set by admin and defines the franchise slot.',
     season: 'Season is set by admin and defines the franchise slot.',
     slug: 'URL slug is generated automatically and cannot be changed.',
@@ -161,16 +166,29 @@ export function getLockedReason(fieldName, status) {
     demographic: 'Demographic is set by admin and defines the franchise slot.',
     prize_pool_minimum: 'Minimum prize is set by admin to protect contestant expectations.',
     minimum_prize: 'Minimum prize is set by admin to protect contestant expectations.',
-    number_of_winners: 'Winner count is set by admin and affects prize distribution.',
-    price_per_vote: 'Price per vote is set by admin and affects revenue structure.',
-    eligibility_radius: 'Eligibility radius is set by admin and defines competition scope.',
-    min_contestants: 'Minimum contestants is set by admin for competition viability.',
-    max_contestants: 'Maximum contestants is set by admin for competition management.',
+    price_per_vote: 'All votes are $1. Price per vote cannot be changed.',
+  };
+
+  // Phase-locked fields (locked after a certain phase)
+  const phaseLockedReasons = {
+    name: 'Competition name is locked once nominations begin.',
+    number_of_winners: 'Number of winners is locked once nominations begin.',
+    eligibility_radius: 'Eligibility radius is locked once nominations begin.',
+    min_contestants: 'Contestant limits are locked after nominations close.',
+    max_contestants: 'Contestant limits are locked after nominations close.',
+    has_cash_prize: 'Cash prize settings are locked after nominations close.',
+    cash_prize_sponsor: 'Cash prize settings are locked after nominations close.',
+    cash_prize_amount: 'Cash prize settings are locked after nominations close.',
   };
 
   // Check always-locked first
   if (alwaysLockedReasons[fieldName]) {
     return alwaysLockedReasons[fieldName];
+  }
+
+  // Check phase-locked fields
+  if (phaseLockedReasons[fieldName]) {
+    return phaseLockedReasons[fieldName];
   }
 
   // Status-specific reasons
@@ -247,6 +265,54 @@ function normalizeStatus(status) {
   };
 
   return statusMap[s] || s;
+}
+
+/**
+ * Check if the current time is before nominations close.
+ * Used as an additional gate for fields editable "until nominations close"
+ * (min/max contestants, cash prize) during live status.
+ *
+ * @param {object} competition - Competition object with nomination_end field
+ * @returns {boolean} - true if nominations haven't closed yet (or no end date set)
+ */
+export function isBeforeNominationsClose(competition) {
+  const nomEnd = competition?.nomination_end || competition?.nominationEnd;
+  if (!nomEnd) return true;
+  return new Date() < new Date(nomEnd);
+}
+
+/**
+ * Check if a field is editable for the host, considering both status rules
+ * and nomination-close deadlines.
+ *
+ * @param {string} fieldName - Field to check
+ * @param {string} status - Competition status
+ * @param {object} competition - Competition object (needed for nomination-close check)
+ * @returns {boolean|'warn'} - true if editable, false if locked, 'warn' if needs confirmation
+ */
+export function isFieldEditableForHost(fieldName, status, competition) {
+  const baseEditability = isFieldEditable(fieldName, status);
+
+  // If the field is already locked by status rules, stay locked
+  if (baseEditability === false) return false;
+
+  // Fields that require nomination-close check during live status
+  const nominationCloseFields = [
+    'min_contestants',
+    'max_contestants',
+    'has_cash_prize',
+    'cash_prize_sponsor',
+    'cash_prize_amount',
+  ];
+
+  const normalizedStatus = normalizeStatus(status);
+  if (normalizedStatus === 'live' && nominationCloseFields.includes(fieldName)) {
+    if (!isBeforeNominationsClose(competition)) {
+      return false;
+    }
+  }
+
+  return baseEditability;
 }
 
 export default isFieldEditable;
