@@ -5,7 +5,7 @@ import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
 import { useToast } from '../../../contexts/ToastContext';
-import { BONUS_TASK_KEYS } from '../../../lib/bonusVotes';
+import { BONUS_TASK_KEYS, loadNomineeBonusActions, saveNomineeBonusAction, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
 import { spacing, typography, colors, borderRadius } from '../../../styles/theme';
 
 const ContestantGuide = lazy(() => import('../../../features/contestant-guide/ContestantGuide'));
@@ -124,6 +124,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
   }, [loading, totalBonusVotesEarned, totalBonusVotesAvailable, allCompleted, tasks.length, onBonusVotesLoaded]);
 
   // Auto-check profile completeness and award applicable bonuses
+  const hasCheckedNomineeActions = useRef(false);
   useEffect(() => {
     if (!loading && profile && !hasCheckedProfile.current && tasks.length > 0) {
       hasCheckedProfile.current = true;
@@ -135,6 +136,25 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
       });
     }
   }, [loading, profile, tasks.length, checkProfile, toast]);
+
+  // Auto-award action-based tasks completed during nominee phase
+  useEffect(() => {
+    if (!loading && tasks.length > 0 && userId && competitionId && contestantId && !hasCheckedNomineeActions.current) {
+      // Only run if there are incomplete action tasks
+      const hasIncompleteActions = tasks.some(
+        t => (t.task_key === 'view_how_to_win' || t.task_key === 'share_profile') && !t.completed
+      );
+      if (hasIncompleteActions) {
+        hasCheckedNomineeActions.current = true;
+        awardNomineeActionBonuses(competitionId, contestantId, userId).then((awarded) => {
+          if (awarded.length > 0) {
+            const totalVotes = awarded.reduce((sum, a) => sum + (a.votes_awarded || 0), 0);
+            toast?.success?.(`You earned ${totalVotes} bonus votes!`);
+          }
+        });
+      }
+    }
+  }, [loading, tasks, userId, competitionId, contestantId, toast]);
 
   // Re-check when profile is updated
   useEffect(() => {
@@ -264,25 +284,23 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
     try { return localStorage.getItem(dismissKey) === 'true'; } catch { return false; }
   });
 
-  // Load persisted action-task completions from localStorage
-  const storageKey = userId ? `nominee_bonus_tasks_${userId}` : null;
-  const [actionCompleted, setActionCompleted] = useState(() => {
-    if (!storageKey) return {};
-    try {
-      return JSON.parse(localStorage.getItem(storageKey) || '{}');
-    } catch {
-      return {};
-    }
-  });
+  // Load persisted action-task completions from DB (with localStorage fallback)
+  const [actionCompleted, setActionCompleted] = useState({});
+  const hasLoadedActions = useRef(false);
+
+  useEffect(() => {
+    if (!userId || hasLoadedActions.current) return;
+    hasLoadedActions.current = true;
+    loadNomineeBonusActions(userId).then(actions => {
+      setActionCompleted(actions || {});
+    });
+  }, [userId]);
 
   const markActionCompleted = (taskKey) => {
-    setActionCompleted(prev => {
-      const next = { ...prev, [taskKey]: true };
-      if (storageKey) {
-        try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* ignore */ }
-      }
-      return next;
-    });
+    setActionCompleted(prev => ({ ...prev, [taskKey]: true }));
+    if (userId) {
+      saveNomineeBonusAction(userId, taskKey);
+    }
   };
 
   // Evaluate task completion from profile data + action tracking

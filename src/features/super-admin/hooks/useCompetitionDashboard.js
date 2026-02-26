@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useProfiles } from '../../../hooks/useCachedQuery';
+import { checkAndAwardProfileBonuses, awardNomineeActionBonuses, setupDefaultBonusTasks } from '../../../lib/bonusVotes';
 
 /**
  * Hook to fetch all dashboard data for a specific competition
@@ -367,9 +368,11 @@ export function useCompetitionDashboard(competitionId) {
       };
 
       // Insert contestant FIRST — if this fails, nominee stays pending
-      const { error: insertError } = await supabase
+      const { data: insertedContestant, error: insertError } = await supabase
         .from('contestants')
-        .insert(contestantData);
+        .insert(contestantData)
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
 
@@ -381,6 +384,26 @@ export function useCompetitionDashboard(competitionId) {
 
       if (updateError) {
         console.error('Nominee status update failed after contestant insert:', updateError);
+      }
+
+      // Auto-award bonus votes earned during nominee phase
+      if (linkedUserId && insertedContestant?.id) {
+        try {
+          await setupDefaultBonusTasks(competitionId);
+          // Award profile-based tasks
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, bio, city, avatar_url, instagram, twitter, tiktok, linkedin')
+            .eq('id', linkedUserId)
+            .maybeSingle();
+          if (profile) {
+            await checkAndAwardProfileBonuses(competitionId, insertedContestant.id, linkedUserId, profile);
+          }
+          // Award action-based tasks completed during nominee phase (view_how_to_win, share_profile)
+          await awardNomineeActionBonuses(competitionId, insertedContestant.id, linkedUserId);
+        } catch (bonusErr) {
+          console.warn('Error auto-awarding bonus votes on conversion:', bonusErr);
+        }
       }
 
       // Notify the nominee that they've been approved
