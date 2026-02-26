@@ -53,9 +53,11 @@ export default function AppRoutes() {
   const navigate = useNavigate();
 
   // Check for password reset flow
-  // Supabase sends users to: your-site.com?reset=true#access_token=xxx&type=recovery
+  // Supabase sends users to: your-site.com/reset-password#access_token=xxx&type=recovery
+  // Also support legacy format: your-site.com?reset=true#...
   const searchParams = new URLSearchParams(location.search);
-  const isResetFlow = searchParams.get('reset') === 'true' || 
+  const isResetFlow = location.pathname === '/reset-password' ||
+    searchParams.get('reset') === 'true' ||
     location.hash.includes('type=recovery');
 
   // Check if this is a competition route
