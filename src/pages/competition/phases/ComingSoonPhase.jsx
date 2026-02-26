@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Bell, Crown, Users, Briefcase } from 'lucide-react';
+import { Bell, Crown, Users, User, Briefcase } from 'lucide-react';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
-import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { InterestModal } from '../components/InterestModal';
@@ -42,7 +41,17 @@ export function ComingSoonPhase() {
           <span className="cta-title">Compete</span>
           <span className="cta-desc">Enter the arena</span>
         </button>
-        {!competition?.host && (
+        {competition?.host ? (
+          <div className="cta-card cta-card-host">
+            {competition.host.avatar_url ? (
+              <img src={competition.host.avatar_url} alt={`${competition.host.first_name || ''} ${competition.host.last_name || ''}`.trim()} className="cta-host-avatar" />
+            ) : (
+              <User size={24} />
+            )}
+            <span className="cta-title">{competition.host.first_name} {competition.host.last_name}</span>
+            <span className="cta-desc">Your Host</span>
+          </div>
+        ) : (
           <button className="cta-card" onClick={() => openModal(INTEREST_TYPE.HOSTING)}>
             <Users size={24} />
             <span className="cta-title">Host</span>
@@ -69,11 +78,6 @@ export function ComingSoonPhase() {
           onClose={closeModal}
         />
       )}
-
-      {/* About Links */}
-      <section className="phase-section">
-        <AboutSection />
-      </section>
 
       {/* Host & Sponsors - only show if there's content */}
       {hasHostOrSponsors && (
