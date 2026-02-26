@@ -242,6 +242,109 @@ export async function getAllBonusVotesEarnedStatus(userId) {
 }
 
 /**
+ * Load nominee bonus action completions from the profiles table.
+ * Falls back to localStorage if DB is unavailable.
+ */
+export async function loadNomineeBonusActions(userId) {
+  if (!supabase || !userId) {
+    // Fallback to localStorage
+    try {
+      return JSON.parse(localStorage.getItem(`nominee_bonus_tasks_${userId}`) || '{}');
+    } catch {
+      return {};
+    }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('bonus_actions')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data?.bonus_actions) {
+      // Fallback to localStorage
+      try {
+        return JSON.parse(localStorage.getItem(`nominee_bonus_tasks_${userId}`) || '{}');
+      } catch {
+        return {};
+      }
+    }
+
+    return data.bonus_actions;
+  } catch {
+    try {
+      return JSON.parse(localStorage.getItem(`nominee_bonus_tasks_${userId}`) || '{}');
+    } catch {
+      return {};
+    }
+  }
+}
+
+/**
+ * Save a nominee bonus action completion to the profiles table and localStorage.
+ * Merges the new task key into the existing bonus_actions JSONB.
+ */
+export async function saveNomineeBonusAction(userId, taskKey) {
+  // Always save to localStorage as a fast cache
+  const storageKey = userId ? `nominee_bonus_tasks_${userId}` : null;
+  let current = {};
+  if (storageKey) {
+    try {
+      current = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    } catch { /* ignore */ }
+    current[taskKey] = true;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(current));
+    } catch { /* ignore */ }
+  }
+
+  // Persist to database
+  if (!supabase || !userId) return;
+
+  try {
+    // Read current bonus_actions then merge
+    const { data } = await supabase
+      .from('profiles')
+      .select('bonus_actions')
+      .eq('id', userId)
+      .single();
+
+    const merged = { ...(data?.bonus_actions || {}), [taskKey]: true };
+
+    await supabase
+      .from('profiles')
+      .update({ bonus_actions: merged })
+      .eq('id', userId);
+  } catch (err) {
+    console.error('Error saving nominee bonus action:', err);
+  }
+}
+
+/**
+ * Auto-award action-based bonus tasks (view_how_to_win, share_profile) for a
+ * newly converted contestant. Reads completions from the user's profile
+ * bonus_actions and awards them via the standard DB flow.
+ */
+export async function awardNomineeActionBonuses(competitionId, contestantId, userId) {
+  if (!competitionId || !contestantId || !userId) return [];
+
+  const actions = await loadNomineeBonusActions(userId);
+  const awarded = [];
+
+  const actionTaskKeys = [BONUS_TASK_KEYS.VIEW_HOW_TO_WIN, BONUS_TASK_KEYS.SHARE_PROFILE];
+
+  for (const taskKey of actionTaskKeys) {
+    if (actions[taskKey]) {
+      const result = await awardBonusVotes(competitionId, contestantId, userId, taskKey);
+      if (result.success) awarded.push(result);
+    }
+  }
+
+  return awarded;
+}
+
+/**
  * Check profile completeness and auto-award applicable bonus votes
  * Call this after profile updates to check if any new tasks are completed
  */

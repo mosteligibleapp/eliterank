@@ -3,7 +3,7 @@ import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
 import { useToast } from '../../../contexts/ToastContext';
-import { BONUS_TASK_KEYS } from '../../../lib/bonusVotes';
+import { BONUS_TASK_KEYS, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
 
 const ContestantGuide = lazy(() => import('../../../features/contestant-guide/ContestantGuide'));
 
@@ -47,6 +47,25 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
       });
     }
   }, [loading, profile, tasks.length, checkProfile, toast]);
+
+  // Auto-award action-based tasks completed during nominee phase
+  const hasCheckedNomineeActions = useRef(false);
+  useEffect(() => {
+    if (!loading && tasks.length > 0 && userId && competitionId && contestantId && !hasCheckedNomineeActions.current) {
+      const hasIncompleteActions = tasks.some(
+        t => (t.task_key === 'view_how_to_win' || t.task_key === 'share_profile') && !t.completed
+      );
+      if (hasIncompleteActions) {
+        hasCheckedNomineeActions.current = true;
+        awardNomineeActionBonuses(competitionId, contestantId, userId).then((awarded) => {
+          if (awarded.length > 0) {
+            const totalVotes = awarded.reduce((sum, a) => sum + (a.votes_awarded || 0), 0);
+            toast?.success?.(`You earned ${totalVotes} bonus votes!`);
+          }
+        });
+      }
+    }
+  }, [loading, tasks, userId, competitionId, contestantId, toast]);
 
   // Listen for the "profile-updated" event to re-check bonuses
   useEffect(() => {
