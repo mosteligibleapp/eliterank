@@ -1,6 +1,6 @@
 /**
  * AchievementsPage - Shows share cards for all competitions the user is in
- * (as a contestant or nominee)
+ * (as a contestant, nominee, or host)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -13,6 +13,7 @@ import {
   Trophy,
   Star,
   Sparkles,
+  Crown,
   ChevronDown,
   ChevronUp,
   Check,
@@ -30,7 +31,7 @@ import './AchievementsPage.css';
 
 export default function AchievementsPage() {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useSupabaseAuth();
+  const { user, profile, isAuthenticated } = useSupabaseAuth();
 
   const [loading, setLoading] = useState(true);
   const [achievementRecords, setAchievementRecords] = useState([]);
@@ -39,7 +40,7 @@ export default function AchievementsPage() {
   const [shareStatus, setShareStatus] = useState(null);
   const [previewModal, setPreviewModal] = useState({ open: false, record: null, card: null, imageUrl: null, loading: false });
 
-  // Fetch all competitions the user is in (as contestant or nominee)
+  // Fetch all competitions the user is in (as contestant, nominee, or host)
   const fetchAchievementRecords = useCallback(async () => {
     if (!user?.id && !user?.email) {
       setLoading(false);
@@ -101,6 +102,22 @@ export default function AchievementsPage() {
         )
       `;
 
+      const hostSelect = `
+        id,
+        name,
+        slug,
+        city:cities(name),
+        season,
+        status,
+        theme_primary,
+        organization:organizations (
+          id,
+          name,
+          slug,
+          logo_url
+        )
+      `;
+
       // Build separate queries by user_id and email to avoid PostgREST .or()
       // parsing issues with email addresses containing dots.
       // Track contestant vs nominee queries separately for correct deduplication.
@@ -124,9 +141,15 @@ export default function AchievementsPage() {
         );
       }
 
-      const [contestantResults, nomineeResults] = await Promise.all([
+      // Fetch hosted competitions
+      const hostQuery = user?.id
+        ? supabase.from('competitions').select(hostSelect).eq('host_id', user.id).order('created_at', { ascending: false })
+        : Promise.resolve({ data: [] });
+
+      const [contestantResults, nomineeResults, hostResult] = await Promise.all([
         Promise.all(contestantQueries),
         Promise.all(nomineeQueries),
+        hostQuery,
       ]);
 
       // Merge and deduplicate results by id
@@ -176,13 +199,47 @@ export default function AchievementsPage() {
           _source: 'nominee',
         }));
 
-      // Mark contestant records
+      // Mark contestant records - also flag if user is host of this competition
+      const hostedCompetitions = (hostResult.data || []).filter(c =>
+        ['publish', 'published', 'live', 'completed'].includes(c.status?.toLowerCase())
+      );
+      const hostedCompetitionIds = new Set(hostedCompetitions.map(c => c.id));
+
       const contestantRecords = contestants.map(c => ({
         ...c,
         _source: 'contestant',
+        _isAlsoHost: hostedCompetitionIds.has(c.competition?.id),
       }));
 
-      const merged = [...contestantRecords, ...nomineeRecords];
+      // Also flag nominee records if user is host
+      const flaggedNomineeRecords = nomineeRecords.map(n => ({
+        ...n,
+        _isAlsoHost: hostedCompetitionIds.has(n.competition?.id),
+      }));
+
+      // Track competition IDs already covered by contestant or nominee records
+      const coveredCompetitionIds = new Set([
+        ...contestantCompetitionIds,
+        ...flaggedNomineeRecords.map(n => n.competition?.id).filter(Boolean),
+      ]);
+
+      // Create host-only records for competitions not already covered
+      const hostName = profile
+        ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+        : user?.email?.split('@')[0] || 'Host';
+
+      const hostOnlyRecords = hostedCompetitions
+        .filter(c => !coveredCompetitionIds.has(c.id))
+        .map(c => ({
+          id: `host-${c.id}`,
+          name: hostName,
+          avatar_url: profile?.avatar_url,
+          instagram: profile?.instagram,
+          competition: c,
+          _source: 'host',
+        }));
+
+      const merged = [...contestantRecords, ...flaggedNomineeRecords, ...hostOnlyRecords];
 
       setAchievementRecords(merged);
 
@@ -195,7 +252,7 @@ export default function AchievementsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, user?.email]);
+  }, [user?.id, user?.email, profile]);
 
   useEffect(() => {
     fetchAchievementRecords();
@@ -205,6 +262,17 @@ export default function AchievementsPage() {
   const getAvailableCards = (record) => {
     const cards = [];
 
+    // Host-only records can only show the "Host" card
+    if (record._source === 'host') {
+      cards.push({
+        type: 'host',
+        title: 'HOST',
+        description: 'Share that you\'re hosting this competition!',
+        icon: <Crown size={20} />,
+      });
+      return cards;
+    }
+
     // Nominee-only records can only show the "Nominated" card
     if (record._source === 'nominee') {
       cards.push({
@@ -213,6 +281,15 @@ export default function AchievementsPage() {
         description: 'Share that you\'ve been nominated!',
         icon: <Sparkles size={20} />,
       });
+      // If also a host, add host card
+      if (record._isAlsoHost) {
+        cards.push({
+          type: 'host',
+          title: 'HOST',
+          description: 'Share that you\'re hosting this competition!',
+          icon: <Crown size={20} />,
+        });
+      }
       return cards;
     }
 
@@ -280,6 +357,16 @@ export default function AchievementsPage() {
       });
     }
 
+    // Host card - if also a host of this competition
+    if (record._isAlsoHost) {
+      cards.push({
+        type: 'host',
+        title: 'HOST',
+        description: 'Share that you\'re hosting this competition!',
+        icon: <Crown size={20} />,
+      });
+    }
+
     return cards;
   };
 
@@ -287,12 +374,21 @@ export default function AchievementsPage() {
   const getCardParams = (record, cardOption) => {
     const competition = record.competition;
     const organization = competition?.organization;
+
+    // For host cards on contestant/nominee records, use profile data for name/photo
+    const isHostCard = cardOption.type === 'host';
+    const useProfileData = isHostCard && record._source !== 'host';
+
+    const hostName = profile
+      ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+      : user?.email?.split('@')[0] || 'Host';
+
     return {
       achievementType: cardOption.type,
       customTitle: cardOption.customTitle,
-      name: record.name,
-      photoUrl: record.avatar_url,
-      handle: record.instagram,
+      name: useProfileData ? hostName : record.name,
+      photoUrl: useProfileData ? profile?.avatar_url : record.avatar_url,
+      handle: useProfileData ? profile?.instagram : record.instagram,
       competitionName: competition?.name || `Most Eligible ${competition?.city?.name}`,
       season: competition?.season?.toString(),
       organizationName: organization?.name || 'Most Eligible',
@@ -433,7 +529,7 @@ export default function AchievementsPage() {
         <div className="achievements-empty">
           <ImagePlus size={48} />
           <h2>No active achievements</h2>
-          <p>You're not currently competing in any competitions</p>
+          <p>You're not currently competing in or hosting any competitions</p>
           <button onClick={() => navigate('/')} className="achievements-btn-primary">
             Explore Competitions
           </button>
@@ -452,6 +548,7 @@ export default function AchievementsPage() {
           const isExpanded = expandedCompetition === competition?.id;
           const cards = getAvailableCards(record);
           const isNomineeOnly = record._source === 'nominee';
+          const isHostOnly = record._source === 'host';
 
           return (
             <div key={record.id} className="achievements-competition">
@@ -463,10 +560,11 @@ export default function AchievementsPage() {
                   <h2>{competition?.name || 'Competition'}</h2>
                   <span className="achievements-competition-meta">
                     {competition?.city?.name} · {competition?.season}
-                    {isNomineeOnly && ' · Nominated'}
-                    {!isNomineeOnly && record.status === 'active' && ' · Active'}
-                    {!isNomineeOnly && record.status === 'winner' && ' · Winner'}
-                    {!isNomineeOnly && record.status === 'pending' && ' · Pending'}
+                    {isHostOnly && ' · Host'}
+                    {!isHostOnly && isNomineeOnly && ' · Nominated'}
+                    {!isHostOnly && !isNomineeOnly && record.status === 'active' && ' · Active'}
+                    {!isHostOnly && !isNomineeOnly && record.status === 'winner' && ' · Winner'}
+                    {!isHostOnly && !isNomineeOnly && record.status === 'pending' && ' · Pending'}
                   </span>
                 </div>
                 {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}

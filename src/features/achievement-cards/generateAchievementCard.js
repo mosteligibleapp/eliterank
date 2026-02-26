@@ -34,6 +34,10 @@ export const ACHIEVEMENT_TYPES = {
     title: 'PLACED',
     subtitle: 'in',
   },
+  host: {
+    title: 'HOST',
+    subtitle: 'of',
+  },
 };
 
 export function getAdvancementTitle(advancingCount) {
