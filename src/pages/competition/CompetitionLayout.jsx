@@ -186,7 +186,7 @@ function CompetitionLayoutInner() {
             onLogout={handleLogout}
             onProfile={handleProfile}
             onRewards={handleRewards}
-            onHowToCompete={handleHowToCompete}
+            onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
             size={40}

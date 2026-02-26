@@ -29,6 +29,7 @@ export default function HomePage({
   
   // Use Zustand stores for auth state
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const profile = useAuthStore(s => s.profile);
   const signOut = useAuthStore(s => s.signOut);
   const userRole = useUserRole();
   const hasDashboardAccess = useHasDashboardAccess();
@@ -93,7 +94,7 @@ export default function HomePage({
         onDashboard={isAuthenticated && hasDashboardAccess ? handleGoToDashboard : null}
         onProfile={isAuthenticated ? onShowProfile : null}
         onRewards={isAuthenticated ? onShowRewards : null}
-        onHowToCompete={handleHowToCompete}
+        onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
         userName={userName}

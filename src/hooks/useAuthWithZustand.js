@@ -31,11 +31,11 @@ export default function useAuthWithZustand() {
   const user = useAuthStore((state) => state.user);
   
   // ========== Profile Fetching ==========
-  const fetchProfile = useCallback(async (userId) => {
+  const fetchProfile = useCallback(async (userId, userEmail) => {
     if (!supabase || !userId) return null;
 
     try {
-      const [profileResult, hostResult] = await Promise.all([
+      const [profileResult, hostResult, contestantResult, nomineeResult] = await Promise.all([
         supabase
           .from('profiles')
           .select('*')
@@ -46,6 +46,18 @@ export default function useAuthWithZustand() {
           .select('id')
           .eq('host_id', userId)
           .limit(1),
+        supabase
+          .from('contestants')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1),
+        userEmail
+          ? supabase
+              .from('nominees')
+              .select('id')
+              .eq('email', userEmail)
+              .limit(1)
+          : Promise.resolve({ data: [] }),
       ]);
 
       if (profileResult.error) throw profileResult.error;
@@ -54,6 +66,9 @@ export default function useAuthWithZustand() {
       return {
         ...profileResult.data,
         is_host: (hostResult.data?.length ?? 0) > 0,
+        is_nominee_or_contestant:
+          (contestantResult.data?.length ?? 0) > 0 ||
+          (nomineeResult.data?.length ?? 0) > 0,
       };
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -61,10 +76,10 @@ export default function useAuthWithZustand() {
     }
   }, []);
 
-  const loadProfile = useCallback(async (userId) => {
+  const loadProfile = useCallback(async (userId, userEmail) => {
     if (!userId || !mountedRef.current) return;
 
-    const profileData = await fetchProfile(userId);
+    const profileData = await fetchProfile(userId, userEmail);
 
     if (mountedRef.current) {
       setProfile(profileData);
@@ -92,7 +107,7 @@ export default function useAuthWithZustand() {
           setLoading(false);
 
           if (currentUser) {
-            loadProfile(currentUser.id);
+            loadProfile(currentUser.id, currentUser.email);
           }
         }
       } catch (err) {
@@ -112,7 +127,7 @@ export default function useAuthWithZustand() {
         setUser(currentUser);
 
         if (event === 'SIGNED_IN' && currentUser) {
-          loadProfile(currentUser.id);
+          loadProfile(currentUser.id, currentUser.email);
         } else if (event === 'SIGNED_OUT') {
           // Use clearAuth (not signOutStore) to avoid calling supabase.auth.signOut()
           // again, which would trigger another onAuthStateChange and loop.
@@ -133,7 +148,7 @@ export default function useAuthWithZustand() {
   useEffect(() => {
     const handler = () => {
       if (mountedRef.current && user) {
-        loadProfile(user.id);
+        loadProfile(user.id, user.email);
       }
     };
     window.addEventListener('profile-updated', handler);
@@ -206,7 +221,7 @@ export default function useAuthWithZustand() {
 
   const refreshProfile = useCallback(() => {
     if (user) {
-      loadProfile(user.id);
+      loadProfile(user.id, user.email);
     }
   }, [user, loadProfile]);
 

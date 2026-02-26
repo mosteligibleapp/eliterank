@@ -33,7 +33,8 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
     await signOut();
   };
 
-  const handleHowToCompete = onHowToCompete || (() => setShowGuide(true));
+  const isNomineeOrContestant = profile?.is_nominee_or_contestant;
+  const handleHowToCompete = isNomineeOrContestant ? (onHowToCompete || (() => setShowGuide(true))) : undefined;
 
   const hasDashboardAccess = userRole === ROLE.HOST || userRole === ROLE.SUPER_ADMIN;
 

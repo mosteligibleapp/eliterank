@@ -16,11 +16,12 @@ export default function useSupabaseAuth() {
   const mountedRef = useRef(true);
 
   // Simple profile fetch — also checks if user hosts any competitions
-  const fetchProfile = useCallback(async (userId) => {
+  // and whether the user is a nominee or contestant
+  const fetchProfile = useCallback(async (userId, userEmail) => {
     if (!supabase || !userId) return null;
 
     try {
-      const [profileResult, hostResult] = await Promise.all([
+      const [profileResult, hostResult, contestantResult, nomineeResult] = await Promise.all([
         supabase
           .from('profiles')
           .select('*')
@@ -31,6 +32,18 @@ export default function useSupabaseAuth() {
           .select('id')
           .eq('host_id', userId)
           .limit(1),
+        supabase
+          .from('contestants')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1),
+        userEmail
+          ? supabase
+              .from('nominees')
+              .select('id')
+              .eq('email', userEmail)
+              .limit(1)
+          : Promise.resolve({ data: [] }),
       ]);
 
       if (profileResult.error) throw profileResult.error;
@@ -39,6 +52,9 @@ export default function useSupabaseAuth() {
       return {
         ...profileResult.data,
         is_host: (hostResult.data?.length ?? 0) > 0,
+        is_nominee_or_contestant:
+          (contestantResult.data?.length ?? 0) > 0 ||
+          (nomineeResult.data?.length ?? 0) > 0,
       };
     } catch {
       return null;
@@ -46,11 +62,11 @@ export default function useSupabaseAuth() {
   }, []);
 
   // Load profile for user
-  const loadProfile = useCallback(async (userId) => {
+  const loadProfile = useCallback(async (userId, userEmail) => {
     if (!userId || !mountedRef.current) return;
 
     setProfileLoading(true);
-    const profileData = await fetchProfile(userId);
+    const profileData = await fetchProfile(userId, userEmail);
 
     if (mountedRef.current) {
       setProfile(profileData);
@@ -79,7 +95,7 @@ export default function useSupabaseAuth() {
           setAuthLoading(false);
 
           if (currentUser) {
-            loadProfile(currentUser.id);
+            loadProfile(currentUser.id, currentUser.email);
           }
         }
       } catch (err) {
@@ -99,7 +115,7 @@ export default function useSupabaseAuth() {
         setUser(currentUser);
 
         if (event === 'SIGNED_IN' && currentUser) {
-          loadProfile(currentUser.id);
+          loadProfile(currentUser.id, currentUser.email);
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
         }
@@ -119,7 +135,7 @@ export default function useSupabaseAuth() {
   useEffect(() => {
     const handler = () => {
       if (mountedRef.current && user) {
-        loadProfile(user.id);
+        loadProfile(user.id, user.email);
       }
     };
     window.addEventListener('profile-updated', handler);
@@ -207,7 +223,7 @@ export default function useSupabaseAuth() {
   // Refresh profile
   const refreshProfile = useCallback(() => {
     if (user) {
-      loadProfile(user.id);
+      loadProfile(user.id, user.email);
     }
   }, [user, loadProfile]);
 
