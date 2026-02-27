@@ -44,7 +44,7 @@ export function Timeline() {
     entryStart || entryEnd ? {
       id: 'entry',
       title: 'Entry Period',
-      subtitle: 'Nominations & applications open',
+      subtitle: 'Nominations open',
       date: entryStart,
       endDate: entryEnd,
       status: getPeriodStatus(entryStart, entryEnd),
