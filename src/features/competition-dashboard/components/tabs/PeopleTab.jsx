@@ -192,7 +192,7 @@ export default function PeopleTab({
           </button>
         )}
         <button
-          onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee.id); setProcessingId(null); }}
+          onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee); setProcessingId(null); }}
           disabled={approveDisabled}
           title={!canApprove(nominee) ? 'Nominee must accept first' : 'Approve'}
           style={{
