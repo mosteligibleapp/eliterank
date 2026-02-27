@@ -120,10 +120,21 @@ export function Timeline() {
 
   const hiddenCount = timelineItems.length - mobileVisibleIndices.size;
 
+  // Summary for collapsed state — show the current/next phase name
+  const activeItem = timelineItems[currentIndex];
+
   return (
-    <div className={`timeline ${expanded ? 'timeline-expanded' : ''}`}>
+    <div className={`timeline ${sectionOpen ? 'timeline-open' : ''} ${expanded ? 'timeline-expanded' : ''}`}>
       <button className="timeline-header" onClick={() => setSectionOpen(!sectionOpen)}>
-        <h4 className="section-label">Timeline</h4>
+        <div className="timeline-header-left">
+          <h4 className="section-label">Timeline</h4>
+          {!sectionOpen && activeItem && (
+            <span className="timeline-summary">
+              <Circle size={8} className="timeline-summary-dot" />
+              {activeItem.title}
+            </span>
+          )}
+        </div>
         <ChevronDown size={18} className={`timeline-header-chevron ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
       </button>
       <div
