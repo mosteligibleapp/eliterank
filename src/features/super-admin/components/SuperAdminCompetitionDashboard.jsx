@@ -4,7 +4,7 @@ import {
   User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, Archive, RotateCcw, ExternalLink,
   UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus
 } from 'lucide-react';
-import { Button, Badge, Avatar, StatCard, DashboardSkeleton } from '../../../components/ui';
+import { Button, Badge, Avatar, StatCard, DashboardSkeleton, EmptyState } from '../../../components/ui';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { EventModal, AddPersonModal, AnnouncementModal } from '../../../components/modals';
@@ -702,10 +702,12 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           {expandedSections.contestants && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
               {approvedContestants.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                  <Crown size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                  <p>No contestants yet. Approve nominees or add manually.</p>
-                </div>
+                <EmptyState
+                  icon={Crown}
+                  title="No contestants yet"
+                  description="Approve nominees or add manually"
+                  compact
+                />
               ) : (
                 approvedContestants.map((contestant) => (
                   <ContestantRow key={contestant.id} contestant={contestant} />
@@ -744,10 +746,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           {expandedSections.withProfile && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
               {nomineesWithProfile.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                  <UserCheck size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                  <p>No nominees with linked profiles</p>
-                </div>
+                <EmptyState icon={UserCheck} title="No nominees with linked profiles" compact />
               ) : (
                 nomineesWithProfile.map((nominee) => (
                   <NomineeRow key={nominee.id} nominee={nominee} showProfileLink={true} />
@@ -776,10 +775,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           {expandedSections.external && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
               {externalNominees.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                  <Users size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                  <p>No external nominees</p>
-                </div>
+                <EmptyState icon={Users} title="No external nominees" compact />
               ) : (
                 externalNominees.map((nominee) => (
                   <NomineeRow key={nominee.id} nominee={nominee} />
@@ -806,10 +802,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           {expandedSections.archived && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
               {archivedNominees.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                  <Archive size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                  <p>No archived nominees</p>
-                </div>
+                <EmptyState icon={Archive} title="No archived nominees" compact />
               ) : (
                 archivedNominees.map((nominee) => (
                   <NomineeRow key={nominee.id} nominee={nominee} showActions={false} isArchived={true} />
@@ -841,19 +834,15 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         </div>
 
         {data.announcements.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: spacing.xxl,
-            color: colors.text.secondary,
-          }}>
-            <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-            <p>No announcements yet</p>
-            {isEditing && (
-              <Button size="sm" icon={FileText} style={{ marginTop: spacing.lg }} onClick={() => openAnnouncementModal()}>
+          <EmptyState
+            icon={FileText}
+            title="No announcements yet"
+            action={isEditing ? (
+              <Button size="sm" icon={FileText} onClick={() => openAnnouncementModal()}>
                 Create First Announcement
               </Button>
-            )}
-          </div>
+            ) : undefined}
+          />
         ) : (
           data.announcements.map((announcement) => (
             <div key={announcement.id} style={{
@@ -921,19 +910,13 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         </div>
 
         {data.judges.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: spacing.xxl,
-            color: colors.text.secondary,
-          }}>
-            <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-            <p>No judges assigned yet</p>
-            {isEditing && (
-              <Button size="sm" icon={UserPlus} style={{ marginTop: spacing.lg }}>
-                Add First Judge
-              </Button>
-            )}
-          </div>
+          <EmptyState
+            icon={User}
+            title="No judges assigned yet"
+            action={isEditing ? (
+              <Button size="sm" icon={UserPlus}>Add First Judge</Button>
+            ) : undefined}
+          />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.lg }}>
             {data.judges.map((judge) => (
@@ -974,19 +957,15 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         </div>
 
         {data.events.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: spacing.xxl,
-            color: colors.text.secondary,
-          }}>
-            <Calendar size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-            <p>No events scheduled yet</p>
-            {isEditing && (
-              <Button size="sm" icon={Plus} style={{ marginTop: spacing.lg }} onClick={() => openEventModal(null)}>
+          <EmptyState
+            icon={Calendar}
+            title="No events scheduled yet"
+            action={isEditing ? (
+              <Button size="sm" icon={Plus} onClick={() => openEventModal(null)}>
                 Schedule First Event
               </Button>
-            )}
-          </div>
+            ) : undefined}
+          />
         ) : (
           data.events.map((event) => (
             <div key={event.id} style={{
@@ -1112,7 +1091,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
     // Show loading state
     if (loading) {
       return (
-        <DashboardSkeleton />
+        <DashboardSkeleton withChrome={false} />
       );
     }
 

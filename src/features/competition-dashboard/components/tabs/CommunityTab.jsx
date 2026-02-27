@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, FileText, Pin, Edit, Trash2 } from 'lucide-react';
-import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
+import { Button, Badge, Avatar, Panel, EmptyState } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { formatRelativeTime } from '../../../../utils/formatters';
 
@@ -201,10 +201,11 @@ export default function CommunityTab({
               </div>
             ))
           ) : (
-            <div style={{ textAlign: 'center', padding: spacing.xxl, color: colors.text.secondary }}>
-              <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No announcements yet. Create your first post above.</p>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="No announcements yet"
+              description="Create your first post above"
+            />
           )}
         </div>
       </Panel>

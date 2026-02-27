@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, User, Star, FileText, Plus, Edit, Trash2, CheckCircle, XCircle, Lock, MapPin, DollarSign, Users, Tag } from 'lucide-react';
-import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
+import { Button, Badge, Avatar, Panel, EmptyState } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
@@ -232,10 +232,7 @@ export default function SettingsTab({
       >
         <div style={{ padding: spacing.xl }}>
           {judges.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No judges assigned yet</p>
-            </div>
+            <EmptyState icon={User} title="No judges assigned yet" />
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.lg }}>
               {judges.map((judge) => (
@@ -280,10 +277,7 @@ export default function SettingsTab({
       >
         <div style={{ padding: spacing.xl }}>
           {sponsors.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Star size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No sponsors yet</p>
-            </div>
+            <EmptyState icon={Star} title="No sponsors yet" />
           ) : (
             <div style={{ display: 'grid', gap: spacing.md }}>
               {sponsors.map((sponsor) => (
@@ -336,10 +330,7 @@ export default function SettingsTab({
       >
         <div style={{ padding: spacing.xl }}>
           {events.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Calendar size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No events scheduled yet</p>
-            </div>
+            <EmptyState icon={Calendar} title="No events scheduled yet" />
           ) : (
             <div style={{ display: 'grid', gap: spacing.md }}>
               {events.map((event) => {
@@ -403,10 +394,7 @@ export default function SettingsTab({
       >
         <div style={{ padding: spacing.xl }}>
           {rules.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No rules defined yet</p>
-            </div>
+            <EmptyState icon={FileText} title="No rules defined yet" />
           ) : (
             <div style={{ display: 'grid', gap: spacing.md }}>
               {rules.map((rule) => (

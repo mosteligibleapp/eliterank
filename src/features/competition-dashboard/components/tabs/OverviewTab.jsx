@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Eye, Users, UserPlus, Star, Plus, Crown, Calendar, DollarSign, FileText, Pin, Edit, Trash2 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
-import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
+import { Button, Panel, Avatar, Badge, EmptyState } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
 import { isLive } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
@@ -258,12 +258,10 @@ export default function OverviewTab({
         >
           <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
             {topContestants.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                <Users size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-                <p style={{ fontSize: typography.fontSize.sm }}>
-                  {isLive(competition?.status) ? 'Rankings appear when voting begins' : 'No contestants yet'}
-                </p>
-              </div>
+              <EmptyState
+                icon={Users}
+                title={isLive(competition?.status) ? 'Rankings appear when voting begins' : 'No contestants yet'}
+              />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
                 {topContestants.map((contestant, index) => (
@@ -383,10 +381,7 @@ export default function OverviewTab({
             )}
 
             {sortedAnnouncements.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-                <p style={{ fontSize: typography.fontSize.sm }}>No announcements yet</p>
-              </div>
+              <EmptyState icon={FileText} title="No announcements yet" />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
                 {sortedAnnouncements.map(post => (

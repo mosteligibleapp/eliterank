@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trophy, UserPlus, Users } from 'lucide-react';
 import NomineeCard from './NomineeCard';
+import { EmptyState } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 
 const COLUMN_CONFIG = {
@@ -72,11 +73,6 @@ export default function NomineeColumn({
     color: config.color,
   };
 
-  const emptyStateStyle = {
-    textAlign: 'center',
-    padding: `${spacing.xxxl} ${spacing.xl}`,
-    color: colors.text.muted,
-  };
 
   return (
     <div>
@@ -120,14 +116,15 @@ export default function NomineeColumn({
             />
           ))
         ) : (
-          <div style={emptyStateStyle}>
-            <Icon size={32} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-            <p style={{ fontSize: typography.fontSize.md }}>
-              {type === 'contestants' && 'No active contestants yet'}
-              {type === 'pending' && 'No pending contestants'}
-              {type === 'nominees' && 'No pending nominees'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Icon}
+            title={
+              type === 'contestants' ? 'No active contestants yet' :
+              type === 'pending' ? 'No pending contestants' :
+              'No pending nominees'
+            }
+            compact
+          />
         )}
       </div>
     </div>

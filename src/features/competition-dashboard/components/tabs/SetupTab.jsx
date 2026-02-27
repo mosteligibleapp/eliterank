@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, User, Star, Plus, Trash2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, CheckCircle, XCircle } from 'lucide-react';
-import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
+import { Button, Badge, Avatar, Panel, EmptyState } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
@@ -266,10 +266,7 @@ export default function SetupTab({
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {judges.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No judges assigned yet</p>
-            </div>
+            <EmptyState icon={User} title="No judges assigned yet" />
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: spacing.lg }}>
               {judges.map((judge) => (
@@ -321,10 +318,7 @@ export default function SetupTab({
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {sponsors.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Star size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No sponsors yet</p>
-            </div>
+            <EmptyState icon={Star} title="No sponsors yet" />
           ) : (
             <div style={{ display: 'grid', gap: spacing.md }}>
               {sponsors.map((sponsor) => (
@@ -385,10 +379,7 @@ export default function SetupTab({
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {events.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Calendar size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No events scheduled yet</p>
-            </div>
+            <EmptyState icon={Calendar} title="No events scheduled yet" />
           ) : (
             <div style={{ display: 'grid', gap: spacing.md }}>
               {events.map((event) => {
@@ -464,19 +455,16 @@ export default function SetupTab({
               Loading bonus vote tasks...
             </p>
           ) : bonusTasks.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl }}>
-              <Gift size={48} style={{ marginBottom: spacing.md, opacity: 0.5, color: colors.gold.primary }} />
-              <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
-                Bonus votes reward contestants for completing tasks like filling out their profile or reviewing competition info. Set up the default tasks to get started.
-              </p>
-              <Button
-                onClick={handleSetupBonusTasks}
-                disabled={settingUp}
-                icon={Plus}
-              >
-                {settingUp ? 'Setting up...' : 'Enable Bonus Votes'}
-              </Button>
-            </div>
+            <EmptyState
+              icon={Gift}
+              title="No bonus vote tasks yet"
+              description="Bonus votes reward contestants for completing tasks like filling out their profile or reviewing competition info."
+              action={
+                <Button onClick={handleSetupBonusTasks} disabled={settingUp} icon={Plus}>
+                  {settingUp ? 'Setting up...' : 'Enable Bonus Votes'}
+                </Button>
+              }
+            />
           ) : (
             <>
               {/* Stats summary */}

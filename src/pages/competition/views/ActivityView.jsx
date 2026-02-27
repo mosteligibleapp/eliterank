@@ -1,5 +1,6 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { RulesAccordion } from '../components/RulesAccordion';
+import { EmptyState } from '../../../components/ui';
 import {
   TrendingUp,
   TrendingDown,
@@ -74,7 +75,7 @@ export function ActivityView() {
                 ))}
               </div>
             ) : (
-              <p className="empty-state">No announcements yet</p>
+              <EmptyState icon={Info} title="No announcements yet" compact />
             )}
           </section>
 
@@ -99,7 +100,7 @@ export function ActivityView() {
                 ))}
               </div>
             ) : (
-              <p className="empty-state">No upcoming events</p>
+              <EmptyState icon={Clock} title="No upcoming events" compact />
             )}
           </section>
 
@@ -147,7 +148,7 @@ export function ActivityView() {
               })}
 
               {activities?.length === 0 && !activitiesLoading && (
-                <p className="empty-state">No activity yet</p>
+                <EmptyState icon={Heart} title="No activity yet" compact />
               )}
 
               {hasMoreActivities && (

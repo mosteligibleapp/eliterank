@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, FileText, Pin, Edit, Trash2 } from 'lucide-react';
-import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
+import { Button, Badge, Avatar, Panel, EmptyState } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { formatRelativeTime } from '../../../../utils/formatters';
@@ -136,10 +136,11 @@ export default function ContentTab({
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {sortedAnnouncements.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <FileText size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No announcements yet. Create your first post above.</p>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="No announcements yet"
+              description="Create your first post above"
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
               {sortedAnnouncements.map((post) => (

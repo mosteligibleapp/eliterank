@@ -4,7 +4,7 @@ import {
   ExternalLink, User, Mail, Phone, Instagram, Check, X, RotateCcw,
   Loader, AlertCircle, Link2
 } from 'lucide-react';
-import { Button, Badge, LeaderboardSkeleton } from '../../components/ui';
+import { Button, Badge, NominationsPageSkeleton } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
 
@@ -146,7 +146,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
 
   // Loading state
   if (loading) {
-    return <LeaderboardSkeleton rows={8} style={{ padding: spacing.xl }} />;
+    return <NominationsPageSkeleton style={{ padding: spacing.xl }} />;
   }
 
   // Error state

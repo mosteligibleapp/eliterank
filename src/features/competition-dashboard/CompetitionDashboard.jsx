@@ -343,7 +343,7 @@ export default function CompetitionDashboard({
 
   const renderContent = () => {
     if (loading) {
-      return <DashboardSkeleton />;
+      return <DashboardSkeleton withChrome={false} />;
     }
 
     if (error) {
@@ -443,7 +443,7 @@ export default function CompetitionDashboard({
     };
 
     return (
-      <Suspense fallback={<DashboardSkeleton />}>
+      <Suspense fallback={<DashboardSkeleton withChrome={false} />}>
         {renderActiveTab()}
       </Suspense>
     );
