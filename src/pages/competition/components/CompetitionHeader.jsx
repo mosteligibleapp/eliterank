@@ -47,11 +47,6 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
         <h2 className="competition-city">{competition.city}</h2>
       )}
 
-      {/* Description */}
-      {about?.description && (
-        <p className="competition-description">{about.description}</p>
-      )}
-
       {/* Phase Badge */}
       {badge && (
         <div className={`phase-badge ${badgeClass}`}>

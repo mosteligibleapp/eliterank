@@ -18,8 +18,8 @@ export function ComingSoonPhase() {
   const openModal = (type) => setActiveModal(type);
   const closeModal = () => setActiveModal(null);
 
-  // Check if HostSection will render (has host or sponsors)
-  const hasHostOrSponsors = competition?.host || (sponsors && sponsors.length > 0);
+  // Only show HostSection below for sponsors (host is in the CTA grid)
+  const hasSponsors = sponsors && sponsors.length > 0;
 
   return (
     <div className="phase-view phase-coming-soon">
@@ -48,8 +48,8 @@ export function ComingSoonPhase() {
             ) : (
               <User size={24} />
             )}
-            <span className="cta-title">{competition.host.first_name} {competition.host.last_name}</span>
-            <span className="cta-desc">Your Host</span>
+            <span className="cta-title">Your Host</span>
+            <span className="cta-desc">{competition.host.first_name} {competition.host.last_name}</span>
           </div>
         ) : (
           <button className="cta-card" onClick={() => openModal(INTEREST_TYPE.HOSTING)}>
@@ -79,8 +79,8 @@ export function ComingSoonPhase() {
         />
       )}
 
-      {/* Host & Sponsors - only show if there's content */}
-      {hasHostOrSponsors && (
+      {/* Sponsors */}
+      {hasSponsors && (
         <>
           <hr className="phase-divider" />
           <section className="phase-section">
