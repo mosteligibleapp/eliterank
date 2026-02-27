@@ -51,6 +51,7 @@ export default function EliteRankCityModal({
   onDashboard,
   onProfile,
   onRewards,
+  onAchievements,
   onHowToCompete,
   isAuthenticated = false,
   userRole = 'fan',
@@ -1567,7 +1568,7 @@ export default function EliteRankCityModal({
               onLogout={onLogout}
               onProfile={onProfile}
               onRewards={onRewards}
-              onAchievements={() => window.location.href = '/achievements'}
+              onAchievements={onAchievements}
               onHowToCompete={onHowToCompete}
               onDashboard={hasDashboardAccess ? onDashboard : null}
               hasDashboardAccess={hasDashboardAccess}
