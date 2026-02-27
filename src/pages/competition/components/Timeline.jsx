@@ -1,79 +1,74 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Check, Circle, ChevronDown, ChevronUp, Trophy } from 'lucide-react';
+import { Check, Circle, ChevronDown, Trophy } from 'lucide-react';
 import { formatDate } from '../../../utils/formatters';
 
 /**
- * Competition timeline showing nomination periods, events, and voting rounds
+ * Competition timeline — simplified 3-phase view:
+ * Entry Period | Voting Period | Finale
  */
 export function Timeline() {
-  const { competition, events, votingRounds, nominationPeriods, phase } = usePublicCompetition();
+  const { competition, votingRounds, nominationPeriods, phase } = usePublicCompetition();
 
-  // Build nomination items from nominationPeriods or fallback to competition dates
-  const nominationItems = [];
+  // --- Build 3 high-level phases ---
+
+  // 1. Entry period — earliest nom start → latest nom end
+  let entryStart = null;
+  let entryEnd = null;
 
   if (nominationPeriods?.length > 0) {
-    nominationPeriods.forEach(np => {
-      nominationItems.push({
-        id: `nom-${np.id}`,
-        type: 'nomination',
-        date: np.start_date,
-        endDate: np.end_date,
-        title: np.title || 'Nominations',
-        subtitle: np.max_submissions ? `Max ${np.max_submissions} submissions` : null,
-        status: getPeriodStatus(np.start_date, np.end_date),
-      });
-    });
-  } else if (competition?.nomination_start || competition?.nomination_end) {
-    nominationItems.push({
-      id: 'nom-main',
-      type: 'nomination',
-      date: competition.nomination_start,
-      endDate: competition.nomination_end,
-      title: 'Nominations',
-      subtitle: 'Submit your nomination',
-      status: getPeriodStatus(competition.nomination_start, competition.nomination_end),
-    });
+    const starts = nominationPeriods.map(np => np.start_date).filter(Boolean);
+    const ends = nominationPeriods.map(np => np.end_date).filter(Boolean);
+    if (starts.length) entryStart = starts.sort()[0];
+    if (ends.length) entryEnd = ends.sort().pop();
+  } else {
+    entryStart = competition?.nomination_start;
+    entryEnd = competition?.nomination_end;
   }
 
-  // Build finale item from competition record
-  const finaleItems = [];
+  // 2. Voting period — earliest round start → latest round end
+  let votingStart = null;
+  let votingEnd = null;
+  const rounds = votingRounds || [];
+  if (rounds.length > 0) {
+    const starts = rounds.map(r => r.start_date).filter(Boolean);
+    const ends = rounds.map(r => r.end_date).filter(Boolean);
+    if (starts.length) votingStart = starts.sort()[0];
+    if (ends.length) votingEnd = ends.sort().pop();
+  }
+
+  // 3. Finale
   const finaleDate = competition?.finals_date;
-  if (finaleDate) {
-    finaleItems.push({
+
+  const phases = [
+    entryStart || entryEnd ? {
+      id: 'entry',
+      title: 'Entry Period',
+      subtitle: 'Nominations & applications open',
+      date: entryStart,
+      endDate: entryEnd,
+      status: getPeriodStatus(entryStart, entryEnd),
+    } : null,
+    votingStart || votingEnd ? {
+      id: 'voting',
+      title: 'Voting Period',
+      subtitle: rounds.length > 1 ? `${rounds.length} rounds of public voting` : 'Public voting',
+      date: votingStart,
+      endDate: votingEnd,
+      status: getPeriodStatus(votingStart, votingEnd),
+    } : null,
+    finaleDate ? {
       id: 'finale',
-      type: 'finale',
+      title: 'Finale',
+      subtitle: 'Live crowning event',
       date: finaleDate,
-      title: 'Finals Event',
-      subtitle: 'Live crowning event, Judges reveal the Top 5 rank order',
       status: getFinaleStatus(finaleDate),
       isFinale: true,
-    });
-  }
-
-  // Combine all timeline items
-  const timelineItems = [
-    ...nominationItems,
-    ...(votingRounds || []).map(r => ({
-      id: r.id,
-      type: 'round',
-      date: r.start_date,
-      endDate: r.end_date,
-      title: r.title || `Round ${r.round_order}`,
-      subtitle: r.contestants_advance
-        ? `Top ${r.contestants_advance} advance`
-        : (r.round_type === 'finals' ? 'Final round' : null),
-      status: getRoundStatus(r, phase),
-      roundType: r.round_type,
-    })),
-    ...finaleItems,
-  ]
-    .filter(item => item.date)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    } : null,
+  ].filter(Boolean);
 
   // Mobile collapsible state
   const [sectionOpen, setSectionOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const listRef = useRef(null);
   const [listHeight, setListHeight] = useState(0);
 
@@ -81,15 +76,18 @@ export function Timeline() {
     if (listRef.current) {
       setListHeight(listRef.current.scrollHeight);
     }
-  }, [timelineItems, expanded]);
+  }, [phases]);
 
-  if (timelineItems.length === 0) {
+  if (phases.length === 0) {
     return (
       <div className="timeline">
-        <button className="timeline-header" onClick={() => setSectionOpen(!sectionOpen)}>
+        <button className="timeline-header timeline-header-mobile" onClick={() => setSectionOpen(!sectionOpen)}>
           <h4 className="section-label">Timeline</h4>
-          <ChevronDown size={18} className={`timeline-header-chevron timeline-header-chevron-mobile ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
+          <ChevronDown size={18} className={`timeline-header-chevron ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
         </button>
+        <div className="timeline-header-desktop">
+          <h4 className="section-label">Timeline</h4>
+        </div>
         {sectionOpen && (
           <div className="timeline-empty">
             <p>Timeline coming soon</p>
@@ -99,50 +97,27 @@ export function Timeline() {
     );
   }
 
-  // Find the active item index
-  const activeIndex = timelineItems.findIndex(item => item.status === 'active');
-  const currentIndex = activeIndex >= 0 ? activeIndex : 0;
-
-  // Progress calculation
-  const completedCount = timelineItems.filter(item => item.status === 'complete').length;
-  const progressPercent = Math.round((completedCount / timelineItems.length) * 100);
-
-  // Mobile collapsed view indices
-  const finaleIndex = timelineItems.findIndex(item => item.isFinale);
-  const mobileVisibleIndices = new Set([currentIndex]);
-  if (finaleIndex >= 0 && finaleIndex !== currentIndex) {
-    mobileVisibleIndices.add(finaleIndex);
-  }
-  const nextUpcoming = timelineItems.findIndex((item, idx) => idx > currentIndex && item.status === 'upcoming');
-  if (nextUpcoming >= 0 && !mobileVisibleIndices.has(nextUpcoming)) {
-    mobileVisibleIndices.add(nextUpcoming);
-  }
-  const hiddenCount = timelineItems.length - mobileVisibleIndices.size;
-  const activeItem = timelineItems[currentIndex];
+  const activePhase = phases.find(p => p.status === 'active');
 
   return (
-    <div className={`timeline ${sectionOpen ? 'timeline-open' : ''} ${expanded ? 'timeline-expanded' : ''}`}>
+    <div className={`timeline ${sectionOpen ? 'timeline-open' : ''}`}>
       {/* Mobile-only collapsible header */}
       <button className="timeline-header timeline-header-mobile" onClick={() => setSectionOpen(!sectionOpen)}>
         <div className="timeline-header-left">
           <h4 className="section-label">Timeline</h4>
-          {!sectionOpen && activeItem && (
+          {!sectionOpen && activePhase && (
             <span className="timeline-summary">
               <Circle size={8} className="timeline-summary-dot" />
-              {activeItem.title}
+              {activePhase.title}
             </span>
           )}
         </div>
         <ChevronDown size={18} className={`timeline-header-chevron ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
       </button>
 
-      {/* Desktop-only always-visible header */}
+      {/* Desktop always-visible header */}
       <div className="timeline-header-desktop">
         <h4 className="section-label">Timeline</h4>
-        <div className="timeline-progress-bar">
-          <div className="timeline-progress-fill" style={{ width: `${progressPercent}%` }} />
-        </div>
-        <span className="timeline-progress-label">{completedCount}/{timelineItems.length}</span>
       </div>
 
       {/* Desktop: always visible, Mobile: collapsible */}
@@ -152,10 +127,10 @@ export function Timeline() {
         style={{ maxHeight: sectionOpen ? listHeight + 60 : 0 }}
       >
         <div className="timeline-list">
-          {timelineItems.map((item, index) => (
+          {phases.map((item, index) => (
             <div
               key={item.id}
-              className={`timeline-item timeline-item-${item.status} ${!mobileVisibleIndices.has(index) ? 'timeline-item-collapsible' : ''}`}
+              className={`timeline-item timeline-item-${item.status}`}
             >
               <div className="timeline-marker">
                 <div className={`timeline-step timeline-step-${item.status}`}>
@@ -167,27 +142,16 @@ export function Timeline() {
                     <span className="timeline-step-number">{index + 1}</span>
                   )}
                 </div>
-                {index < timelineItems.length - 1 && (
+                {index < phases.length - 1 && (
                   <div className={`timeline-line timeline-line-${item.status}`} />
                 )}
               </div>
               <div className="timeline-content">
+                <span className="timeline-title">{item.title}</span>
                 <span className="timeline-date">
                   {formatDate(item.date)}
                   {item.endDate && item.endDate !== item.date && (
                     <> — {formatDate(item.endDate)}</>
-                  )}
-                </span>
-                <span className="timeline-title">
-                  {item.title}
-                  {item.isDoubleVote && (
-                    <span className="timeline-badge">2x Votes</span>
-                  )}
-                  {item.roundType === 'finals' && (
-                    <span className="timeline-badge timeline-badge-finals">Finals</span>
-                  )}
-                  {item.isFinale && (
-                    <span className="timeline-badge timeline-badge-finals">Finale</span>
                   )}
                 </span>
                 {item.subtitle && (
@@ -197,24 +161,6 @@ export function Timeline() {
             </div>
           ))}
         </div>
-        {hiddenCount > 0 && (
-          <button
-            className="timeline-toggle"
-            onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? (
-              <>
-                <ChevronUp size={16} />
-                Show less
-              </>
-            ) : (
-              <>
-                <ChevronDown size={16} />
-                Show all {timelineItems.length} phases
-              </>
-            )}
-          </button>
-        )}
       </div>
     </div>
   );
@@ -229,26 +175,6 @@ function getPeriodStatus(startDate, endDate) {
   if (end && now > end) return 'complete';
   if (start && end && now >= start && now <= end) return 'active';
   if (start && !end && now >= start) return 'active';
-  return 'upcoming';
-}
-
-function getEventStatus(startDate, endDate) {
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = endDate ? new Date(endDate) : start;
-
-  if (now > end) return 'complete';
-  if (now >= start && now <= end) return 'active';
-  return 'upcoming';
-}
-
-function getRoundStatus(round, phase) {
-  const now = new Date();
-  const start = new Date(round.start_date);
-  const end = new Date(round.end_date);
-
-  if (now > end) return 'complete';
-  if (now >= start && now <= end) return 'active';
   return 'upcoming';
 }
 
