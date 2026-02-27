@@ -30,7 +30,7 @@ import './AchievementsPage.css';
 
 export default function AchievementsPage() {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useSupabaseAuth();
+  const { user, profile, isAuthenticated } = useSupabaseAuth();
 
   const [loading, setLoading] = useState(true);
   const [achievementRecords, setAchievementRecords] = useState([]);
@@ -291,7 +291,7 @@ export default function AchievementsPage() {
       achievementType: cardOption.type,
       customTitle: cardOption.customTitle,
       name: record.name,
-      photoUrl: record.avatar_url,
+      photoUrl: record.avatar_url || profile?.avatar_url,
       handle: record.instagram,
       competitionName: competition?.name || `Most Eligible ${competition?.city?.name}`,
       season: competition?.season?.toString(),

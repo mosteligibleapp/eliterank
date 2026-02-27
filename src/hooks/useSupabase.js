@@ -171,6 +171,10 @@ export default function useSupabase(competitionId = null) {
       bio: nominee.bio,
       instagram: nominee.instagram,
       interests: nominee.interests,
+      avatar_url: nominee.avatar_url,
+      user_id: nominee.user_id,
+      phone: nominee.phone,
+      city: nominee.city,
       votes: 0,
       rank: contestants.length + 1,
     };
