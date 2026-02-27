@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Check, Circle, ChevronDown, Trophy } from 'lucide-react';
 import { formatDate } from '../../../utils/formatters';
@@ -69,14 +69,6 @@ export function Timeline() {
 
   // Mobile collapsible state
   const [sectionOpen, setSectionOpen] = useState(false);
-  const listRef = useRef(null);
-  const [listHeight, setListHeight] = useState(0);
-
-  useEffect(() => {
-    if (listRef.current) {
-      setListHeight(listRef.current.scrollHeight);
-    }
-  }, [phases]);
 
   if (phases.length === 0) {
     return (
@@ -121,11 +113,7 @@ export function Timeline() {
       </div>
 
       {/* Desktop: always visible, Mobile: collapsible */}
-      <div
-        ref={listRef}
-        className="timeline-body"
-        style={{ maxHeight: sectionOpen ? listHeight + 60 : 0 }}
-      >
+      <div className="timeline-body">
         <div className="timeline-list">
           {phases.map((item, index) => (
             <div
