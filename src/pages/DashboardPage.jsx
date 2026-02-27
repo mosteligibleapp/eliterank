@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores';
 import { CompetitionDashboard } from '../features/competition-dashboard';
-import LoadingScreen from '../components/common/LoadingScreen';
+import { DashboardSkeleton } from '../components/ui/Skeleton';
 
 /**
  * Build competition display name from city and season
@@ -107,7 +107,7 @@ export default function DashboardPage() {
   }, [hostCompetition]);
 
   if (loading) {
-    return <LoadingScreen message="Loading dashboard..." />;
+    return <DashboardSkeleton />;
   }
 
   // Host must have an assigned competition to view the dashboard

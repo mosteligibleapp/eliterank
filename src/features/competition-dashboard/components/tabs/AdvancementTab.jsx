@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Hash, TrendingUp, Award, Scale } from 'lucide-react';
-import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
+import { Button, Badge, Avatar, Panel, EmptyState } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { supabase } from '../../../../lib/supabase';
 
@@ -119,10 +119,7 @@ export default function AdvancementTab({ competitionId, contestants }) {
       <Panel title="Contestant Rankings" icon={TrendingUp}>
         <div style={{ padding: spacing.lg }}>
           {sortedContestants.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xxl, color: colors.text.secondary }}>
-              <Users size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No contestants yet</p>
-            </div>
+            <EmptyState icon={Users} title="No contestants yet" />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
               {sortedContestants.map((contestant, index) => {

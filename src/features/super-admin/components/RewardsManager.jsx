@@ -3,7 +3,7 @@ import {
   Gift, Plus, Edit2, Trash2, Users, ExternalLink, Clock, Check, X,
   Package, Link2, Loader, ChevronDown, ChevronRight, AlertCircle, Crown
 } from 'lucide-react';
-import { Button, Badge } from '../../../components/ui';
+import { Button, Badge, SkeletonGrid } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import RewardModal from '../../../components/modals/RewardModal';
@@ -393,20 +393,7 @@ export default function RewardsManager() {
   };
 
   if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: spacing.xxxl,
-        color: colors.text.secondary
-      }}>
-        <Loader size={32} style={{ animation: 'spin 1s linear infinite', marginBottom: spacing.md }} />
-        <p>Loading rewards...</p>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+    return <SkeletonGrid count={4} columns={2} cardHeight={180} gap={16} style={{ padding: spacing.xl }} />;
   }
 
   return (

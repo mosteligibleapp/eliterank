@@ -1,5 +1,6 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { useNavigate } from 'react-router-dom';
+import { EmptyState } from '../../../components/ui';
 import {
   CheckCircle,
   TrendingUp,
@@ -112,7 +113,7 @@ export function ActivityFeedCompact({ limit = 5 }) {
         })}
 
         {displayActivities.length === 0 && (
-          <p className="activity-empty">No activity yet</p>
+          <EmptyState icon={Clock} title="No activity yet" compact />
         )}
       </div>
 

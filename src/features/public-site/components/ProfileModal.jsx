@@ -205,6 +205,9 @@ export default function ProfileModal({
                 <img
                   src={profileImage}
                   alt={profile.name}
+                  loading="lazy"
+                  width={140}
+                  height={140}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
                     e.target.style.display = 'none';

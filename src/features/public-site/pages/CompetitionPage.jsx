@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Crown, MapPin, Calendar, Users, Loader, ChevronLeft, Trophy,
+  Crown, MapPin, Calendar, Users, ChevronLeft, Trophy,
   Vote, UserPlus, PartyPopper, Megaphone, BookOpen, Clock, Award
 } from 'lucide-react';
-import { Button } from '../../../components/ui';
+import { Button, CompetitionPageSkeleton } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, shadows } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import {
@@ -109,31 +109,24 @@ export default function CompetitionPage() {
         organization: organization,  // Attach org for components that need logo/name
       });
 
-      // Fetch winners if competition has them
-      if (compData.winners && compData.winners.length > 0) {
-        const { data: winnerProfiles, error: winnersError } = await supabase
-          .from('profiles')
-          .select('id, email, first_name, last_name, avatar_url')
-          .in('id', compData.winners);
+      // Fetch winners, events, and announcements in parallel
+      const parallelFetches = [
+        supabase.from('events').select('*').eq('competition_id', compData.id).order('date'),
+        supabase.from('announcements').select('*').eq('competition_id', compData.id)
+          .order('pinned', { ascending: false }).order('published_at', { ascending: false }),
+      ];
 
-        if (!winnersError && winnerProfiles) {
-          // Maintain order from winner IDs
-          const orderedWinners = compData.winners
-            .map(id => winnerProfiles.find(p => p.id === id))
-            .filter(Boolean);
-          setWinners(orderedWinners);
-        }
+      if (compData.winners && compData.winners.length > 0) {
+        parallelFetches.push(
+          supabase.from('profiles').select('id, email, first_name, last_name, avatar_url')
+            .in('id', compData.winners)
+        );
       }
 
-      // Fetch events for this competition
-      const { data: eventsData } = await supabase
-        .from('events')
-        .select('*')
-        .eq('competition_id', compData.id)
-        .order('date');
+      const [eventsResult, announcementsResult, winnersResult] = await Promise.all(parallelFetches);
 
-      if (eventsData) {
-        setEvents(eventsData.map(e => ({
+      if (eventsResult.data) {
+        setEvents(eventsResult.data.map(e => ({
           id: e.id, name: e.name, date: e.date, endDate: e.end_date, time: e.time,
           location: e.location, description: e.description, imageUrl: e.image_url,
           ticketUrl: e.ticket_url, status: e.status, featured: e.featured,
@@ -141,19 +134,18 @@ export default function CompetitionPage() {
         })));
       }
 
-      // Fetch announcements for this competition
-      const { data: announcementsData } = await supabase
-        .from('announcements')
-        .select('*')
-        .eq('competition_id', compData.id)
-        .order('pinned', { ascending: false })
-        .order('published_at', { ascending: false });
-
-      if (announcementsData) {
-        setAnnouncements(announcementsData.map(a => ({
+      if (announcementsResult.data) {
+        setAnnouncements(announcementsResult.data.map(a => ({
           id: a.id, title: a.title, content: a.content, type: a.type || 'announcement',
           date: a.published_at, pinned: a.pinned,
         })));
+      }
+
+      if (winnersResult?.data) {
+        const orderedWinners = compData.winners
+          .map(id => winnersResult.data.find(p => p.id === id))
+          .filter(Boolean);
+        setWinners(orderedWinners);
       }
     } catch (err) {
       console.error('Error fetching competition:', err);
@@ -174,17 +166,8 @@ export default function CompetitionPage() {
 
   if (loading || orgsLoading || citiesLoading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: colors.background.primary,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />
-          <p style={{ marginTop: spacing.md, color: colors.text.secondary }}>Loading competition...</p>
-        </div>
+      <div style={{ minHeight: '100vh', background: colors.background.primary }}>
+        <CompetitionPageSkeleton />
       </div>
     );
   }
@@ -265,6 +248,8 @@ export default function CompetitionPage() {
                 <img
                   src={organization.logo_url}
                   alt={organization.name}
+                  width={80}
+                  height={80}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
@@ -430,6 +415,9 @@ export default function CompetitionPage() {
                           <img
                             src={prize.image_url}
                             alt={prize.title}
+                            loading="lazy"
+                            width={60}
+                            height={60}
                             style={{ width: 60, height: 60, borderRadius: borderRadius.md, objectFit: 'cover' }}
                           />
                         ) : (

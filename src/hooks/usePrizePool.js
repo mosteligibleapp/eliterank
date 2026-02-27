@@ -36,8 +36,9 @@ export function usePrizePool(
 
       const { data, error } = await supabase
         .from('votes')
-        .select('amount_paid')
-        .eq('competition_id', competitionId);
+        .select('amount_paid', { count: 'exact', head: false })
+        .eq('competition_id', competitionId)
+        .not('amount_paid', 'is', null);
 
       if (!error && data) {
         const revenue = calculateVoteRevenue(data);

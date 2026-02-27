@@ -7,7 +7,7 @@
 import React, { lazy, Suspense, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseAuth } from '../hooks';
-import LoadingScreen from '../components/common/LoadingScreen';
+import { DashboardSkeleton } from '../components/ui/Skeleton';
 
 const SuperAdminPage = lazy(() => import('../features/super-admin/SuperAdminPage'));
 
@@ -21,7 +21,7 @@ export default function AdminPage() {
   }, [signOut, navigate]);
 
   return (
-    <Suspense fallback={<LoadingScreen message="Loading admin dashboard..." />}>
+    <Suspense fallback={<DashboardSkeleton />}>
       <SuperAdminPage onLogout={handleLogout} />
     </Suspense>
   );

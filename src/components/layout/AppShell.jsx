@@ -1,6 +1,6 @@
 /**
  * AppShell - Application shell component
- * 
+ *
  * Handles common shell concerns:
  * - Auth state monitoring (via Zustand)
  * - Pending nominations modal
@@ -65,8 +65,8 @@ function PendingNominationsModal({ nominations, onSelect, onClose }) {
                 </div>
                 <div
                   className={`text-xs px-2 py-1 rounded font-medium ${
-                    nom.flow_stage 
-                      ? 'bg-green-400/20 text-green-400' 
+                    nom.flow_stage
+                      ? 'bg-green-400/20 text-green-400'
                       : 'bg-gold/20 text-gold'
                   }`}
                 >
@@ -149,10 +149,10 @@ async function checkPendingNominations(userEmail) {
  */
 export default function AppShell({ children }) {
   const navigate = useNavigate();
-  
+
   // Initialize auth sync with Zustand (this keeps Supabase auth → Zustand in sync)
   useAuthWithZustand();
-  
+
   // Get auth state from Zustand store
   const user = useAuthStore(s => s.user);
   const profile = useAuthStore(s => s.profile);
@@ -166,7 +166,7 @@ export default function AppShell({ children }) {
   const closeNominationsModal = useUIStore(s => s.closeNominationsModal);
   const openAcceptNomination = useUIStore(s => s.openAcceptNomination);
   const closeAcceptNomination = useUIStore(s => s.closeAcceptNomination);
-  
+
   // Track if we've checked for pending nominations this session
   const hasCheckedPendingRef = React.useRef(false);
 
@@ -241,7 +241,7 @@ export default function AppShell({ children }) {
 
       {/* Accept Nomination Modal */}
       {acceptingNomination && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div />}>
           <AcceptNominationModal
             isOpen={true}
             onClose={handleCloseAcceptModal}

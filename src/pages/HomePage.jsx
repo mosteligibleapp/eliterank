@@ -1,6 +1,6 @@
 /**
  * HomePage - Public landing page showing competition listings
- * 
+ *
  * Renders EliteRankCityModal in full-page mode as the main landing experience.
  */
 
@@ -14,19 +14,19 @@ const ContestantGuide = lazy(() => import('../features/contestant-guide/Contesta
 
 /**
  * HomePage Component
- * 
+ *
  * @param {Object} props
  * @param {Function} props.onShowLogin - Callback to show login modal
  * @param {Function} props.onShowProfile - Callback to show user profile
  * @param {Function} props.onShowRewards - Callback to show rewards page
  */
-export default function HomePage({ 
-  onShowLogin, 
-  onShowProfile, 
-  onShowRewards 
+export default function HomePage({
+  onShowLogin,
+  onShowProfile,
+  onShowRewards
 }) {
   const navigate = useNavigate();
-  
+
   // Use Zustand stores for auth state
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const profile = useAuthStore(s => s.profile);
@@ -103,7 +103,7 @@ export default function HomePage({
 
       {/* Generic Contestant Guide (no specific competition) */}
       {showGuide && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div />}>
           <ContestantGuide
             competition={null}
             mode="page"

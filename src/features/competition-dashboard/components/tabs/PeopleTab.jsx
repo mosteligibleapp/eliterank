@@ -3,7 +3,7 @@ import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
   Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check
 } from 'lucide-react';
-import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
+import { Button, Badge, Avatar, Panel, EmptyState } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import WinnersManager from '../../../super-admin/components/WinnersManager';
@@ -267,13 +267,11 @@ export default function PeopleTab({
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {!host ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p style={{ marginBottom: spacing.lg }}>No host assigned yet</p>
-              {isSuperAdmin && (
-                <Button icon={UserPlus} onClick={onShowHostAssignment}>Assign Host</Button>
-              )}
-            </div>
+            <EmptyState
+              icon={User}
+              title="No host assigned yet"
+              action={isSuperAdmin ? <Button icon={UserPlus} onClick={onShowHostAssignment}>Assign Host</Button> : undefined}
+            />
           ) : (
             <div>
               <div style={{
@@ -448,10 +446,11 @@ export default function PeopleTab({
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {contestants.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Crown size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No contestants yet. Approve nominees or add manually.</p>
-            </div>
+            <EmptyState
+              icon={Crown}
+              title="No contestants yet"
+              description="Approve nominees or add manually"
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {contestants.map(c => (
@@ -476,10 +475,7 @@ export default function PeopleTab({
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {nomineesWithProfile.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <UserCheck size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No nominees with linked profiles</p>
-            </div>
+            <EmptyState icon={UserCheck} title="No nominees with linked profiles" />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {nomineesWithProfile.map(n => (
@@ -499,10 +495,7 @@ export default function PeopleTab({
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {externalNominees.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Users size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No external nominees</p>
-            </div>
+            <EmptyState icon={Users} title="No external nominees" />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {externalNominees.map(n => (
@@ -522,10 +515,7 @@ export default function PeopleTab({
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {archivedNominees.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Archive size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No archived nominees</p>
-            </div>
+            <EmptyState icon={Archive} title="No archived nominees" />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {archivedNominees.map(n => (

@@ -9,7 +9,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCompetitionUrl, getCompetitionUrlById } from '../utils/slugs';
 import { PageHeader } from '../components/ui';
-import LoadingScreen from '../components/common/LoadingScreen';
+import { ProfileSkeleton } from '../components/ui/Skeleton';
 
 const ProfilePage = lazy(() => import('../features/profile/ProfilePage'));
 
@@ -97,7 +97,11 @@ export default function ViewPublicProfilePage() {
     : 'Profile';
 
   if (loading) {
-    return <LoadingScreen message="Loading profile..." />;
+    return (
+      <div style={{ minHeight: '100vh', background: '#0a0a0f' }}>
+        <ProfileSkeleton />
+      </div>
+    );
   }
 
   if (error || !profileData) {
@@ -160,7 +164,7 @@ export default function ViewPublicProfilePage() {
     <div style={{ minHeight: '100vh', background: '#0a0a0f', overflow: 'auto' }}>
       <PageHeader title={displayName} onBack={handleBack} />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        <Suspense fallback={<LoadingScreen message="Loading profile..." />}>
+        <Suspense fallback={<ProfileSkeleton />}>
           <ProfilePage
             hostProfile={profileData}
             isEditing={false}

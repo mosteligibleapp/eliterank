@@ -8,7 +8,7 @@ import React, { useMemo, lazy, Suspense } from 'react';
 import { useSupabaseAuth } from '../hooks';
 import { DEFAULT_HOST_PROFILE } from '../constants';
 import { PageHeader } from '../components/ui';
-import LoadingScreen from '../components/common/LoadingScreen';
+import { ProfileSkeleton } from '../components/ui/Skeleton';
 
 const RewardsPage = lazy(() => import('../features/profile/RewardsPage'));
 
@@ -43,7 +43,7 @@ export default function UserRewardsPage() {
     <div style={{ minHeight: '100vh', background: '#0a0a0f', overflowX: 'hidden' }}>
       <PageHeader title="Rewards" />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
-        <Suspense fallback={<LoadingScreen message="Loading rewards..." />}>
+        <Suspense fallback={<ProfileSkeleton />}>
           <RewardsPage hostProfile={hostProfile} />
         </Suspense>
       </div>

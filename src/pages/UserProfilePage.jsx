@@ -10,7 +10,7 @@ import { useSupabaseAuth } from '../hooks';
 import { DEFAULT_HOST_PROFILE } from '../constants';
 import { ROLE, getUserRole } from '../routes/ProtectedRoute';
 import { PageHeader } from '../components/ui';
-import LoadingScreen from '../components/common/LoadingScreen';
+import { ProfileSkeleton } from '../components/ui/Skeleton';
 
 const ProfilePage = lazy(() => import('../features/profile/ProfilePage'));
 
@@ -104,7 +104,7 @@ export default function UserProfilePage() {
     <div style={{ minHeight: '100vh', background: '#0a0a0f', overflow: 'auto' }}>
       <PageHeader title="My Profile" />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        <Suspense fallback={<LoadingScreen message="Loading profile..." />}>
+        <Suspense fallback={<ProfileSkeleton />}>
           <ProfilePage
             hostProfile={isEditing ? editingData : hostProfile}
             isEditing={isEditing}

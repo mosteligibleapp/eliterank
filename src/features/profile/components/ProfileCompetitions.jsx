@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Crown, MapPin, Star, ExternalLink, UserPlus, Clock } from 'lucide-react';
-import { Panel, Badge, Button, EliteRankCrown } from '../../../components/ui';
+import { Panel, Badge, Button, EliteRankCrown, EmptyState } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
@@ -229,10 +229,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
   if (!hasHosted && !hasContestant && !hasNominations) {
     return (
       <Panel style={{ marginBottom: spacing.xl }}>
-        <div style={{ padding: spacing.xl, textAlign: 'center', color: colors.text.muted }}>
-          <Trophy size={32} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-          <p style={{ fontSize: typography.fontSize.sm }}>No competitions yet</p>
-        </div>
+        <EmptyState icon={Trophy} title="No competitions yet" compact />
       </Panel>
     );
   }

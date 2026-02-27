@@ -4,7 +4,7 @@ import {
   ExternalLink, User, Mail, Phone, Instagram, Check, X, RotateCcw,
   Loader, AlertCircle, Link2
 } from 'lucide-react';
-import { Button, Badge } from '../../components/ui';
+import { Button, Badge, NominationsPageSkeleton } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
 
@@ -146,20 +146,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
 
   // Loading state
   if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: spacing.xxxl,
-        minHeight: '400px',
-      }}>
-        <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary, marginBottom: spacing.md }} />
-        <p style={{ color: colors.text.secondary }}>Loading nominees...</p>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+    return <NominationsPageSkeleton style={{ padding: spacing.xl }} />;
   }
 
   // Error state

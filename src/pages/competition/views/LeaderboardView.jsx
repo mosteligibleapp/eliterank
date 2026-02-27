@@ -1,5 +1,6 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown } from 'lucide-react';
+import { EmptyState } from '../../../components/ui';
 
 /**
  * Full leaderboard page - clean grid of contestant cards
@@ -57,9 +58,11 @@ export function LeaderboardView() {
 
       {/* Empty state */}
       {(!contestants || contestants.length === 0) && (
-        <div className="leaderboard-empty">
-          <p>No contestants yet</p>
-        </div>
+        <EmptyState
+          icon={Crown}
+          title="No contestants yet"
+          description="Contestants will appear here when they join"
+        />
       )}
     </div>
   );

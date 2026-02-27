@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Award, Building, Calendar, Plus, Edit, Trash2, Check, Info, Link, Image, Clock, UserPlus, Vote, Trophy, Save, Loader, AlertCircle, Zap } from 'lucide-react';
-import { Panel, Avatar, Badge, Button } from '../../components/ui';
+import { Panel, Avatar, Badge, Button, EmptyState } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { formatCurrency, formatEventDateRange } from '../../utils/formatters';
 import { supabase } from '../../lib/supabase';
@@ -546,10 +546,7 @@ export default function SettingsPage({
             </div>
           ))}
           {judges.length === 0 && (
-            <div style={{ textAlign: 'center', padding: spacing.xxxl, color: colors.text.muted }}>
-              <Award size={32} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-              <p>No judges added yet</p>
-            </div>
+            <EmptyState icon={Award} title="No judges added yet" compact />
           )}
         </div>
       </Panel>
@@ -692,13 +689,16 @@ export default function SettingsPage({
             );
           })}
           {sponsors.length === 0 && (
-            <div style={{ textAlign: 'center', padding: spacing.xxxl, color: colors.text.muted }}>
-              <Building size={32} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-              <p style={{ marginBottom: spacing.md }}>No sponsors added yet</p>
-              <Button variant="secondary" onClick={onShowSponsorInfo} icon={Info} style={{ width: 'auto' }}>
-                View Sponsorship Guide
-              </Button>
-            </div>
+            <EmptyState
+              icon={Building}
+              title="No sponsors added yet"
+              compact
+              action={
+                <Button variant="secondary" onClick={onShowSponsorInfo} icon={Info} style={{ width: 'auto' }}>
+                  View Sponsorship Guide
+                </Button>
+              }
+            />
           )}
           {sponsors.length > 0 && (
             <div

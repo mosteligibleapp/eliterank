@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { EmptyState } from '../../../components/ui';
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -48,14 +49,23 @@ export function LeaderboardCompact() {
 
       {/* All Contestants - Unified Portrait Grid */}
       <div className="portrait-grid">
-        {allContestants.map((contestant, index) => (
-          <PortraitCard
-            key={contestant.id}
-            contestant={contestant}
-            rank={index + 1}
-            onVote={openVoteModal}
+        {allContestants.length === 0 ? (
+          <EmptyState
+            icon={Crown}
+            title="No contestants yet"
+            description="Contestants will appear here when they join"
+            compact
           />
-        ))}
+        ) : (
+          allContestants.map((contestant, index) => (
+            <PortraitCard
+              key={contestant.id}
+              contestant={contestant}
+              rank={index + 1}
+              onVote={openVoteModal}
+            />
+          ))
+        )}
       </div>
 
       {/* Danger Zone Summary */}

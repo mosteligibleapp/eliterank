@@ -4,7 +4,7 @@ import {
   Activity, Info, Briefcase, Loader, User, Megaphone, Award, Building, Heart,
   Home, Search, Bell, Menu, ArrowRight, Play, ExternalLink
 } from 'lucide-react';
-import { Button, Badge, OrganizationLogo, ProfileIcon, NotificationBell, EliteRankCrown, CrownIcon } from '../ui';
+import { Button, Badge, OrganizationLogo, ProfileIcon, NotificationBell, EliteRankCrown, CrownIcon, HomeFeedSkeleton, EventsGridSkeleton, AnnouncementsSkeleton } from '../ui';
 import { useSupabaseAuth, useAppSettings } from '../../hooks';
 import { colors, spacing, borderRadius, typography, shadows, transitions, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -719,17 +719,7 @@ export default function EliteRankCityModal({
   // ============================================
   const renderContent = () => {
     if (loading) {
-      return (
-        <div style={{
-          ...styleHelpers.flexCenter,
-          flexDirection: 'column',
-          minHeight: '60vh',
-          gap: spacing.lg,
-        }}>
-          <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />
-          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>Loading...</p>
-        </div>
-      );
+      return <HomeFeedSkeleton style={{ padding: isMobile ? spacing.lg : spacing.xxl }} />;
     }
 
     const contentPadding = isMobile ? spacing.lg : spacing.xxl;
@@ -907,6 +897,11 @@ export default function EliteRankCityModal({
         );
 
       case 'events':
+        if (events.length === 0 && eventsFetched) {
+          // Still loading events
+        } else if (events.length === 0 && !eventsFetched) {
+          return <EventsGridSkeleton count={4} style={{ padding: contentPadding }} />;
+        }
         // Use string comparison to avoid timezone issues
         const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
         const upcomingEvents = events.filter(e => e.date >= todayStr).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1104,6 +1099,9 @@ export default function EliteRankCityModal({
         );
 
       case 'announcements':
+        if (announcements.length === 0 && !announcementsFetched) {
+          return <AnnouncementsSkeleton count={4} style={{ padding: contentPadding, maxWidth: '800px', margin: '0 auto' }} />;
+        }
         return (
           <div style={{ padding: contentPadding, paddingBottom: isMobile ? '100px' : contentPadding, maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>

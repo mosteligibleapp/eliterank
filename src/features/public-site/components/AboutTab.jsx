@@ -110,7 +110,14 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
               overflow: 'hidden',
             }}>
               {host.avatar ? (
-                <img src={host.avatar} alt={host.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img
+                  src={host.avatar}
+                  alt={host.name}
+                  loading="lazy"
+                  width={140}
+                  height={140}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               ) : (
                 <span style={{ fontSize: '48px', fontWeight: typography.fontWeight.bold, color: '#fff' }}>
                   {host.name?.charAt(0) || 'H'}
