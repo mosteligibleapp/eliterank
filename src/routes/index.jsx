@@ -74,14 +74,16 @@ export default function AppRoutes() {
   }, [navigate]);
 
   const handleShowProfile = useCallback(() => {
-    // Navigate to profile page
-    window.location.href = '/profile';
-  }, []);
+    navigate('/profile');
+  }, [navigate]);
 
   const handleShowRewards = useCallback(() => {
-    // Navigate to rewards page
-    window.location.href = '/rewards';
-  }, []);
+    navigate('/rewards');
+  }, [navigate]);
+
+  const handleShowAchievements = useCallback(() => {
+    navigate('/achievements');
+  }, [navigate]);
 
   const handleResetComplete = useCallback(() => {
     // Clear the URL params and navigate to home
@@ -132,6 +134,7 @@ export default function AppRoutes() {
               onShowLogin={handleShowLogin}
               onShowProfile={handleShowProfile}
               onShowRewards={handleShowRewards}
+              onShowAchievements={handleShowAchievements}
             />
           </SuspenseWrapper>
         }

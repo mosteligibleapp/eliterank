@@ -20,10 +20,11 @@ const ContestantGuide = lazy(() => import('../features/contestant-guide/Contesta
  * @param {Function} props.onShowProfile - Callback to show user profile
  * @param {Function} props.onShowRewards - Callback to show rewards page
  */
-export default function HomePage({ 
-  onShowLogin, 
-  onShowProfile, 
-  onShowRewards 
+export default function HomePage({
+  onShowLogin,
+  onShowProfile,
+  onShowRewards,
+  onShowAchievements
 }) {
   const navigate = useNavigate();
   
@@ -94,6 +95,7 @@ export default function HomePage({
         onDashboard={isAuthenticated && hasDashboardAccess ? handleGoToDashboard : null}
         onProfile={isAuthenticated ? onShowProfile : null}
         onRewards={isAuthenticated ? onShowRewards : null}
+        onAchievements={isAuthenticated ? onShowAchievements : null}
         onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
