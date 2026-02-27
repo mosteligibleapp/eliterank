@@ -5,7 +5,8 @@ import { useResponsive } from '../../../../hooks/useResponsive';
 import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
-import ProfileViewModal from '../../../../components/modals/ProfileViewModal';
+import PublicProfileView from '../../../public-site/components/PublicProfileView';
+import { supabase } from '../../../../lib/supabase';
 import { isLive } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
@@ -35,11 +36,27 @@ export default function OverviewTab({
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
-  const [profileModal, setProfileModal] = useState({ isOpen: false, profileId: null });
+  const [viewingProfile, setViewingProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [generatingCardId, setGeneratingCardId] = useState(null);
 
-  const handleViewProfile = (profileId) => {
-    if (profileId) setProfileModal({ isOpen: true, profileId });
+  const handleViewProfile = async (profileId) => {
+    if (!profileId) return;
+    setProfileLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
+      if (!error && data) {
+        setViewingProfile(data);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    } finally {
+      setProfileLoading(false);
+    }
   };
 
   const handleDownloadCard = async (person) => {
@@ -605,12 +622,32 @@ export default function OverviewTab({
         )}
       </div>
 
-      {/* Profile View Modal */}
-      <ProfileViewModal
-        isOpen={profileModal.isOpen}
-        onClose={() => setProfileModal({ isOpen: false, profileId: null })}
-        profileId={profileModal.profileId}
-      />
+      {/* Profile loading overlay */}
+      {profileLoading && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(10,10,15,0.95)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: spacing.lg,
+        }}>
+          <Loader size={48} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: colors.text.secondary }}>Loading profile...</p>
+        </div>
+      )}
+
+      {/* Full-page public profile view */}
+      {viewingProfile && !profileLoading && (
+        <PublicProfileView
+          profile={viewingProfile}
+          role="contestant"
+          onBack={() => setViewingProfile(null)}
+        />
+      )}
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

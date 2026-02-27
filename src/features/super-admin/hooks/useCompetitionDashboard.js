@@ -169,8 +169,8 @@ export function useCompetitionDashboard(competitionId) {
         status: c.status,
         trend: c.trend || 'same',
         rank: index + 1,
-        avatarUrl: c.avatar_url,
-        instagram: c.instagram,
+        avatarUrl: c.avatar_url || c.profile?.avatar_url,
+        instagram: c.instagram || c.profile?.instagram,
         userId: c.user_id,
       }));
 
@@ -178,6 +178,7 @@ export function useCompetitionDashboard(competitionId) {
       const nominees = (nomineesResult.data || []).map((n) => {
         let hasProfile = false;
         let matchedProfileId = null;
+        let matchedProfile = null;
 
         // Check if nominee's email matches an existing profile
         if (n.email) {
@@ -185,6 +186,7 @@ export function useCompetitionDashboard(competitionId) {
           if (emailToProfileMap.has(emailLower)) {
             hasProfile = true;
             matchedProfileId = emailToProfileMap.get(emailLower);
+            matchedProfile = profilesById.get(matchedProfileId);
           }
         }
 
@@ -200,6 +202,8 @@ export function useCompetitionDashboard(competitionId) {
           nominatorAnonymous: n.nominator_anonymous,
           matchedProfileId,
           hasProfile,
+          avatarUrl: matchedProfile?.avatar_url || null,
+          instagram: matchedProfile?.instagram || null,
           status: n.status,
           inviteToken: n.invite_token,
           inviteSentAt: n.invite_sent_at,

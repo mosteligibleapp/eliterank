@@ -7,7 +7,8 @@ import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
-import ProfileViewModal from '../../../../components/modals/ProfileViewModal';
+import PublicProfileView from '../../../public-site/components/PublicProfileView';
+import { supabase } from '../../../../lib/supabase';
 import WinnersManager from '../../../super-admin/components/WinnersManager';
 
 /**
@@ -31,11 +32,29 @@ export default function PeopleTab({
   const { isMobile } = useResponsive();
   const [processingId, setProcessingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
-  const [profileModal, setProfileModal] = useState({ isOpen: false, profileId: null });
+  const [viewingProfile, setViewingProfile] = useState(null);
+  const [viewingProfileRole, setViewingProfileRole] = useState('fan');
+  const [profileLoading, setProfileLoading] = useState(false);
   const [generatingCardId, setGeneratingCardId] = useState(null);
 
-  const handleViewProfile = (profileId) => {
-    if (profileId) setProfileModal({ isOpen: true, profileId });
+  const handleViewProfile = async (profileId, role = 'fan') => {
+    if (!profileId) return;
+    setProfileLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
+      if (!error && data) {
+        setViewingProfile(data);
+        setViewingProfileRole(role);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    } finally {
+      setProfileLoading(false);
+    }
   };
 
   const handleDownloadCard = async (person, type = 'contestant') => {
@@ -554,7 +573,7 @@ export default function PeopleTab({
                   key={c.id}
                   person={c}
                   cardType="contestant"
-                  onNameClick={c.userId ? () => handleViewProfile(c.userId) : undefined}
+                  onNameClick={c.userId ? () => handleViewProfile(c.userId, 'contestant') : undefined}
                 />
               ))}
             </div>
@@ -678,12 +697,32 @@ export default function PeopleTab({
         </div>
       </Panel>
 
-      {/* Profile View Modal */}
-      <ProfileViewModal
-        isOpen={profileModal.isOpen}
-        onClose={() => setProfileModal({ isOpen: false, profileId: null })}
-        profileId={profileModal.profileId}
-      />
+      {/* Profile loading overlay */}
+      {profileLoading && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(10,10,15,0.95)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: spacing.lg,
+        }}>
+          <Loader size={48} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: colors.text.secondary }}>Loading profile...</p>
+        </div>
+      )}
+
+      {/* Full-page public profile view */}
+      {viewingProfile && !profileLoading && (
+        <PublicProfileView
+          profile={viewingProfile}
+          role={viewingProfileRole}
+          onBack={() => setViewingProfile(null)}
+        />
+      )}
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
