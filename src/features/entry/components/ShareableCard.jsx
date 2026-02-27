@@ -15,6 +15,7 @@ export default function ShareableCard({
 }) {
   const canvasRef = useRef(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [blobUrl, setBlobUrl] = useState(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -315,9 +316,8 @@ export default function ShareableCard({
 
     }
 
-    if (photoUrl && imageLoaded) {
+    if (blobUrl && imageLoaded) {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
       img.onload = () => {
         ctx.save();
         ctx.beginPath();
@@ -346,21 +346,48 @@ export default function ShareableCard({
         drawRings();
         drawBottom();
       };
-      img.src = photoUrl;
+      img.src = blobUrl;
     } else {
       drawInitialCircle();
       drawRings();
       drawBottom();
     }
-  }, [name, photoUrl, handle, competitionTitle, cityName, season, accentColor, imageLoaded]);
+  }, [name, blobUrl, handle, competitionTitle, cityName, season, accentColor, imageLoaded]);
 
-  // Pre-load photo
+  // Pre-load photo as blob to avoid CORS/tainted-canvas issues
   useEffect(() => {
     if (!photoUrl) return;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => setImageLoaded(true);
-    img.src = photoUrl;
+    let cancelled = false;
+    let createdUrl = null;
+
+    // Handle local blob: URLs directly (from file input)
+    if (photoUrl.startsWith('blob:')) {
+      setBlobUrl(photoUrl);
+      setImageLoaded(true);
+      return;
+    }
+
+    fetch(photoUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        if (cancelled) return;
+        createdUrl = URL.createObjectURL(blob);
+        setBlobUrl(createdUrl);
+        setImageLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setImageLoaded(false);
+      });
+
+    return () => {
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+      setBlobUrl(null);
+      setImageLoaded(false);
+    };
   }, [photoUrl]);
 
   return (
