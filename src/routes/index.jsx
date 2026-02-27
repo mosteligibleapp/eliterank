@@ -27,6 +27,7 @@ const UserRewardsPage = lazy(() => import('../pages/UserRewardsPage'));
 const ViewPublicProfilePage = lazy(() => import('../pages/ViewPublicProfilePage'));
 const AdminPage = lazy(() => import('../pages/AdminPage'));
 const AchievementsPage = lazy(() => import('../pages/AchievementsPage'));
+const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
 const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLayout'));
 
 /**
@@ -194,6 +195,17 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <SuspenseWrapper message="Loading achievements...">
               <AchievementsPage />
+            </SuspenseWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <SuspenseWrapper message="Loading notifications...">
+              <NotificationsPage />
             </SuspenseWrapper>
           </ProtectedRoute>
         }
