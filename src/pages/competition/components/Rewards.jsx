@@ -9,7 +9,7 @@ export function Rewards() {
     {
       icon: DollarSign,
       title: 'Cash',
-      description: 'Every paid vote grows the pot and split among the winners.',
+      description: 'Cash Prize for 1st Place - $1,000 minimum.',
     },
     {
       icon: Crown,
