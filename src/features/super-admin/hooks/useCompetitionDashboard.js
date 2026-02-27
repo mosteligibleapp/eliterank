@@ -311,6 +311,10 @@ export function useCompetitionDashboard(competitionId) {
           eligibilityRadiusMiles: competition.eligibility_radius_miles || 100,
           minContestants: competition.min_contestants || 40,
           maxContestants: competition.max_contestants || null,
+          // Additional fields for card generation and links
+          slug: competition.slug || null,
+          organizationName: competition.organization?.name || null,
+          themePrimary: competition.theme_primary || null,
         } : null,
       });
     } catch (err) {

@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { Eye, Users, UserPlus, Star, Plus, Crown, Calendar, DollarSign, FileText, Pin, Edit, Trash2 } from 'lucide-react';
+import { Eye, Users, UserPlus, Star, Plus, Crown, Calendar, DollarSign, FileText, Pin, Edit, Trash2, Download, Loader, ExternalLink } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
+import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
+import ProfileViewModal from '../../../../components/modals/ProfileViewModal';
 import { isLive } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
@@ -33,6 +35,42 @@ export default function OverviewTab({
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
+  const [profileModal, setProfileModal] = useState({ isOpen: false, profileId: null });
+  const [generatingCardId, setGeneratingCardId] = useState(null);
+
+  const handleViewProfile = (profileId) => {
+    if (profileId) setProfileModal({ isOpen: true, profileId });
+  };
+
+  const handleDownloadCard = async (person) => {
+    setGeneratingCardId(person.id);
+    try {
+      const blob = await generateAchievementCard({
+        achievementType: 'contestant',
+        name: person.name,
+        photoUrl: person.avatarUrl,
+        handle: person.instagram,
+        competitionName: competition?.name || `Most Eligible ${competition?.city}`,
+        season: competition?.season?.toString(),
+        organizationName: competition?.organizationName || 'Most Eligible',
+        accentColor: competition?.themePrimary || '#d4af37',
+        voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${person.name.replace(/\s+/g, '-').toLowerCase()}-card.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Card generation failed:', err);
+    } finally {
+      setGeneratingCardId(null);
+    }
+  };
 
   const rankedContestants = useMemo(() => {
     return [...(contestants || [])].sort((a, b) => (b.votes || 0) - (a.votes || 0));
@@ -291,19 +329,69 @@ export default function OverviewTab({
                     </div>
                     <Avatar name={contestant.name} size={36} src={contestant.avatarUrl} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{
-                        fontWeight: typography.fontWeight.medium,
-                        display: 'block',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {contestant.name}
-                      </span>
+                      {contestant.userId ? (
+                        <button
+                          onClick={() => handleViewProfile(contestant.userId)}
+                          style={{
+                            fontWeight: typography.fontWeight.medium,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: spacing.xs,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            background: 'none',
+                            border: 'none',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            padding: 0,
+                            fontSize: 'inherit',
+                          }}
+                        >
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {contestant.name}
+                          </span>
+                          <ExternalLink size={10} style={{ opacity: 0.4, flexShrink: 0 }} />
+                        </button>
+                      ) : (
+                        <span style={{
+                          fontWeight: typography.fontWeight.medium,
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {contestant.name}
+                        </span>
+                      )}
                     </div>
                     <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
                       {formatNumber(contestant.votes || 0)} votes
                     </span>
+                    <button
+                      onClick={() => handleDownloadCard(contestant)}
+                      disabled={generatingCardId === contestant.id}
+                      title="Download share card"
+                      style={{
+                        padding: spacing.xs,
+                        background: 'rgba(212,175,55,0.1)',
+                        border: 'none',
+                        borderRadius: borderRadius.sm,
+                        cursor: generatingCardId === contestant.id ? 'wait' : 'pointer',
+                        color: colors.gold.primary,
+                        minWidth: '28px',
+                        minHeight: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {generatingCardId === contestant.id ? (
+                        <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        <Download size={14} />
+                      )}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -516,6 +604,16 @@ export default function OverviewTab({
           </button>
         )}
       </div>
+
+      {/* Profile View Modal */}
+      <ProfileViewModal
+        isOpen={profileModal.isOpen}
+        onClose={() => setProfileModal({ isOpen: false, profileId: null })}
+        profileId={profileModal.profileId}
+      />
+
+      {/* Keyframes for loader animation */}
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
