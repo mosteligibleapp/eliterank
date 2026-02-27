@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Check, Circle, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatDate } from '../../../utils/formatters';
@@ -74,15 +74,30 @@ export function Timeline() {
     .filter(item => item.date) // Only include items with dates
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
+  const [sectionOpen, setSectionOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const listRef = useRef(null);
+  const [listHeight, setListHeight] = useState(0);
+
+  // Measure the full height of the timeline list for smooth animation
+  useEffect(() => {
+    if (listRef.current) {
+      setListHeight(listRef.current.scrollHeight);
+    }
+  }, [timelineItems, expanded]);
 
   if (timelineItems.length === 0) {
     return (
       <div className="timeline">
-        <h4 className="section-label">Timeline</h4>
-        <div className="timeline-empty">
-          <p>Timeline coming soon</p>
-        </div>
+        <button className="timeline-header" onClick={() => setSectionOpen(!sectionOpen)}>
+          <h4 className="section-label">Timeline</h4>
+          <ChevronDown size={18} className={`timeline-header-chevron ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
+        </button>
+        {sectionOpen && (
+          <div className="timeline-empty">
+            <p>Timeline coming soon</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -107,69 +122,78 @@ export function Timeline() {
 
   return (
     <div className={`timeline ${expanded ? 'timeline-expanded' : ''}`}>
-      <h4 className="section-label">Timeline</h4>
-      <div className="timeline-list">
-        {timelineItems.map((item, index) => (
-          <div
-            key={item.id}
-            className={`timeline-item timeline-item-${item.status} ${!mobileVisibleIndices.has(index) ? 'timeline-item-collapsible' : ''}`}
+      <button className="timeline-header" onClick={() => setSectionOpen(!sectionOpen)}>
+        <h4 className="section-label">Timeline</h4>
+        <ChevronDown size={18} className={`timeline-header-chevron ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
+      </button>
+      <div
+        ref={listRef}
+        className="timeline-body"
+        style={{ maxHeight: sectionOpen ? listHeight + 60 : 0 }}
+      >
+        <div className="timeline-list">
+          {timelineItems.map((item, index) => (
+            <div
+              key={item.id}
+              className={`timeline-item timeline-item-${item.status} ${!mobileVisibleIndices.has(index) ? 'timeline-item-collapsible' : ''}`}
+            >
+              <div className="timeline-marker">
+                {item.status === 'complete' ? (
+                  <Check size={12} />
+                ) : item.status === 'active' ? (
+                  <Circle size={12} className="timeline-active-dot" />
+                ) : (
+                  <Circle size={12} />
+                )}
+                {index < timelineItems.length - 1 && (
+                  <div className={`timeline-line timeline-line-${item.status}`} />
+                )}
+              </div>
+              <div className="timeline-content">
+                <span className="timeline-date">
+                  {formatDate(item.date)}
+                  {item.endDate && item.endDate !== item.date && (
+                    <> - {formatDate(item.endDate)}</>
+                  )}
+                </span>
+                <span className="timeline-title">
+                  {item.title}
+                  {item.isDoubleVote && (
+                    <span className="timeline-badge">2x Votes</span>
+                  )}
+                  {item.roundType === 'finals' && (
+                    <span className="timeline-badge timeline-badge-finals">Finals</span>
+                  )}
+                  {item.isFinale && (
+                    <span className="timeline-badge timeline-badge-finals">Finale</span>
+                  )}
+                </span>
+                {item.subtitle && (
+                  <span className="timeline-subtitle">{item.subtitle}</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {hiddenCount > 0 && (
+          <button
+            className="timeline-toggle"
+            onClick={() => setExpanded(!expanded)}
           >
-            <div className="timeline-marker">
-              {item.status === 'complete' ? (
-                <Check size={12} />
-              ) : item.status === 'active' ? (
-                <Circle size={12} className="timeline-active-dot" />
-              ) : (
-                <Circle size={12} />
-              )}
-              {index < timelineItems.length - 1 && (
-                <div className={`timeline-line timeline-line-${item.status}`} />
-              )}
-            </div>
-            <div className="timeline-content">
-              <span className="timeline-date">
-                {formatDate(item.date)}
-                {item.endDate && item.endDate !== item.date && (
-                  <> - {formatDate(item.endDate)}</>
-                )}
-              </span>
-              <span className="timeline-title">
-                {item.title}
-                {item.isDoubleVote && (
-                  <span className="timeline-badge">2x Votes</span>
-                )}
-                {item.roundType === 'finals' && (
-                  <span className="timeline-badge timeline-badge-finals">Finals</span>
-                )}
-                {item.isFinale && (
-                  <span className="timeline-badge timeline-badge-finals">Finale</span>
-                )}
-              </span>
-              {item.subtitle && (
-                <span className="timeline-subtitle">{item.subtitle}</span>
-              )}
-            </div>
-          </div>
-        ))}
+            {expanded ? (
+              <>
+                <ChevronUp size={16} />
+                Show less
+              </>
+            ) : (
+              <>
+                <ChevronDown size={16} />
+                Show all {timelineItems.length} phases
+              </>
+            )}
+          </button>
+        )}
       </div>
-      {hiddenCount > 0 && (
-        <button
-          className="timeline-toggle"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? (
-            <>
-              <ChevronUp size={16} />
-              Show less
-            </>
-          ) : (
-            <>
-              <ChevronDown size={16} />
-              Show all {timelineItems.length} phases
-            </>
-          )}
-        </button>
-      )}
     </div>
   );
 }

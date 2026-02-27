@@ -2716,9 +2716,40 @@
   padding: var(--spacing-lg);
 }
 
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.timeline-header .section-label {
+  margin: 0;
+}
+
+.timeline-header-chevron {
+  color: var(--color-text-muted);
+  transition: transform 0.3s ease;
+}
+
+.timeline-header-chevron-open {
+  transform: rotate(180deg);
+}
+
+.timeline-body {
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+
 .timeline-list {
   display: flex;
   flex-direction: column;
+  padding-top: var(--spacing-md);
 }
 
 .timeline-item {
