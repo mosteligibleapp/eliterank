@@ -308,7 +308,8 @@ export default function EliteRankCityModal({
           overflow: 'hidden',
           cursor: isClickable ? 'pointer' : 'default',
           transform: isHovered && isClickable ? 'translateY(-8px) scale(1.01)' : 'translateY(0) scale(1)',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          willChange: 'transform',
           boxShadow: isHovered
             ? '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.2)'
             : '0 10px 30px -10px rgba(0, 0, 0, 0.3)',
@@ -440,7 +441,7 @@ export default function EliteRankCityModal({
                 color: isHovered ? colors.text.inverse : colors.gold.primary,
                 fontSize: typography.fontSize.sm,
                 fontWeight: typography.fontWeight.semibold,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'background 0.3s, color 0.3s, transform 0.3s',
                 width: 'fit-content',
                 transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
               }}>
@@ -1059,6 +1060,7 @@ export default function EliteRankCityModal({
               }}>
                 <div style={{
                   animation: 'crownFloat 3s ease-in-out infinite, crownGlow 2s ease-in-out infinite',
+                  willChange: 'transform, filter',
                 }}>
                   <EliteRankCrown size={isMobile ? 64 : 80} />
                 </div>
@@ -1112,6 +1114,7 @@ export default function EliteRankCityModal({
               }}>
                 <div style={{
                   animation: 'crownFloat 3s ease-in-out infinite, crownGlow 2s ease-in-out infinite',
+                  willChange: 'transform, filter',
                 }}>
                   <EliteRankCrown size={isMobile ? 64 : 80} />
                 </div>
@@ -1205,6 +1208,7 @@ export default function EliteRankCityModal({
               }}>
                 <div style={{
                   animation: 'crownFloat 3s ease-in-out infinite, crownGlow 2s ease-in-out infinite',
+                  willChange: 'transform, filter',
                 }}>
                   <EliteRankCrown size={isMobile ? 64 : 80} />
                 </div>
@@ -1327,6 +1331,7 @@ export default function EliteRankCityModal({
               }}>
                 <div style={{
                   animation: 'crownFloat 3s ease-in-out infinite, crownGlow 2s ease-in-out infinite',
+                  willChange: 'transform, filter',
                 }}>
                   <EliteRankCrown size={isMobile ? 64 : 80} />
                 </div>
@@ -1679,15 +1684,18 @@ export default function EliteRankCityModal({
         }
         @keyframes crownGlow {
           0%, 100% {
-            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4)) drop-shadow(0 0 20px rgba(212, 175, 55, 0.2));
+            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
           }
           50% {
-            filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.8)) drop-shadow(0 0 40px rgba(212, 175, 55, 0.4)) drop-shadow(0 0 60px rgba(212, 175, 55, 0.2));
+            filter: drop-shadow(0 0 16px rgba(212, 175, 55, 0.6)) drop-shadow(0 0 32px rgba(212, 175, 55, 0.2));
           }
         }
         @keyframes crownFloat {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
         }
         * {
           box-sizing: border-box;

@@ -11,7 +11,7 @@ import React, { lazy, Suspense, useCallback, useState, useEffect, useRef } from 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useSupabaseAuth } from '../hooks';
-import LoadingScreen from '../components/common/LoadingScreen';
+import { Skeleton, SkeletonCircle } from '../components/ui/Skeleton';
 
 const LoginPage = lazy(() => import('../features/auth/LoginPage'));
 
@@ -120,7 +120,17 @@ export default function LoginPageWrapper({
   }, [loading, isAuthenticated, returnTo, navigate]);
 
   return (
-    <Suspense fallback={<LoadingScreen message="Loading login..." />}>
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)' }}>
+        <div style={{ width: 380, maxWidth: '90%', textAlign: 'center' }}>
+          <SkeletonCircle size={64} style={{ margin: '0 auto 24px' }} />
+          <Skeleton width="60%" height={28} borderRadius={6} style={{ margin: '0 auto 16px' }} />
+          <Skeleton width="100%" height={48} borderRadius={12} style={{ marginBottom: 12 }} />
+          <Skeleton width="100%" height={48} borderRadius={12} style={{ marginBottom: 16 }} />
+          <Skeleton width="100%" height={44} borderRadius={12} />
+        </div>
+      </div>
+    }>
       <LoginPage onLogin={handleLogin} onBack={handleBack} />
     </Suspense>
   );

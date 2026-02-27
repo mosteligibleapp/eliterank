@@ -7,7 +7,8 @@
  * - Shows loading state while auth is initializing
  */
 
-import React from 'react';
+import React, { memo } from 'react';
+import { Skeleton, SkeletonCircle } from '../components/ui/Skeleton';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore, useUserRole, ROLES } from '../stores';
 
@@ -28,7 +29,7 @@ export function getUserRole(profile) {
 /**
  * Loading screen for auth check
  */
-function AuthLoadingScreen() {
+const AuthLoadingScreen = memo(function AuthLoadingScreen() {
   return (
     <div
       style={{
@@ -37,33 +38,16 @@ function AuthLoadingScreen() {
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)',
-        color: '#d4af37',
-        fontSize: '1.25rem',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
-      <div style={{ textAlign: 'center' }}>
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            margin: '0 auto 16px',
-            border: '3px solid rgba(212, 175, 55, 0.2)',
-            borderTopColor: '#d4af37',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }}
-        />
-        Checking authentication...
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
+      <div style={{ width: 300, maxWidth: '90%', textAlign: 'center' }}>
+        <SkeletonCircle size={56} style={{ margin: '0 auto 20px' }} />
+        <Skeleton width="60%" height={16} borderRadius={4} style={{ margin: '0 auto 12px' }} />
+        <Skeleton width="40%" height={12} borderRadius={4} style={{ margin: '0 auto' }} />
       </div>
     </div>
   );
-}
+});
 
 /**
  * ProtectedRoute component
