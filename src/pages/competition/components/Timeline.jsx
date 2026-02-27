@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Check, Circle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, Circle, ChevronDown, ChevronUp, Trophy } from 'lucide-react';
 import { formatDate } from '../../../utils/formatters';
 
 /**
@@ -13,7 +13,6 @@ export function Timeline() {
   const nominationItems = [];
 
   if (nominationPeriods?.length > 0) {
-    // Use nomination_periods table data
     nominationPeriods.forEach(np => {
       nominationItems.push({
         id: `nom-${np.id}`,
@@ -26,7 +25,6 @@ export function Timeline() {
       });
     });
   } else if (competition?.nomination_start || competition?.nomination_end) {
-    // Fallback to competition-level nomination dates
     nominationItems.push({
       id: 'nom-main',
       type: 'nomination',
@@ -53,10 +51,9 @@ export function Timeline() {
     });
   }
 
-  // Combine all timeline items (events are now shown in a dedicated card above the rules)
+  // Combine all timeline items
   const timelineItems = [
     ...nominationItems,
-    // Note: Events removed from timeline - they are now displayed in UpcomingEventCard
     ...(votingRounds || []).map(r => ({
       id: r.id,
       type: 'round',
@@ -71,15 +68,15 @@ export function Timeline() {
     })),
     ...finaleItems,
   ]
-    .filter(item => item.date) // Only include items with dates
+    .filter(item => item.date)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
+  // Mobile collapsible state
   const [sectionOpen, setSectionOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const listRef = useRef(null);
   const [listHeight, setListHeight] = useState(0);
 
-  // Measure the full height of the timeline list for smooth animation
   useEffect(() => {
     if (listRef.current) {
       setListHeight(listRef.current.scrollHeight);
@@ -91,7 +88,7 @@ export function Timeline() {
       <div className="timeline">
         <button className="timeline-header" onClick={() => setSectionOpen(!sectionOpen)}>
           <h4 className="section-label">Timeline</h4>
-          <ChevronDown size={18} className={`timeline-header-chevron ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
+          <ChevronDown size={18} className={`timeline-header-chevron timeline-header-chevron-mobile ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
         </button>
         {sectionOpen && (
           <div className="timeline-empty">
@@ -102,30 +99,31 @@ export function Timeline() {
     );
   }
 
-  // Find the active item index for mobile collapsed view
+  // Find the active item index
   const activeIndex = timelineItems.findIndex(item => item.status === 'active');
   const currentIndex = activeIndex >= 0 ? activeIndex : 0;
 
-  // On mobile (collapsed), show: current/active item, and finale
+  // Progress calculation
+  const completedCount = timelineItems.filter(item => item.status === 'complete').length;
+  const progressPercent = Math.round((completedCount / timelineItems.length) * 100);
+
+  // Mobile collapsed view indices
   const finaleIndex = timelineItems.findIndex(item => item.isFinale);
   const mobileVisibleIndices = new Set([currentIndex]);
   if (finaleIndex >= 0 && finaleIndex !== currentIndex) {
     mobileVisibleIndices.add(finaleIndex);
   }
-  // Also show the next upcoming item if different
   const nextUpcoming = timelineItems.findIndex((item, idx) => idx > currentIndex && item.status === 'upcoming');
   if (nextUpcoming >= 0 && !mobileVisibleIndices.has(nextUpcoming)) {
     mobileVisibleIndices.add(nextUpcoming);
   }
-
   const hiddenCount = timelineItems.length - mobileVisibleIndices.size;
-
-  // Summary for collapsed state — show the current/next phase name
   const activeItem = timelineItems[currentIndex];
 
   return (
     <div className={`timeline ${sectionOpen ? 'timeline-open' : ''} ${expanded ? 'timeline-expanded' : ''}`}>
-      <button className="timeline-header" onClick={() => setSectionOpen(!sectionOpen)}>
+      {/* Mobile-only collapsible header */}
+      <button className="timeline-header timeline-header-mobile" onClick={() => setSectionOpen(!sectionOpen)}>
         <div className="timeline-header-left">
           <h4 className="section-label">Timeline</h4>
           {!sectionOpen && activeItem && (
@@ -137,6 +135,17 @@ export function Timeline() {
         </div>
         <ChevronDown size={18} className={`timeline-header-chevron ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
       </button>
+
+      {/* Desktop-only always-visible header */}
+      <div className="timeline-header-desktop">
+        <h4 className="section-label">Timeline</h4>
+        <div className="timeline-progress-bar">
+          <div className="timeline-progress-fill" style={{ width: `${progressPercent}%` }} />
+        </div>
+        <span className="timeline-progress-label">{completedCount}/{timelineItems.length}</span>
+      </div>
+
+      {/* Desktop: always visible, Mobile: collapsible */}
       <div
         ref={listRef}
         className="timeline-body"
@@ -149,13 +158,15 @@ export function Timeline() {
               className={`timeline-item timeline-item-${item.status} ${!mobileVisibleIndices.has(index) ? 'timeline-item-collapsible' : ''}`}
             >
               <div className="timeline-marker">
-                {item.status === 'complete' ? (
-                  <Check size={12} />
-                ) : item.status === 'active' ? (
-                  <Circle size={12} className="timeline-active-dot" />
-                ) : (
-                  <Circle size={12} />
-                )}
+                <div className={`timeline-step timeline-step-${item.status}`}>
+                  {item.status === 'complete' ? (
+                    <Check size={14} />
+                  ) : item.isFinale ? (
+                    <Trophy size={14} />
+                  ) : (
+                    <span className="timeline-step-number">{index + 1}</span>
+                  )}
+                </div>
                 {index < timelineItems.length - 1 && (
                   <div className={`timeline-line timeline-line-${item.status}`} />
                 )}
@@ -164,7 +175,7 @@ export function Timeline() {
                 <span className="timeline-date">
                   {formatDate(item.date)}
                   {item.endDate && item.endDate !== item.date && (
-                    <> - {formatDate(item.endDate)}</>
+                    <> — {formatDate(item.endDate)}</>
                   )}
                 </span>
                 <span className="timeline-title">
@@ -245,7 +256,6 @@ function getFinaleStatus(finaleDate) {
   const now = new Date();
   const finale = new Date(finaleDate);
 
-  // Consider finale "active" on the day of the event
   const finaleDay = new Date(finale.getFullYear(), finale.getMonth(), finale.getDate());
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
