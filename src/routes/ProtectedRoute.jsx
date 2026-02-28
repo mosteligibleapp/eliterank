@@ -70,12 +70,12 @@ function AuthLoadingScreen() {
  * 
  * @param {React.ReactNode} children - Content to render if authorized
  * @param {string[]} allowedRoles - Array of roles that can access this route
- * @param {string} redirectTo - Where to redirect if unauthorized (default: /?login=true)
+ * @param {string} redirectTo - Where to redirect if unauthorized (default: /login)
  */
-export default function ProtectedRoute({ 
-  children, 
-  allowedRoles = [], 
-  redirectTo = '/?login=true' 
+export default function ProtectedRoute({
+  children,
+  allowedRoles = [],
+  redirectTo = '/login'
 }) {
   // Use Zustand stores for auth state
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
@@ -91,7 +91,7 @@ export default function ProtectedRoute({
   // Not authenticated - redirect to login with return URL
   if (!isAuthenticated) {
     const returnUrl = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/?login=true&returnTo=${returnUrl}`} replace />;
+    return <Navigate to={`/login?returnTo=${returnUrl}`} replace />;
   }
 
   // Check role-based access if roles specified

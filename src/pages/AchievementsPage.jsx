@@ -405,7 +405,7 @@ export default function AchievementsPage() {
           <ImagePlus size={48} />
           <h2>Sign in to view your achievements</h2>
           <p>Access your share cards for all competitions you're in</p>
-          <button onClick={() => navigate('/?login=true')} className="achievements-btn-primary">
+          <button onClick={() => navigate('/login')} className="achievements-btn-primary">
             Sign In
           </button>
         </div>

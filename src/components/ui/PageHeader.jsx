@@ -28,7 +28,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   const handleDashboard = () => navigate('/dashboard');
   const handleLogout = async () => {
     // Navigate away from protected route FIRST to prevent ProtectedRoute
-    // from redirecting to /?login=true while signOut clears Zustand state.
+    // from redirecting to /login while signOut clears Zustand state.
     navigate('/');
     await signOut();
   };
@@ -62,7 +62,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             isAuthenticated={isAuthenticated}
             user={user}
             profile={profile}
-            onLogin={() => navigate('/?login=true')}
+            onLogin={() => navigate('/login')}
             onLogout={handleLogout}
             onProfile={handleProfile}
             onRewards={handleRewards}
