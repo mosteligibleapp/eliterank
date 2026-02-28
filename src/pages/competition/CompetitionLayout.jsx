@@ -63,20 +63,23 @@ function CompetitionLayoutInner() {
 
   // Navigation handlers for profile icon
   const handleLogin = () => {
-    // Navigate to home with login state
-    navigate('/?login=true');
+    navigate('/login');
   };
 
   const handleProfile = () => {
-    navigate('/?profile=true');
+    navigate('/profile');
   };
 
   const handleDashboard = () => {
-    navigate('/?dashboard=true');
+    navigate('/dashboard');
   };
 
   const handleRewards = () => {
-    navigate('/?rewards=true');
+    navigate('/rewards');
+  };
+
+  const handleAchievements = () => {
+    navigate('/achievements');
   };
 
   const handleHowToCompete = () => {
@@ -186,6 +189,7 @@ function CompetitionLayoutInner() {
             onLogout={handleLogout}
             onProfile={handleProfile}
             onRewards={handleRewards}
+            onAchievements={handleAchievements}
             onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
@@ -359,7 +363,7 @@ function ContestantModals() {
   const handleLogin = () => {
     // Build return URL with contestant ID so we can reopen the modal after login
     const returnUrl = `${location.pathname}${selectedContestant ? `?voteFor=${selectedContestant.id}` : ''}`;
-    navigate(`/?login=true&returnTo=${encodeURIComponent(returnUrl)}`);
+    navigate(`/login?returnTo=${encodeURIComponent(returnUrl)}`);
   };
 
   if (!selectedContestant) return null;
