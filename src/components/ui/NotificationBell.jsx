@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Check, ChevronRight } from 'lucide-react';
 import { useNotifications, getNotificationMeta } from '../../contexts/NotificationContext';
 import { colors, spacing, borderRadius, typography, shadows, transitions } from '../../styles/theme';
@@ -98,6 +99,7 @@ function NotificationItem({ notification, onRead, onNavigate }) {
 }
 
 export default function NotificationBell({ size = 36, onNavigate }) {
+  const navigate = useNavigate();
   const { notifications, unreadCount, isOpen, loading, togglePanel, closePanel, markAsRead, markAllAsRead } = useNotifications();
   const panelRef = useRef(null);
   const bellRef = useRef(null);
@@ -266,6 +268,35 @@ export default function NotificationBell({ size = 36, onNavigate }) {
               ))
             )}
           </div>
+
+          {/* View All footer */}
+          <button
+            onClick={() => {
+              closePanel();
+              navigate('/notifications');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              width: '100%',
+              padding: `${spacing.sm} ${spacing.md}`,
+              background: 'none',
+              border: 'none',
+              borderTop: `1px solid ${colors.border.lighter}`,
+              color: colors.gold.primary,
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.medium,
+              cursor: 'pointer',
+              transition: `background ${transitions.fast}`,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = colors.gold.muted; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+          >
+            View All Notifications
+            <ChevronRight size={14} />
+          </button>
         </div>
       )}
     </div>

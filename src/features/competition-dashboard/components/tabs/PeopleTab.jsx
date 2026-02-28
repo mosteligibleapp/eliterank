@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check
+  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader
 } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
+import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
+import PublicProfileView from '../../../public-site/components/PublicProfileView';
+import { supabase } from '../../../../lib/supabase';
 import WinnersManager from '../../../super-admin/components/WinnersManager';
 
 /**
@@ -29,6 +32,60 @@ export default function PeopleTab({
   const { isMobile } = useResponsive();
   const [processingId, setProcessingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [viewingProfile, setViewingProfile] = useState(null);
+  const [viewingProfileRole, setViewingProfileRole] = useState('fan');
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [generatingCardId, setGeneratingCardId] = useState(null);
+
+  const handleViewProfile = async (profileId, role = 'fan') => {
+    if (!profileId) return;
+    setProfileLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
+      if (!error && data) {
+        setViewingProfile(data);
+        setViewingProfileRole(role);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleDownloadCard = async (person, type = 'contestant') => {
+    setGeneratingCardId(person.id);
+    try {
+      const blob = await generateAchievementCard({
+        achievementType: type === 'contestant' ? 'contestant' : 'nominated',
+        name: person.name,
+        photoUrl: person.avatarUrl,
+        handle: person.instagram,
+        competitionName: competition?.name || `Most Eligible ${competition?.city}`,
+        season: competition?.season?.toString(),
+        organizationName: competition?.organizationName || 'Most Eligible',
+        accentColor: competition?.themePrimary || '#d4af37',
+        voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${person.name.replace(/\s+/g, '-').toLowerCase()}-${type}-card.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Card generation failed:', err);
+    } finally {
+      setGeneratingCardId(null);
+    }
+  };
 
   const handleCopyClaimLink = async (nominee) => {
     if (!nominee.inviteToken) return;
@@ -135,7 +192,7 @@ export default function PeopleTab({
           </button>
         )}
         <button
-          onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee.id); setProcessingId(null); }}
+          onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee); setProcessingId(null); }}
           disabled={approveDisabled}
           title={!canApprove(nominee) ? 'Nominee must accept first' : 'Approve'}
           style={{
@@ -197,8 +254,36 @@ export default function PeopleTab({
     );
   };
 
+  // Download card button shared across rows
+  const CardDownloadButton = ({ person, type }) => (
+    <button
+      onClick={() => handleDownloadCard(person, type)}
+      disabled={generatingCardId === person.id}
+      title="Download share card"
+      style={{
+        padding: spacing.xs,
+        background: 'rgba(212,175,55,0.1)',
+        border: 'none',
+        borderRadius: borderRadius.sm,
+        cursor: generatingCardId === person.id ? 'wait' : 'pointer',
+        color: colors.gold.primary,
+        minWidth: '32px',
+        minHeight: '32px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {generatingCardId === person.id ? (
+        <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+      ) : (
+        <Download size={16} />
+      )}
+    </button>
+  );
+
   // Person row component - shared between contestants and nominees
-  const PersonRow = ({ person, actions, dimmed, showVotes }) => (
+  const PersonRow = ({ person, actions, dimmed, showVotes, onNameClick, cardType }) => (
     <div style={{
       display: 'flex',
       alignItems: 'center',
@@ -210,14 +295,42 @@ export default function PeopleTab({
     }}>
       <Avatar name={person.name} size={40} src={person.avatarUrl} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{
-          fontWeight: typography.fontWeight.medium,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
-          {person.name}
-        </p>
+        {onNameClick ? (
+          <button
+            onClick={onNameClick}
+            style={{
+              fontWeight: typography.fontWeight.medium,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              padding: 0,
+              fontSize: 'inherit',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.xs,
+              width: '100%',
+            }}
+          >
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {person.name}
+            </span>
+            <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />
+          </button>
+        ) : (
+          <p style={{
+            fontWeight: typography.fontWeight.medium,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {person.name}
+          </p>
+        )}
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
           {person.email}{showVotes ? `${person.email ? ' · ' : ''}${person.votes || 0} votes` : ''}
         </p>
@@ -232,6 +345,7 @@ export default function PeopleTab({
           <ExternalLink size={14} />
         </a>
       )}
+      {cardType && <CardDownloadButton person={person} type={cardType} />}
       {actions}
     </div>
   );
@@ -455,7 +569,12 @@ export default function PeopleTab({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {contestants.map(c => (
-                <PersonRow key={c.id} person={c} />
+                <PersonRow
+                  key={c.id}
+                  person={c}
+                  cardType="contestant"
+                  onNameClick={c.userId ? () => handleViewProfile(c.userId, 'contestant') : undefined}
+                />
               ))}
             </div>
           )}
@@ -483,7 +602,14 @@ export default function PeopleTab({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {nomineesWithProfile.map(n => (
-                <PersonRow key={n.id} person={n} showVotes actions={<NomineeActions nominee={n} />} />
+                <PersonRow
+                  key={n.id}
+                  person={n}
+                  showVotes
+                  cardType="nominee"
+                  onNameClick={n.matchedProfileId ? () => handleViewProfile(n.matchedProfileId) : undefined}
+                  actions={<NomineeActions nominee={n} />}
+                />
               ))}
             </div>
           )}
@@ -506,7 +632,13 @@ export default function PeopleTab({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {externalNominees.map(n => (
-                <PersonRow key={n.id} person={n} showVotes actions={<NomineeActions nominee={n} />} />
+                <PersonRow
+                  key={n.id}
+                  person={n}
+                  showVotes
+                  cardType="nominee"
+                  actions={<NomineeActions nominee={n} />}
+                />
               ))}
             </div>
           )}
@@ -564,6 +696,36 @@ export default function PeopleTab({
           )}
         </div>
       </Panel>
+
+      {/* Profile loading overlay */}
+      {profileLoading && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(10,10,15,0.95)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: spacing.lg,
+        }}>
+          <Loader size={48} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: colors.text.secondary }}>Loading profile...</p>
+        </div>
+      )}
+
+      {/* Full-page public profile view */}
+      {viewingProfile && !profileLoading && (
+        <PublicProfileView
+          profile={viewingProfile}
+          role={viewingProfileRole}
+          onBack={() => setViewingProfile(null)}
+        />
+      )}
+
+      {/* Keyframes for loader animation */}
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

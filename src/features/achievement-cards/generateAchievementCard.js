@@ -57,13 +57,31 @@ export function getRoundAdvancementTitle(round, nextRound) {
 }
 
 function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = src;
-  });
+  // Fetch as blob first to avoid CORS/tainted-canvas issues.
+  // CDNs can cache a non-CORS response and serve it when the browser
+  // retries with crossOrigin='anonymous', which silently breaks canvas.
+  // Loading via a blob URL is always same-origin and safe for toBlob().
+  return fetch(src)
+    .then((res) => {
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+      return res.blob();
+    })
+    .then(
+      (blob) =>
+        new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Failed to decode image blob'));
+          };
+          img.src = url;
+        })
+    );
 }
 
 function roundRect(ctx, x, y, w, h, r) {
