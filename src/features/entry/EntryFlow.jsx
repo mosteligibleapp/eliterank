@@ -172,6 +172,7 @@ export default function EntryFlow() {
           prizePool,
           about,
           phase,
+          organizationLogoUrl: organization?.logo_url,
         })}
       </div>
     </div>
@@ -291,7 +292,7 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           submittedData={flow.submittedData}
           onDone={handleDone}
           onNominateAnother={handleNominateAnother}
-          organizationLogoUrl={organization?.logo_url}
+          organizationLogoUrl={guideContext.organizationLogoUrl}
           votingRounds={guideContext.votingRounds}
           prizePool={guideContext.prizePool}
           about={guideContext.about}

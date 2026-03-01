@@ -57,7 +57,7 @@ function PendingNominationsModal({ nominations, onSelect, onClose }) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white font-semibold mb-1">
-                    Most Eligible {nom.competition?.city} {nom.competition?.season}
+                    Most Eligible {nom.competition?.city?.name || nom.competition?.city} {nom.competition?.season}
                   </p>
                   <p className="text-gray-400 text-[0.85rem]">
                     {nom.competition?.organization?.name || 'EliteRank'}
@@ -116,10 +116,11 @@ async function checkPendingNominations(userEmail) {
           status,
           nomination_end,
           city:cities(name),
-          organization:organizations(name, slug)
+          organization:organizations(name, slug, logo_url)
         )
       `)
       .eq('email', userEmail)
+      .eq('nominated_by', 'third_party')
       .not('status', 'in', '("rejected","declined")')
       .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
       .is('claimed_at', null);
