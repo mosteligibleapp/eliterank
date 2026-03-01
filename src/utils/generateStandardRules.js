@@ -29,7 +29,7 @@ export function generateStandardRules({
   rules.push({
     id: 'eligibility',
     section_title: 'Eligibility Requirements',
-    section_content: generateEligibilityContent({ about, city }),
+    section_content: generateEligibilityContent({ competition, about, city }),
     sort_order: 1,
   });
 
@@ -89,7 +89,7 @@ export function generateStandardRules({
 /**
  * Generate eligibility section content
  */
-function generateEligibilityContent({ about, city }) {
+function generateEligibilityContent({ competition, about, city }) {
   const parts = [];
 
   // Age requirement
@@ -112,6 +112,16 @@ function generateEligibilityContent({ about, city }) {
     parts.push('Must be at least 18 years old');
   }
 
+  // Gender requirement from demographic
+  const gender = competition?.demographic?.gender;
+  if (gender === 'female') {
+    parts.push('Must be legally recognized as female');
+  } else if (gender === 'male') {
+    parts.push('Must be legally recognized as male');
+  } else if (gender) {
+    parts.push(`Must identify as ${gender}`);
+  }
+
   // Location requirement
   parts.push(`Must live within 100 miles of ${city}`);
 
@@ -120,7 +130,7 @@ function generateEligibilityContent({ about, city }) {
     // Parse common requirement patterns
     const req = about.requirement.toLowerCase();
     if (req.includes('single')) {
-      parts.push('Must be single (not married or in a committed relationship)');
+      parts.push('Must be single (not married or engaged to be married)');
     } else if (req.includes('based')) {
       // Generic location requirement - already covered above, skip duplicating
     } else {
