@@ -64,6 +64,7 @@ export function useBuildCardFlow({
   const [submitError, setSubmitError] = useState('');
   const [submittedData, setSubmittedData] = useState(null);
   const [nomineeId, setNomineeId] = useState(nominee?.id || null);
+  const [inviteToken, setInviteToken] = useState(nominee?.invite_token || null);
   const [currentUser, setCurrentUser] = useState(user);
 
   // Sync currentUser when the user prop changes (e.g. auth loads after initial render)
@@ -100,6 +101,9 @@ export function useBuildCardFlow({
 
     if (nominee.id && !nomineeId) {
       setNomineeId(nominee.id);
+    }
+    if (nominee.invite_token && !inviteToken) {
+      setInviteToken(nominee.invite_token);
     }
 
     setCardData((prev) => {
@@ -492,18 +496,41 @@ export function useBuildCardFlow({
               userId = sessionData.session.user.id;
               setCurrentUser(sessionData.session.user);
             } else {
-              // No matching session — try signing in with the password they just entered
-              const { data: signInData, error: signInError } =
-                await supabase.auth.signInWithPassword({ email, password });
-
-              if (signInError) {
-                throw new Error(
-                  'An account with this email already exists. Please use your existing password or reset it.'
+              // No matching session — the auth user was likely auto-created by
+              // the invite system (signInWithOtp) but the nominee opened the
+              // claim link directly without a session.  Use an edge function to
+              // set the password via the admin API, then sign in.
+              if (inviteToken) {
+                const { error: fnError } = await supabase.functions.invoke(
+                  'set-nominee-password',
+                  { body: { invite_token: inviteToken, password } }
                 );
-              }
+                if (fnError) {
+                  throw new Error('Failed to set password. Please try again.');
+                }
 
-              setCurrentUser(signInData.user);
-              userId = signInData.user?.id;
+                // Now sign in with the newly set password
+                const { data: signInData, error: signInError } =
+                  await supabase.auth.signInWithPassword({ email, password });
+                if (signInError) {
+                  throw new Error('Password set but sign-in failed. Please try logging in.');
+                }
+                setCurrentUser(signInData.user);
+                userId = signInData.user?.id;
+              } else {
+                // No invite token available — try signing in directly
+                const { data: signInData, error: signInError } =
+                  await supabase.auth.signInWithPassword({ email, password });
+
+                if (signInError) {
+                  throw new Error(
+                    'An account with this email already exists. Please use your existing password or reset it.'
+                  );
+                }
+
+                setCurrentUser(signInData.user);
+                userId = signInData.user?.id;
+              }
             }
 
             // Link user to nominee and mark claimed
@@ -561,7 +588,7 @@ export function useBuildCardFlow({
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentUser, cardData, nomineeId, next]);
+  }, [currentUser, cardData, nomineeId, inviteToken, next]);
 
   // ---- Skip password — send magic link so they can claim their account later ----
   const skipPassword = useCallback(() => {
