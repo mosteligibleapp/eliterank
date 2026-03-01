@@ -11,15 +11,12 @@ export function WhoCompetes() {
 
   if (!about?.traits?.length) return null;
 
-  // Extract gender from demographic or competition name
+  // Extract gender from demographic
   const getGender = () => {
-    if (competition?.demographic?.name) {
-      return competition.demographic.name;
-    }
-    // Try to infer from competition name
-    const name = competition?.name?.toLowerCase() || '';
-    if (name.includes('women') || name.includes('female')) return 'Women';
-    if (name.includes('men') || name.includes('male')) return 'Men';
+    const gender = competition?.demographic?.gender;
+    if (gender === 'female') return 'Female';
+    if (gender === 'male') return 'Male';
+    if (gender) return gender; // e.g. 'LGBTQ+'
     return 'All Genders';
   };
 
