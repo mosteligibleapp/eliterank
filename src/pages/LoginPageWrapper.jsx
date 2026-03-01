@@ -46,6 +46,7 @@ async function checkPendingNominations(userEmail) {
         )
       `)
       .eq('email', userEmail)
+      .eq('nominated_by', 'third_party')
       .not('status', 'in', '("rejected","declined")')
       .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
       .is('claimed_at', null);
