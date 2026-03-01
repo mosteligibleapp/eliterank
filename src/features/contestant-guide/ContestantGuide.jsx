@@ -262,11 +262,17 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
   const isNominationPhase = phase?.phase === 'nominations';
 
   // Build round advancement details from actual data
-  const roundDetails = rounds
+  const filteredRounds = rounds
     .filter(r => r.round_type !== 'judging')
-    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
+    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+
+  const roundDetails = filteredRounds
     .map((r, i) => {
       const label = r.title || `Round ${i + 1}`;
+      const isLastRound = i === filteredRounds.length - 1;
+      if (isLastRound && r.contestants_advance) {
+        return `${label} — Judges decide rank order of ${r.contestants_advance} winners`;
+      }
       const advance = r.contestants_advance ? ` — Top ${r.contestants_advance} advance` : '';
       return `${label}${advance}`;
     });

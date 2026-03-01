@@ -174,14 +174,18 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
   ];
 
   // Add round-specific info
-  [...votingRounds]
-    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
-    .forEach((round, index) => {
+  const sortedRounds = [...votingRounds]
+    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+
+  sortedRounds.forEach((round, index) => {
       const roundNum = index + 1;
       const isJudging = round.round_type === 'judging';
+      const isLastRound = index === sortedRounds.length - 1;
 
       if (isJudging) {
         content.push(`• Round ${roundNum}: ${round.title || 'Final Round'} - Judges score contestants by competition performance and determine the rank order of the ${numWinners} winners`);
+      } else if (isLastRound && round.contestants_advance) {
+        content.push(`• Round ${roundNum}: ${round.title || `Voting Round ${roundNum}`} - Judges decide rank order of ${round.contestants_advance} winners`);
       } else {
         const advanceInfo = round.contestants_advance
           ? ` - Top ${round.contestants_advance} advance`
