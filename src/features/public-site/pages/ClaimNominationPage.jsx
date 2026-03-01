@@ -335,6 +335,7 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
           onNext={handleDetailsNext}
           error={flow.submitError}
           isSubmitting={flow.isSubmitting}
+          requireEmail
         />
       );
 

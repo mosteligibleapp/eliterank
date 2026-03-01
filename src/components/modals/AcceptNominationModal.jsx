@@ -178,6 +178,7 @@ function renderModalStep(flow, competition, nomination, handleDecline, handleIne
           onNext={handleDetailsNext}
           error={flow.submitError}
           isSubmitting={flow.isSubmitting}
+          requireEmail
         />
       );
 
