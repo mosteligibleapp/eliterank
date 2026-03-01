@@ -29,7 +29,7 @@ export function generateStandardRules({
   rules.push({
     id: 'eligibility',
     section_title: 'Eligibility Requirements',
-    section_content: generateEligibilityContent({ about, city }),
+    section_content: generateEligibilityContent({ competition, about, city }),
     sort_order: 1,
   });
 
@@ -46,7 +46,7 @@ export function generateStandardRules({
     rules.push({
       id: 'rounds',
       section_title: 'Rounds & Advancement',
-      section_content: generateRoundsContent({ votingRounds, numRounds }),
+      section_content: generateRoundsContent({ competition, votingRounds, numRounds }),
       sort_order: 3,
     });
   }
@@ -89,7 +89,7 @@ export function generateStandardRules({
 /**
  * Generate eligibility section content
  */
-function generateEligibilityContent({ about, city }) {
+function generateEligibilityContent({ competition, about, city }) {
   const parts = [];
 
   // Age requirement
@@ -112,6 +112,16 @@ function generateEligibilityContent({ about, city }) {
     parts.push('Must be at least 18 years old');
   }
 
+  // Gender requirement from demographic
+  const gender = competition?.demographic?.gender;
+  if (gender === 'female') {
+    parts.push('Must be legally recognized as female');
+  } else if (gender === 'male') {
+    parts.push('Must be legally recognized as male');
+  } else if (gender) {
+    parts.push(`Must identify as ${gender}`);
+  }
+
   // Location requirement
   parts.push(`Must live within 100 miles of ${city}`);
 
@@ -120,7 +130,7 @@ function generateEligibilityContent({ about, city }) {
     // Parse common requirement patterns
     const req = about.requirement.toLowerCase();
     if (req.includes('single')) {
-      parts.push('Must be single (not married or in a committed relationship)');
+      parts.push('Must be single (not married or engaged to be married)');
     } else if (req.includes('based')) {
       // Generic location requirement - already covered above, skip duplicating
     } else {
@@ -155,30 +165,34 @@ function generateVotingContent({ competition }) {
 /**
  * Generate rounds & advancement content
  */
-function generateRoundsContent({ votingRounds, numRounds }) {
-  // Use voting-type rounds; fall back to all non-judging rounds
-  const relevantRounds = votingRounds.filter(r => r.round_type === 'voting');
-  const displayRounds = relevantRounds.length > 0
-    ? relevantRounds
-    : votingRounds.filter(r => r.round_type !== 'judging');
+function generateRoundsContent({ competition, votingRounds, numRounds }) {
+  const totalRounds = votingRounds.length;
+  const numWinners = competition?.number_of_winners || 5;
 
   const content = [
-    `• This competition has ${numRounds} voting round${numRounds > 1 ? 's' : ''}`,
+    `• This competition has ${totalRounds} round${totalRounds > 1 ? 's' : ''}`,
   ];
 
-  // Add round-specific info if available
-  displayRounds
+  // Add round-specific info
+  [...votingRounds]
     .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
     .forEach((round, index) => {
       const roundNum = index + 1;
-      const advanceInfo = round.contestants_advance
-        ? ` - Top ${round.contestants_advance} advance`
-        : '';
-      content.push(`• Round ${roundNum}: ${round.title || `Voting Round ${roundNum}`}${advanceInfo}`);
+      const isJudging = round.round_type === 'judging';
+
+      if (isJudging) {
+        content.push(`• Round ${roundNum}: ${round.title || 'Final Round'} - Judges score contestants by competition performance and determine the rank order of the ${numWinners} winners`);
+      } else {
+        const advanceInfo = round.contestants_advance
+          ? ` - Top ${round.contestants_advance} advance`
+          : '';
+        content.push(`• Round ${roundNum}: ${round.title || `Voting Round ${roundNum}`}${advanceInfo}`);
+      }
     });
 
-  content.push('• Contestants in the bottom percentage each round are eliminated');
-  content.push('• Final round determines the winners');
+  if (numRounds > 1) {
+    content.push('• Contestants in the bottom percentage each round are eliminated');
+  }
 
   return content.join('\n');
 }
