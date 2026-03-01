@@ -121,6 +121,7 @@ export async function generateShareCard({
   cityName,
   season,
   accentColor = '#d4af37',
+  organizationLogoUrl,
 }) {
   const canvas = document.createElement('canvas');
   canvas.width = CARD_WIDTH;
@@ -197,10 +198,30 @@ export async function generateShareCard({
   // === BRANDING (top) ===
   let y = 200;
   ctx.textAlign = 'center';
-  ctx.fillStyle = `${accentColor}cc`;
-  ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText('E L I T E R A N K', CX, y);
-  y += 40;
+
+  if (organizationLogoUrl) {
+    try {
+      const logo = await loadImage(organizationLogoUrl);
+      const maxH = 140;
+      const maxW = 600;
+      let logoW = logo.width;
+      let logoH = logo.height;
+      if (logoH > maxH) { logoW = (maxH / logoH) * logoW; logoH = maxH; }
+      if (logoW > maxW) { logoH = (maxW / logoW) * logoH; logoW = maxW; }
+      ctx.drawImage(logo, CX - logoW / 2, y - logoH / 2, logoW, logoH);
+      y += logoH / 2 + 40;
+    } catch {
+      ctx.fillStyle = `${accentColor}cc`;
+      ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText('E L I T E R A N K', CX, y);
+      y += 40;
+    }
+  } else {
+    ctx.fillStyle = `${accentColor}cc`;
+    ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText('E L I T E R A N K', CX, y);
+    y += 40;
+  }
 
   drawDecorativeLine(ctx, CX, y, 260, accentColor);
   y += 60;

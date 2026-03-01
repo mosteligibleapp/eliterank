@@ -42,7 +42,7 @@ async function checkPendingNominations(userEmail) {
           status,
           nomination_end,
           city:cities(name),
-          organization:organizations(name, slug)
+          organization:organizations(name, slug, logo_url)
         )
       `)
       .eq('email', userEmail)

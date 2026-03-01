@@ -367,6 +367,7 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
           competition={competition}
           submittedData={flow.submittedData}
           onDone={handleDone}
+          organizationLogoUrl={competition?.organization?.logo_url}
         />
       );
 

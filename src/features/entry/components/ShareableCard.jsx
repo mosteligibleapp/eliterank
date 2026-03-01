@@ -12,9 +12,12 @@ export default function ShareableCard({
   cityName,
   season,
   accentColor = '#d4af37',
+  organizationLogoUrl,
 }) {
   const canvasRef = useRef(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [logoLoaded, setLogoLoaded] = useState(false);
+  const logoRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -134,11 +137,25 @@ export default function ShareableCard({
     let y = 200 * s;
 
     // === BRANDING ===
-    ctx.fillStyle = `${accentColor}cc`;
-    ctx.font = `500 ${28 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillText('E L I T E R A N K', cx, y);
-    y += 40 * s;
+    if (logoRef.current && logoLoaded) {
+      const logo = logoRef.current;
+      const maxH = 140 * s;
+      const maxW = 600 * s;
+      let logoW = logo.width * s;
+      let logoH = logo.height * s;
+      // Scale down to fit within maxH / maxW while maintaining aspect ratio
+      const logoAspect = logo.width / logo.height;
+      if (logoH > maxH) { logoW = maxH * logoAspect; logoH = maxH; }
+      if (logoW > maxW) { logoH = maxW / logoAspect; logoW = maxW; }
+      ctx.drawImage(logo, cx - logoW / 2, y - logoH / 2, logoW, logoH);
+      y += logoH / 2 + 40 * s;
+    } else {
+      ctx.fillStyle = `${accentColor}cc`;
+      ctx.font = `500 ${28 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.fillText('E L I T E R A N K', cx, y);
+      y += 40 * s;
+    }
 
     drawDecorativeLine(cx, y, 260 * s);
     y += 60 * s;
@@ -352,7 +369,7 @@ export default function ShareableCard({
       drawRings();
       drawBottom();
     }
-  }, [name, photoUrl, handle, competitionTitle, cityName, season, accentColor, imageLoaded]);
+  }, [name, photoUrl, handle, competitionTitle, cityName, season, accentColor, imageLoaded, organizationLogoUrl, logoLoaded]);
 
   // Pre-load photo
   useEffect(() => {
@@ -362,6 +379,18 @@ export default function ShareableCard({
     img.onload = () => setImageLoaded(true);
     img.src = photoUrl;
   }, [photoUrl]);
+
+  // Pre-load organization logo
+  useEffect(() => {
+    if (!organizationLogoUrl) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      logoRef.current = img;
+      setLogoLoaded(true);
+    };
+    img.src = organizationLogoUrl;
+  }, [organizationLogoUrl]);
 
   return (
     <div className="entry-shareable-card">
