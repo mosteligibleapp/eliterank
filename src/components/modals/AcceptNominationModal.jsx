@@ -210,6 +210,7 @@ function renderModalStep(flow, competition, nomination, handleDecline, handleIne
           competition={competition}
           submittedData={flow.submittedData}
           onDone={handleDone}
+          organizationLogoUrl={competition?.organization?.logo_url}
         />
       );
 

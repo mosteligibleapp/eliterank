@@ -14,6 +14,7 @@ export default function CardReveal({
   submittedData,
   onDone,
   onNominateAnother,
+  organizationLogoUrl,
   // Optional: pass these for richer guide content
   votingRounds = [],
   prizePool,
@@ -44,6 +45,7 @@ export default function CardReveal({
     cityName,
     season: String(season || ''),
     accentColor,
+    organizationLogoUrl,
   };
 
   const handleShare = async () => {
@@ -140,6 +142,7 @@ export default function CardReveal({
           cityName={cityName}
           season={season}
           accentColor={accentColor}
+          organizationLogoUrl={organizationLogoUrl}
         />
       </div>
 

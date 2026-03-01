@@ -28,12 +28,13 @@ import './EntryFlow.css';
  */
 export default function EntryFlow() {
   const navigate = useNavigate();
-  const { 
-    competition, 
-    loading, 
-    error, 
-    phase, 
-    orgSlug, 
+  const {
+    competition,
+    organization,
+    loading,
+    error,
+    phase,
+    orgSlug,
     competitionSlug,
     votingRounds,
     prizePool,
@@ -290,6 +291,7 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           submittedData={flow.submittedData}
           onDone={handleDone}
           onNominateAnother={handleNominateAnother}
+          organizationLogoUrl={organization?.logo_url}
           votingRounds={guideContext.votingRounds}
           prizePool={guideContext.prizePool}
           about={guideContext.about}
