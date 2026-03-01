@@ -51,10 +51,10 @@ export default function ProfileView({ hostProfile, onEdit }) {
   const gallery = hostProfile.gallery || [];
 
   const socialLinks = [
-    { platform: 'Instagram', handle: hostProfile.instagram, icon: '📷', gradient: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCAF45)' },
-    { platform: 'Twitter / X', handle: hostProfile.twitter, icon: '𝕏', background: '#000' },
-    { platform: 'LinkedIn', handle: hostProfile.linkedin, icon: 'in', background: '#0A66C2' },
-    { platform: 'TikTok', handle: hostProfile.tiktok, icon: '♪', gradient: 'linear-gradient(135deg, #00f2ea, #ff0050)' },
+    { platform: 'Instagram', handle: hostProfile.instagram, icon: '📷', gradient: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCAF45)', url: hostProfile.instagram ? `https://instagram.com/${hostProfile.instagram.replace('@', '')}` : null },
+    { platform: 'Twitter / X', handle: hostProfile.twitter, icon: '𝕏', background: '#000', url: hostProfile.twitter ? `https://twitter.com/${hostProfile.twitter.replace('@', '')}` : null },
+    { platform: 'LinkedIn', handle: hostProfile.linkedin, icon: 'in', background: '#0A66C2', url: hostProfile.linkedin ? `https://linkedin.com/in/${hostProfile.linkedin}` : null },
+    { platform: 'TikTok', handle: hostProfile.tiktok, icon: '♪', gradient: 'linear-gradient(135deg, #00f2ea, #ff0050)', url: hostProfile.tiktok ? `https://tiktok.com/@${hostProfile.tiktok.replace('@', '')}` : null },
   ].filter(link => link.handle);
 
   return (
@@ -341,7 +341,9 @@ export default function ProfileView({ hostProfile, onEdit }) {
                   {socialLinks.map((link) => (
                     <a
                       key={link.platform}
-                      href="#"
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       style={{
                         display: 'flex',
                         alignItems: 'center',

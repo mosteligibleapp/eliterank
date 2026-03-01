@@ -13,6 +13,7 @@ export default function AcceptDeclineStep({
   onAccept,
   onDecline,
   processing,
+  error,
 }) {
   const [confirmingDecline, setConfirmingDecline] = useState(false);
 
@@ -109,6 +110,12 @@ export default function AcceptDeclineStep({
       <p className="entry-accept-fine-print">
         By accepting, you'll build your card and be entered pending host approval.
       </p>
+
+      {error && (
+        <p style={{ color: '#ef4444', fontSize: '14px', textAlign: 'center', margin: '8px 0' }}>
+          {error}
+        </p>
+      )}
 
       {/* Action buttons */}
       <div className="entry-accept-actions">

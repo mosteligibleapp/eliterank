@@ -138,6 +138,7 @@ function renderModalStep(flow, competition, nomination, handleDecline, handleIne
           onAccept={flow.acceptNomination}
           onDecline={handleDecline}
           processing={flow.isSubmitting}
+          error={flow.submitError}
         />
       );
 
