@@ -26,7 +26,9 @@ export async function getNominationsForUser(userId, userEmail) {
         season,
         status,
         city:cities(name),
-        organization:organizations(name, slug, logo_url)
+        organization:organizations(name, slug, logo_url),
+        demographic:demographics(*),
+        category:categories(*)
       )
     `;
 
