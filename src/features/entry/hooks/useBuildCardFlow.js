@@ -16,6 +16,17 @@ function isSchemaError(error) {
   return error?.message?.includes('schema cache') || error?.code === 'PGRST204';
 }
 
+/** Race a promise against a timeout. Rejects if the promise doesn't settle in time. */
+function withTimeout(promise, ms) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Request timed out. Please try again.')), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
 /**
  * useBuildCardFlow - Unified "Build Your Card" orchestrator
  *
@@ -174,6 +185,10 @@ export function useBuildCardFlow({
     setSubmitError('');
 
     try {
+      // Ensure the auth session is fresh — magic link sessions can leave the
+      // Supabase client in a stale refresh state that hangs DB queries.
+      await supabase.auth.getSession();
+
       const updateData = {
         flow_stage: 'accepted',
       };
@@ -181,16 +196,22 @@ export function useBuildCardFlow({
         updateData.user_id = currentUser.id;
       }
 
-      let { error } = await supabase
-        .from('nominees')
-        .update(updateData)
-        .eq('id', nominee.id);
+      let { error } = await withTimeout(
+        supabase
+          .from('nominees')
+          .update(updateData)
+          .eq('id', nominee.id),
+        15000
+      );
 
       if (error && isSchemaError(error)) {
-        ({ error } = await supabase
-          .from('nominees')
-          .update(stripNewColumns(updateData))
-          .eq('id', nominee.id));
+        ({ error } = await withTimeout(
+          supabase
+            .from('nominees')
+            .update(stripNewColumns(updateData))
+            .eq('id', nominee.id),
+          15000
+        ));
       }
       if (error) throw error;
       next();
@@ -268,16 +289,22 @@ export function useBuildCardFlow({
 
       if (nomineeId) {
         // Update existing nominee record
-        let { error } = await supabase
-          .from('nominees')
-          .update(record)
-          .eq('id', nomineeId);
+        let { error } = await withTimeout(
+          supabase
+            .from('nominees')
+            .update(record)
+            .eq('id', nomineeId),
+          15000
+        );
 
         if (error && isSchemaError(error)) {
-          ({ error } = await supabase
-            .from('nominees')
-            .update(stripNewColumns(record))
-            .eq('id', nomineeId));
+          ({ error } = await withTimeout(
+            supabase
+              .from('nominees')
+              .update(stripNewColumns(record))
+              .eq('id', nomineeId),
+            15000
+          ));
         }
         if (error) throw error;
       } else {
@@ -291,18 +318,24 @@ export function useBuildCardFlow({
           record.claimed_at = new Date().toISOString();
         }
 
-        let { data: inserted, error } = await supabase
-          .from('nominees')
-          .insert(record)
-          .select('id')
-          .single();
+        let { data: inserted, error } = await withTimeout(
+          supabase
+            .from('nominees')
+            .insert(record)
+            .select('id')
+            .single(),
+          15000
+        );
 
         if (error && isSchemaError(error)) {
-          ({ data: inserted, error } = await supabase
-            .from('nominees')
-            .insert(stripNewColumns(record))
-            .select('id')
-            .single());
+          ({ data: inserted, error } = await withTimeout(
+            supabase
+              .from('nominees')
+              .insert(stripNewColumns(record))
+              .select('id')
+              .single(),
+            15000
+          ));
         }
 
         if (error) {

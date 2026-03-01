@@ -300,6 +300,7 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
           onAccept={flow.acceptNomination}
           onDecline={handleDecline}
           processing={flow.isSubmitting}
+          error={flow.submitError}
         />
       );
 
