@@ -116,7 +116,9 @@ async function checkPendingNominations(userEmail) {
           status,
           nomination_end,
           city:cities(name),
-          organization:organizations(name, slug, logo_url)
+          organization:organizations(name, slug, logo_url),
+          demographic:demographics(*),
+          category:categories(*)
         )
       `)
       .eq('email', userEmail)
@@ -217,7 +219,8 @@ export default function AppShell({ children }) {
 
   const handleAcceptNomination = useCallback(() => {
     closeAcceptNomination();
-  }, [closeAcceptNomination]);
+    navigate('/profile');
+  }, [closeAcceptNomination, navigate]);
 
   const handleDeclineNomination = useCallback(() => {
     closeAcceptNomination();

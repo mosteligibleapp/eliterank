@@ -20,7 +20,7 @@ export default function ClaimPage() {
   };
 
   const handleSuccess = () => {
-    navigate('/', { replace: true });
+    navigate('/profile', { replace: true });
   };
 
   if (!token) {
