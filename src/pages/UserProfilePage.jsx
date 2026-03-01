@@ -5,7 +5,8 @@
  * Can also display public profiles when viewing other users.
  */
 
-import React, { useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, lazy, Suspense } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSupabaseAuth } from '../hooks';
 import { DEFAULT_HOST_PROFILE } from '../constants';
 import { ROLE, getUserRole } from '../routes/ProtectedRoute';
@@ -16,7 +17,8 @@ const ProfilePage = lazy(() => import('../features/profile/ProfilePage'));
 
 export default function UserProfilePage() {
   const { user, profile, updateProfile } = useSupabaseAuth();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const userRole = useMemo(() => getUserRole(profile), [profile]);
 
   // Profile editing state
@@ -51,6 +53,14 @@ export default function UserProfilePage() {
     setEditingData({ ...hostProfile });
     setIsEditing(true);
   }, [hostProfile]);
+
+  // Auto-open editor when navigated with ?edit=true (e.g. from bonus votes checklist)
+  useEffect(() => {
+    if (searchParams.get('edit') === 'true' && profile && !isEditing) {
+      handleEdit();
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, profile, isEditing, handleEdit, setSearchParams]);
 
   const handleSave = useCallback(async () => {
     if (!editingData) return;

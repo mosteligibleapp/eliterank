@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, Suspense, lazy } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
@@ -14,6 +15,7 @@ const ContestantGuide = lazy(() => import('../../../features/contestant-guide/Co
 export default function ContestantBonusVotes({ competitionId, contestantId, userId }) {
   const { profile } = useAuthContextSafe();
   const toast = useToast();
+  const navigate = useNavigate();
   const hasCheckedProfile = useRef(false);
   const [showGuide, setShowGuide] = useState(false);
 
@@ -113,12 +115,13 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
           // Clipboard not available
         }
       }
-    } else {
-      // For profile-related tasks, just show a hint
-      const result = await awardTask(taskKey);
-      if (result?.success) {
-        toast?.success?.(`+${result.votes_awarded} bonus votes!`);
-      }
+    } else if (
+      taskKey === BONUS_TASK_KEYS.COMPLETE_PROFILE ||
+      taskKey === BONUS_TASK_KEYS.ADD_PHOTO ||
+      taskKey === BONUS_TASK_KEYS.ADD_SOCIAL
+    ) {
+      // Navigate to profile editor so the user can complete the task
+      navigate('/profile?edit=true');
     }
   };
 
