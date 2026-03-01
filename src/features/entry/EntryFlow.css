@@ -24,6 +24,13 @@
   background: transparent;
 }
 
+.entry-flow--modal .entry-header {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  z-index: 5;
+}
+
 /* Header */
 .entry-header {
   position: sticky;
