@@ -366,7 +366,7 @@ export async function generateAchievementCard({
   drawSparkle(ctx, CX - 30, photoCY - photoRadius - 12, 5, accentColor, 0.45);
   drawSparkle(ctx, CX + 50, photoCY + photoRadius + 15, 4, accentColor, 0.35);
 
-  y = photoCY + photoRadius + 70;
+  y = photoCY + photoRadius + 110;
 
   // === NAME ===
   ctx.fillStyle = '#ffffff';
@@ -381,7 +381,7 @@ export async function generateAchievementCard({
     displayName += '...';
   }
   ctx.fillText(displayName, CX, y);
-  y += 100;
+  y += 130;
 
   // === ACHIEVEMENT TITLE with glow ===
   // Auto-size title to prevent overflow
