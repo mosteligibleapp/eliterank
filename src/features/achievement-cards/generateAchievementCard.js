@@ -381,7 +381,7 @@ export async function generateAchievementCard({
     displayName += '...';
   }
   ctx.fillText(displayName, CX, y);
-  y += 80;
+  y += 100;
 
   // === ACHIEVEMENT TITLE with glow ===
   // Auto-size title to prevent overflow
