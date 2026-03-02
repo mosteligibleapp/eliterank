@@ -68,6 +68,7 @@ export default function PeopleTab({
         competitionName: competition?.name || `Most Eligible ${competition?.city}`,
         season: competition?.season?.toString(),
         organizationName: competition?.organizationName || 'Most Eligible',
+        organizationLogoUrl: competition?.organizationLogoUrl,
         accentColor: competition?.themePrimary || '#d4af37',
         voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
       });
