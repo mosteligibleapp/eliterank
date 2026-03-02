@@ -118,7 +118,7 @@ export function useCompetitionDashboard(competitionId) {
             category:categories(id, name, slug),
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
-            organization:organizations(id, name, slug)
+            organization:organizations(id, name, slug, logo_url)
           `)
           .eq('id', competitionId)
           .single(),
@@ -318,6 +318,7 @@ export function useCompetitionDashboard(competitionId) {
           // Additional fields for card generation and links
           slug: competition.slug || null,
           organizationName: competition.organization?.name || null,
+          organizationLogoUrl: competition.organization?.logo_url || null,
           themePrimary: competition.theme_primary || null,
         } : null,
       });
