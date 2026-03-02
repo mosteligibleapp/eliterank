@@ -311,7 +311,7 @@ export async function generateAchievementCard({
   y += 50;
 
   // === PHOTO (hero element) ===
-  const photoRadius = 200;
+  const photoRadius = 260;
   const photoCY = y + photoRadius;
 
   // Multi-layered glow behind photo
@@ -370,7 +370,7 @@ export async function generateAchievementCard({
 
   // === NAME ===
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 56px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = 'bold 68px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   let displayName = name || 'Contestant';
@@ -381,24 +381,11 @@ export async function generateAchievementCard({
     displayName += '...';
   }
   ctx.fillText(displayName, CX, y);
-  y += 46;
-
-  // Handle
-  if (handle) {
-    ctx.fillStyle = '#9a9aaa';
-    ctx.font = '400 28px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(`@${handle.replace('@', '')}`, CX, y);
-    y += 40;
-  }
-
-  // === DIVIDER ===
-  y += 30;
-  drawDecorativeLine(ctx, CX, y, 300, accentColor);
-  y += 60;
+  y += 80;
 
   // === ACHIEVEMENT TITLE with glow ===
   // Auto-size title to prevent overflow
-  let titleFontSize = 88;
+  let titleFontSize = 100;
   ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
   while (ctx.measureText(displayTitle).width > 900 && titleFontSize > 48) {
     titleFontSize -= 4;
@@ -421,16 +408,16 @@ export async function generateAchievementCard({
 
   // Subtitle
   ctx.fillStyle = '#a1a1aa';
-  ctx.font = '400 36px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = '400 42px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText(subtitle, CX, y);
-  y += 56;
+  y += 64;
 
   // Competition name
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = '600 46px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = '600 54px -apple-system, BlinkMacSystemFont, sans-serif';
   let compDisplay = competitionName || 'the competition';
   if (ctx.measureText(compDisplay).width > 900) {
-    ctx.font = '600 38px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = '600 44px -apple-system, BlinkMacSystemFont, sans-serif';
   }
   ctx.fillText(compDisplay, CX, y);
   y += 52;
@@ -438,7 +425,7 @@ export async function generateAchievementCard({
   // Season
   if (season) {
     ctx.fillStyle = '#a1a1aa';
-    ctx.font = '500 34px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = '500 40px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(season, CX, y);
   }
 
