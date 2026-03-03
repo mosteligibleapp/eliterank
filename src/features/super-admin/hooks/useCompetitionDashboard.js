@@ -180,8 +180,14 @@ export function useCompetitionDashboard(competitionId) {
         let matchedProfileId = null;
         let matchedProfile = null;
 
-        // Check if nominee's email matches an existing profile
-        if (n.email) {
+        // Match by user_id first (set when nominee claims their nomination)
+        if (n.user_id && profilesById.has(n.user_id)) {
+          hasProfile = true;
+          matchedProfileId = n.user_id;
+          matchedProfile = profilesById.get(matchedProfileId);
+        }
+        // Fall back to email matching
+        else if (n.email) {
           const emailLower = n.email.toLowerCase();
           if (emailToProfileMap.has(emailLower)) {
             hasProfile = true;
