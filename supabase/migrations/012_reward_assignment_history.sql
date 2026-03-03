@@ -33,7 +33,7 @@ BEGIN
 
   IF OLD.shipping_address IS DISTINCT FROM NEW.shipping_address THEN
     INSERT INTO reward_assignment_history (assignment_id, field_name, old_value, new_value, changed_by)
-    VALUES (NEW.id, 'shipping_address', OLD.shipping_address::TEXT, NEW.shipping_address::TEXT, changed_by => auth.uid());
+    VALUES (NEW.id, 'shipping_address', OLD.shipping_address::TEXT, NEW.shipping_address::TEXT, auth.uid());
   END IF;
 
   IF OLD.content_posted IS DISTINCT FROM NEW.content_posted THEN
