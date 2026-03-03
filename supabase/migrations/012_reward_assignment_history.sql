@@ -55,8 +55,8 @@ ALTER TABLE reward_assignment_history ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Super admins can view all reward assignment history"
   ON reward_assignment_history FOR SELECT
-  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'superadmin'));
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_super_admin = true));
 
 CREATE POLICY "Super admins can insert reward assignment history"
   ON reward_assignment_history FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'superadmin'));
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_super_admin = true));
