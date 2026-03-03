@@ -51,7 +51,7 @@ export default function PrizeRedemptionTracker() {
         .select(`
           *,
           reward:rewards(id, name, brand_name, image_url, is_affiliate, cash_value),
-          competition:competitions(id, name, city, season),
+          competition:competitions(id, name, city:cities(name, state), season),
           contestant:contestants(id, name, user_id, profile:profiles(first_name, last_name, email, avatar_url)),
           nominee:nominees(id, name, email, avatar_url)
         `)
