@@ -5,7 +5,8 @@ import {
   Home, Search, Bell, Menu, ArrowRight, Play, ExternalLink
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo, ProfileIcon, NotificationBell, EliteRankCrown, CrownIcon } from '../ui';
-import { useSupabaseAuth, useAppSettings } from '../../hooks';
+import { useAppSettings } from '../../hooks';
+import { useAuthStore } from '../../stores';
 import { colors, spacing, borderRadius, typography, shadows, transitions, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
@@ -61,7 +62,8 @@ export default function EliteRankCityModal({
   const { isMobile, isTablet, width } = useResponsive();
 
   // Get user and profile data for ProfileIcon
-  const { user, profile } = useSupabaseAuth();
+  const user = useAuthStore(s => s.user);
+  const profile = useAuthStore(s => s.profile);
 
   // Check if user has dashboard access
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;

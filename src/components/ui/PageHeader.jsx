@@ -1,8 +1,7 @@
 import React, { memo, useState, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useSupabaseAuth } from '../../hooks';
-import { getUserRole, ROLE } from '../../routes/ProtectedRoute';
+import { useAuthStore, useUserRole, ROLES } from '../../stores';
 import ProfileIcon from './ProfileIcon';
 import NotificationBell from './NotificationBell';
 import './PageHeader.css';
@@ -17,8 +16,11 @@ const ContestantGuide = lazy(() => import('../../features/contestant-guide/Conte
  */
 function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompete, children }) {
   const navigate = useNavigate();
-  const { user, profile, isAuthenticated, signOut } = useSupabaseAuth();
-  const userRole = getUserRole(profile);
+  const user = useAuthStore(s => s.user);
+  const profile = useAuthStore(s => s.profile);
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const signOut = useAuthStore(s => s.signOut);
+  const userRole = useUserRole();
   const [showGuide, setShowGuide] = useState(false);
 
   const handleBack = onBack || (() => navigate('/'));
@@ -36,7 +38,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   const isNomineeOrContestant = profile?.is_nominee_or_contestant;
   const handleHowToCompete = isNomineeOrContestant ? (onHowToCompete || (() => setShowGuide(true))) : undefined;
 
-  const hasDashboardAccess = userRole === ROLE.HOST || userRole === ROLE.SUPER_ADMIN;
+  const hasDashboardAccess = userRole === ROLES.HOST || userRole === ROLES.SUPER_ADMIN;
 
   return (
     <>
