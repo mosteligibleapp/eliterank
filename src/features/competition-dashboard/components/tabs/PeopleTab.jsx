@@ -318,15 +318,22 @@ export default function PeopleTab({
           {person.email}{showVotes ? `${person.email ? ' · ' : ''}${person.votes || 0} votes` : ''}
         </p>
       </div>
-      {person.instagram && (
-        <a
-          href={`https://instagram.com/${person.instagram.replace('@', '')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: colors.text.muted, padding: spacing.xs }}
+      {onNameClick && (
+        <button
+          onClick={onNameClick}
+          title="View profile"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: colors.gold.primary,
+            padding: spacing.xs,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+          }}
         >
           <ExternalLink size={14} />
-        </a>
+        </button>
       )}
       {cardType && <CardDownloadButton person={person} type={cardType} />}
       {actions}
