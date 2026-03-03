@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, Loader, AlertCircle } from 'lucide-react';
+import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, Loader, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { Panel, Button } from '../../components/ui';
 import ClaimRewardModal from '../../components/modals/ClaimRewardModal';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -185,6 +185,53 @@ export default function RewardsPage({ hostProfile }) {
     }
   };
 
+  // Edit existing content link
+  const handleEditLink = async (assignmentId, linkIndex, updatedLink) => {
+    if (!updatedLink.trim() || !supabase) return;
+
+    try {
+      const assignment = claimableRewards.find(a => a.id === assignmentId);
+      const currentLinks = [...(assignment?.content_links || [])];
+      currentLinks[linkIndex] = updatedLink.trim();
+
+      const { error } = await supabase
+        .from('reward_assignments')
+        .update({ content_links: currentLinks })
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+      await fetchRewards();
+    } catch (err) {
+      console.error('Error editing link:', err);
+      alert('Failed to update link. Please try again.');
+    }
+  };
+
+  // Delete content link
+  const handleDeleteLink = async (assignmentId, linkIndex) => {
+    if (!supabase) return;
+
+    try {
+      const assignment = claimableRewards.find(a => a.id === assignmentId);
+      const currentLinks = [...(assignment?.content_links || [])];
+      currentLinks.splice(linkIndex, 1);
+
+      const { error } = await supabase
+        .from('reward_assignments')
+        .update({
+          content_links: currentLinks,
+          content_posted: currentLinks.length > 0,
+        })
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+      await fetchRewards();
+    } catch (err) {
+      console.error('Error deleting link:', err);
+      alert('Failed to delete link. Please try again.');
+    }
+  };
+
   if (!hostProfile) return null;
 
   // Separate claimable rewards by status
@@ -269,6 +316,8 @@ export default function RewardsPage({ hostProfile }) {
                 newLink={newLink}
                 setNewLink={setNewLink}
                 onAddLink={() => handleAddLink(assignment.id)}
+                onEditLink={(index, updatedLink) => handleEditLink(assignment.id, index, updatedLink)}
+                onDeleteLink={(index) => handleDeleteLink(assignment.id, index)}
               />
             ))}
           </div>
@@ -389,7 +438,11 @@ function RewardCard({
   newLink,
   setNewLink,
   onAddLink,
+  onEditLink,
+  onDeleteLink,
 }) {
+  const [editingLinkIndex, setEditingLinkIndex] = useState(null);
+  const [editingLinkValue, setEditingLinkValue] = useState('');
   const reward = assignment.reward;
   const statusConfig = STATUS_CONFIG[assignment.status] || STATUS_CONFIG.pending;
   const isPending = assignment.status === 'pending';
@@ -641,30 +694,97 @@ function RewardCard({
               {assignment.content_links?.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs, marginBottom: spacing.sm }}>
                   {assignment.content_links.map((link, index) => (
-                    <a
-                      key={index}
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: isMobile ? spacing.xs : spacing.sm,
-                        fontSize: isMobile ? '11px' : typography.fontSize.sm,
-                        color: colors.text.secondary,
-                        textDecoration: 'none',
-                        padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
-                        background: colors.background.card,
-                        borderRadius: borderRadius.md,
-                        border: `1px solid ${colors.border.secondary}`,
-                      }}
-                    >
-                      <Check size={isMobile ? 12 : 14} style={{ color: '#22c55e', flexShrink: 0 }} />
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                        {link}
-                      </span>
-                      <ExternalLink size={isMobile ? 10 : 14} style={{ flexShrink: 0 }} />
-                    </a>
+                    editingLinkIndex === index ? (
+                      <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
+                        <input
+                          type="url"
+                          value={editingLinkValue}
+                          onChange={(e) => setEditingLinkValue(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
+                            background: colors.background.card,
+                            border: `1px solid ${colors.gold.primary}`,
+                            borderRadius: borderRadius.md,
+                            color: colors.text.primary,
+                            fontSize: isMobile ? '11px' : typography.fontSize.sm,
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                          autoFocus
+                        />
+                        <div style={{ display: 'flex', gap: spacing.xs }}>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              onEditLink(index, editingLinkValue);
+                              setEditingLinkIndex(null);
+                              setEditingLinkValue('');
+                            }}
+                            disabled={!editingLinkValue.trim()}
+                            style={{ flex: 1, fontSize: isMobile ? '11px' : undefined }}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => { setEditingLinkIndex(null); setEditingLinkValue(''); }}
+                            style={{ flex: 1, fontSize: isMobile ? '11px' : undefined }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        key={index}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: isMobile ? spacing.xs : spacing.sm,
+                          fontSize: isMobile ? '11px' : typography.fontSize.sm,
+                          color: colors.text.secondary,
+                          padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
+                          background: colors.background.card,
+                          borderRadius: borderRadius.md,
+                          border: `1px solid ${colors.border.secondary}`,
+                        }}
+                      >
+                        <Check size={isMobile ? 12 : 14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            minWidth: 0, color: colors.text.secondary, textDecoration: 'none',
+                          }}
+                        >
+                          {link}
+                        </a>
+                        <button
+                          onClick={() => { setEditingLinkIndex(index); setEditingLinkValue(link); }}
+                          style={{
+                            background: 'none', border: 'none', padding: '2px', cursor: 'pointer',
+                            color: colors.text.muted, flexShrink: 0, display: 'flex', alignItems: 'center',
+                          }}
+                          aria-label="Edit link"
+                        >
+                          <Pencil size={isMobile ? 10 : 12} />
+                        </button>
+                        <button
+                          onClick={() => onDeleteLink(index)}
+                          style={{
+                            background: 'none', border: 'none', padding: '2px', cursor: 'pointer',
+                            color: '#ef4444', flexShrink: 0, display: 'flex', alignItems: 'center',
+                          }}
+                          aria-label="Delete link"
+                        >
+                          <Trash2 size={isMobile ? 10 : 12} />
+                        </button>
+                      </div>
+                    )
                   ))}
                 </div>
               )}
@@ -703,7 +823,7 @@ function RewardCard({
                   size="sm"
                   variant="secondary"
                   icon={isMobile ? undefined : Plus}
-                  onClick={() => setAddingLinkId(assignment.id)}
+                  onClick={() => { setAddingLinkId(assignment.id); setEditingLinkIndex(null); }}
                   style={{ width: '100%', fontSize: isMobile ? '11px' : undefined }}
                 >
                   {isMobile ? '+ Add Link' : 'Add Content Link'}

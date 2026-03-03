@@ -39,6 +39,7 @@ export default function PrizeRedemptionTracker() {
   const [expandedAssignment, setExpandedAssignment] = useState(null);
 
   // History cache
+  const [error, setError] = useState(null);
   const [historyCache, setHistoryCache] = useState({});
   const [loadingHistory, setLoadingHistory] = useState({});
 
@@ -50,7 +51,7 @@ export default function PrizeRedemptionTracker() {
         .select(`
           *,
           reward:rewards(id, name, brand_name, image_url, is_affiliate, cash_value),
-          competition:competitions(id, name, city, season, city_id, city_ref:cities(name, state)),
+          competition:competitions(id, name, city, season),
           contestant:contestants(id, name, user_id, profile:profiles(first_name, last_name, email, avatar_url)),
           nominee:nominees(id, name, email, avatar_url)
         `)
@@ -58,8 +59,10 @@ export default function PrizeRedemptionTracker() {
 
       if (error) throw error;
       setAssignments(data || []);
+      setError(null);
     } catch (err) {
       console.error('Error fetching assignments:', err);
+      setError(err.message);
     }
   }, []);
 
@@ -173,6 +176,32 @@ export default function PrizeRedemptionTracker() {
         <Loader size={32} style={{ animation: 'spin 1s linear infinite', marginBottom: spacing.md }} />
         <p>Loading redemption data...</p>
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        padding: spacing.xl,
+        background: 'rgba(239,68,68,0.08)',
+        border: '1px solid rgba(239,68,68,0.25)',
+        borderRadius: borderRadius.xl,
+        color: '#ef4444',
+        textAlign: 'center',
+      }}>
+        <p style={{ fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>Failed to load redemption data</p>
+        <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>{error}</p>
+        <button
+          onClick={() => { setError(null); setLoading(true); Promise.all([fetchAssignments(), fetchCompetitions()]).then(() => setLoading(false)); }}
+          style={{
+            marginTop: spacing.md, padding: `${spacing.sm} ${spacing.xl}`,
+            background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+            borderRadius: borderRadius.md, color: '#ef4444', cursor: 'pointer',
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -339,7 +368,7 @@ function RedemptionCard({ assignment, isExpanded, onToggle, onStatusChange, hist
 
   const statusConfig = ASSIGNMENT_STATUS_COLORS[assignment.status] || ASSIGNMENT_STATUS_COLORS.pending;
   const competitionName = assignment.competition?.name
-    || `${assignment.competition?.city_ref?.name || assignment.competition?.city || 'Unknown'} ${assignment.competition?.season || ''}`;
+    || `${assignment.competition?.city || 'Unknown'} ${assignment.competition?.season || ''}`;
 
   const addr = assignment.shipping_address;
   const hasAddress = addr && addr.street;

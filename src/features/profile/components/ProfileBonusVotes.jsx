@@ -165,11 +165,12 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
 
   // Reset dismissed state if new tasks are added (not all complete anymore)
   useEffect(() => {
+    if (loading) return; // Don't reset while still loading
     if (!allCompleted && dismissed) {
       setDismissed(false);
       try { localStorage.removeItem(dismissKey); } catch { /* ignore */ }
     }
-  }, [allCompleted, dismissed, dismissKey]);
+  }, [allCompleted, dismissed, dismissKey, loading]);
 
   const handleDismiss = useCallback(() => {
     setDismissed(true);
@@ -348,8 +349,9 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
     }
   }, [totalBonusVotesEarned, totalBonusVotesAvailable, allCompleted, onBonusVotesLoaded]);
 
-  // Reset dismissed state if not all complete anymore
+  // Reset dismissed state if not all complete anymore (but not before actions have loaded)
   useEffect(() => {
+    if (!hasLoadedActions.current) return;
     if (!allCompleted && dismissed) {
       setDismissed(false);
       if (dismissKey) try { localStorage.removeItem(dismissKey); } catch { /* ignore */ }
