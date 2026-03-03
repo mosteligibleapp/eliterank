@@ -11,3 +11,4 @@ export { default as DeleteCompetitionModal } from './DeleteCompetitionModal';
 export { default as HostAssignmentModal } from './HostAssignmentModal';
 export { default as ProfileViewModal } from './ProfileViewModal';
 export { default as AddPersonModal } from './AddPersonModal';
+export { default as SendEmailModal } from './SendEmailModal';

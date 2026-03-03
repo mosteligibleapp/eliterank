@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader
+  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Mail
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
@@ -9,6 +9,7 @@ import { colors, spacing, borderRadius, typography } from '../../../../styles/th
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
 import WinnersManager from '../../../super-admin/components/WinnersManager';
+import SendEmailModal from '../../../../components/modals/SendEmailModal';
 
 /**
  * PeopleTab - Manages winners, nominees, contestants, and host profile
@@ -33,6 +34,7 @@ export default function PeopleTab({
   const [processingId, setProcessingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [generatingCardId, setGeneratingCardId] = useState(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const handleViewProfile = (profileId) => {
     if (!profileId) return;
@@ -539,6 +541,18 @@ export default function PeopleTab({
         ))}
       </div>
 
+      {/* Send Email button */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.lg }}>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={Mail}
+          onClick={() => setShowEmailModal(true)}
+        >
+          Send Email
+        </Button>
+      </div>
+
       {/* Contestants Section */}
       <Panel
         title={`Contestants (${contestants.length})`}
@@ -686,6 +700,15 @@ export default function PeopleTab({
           )}
         </div>
       </Panel>
+
+      {/* Send Email Modal */}
+      <SendEmailModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        competitionId={competition?.id}
+        nominees={nominees}
+        contestants={contestants}
+      />
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
