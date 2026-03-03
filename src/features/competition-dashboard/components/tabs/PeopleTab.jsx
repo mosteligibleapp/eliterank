@@ -3,12 +3,11 @@ import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
   Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
-import PublicProfileView from '../../../public-site/components/PublicProfileView';
-import { supabase } from '../../../../lib/supabase';
 import WinnersManager from '../../../super-admin/components/WinnersManager';
 
 /**
@@ -30,31 +29,14 @@ export default function PeopleTab({
   onRemoveHost,
 }) {
   const { isMobile } = useResponsive();
+  const navigate = useNavigate();
   const [processingId, setProcessingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
-  const [viewingProfile, setViewingProfile] = useState(null);
-  const [viewingProfileRole, setViewingProfileRole] = useState('fan');
-  const [profileLoading, setProfileLoading] = useState(false);
   const [generatingCardId, setGeneratingCardId] = useState(null);
 
-  const handleViewProfile = async (profileId, role = 'fan') => {
+  const handleViewProfile = (profileId) => {
     if (!profileId) return;
-    setProfileLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', profileId)
-        .single();
-      if (!error && data) {
-        setViewingProfile(data);
-        setViewingProfileRole(role);
-      }
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-    } finally {
-      setProfileLoading(false);
-    }
+    navigate(`/profile/${profileId}`);
   };
 
   const handleDownloadCard = async (person, type = 'contestant') => {
@@ -336,15 +318,22 @@ export default function PeopleTab({
           {person.email}{showVotes ? `${person.email ? ' · ' : ''}${person.votes || 0} votes` : ''}
         </p>
       </div>
-      {person.instagram && (
-        <a
-          href={`https://instagram.com/${person.instagram.replace('@', '')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: colors.text.muted, padding: spacing.xs }}
+      {onNameClick && (
+        <button
+          onClick={onNameClick}
+          title="View profile"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: colors.gold.primary,
+            padding: spacing.xs,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+          }}
         >
           <ExternalLink size={14} />
-        </a>
+        </button>
       )}
       {cardType && <CardDownloadButton person={person} type={cardType} />}
       {actions}
@@ -574,7 +563,7 @@ export default function PeopleTab({
                   key={c.id}
                   person={c}
                   cardType="contestant"
-                  onNameClick={c.userId ? () => handleViewProfile(c.userId, 'contestant') : undefined}
+                  onNameClick={c.userId ? () => handleViewProfile(c.userId) : undefined}
                 />
               ))}
             </div>
@@ -697,33 +686,6 @@ export default function PeopleTab({
           )}
         </div>
       </Panel>
-
-      {/* Profile loading overlay */}
-      {profileLoading && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(10,10,15,0.95)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          gap: spacing.lg,
-        }}>
-          <Loader size={48} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: colors.text.secondary }}>Loading profile...</p>
-        </div>
-      )}
-
-      {/* Full-page public profile view */}
-      {viewingProfile && !profileLoading && (
-        <PublicProfileView
-          profile={viewingProfile}
-          role={viewingProfileRole}
-          onBack={() => setViewingProfile(null)}
-        />
-      )}
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
