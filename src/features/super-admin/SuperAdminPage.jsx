@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, MapPin, Users, Settings, Building2, Gift } from 'lucide-react';
+import { Crown, MapPin, Users, Settings, Building2, Gift, ClipboardCheck } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -10,6 +10,7 @@ import CitiesManager from './components/CitiesManager';
 import OrganizationsManager from './components/OrganizationsManager';
 import RewardsManager from './components/RewardsManager';
 import SiteSettingsManager from './components/SiteSettingsManager';
+import PrizeRedemptionTracker from './components/PrizeRedemptionTracker';
 import { CompetitionDashboard } from '../competition-dashboard';
 
 const TABS = [
@@ -17,6 +18,7 @@ const TABS = [
   { id: 'cities', label: 'Cities', shortLabel: 'Cities', icon: MapPin },
   { id: 'competitions', label: 'Competitions', shortLabel: 'Comps', icon: Crown },
   { id: 'rewards', label: 'Rewards', shortLabel: 'Rewards', icon: Gift },
+  { id: 'redemptions', label: 'Redemptions', shortLabel: 'Redeem', icon: ClipboardCheck },
   { id: 'hosts', label: 'Hosts', shortLabel: 'Hosts', icon: Users },
   { id: 'settings', label: 'Settings', shortLabel: 'Settings', icon: Settings },
 ];
@@ -96,6 +98,8 @@ export default function SuperAdminPage({ onLogout }) {
         );
       case 'rewards':
         return <RewardsManager />;
+      case 'redemptions':
+        return <PrizeRedemptionTracker />;
       case 'hosts':
         return <HostsManager />;
       case 'settings':
