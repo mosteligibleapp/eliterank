@@ -70,7 +70,7 @@ export default function RewardsManager() {
         .select(`
           *,
           reward:rewards(id, name, brand_name, image_url, is_affiliate),
-          competition:competitions(id, name, city, season),
+          competition:competitions(id, name, season),
           contestant:contestants(id, name, user_id, profile:profiles(first_name, last_name, email, avatar_url)),
           nominee:nominees(id, name, email, avatar_url)
         `)
@@ -857,7 +857,7 @@ function AssignmentRow({ assignment, onUpdate, showRewardInfo = false, isLast = 
           </p>
         )}
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
-          {assignment.competition?.name || assignment.competition?.city}
+          {assignment.competition?.name}
         </p>
       </div>
 
