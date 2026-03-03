@@ -174,6 +174,46 @@ export function useCompetitionDashboard(competitionId) {
         userId: c.user_id,
       }));
 
+      // Targeted profile lookup for nominee matching
+      // This bypasses the cached profiles (which can be truncated by Supabase's
+      // default 1000-row limit) by querying only the profiles we actually need.
+      const nomineeEmails = (nomineesResult.data || [])
+        .map(n => n.email?.toLowerCase()).filter(Boolean);
+      const nomineeUserIds = (nomineesResult.data || [])
+        .map(n => n.user_id).filter(Boolean);
+
+      const nomineeProfilesById = new Map();
+      const nomineeProfilesByEmail = new Map();
+
+      const profileLookups = [];
+      if (nomineeEmails.length > 0) {
+        // Use ilike-based OR filter for case-insensitive email matching
+        const emailFilter = nomineeEmails.map(e => `email.ilike.${e}`).join(',');
+        profileLookups.push(
+          supabase.from('profiles')
+            .select('id, email, avatar_url, instagram')
+            .or(emailFilter)
+        );
+      }
+      if (nomineeUserIds.length > 0) {
+        profileLookups.push(
+          supabase.from('profiles')
+            .select('id, email, avatar_url, instagram')
+            .in('id', nomineeUserIds)
+        );
+      }
+      if (profileLookups.length > 0) {
+        const profileResults = await Promise.all(profileLookups);
+        profileResults.forEach(r => {
+          (r.data || []).forEach(p => {
+            nomineeProfilesById.set(p.id, p);
+            if (p.email) {
+              nomineeProfilesByEmail.set(p.email.toLowerCase(), p);
+            }
+          });
+        });
+      }
+
       // Transform nominees - include all fields for categorization
       const nominees = (nomineesResult.data || []).map((n) => {
         let hasProfile = false;
@@ -181,18 +221,19 @@ export function useCompetitionDashboard(competitionId) {
         let matchedProfile = null;
 
         // Match by user_id first (set when nominee claims their nomination)
-        if (n.user_id && profilesById.has(n.user_id)) {
-          hasProfile = true;
+        if (n.user_id) {
+          hasProfile = true; // user_id FK guarantees a profile exists
           matchedProfileId = n.user_id;
-          matchedProfile = profilesById.get(matchedProfileId);
+          matchedProfile = nomineeProfilesById.get(n.user_id) || profilesById.get(n.user_id) || null;
         }
         // Fall back to email matching
         else if (n.email) {
           const emailLower = n.email.toLowerCase();
-          if (emailToProfileMap.has(emailLower)) {
+          const directMatch = nomineeProfilesByEmail.get(emailLower);
+          if (directMatch) {
             hasProfile = true;
-            matchedProfileId = emailToProfileMap.get(emailLower);
-            matchedProfile = profilesById.get(matchedProfileId);
+            matchedProfileId = directMatch.id;
+            matchedProfile = directMatch;
           }
         }
 
