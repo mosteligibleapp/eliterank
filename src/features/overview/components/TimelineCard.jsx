@@ -49,7 +49,7 @@ export default function TimelineCard({ competition, events = [] }) {
   // Check if there's an event scheduled during current phase
   const hasEventInCurrentPhase = events.some(event => {
     if (!event.date || !currentPhaseEndDate) return false;
-    const eventDate = new Date(event.date);
+    const eventDate = new Date(typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date) ? event.date + 'T00:00:00' : event.date);
     const now = new Date();
     return eventDate >= now && eventDate <= currentPhaseEndDate;
   });

@@ -993,7 +993,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 100px',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 120px',
                   gap: spacing.sm,
                 }}>
                   <div>
@@ -1037,7 +1037,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                     )}
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Contestants Advance</label>
+                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Top # Advance</label>
                     <input
                       type="number"
                       min="1"
@@ -1050,6 +1050,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                         minHeight: '44px',
                       }}
                     />
+                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+                      Top {round.contestants_advance} move to next round
+                    </p>
                   </div>
                 </div>
               </div>

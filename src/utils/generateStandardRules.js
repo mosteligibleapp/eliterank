@@ -244,7 +244,9 @@ function generateDoubleVoteDaysContent({ doubleVoteDays }) {
   ];
 
   doubleVoteDays.forEach(event => {
-    const date = new Date(event.date).toLocaleDateString('en-US', {
+    const safeDate = typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date)
+      ? event.date + 'T00:00:00' : event.date;
+    const date = new Date(safeDate).toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
       day: 'numeric',

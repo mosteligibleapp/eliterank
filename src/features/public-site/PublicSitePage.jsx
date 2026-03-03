@@ -309,7 +309,7 @@ export default function PublicSitePage({
     return displayEvents.some(event => {
       if (!event.isDoubleVoteDay || !event.date) return false;
 
-      const eventDate = new Date(event.date);
+      const eventDate = new Date(typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date) ? event.date + 'T00:00:00' : event.date);
       eventDate.setHours(0, 0, 0, 0);
 
       return eventDate.getTime() === today.getTime();

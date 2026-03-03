@@ -1012,7 +1012,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
               <div style={{ flex: 1 }}>
                 <p style={{ fontWeight: typography.fontWeight.medium }}>{event.name}</p>
                 <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                  {new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  {new Date(typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date) ? event.date + 'T00:00:00' : event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                   {event.venue && ` • ${event.venue}`}
                 </p>
               </div>

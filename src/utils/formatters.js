@@ -59,7 +59,12 @@ export function formatDate(dateString, options = {}) {
     ...options,
   };
 
-  return new Date(dateString).toLocaleDateString('en-US', defaultOptions);
+  // Append T00:00:00 to date-only strings to prevent UTC parsing shifting the day
+  const safeDate = typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)
+    ? dateString + 'T00:00:00'
+    : dateString;
+
+  return new Date(safeDate).toLocaleDateString('en-US', defaultOptions);
 }
 
 /**
@@ -68,11 +73,15 @@ export function formatDate(dateString, options = {}) {
  * @returns {string} - Formatted date range string
  */
 export function formatEventDateRange(event) {
-  const startDate = new Date(event.date);
+  const safeStart = typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date)
+    ? event.date + 'T00:00:00' : event.date;
+  const startDate = new Date(safeStart);
   const startStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   if (event.endDate) {
-    const endDate = new Date(event.endDate);
+    const safeEnd = typeof event.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.endDate)
+      ? event.endDate + 'T00:00:00' : event.endDate;
+    const endDate = new Date(safeEnd);
     const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     return `${startStr} - ${endStr}`;
   }
@@ -102,7 +111,10 @@ export function getInitials(name) {
  */
 export function daysUntil(targetDate) {
   const now = new Date();
-  const target = new Date(targetDate);
+  // Append T00:00:00 to date-only strings to prevent UTC parsing shifting the day
+  const safeTarget = typeof targetDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(targetDate)
+    ? targetDate + 'T00:00:00' : targetDate;
+  const target = new Date(safeTarget);
   const diffTime = target - now;
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }

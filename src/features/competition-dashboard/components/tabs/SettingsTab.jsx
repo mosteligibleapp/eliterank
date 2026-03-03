@@ -17,15 +17,23 @@ const formatRadius = (miles) => {
   return `${miles} miles`;
 };
 
+// Helper to parse date strings as local time (not UTC)
+const parseDateLocal = (dateStr) => {
+  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(dateStr + 'T00:00:00');
+  }
+  return new Date(dateStr);
+};
+
 // Helper to determine event status
 const getEventStatus = (event) => {
   if (event.status === 'completed') return 'completed';
   if (!event.date && !event.startDate) return 'upcoming';
-  const eventDate = new Date(event.date || event.startDate);
+  const eventDate = parseDateLocal(event.date || event.startDate);
   const now = new Date();
   if (eventDate < now) return 'completed';
   if (event.endDate) {
-    const endDate = new Date(event.endDate);
+    const endDate = parseDateLocal(event.endDate);
     if (eventDate <= now && now <= endDate) return 'active';
   }
   return 'upcoming';
@@ -367,7 +375,7 @@ export default function SettingsTab({
                     <div style={{ flex: 1 }}>
                       <p style={{ fontWeight: typography.fontWeight.medium }}>{event.name}</p>
                       <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                        {event.date ? new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set'}
+                        {event.date ? new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set'}
                         {event.location && ` • ${event.location}`}
                       </p>
                     </div>
