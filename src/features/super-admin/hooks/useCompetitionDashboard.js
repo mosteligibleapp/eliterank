@@ -191,14 +191,14 @@ export function useCompetitionDashboard(competitionId) {
         const emailFilter = nomineeEmails.map(e => `email.ilike.${e}`).join(',');
         profileLookups.push(
           supabase.from('profiles')
-            .select('id, email, avatar_url, instagram')
+            .select('id, email, avatar_url, instagram, onboarded_at')
             .or(emailFilter)
         );
       }
       if (nomineeUserIds.length > 0) {
         profileLookups.push(
           supabase.from('profiles')
-            .select('id, email, avatar_url, instagram')
+            .select('id, email, avatar_url, instagram, onboarded_at')
             .in('id', nomineeUserIds)
         );
       }
@@ -222,16 +222,19 @@ export function useCompetitionDashboard(competitionId) {
 
         // Match by user_id first (set when nominee claims their nomination)
         if (n.user_id) {
-          hasProfile = true; // user_id FK guarantees a profile exists
           matchedProfileId = n.user_id;
           matchedProfile = nomineeProfilesById.get(n.user_id) || profilesById.get(n.user_id) || null;
+          // Only count as "has profile" if the user has completed onboarding
+          // (set a password). Pre-created profiles from admin.createUser() have
+          // onboarded_at = null and should not be treated as real users yet.
+          hasProfile = !!matchedProfile?.onboarded_at;
         }
         // Fall back to email matching
         else if (n.email) {
           const emailLower = n.email.toLowerCase();
           const directMatch = nomineeProfilesByEmail.get(emailLower);
           if (directMatch) {
-            hasProfile = true;
+            hasProfile = !!directMatch.onboarded_at;
             matchedProfileId = directMatch.id;
             matchedProfile = directMatch;
           }

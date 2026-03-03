@@ -584,6 +584,7 @@ export function useEntryFlow(competition, profile) {
             age: selfData.age ? parseInt(selfData.age, 10) : undefined,
             instagram: selfData.instagram?.trim() || undefined,
             phone: selfData.phone?.trim() || undefined,
+            onboarded_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq('id', resolvedUserId);
