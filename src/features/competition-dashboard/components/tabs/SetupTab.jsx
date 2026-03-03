@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, CheckCircle, XCircle } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -20,14 +20,21 @@ const formatRadius = (miles) => {
 };
 
 // Helper to determine event status
+const parseDateLocal = (dateStr) => {
+  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(dateStr + 'T00:00:00');
+  }
+  return new Date(dateStr);
+};
+
 const getEventStatus = (event) => {
   if (event.status === 'completed') return 'completed';
   if (!event.date && !event.startDate) return 'upcoming';
-  const eventDate = new Date(event.date || event.startDate);
+  const eventDate = parseDateLocal(event.date || event.startDate);
   const now = new Date();
   if (eventDate < now) return 'completed';
   if (event.endDate) {
-    const endDate = new Date(event.endDate);
+    const endDate = parseDateLocal(event.endDate);
     if (eventDate <= now && now <= endDate) return 'active';
   }
   return 'upcoming';
@@ -418,13 +425,31 @@ export default function SetupTab({
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: typography.fontWeight.medium }}>{event.name}</p>
                       <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                        {event.date ? new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set'}
+                        {event.date ? parseDateLocal(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set'}
                         {event.location && ` • ${event.location}`}
                       </p>
                     </div>
                     <Badge variant={status === 'active' ? 'gold' : status === 'completed' ? 'success' : 'secondary'} size="sm">
                       {status}
                     </Badge>
+                    <button
+                      onClick={() => onOpenEventModal(event)}
+                      style={{
+                        padding: spacing.sm,
+                        background: 'transparent',
+                        border: `1px solid ${colors.border.primary || 'rgba(255,255,255,0.15)'}`,
+                        borderRadius: borderRadius.md,
+                        color: colors.text.secondary,
+                        cursor: 'pointer',
+                        minWidth: '36px',
+                        minHeight: '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Edit2 size={14} />
+                    </button>
                     <button
                       onClick={() => onDeleteEvent(event.id)}
                       style={{

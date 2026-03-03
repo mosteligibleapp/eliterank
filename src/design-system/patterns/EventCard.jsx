@@ -66,7 +66,9 @@ const EventCard = ({
   const isEnded = status === 'completed' || status === 'ended';
   
   // Format date
-  const formattedDate = date ? new Date(date).toLocaleDateString('en-US', {
+  const safeDate = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? date + 'T00:00:00' : date;
+  const formattedDate = date ? new Date(safeDate).toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',

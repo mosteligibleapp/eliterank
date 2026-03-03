@@ -86,7 +86,7 @@ export function ActivityView() {
                 {events.map((event) => (
                   <div key={event.id} className="timeline-item">
                     <span className="timeline-date">
-                      {new Date(event.date).toLocaleDateString()}
+                      {new Date(typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date) ? event.date + 'T00:00:00' : event.date).toLocaleDateString()}
                     </span>
                     <span className="timeline-title">{event.name}</span>
                     {event.location && (
