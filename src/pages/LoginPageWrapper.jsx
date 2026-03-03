@@ -10,7 +10,7 @@
 import React, { lazy, Suspense, useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useSupabaseAuth } from '../hooks';
+import { useAuthStore } from '../stores';
 import LoadingScreen from '../components/common/LoadingScreen';
 
 const LoginPage = lazy(() => import('../features/auth/LoginPage'));
@@ -76,7 +76,9 @@ export default function LoginPageWrapper({
 }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated, user, loading } = useSupabaseAuth();
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const user = useAuthStore(s => s.user);
+  const loading = useAuthStore(s => s.isLoading);
 
   // Return URL from query params
   const returnTo = searchParams.get('returnTo');
