@@ -160,25 +160,6 @@ export default function CardReveal({
               {isGenerating ? 'Generating...' : 'Share with Nominee'}
             </button>
 
-            <div className="entry-share-row">
-              <button
-                className="entry-btn-secondary"
-                onClick={handleDownload}
-                disabled={isGenerating}
-              >
-                <Download size={16} />
-                Download
-              </button>
-
-              <button
-                className={`entry-btn-secondary ${copied ? 'copied' : ''}`}
-                onClick={handleCopyLink}
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? 'Copied!' : 'Copy Link'}
-              </button>
-            </div>
-
             <button
               className="entry-btn-primary entry-btn-outline"
               onClick={onNominateAnother}
