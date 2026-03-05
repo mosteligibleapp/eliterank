@@ -193,7 +193,7 @@ serve(async (req) => {
       console.log('Pre-creating auth user for:', nomineeEmail)
       const { data: newUserData, error: createError } = await supabase.auth.admin.createUser({
         email: nomineeEmail,
-        email_confirm: false,
+        email_confirm: true,
         user_metadata: {
           first_name: nomineeData.name.split(' ')[0] || '',
           last_name: nomineeData.name.split(' ').slice(1).join(' ') || '',

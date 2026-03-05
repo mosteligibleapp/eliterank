@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, User, Users, Mail, Phone, Instagram, Check, Share2, Copy, Twitter } from 'lucide-react';
+import { Crown, User, Users, Mail, Phone, Instagram, Check, Share2, Copy, Twitter, MessageCircle } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -14,6 +14,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [nomineeInviteToken, setNomineeInviteToken] = useState(null);
 
   // Self nomination form
   const [selfData, setSelfData] = useState({
@@ -189,7 +190,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
           nominator_notify: otherData.notifyMe,
           status: 'pending',
         })
-        .select('id')
+        .select('id, invite_token')
         .single();
 
       if (dbError) {
@@ -197,6 +198,11 @@ export default function NominationForm({ city, competitionId, onClose }) {
           throw new Error('This person has already been nominated.');
         }
         throw dbError;
+      }
+
+      // Store invite token for sharing claim link
+      if (inserted?.invite_token) {
+        setNomineeInviteToken(inserted.invite_token);
       }
 
       // Send notification email to nominee (fire-and-forget)
@@ -271,6 +277,33 @@ export default function NominationForm({ city, competitionId, onClose }) {
       }
     } else {
       handleCopyLink();
+    }
+  };
+
+  // Share nomination with nominee via Messages (SMS) or Email
+  const handleShareWithNominee = () => {
+    const nomineeName = otherData.nomineeName.trim();
+    const nominatorName = otherData.isAnonymous ? 'Someone' : otherData.nominatorName.trim();
+    const claimUrl = nomineeInviteToken
+      ? `${window.location.origin}/claim/${nomineeInviteToken}`
+      : getShareUrl();
+
+    const message = `Hey ${nomineeName}! ${nominatorName} nominated you for Most Eligible ${city} Season 2026 on EliteRank! Claim your nomination and build your card here: ${claimUrl}`;
+
+    if (otherData.contactType === 'phone' && otherData.contactValue) {
+      const phone = otherData.contactValue.trim().replace(/[^\d+]/g, '');
+      // sms: URI with body param opens Messages app with phone number pre-filled
+      window.location.href = `sms:${phone}?&body=${encodeURIComponent(message)}`;
+    } else if (otherData.contactType === 'email' && otherData.contactValue) {
+      const email = otherData.contactValue.trim();
+      const subject = `You've been nominated for Most Eligible ${city}!`;
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    } else {
+      // Fallback: copy message to clipboard
+      navigator.clipboard.writeText(message).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
     }
   };
 
@@ -916,12 +949,36 @@ export default function NominationForm({ city, competitionId, onClose }) {
           fontSize: typography.fontSize.sm,
           maxWidth: '300px',
           margin: '0 auto',
-          marginBottom: spacing.xl,
+          marginBottom: spacing.lg,
           lineHeight: 1.5,
         }}>
           We'll reach out to let them know they've been nominated.
           {otherData.notifyMe && " You'll be notified when they enter!"}
         </p>
+
+        {/* Share with Nominee button */}
+        <button
+          onClick={handleShareWithNominee}
+          style={{
+            width: '100%',
+            padding: `${spacing.md} ${spacing.lg}`,
+            background: `linear-gradient(135deg, ${colors.gold.primary}, #f4d03f)`,
+            border: 'none',
+            borderRadius: borderRadius.lg,
+            color: '#000',
+            fontSize: typography.fontSize.md,
+            fontWeight: typography.fontWeight.bold,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.sm,
+            marginBottom: spacing.lg,
+          }}
+        >
+          <MessageCircle size={20} />
+          Share with {otherData.nomineeName.trim().split(' ')[0]}
+        </button>
 
         {/* Share section */}
         <div style={{

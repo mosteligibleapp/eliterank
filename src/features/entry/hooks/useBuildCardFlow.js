@@ -78,10 +78,13 @@ export function useBuildCardFlow({
   const [inviteToken, setInviteToken] = useState(nominee?.invite_token || null);
   const [currentUser, setCurrentUser] = useState(user);
 
-  // Sync currentUser when the user prop changes (e.g. auth loads after initial render)
+  // Sync currentUser when the user prop changes (e.g. auth loads after initial render,
+  // or user signs out mid-flow)
   useEffect(() => {
     if (user && !currentUser) {
       setCurrentUser(user);
+    } else if (!user && currentUser) {
+      setCurrentUser(null);
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -534,12 +537,21 @@ export function useBuildCardFlow({
               // claim link directly without a session.  Use an edge function to
               // set the password via the admin API, then sign in.
               if (inviteToken) {
-                const { error: fnError } = await supabase.functions.invoke(
+                const { data: fnData, error: fnError } = await supabase.functions.invoke(
                   'set-nominee-password',
                   { body: { invite_token: inviteToken, password } }
                 );
                 if (fnError) {
-                  throw new Error('Failed to set password. Please try again.');
+                  console.error('set-nominee-password failed:', fnError);
+                  // Fallback: send a magic link so the user can authenticate,
+                  // then set password on next attempt.
+                  await supabase.auth.signInWithOtp({
+                    email,
+                    options: { shouldCreateUser: false },
+                  });
+                  throw new Error(
+                    'We sent a verification link to your email. Please check your inbox and click the link, then try setting your password again.'
+                  );
                 }
 
                 // Now sign in with the newly set password

@@ -79,10 +79,11 @@ serve(async (req) => {
       )
     }
 
-    // Set the password via admin API
+    // Set the password via admin API and confirm email (pre-created users
+    // may have email_confirm: false if they never clicked the magic link)
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       authUser.id,
-      { password }
+      { password, email_confirm: true }
     )
 
     if (updateError) {

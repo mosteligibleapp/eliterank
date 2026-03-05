@@ -77,6 +77,9 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
           .single();
         setProfile(profileData);
         setAuthLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setProfile(null);
       }
     });
 
