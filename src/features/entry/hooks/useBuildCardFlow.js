@@ -78,10 +78,13 @@ export function useBuildCardFlow({
   const [inviteToken, setInviteToken] = useState(nominee?.invite_token || null);
   const [currentUser, setCurrentUser] = useState(user);
 
-  // Sync currentUser when the user prop changes (e.g. auth loads after initial render)
+  // Sync currentUser when the user prop changes (e.g. auth loads after initial render,
+  // or user signs out mid-flow)
   useEffect(() => {
     if (user && !currentUser) {
       setCurrentUser(user);
+    } else if (!user && currentUser) {
+      setCurrentUser(null);
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
