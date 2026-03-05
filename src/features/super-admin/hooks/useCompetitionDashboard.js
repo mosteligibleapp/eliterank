@@ -252,7 +252,7 @@ export function useCompetitionDashboard(competitionId) {
           nominatorAnonymous: n.nominator_anonymous,
           matchedProfileId,
           hasProfile,
-          avatarUrl: matchedProfile?.avatar_url || null,
+          avatarUrl: matchedProfile?.avatar_url || n.avatar_url || null,
           instagram: matchedProfile?.instagram || null,
           status: n.status,
           inviteToken: n.invite_token,
