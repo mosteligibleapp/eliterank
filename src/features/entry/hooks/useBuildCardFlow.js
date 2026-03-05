@@ -534,12 +534,21 @@ export function useBuildCardFlow({
               // claim link directly without a session.  Use an edge function to
               // set the password via the admin API, then sign in.
               if (inviteToken) {
-                const { error: fnError } = await supabase.functions.invoke(
+                const { data: fnData, error: fnError } = await supabase.functions.invoke(
                   'set-nominee-password',
                   { body: { invite_token: inviteToken, password } }
                 );
                 if (fnError) {
-                  throw new Error('Failed to set password. Please try again.');
+                  console.error('set-nominee-password failed:', fnError);
+                  // Fallback: send a magic link so the user can authenticate,
+                  // then set password on next attempt.
+                  await supabase.auth.signInWithOtp({
+                    email,
+                    options: { shouldCreateUser: false },
+                  });
+                  throw new Error(
+                    'We sent a verification link to your email. Please check your inbox and click the link, then try setting your password again.'
+                  );
                 }
 
                 // Now sign in with the newly set password
