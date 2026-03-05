@@ -541,27 +541,49 @@ export function useBuildCardFlow({
                   'set-nominee-password',
                   { body: { invite_token: inviteToken, password } }
                 );
-                if (fnError) {
-                  console.error('set-nominee-password failed:', fnError);
+
+                // Check for both invocation errors and error responses from the function
+                const fnResponseError = fnError || (fnData && fnData.error);
+                if (fnResponseError) {
+                  console.error('set-nominee-password failed:', fnResponseError);
                   // Fallback: send a magic link so the user can authenticate,
                   // then set password on next attempt.
-                  await supabase.auth.signInWithOtp({
-                    email,
-                    options: { shouldCreateUser: false },
-                  });
-                  throw new Error(
-                    'We sent a verification link to your email. Please check your inbox and click the link, then try setting your password again.'
-                  );
+                  try {
+                    await supabase.auth.signInWithOtp({
+                      email,
+                      options: { shouldCreateUser: false },
+                    });
+                    throw new Error(
+                      'We sent a verification link to your email. Please check your inbox and click the link, then try setting your password again.'
+                    );
+                  } catch (otpErr) {
+                    // If the magic link also fails, re-throw with a clear message
+                    if (otpErr.message?.includes('verification link')) throw otpErr;
+                    throw new Error(
+                      'Unable to set password right now. Please try again or check your email for a sign-in link.'
+                    );
+                  }
                 }
 
                 // Now sign in with the newly set password
                 const { data: signInData, error: signInError } =
                   await supabase.auth.signInWithPassword({ email, password });
                 if (signInError) {
-                  throw new Error('Password set but sign-in failed. Please try logging in.');
+                  // Password was set via admin API but sign-in failed — this can
+                  // happen if email confirmation is required. Try one more time
+                  // after a short delay.
+                  await new Promise(r => setTimeout(r, 1000));
+                  const { data: retryData, error: retryError } =
+                    await supabase.auth.signInWithPassword({ email, password });
+                  if (retryError) {
+                    throw new Error('Password set successfully! Please go to the login page and sign in with your new password.');
+                  }
+                  setCurrentUser(retryData.user);
+                  userId = retryData.user?.id;
+                } else {
+                  setCurrentUser(signInData.user);
+                  userId = signInData.user?.id;
                 }
-                setCurrentUser(signInData.user);
-                userId = signInData.user?.id;
               } else {
                 // No invite token available — try signing in directly
                 const { data: signInData, error: signInError } =
