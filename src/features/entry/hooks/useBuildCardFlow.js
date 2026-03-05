@@ -513,13 +513,25 @@ export function useBuildCardFlow({
           { body: { invite_token: inviteToken, password, email } }
         );
 
-        const fnResponseError = fnError || (fnData && fnData.error);
-        if (fnResponseError) {
-          const errMsg = typeof fnResponseError === 'string'
-            ? fnResponseError
-            : fnResponseError.message || fnData?.error || 'Failed to create account';
-          console.error('set-nominee-password failed:', fnResponseError);
+        // supabase.functions.invoke sets fnError (FunctionsHttpError) on non-2xx
+        // responses and fnData is null. The actual error body is in fnError.context.
+        if (fnError) {
+          let errMsg = 'Failed to create account';
+          try {
+            // FunctionsHttpError has a .context property (Response) with the body
+            const errorBody = typeof fnError.context?.json === 'function'
+              ? await fnError.context.json()
+              : null;
+            errMsg = errorBody?.error || fnError.message || errMsg;
+          } catch {
+            errMsg = fnError.message || errMsg;
+          }
+          console.error('set-nominee-password failed:', errMsg, fnError);
           throw new Error(errMsg);
+        }
+        if (fnData?.error) {
+          console.error('set-nominee-password returned error:', fnData.error);
+          throw new Error(fnData.error);
         }
 
         // Sign in with the newly set password
