@@ -200,7 +200,7 @@ export default function CardReveal({
               disabled={isGenerating}
             >
               <Share2 size={18} />
-              {isGenerating ? 'Generating...' : 'Share to Instagram Story'}
+              {isGenerating ? 'Generating...' : 'Share'}
             </button>
 
             <div className="entry-share-row">
@@ -211,14 +211,6 @@ export default function CardReveal({
               >
                 <Download size={16} />
                 Download
-              </button>
-
-              <button
-                className={`entry-btn-secondary ${copied ? 'copied' : ''}`}
-                onClick={handleCopyLink}
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? 'Copied!' : 'Copy Link'}
               </button>
             </div>
 
