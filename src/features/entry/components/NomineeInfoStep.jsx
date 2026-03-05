@@ -36,7 +36,9 @@ export default function NomineeInfoStep({
     onChange({ photoFile: file, photoPreview: previewUrl });
   };
 
-  const hasContact = (data.email && data.email.trim()) || (data.phone && data.phone.trim());
+  const hasEmail = data.email?.trim();
+  const hasPhone = data.phone?.trim();
+  const hasContact = hasEmail || hasPhone;
   const isValid = data.name.trim() && hasContact;
 
   return (
@@ -91,7 +93,7 @@ export default function NomineeInfoStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Their Email {hasContact ? '' : '*'}</label>
+        <label className="entry-label">Their Email</label>
         <div className="entry-input-icon">
           <Mail size={18} />
           <input
@@ -105,7 +107,7 @@ export default function NomineeInfoStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Their Phone {hasContact ? '' : '*'}</label>
+        <label className="entry-label">Their Phone</label>
         <div className="entry-input-icon">
           <Phone size={18} />
           <input
