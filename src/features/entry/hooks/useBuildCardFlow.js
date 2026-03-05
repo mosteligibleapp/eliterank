@@ -501,8 +501,45 @@ export function useBuildCardFlow({
             .update({ user_id: userId, claimed_at: new Date().toISOString() })
             .eq('id', nomineeId);
         }
+      } else if (inviteToken) {
+        // Claim flow — the nominee may or may not have a ghost auth user
+        // (pre-created by send-nomination-invite). Use the edge function which
+        // handles both cases: sets password on existing user or creates a new one.
+        const email = cardData.email?.trim();
+        if (!email) throw new Error('Email is required to create an account');
+
+        const { data: fnData, error: fnError } = await supabase.functions.invoke(
+          'set-nominee-password',
+          { body: { invite_token: inviteToken, password, email } }
+        );
+
+        const fnResponseError = fnError || (fnData && fnData.error);
+        if (fnResponseError) {
+          const errMsg = typeof fnResponseError === 'string'
+            ? fnResponseError
+            : fnResponseError.message || fnData?.error || 'Failed to create account';
+          console.error('set-nominee-password failed:', fnResponseError);
+          throw new Error(errMsg);
+        }
+
+        // Sign in with the newly set password
+        const { data: signInData, error: signInError } =
+          await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          throw new Error('Account created but sign-in failed. Please try logging in with your email and password.');
+        }
+        setCurrentUser(signInData.user);
+        userId = signInData.user?.id;
+
+        // Link user to nominee and mark claimed
+        if (userId && nomineeId) {
+          await supabase
+            .from('nominees')
+            .update({ user_id: userId, claimed_at: new Date().toISOString() })
+            .eq('id', nomineeId);
+        }
       } else {
-        // New user — sign up
+        // Self-entry flow (no invite token) — standard sign up
         const email = cardData.email?.trim();
         if (!email) throw new Error('Email is required to create an account');
 
@@ -521,106 +558,32 @@ export function useBuildCardFlow({
 
         if (signUpError) {
           if (signUpError.message?.includes('already registered')) {
-            // Account exists — likely created via magic link. Check if we
-            // already have a session (user arrived via magic link but
-            // currentUser wasn't set due to timing).
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData?.session?.user?.email?.toLowerCase() === email.toLowerCase()) {
-              // We have a valid session — just set the password
-              const { error: updateErr } = await supabase.auth.updateUser({ password });
-              if (updateErr) throw updateErr;
-              userId = sessionData.session.user.id;
-              setCurrentUser(sessionData.session.user);
-            } else {
-              // No matching session — the auth user was likely auto-created by
-              // the invite system (signInWithOtp) but the nominee opened the
-              // claim link directly without a session.  Use an edge function to
-              // set the password via the admin API, then sign in.
-              if (inviteToken) {
-                const { data: fnData, error: fnError } = await supabase.functions.invoke(
-                  'set-nominee-password',
-                  { body: { invite_token: inviteToken, password } }
-                );
+            // Try signing in — maybe they already have an account
+            const { data: signInData, error: signInError } =
+              await supabase.auth.signInWithPassword({ email, password });
 
-                // Check for both invocation errors and error responses from the function
-                const fnResponseError = fnError || (fnData && fnData.error);
-                if (fnResponseError) {
-                  console.error('set-nominee-password failed:', fnResponseError);
-                  // Fallback: send a magic link so the user can authenticate,
-                  // then set password on next attempt.
-                  try {
-                    await supabase.auth.signInWithOtp({
-                      email,
-                      options: { shouldCreateUser: false },
-                    });
-                    throw new Error(
-                      'We sent a verification link to your email. Please check your inbox and click the link, then try setting your password again.'
-                    );
-                  } catch (otpErr) {
-                    // If the magic link also fails, re-throw with a clear message
-                    if (otpErr.message?.includes('verification link')) throw otpErr;
-                    throw new Error(
-                      'Unable to set password right now. Please try again or check your email for a sign-in link.'
-                    );
-                  }
-                }
-
-                // Now sign in with the newly set password
-                const { data: signInData, error: signInError } =
-                  await supabase.auth.signInWithPassword({ email, password });
-                if (signInError) {
-                  // Password was set via admin API but sign-in failed — this can
-                  // happen if email confirmation is required. Try one more time
-                  // after a short delay.
-                  await new Promise(r => setTimeout(r, 1000));
-                  const { data: retryData, error: retryError } =
-                    await supabase.auth.signInWithPassword({ email, password });
-                  if (retryError) {
-                    throw new Error('Password set successfully! Please go to the login page and sign in with your new password.');
-                  }
-                  setCurrentUser(retryData.user);
-                  userId = retryData.user?.id;
-                } else {
-                  setCurrentUser(signInData.user);
-                  userId = signInData.user?.id;
-                }
-              } else {
-                // No invite token available — try signing in directly
-                const { data: signInData, error: signInError } =
-                  await supabase.auth.signInWithPassword({ email, password });
-
-                if (signInError) {
-                  throw new Error(
-                    'An account with this email already exists. Please use your existing password or reset it.'
-                  );
-                }
-
-                setCurrentUser(signInData.user);
-                userId = signInData.user?.id;
-              }
+            if (signInError) {
+              throw new Error(
+                'An account with this email already exists. Please use your existing password or reset it.'
+              );
             }
 
-            // Link user to nominee and mark claimed
-            if (userId && nomineeId) {
-              await supabase
-                .from('nominees')
-                .update({ user_id: userId, claimed_at: new Date().toISOString() })
-                .eq('id', nomineeId);
-            }
+            setCurrentUser(signInData.user);
+            userId = signInData.user?.id;
           } else {
             throw signUpError;
           }
         } else if (data?.user) {
           setCurrentUser(data.user);
           userId = data.user.id;
+        }
 
-          // Link user to nominee and mark claimed
-          if (userId && nomineeId) {
-            await supabase
-              .from('nominees')
-              .update({ user_id: userId, claimed_at: new Date().toISOString() })
-              .eq('id', nomineeId);
-          }
+        // Link user to nominee and mark claimed
+        if (userId && nomineeId) {
+          await supabase
+            .from('nominees')
+            .update({ user_id: userId, claimed_at: new Date().toISOString() })
+            .eq('id', nomineeId);
         }
       }
 

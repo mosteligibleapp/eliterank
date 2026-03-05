@@ -14,8 +14,12 @@ const corsHeaders = {
  * but the nominee arrives at the claim page without a session (e.g. opened the
  * claim link directly instead of via the magic link email).
  *
- * Accepts: { invite_token: string, password: string }
+ * Accepts: { invite_token: string, password: string, email?: string }
  * Returns: { success: true, user_id: string }
+ *
+ * The optional email param is used when the nominee record doesn't have an
+ * email yet (e.g. phone-only nomination where the nominee entered their email
+ * during the claim flow but RLS prevented saving it).
  */
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -23,7 +27,7 @@ serve(async (req) => {
   }
 
   try {
-    const { invite_token, password } = await req.json()
+    const { invite_token, password, email: clientEmail } = await req.json()
 
     if (!invite_token || !password) {
       return new Response(
@@ -60,6 +64,18 @@ serve(async (req) => {
       )
     }
 
+    // Use the email from the client if the nominee record doesn't have one
+    // (happens when RLS blocks the persistProgress update for unauthenticated users)
+    const nomineeEmail = nominee.email || clientEmail?.trim() || null
+
+    // Backfill the email on the nominee record if it was missing
+    if (!nominee.email && nomineeEmail) {
+      await supabase
+        .from('nominees')
+        .update({ email: nomineeEmail })
+        .eq('id', nominee.id)
+    }
+
     // Find the auth user — prefer direct lookup via user_id (set by
     // send-nomination-invite when it pre-creates the auth user), fall back to
     // email search if user_id is not available.
@@ -77,25 +93,25 @@ serve(async (req) => {
     }
 
     // Fallback: search by email if direct lookup didn't work
-    if (!authUser && nominee.email) {
+    if (!authUser && nomineeEmail) {
       const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({
-        filter: nominee.email,
+        filter: nomineeEmail,
         page: 1,
         perPage: 50,
       })
 
       if (!listError && users?.length) {
         authUser = users.find(
-          (u: { email?: string }) => u.email?.toLowerCase() === nominee.email.toLowerCase()
+          (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
         ) || null
       }
     }
 
     // Last resort: create the auth user if neither lookup found one
-    if (!authUser && nominee.email) {
-      console.log('No auth user found, creating one for:', nominee.email)
+    if (!authUser && nomineeEmail) {
+      console.log('No auth user found, creating one for:', nomineeEmail)
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: nominee.email,
+        email: nomineeEmail,
         password,
         email_confirm: true,
       })
@@ -124,8 +140,8 @@ serve(async (req) => {
 
     if (!authUser) {
       return new Response(
-        JSON.stringify({ error: 'No account found for this nominee and no email to create one' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: nomineeEmail ? 'Failed to find or create account' : 'No email address available to create an account' }),
+        { status: nomineeEmail ? 500 : 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
