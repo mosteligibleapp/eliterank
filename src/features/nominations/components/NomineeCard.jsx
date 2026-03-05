@@ -179,7 +179,7 @@ export default function NomineeCard({
   return (
     <div style={cardStyle}>
       <div style={{ display: 'flex', gap: spacing.md, alignItems: 'flex-start' }}>
-        <Avatar name={nominee.name} size={compact ? 48 : 56} />
+        <Avatar name={nominee.name} src={nominee.avatar_url} size={compact ? 48 : 56} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
