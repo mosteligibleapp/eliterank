@@ -79,6 +79,14 @@ export default function AcceptNominationModal({
     onClose?.();
   };
 
+  // If nominee already completed the acceptance flow, just close and redirect
+  useEffect(() => {
+    if (isOpen && nomination?.claimed_at && nomination?.user_id) {
+      onAccept?.();
+      onClose?.();
+    }
+  }, [isOpen, nomination]);
+
   if (!isOpen || !nomination) return null;
 
   const totalDots = flow.totalSteps;
