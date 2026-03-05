@@ -163,14 +163,62 @@ serve(async (req) => {
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('id, email')
-      .eq('email', nomineeEmail)
+      .ilike('email', nomineeEmail)
       .maybeSingle()
 
-    const existingUser = existingProfile
+    let existingUser = existingProfile
       ? { id: existingProfile.id, email: existingProfile.email }
       : null
 
     console.log('User lookup result:', JSON.stringify({ nomineeEmail, existingUser, hasProfile: !!existingProfile }))
+
+    // Link nominee to existing user if not already linked
+    if (existingUser) {
+      const { error: linkError } = await supabase
+        .from('nominees')
+        .update({ user_id: existingUser.id })
+        .eq('id', nominee_id)
+
+      if (linkError) {
+        console.warn('Failed to link nominee to existing user:', linkError.message)
+      }
+    }
+
+    // Pre-create auth user if they don't exist yet.
+    // signInWithOtp() should auto-create users, but this depends on the
+    // Supabase project setting "Enable automatic user creation for
+    // passwordless login". Pre-creating ensures the user, profile (via
+    // handle_new_user trigger), and nominee linkage all exist regardless.
+    if (!existingUser) {
+      console.log('Pre-creating auth user for:', nomineeEmail)
+      const { data: newUserData, error: createError } = await supabase.auth.admin.createUser({
+        email: nomineeEmail,
+        email_confirm: false,
+        user_metadata: {
+          first_name: nomineeData.name.split(' ')[0] || '',
+          last_name: nomineeData.name.split(' ').slice(1).join(' ') || '',
+        },
+      })
+
+      if (createError) {
+        // If user already exists in auth but not in profiles, that's OK —
+        // signInWithOtp below will still work.
+        console.warn('Pre-create user failed (may already exist):', createError.message)
+      } else if (newUserData?.user) {
+        existingUser = { id: newUserData.user.id, email: newUserData.user.email! }
+        console.log('Created auth user:', existingUser.id)
+
+        // Link nominee to the new user
+        const { error: linkError } = await supabase
+          .from('nominees')
+          .update({ user_id: newUserData.user.id })
+          .eq('id', nomineeData.id)
+
+        if (linkError) {
+          console.warn('Failed to link nominee to new user:', linkError.message)
+        }
+      }
+    }
 
     let inviteResult
 

@@ -264,7 +264,7 @@ export function useCompetitionRules(competitionId) {
 export function useProfiles() {
   return useCachedQuery({
     table: 'profiles',
-    select: 'id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery',
+    select: 'id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery, onboarded_at',
     ttl: 120000, // 2 minutes
   });
 }

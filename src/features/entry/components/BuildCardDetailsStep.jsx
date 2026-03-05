@@ -12,6 +12,7 @@ export default function BuildCardDetailsStep({
   onNext,
   error,
   isSubmitting,
+  requireEmail = false,
 }) {
   const handleChange = (field) => (e) => {
     onChange({ [field]: e.target.value });
@@ -19,7 +20,7 @@ export default function BuildCardDetailsStep({
 
   const hasEmail = data.email?.trim() && data.email.includes('@');
   const hasPhone = data.phone?.trim().length > 0;
-  const hasContact = hasEmail || hasPhone;
+  const hasContact = requireEmail ? hasEmail : (hasEmail || hasPhone);
 
   const isValid =
     data.firstName?.trim() &&
@@ -94,7 +95,7 @@ export default function BuildCardDetailsStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Email {hasContact ? '' : '*'}</label>
+        <label className="entry-label">Email {requireEmail || !hasContact ? '*' : ''}</label>
         <div className="entry-input-icon">
           <Mail size={18} />
           <input
@@ -124,7 +125,7 @@ export default function BuildCardDetailsStep({
       </div>
 
       {!hasContact && (
-        <p className="entry-hint">Email or phone is required</p>
+        <p className="entry-hint">{requireEmail ? 'Email is required to create your account' : 'Email or phone is required'}</p>
       )}
 
       <div className="entry-form-field">

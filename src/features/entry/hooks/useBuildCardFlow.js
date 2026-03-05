@@ -607,6 +607,7 @@ export function useBuildCardFlow({
             age: cardData.age ? parseInt(cardData.age, 10) : undefined,
             instagram: cardData.instagram?.trim() || undefined,
             phone: cardData.phone?.trim() || undefined,
+            onboarded_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq('id', userId);
