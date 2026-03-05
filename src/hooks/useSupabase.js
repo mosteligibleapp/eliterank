@@ -63,7 +63,7 @@ export default function useSupabase(competitionId = null) {
       ] = await Promise.all([
         supabase.from('competitions').select('*').eq('id', competitionId).maybeSingle(),
         supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('rank'),
-        supabase.from('nominees').select('*, profile:profiles!user_id(avatar_url)').eq('competition_id', competitionId).order('created_at', { ascending: false }),
+        supabase.from('nominees').select('*').eq('competition_id', competitionId).order('created_at', { ascending: false }),
         supabase.from('judges').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('sort_order'),
         supabase.from('sponsors').select('*').eq('competition_id', competitionId).order('sort_order'),
         supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
@@ -171,7 +171,7 @@ export default function useSupabase(competitionId = null) {
       bio: nominee.bio,
       instagram: nominee.instagram,
       interests: nominee.interests,
-      avatar_url: nominee.profile?.avatar_url || nominee.avatar_url,
+      avatar_url: nominee.avatar_url,
       user_id: nominee.user_id,
       phone: nominee.phone,
       city: nominee.city,

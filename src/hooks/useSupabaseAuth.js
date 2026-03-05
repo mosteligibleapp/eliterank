@@ -213,6 +213,15 @@ export default function useSupabaseAuth() {
 
       if (updateError) throw updateError;
 
+      // Sync avatar to nominees table so cards stay up to date
+      if (updates.avatar_url !== undefined) {
+        supabase
+          .from('nominees')
+          .update({ avatar_url: updates.avatar_url })
+          .eq('user_id', user.id)
+          .then(() => {}); // fire-and-forget
+      }
+
       setProfile((prev) => ({ ...prev, ...updates }));
       return { error: null };
     } catch (err) {

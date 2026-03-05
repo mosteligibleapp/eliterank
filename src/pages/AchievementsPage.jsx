@@ -84,7 +84,6 @@ export default function AchievementsPage() {
         status,
         user_id,
         converted_to_contestant,
-        profile:profiles!user_id(avatar_url),
         competition:competitions (
           id,
           name,
@@ -292,7 +291,7 @@ export default function AchievementsPage() {
       achievementType: cardOption.type,
       customTitle: cardOption.customTitle,
       name: record.name,
-      photoUrl: record.profile?.avatar_url || record.avatar_url || profile?.avatar_url,
+      photoUrl: record.avatar_url || profile?.avatar_url,
       handle: record.instagram,
       competitionName: competition?.name || `Most Eligible ${competition?.city?.name}`,
       season: competition?.season?.toString(),
