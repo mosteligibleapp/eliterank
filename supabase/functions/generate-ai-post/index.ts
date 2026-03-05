@@ -229,7 +229,7 @@ serve(async (req) => {
       // Fetch competition data
       const { data: competition, error: compError } = await supabase
         .from('competitions')
-        .select('*, contestants(id, name, status)')
+        .select('*, city:cities(name), contestants(id, name, status)')
         .eq('id', competitionId)
         .single()
 
@@ -239,9 +239,10 @@ serve(async (req) => {
 
       const winners = competition.contestants?.filter((c: any) => c.status === 'winner') || []
 
+      const cityName = competition.city?.name || ''
       const context: EventContext = {
-        competitionName: `${competition.city} ${competition.season}`,
-        city: competition.city,
+        competitionName: `${cityName} ${competition.season}`,
+        city: cityName,
         season: competition.season,
         nominationEnd: competition.nomination_end,
         votingEnd: competition.voting_end,
@@ -258,14 +259,14 @@ serve(async (req) => {
 
       // Generate appropriate title based on event type
       const titleMap: Record<string, string> = {
-        competition_launched: `${competition.city} ${competition.season} Competition Launches`,
-        nominations_open: `Nominations Now Open for ${competition.city}`,
-        nominations_close: `Nomination Period Closes for ${competition.city}`,
-        voting_open: `Voting Opens for ${competition.city} ${competition.season}`,
-        voting_close: `Voting Concludes for ${competition.city} ${competition.season}`,
-        results_announced: `${competition.city} ${competition.season} Winners Announced`,
+        competition_launched: `${cityName} ${competition.season} Competition Launches`,
+        nominations_open: `Nominations Now Open for ${cityName}`,
+        nominations_close: `Nomination Period Closes for ${cityName}`,
+        voting_open: `Voting Opens for ${cityName} ${competition.season}`,
+        voting_close: `Voting Concludes for ${cityName} ${competition.season}`,
+        results_announced: `${cityName} ${competition.season} Winners Announced`,
       }
-      title = titleMap[eventType] || `${competition.city} Update`
+      title = titleMap[eventType] || `${cityName} Update`
 
     } else if (mode === 'editorial') {
       // Admin-created editorial post
@@ -282,14 +283,14 @@ serve(async (req) => {
       if (contestantId) {
         const { data: contestant, error: contError } = await supabase
           .from('contestants')
-          .select('*, competition:competitions(*)')
+          .select('*, competition:competitions(*, city:cities(name))')
           .eq('id', contestantId)
           .single()
 
         if (!contError && contestant) {
           context.contestantName = contestant.name
-          context.competitionName = `${contestant.competition.city} ${contestant.competition.season}`
-          context.city = contestant.competition.city
+          context.competitionName = `${contestant.competition.city?.name || ''} ${contestant.competition.season}`
+          context.city = contestant.competition.city?.name || ''
         }
       }
 

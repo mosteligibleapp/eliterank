@@ -63,7 +63,7 @@ serve(async (req) => {
     // Fetch competition to get vote price
     const { data: competition, error: compError } = await supabase
       .from('competitions')
-      .select('id, city, season, vote_price, status')
+      .select('id, city:cities(name), season, vote_price, status')
       .eq('id', competitionId)
       .single()
 
@@ -111,10 +111,10 @@ serve(async (req) => {
         contestant_id: contestantId,
         vote_count: voteCount.toString(),
         voter_email: voterEmail || '',
-        competition_name: `${competition.city} ${competition.season}`,
+        competition_name: `${competition.city?.name} ${competition.season}`,
         contestant_name: contestant.name,
       },
-      description: `${voteCount} vote${voteCount > 1 ? 's' : ''} for ${contestant.name} in ${competition.city} ${competition.season}`,
+      description: `${voteCount} vote${voteCount > 1 ? 's' : ''} for ${contestant.name} in ${competition.city?.name} ${competition.season}`,
     })
 
     return new Response(
