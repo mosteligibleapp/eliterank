@@ -51,6 +51,7 @@ serve(async (req) => {
     })
 
     // Look up the nominee by invite_token
+    console.log('Looking up nominee by invite_token')
     const { data: nominee, error: fetchError } = await supabase
       .from('nominees')
       .select('id, email, user_id')
@@ -58,11 +59,14 @@ serve(async (req) => {
       .single()
 
     if (fetchError || !nominee) {
+      console.error('Nominee lookup failed:', fetchError?.message, fetchError?.code)
       return new Response(
         JSON.stringify({ error: 'Invalid or expired invite token' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log('Found nominee:', JSON.stringify({ id: nominee.id, email: nominee.email, user_id: nominee.user_id }))
 
     // Use the email from the client if the nominee record doesn't have one
     // (happens when RLS blocks the persistProgress update for unauthenticated users)
@@ -94,14 +98,16 @@ serve(async (req) => {
 
     // Fallback: search by email if direct lookup didn't work
     if (!authUser && nomineeEmail) {
-      const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({
+      const listResult = await supabase.auth.admin.listUsers({
         filter: nomineeEmail,
         page: 1,
         perPage: 50,
       })
 
-      if (!listError && users?.length) {
-        authUser = users.find(
+      if (listResult.error) {
+        console.warn('listUsers failed:', listResult.error.message)
+      } else if (listResult.data?.users?.length) {
+        authUser = listResult.data.users.find(
           (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
         ) || null
       }
