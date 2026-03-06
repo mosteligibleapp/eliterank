@@ -192,151 +192,49 @@ serve(async (req) => {
       }
     }
 
-    // Pre-create auth user if they don't exist yet.
-    // signInWithOtp() should auto-create users, but this depends on the
-    // Supabase project setting "Enable automatic user creation for
-    // passwordless login". Pre-creating ensures the user, profile (via
-    // handle_new_user trigger), and nominee linkage all exist regardless.
+    // DO NOT pre-create auth users here. Auth accounts should only be created
+    // when the nominee actually sets a password during the claim flow. Creating
+    // ghost users causes "already registered" errors and orphaned profiles.
     if (!existingUser) {
-      console.log('Pre-creating auth user for:', nomineeEmail)
-      const { data: newUserData, error: createError } = await supabase.auth.admin.createUser({
-        email: nomineeEmail,
-        email_confirm: true,
-        user_metadata: {
-          first_name: nomineeData.name.split(' ')[0] || '',
-          last_name: nomineeData.name.split(' ').slice(1).join(' ') || '',
-        },
-      })
-
-      if (createError) {
-        // User may already exist in auth without a profile row.
-        console.warn('Pre-create user failed (may already exist):', createError.message)
-
-        // Try to find the existing auth user via GoTrue admin API
-        try {
-          const gotrueUrl = `${supabaseUrl}/auth/v1/admin/users`
-          const gotrueRes = await fetch(gotrueUrl, {
-            headers: {
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-              'apikey': supabaseServiceKey,
-            },
-          })
-          if (gotrueRes.ok) {
-            const gotrueData = await gotrueRes.json()
-            const matchedUser = (gotrueData?.users || []).find(
-              (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail.toLowerCase()
-            )
-            if (matchedUser) {
-              existingUser = { id: matchedUser.id, email: matchedUser.email! }
-              console.log('Found existing auth user after createUser failure:', existingUser.id)
-              await supabase
-                .from('nominees')
-                .update({ user_id: matchedUser.id })
-                .eq('id', nomineeData.id)
-            } else {
-              console.log('No matching auth user found in GoTrue for:', nomineeEmail)
-            }
-          } else {
-            console.warn('GoTrue admin users query failed:', gotrueRes.status)
-          }
-        } catch (lookupErr) {
-          console.warn('Auth user lookup after createUser failure also failed:', lookupErr)
-        }
-      } else if (newUserData?.user) {
-        existingUser = { id: newUserData.user.id, email: newUserData.user.email! }
-        console.log('Created auth user:', existingUser.id)
-
-        // The handle_new_user trigger may have failed silently (exception-safe).
-        // Ensure the profile row exists so downstream queries work.
-        const { data: profileCheck } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', existingUser.id)
-          .maybeSingle()
-
-        if (!profileCheck) {
-          console.log('Profile missing after user creation, creating manually')
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: existingUser.id,
-              email: nomineeEmail,
-              first_name: nomineeData.name.split(' ')[0] || null,
-              last_name: nomineeData.name.split(' ').slice(1).join(' ') || null,
-            }, { onConflict: 'id' })
-
-          if (profileError) {
-            console.warn('Manual profile creation failed:', profileError.message)
-          } else {
-            console.log('Profile created manually for:', existingUser.id)
-          }
-        }
-
-        // Link nominee to the new user
-        const { error: linkError } = await supabase
-          .from('nominees')
-          .update({ user_id: newUserData.user.id })
-          .eq('id', nomineeData.id)
-
-        if (linkError) {
-          console.warn('Failed to link nominee to new user:', linkError.message)
-        }
-      }
+      console.log('Nominee has no existing account — will be created when they claim and set a password')
     }
 
-    // Generate a magic link URL without sending Supabase's built-in email.
-    // We'll embed this link in the branded OneSignal email instead, so only
-    // one email is sent and it goes through OneSignal's delivery pipeline.
+    // Generate a magic link URL only for EXISTING users. New nominees get a
+    // plain claim URL and will create their account during the claim flow.
     let magicLinkUrl: string | null = null
 
-    try {
-      console.log('Generating magic link for:', nomineeEmail, 'redirectTo:', authRedirectUrl)
-      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: nomineeEmail,
-        options: {
-          redirectTo: authRedirectUrl,
-          data: {
-            nomination_invite: true,
-            nominee_name: nomineeData.name,
-            competition_name: competitionName,
+    // Only generate a magic link for existing users — new nominees don't have
+    // an auth account yet so generateLink would fail or create one implicitly.
+    if (existingUser) {
+      try {
+        console.log('Generating magic link for existing user:', nomineeEmail, 'redirectTo:', authRedirectUrl)
+        const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+          type: 'magiclink',
+          email: nomineeEmail,
+          options: {
+            redirectTo: authRedirectUrl,
+            data: {
+              nomination_invite: true,
+              nominee_name: nomineeData.name,
+              competition_name: competitionName,
+            },
           },
-        },
-      })
+        })
 
-      if (linkError) {
-        console.error('generateLink failed:', JSON.stringify(linkError))
-        // Non-fatal: we can still send the claim URL without auth
-      } else if (linkData?.properties?.action_link) {
-        magicLinkUrl = linkData.properties.action_link
-        console.log('Magic link generated successfully for:', nomineeEmail)
+        if (linkError) {
+          console.error('generateLink failed:', JSON.stringify(linkError))
+        } else if (linkData?.properties?.action_link) {
+          magicLinkUrl = linkData.properties.action_link
+          console.log('Magic link generated successfully for:', nomineeEmail)
+        }
+      } catch (linkErr) {
+        console.error('Magic link generation error:', linkErr)
       }
-    } catch (linkErr) {
-      console.error('Magic link generation error:', linkErr)
-      // Non-fatal: fall back to plain claim URL
+    } else {
+      console.log('New nominee — skipping magic link, will use plain claim URL')
     }
 
     const inviteResult = { method: 'onesignal_email' }
-
-    // If we didn't link the nominee to a user yet (createUser above may have
-    // failed), try to find the user via their profile and backfill user_id
-    // so set-nominee-password can find them later.
-    if (!existingUser) {
-      const { data: autoProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .ilike('email', nomineeEmail)
-        .maybeSingle()
-
-      if (autoProfile?.id) {
-        existingUser = { id: autoProfile.id, email: nomineeEmail }
-        await supabase
-          .from('nominees')
-          .update({ user_id: autoProfile.id })
-          .eq('id', nominee_id)
-        console.log('Backfilled user_id from auto-created profile:', autoProfile.id)
-      }
-    }
 
     // Create in-app notification if user already has an account
     if (existingUser) {
