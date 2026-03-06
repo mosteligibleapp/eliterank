@@ -189,91 +189,163 @@ serve(async (req) => {
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || ''
 
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: nomineeEmail,
-        password,
-        email_confirm: true,
-        user_metadata: { first_name: firstName, last_name: lastName },
-      })
+      // PROACTIVE CLEANUP: Delete orphaned profiles with this email BEFORE
+      // createUser. The handle_new_user trigger tries to INSERT a profile
+      // row; if a conflicting email already exists, the trigger crashes and
+      // rolls back the entire auth.users INSERT ("Database error creating
+      // new user"). Cleaning up first prevents this cascade.
+      try {
+        const { data: existingProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .ilike('email', nomineeEmail)
 
-      if (createError) {
-        console.warn('createUser failed:', createError.message)
-
-        // "Database error creating new user" usually means the
-        // handle_new_user trigger hit a conflict (orphaned profile with
-        // same email, or a profile with the same id). Clean up and retry.
-        if (createError.message?.includes('Database error')) {
-          console.log('Trigger failure detected — cleaning up orphaned profiles and retrying')
-
-          // Delete any orphaned profile rows for this email (profiles
-          // whose id doesn't match a real auth user)
-          const { data: orphans } = await supabase
-            .from('profiles')
-            .select('id')
-            .ilike('email', nomineeEmail)
-
-          if (orphans?.length) {
-            for (const orphan of orphans) {
-              const { error: getErr } = await supabase.auth.admin.getUserById(orphan.id)
-              if (getErr) {
-                console.log('Deleting orphaned profile:', orphan.id)
-                await supabase.from('profiles').delete().eq('id', orphan.id)
+        if (existingProfiles?.length) {
+          console.log('Found', existingProfiles.length, 'existing profile(s) with email:', nomineeEmail)
+          for (const prof of existingProfiles) {
+            const { data: authCheck, error: getErr } = await supabase.auth.admin.getUserById(prof.id)
+            if (getErr || !authCheck?.user) {
+              console.log('Deleting orphaned profile (no auth user):', prof.id)
+              await supabase.from('profiles').delete().eq('id', prof.id)
+            } else {
+              // Profile belongs to a real auth user — this IS the user we need
+              authUser = { id: authCheck.user.id, email: authCheck.user.email! }
+              console.log('Found real auth user via proactive profile check:', authUser.id)
+              // Backfill user_id on nominee
+              if (!nominee.user_id) {
+                await supabase
+                  .from('nominees')
+                  .update({ user_id: authUser.id })
+                  .eq('id', nominee.id)
               }
             }
           }
+        }
+      } catch (cleanupErr) {
+        console.warn('Proactive profile cleanup failed:', cleanupErr)
+      }
 
-          // Retry createUser after cleanup
-          const { data: retryUser, error: retryError } = await supabase.auth.admin.createUser({
-            email: nomineeEmail,
-            password,
-            email_confirm: true,
-            user_metadata: { first_name: firstName, last_name: lastName },
-          })
+      // If proactive check found a real auth user, skip createUser
+      if (authUser) {
+        console.log('Skipping createUser — found existing user during proactive cleanup:', authUser.id)
+      } else {
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+          email: nomineeEmail,
+          password,
+          email_confirm: true,
+          user_metadata: { first_name: firstName, last_name: lastName },
+        })
 
-          if (!retryError && retryUser?.user) {
-            console.log('createUser succeeded after cleanup:', retryUser.user.id)
-            await supabase
-              .from('nominees')
-              .update({ user_id: retryUser.user.id })
-              .eq('id', nominee.id)
+        if (createError) {
+          console.warn('createUser failed:', createError.message)
 
-            return new Response(
-              JSON.stringify({ success: true, user_id: retryUser.user.id }),
-              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
+          // "Database error creating new user" usually means the
+          // handle_new_user trigger hit a conflict. Clean up and retry.
+          if (createError.message?.includes('Database error')) {
+            console.log('Trigger failure detected — aggressive cleanup and retry')
+
+            // Delete ALL profiles with this email regardless of auth user
+            // status. The trigger will recreate the profile for the new user.
+            const { data: allProfiles } = await supabase
+              .from('profiles')
+              .select('id')
+              .ilike('email', nomineeEmail)
+
+            if (allProfiles?.length) {
+              for (const p of allProfiles) {
+                console.log('Force-deleting profile for retry:', p.id)
+                await supabase.from('profiles').delete().eq('id', p.id)
+              }
+            }
+
+            // Retry createUser after aggressive cleanup
+            const { data: retryUser, error: retryError } = await supabase.auth.admin.createUser({
+              email: nomineeEmail,
+              password,
+              email_confirm: true,
+              user_metadata: { first_name: firstName, last_name: lastName },
+            })
+
+            if (!retryError && retryUser?.user) {
+              console.log('createUser succeeded after cleanup:', retryUser.user.id)
+              await supabase
+                .from('nominees')
+                .update({ user_id: retryUser.user.id })
+                .eq('id', nominee.id)
+
+              return new Response(
+                JSON.stringify({ success: true, user_id: retryUser.user.id }),
+                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+
+            console.warn('createUser retry also failed:', retryError?.message)
+
+            // Last resort: the user might have been partially created in auth
+            // during the first attempt (trigger crashed but GoTrue might have
+            // the user). Check via listUsers.
+            try {
+              const { data: listData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 50 })
+              const found = listData?.users?.find(
+                (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
+              )
+              if (found) {
+                authUser = { id: found.id, email: found.email! }
+                console.log('Found partially-created auth user via listUsers:', authUser.id)
+                // Set the password on this user
+                await supabase.auth.admin.updateUserById(found.id, { password, email_confirm: true })
+                // Ensure profile exists
+                await supabase.from('profiles').upsert({
+                  id: found.id,
+                  email: nomineeEmail,
+                  first_name: firstName,
+                  last_name: lastName,
+                }, { onConflict: 'id' })
+                await supabase
+                  .from('nominees')
+                  .update({ user_id: found.id })
+                  .eq('id', nominee.id)
+
+                return new Response(
+                  JSON.stringify({ success: true, user_id: found.id }),
+                  { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                )
+              }
+            } catch (listErr) {
+              console.warn('listUsers fallback failed:', listErr)
+            }
           }
 
-          console.warn('createUser retry also failed:', retryError?.message)
-        }
+          // If creation failed for any reason, try one more lookup
+          if (!authUser) {
+            const retryList = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+            if (!retryList.error && retryList.data?.users?.length) {
+              authUser = retryList.data.users.find(
+                (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
+              ) || null
+            }
+          }
 
-        // If creation failed because user already exists, try one more lookup.
-        // This handles race conditions and cases where listUsers filter missed them.
-        const retryList = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
-        if (!retryList.error && retryList.data?.users?.length) {
-          authUser = retryList.data.users.find(
-            (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
-          ) || null
-        }
+          if (!authUser) {
+            console.error('Failed to create or find auth user:', createError.message)
+            return new Response(
+              JSON.stringify({ error: `Failed to create account: ${createError.message}` }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+          console.log('Found existing auth user after createUser failed:', authUser.id)
+        } else if (newUser?.user) {
+          // Link nominee to the new user
+          await supabase
+            .from('nominees')
+            .update({ user_id: newUser.user.id })
+            .eq('id', nominee.id)
 
-        if (!authUser) {
-          console.error('Failed to create or find auth user:', createError.message)
           return new Response(
-            JSON.stringify({ error: `Failed to create account: ${createError.message}` }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ success: true, user_id: newUser.user.id }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
-        console.log('Found existing auth user after createUser failed:', authUser.id)
-      } else if (newUser?.user) {
-        // Link nominee to the new user
-        await supabase
-          .from('nominees')
-          .update({ user_id: newUser.user.id })
-          .eq('id', nominee.id)
-
-        return new Response(
-          JSON.stringify({ success: true, user_id: newUser.user.id }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
       }
     }
 
