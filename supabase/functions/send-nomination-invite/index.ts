@@ -209,12 +209,38 @@ serve(async (req) => {
       })
 
       if (createError) {
-        // If user already exists in auth but not in profiles, that's OK —
-        // signInWithOtp below will still work.
+        // User may already exist in auth without a profile row.
+        // signInWithOtp below will still work for existing auth users.
         console.warn('Pre-create user failed (may already exist):', createError.message)
       } else if (newUserData?.user) {
         existingUser = { id: newUserData.user.id, email: newUserData.user.email! }
         console.log('Created auth user:', existingUser.id)
+
+        // The handle_new_user trigger may have failed silently (exception-safe).
+        // Ensure the profile row exists so downstream queries work.
+        const { data: profileCheck } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', existingUser.id)
+          .maybeSingle()
+
+        if (!profileCheck) {
+          console.log('Profile missing after user creation, creating manually')
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: existingUser.id,
+              email: nomineeEmail,
+              first_name: nomineeData.name.split(' ')[0] || null,
+              last_name: nomineeData.name.split(' ').slice(1).join(' ') || null,
+            }, { onConflict: 'id' })
+
+          if (profileError) {
+            console.warn('Manual profile creation failed:', profileError.message)
+          } else {
+            console.log('Profile created manually for:', existingUser.id)
+          }
+        }
 
         // Link nominee to the new user
         const { error: linkError } = await supabase
