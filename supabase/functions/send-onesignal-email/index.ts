@@ -214,7 +214,7 @@ serve(async (req) => {
       email_subject: subject,
       email_body: htmlBody,
       email_from_name: 'EliteRank',
-      email_from_address: 'hello@eliterank.co',
+      email_from_address: 'info@eliterank.co',
       // Custom data for tracking
       data: {
         type: body.type,
