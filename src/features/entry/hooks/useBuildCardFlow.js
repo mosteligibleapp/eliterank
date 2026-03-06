@@ -217,6 +217,14 @@ export function useBuildCardFlow({
         ));
       }
       if (error) throw error;
+
+      // Notify the nominator that their nominee accepted (fire-and-forget)
+      supabase.functions.invoke('notify-nominator', {
+        body: { nominee_id: nominee.id, event: 'accepted' },
+      }).catch((err) => {
+        console.warn('Failed to notify nominator of acceptance:', err);
+      });
+
       next();
     } catch (err) {
       setSubmitError(err.message || 'Failed to accept nomination');
@@ -243,6 +251,14 @@ export function useBuildCardFlow({
         .eq('id', nominee.id);
 
       if (error) throw error;
+
+      // Notify the nominator that their nominee declined (fire-and-forget)
+      supabase.functions.invoke('notify-nominator', {
+        body: { nominee_id: nominee.id, event: 'declined' },
+      }).catch((err) => {
+        console.warn('Failed to notify nominator of decline:', err);
+      });
+
       return true; // Signal to parent to close/navigate away
     } catch (err) {
       setSubmitError(err.message || 'Failed to decline nomination');

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EliteRank Email Templates</title>
+<style>
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 60px;
+  }
+  .label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .email-container {
+    width: 600px;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .header {
+    background: linear-gradient(135deg, #08080c 0%, #1c1c24 100%);
+    padding: 32px 40px;
+    text-align: center;
+  }
+  .crown {
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
+  .brand {
+    font-size: 22px;
+    font-weight: 700;
+    color: #d4af37;
+    letter-spacing: 1px;
+  }
+  .brand-sub {
+    font-size: 12px;
+    color: #a1a1aa;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .body {
+    padding: 40px;
+  }
+  .body h2 {
+    font-size: 22px;
+    color: #08080c;
+    margin: 0 0 16px 0;
+    font-weight: 700;
+  }
+  .body p {
+    font-size: 15px;
+    color: #444;
+    line-height: 1.7;
+    margin: 0 0 16px 0;
+  }
+  .highlight-box {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border-left: 4px solid #d4af37;
+    padding: 20px 24px;
+    border-radius: 0 8px 8px 0;
+    margin: 24px 0;
+  }
+  .highlight-box p {
+    margin: 0;
+    color: #78350f;
+    font-weight: 500;
+  }
+  .highlight-box .event-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #08080c;
+    margin-bottom: 4px;
+  }
+  .btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #d4af37 0%, #f5d77a 50%, #d4af37 100%);
+    color: #08080c;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    padding: 14px 36px;
+    border-radius: 8px;
+    margin: 16px 0;
+    letter-spacing: 0.5px;
+  }
+  .btn-outline {
+    display: inline-block;
+    border: 2px solid #d4af37;
+    color: #d4af37;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 12px 32px;
+    border-radius: 8px;
+    margin: 16px 0;
+  }
+  .footer {
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    padding: 24px 40px;
+    text-align: center;
+  }
+  .footer p {
+    font-size: 12px;
+    color: #9ca3af;
+    margin: 4px 0;
+    line-height: 1.6;
+  }
+  .footer a {
+    color: #d4af37;
+    text-decoration: none;
+  }
+  .divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 24px 0;
+  }
+  .nominee-card {
+    background: #08080c;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    margin: 24px 0;
+  }
+  .nominee-card .name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+  }
+  .nominee-card .category {
+    font-size: 14px;
+    color: #d4af37;
+    font-weight: 600;
+  }
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin: 20px 0;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat .number {
+    font-size: 28px;
+    font-weight: 800;
+    color: #08080c;
+  }
+  .stat .label-sm {
+    font-size: 11px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- LABEL -->
+<div>
+  <div class="label">Transactional Email — Nomination Notification</div>
+
+  <!-- EMAIL 1: TRANSACTIONAL - Nomination Notification -->
+  <div class="email-container">
+    <div class="header">
+      <div class="crown">👑</div>
+      <div class="brand">EliteRank</div>
+      <div class="brand-sub">Most Eligible Competition</div>
+    </div>
+    <div class="body">
+      <h2>You've Been Nominated! 🎉</h2>
+      <p>Hi there,</p>
+      <p>Great news — someone thinks you're one of the most eligible singles in Chicago! You've been nominated for the <strong>Most Eligible Bachelorette</strong> competition.</p>
+
+      <div class="highlight-box">
+        <p class="event-name">Most Eligible Bachelorette — Chicago 2026</p>
+        <p>Season opens March 15, 2026</p>
+      </div>
+
+      <p>Create your profile to accept your nomination and start competing for votes. The top nominees will be featured at our exclusive live event!</p>
+
+      <div style="text-align: center;">
+        <a href="#" class="btn">Accept Your Nomination</a>
+      </div>
+
+      <div class="divider"></div>
+      <p style="font-size: 13px; color: #9ca3af;">If you didn't expect this email, someone nominated you through our app. You can ignore this email if you're not interested.</p>
+    </div>
+    <div class="footer">
+      <p>EliteRank — Most Eligible Competition</p>
+      <p><a href="#">eliterank.co</a> · <a href="#">Unsubscribe</a> · <a href="#">Privacy Policy</a></p>
+      <p>Chicago, IL</p>
+    </div>
+  </div>
+</div>
+
+<!-- SPACER -->
+<div>
+  <div class="label">Marketing Email — Event Announcement & Voting Reminder</div>
+
+  <!-- EMAIL 2: MARKETING - Event / Voting Reminder -->
+  <div class="email-container">
+    <div class="header">
+      <div class="crown">👑</div>
+      <div class="brand">EliteRank</div>
+      <div class="brand-sub">Most Eligible Competition</div>
+    </div>
+    <div class="body">
+      <h2>Voting Is Now Open!</h2>
+      <p>Hi Crystal,</p>
+      <p>The wait is over — voting for <strong>Most Eligible Bachelorette Chicago 2026</strong> is officially live! Browse the nominees and cast your votes for who you think deserves the crown.</p>
+
+      <div class="nominee-card">
+        <div class="name">Most Eligible Bachelorette</div>
+        <div class="category">Chicago · Season 2026</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <div class="number">48</div>
+          <div class="label-sm">Nominees</div>
+        </div>
+        <div class="stat">
+          <div class="number">1,200+</div>
+          <div class="label-sm">Votes Cast</div>
+        </div>
+        <div class="stat">
+          <div class="number">12</div>
+          <div class="label-sm">Days Left</div>
+        </div>
+      </div>
+
+      <p>The top-ranked nominees will be featured at our exclusive live event. Don't miss your chance to support your favorites!</p>
+
+      <div style="text-align: center;">
+        <a href="#" class="btn">Vote Now</a>
+      </div>
+
+      <div class="divider"></div>
+      <p style="font-size: 13px; color: #9ca3af;">You're receiving this because you signed up for EliteRank updates. <a href="#" style="color: #d4af37;">Unsubscribe</a></p>
+    </div>
+    <div class="footer">
+      <p>EliteRank — Most Eligible Competition</p>
+      <p><a href="#">eliterank.co</a> · <a href="#">Unsubscribe</a> · <a href="#">Privacy Policy</a></p>
+      <p>Chicago, IL</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
