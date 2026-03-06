@@ -96,7 +96,35 @@ serve(async (req) => {
       }
     }
 
-    // Fallback: search by email if direct lookup didn't work
+    // Fallback 1: look up via profiles table (reliable exact-match on email)
+    if (!authUser && nomineeEmail) {
+      console.log('Trying profile lookup for:', nomineeEmail)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', nomineeEmail)
+        .single()
+
+      if (profile?.id) {
+        const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(
+          profile.id
+        )
+        if (!getUserError && userData?.user) {
+          authUser = userData.user
+          console.log('Found auth user via profile lookup:', authUser.id)
+
+          // Backfill user_id on nominee if it was missing
+          if (!nominee.user_id) {
+            await supabase
+              .from('nominees')
+              .update({ user_id: authUser.id })
+              .eq('id', nominee.id)
+          }
+        }
+      }
+    }
+
+    // Fallback 2: search auth users by email (fuzzy filter — less reliable)
     if (!authUser && nomineeEmail) {
       const listResult = await supabase.auth.admin.listUsers({
         filter: nomineeEmail,
@@ -110,10 +138,13 @@ serve(async (req) => {
         authUser = listResult.data.users.find(
           (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
         ) || null
+        if (authUser) {
+          console.log('Found auth user via listUsers:', authUser.id)
+        }
       }
     }
 
-    // Last resort: create the auth user if neither lookup found one
+    // Last resort: create the auth user if no lookup found one
     if (!authUser && nomineeEmail) {
       console.log('No auth user found, creating one for:', nomineeEmail)
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
@@ -123,15 +154,27 @@ serve(async (req) => {
       })
 
       if (createError) {
-        console.error('Failed to create auth user:', createError)
-        return new Response(
-          JSON.stringify({ error: 'Failed to create account. Please try again.' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+        // If creation failed because user already exists, try one more lookup.
+        // This handles race conditions and cases where listUsers filter missed them.
+        console.warn('createUser failed, attempting final lookup:', createError.message)
 
-      // Link nominee to the new user
-      if (newUser?.user) {
+        const retryList = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+        if (!retryList.error && retryList.data?.users?.length) {
+          authUser = retryList.data.users.find(
+            (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
+          ) || null
+        }
+
+        if (!authUser) {
+          console.error('Failed to create or find auth user:', createError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to create account. Please try again.' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        console.log('Found existing auth user after createUser failed:', authUser.id)
+      } else if (newUser?.user) {
+        // Link nominee to the new user
         await supabase
           .from('nominees')
           .update({ user_id: newUser.user.id })
@@ -164,6 +207,14 @@ serve(async (req) => {
         JSON.stringify({ error: 'Failed to set password' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // Backfill user_id on nominee if it was missing
+    if (!nominee.user_id) {
+      await supabase
+        .from('nominees')
+        .update({ user_id: authUser.id })
+        .eq('id', nominee.id)
     }
 
     return new Response(
