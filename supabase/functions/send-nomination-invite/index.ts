@@ -254,15 +254,18 @@ serve(async (req) => {
       }
     }
 
-    let inviteResult
+    // Generate a magic link URL without sending Supabase's built-in email.
+    // We'll embed this link in the branded OneSignal email instead, so only
+    // one email is sent and it goes through OneSignal's delivery pipeline.
+    let magicLinkUrl: string | null = null
 
-    // Helper: send a magic link to an existing user
-    const sendMagicLink = async () => {
-      console.log('Sending magic link to:', nomineeEmail, 'redirectTo:', authRedirectUrl)
-      const { error: otpError } = await supabase.auth.signInWithOtp({
+    try {
+      console.log('Generating magic link for:', nomineeEmail, 'redirectTo:', authRedirectUrl)
+      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
         email: nomineeEmail,
         options: {
-          emailRedirectTo: authRedirectUrl,
+          redirectTo: authRedirectUrl,
           data: {
             nomination_invite: true,
             nominee_name: nomineeData.name,
@@ -270,32 +273,24 @@ serve(async (req) => {
           },
         },
       })
-      if (otpError) {
-        console.error('signInWithOtp failed:', JSON.stringify(otpError))
-        throw otpError
+
+      if (linkError) {
+        console.error('generateLink failed:', JSON.stringify(linkError))
+        // Non-fatal: we can still send the claim URL without auth
+      } else if (linkData?.properties?.action_link) {
+        magicLinkUrl = linkData.properties.action_link
+        console.log('Magic link generated successfully for:', nomineeEmail)
       }
-      console.log('Magic link sent successfully to:', nomineeEmail)
-      return { method: 'magic_link' }
+    } catch (linkErr) {
+      console.error('Magic link generation error:', linkErr)
+      // Non-fatal: fall back to plain claim URL
     }
 
-    // Always send a magic link — works for both existing and new users.
-    // Previously we used admin.inviteUserByEmail() for new users, but that
-    // sends Supabase's generic "You have been invited to create a user"
-    // email instead of the nomination-branded magic link template.
-    // signInWithOtp() will auto-create the auth user if they don't exist.
-    try {
-      inviteResult = await sendMagicLink()
-    } catch (otpError) {
-      console.error('Magic link failed:', otpError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to send nomination email', details: (otpError as Error).message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const inviteResult = { method: 'onesignal_email' }
 
     // If we didn't link the nominee to a user yet (createUser above may have
-    // failed), try to find the user that signInWithOtp auto-created and
-    // backfill user_id so set-nominee-password can find them later.
+    // failed), try to find the user via their profile and backfill user_id
+    // so set-nominee-password can find them later.
     if (!existingUser) {
       const { data: autoProfile } = await supabase
         .from('profiles')
@@ -363,10 +358,10 @@ serve(async (req) => {
       console.error('Failed to update invite_sent_at:', updateError)
     }
 
-    // ---- Send branded OneSignal emails (fire-and-forget) ----
-    // These are non-blocking: the magic link above is the critical path.
-    // OneSignal emails provide the branded experience.
-    const sendOneSignalEmail = async (emailBody: Record<string, unknown>) => {
+    // ---- Send branded OneSignal emails ----
+    // OneSignal is the primary email delivery channel. The magic link is
+    // embedded in the branded email so only one email reaches the nominee.
+    const sendOneSignalEmail = async (emailBody: Record<string, unknown>): Promise<{ success: boolean; error?: string }> => {
       try {
         const osResponse = await fetch(`${supabaseUrl}/functions/v1/send-onesignal-email`, {
           method: 'POST',
@@ -378,17 +373,23 @@ serve(async (req) => {
         })
         const osResult = await osResponse.json()
         if (!osResponse.ok) {
-          console.warn('OneSignal email failed:', JSON.stringify(osResult))
-        } else {
-          console.log('OneSignal email sent:', JSON.stringify({ type: emailBody.type, to: emailBody.to_email }))
+          console.error('OneSignal email failed:', JSON.stringify(osResult))
+          return { success: false, error: JSON.stringify(osResult) }
         }
+        console.log('OneSignal email sent:', JSON.stringify({ type: emailBody.type, to: emailBody.to_email }))
+        return { success: true }
       } catch (osErr) {
-        console.warn('OneSignal email error (non-blocking):', osErr)
+        console.error('OneSignal email error:', osErr)
+        return { success: false, error: String(osErr) }
       }
     }
 
-    // 1) Branded nominee invite email via OneSignal
-    sendOneSignalEmail({
+    // Use the magic link as the CTA if available, otherwise fall back to
+    // the plain claim URL (nominee will need to sign in separately).
+    const nomineeCtaUrl = magicLinkUrl || claimUrl
+
+    // 1) Branded nominee invite email via OneSignal (critical path)
+    const nomineeEmailResult = await sendOneSignalEmail({
       type: 'nominee_invite',
       to_email: nomineeEmail,
       to_name: nomineeData.name,
@@ -396,19 +397,24 @@ serve(async (req) => {
       nominator_name: nomineeData.nominator_anonymous ? null : nomineeData.nominator_name,
       competition_name: competitionName,
       city_name: cityName,
-      claim_url: claimUrl,
+      claim_url: nomineeCtaUrl,
       reason: nomineeData.nomination_reason,
     })
 
-    // 2) Confirmation email to the nominator (if this is a third-party nomination)
-    if (nomineeData.nominator_email) {
-      // Fetch nominator_notify preference from the nominee record
-      const { data: nomineeRecord } = await supabase
-        .from('nominees')
-        .select('nominator_notify')
-        .eq('id', nominee_id)
-        .single()
+    if (!nomineeEmailResult.success) {
+      console.error('Primary nominee email failed — returning error to caller')
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to send nomination email via OneSignal',
+          details: nomineeEmailResult.error,
+          claim_url: claimUrl, // Provide claim URL for manual sharing
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
+    // 2) Confirmation email to the nominator (fire-and-forget, non-critical)
+    if (nomineeData.nominator_email) {
       const competitionUrl = `${appUrl}/c/${competition.id}`
 
       sendOneSignalEmail({
@@ -433,7 +439,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        sent_via: 'supabase_auth',
+        sent_via: 'onesignal',
         ...inviteResult,
         nominee_id: nominee_id,
         claim_url: claimUrl, // Direct link for manual sharing if email fails

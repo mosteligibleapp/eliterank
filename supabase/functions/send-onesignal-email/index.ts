@@ -235,13 +235,14 @@ serve(async (req) => {
 
     const osResult = await osResponse.json()
 
-    if (!osResponse.ok) {
-      console.error('OneSignal API error:', JSON.stringify(osResult))
+    if (!osResponse.ok || osResult?.recipients === 0) {
+      console.error('OneSignal API error or 0 recipients:', JSON.stringify(osResult))
 
       // If OneSignal fails because the email isn't subscribed, try creating the
       // email subscription first and then retry.
       if (osResult?.errors?.includes?.('All included players are not subscribed') ||
-          JSON.stringify(osResult).includes('not subscribed')) {
+          JSON.stringify(osResult).includes('not subscribed') ||
+          osResult?.recipients === 0) {
         console.log('Email not subscribed, creating subscription and retrying...')
 
         // Create email subscription via OneSignal API
@@ -271,6 +272,11 @@ serve(async (req) => {
         const subResult = await subResponse.json()
         console.log('Subscription creation result:', JSON.stringify(subResult))
 
+        // Wait for OneSignal to propagate the new subscription before retrying.
+        // Without this delay the retry often hits a race condition where the
+        // subscription hasn't been indexed yet.
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
         // Retry sending the email
         const retryResponse = await fetch('https://api.onesignal.com/notifications', {
           method: 'POST',
@@ -282,7 +288,7 @@ serve(async (req) => {
         })
 
         const retryResult = await retryResponse.json()
-        if (!retryResponse.ok) {
+        if (!retryResponse.ok || retryResult?.recipients === 0) {
           console.error('OneSignal retry failed:', JSON.stringify(retryResult))
           return new Response(
             JSON.stringify({
