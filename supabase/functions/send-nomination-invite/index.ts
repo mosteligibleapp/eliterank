@@ -46,9 +46,18 @@ serve(async (req) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
     const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
 
-    console.log('Config:', { supabaseUrl, appUrl, hasServiceKey: !!supabaseServiceKey })
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY is not set')
+      return new Response(
+        JSON.stringify({ error: 'Email service not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('Config:', { supabaseUrl, appUrl, hasServiceKey: !!supabaseServiceKey, hasResendKey: !!resendApiKey })
 
     // Create Supabase client with service role (required for auth.admin)
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -91,10 +100,6 @@ serve(async (req) => {
     // Build URLs for the nomination flow
     const nomineeDataPrelim = nominee as unknown as NomineeData
     const claimUrl = `${appUrl}/claim/${nomineeDataPrelim.invite_token}`
-    // Redirect directly to the claim page after auth so the nominee
-    // lands on accept/decline immediately. Requires adding
-    // https://eliterank.co/claim/** to Supabase's redirect allowlist.
-    const authRedirectUrl = claimUrl
 
     // Check if already sent (unless force_resend is true)
     if (nominee.invite_sent_at && !force_resend) {
@@ -157,9 +162,6 @@ serve(async (req) => {
     const competitionName = `Most Eligible ${cityName} ${competition.season}`
 
     // Check if user already exists by querying profiles table
-    // (profiles.id references auth.users.id and email is unique)
-    // Note: listUsers() only returns the first page (~50 users) so it
-    // silently missed existing users once the user-base grew.
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('id, email')
@@ -185,10 +187,8 @@ serve(async (req) => {
     }
 
     // Pre-create auth user if they don't exist yet.
-    // signInWithOtp() should auto-create users, but this depends on the
-    // Supabase project setting "Enable automatic user creation for
-    // passwordless login". Pre-creating ensures the user, profile (via
-    // handle_new_user trigger), and nominee linkage all exist regardless.
+    // This ensures the user, profile (via handle_new_user trigger), and
+    // nominee linkage all exist before the nominee clicks the claim link.
     if (!existingUser) {
       console.log('Pre-creating auth user for:', nomineeEmail)
       const { data: newUserData, error: createError } = await supabase.auth.admin.createUser({
@@ -201,8 +201,6 @@ serve(async (req) => {
       })
 
       if (createError) {
-        // If user already exists in auth but not in profiles, that's OK —
-        // signInWithOtp below will still work.
         console.warn('Pre-create user failed (may already exist):', createError.message)
       } else if (newUserData?.user) {
         existingUser = { id: newUserData.user.id, email: newUserData.user.email! }
@@ -220,64 +218,96 @@ serve(async (req) => {
       }
     }
 
-    let inviteResult
+    // --- Send nomination email via Resend ---
+    const firstName = nomineeData.name.split(' ')[0] || 'there'
+    const nominatorLine = nomineeData.nominator_anonymous
+      ? 'Someone'
+      : (nomineeData.nominator_name || 'Someone')
+    const reasonLine = nomineeData.nomination_reason
+      ? `<p style="margin:0 0 24px;color:#a0a0a0;font-size:14px;font-style:italic;">"${nomineeData.nomination_reason}"</p>`
+      : ''
 
-    // Helper: send a magic link to an existing user
-    const sendMagicLink = async () => {
-      console.log('Sending magic link to:', nomineeEmail, 'redirectTo:', authRedirectUrl)
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: nomineeEmail,
-        options: {
-          emailRedirectTo: authRedirectUrl,
-          data: {
-            nomination_invite: true,
-            nominee_name: nomineeData.name,
-            competition_name: competitionName,
-          },
-        },
-      })
-      if (otpError) {
-        console.error('signInWithOtp failed:', JSON.stringify(otpError))
-        throw otpError
-      }
-      console.log('Magic link sent successfully to:', nomineeEmail)
-      return { method: 'magic_link' }
-    }
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0f;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#131318;border:1px solid rgba(212,175,55,0.3);border-radius:16px;overflow:hidden;">
 
-    // Always send a magic link — works for both existing and new users.
-    // Previously we used admin.inviteUserByEmail() for new users, but that
-    // sends Supabase's generic "You have been invited to create a user"
-    // email instead of the nomination-branded magic link template.
-    // signInWithOtp() will auto-create the auth user if they don't exist.
-    try {
-      inviteResult = await sendMagicLink()
-    } catch (otpError) {
-      console.error('Magic link failed:', otpError)
+        <!-- Gold header bar -->
+        <tr><td style="background:linear-gradient(135deg,#d4af37,#c9a227);padding:32px 32px 24px;text-align:center;">
+          <h1 style="margin:0 0 4px;font-size:24px;font-weight:700;color:#0a0a0f;">EliteRank</h1>
+          <p style="margin:0;font-size:13px;color:rgba(10,10,15,0.7);">${competitionName}</p>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:32px;">
+          <h2 style="margin:0 0 16px;font-size:20px;font-weight:600;color:#ffffff;">
+            You've been nominated!
+          </h2>
+          <p style="margin:0 0 8px;color:#d0d0d0;font-size:15px;line-height:1.6;">
+            Hey ${firstName}, ${nominatorLine} nominated you for <strong style="color:#d4af37;">${competitionName}</strong>.
+          </p>
+          ${reasonLine}
+          <p style="margin:0 0 28px;color:#d0d0d0;font-size:15px;line-height:1.6;">
+            Accept your nomination to build your card and get in the running.
+          </p>
+
+          <!-- CTA Button -->
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="${claimUrl}" style="display:inline-block;background:linear-gradient(135deg,#d4af37,#c9a227);color:#0a0a0f;font-size:16px;font-weight:600;text-decoration:none;padding:14px 40px;border-radius:10px;">
+                Accept Nomination
+              </a>
+            </td></tr>
+          </table>
+
+          <p style="margin:24px 0 0;color:#707070;font-size:13px;line-height:1.5;text-align:center;">
+            Or copy this link:<br/>
+            <a href="${claimUrl}" style="color:#d4af37;word-break:break-all;">${claimUrl}</a>
+          </p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding:20px 32px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
+          <p style="margin:0;color:#505050;font-size:12px;">
+            &copy; ${new Date().getFullYear()} EliteRank &middot; <a href="${appUrl}" style="color:#707070;text-decoration:none;">eliterank.co</a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+
+    console.log('Sending nomination email via Resend to:', nomineeEmail)
+    const resendResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'EliteRank <info@eliterank.co>',
+        to: [nomineeEmail],
+        subject: `You've been nominated for ${competitionName}!`,
+        html: emailHtml,
+      }),
+    })
+
+    const resendResult = await resendResponse.json()
+
+    if (!resendResponse.ok) {
+      console.error('Resend API error:', JSON.stringify(resendResult))
       return new Response(
-        JSON.stringify({ error: 'Failed to send nomination email', details: (otpError as Error).message }),
+        JSON.stringify({ error: 'Failed to send nomination email', details: resendResult }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // If we didn't link the nominee to a user yet (createUser above may have
-    // failed), try to find the user that signInWithOtp auto-created and
-    // backfill user_id so set-nominee-password can find them later.
-    if (!existingUser) {
-      const { data: autoProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .ilike('email', nomineeEmail)
-        .maybeSingle()
-
-      if (autoProfile?.id) {
-        existingUser = { id: autoProfile.id, email: nomineeEmail }
-        await supabase
-          .from('nominees')
-          .update({ user_id: autoProfile.id })
-          .eq('id', nominee_id)
-        console.log('Backfilled user_id from auto-created profile:', autoProfile.id)
-      }
-    }
+    console.log('Resend email sent:', JSON.stringify(resendResult))
 
     // Create in-app notification if user already has an account
     if (existingUser) {
@@ -314,17 +344,17 @@ serve(async (req) => {
     console.log('send-nomination-invite completed successfully:', JSON.stringify({
       nominee_id,
       nomineeEmail,
-      ...inviteResult,
+      resend_id: resendResult.id,
       claim_url: claimUrl,
     }))
 
     return new Response(
       JSON.stringify({
         success: true,
-        sent_via: 'supabase_auth',
-        ...inviteResult,
+        sent_via: 'resend',
+        resend_id: resendResult.id,
         nominee_id: nominee_id,
-        claim_url: claimUrl, // Direct link for manual sharing if email fails
+        claim_url: claimUrl,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
