@@ -152,7 +152,7 @@ serve(async (req) => {
               .update({ user_id: authUser.id })
               .eq('id', nominee.id)
           }
-        } else if (!getUserError === false) {
+        } else if (getUserError) {
           // Another orphaned profile — clean it up
           console.warn('Orphaned profile found (ilike):', profile.id, '— deleting')
           await supabase.from('profiles').delete().eq('id', profile.id)

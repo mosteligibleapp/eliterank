@@ -561,6 +561,7 @@ export function useBuildCardFlow({
             email,
             password,
             options: {
+              emailRedirectTo: `${window.location.origin}/claim/${inviteToken}`,
               data: {
                 full_name: fullName,
                 first_name: cardData.firstName.trim(),
@@ -580,16 +581,36 @@ export function useBuildCardFlow({
                   'Could not create or sign into your account. Please try again, or use the magic link in your email.'
                 );
               }
+            } else if (signUpError.message?.includes('Database error')) {
+              // Trigger conflict — the handle_new_user trigger crashed.
+              // This means the profile table has a conflicting row.
+              throw new Error(
+                'Account setup failed due to a server issue. Please try again in a moment.'
+              );
             } else {
               throw signUpError;
             }
           } else if (signUpData?.user) {
-            // signUp succeeded — link nominee
-            if (nomineeId) {
-              await supabase
-                .from('nominees')
-                .update({ user_id: signUpData.user.id, claimed_at: new Date().toISOString() })
-                .eq('id', nomineeId);
+            // Check if this is a fake/duplicate signup (user already exists
+            // but Supabase returns the user without identities)
+            if (signUpData.user.identities?.length === 0) {
+              // User exists but wasn't found by "already registered" error.
+              // Try signing in with the password we just set.
+              const { error: directSignIn } =
+                await supabase.auth.signInWithPassword({ email, password });
+              if (directSignIn) {
+                throw new Error(
+                  'An account with this email already exists. Please try logging in or use the magic link in your email.'
+                );
+              }
+            } else {
+              // Genuinely new user — link nominee
+              if (nomineeId) {
+                await supabase
+                  .from('nominees')
+                  .update({ user_id: signUpData.user.id, claimed_at: new Date().toISOString() })
+                  .eq('id', nomineeId);
+              }
             }
           }
         }
