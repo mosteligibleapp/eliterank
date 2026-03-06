@@ -345,6 +345,66 @@ serve(async (req) => {
       console.error('Failed to update invite_sent_at:', updateError)
     }
 
+    // ---- Send branded OneSignal emails (fire-and-forget) ----
+    // These are non-blocking: the magic link above is the critical path.
+    // OneSignal emails provide the branded experience.
+    const sendOneSignalEmail = async (emailBody: Record<string, unknown>) => {
+      try {
+        const osResponse = await fetch(`${supabaseUrl}/functions/v1/send-onesignal-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify(emailBody),
+        })
+        const osResult = await osResponse.json()
+        if (!osResponse.ok) {
+          console.warn('OneSignal email failed:', JSON.stringify(osResult))
+        } else {
+          console.log('OneSignal email sent:', JSON.stringify({ type: emailBody.type, to: emailBody.to_email }))
+        }
+      } catch (osErr) {
+        console.warn('OneSignal email error (non-blocking):', osErr)
+      }
+    }
+
+    // 1) Branded nominee invite email via OneSignal
+    sendOneSignalEmail({
+      type: 'nominee_invite',
+      to_email: nomineeEmail,
+      to_name: nomineeData.name,
+      nominee_name: nomineeData.name,
+      nominator_name: nomineeData.nominator_anonymous ? null : nomineeData.nominator_name,
+      competition_name: competitionName,
+      city_name: cityName,
+      claim_url: claimUrl,
+      reason: nomineeData.nomination_reason,
+    })
+
+    // 2) Confirmation email to the nominator (if this is a third-party nomination)
+    if (nomineeData.nominator_email) {
+      // Fetch nominator_notify preference from the nominee record
+      const { data: nomineeRecord } = await supabase
+        .from('nominees')
+        .select('nominator_notify')
+        .eq('id', nominee_id)
+        .single()
+
+      const competitionUrl = `${appUrl}/c/${competition.id}`
+
+      sendOneSignalEmail({
+        type: 'nominator_confirm',
+        to_email: nomineeData.nominator_email,
+        to_name: nomineeData.nominator_name || 'Nominator',
+        nominee_name: nomineeData.name,
+        nominator_name: nomineeData.nominator_name,
+        competition_name: competitionName,
+        city_name: cityName,
+        competition_url: competitionUrl,
+      })
+    }
+
     console.log('send-nomination-invite completed successfully:', JSON.stringify({
       nominee_id,
       nomineeEmail,
