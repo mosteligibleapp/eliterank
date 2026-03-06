@@ -132,23 +132,31 @@ serve(async (req) => {
       }
     }
 
-    // Last resort: if nominator provided their email and it matches the
-    // nominee (same person nominating themselves via the third-party form),
-    // use the nominator_email as the nominee's email.
-    if (!nomineeEmail && nomineeData.nominator_email) {
-      nomineeEmail = nomineeData.nominator_email
-      // Backfill so future lookups use the email directly
-      await supabase
-        .from('nominees')
-        .update({ email: nomineeData.nominator_email })
-        .eq('id', nomineeData.id)
-      console.log('Using nominator_email as nominee email:', nomineeEmail)
-    }
+    // NOTE: We intentionally do NOT fall back to nominator_email here.
+    // Using the nominator's email would send the invite to the wrong person
+    // and incorrectly associate the nominator's email with the nominee record.
 
     if (!nomineeEmail) {
+      console.log('Nominee has no email — skipping email invite. Claim link can be shared manually.', {
+        nominee_id: nomineeData.id,
+        hasPhone: !!nomineeData.phone,
+      })
+      // Mark invite_sent_at so we don't retry, even though no email was sent.
+      // The host can share the claim link manually via the dashboard.
+      await supabase
+        .from('nominees')
+        .update({ invite_sent_at: new Date().toISOString() })
+        .eq('id', nomineeData.id)
+
       return new Response(
-        JSON.stringify({ error: 'Nominee does not have an email address' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: true,
+          sent_via: 'none',
+          method: 'no_email',
+          message: 'Nominee has no email address. Share the claim link manually.',
+          claim_url: claimUrl,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
