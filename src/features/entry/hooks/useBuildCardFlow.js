@@ -582,11 +582,54 @@ export function useBuildCardFlow({
                 );
               }
             } else if (signUpError.message?.includes('Database error')) {
-              // Trigger conflict — the handle_new_user trigger crashed.
-              // This means the profile table has a conflicting row.
-              throw new Error(
-                'Account setup failed due to a server issue. Please try again in a moment.'
-              );
+              // Trigger conflict — the handle_new_user trigger crashed,
+              // likely due to an orphaned profile row. Try to clean up and
+              // sign in if the user was partially created.
+              console.warn('Database error during signUp — attempting recovery');
+
+              // Wait briefly for any in-flight trigger to settle
+              await new Promise((r) => setTimeout(r, 1000));
+
+              // Check if an auth user was actually created despite the error
+              const { data: recoverySignIn, error: recoveryErr } =
+                await supabase.auth.signInWithPassword({ email, password });
+              if (!recoveryErr && recoverySignIn?.user) {
+                console.log('Recovery sign-in succeeded after Database error');
+                if (nomineeId) {
+                  await supabase
+                    .from('nominees')
+                    .update({ user_id: recoverySignIn.user.id, claimed_at: new Date().toISOString() })
+                    .eq('id', nomineeId);
+                }
+                // Fall through to the final signIn block below
+              } else {
+                // Retry signUp once — the trigger error may have been transient
+                // (e.g. orphaned profile that was cleaned up by a concurrent request)
+                await new Promise((r) => setTimeout(r, 500));
+                const { data: retryData, error: retryErr } = await supabase.auth.signUp({
+                  email,
+                  password,
+                  options: {
+                    emailRedirectTo: `${window.location.origin}/claim/${inviteToken}`,
+                    data: {
+                      full_name: fullName,
+                      first_name: cardData.firstName.trim(),
+                      last_name: cardData.lastName.trim(),
+                    },
+                  },
+                });
+                if (retryErr) {
+                  throw new Error(
+                    'Account setup failed due to a server issue. Please try again in a moment, or contact support if this persists.'
+                  );
+                }
+                if (retryData?.user && nomineeId) {
+                  await supabase
+                    .from('nominees')
+                    .update({ user_id: retryData.user.id, claimed_at: new Date().toISOString() })
+                    .eq('id', nomineeId);
+                }
+              }
             } else {
               throw signUpError;
             }
@@ -663,6 +706,21 @@ export function useBuildCardFlow({
 
             setCurrentUser(signInData.user);
             userId = signInData.user?.id;
+          } else if (signUpError.message?.includes('Database error')) {
+            // Trigger conflict — try recovery sign-in or retry
+            console.warn('Database error during self-entry signUp — attempting recovery');
+            await new Promise((r) => setTimeout(r, 1000));
+
+            const { data: recoveryData, error: recoveryErr } =
+              await supabase.auth.signInWithPassword({ email, password });
+            if (!recoveryErr && recoveryData?.user) {
+              setCurrentUser(recoveryData.user);
+              userId = recoveryData.user.id;
+            } else {
+              throw new Error(
+                'Account setup failed due to a server issue. Please try again in a moment.'
+              );
+            }
           } else {
             throw signUpError;
           }
