@@ -290,7 +290,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'EliteRank <info@eliterank.co>',
+        from: 'EliteRank <onboarding@resend.dev>',
         to: [nomineeEmail],
         subject: `You've been nominated for ${competitionName}!`,
         html: emailHtml,
