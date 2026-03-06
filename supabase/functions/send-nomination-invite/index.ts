@@ -333,6 +333,24 @@ serve(async (req) => {
       if (notifError) {
         console.error('Failed to create nomination notification:', notifError)
       }
+
+      // Send push notification via OneSignal (fire-and-forget)
+      fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          user_id: existingUser.id,
+          type: 'nominee_invite',
+          nominee_name: nomineeData.name,
+          nominator_name: nomineeData.nominator_anonymous ? null : nomineeData.nominator_name,
+          competition_name: competitionName,
+          url: `/claim/${nomineeData.invite_token}`,
+          data: { nominee_id: nomineeData.id, competition_id: competition.id },
+        }),
+      }).catch(err => console.warn('Push notification error (non-blocking):', err))
     }
 
     // Update nominee with invite_sent_at

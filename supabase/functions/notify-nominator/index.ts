@@ -156,6 +156,23 @@ serve(async (req) => {
           .then(({ error }) => {
             if (error) console.warn('Failed to create in-app notification:', error)
           })
+
+        // Send push notification via OneSignal (fire-and-forget)
+        fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            user_id: nominatorProfile.id,
+            type: event === 'accepted' ? 'nominee_accepted' : 'nominee_declined',
+            nominee_name: nominee.name,
+            competition_name: competitionName,
+            url: event === 'accepted' ? `/c/${competition?.id}` : null,
+            data: { nominee_id: nominee.id, competition_id: competition?.id, event },
+          }),
+        }).catch(err => console.warn('Push notification error (non-blocking):', err))
       }
     }
 
