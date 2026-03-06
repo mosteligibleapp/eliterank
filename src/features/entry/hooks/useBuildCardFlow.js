@@ -508,30 +508,90 @@ export function useBuildCardFlow({
         const email = cardData.email?.trim();
         if (!email) throw new Error('Email is required to create an account');
 
-        const { data: fnData, error: fnError } = await supabase.functions.invoke(
-          'set-nominee-password',
-          { body: { invite_token: inviteToken, password, email } }
-        );
-
-        // supabase.functions.invoke sets fnError (FunctionsHttpError) on non-2xx
-        // responses and fnData is null. The actual error body is in fnError.context.
-        if (fnError) {
-          let errMsg = 'Failed to create account';
-          try {
-            // FunctionsHttpError has a .context property (Response) with the body
-            const errorBody = typeof fnError.context?.json === 'function'
-              ? await fnError.context.json()
-              : null;
-            errMsg = errorBody?.error || fnError.message || errMsg;
-          } catch {
-            errMsg = fnError.message || errMsg;
+        // Helper: call the edge function and parse the result
+        const callEdgeFunction = async () => {
+          const { data: fnData, error: fnError } = await supabase.functions.invoke(
+            'set-nominee-password',
+            { body: { invite_token: inviteToken, password, email } }
+          );
+          if (fnError) {
+            let errMsg = 'Failed to create account';
+            try {
+              const errorBody = typeof fnError.context?.json === 'function'
+                ? await fnError.context.json()
+                : null;
+              errMsg = errorBody?.error || fnError.message || errMsg;
+            } catch {
+              errMsg = fnError.message || errMsg;
+            }
+            throw new Error(errMsg);
           }
-          console.error('set-nominee-password failed:', errMsg, fnError);
-          throw new Error(errMsg);
+          if (fnData?.error) {
+            throw new Error(fnData.error);
+          }
+          return fnData;
+        };
+
+        // Try the edge function with one retry (handles transient network
+        // failures common on mobile and trigger race conditions)
+        let edgeFnSucceeded = false;
+        try {
+          await callEdgeFunction();
+          edgeFnSucceeded = true;
+        } catch (firstErr) {
+          console.warn('set-nominee-password attempt 1 failed:', firstErr.message);
+          // Wait briefly then retry once
+          await new Promise((r) => setTimeout(r, 1500));
+          try {
+            await callEdgeFunction();
+            edgeFnSucceeded = true;
+          } catch (retryErr) {
+            console.warn('set-nominee-password attempt 2 failed:', retryErr.message);
+          }
         }
-        if (fnData?.error) {
-          console.error('set-nominee-password returned error:', fnData.error);
-          throw new Error(fnData.error);
+
+        // Fallback: if the edge function failed both times, try direct
+        // signUp + signIn. This works when no auth user exists yet and
+        // bypasses edge function networking issues on mobile.
+        if (!edgeFnSucceeded) {
+          console.log('Edge function failed, attempting direct signUp fallback');
+          const fullName = `${cardData.firstName} ${cardData.lastName}`.trim();
+
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: fullName,
+                first_name: cardData.firstName.trim(),
+                last_name: cardData.lastName.trim(),
+              },
+            },
+          });
+
+          if (signUpError) {
+            if (signUpError.message?.includes('already registered')) {
+              // User exists — try signing in directly (they may have set
+              // a password on a previous attempt)
+              const { error: directSignIn } =
+                await supabase.auth.signInWithPassword({ email, password });
+              if (directSignIn) {
+                throw new Error(
+                  'Could not create or sign into your account. Please try again, or use the magic link in your email.'
+                );
+              }
+            } else {
+              throw signUpError;
+            }
+          } else if (signUpData?.user) {
+            // signUp succeeded — link nominee
+            if (nomineeId) {
+              await supabase
+                .from('nominees')
+                .update({ user_id: signUpData.user.id, claimed_at: new Date().toISOString() })
+                .eq('id', nomineeId);
+            }
+          }
         }
 
         // Sign in with the newly set password
