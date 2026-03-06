@@ -91,6 +91,7 @@ export function useBuildCardFlow({
     photoFile: null,
     photoPreview: profile?.avatar_url || nominee?.avatar_url || '',
     bio: profile?.bio || nominee?.bio || '',
+    smsConsent: profile?.sms_consent || nominee?.sms_consent || false,
   });
 
   // Sync nominee data when the async fetch completes (nominee goes from null → data).
@@ -126,10 +127,16 @@ export function useBuildCardFlow({
     if (resumedRef.current || !nominee?.flow_stage || mode !== 'third-party') return;
     resumedRef.current = true;
 
+    // Map flow_stage to the step to resume AT (not after)
+    // If they completed 'details', they should resume at 'bio'
+    // If they completed 'card' (bio step), they go to password or final card
     const stageToResumeStep = {
-      accepted: 'eligibility-confirm',
-      details: 'bio',
-      card: needsPassword ? 'password' : 'card',
+      accepted: 'eligibility-confirm',  // Completed accept → go to eligibility
+      'eligibility-confirm': 'photo',   // Completed eligibility → go to photo
+      photo: 'details',                  // Completed photo → go to details
+      details: 'bio',                    // Completed details → go to bio
+      bio: needsPassword ? 'password' : 'card',  // Completed bio → password or card
+      card: needsPassword ? 'password' : 'card', // Legacy: flow_stage='card' means bio done
     };
     const resumeStep = stageToResumeStep[nominee.flow_stage];
     if (resumeStep) {
@@ -256,6 +263,8 @@ export function useBuildCardFlow({
         avatar_url: avatarUrl || null,
         city: cardData.location?.trim() || null,
         flow_stage: flowStage,
+        sms_consent: cardData.smsConsent || false,
+        sms_consent_at: cardData.smsConsent ? new Date().toISOString() : null,
       };
 
       if (currentUser?.id) {
@@ -448,9 +457,10 @@ export function useBuildCardFlow({
 
     try {
       let userId = currentUser?.id || null;
+      const email = cardData.email?.trim();
 
       if (currentUser) {
-        // User exists (magic link) — just set password
+        // User exists (magic link) — just set password via client API
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
 
@@ -461,9 +471,63 @@ export function useBuildCardFlow({
             .update({ user_id: userId, claimed_at: new Date().toISOString() })
             .eq('id', nomineeId);
         }
+      } else if (mode === 'third-party' && nominee?.invite_token) {
+        // =====================================================================
+        // THIRD-PARTY NOMINEE: Use edge function for reliable user creation
+        // This bypasses trigger issues and handles all edge cases server-side
+        // =====================================================================
+        if (!email) {
+          throw new Error('Email is required to create an account. Please go back and enter your email.');
+        }
+
+        console.log('Calling set-nominee-password edge function');
+        const { data: edgeResult, error: edgeError } = await supabase.functions.invoke(
+          'set-nominee-password',
+          {
+            body: {
+              invite_token: nominee.invite_token,
+              password,
+              email, // Pass email in case nominee record doesn't have it
+            },
+          }
+        );
+
+        if (edgeError) {
+          console.error('Edge function error:', edgeError);
+          throw new Error(edgeError.message || 'Failed to create account. Please try again.');
+        }
+
+        if (!edgeResult?.success) {
+          const errorMsg = edgeResult?.error || 'Failed to create account';
+          // Handle specific error codes
+          if (edgeResult?.code === 'EMAIL_EXISTS') {
+            throw new Error('An account with this email already exists. Please try logging in instead.');
+          }
+          throw new Error(errorMsg);
+        }
+
+        userId = edgeResult.user_id;
+        console.log('Edge function succeeded, user_id:', userId);
+
+        // Sign in with the new password to get a session
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          // User was created but sign-in failed — this shouldn't happen
+          // but let them proceed since the account exists
+          console.error('Sign-in after password set failed:', signInError);
+          // Don't throw — the account was created successfully
+        } else if (signInData?.user) {
+          setCurrentUser(signInData.user);
+          userId = signInData.user.id;
+        }
       } else {
-        // New user — sign up
-        const email = cardData.email?.trim();
+        // =====================================================================
+        // SELF-ANON MODE: Use standard signUp for new self-nominees
+        // =====================================================================
         if (!email) throw new Error('Email is required to create an account');
 
         const fullName = `${cardData.firstName} ${cardData.lastName}`.trim();
@@ -481,9 +545,7 @@ export function useBuildCardFlow({
 
         if (signUpError) {
           if (signUpError.message?.includes('already registered')) {
-            // Account exists — likely created via magic link. Check if we
-            // already have a session (user arrived via magic link but
-            // currentUser wasn't set due to timing).
+            // Account exists — try to sign in
             const { data: sessionData } = await supabase.auth.getSession();
             if (sessionData?.session?.user?.email?.toLowerCase() === email.toLowerCase()) {
               // We have a valid session — just set the password
@@ -492,7 +554,7 @@ export function useBuildCardFlow({
               userId = sessionData.session.user.id;
               setCurrentUser(sessionData.session.user);
             } else {
-              // No matching session — try signing in with the password they just entered
+              // No matching session — try signing in with the password they entered
               const { data: signInData, error: signInError } =
                 await supabase.auth.signInWithPassword({ email, password });
 
@@ -555,13 +617,64 @@ export function useBuildCardFlow({
         window.dispatchEvent(new Event('profile-updated'));
       }
 
+      // =====================================================================
+      // ENGAGEMENT: Cancel pending reminders + notify nominator
+      // =====================================================================
+      if (nomineeId && mode === 'third-party') {
+        // Cancel pending nomination reminder emails (nominee has claimed)
+        try {
+          await supabase
+            .from('engagement_queue')
+            .delete()
+            .eq('nominee_id', nomineeId)
+            .in('engagement_type', ['nomination_reminder_48h', 'nomination_reminder_5d', 'nominator_no_response'])
+            .is('sent_at', null);
+        } catch (cancelErr) {
+          console.warn('Failed to cancel pending engagement emails:', cancelErr);
+        }
+
+        // Notify nominator that their friend entered (if they opted in)
+        // EMAIL ONLY - nominator has not opted in to SMS
+        if (nominee?.nominator_email && nominee?.nominator_notify !== false) {
+          const cityName = getCityName(competition) || '';
+          const competitionName = `Most Eligible ${cityName} ${competition?.season || ''}`.trim();
+          const fullName = `${cardData.firstName} ${cardData.lastName}`.trim();
+
+          try {
+            await supabase.from('engagement_queue').insert({
+              nominee_id: nomineeId,
+              competition_id: competition?.id,
+              engagement_type: 'nominator_friend_entered',
+              channel: 'email',  // Nominator hasn't opted in to SMS
+              email_to: nominee.nominator_email,
+              phone_to: null,
+              scheduled_for: new Date().toISOString(),
+              template_data: {
+                nominee_name: fullName,
+                nominator_name: nominee.nominator_name || 'Friend',
+                competition_name: competitionName,
+                city_name: cityName,
+                season: String(competition?.season || ''),
+                profile_url: `${window.location.origin}/profile`,
+                voting_starts: competition?.voting_start
+                  ? new Date(competition.voting_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                  : null,
+              },
+            });
+            console.log('Scheduled nominator notification email');
+          } catch (notifyErr) {
+            console.warn('Failed to schedule nominator notification:', notifyErr);
+          }
+        }
+      }
+
       next();
     } catch (err) {
       setSubmitError(err.message || 'Failed to create account');
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentUser, cardData, nomineeId, next]);
+  }, [currentUser, cardData, nomineeId, next, mode, nominee, competition]);
 
   // ---- Skip password — send magic link so they can claim their account later ----
   const skipPassword = useCallback(() => {

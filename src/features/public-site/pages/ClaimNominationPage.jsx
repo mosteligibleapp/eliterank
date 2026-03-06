@@ -117,13 +117,21 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         }
 
         if (nomineeData.converted_to_contestant) {
-          setError('This nomination has already been fully processed.');
+          setError('This nomination has already been fully processed. Please log in to view your profile.');
           setLoading(false);
           return;
         }
 
         if (nomineeData.status === 'rejected') {
           setError('This nomination was previously declined.');
+          setLoading(false);
+          return;
+        }
+
+        // Check if nominee already completed the claim flow (has password set)
+        // They should log in instead of going through the flow again
+        if (nomineeData.claimed_at && nomineeData.flow_stage === 'card' && nomineeData.user_id) {
+          setError('You have already claimed this nomination. Please log in to view your profile.');
           setLoading(false);
           return;
         }
@@ -335,6 +343,7 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
           onNext={handleDetailsNext}
           error={flow.submitError}
           isSubmitting={flow.isSubmitting}
+          requireEmail={true}  // Email required for account creation
         />
       );
 

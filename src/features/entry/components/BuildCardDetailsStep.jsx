@@ -5,6 +5,8 @@ import { Mail, Phone, Instagram, MapPin } from 'lucide-react';
  * BuildCardDetailsStep - Unified details for ALL nominees
  * Collects: firstName, lastName, age, location, email/phone, instagram
  * Pre-fills from profile (logged-in) or nominee record (third-party)
+ *
+ * @param {boolean} requireEmail - If true, email is required (for account creation)
  */
 export default function BuildCardDetailsStep({
   data,
@@ -12,6 +14,7 @@ export default function BuildCardDetailsStep({
   onNext,
   error,
   isSubmitting,
+  requireEmail = false,
 }) {
   const handleChange = (field) => (e) => {
     onChange({ [field]: e.target.value });
@@ -21,10 +24,14 @@ export default function BuildCardDetailsStep({
   const hasPhone = data.phone?.trim().length > 0;
   const hasContact = hasEmail || hasPhone;
 
+  // Email is required for account creation (third-party flow without existing user)
+  const emailRequired = requireEmail || !hasPhone;
+  const contactValid = requireEmail ? hasEmail : hasContact;
+
   const isValid =
     data.firstName?.trim() &&
     data.lastName?.trim() &&
-    hasContact &&
+    contactValid &&
     data.age &&
     parseInt(data.age, 10) >= 18 &&
     data.location?.trim();
@@ -94,7 +101,7 @@ export default function BuildCardDetailsStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Email {hasContact ? '' : '*'}</label>
+        <label className="entry-label">Email {emailRequired ? '*' : ''}</label>
         <div className="entry-input-icon">
           <Mail size={18} />
           <input
@@ -104,8 +111,14 @@ export default function BuildCardDetailsStep({
             onChange={handleChange('email')}
             placeholder="your@email.com"
             autoComplete="email"
+            required={emailRequired}
           />
         </div>
+        {requireEmail && !hasEmail && (
+          <p className="entry-field-hint" style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+            Required to create your account
+          </p>
+        )}
       </div>
 
       <div className="entry-form-field">
@@ -122,6 +135,41 @@ export default function BuildCardDetailsStep({
           />
         </div>
       </div>
+
+      {/* SMS Consent - only show if phone number is provided */}
+      {data.phone?.trim() && (
+        <label className="entry-checkbox-label" style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          marginTop: '-8px',
+          marginBottom: '16px',
+          cursor: 'pointer',
+        }}>
+          <input
+            type="checkbox"
+            checked={data.smsConsent || false}
+            onChange={(e) => onChange({ smsConsent: e.target.checked })}
+            style={{
+              width: '18px',
+              height: '18px',
+              marginTop: '2px',
+              accentColor: '#d4af37',
+              flexShrink: 0,
+            }}
+          />
+          <span style={{
+            fontSize: '13px',
+            color: 'rgba(255,255,255,0.6)',
+            lineHeight: 1.4,
+          }}>
+            I agree to receive competition updates via SMS. Msg frequency varies. Msg & data rates may apply. Reply STOP to opt out. 
+            <a href="/privacy" target="_blank" style={{ color: '#d4af37', marginLeft: '4px' }}>Privacy Policy</a>
+            {' · '}
+            <a href="/terms" target="_blank" style={{ color: '#d4af37' }}>Terms</a>
+          </span>
+        </label>
+      )}
 
       {!hasContact && (
         <p className="entry-hint">Email or phone is required</p>
