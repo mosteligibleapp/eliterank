@@ -68,7 +68,7 @@ export default function LoginPage({ onLogin, onBack }) {
         const { data: anyNominees } = await supabase
           .from('nominees')
           .select('id, name')
-          .eq('email', email)
+          .ilike('email', email)
           .limit(1);
 
         const isNomineeRecord = anyNominees && anyNominees.length > 0;
@@ -100,7 +100,7 @@ export default function LoginPage({ onLogin, onBack }) {
           user_id,
           competition:competitions(id, city, season, status)
         `)
-        .eq('email', email)
+        .ilike('email', email)
         .neq('status', 'rejected')
         .is('claimed_at', null)
         .limit(1);

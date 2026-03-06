@@ -54,7 +54,7 @@ serve(async (req) => {
     console.log('Looking up nominee by invite_token')
     const { data: nominee, error: fetchError } = await supabase
       .from('nominees')
-      .select('id, email, user_id')
+      .select('id, email, user_id, name')
       .eq('invite_token', invite_token)
       .single()
 
@@ -91,6 +91,7 @@ serve(async (req) => {
       )
       if (!getUserError && userData?.user) {
         authUser = userData.user
+        console.log('Found auth user via user_id:', authUser.id)
       } else {
         console.warn('getUserById failed for user_id:', nominee.user_id, getUserError?.message)
       }
@@ -120,11 +121,46 @@ serve(async (req) => {
               .update({ user_id: authUser.id })
               .eq('id', nominee.id)
           }
+        } else {
+          // Profile exists but NO matching auth user → orphaned profile.
+          // Delete it so createUser's trigger can insert a fresh one.
+          console.warn('Orphaned profile found (no auth user):', profile.id, '— deleting')
+          await supabase.from('profiles').delete().eq('id', profile.id)
         }
       }
     }
 
-    // Fallback 2: search auth users by email (fuzzy filter — less reliable)
+    // Fallback 2: case-insensitive profile lookup (handles case mismatches)
+    if (!authUser && nomineeEmail) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('email', nomineeEmail)
+        .maybeSingle()
+
+      if (profile?.id) {
+        const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(
+          profile.id
+        )
+        if (!getUserError && userData?.user) {
+          authUser = userData.user
+          console.log('Found auth user via ilike profile lookup:', authUser.id)
+
+          if (!nominee.user_id) {
+            await supabase
+              .from('nominees')
+              .update({ user_id: authUser.id })
+              .eq('id', nominee.id)
+          }
+        } else if (getUserError) {
+          // Another orphaned profile — clean it up
+          console.warn('Orphaned profile found (ilike):', profile.id, '— deleting')
+          await supabase.from('profiles').delete().eq('id', profile.id)
+        }
+      }
+    }
+
+    // Fallback 3: search auth users by email (fuzzy filter — less reliable)
     if (!authUser && nomineeEmail) {
       const listResult = await supabase.auth.admin.listUsers({
         filter: nomineeEmail,
@@ -147,17 +183,71 @@ serve(async (req) => {
     // Last resort: create the auth user if no lookup found one
     if (!authUser && nomineeEmail) {
       console.log('No auth user found, creating one for:', nomineeEmail)
+
+      // Extract name parts for user_metadata (helps handle_new_user trigger)
+      const nameParts = nominee.name?.split(' ') || []
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: nomineeEmail,
         password,
         email_confirm: true,
+        user_metadata: { first_name: firstName, last_name: lastName },
       })
 
       if (createError) {
+        console.warn('createUser failed:', createError.message)
+
+        // "Database error creating new user" usually means the
+        // handle_new_user trigger hit a conflict (orphaned profile with
+        // same email, or a profile with the same id). Clean up and retry.
+        if (createError.message?.includes('Database error')) {
+          console.log('Trigger failure detected — cleaning up orphaned profiles and retrying')
+
+          // Delete any orphaned profile rows for this email (profiles
+          // whose id doesn't match a real auth user)
+          const { data: orphans } = await supabase
+            .from('profiles')
+            .select('id')
+            .ilike('email', nomineeEmail)
+
+          if (orphans?.length) {
+            for (const orphan of orphans) {
+              const { error: getErr } = await supabase.auth.admin.getUserById(orphan.id)
+              if (getErr) {
+                console.log('Deleting orphaned profile:', orphan.id)
+                await supabase.from('profiles').delete().eq('id', orphan.id)
+              }
+            }
+          }
+
+          // Retry createUser after cleanup
+          const { data: retryUser, error: retryError } = await supabase.auth.admin.createUser({
+            email: nomineeEmail,
+            password,
+            email_confirm: true,
+            user_metadata: { first_name: firstName, last_name: lastName },
+          })
+
+          if (!retryError && retryUser?.user) {
+            console.log('createUser succeeded after cleanup:', retryUser.user.id)
+            await supabase
+              .from('nominees')
+              .update({ user_id: retryUser.user.id })
+              .eq('id', nominee.id)
+
+            return new Response(
+              JSON.stringify({ success: true, user_id: retryUser.user.id }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          console.warn('createUser retry also failed:', retryError?.message)
+        }
+
         // If creation failed because user already exists, try one more lookup.
         // This handles race conditions and cases where listUsers filter missed them.
-        console.warn('createUser failed, attempting final lookup:', createError.message)
-
         const retryList = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
         if (!retryList.error && retryList.data?.users?.length) {
           authUser = retryList.data.users.find(
@@ -166,9 +256,9 @@ serve(async (req) => {
         }
 
         if (!authUser) {
-          console.error('Failed to create or find auth user:', createError)
+          console.error('Failed to create or find auth user:', createError.message)
           return new Response(
-            JSON.stringify({ error: 'Failed to create account. Please try again.' }),
+            JSON.stringify({ error: `Failed to create account: ${createError.message}` }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }

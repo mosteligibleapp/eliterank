@@ -259,6 +259,26 @@ serve(async (req) => {
       )
     }
 
+    // If we didn't link the nominee to a user yet (createUser above may have
+    // failed), try to find the user that signInWithOtp auto-created and
+    // backfill user_id so set-nominee-password can find them later.
+    if (!existingUser) {
+      const { data: autoProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('email', nomineeEmail)
+        .maybeSingle()
+
+      if (autoProfile?.id) {
+        existingUser = { id: autoProfile.id, email: nomineeEmail }
+        await supabase
+          .from('nominees')
+          .update({ user_id: autoProfile.id })
+          .eq('id', nominee_id)
+        console.log('Backfilled user_id from auto-created profile:', autoProfile.id)
+      }
+    }
+
     // Create in-app notification if user already has an account
     if (existingUser) {
       const { error: notifError } = await supabase
