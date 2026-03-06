@@ -179,12 +179,20 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     setReady(true);
   }, [loading, authLoading, nominee]);
 
+  // Only treat the logged-in user as the nominee if their email matches.
+  // Without this guard, a logged-in nominator opening the claim link would
+  // have their identity confused with the nominee's.
+  const isNomineeUser = user?.email && nominee?.email &&
+    user.email.toLowerCase() === nominee.email.toLowerCase();
+  const effectiveUser = isNomineeUser ? user : null;
+  const effectiveProfile = isNomineeUser ? profile : null;
+
   // Initialize the Build Your Card flow
   const flow = useBuildCardFlow({
     mode: 'third-party',
     competition,
-    profile,
-    user,
+    profile: effectiveProfile,
+    user: effectiveUser,
     nominee,
     needsPassword,
   });

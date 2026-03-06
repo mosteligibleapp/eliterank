@@ -195,9 +195,9 @@ export function useBuildCardFlow({
       const updateData = {
         flow_stage: 'accepted',
       };
-      if (currentUser?.id) {
-        updateData.user_id = currentUser.id;
-      }
+      // Do NOT set user_id here — the logged-in user might be the nominator,
+      // not the nominee. user_id is set in createAccount after the nominee
+      // has their own authenticated session.
 
       let { error } = await withTimeout(
         supabase
