@@ -498,149 +498,30 @@ export function useBuildCardFlow({
   }, [cardData, currentUser, nomineeId, competition, eligibilityAnswers, steps, next]);
 
   // ---- Create account / set password ----
+  //
+  // Both self-nominee and third-party claim flows use the same approach:
+  //   1. signUp() on the client  (fast, creates auth.user + profile via trigger)
+  //   2. signIn() to get a session
+  //   3. Link user_id to the nominee record
+  //
+  // For third-party claims, if signUp fails with a "Database error" (the
+  // handle_new_user trigger crashed), we fall back to the set-nominee-password
+  // edge function which can clean up orphaned profiles server-side and retry.
   const createAccount = useCallback(async (password) => {
     setIsSubmitting(true);
     setSubmitError('');
 
     try {
+      const email = cardData.email?.trim();
+      if (!email) throw new Error('Email is required to create an account');
+
       let userId = currentUser?.id || null;
 
+      // --- Already authenticated (e.g. magic link) — just set password ---
       if (currentUser) {
-        // User exists (magic link) — just set password
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
 
-        // Mark nominee as claimed now that password is set
-        if (userId && nomineeId) {
-          await supabase
-            .from('nominees')
-            .update({ user_id: userId, claimed_at: new Date().toISOString() })
-            .eq('id', nomineeId);
-        }
-      } else if (inviteToken) {
-        // Claim flow — the nominee may or may not have a ghost auth user
-        // (pre-created by send-nomination-invite). Use the edge function which
-        // handles both cases: sets password on existing user or creates a new one.
-        const email = cardData.email?.trim();
-        if (!email) throw new Error('Email is required to create an account');
-
-        // Helper: call the edge function and parse the result
-        const callEdgeFunction = async () => {
-          const { data: fnData, error: fnError } = await supabase.functions.invoke(
-            'set-nominee-password',
-            { body: { invite_token: inviteToken, password, email } }
-          );
-          if (fnError) {
-            let errMsg = 'Failed to create account';
-            try {
-              const errorBody = typeof fnError.context?.json === 'function'
-                ? await fnError.context.json()
-                : null;
-              errMsg = errorBody?.error || fnError.message || errMsg;
-            } catch {
-              errMsg = fnError.message || errMsg;
-            }
-            throw new Error(errMsg);
-          }
-          if (fnData?.error) {
-            throw new Error(fnData.error);
-          }
-          return fnData;
-        };
-
-        // Try the edge function with one retry (handles transient network
-        // failures common on mobile and trigger race conditions)
-        let edgeFnSucceeded = false;
-        try {
-          await callEdgeFunction();
-          edgeFnSucceeded = true;
-        } catch (firstErr) {
-          console.warn('set-nominee-password attempt 1 failed:', firstErr.message);
-          // Wait briefly then retry once
-          await new Promise((r) => setTimeout(r, 1500));
-          try {
-            await callEdgeFunction();
-            edgeFnSucceeded = true;
-          } catch (retryErr) {
-            console.warn('set-nominee-password attempt 2 failed:', retryErr.message);
-          }
-        }
-
-        // Fallback: if the edge function failed both times, try direct
-        // signUp + signIn. This works when no auth user exists yet and
-        // bypasses edge function networking issues on mobile.
-        if (!edgeFnSucceeded) {
-          console.log('Edge function failed, attempting direct signUp fallback');
-          const fullName = `${cardData.firstName} ${cardData.lastName}`.trim();
-
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              emailRedirectTo: `${window.location.origin}/claim/${inviteToken}`,
-              data: {
-                full_name: fullName,
-                first_name: cardData.firstName.trim(),
-                last_name: cardData.lastName.trim(),
-              },
-            },
-          });
-
-          if (signUpError) {
-            if (signUpError.message?.includes('already registered')) {
-              // User exists — try signing in directly (they may have set
-              // a password on a previous attempt)
-              const { error: directSignIn } =
-                await supabase.auth.signInWithPassword({ email, password });
-              if (directSignIn) {
-                throw new Error(
-                  'Could not create or sign into your account. Please try again, or use the magic link in your email.'
-                );
-              }
-            } else if (signUpError.message?.includes('Database error')) {
-              // Trigger conflict — the handle_new_user trigger crashed.
-              // This means the profile table has a conflicting row.
-              throw new Error(
-                'Account setup failed due to a server issue. Please try again in a moment.'
-              );
-            } else {
-              throw signUpError;
-            }
-          } else if (signUpData?.user) {
-            // Check if this is a fake/duplicate signup (user already exists
-            // but Supabase returns the user without identities)
-            if (signUpData.user.identities?.length === 0) {
-              // User exists but wasn't found by "already registered" error.
-              // Try signing in with the password we just set.
-              const { error: directSignIn } =
-                await supabase.auth.signInWithPassword({ email, password });
-              if (directSignIn) {
-                throw new Error(
-                  'An account with this email already exists. Please try logging in or use the magic link in your email.'
-                );
-              }
-            } else {
-              // Genuinely new user — link nominee
-              if (nomineeId) {
-                await supabase
-                  .from('nominees')
-                  .update({ user_id: signUpData.user.id, claimed_at: new Date().toISOString() })
-                  .eq('id', nomineeId);
-              }
-            }
-          }
-        }
-
-        // Sign in with the newly set password
-        const { data: signInData, error: signInError } =
-          await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) {
-          throw new Error('Account created but sign-in failed. Please try logging in with your email and password.');
-        }
-        setCurrentUser(signInData.user);
-        userId = signInData.user?.id;
-
-        // Link user to nominee and mark claimed
         if (userId && nomineeId) {
           await supabase
             .from('nominees')
@@ -648,43 +529,113 @@ export function useBuildCardFlow({
             .eq('id', nomineeId);
         }
       } else {
-        // Self-entry flow (no invite token) — standard sign up
-        const email = cardData.email?.trim();
-        if (!email) throw new Error('Email is required to create an account');
-
+        // --- No session — create the account via signUp ---
         const fullName = `${cardData.firstName} ${cardData.lastName}`.trim();
 
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            ...(inviteToken && {
+              emailRedirectTo: `${window.location.origin}/claim/${inviteToken}`,
+            }),
             data: {
               full_name: fullName,
-              nominee_id: nomineeId,
+              first_name: cardData.firstName.trim(),
+              last_name: cardData.lastName.trim(),
             },
           },
         });
 
         if (signUpError) {
           if (signUpError.message?.includes('already registered')) {
-            // Try signing in — maybe they already have an account
+            // Account exists — sign in with the password they just entered
             const { data: signInData, error: signInError } =
               await supabase.auth.signInWithPassword({ email, password });
-
             if (signInError) {
               throw new Error(
                 'An account with this email already exists. Please use your existing password or reset it.'
               );
             }
-
             setCurrentUser(signInData.user);
             userId = signInData.user?.id;
+          } else if (signUpError.message?.includes('Database error') && inviteToken) {
+            // Trigger crashed — fall back to edge function which does
+            // server-side cleanup of orphaned profiles before retrying.
+            console.warn('signUp hit Database error, falling back to edge function');
+            const { data: fnData, error: fnError } = await supabase.functions.invoke(
+              'set-nominee-password',
+              { body: { invite_token: inviteToken, password, email } }
+            );
+
+            const fnErrMsg = fnData?.error || fnError?.message;
+            if (fnErrMsg) {
+              // Edge function also failed — retry once after a brief delay
+              console.warn('set-nominee-password attempt 1 failed:', fnErrMsg);
+              await new Promise((r) => setTimeout(r, 2000));
+
+              const { data: retryData, error: retryError } = await supabase.functions.invoke(
+                'set-nominee-password',
+                { body: { invite_token: inviteToken, password, email } }
+              );
+
+              const retryErrMsg = retryData?.error || retryError?.message;
+              if (retryErrMsg) {
+                throw new Error(
+                  'Account setup failed due to a server issue. Please try again in a moment, or contact support if this persists.'
+                );
+              }
+            }
+
+            // Edge function succeeded — sign in
+            const { data: signInData, error: signInError } =
+              await supabase.auth.signInWithPassword({ email, password });
+            if (signInError) {
+              throw new Error(
+                'Account created but sign-in failed. Please try logging in with your email and password.'
+              );
+            }
+            setCurrentUser(signInData.user);
+            userId = signInData.user?.id;
+          } else if (signUpError.message?.includes('Database error')) {
+            // Self-entry: no edge function fallback — surface the error
+            throw new Error(
+              'Account setup failed due to a server issue. Please try again in a moment.'
+            );
           } else {
             throw signUpError;
           }
-        } else if (data?.user) {
-          setCurrentUser(data.user);
-          userId = data.user.id;
+        } else if (signUpData?.user) {
+          if (signUpData.user.identities?.length === 0) {
+            // Supabase returned a user without identities — account already
+            // exists. Try signing in.
+            const { data: signInData, error: signInError } =
+              await supabase.auth.signInWithPassword({ email, password });
+            if (signInError) {
+              throw new Error(
+                'An account with this email already exists. Please try logging in or use the magic link in your email.'
+              );
+            }
+            setCurrentUser(signInData.user);
+            userId = signInData.user?.id;
+          } else {
+            // signUp auto-signs in on Supabase — capture the session
+            setCurrentUser(signUpData.user);
+            userId = signUpData.user.id;
+          }
+        }
+
+        // If we still don't have a session, sign in explicitly
+        if (!userId) {
+          const { data: signInData, error: signInError } =
+            await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) {
+            throw new Error(
+              'Account created but sign-in failed. Please try logging in with your email and password.'
+            );
+          }
+          setCurrentUser(signInData.user);
+          userId = signInData.user?.id;
         }
 
         // Link user to nominee and mark claimed
@@ -697,8 +648,7 @@ export function useBuildCardFlow({
       }
 
       // Populate the profile with all card data now that the account exists.
-      // submitCard may have run before the user had an account, so the profile
-      // was only seeded with email/name by the DB trigger.
+      // The trigger seeds email/name but we need the full card data.
       if (userId) {
         const avatarUrl = (cardData.photoPreview && !cardData.photoPreview.startsWith('blob:'))
           ? cardData.photoPreview : undefined;
@@ -718,7 +668,6 @@ export function useBuildCardFlow({
           })
           .eq('id', userId);
 
-        // Notify all useSupabaseAuth instances to refetch the profile
         window.dispatchEvent(new Event('profile-updated'));
       }
 
