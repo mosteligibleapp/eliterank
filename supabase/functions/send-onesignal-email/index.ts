@@ -234,6 +234,13 @@ serve(async (req) => {
     })
 
     const osResult = await osResponse.json()
+    console.log('OneSignal API response:', JSON.stringify({
+      status: osResponse.status,
+      id: osResult?.id,
+      recipients: osResult?.recipients,
+      external_id: osResult?.external_id,
+      errors: osResult?.errors,
+    }))
 
     if (!osResponse.ok || osResult?.recipients === 0) {
       console.error('OneSignal API error or 0 recipients:', JSON.stringify(osResult))
@@ -312,10 +319,10 @@ serve(async (req) => {
       )
     }
 
-    console.log('OneSignal email sent successfully:', JSON.stringify(osResult))
+    console.log('OneSignal email sent successfully:', JSON.stringify({ id: osResult.id, recipients: osResult.recipients }))
 
     return new Response(
-      JSON.stringify({ success: true, onesignal_id: osResult.id }),
+      JSON.stringify({ success: true, onesignal_id: osResult.id, recipients: osResult.recipients }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

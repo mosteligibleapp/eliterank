@@ -210,8 +210,38 @@ serve(async (req) => {
 
       if (createError) {
         // User may already exist in auth without a profile row.
-        // signInWithOtp below will still work for existing auth users.
         console.warn('Pre-create user failed (may already exist):', createError.message)
+
+        // Try to find the existing auth user via GoTrue admin API
+        try {
+          const gotrueUrl = `${supabaseUrl}/auth/v1/admin/users`
+          const gotrueRes = await fetch(gotrueUrl, {
+            headers: {
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+              'apikey': supabaseServiceKey,
+            },
+          })
+          if (gotrueRes.ok) {
+            const gotrueData = await gotrueRes.json()
+            const matchedUser = (gotrueData?.users || []).find(
+              (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail.toLowerCase()
+            )
+            if (matchedUser) {
+              existingUser = { id: matchedUser.id, email: matchedUser.email! }
+              console.log('Found existing auth user after createUser failure:', existingUser.id)
+              await supabase
+                .from('nominees')
+                .update({ user_id: matchedUser.id })
+                .eq('id', nomineeData.id)
+            } else {
+              console.log('No matching auth user found in GoTrue for:', nomineeEmail)
+            }
+          } else {
+            console.warn('GoTrue admin users query failed:', gotrueRes.status)
+          }
+        } catch (lookupErr) {
+          console.warn('Auth user lookup after createUser failure also failed:', lookupErr)
+        }
       } else if (newUserData?.user) {
         existingUser = { id: newUserData.user.id, email: newUserData.user.email! }
         console.log('Created auth user:', existingUser.id)
@@ -361,7 +391,7 @@ serve(async (req) => {
     // ---- Send branded OneSignal emails ----
     // OneSignal is the primary email delivery channel. The magic link is
     // embedded in the branded email so only one email reaches the nominee.
-    const sendOneSignalEmail = async (emailBody: Record<string, unknown>): Promise<{ success: boolean; error?: string }> => {
+    const sendOneSignalEmail = async (emailBody: Record<string, unknown>): Promise<{ success: boolean; error?: string; recipients?: number }> => {
       try {
         const osResponse = await fetch(`${supabaseUrl}/functions/v1/send-onesignal-email`, {
           method: 'POST',
@@ -376,8 +406,14 @@ serve(async (req) => {
           console.error('OneSignal email failed:', JSON.stringify(osResult))
           return { success: false, error: JSON.stringify(osResult) }
         }
-        console.log('OneSignal email sent:', JSON.stringify({ type: emailBody.type, to: emailBody.to_email }))
-        return { success: true }
+        console.log('OneSignal email sent:', JSON.stringify({
+          type: emailBody.type,
+          to: emailBody.to_email,
+          onesignal_id: osResult.onesignal_id,
+          recipients: osResult.recipients,
+          retried: osResult.retried,
+        }))
+        return { success: true, recipients: osResult.recipients }
       } catch (osErr) {
         console.error('OneSignal email error:', osErr)
         return { success: false, error: String(osErr) }
@@ -387,6 +423,9 @@ serve(async (req) => {
     // Use the magic link as the CTA if available, otherwise fall back to
     // the plain claim URL (nominee will need to sign in separately).
     const nomineeCtaUrl = magicLinkUrl || claimUrl
+    if (!magicLinkUrl) {
+      console.warn('Using plain claim URL (no magic link) — nominee will need to create password during claim flow')
+    }
 
     // 1) Branded nominee invite email via OneSignal (critical path)
     const nomineeEmailResult = await sendOneSignalEmail({
