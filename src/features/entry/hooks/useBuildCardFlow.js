@@ -667,19 +667,20 @@ export function useBuildCardFlow({
           ? cardData.photoPreview : undefined;
         await supabase
           .from('profiles')
-          .update({
+          .upsert({
+            id: userId,
+            email: cardData.email?.trim() || email,
             first_name: cardData.firstName.trim(),
             last_name: cardData.lastName.trim(),
             avatar_url: avatarUrl,
-            bio: cardData.bio?.trim() || undefined,
-            city: cardData.location?.trim() || undefined,
-            age: cardData.age ? parseInt(cardData.age, 10) : undefined,
-            instagram: cardData.instagram?.trim() || undefined,
-            phone: cardData.phone?.trim() || undefined,
+            bio: cardData.bio?.trim() || null,
+            city: cardData.location?.trim() || null,
+            age: cardData.age ? parseInt(cardData.age, 10) : null,
+            instagram: cardData.instagram?.trim() || null,
+            phone: cardData.phone?.trim() || null,
             onboarded_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          })
-          .eq('id', userId);
+          }, { onConflict: 'id' });
 
         window.dispatchEvent(new Event('profile-updated'));
       }
