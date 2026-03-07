@@ -10,7 +10,7 @@
  */
 
 import React, { useEffect, useCallback, lazy, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuthWithZustand } from '../../hooks';
 import { useAuthStore, useUIStore } from '../../stores';
@@ -152,6 +152,7 @@ async function checkPendingNominations(userEmail) {
  */
 export default function AppShell({ children }) {
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Initialize auth sync with Zustand (this keeps Supabase auth → Zustand in sync)
   useAuthWithZustand();
@@ -176,12 +177,15 @@ export default function AppShell({ children }) {
   // Check for pending nominations when user logs in
   useEffect(() => {
     const checkOnAuth = async () => {
+      // Skip pending nomination check if user is already on the claim page
+      const onClaimPage = location.pathname.startsWith('/claim');
       if (
         isAuthenticated &&
         user?.email &&
         !hasCheckedPendingRef.current &&
         !acceptingNomination &&
-        !showNominationsModal
+        !showNominationsModal &&
+        !onClaimPage
       ) {
         hasCheckedPendingRef.current = true;
 
