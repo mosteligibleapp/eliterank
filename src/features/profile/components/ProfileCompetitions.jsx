@@ -88,7 +88,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           boxShadow: isHovered
             ? '0 20px 40px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.2)'
             : '0 8px 24px -8px rgba(0, 0, 0, 0.3)',
-          aspectRatio: isMobile ? '16/10' : '16/9',
+          aspectRatio: isMobile ? '16/8' : '16/7',
           background: colors.background.card,
         }}
       >
