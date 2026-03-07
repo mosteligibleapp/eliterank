@@ -98,8 +98,8 @@ export default function ProfileView({ hostProfile, onEdit }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md }}>
             <div
               style={{
-                width: isMobile ? '140px' : '180px',
-                height: isMobile ? '140px' : '180px',
+                width: isMobile ? '140px' : '150px',
+                height: isMobile ? '140px' : '150px',
                 borderRadius: borderRadius.xxl,
                 background: hostProfile.avatarUrl
                   ? `url(${hostProfile.avatarUrl}) center/cover`
@@ -108,7 +108,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: isMobile ? '42px' : '56px',
+                fontSize: isMobile ? '42px' : '48px',
                 fontWeight: typography.fontWeight.semibold,
                 color: colors.gold.primary,
                 flexShrink: 0,
@@ -118,7 +118,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
             </div>
             <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
               <h1 style={{
-                fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.hero,
+                fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.xxl,
                 fontWeight: typography.fontWeight.bold,
                 color: '#fff',
                 wordBreak: 'break-word',

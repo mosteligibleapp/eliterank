@@ -10,8 +10,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
 
   if (!hostProfile) return null;
 
-  const [uploading, setUploading] = useState({ cover: false, avatar: false, gallery: null });
-  const coverInputRef = useRef(null);
+  const [uploading, setUploading] = useState({ avatar: false, gallery: null });
   const avatarInputRef = useRef(null);
 
   const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
@@ -64,19 +63,6 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
     }
   };
 
-  // Handle cover image upload
-  const handleCoverUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(prev => ({ ...prev, cover: true }));
-    const url = await uploadImage(file, 'covers');
-    if (url) {
-      handleFieldChange('coverImage', url);
-    }
-    setUploading(prev => ({ ...prev, cover: false }));
-  };
-
   // Handle avatar image upload
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -117,13 +103,6 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
   return (
     <div>
       {/* Hidden file inputs */}
-      <input
-        ref={coverInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleCoverUpload}
-        style={{ display: 'none' }}
-      />
       <input
         ref={avatarInputRef}
         type="file"
@@ -201,56 +180,8 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
           style={{
             height: isMobile ? '120px' : '180px',
             background: hostProfile.coverImage ? `url(${hostProfile.coverImage}) center/cover` : gradients.cover,
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
           }}
-        >
-          {!hostProfile.coverImage && !isMobile && (
-            <div style={{ textAlign: 'center' }}>
-              <div
-                style={{
-                  width: '60px',
-                  height: '60px',
-                  margin: '0 auto 12px',
-                  borderRadius: borderRadius.full,
-                  background: 'rgba(255,255,255,0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Camera size={24} style={{ color: colors.text.secondary }} />
-              </div>
-              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>Upload Cover Image</p>
-              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Recommended: 1500 x 400px</p>
-            </div>
-          )}
-          <button
-            onClick={() => coverInputRef.current?.click()}
-            disabled={uploading.cover}
-            style={{
-              position: 'absolute',
-              bottom: isMobile ? spacing.sm : spacing.lg,
-              right: isMobile ? spacing.sm : spacing.lg,
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.xs,
-              padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.lg}`,
-              background: 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: borderRadius.sm,
-              fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.base,
-              color: '#fff',
-              cursor: uploading.cover ? 'wait' : 'pointer',
-            }}
-          >
-            {uploading.cover ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={14} />}
-            {uploading.cover ? 'Uploading...' : (isMobile ? 'Change' : 'Change Cover')}
-          </button>
-        </div>
+        />
         <div style={{
           padding: isMobile ? `0 ${spacing.md} ${spacing.md}` : `0 ${spacing.xxl} ${spacing.xxl}`,
           marginTop: isMobile ? '-36px' : '-48px'
