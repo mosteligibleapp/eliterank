@@ -41,7 +41,7 @@ export default function BonusVotesEarnedBadge({ userId, bonusVotes }) {
         borderTop: '2px solid rgba(34, 197, 94, 0.6)',
       }}>
         <div style={{
-          padding: isMobile ? spacing.lg : spacing.xxl,
+          padding: isMobile ? spacing.md : spacing.lg,
           background: 'rgba(34, 197, 94, 0.04)',
         }}>
           <div style={{
@@ -67,21 +67,21 @@ export default function BonusVotesEarnedBadge({ userId, bonusVotes }) {
             {/* Text */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <h3 style={{
-                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                fontSize: typography.fontSize.md,
                 fontWeight: typography.fontWeight.semibold,
                 color: colors.text.primary,
               }}>
                 All Bonus Votes Earned
               </h3>
               <p style={{
-                fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.sm,
+                fontSize: typography.fontSize.xs,
                 color: colors.text.secondary,
                 marginTop: '2px',
               }}>
                 {status.totalEarned} bonus votes earned
               </p>
               <p style={{
-                fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.sm,
+                fontSize: typography.fontSize.xs,
                 color: colors.text.muted,
                 marginTop: '2px',
                 fontStyle: 'italic',
