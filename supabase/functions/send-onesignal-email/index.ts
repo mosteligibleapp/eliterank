@@ -279,37 +279,45 @@ serve(async (req) => {
         const subResult = await subResponse.json()
         console.log('Subscription creation result:', JSON.stringify(subResult))
 
-        // Wait for OneSignal to propagate the new subscription before retrying.
-        // Without this delay the retry often hits a race condition where the
-        // subscription hasn't been indexed yet.
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // Retry sending with exponential backoff — OneSignal needs time to
+        // index the new subscription. A single 2s wait often hits a race
+        // condition, so we retry up to 3 times with increasing delays.
+        const retryDelays = [3000, 5000, 8000]
+        for (let i = 0; i < retryDelays.length; i++) {
+          await new Promise(resolve => setTimeout(resolve, retryDelays[i]))
 
-        // Retry sending the email
-        const retryResponse = await fetch('https://api.onesignal.com/notifications', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Key ${apiKey}`,
-          },
-          body: JSON.stringify(oneSignalPayload),
-        })
+          const retryResponse = await fetch('https://api.onesignal.com/notifications', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Key ${apiKey}`,
+            },
+            body: JSON.stringify(oneSignalPayload),
+          })
 
-        const retryResult = await retryResponse.json()
-        if (!retryResponse.ok || retryResult?.recipients === 0) {
-          console.error('OneSignal retry failed:', JSON.stringify(retryResult))
-          return new Response(
-            JSON.stringify({
-              error: 'Failed to send email after retry',
-              details: retryResult,
-            }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
+          const retryResult = await retryResponse.json()
+          console.log(`OneSignal retry ${i + 1}/${retryDelays.length}:`, JSON.stringify({
+            status: retryResponse.status,
+            recipients: retryResult?.recipients,
+            errors: retryResult?.errors,
+          }))
+
+          if (retryResponse.ok && retryResult?.recipients > 0) {
+            console.log('OneSignal email sent on retry:', JSON.stringify(retryResult))
+            return new Response(
+              JSON.stringify({ success: true, onesignal_id: retryResult.id, retried: true, attempt: i + 1 }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
         }
 
-        console.log('OneSignal email sent on retry:', JSON.stringify(retryResult))
+        console.error('OneSignal email failed after all retries')
         return new Response(
-          JSON.stringify({ success: true, onesignal_id: retryResult.id, retried: true }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({
+            error: 'Failed to send email after retries — subscription may not have propagated',
+            details: { to_email: body.to_email, type: body.type },
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
