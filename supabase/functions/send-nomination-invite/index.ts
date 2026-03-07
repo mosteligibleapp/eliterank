@@ -276,16 +276,6 @@ serve(async (req) => {
       }).catch(err => console.warn('Push notification error (non-blocking):', err))
     }
 
-    // Update nominee with invite_sent_at
-    const { error: updateError } = await supabase
-      .from('nominees')
-      .update({ invite_sent_at: new Date().toISOString() })
-      .eq('id', nominee_id)
-
-    if (updateError) {
-      console.error('Failed to update invite_sent_at:', updateError)
-    }
-
     // ---- Send branded OneSignal emails ----
     // OneSignal is the primary email delivery channel. The magic link is
     // embedded in the branded email so only one email reaches the nominee.
@@ -340,6 +330,8 @@ serve(async (req) => {
 
     if (!nomineeEmailResult.success) {
       console.error('Primary nominee email failed — returning error to caller')
+      // Do NOT set invite_sent_at — the email didn't go out, so a retry
+      // should be allowed without needing force_resend.
       return new Response(
         JSON.stringify({
           error: 'Failed to send nomination email via OneSignal',
@@ -348,6 +340,16 @@ serve(async (req) => {
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // Nominee email succeeded — mark invite_sent_at so we don't re-send.
+    const { error: updateError } = await supabase
+      .from('nominees')
+      .update({ invite_sent_at: new Date().toISOString() })
+      .eq('id', nominee_id)
+
+    if (updateError) {
+      console.error('Failed to update invite_sent_at:', updateError)
     }
 
     // 2) Confirmation email to the nominator (fire-and-forget, non-critical)

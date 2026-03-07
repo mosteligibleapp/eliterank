@@ -175,6 +175,108 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
   }
 }
 
+/**
+ * Ensure the email address has a OneSignal subscription and return its
+ * subscription ID. Creates the user+subscription if it doesn't exist.
+ */
+async function ensureEmailSubscription(
+  appId: string,
+  apiKey: string,
+  email: string,
+): Promise<{ subscriptionId: string | null; error?: string }> {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Key ${apiKey}`,
+  }
+
+  // 1. Try to look up existing user by external_id (we use email as external_id)
+  try {
+    const lookupRes = await fetch(
+      `https://api.onesignal.com/apps/${appId}/users/by/external_id/${encodeURIComponent(email)}`,
+      { headers },
+    )
+
+    if (lookupRes.ok) {
+      const userData = await lookupRes.json()
+      const emailSub = userData?.subscriptions?.find(
+        (s: { type?: string; token?: string }) =>
+          s.type === 'Email' && s.token?.toLowerCase() === email.toLowerCase()
+      )
+      if (emailSub?.id) {
+        console.log('Found existing OneSignal subscription:', emailSub.id)
+        return { subscriptionId: emailSub.id }
+      }
+      // User exists but no email subscription — fall through to create one
+      console.log('OneSignal user exists but no email subscription, will add one')
+    }
+  } catch (lookupErr) {
+    console.warn('OneSignal user lookup failed:', lookupErr)
+  }
+
+  // 2. Create user with email subscription
+  const createPayload = {
+    properties: {
+      tags: { source: 'eliterank' },
+    },
+    identity: {
+      external_id: email,
+    },
+    subscriptions: [{
+      type: 'Email',
+      token: email,
+      enabled: true,
+    }],
+  }
+
+  try {
+    const createRes = await fetch(`https://api.onesignal.com/apps/${appId}/users`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(createPayload),
+    })
+
+    const createResult = await createRes.json()
+    console.log('OneSignal user creation result:', JSON.stringify({
+      status: createRes.status,
+      hasSubscriptions: !!createResult?.subscriptions?.length,
+    }))
+
+    // Extract the email subscription ID from the response
+    const emailSub = createResult?.subscriptions?.find(
+      (s: { type?: string; token?: string }) =>
+        s.type === 'Email' && s.token?.toLowerCase() === email.toLowerCase()
+    )
+
+    if (emailSub?.id) {
+      console.log('Created OneSignal subscription:', emailSub.id)
+      return { subscriptionId: emailSub.id }
+    }
+
+    // If creation returned 409 (conflict/already exists), try lookup again
+    if (createRes.status === 409) {
+      console.log('User already exists (409), retrying lookup...')
+      const retryLookup = await fetch(
+        `https://api.onesignal.com/apps/${appId}/users/by/external_id/${encodeURIComponent(email)}`,
+        { headers },
+      )
+      if (retryLookup.ok) {
+        const retryData = await retryLookup.json()
+        const retrySub = retryData?.subscriptions?.find(
+          (s: { type?: string; token?: string }) =>
+            s.type === 'Email' && s.token?.toLowerCase() === email.toLowerCase()
+        )
+        if (retrySub?.id) {
+          return { subscriptionId: retrySub.id }
+        }
+      }
+    }
+
+    return { subscriptionId: null, error: `No subscription ID in response: ${JSON.stringify(createResult)}` }
+  } catch (createErr) {
+    return { subscriptionId: null, error: String(createErr) }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -204,25 +306,42 @@ serve(async (req) => {
 
     const { subject, body: htmlBody } = getEmailContent(body)
 
-    // OneSignal Create Notification (Email channel)
-    // https://documentation.onesignal.com/reference/create-notification
-    const oneSignalPayload = {
+    // Step 1: Ensure the recipient has a OneSignal email subscription.
+    // This is critical — include_email_tokens silently fails for unknown
+    // emails. By ensuring the subscription exists first and targeting by
+    // subscription ID, we guarantee delivery.
+    const { subscriptionId, error: subError } = await ensureEmailSubscription(
+      appId,
+      apiKey,
+      body.to_email,
+    )
+
+    // Build the notification payload — prefer targeting by subscription ID
+    // (guaranteed to work) with fallback to email token (works for existing
+    // subscriptions that may have a different external_id).
+    const oneSignalPayload: Record<string, unknown> = {
       app_id: appId,
-      // Target by email address using include_email_tokens
-      include_email_tokens: [body.to_email],
-      // Email content
       email_subject: subject,
       email_body: htmlBody,
       email_from_name: 'EliteRank',
       email_from_address: 'info@eliterank.co',
-      // Custom data for tracking
       data: {
         type: body.type,
         to_email: body.to_email,
       },
     }
 
-    console.log('Sending OneSignal email:', JSON.stringify({ subject, to: body.to_email }))
+    if (subscriptionId) {
+      // Target by subscription ID — deterministic, no indexing delay
+      oneSignalPayload.include_subscription_ids = [subscriptionId]
+      console.log('Targeting by subscription ID:', subscriptionId)
+    } else {
+      // Fallback to email token if we couldn't get a subscription ID
+      console.warn('No subscription ID available, falling back to include_email_tokens. Error:', subError)
+      oneSignalPayload.include_email_tokens = [body.to_email]
+    }
+
+    console.log('Sending OneSignal email:', JSON.stringify({ subject, to: body.to_email, method: subscriptionId ? 'subscription_id' : 'email_token' }))
 
     const osResponse = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
@@ -238,83 +357,47 @@ serve(async (req) => {
       status: osResponse.status,
       id: osResult?.id,
       recipients: osResult?.recipients,
-      external_id: osResult?.external_id,
       errors: osResult?.errors,
     }))
 
     if (!osResponse.ok || osResult?.recipients === 0) {
-      console.error('OneSignal API error or 0 recipients:', JSON.stringify(osResult))
+      console.error('OneSignal send failed:', JSON.stringify(osResult))
 
-      // If OneSignal fails because the email isn't subscribed, try creating the
-      // email subscription first and then retry.
-      if (osResult?.errors?.includes?.('All included players are not subscribed') ||
-          JSON.stringify(osResult).includes('not subscribed') ||
-          osResult?.recipients === 0) {
-        console.log('Email not subscribed, creating subscription and retrying...')
-
-        // Create email subscription via OneSignal API
-        const subPayload = {
-          properties: {
-            tags: { type: body.type },
-          },
-          identity: {
-            external_id: body.to_email,
-          },
-          subscriptions: [{
-            type: 'Email',
-            token: body.to_email,
-            enabled: true,
-          }],
+      // If we used subscription_id and it still failed, try email_token as last resort
+      if (subscriptionId) {
+        console.log('Subscription ID send failed, retrying with email_token...')
+        const fallbackPayload = {
+          ...oneSignalPayload,
+          include_email_tokens: [body.to_email],
         }
+        delete fallbackPayload.include_subscription_ids
 
-        const subResponse = await fetch(`https://api.onesignal.com/apps/${appId}/users`, {
+        const fallbackRes = await fetch('https://api.onesignal.com/notifications', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Key ${apiKey}`,
           },
-          body: JSON.stringify(subPayload),
+          body: JSON.stringify(fallbackPayload),
         })
 
-        const subResult = await subResponse.json()
-        console.log('Subscription creation result:', JSON.stringify(subResult))
+        const fallbackResult = await fallbackRes.json()
+        console.log('Fallback email_token result:', JSON.stringify({
+          status: fallbackRes.status,
+          recipients: fallbackResult?.recipients,
+          errors: fallbackResult?.errors,
+        }))
 
-        // Wait for OneSignal to propagate the new subscription before retrying.
-        // Without this delay the retry often hits a race condition where the
-        // subscription hasn't been indexed yet.
-        await new Promise(resolve => setTimeout(resolve, 2000))
-
-        // Retry sending the email
-        const retryResponse = await fetch('https://api.onesignal.com/notifications', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Key ${apiKey}`,
-          },
-          body: JSON.stringify(oneSignalPayload),
-        })
-
-        const retryResult = await retryResponse.json()
-        if (!retryResponse.ok || retryResult?.recipients === 0) {
-          console.error('OneSignal retry failed:', JSON.stringify(retryResult))
+        if (fallbackRes.ok && fallbackResult?.recipients > 0) {
           return new Response(
-            JSON.stringify({
-              error: 'Failed to send email after retry',
-              details: retryResult,
-            }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ success: true, onesignal_id: fallbackResult.id, recipients: fallbackResult.recipients, method: 'email_token_fallback' }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
-
-        console.log('OneSignal email sent on retry:', JSON.stringify(retryResult))
-        return new Response(
-          JSON.stringify({ success: true, onesignal_id: retryResult.id, retried: true }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
       }
 
       return new Response(
-        JSON.stringify({ error: 'OneSignal API error', details: osResult }),
+        JSON.stringify({ error: 'OneSignal email delivery failed', details: osResult, subscription_id: subscriptionId }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
