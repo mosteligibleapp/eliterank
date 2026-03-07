@@ -242,7 +242,7 @@ export default function ContestantGuide({
  */
 function generateGuideContent({ competition, votingRounds = [], prizePool, about, phase }) {
   const competitionName = competition?.name || 'the competition';
-  const cityName = competition?.city || 'your city';
+  const cityName = (competition?.city?.name || competition?.city || 'your city');
   const pricePerVote = competition?.price_per_vote || 1;
   const numWinners = competition?.number_of_winners || 5;
   const prizeMinimum = prizePool?.minimum || competition?.prize_pool_minimum || 1000;
