@@ -1,20 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, MapPin, Star, ExternalLink, UserPlus, Clock } from 'lucide-react';
-import { Panel, Badge, Button, EliteRankCrown } from '../../../components/ui';
-import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { Trophy, Crown, MapPin, Star, UserPlus, Calendar, ArrowRight } from 'lucide-react';
+import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
+import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
-
-const STATUS_LABELS = {
-  upcoming: 'Upcoming',
-  nomination: 'Nominations',
-  voting: 'Voting',
-  completed: 'Completed',
-  live: 'Live',
-  publish: 'Coming Soon',
-};
+import { getCityImage } from '../../../utils/cityImages';
+import { getPhaseDisplayConfig } from '../../../utils/competitionPhase';
 
 function getCompetitionLink(competition) {
   const orgSlug = competition?.organization?.slug || 'most-eligible';
@@ -33,32 +26,32 @@ function getCompetitionLink(competition) {
   return getCompetitionUrl(orgSlug, generatedSlug);
 }
 
-function RoleBadge({ role }) {
+function RoleBadge({ role, size = 'sm' }) {
   switch (role) {
     case 'nominee':
       return (
-        <Badge variant="gold" size="sm" pill>
+        <Badge variant="gold" size={size} pill>
           <UserPlus size={10} style={{ marginRight: '4px' }} />
           Nominee
         </Badge>
       );
     case 'host':
       return (
-        <Badge variant="purple" size="sm" pill>
+        <Badge variant="purple" size={size} pill>
           <Crown size={10} style={{ marginRight: '4px' }} />
           Host
         </Badge>
       );
     case 'winner':
       return (
-        <Badge variant="gold" size="sm" pill>
+        <Badge variant="gold" size={size} pill>
           <Trophy size={10} style={{ marginRight: '4px' }} />
           Winner
         </Badge>
       );
     case 'contestant':
       return (
-        <Badge variant="success" size="sm" pill>
+        <Badge variant="success" size={size} pill>
           <Star size={10} style={{ marginRight: '4px' }} />
           Contestant
         </Badge>
@@ -68,103 +61,192 @@ function RoleBadge({ role }) {
   }
 }
 
-function CompetitionRow({ name, url, role, status, votes, isUnclaimed, nomination, onAcceptClick, nominatorName, isCompact }) {
-  const isActive = ['voting', 'nomination', 'live'].includes(status);
-  const isWinner = role === 'winner';
-
-  const bgColor = isUnclaimed
-    ? 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))'
-    : isWinner
-    ? 'linear-gradient(135deg, rgba(212,175,55,0.12), rgba(212,175,55,0.04))'
-    : isActive
-    ? 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.02))'
-    : 'rgba(255,255,255,0.03)';
-
-  const borderColor = isUnclaimed
-    ? '1px solid rgba(212,175,55,0.3)'
-    : isWinner
-    ? '1px solid rgba(212,175,55,0.25)'
-    : isActive
-    ? '1px solid rgba(34,197,94,0.2)'
-    : '1px solid rgba(255,255,255,0.05)';
+function CompetitionCard({ entry, onAcceptClick, isMobile }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const competition = entry.competition || {};
+  const cityName = competition.city?.name || competition.city || '';
+  const cityImage = competition.cover_image || getCityImage(cityName, competition.name);
+  const org = competition.organization;
+  const statusConfig = getPhaseDisplayConfig(competition.status);
+  const url = entry.url;
 
   return (
-    <div
-      style={{
-        background: bgColor,
-        border: borderColor,
-        borderRadius: borderRadius.lg,
-        padding: isCompact ? spacing.md : spacing.lg,
-        overflow: 'hidden',
-      }}
+    <a
+      href={url}
+      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div style={{
-        display: 'flex',
-        flexDirection: isCompact ? 'column' : 'row',
-        justifyContent: 'space-between',
-        alignItems: isCompact ? 'flex-start' : 'center',
-        gap: spacing.sm,
-      }}>
-        <a
-          href={url}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.sm,
-            textDecoration: 'none',
-            color: colors.text.primary,
-            minWidth: 0,
-            maxWidth: '100%',
-          }}
-        >
-          <MapPin size={14} style={{ color: colors.gold.primary, flexShrink: 0 }} />
-          <span style={{
-            fontWeight: typography.fontWeight.semibold,
-            fontSize: typography.fontSize.sm,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {name}
-          </span>
-          <ExternalLink size={12} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
-        </a>
+      <div
+        style={{
+          position: 'relative',
+          borderRadius: borderRadius.xl,
+          overflow: 'hidden',
+          cursor: 'pointer',
+          transform: isHovered ? 'translateY(-4px) scale(1.01)' : 'translateY(0) scale(1)',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: isHovered
+            ? '0 20px 40px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.2)'
+            : '0 8px 24px -8px rgba(0, 0, 0, 0.3)',
+          aspectRatio: isMobile ? '16/10' : '16/9',
+          background: colors.background.card,
+        }}
+      >
+        {/* Background Image */}
+        {cityImage && (
+          <img
+            src={cityImage}
+            alt={competition.name}
+            loading="lazy"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+              transform: isHovered ? 'scale(1.06)' : 'scale(1)',
+            }}
+          />
+        )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
-          <RoleBadge role={role} />
-          {votes > 0 && (
-            <Badge variant="gold" size="sm" pill>
-              {votes.toLocaleString()} votes
-            </Badge>
-          )}
-          {isUnclaimed && nomination ? (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => onAcceptClick(nomination)}
-              style={{ fontSize: typography.fontSize.xs }}
-            >
-              Accept or Decline
-            </Button>
-          ) : status ? (
-            <Badge variant={isActive ? 'success' : 'default'} size="sm" pill>
-              {isActive && '● '}{STATUS_LABELS[status] || status}
-            </Badge>
-          ) : null}
+        {/* Gradient Overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.4) 100%)',
+          transition: 'opacity 0.3s',
+          opacity: isHovered ? 0.9 : 1,
+        }} />
+
+        {/* Content */}
+        <div style={{
+          position: 'relative',
+          height: '100%',
+          padding: isMobile ? spacing.lg : spacing.xl,
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          {/* Top Row: Status + Role + Org Logo */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+              {statusConfig && (
+                <Badge variant={statusConfig.variant} size="sm" pill dot={statusConfig.pulse}>
+                  {statusConfig.label}
+                </Badge>
+              )}
+              <RoleBadge role={entry.role} />
+            </div>
+            {org?.logo_url && (
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: borderRadius.lg,
+                background: 'rgba(255,255,255,0.15)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <OrganizationLogo logo={org.logo_url} size={28} />
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Content */}
+          <div style={{ marginTop: 'auto' }}>
+            {org?.name && (
+              <p style={{
+                fontSize: typography.fontSize.xs,
+                color: colors.gold.primary,
+                fontWeight: typography.fontWeight.medium,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                marginBottom: spacing.xs,
+                opacity: 0.9,
+              }}>
+                {org.name}
+              </p>
+            )}
+
+            <h3 style={{
+              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+              marginBottom: spacing.sm,
+              lineHeight: 1.2,
+              textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+            }}>
+              {competition.name || entry.name}
+            </h3>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.lg,
+              marginBottom: entry.isUnclaimed ? spacing.md : 0,
+            }}>
+              {cityName && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                  <MapPin size={14} style={{ color: colors.gold.primary }} />
+                  <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                    {cityName}
+                  </span>
+                </div>
+              )}
+              {competition.season && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                  <Calendar size={14} style={{ color: colors.text.secondary }} />
+                  <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                    Season {competition.season}
+                  </span>
+                </div>
+              )}
+              {entry.votes > 0 && (
+                <Badge variant="gold" size="sm" pill>
+                  {entry.votes.toLocaleString()} votes
+                </Badge>
+              )}
+            </div>
+
+            {/* Unclaimed CTA */}
+            {entry.isUnclaimed && entry.nomination && (
+              <div
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onAcceptClick(entry.nomination);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  padding: `${spacing.sm} ${spacing.lg}`,
+                  background: isHovered ? colors.gold.primary : 'rgba(212, 175, 55, 0.15)',
+                  border: `1.5px solid ${colors.gold.primary}`,
+                  borderRadius: borderRadius.lg,
+                  color: isHovered ? colors.text.inverse : colors.gold.primary,
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: typography.fontWeight.semibold,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                }}
+              >
+                Accept or Decline
+                <ArrowRight size={14} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Show nominator info for unclaimed nominations */}
-      {isUnclaimed && nominatorName && (
-        <p style={{
-          marginTop: spacing.sm,
-          fontSize: typography.fontSize.xs,
-          color: colors.text.secondary,
-        }}>
-          Nominated by {nominatorName}
-        </p>
-      )}
-    </div>
+    </a>
   );
 }
 
@@ -249,6 +331,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
       url: getCompetitionLink(competition),
       role: 'nominee',
       status: competition?.status,
+      competition: competition,
       isUnclaimed: !nom.claimed_at,
       nomination: nom,
       nominatorName: !nom.nominator_anonymous ? nom.nominator_name : null,
@@ -263,6 +346,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
       url: getCompetitionLink(comp),
       role: 'host',
       status: comp?.status,
+      competition: comp,
     });
   });
 
@@ -276,6 +360,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
       url: getCompetitionLink(comp),
       role: isWinner ? 'winner' : 'contestant',
       status: comp?.status,
+      competition: comp,
       votes: entry.votes || 0,
     });
   });
@@ -294,20 +379,13 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
           }}>
             <EliteRankCrown size={isSmall ? 18 : 22} /> Competitions
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
             {entries.map(entry => (
-              <CompetitionRow
+              <CompetitionCard
                 key={entry.id}
-                name={entry.name}
-                url={entry.url}
-                role={entry.role}
-                status={entry.status}
-                votes={entry.votes}
-                isUnclaimed={entry.isUnclaimed}
-                nomination={entry.nomination}
+                entry={entry}
                 onAcceptClick={handleOpenAcceptModal}
-                nominatorName={entry.nominatorName}
-                isCompact={isSmall}
+                isMobile={isMobile}
               />
             ))}
           </div>
