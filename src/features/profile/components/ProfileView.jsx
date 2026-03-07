@@ -61,25 +61,17 @@ export default function ProfileView({ hostProfile, onEdit }) {
     <div>
       {/* Hero Section */}
       <Panel style={{ marginBottom: isMobile ? spacing.lg : spacing.xxl }}>
-        <div
-          style={{
-            height: isMobile ? '140px' : '200px',
-            background: hostProfile.coverImage
-              ? `url(${hostProfile.coverImage}) center/cover`
-              : gradients.cover,
-            position: 'relative',
-          }}
-        >
-          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg, display: 'flex', gap: spacing.sm }}>
+        <div style={{ position: 'relative', padding: isMobile ? spacing.sm : spacing.lg, paddingBottom: 0 }}>
+          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg, display: 'flex', gap: spacing.sm, zIndex: 2 }}>
             <Button
               onClick={handleShare}
               icon={copied ? Check : Share2}
               size={isMobile ? 'sm' : 'md'}
               style={{
-                background: copied ? 'rgba(34,197,94,0.8)' : 'rgba(0,0,0,0.5)',
+                background: copied ? 'rgba(34,197,94,0.8)' : 'rgba(255,255,255,0.06)',
                 backdropFilter: 'blur(8px)',
                 color: '#fff',
-                border: '1px solid rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.1)',
                 minWidth: isMobile ? 'auto' : '100px',
               }}
             >
@@ -91,10 +83,10 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 icon={Edit}
                 size={isMobile ? 'sm' : 'md'}
                 style={{
-                  background: 'rgba(0,0,0,0.5)',
+                  background: 'rgba(255,255,255,0.06)',
                   backdropFilter: 'blur(8px)',
                   color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  border: '1px solid rgba(255,255,255,0.1)',
                 }}
               >
                 {isMobile ? 'Edit' : 'Edit Profile'}
@@ -102,21 +94,21 @@ export default function ProfileView({ hostProfile, onEdit }) {
             )}
           </div>
         </div>
-        <div style={{ padding: isMobile ? `0 ${spacing.lg} ${spacing.lg}` : `0 ${spacing.xxxl} ${spacing.xxxl}`, marginTop: isMobile ? '-40px' : '-60px', position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? spacing.md : spacing.xxl, alignItems: isMobile ? 'center' : 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ padding: isMobile ? `${spacing.xxl} ${spacing.lg} ${spacing.lg}` : `${spacing.xxxl} ${spacing.xxxl} ${spacing.xxxl}` }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md }}>
             <div
               style={{
-                width: isMobile ? '100px' : '140px',
-                height: isMobile ? '100px' : '140px',
+                width: isMobile ? '140px' : '180px',
+                height: isMobile ? '140px' : '180px',
                 borderRadius: borderRadius.xxl,
                 background: hostProfile.avatarUrl
                   ? `url(${hostProfile.avatarUrl}) center/cover`
                   : 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
-                border: isMobile ? '3px solid #1a1a24' : '4px solid #1a1a24',
+                border: `3px solid rgba(212,175,55,0.3)`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: isMobile ? '32px' : '42px',
+                fontSize: isMobile ? '42px' : '56px',
                 fontWeight: typography.fontWeight.semibold,
                 color: colors.gold.primary,
                 flexShrink: 0,
@@ -124,7 +116,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
             >
               {!hostProfile.avatarUrl && initials}
             </div>
-            <div style={{ flex: 1, paddingBottom: isMobile ? 0 : spacing.sm, minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
               <h1 style={{
                 fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.hero,
                 fontWeight: typography.fontWeight.bold,
@@ -138,7 +130,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                   color: colors.text.secondary,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: isMobile ? 'center' : 'flex-start',
+                  justifyContent: 'center',
                   gap: spacing.sm,
                   marginTop: spacing.sm,
                   fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg
@@ -160,7 +152,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: isMobile ? 'center' : 'flex-start',
+                    justifyContent: 'center',
                     gap: spacing.md,
                     marginTop: spacing.md,
                     flexWrap: 'wrap',

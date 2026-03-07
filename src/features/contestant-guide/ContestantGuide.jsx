@@ -342,18 +342,18 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
       title: 'Prize Pool',
       subtitle: 'Real prizes. Real bragging rights.',
       points: [
-        'All winners earn the title and hold it for one year',
+        `Top ${numWinners} contestants with the most votes earn the year long title`,
+        `The ${numWinners} winners receive a prize package from competition sponsors`,
         {
-          text: '1st place takes home a cash prize',
+          text: `1st place receives a cash prize (min $${prizeMinimum.toLocaleString()})`,
           subpoints: [
-            `$${prizeMinimum.toLocaleString()} guaranteed minimum — grows with every paid vote`,
+            'Cash prize grows from every paid vote purchased',
             'Winner may keep the prize or donate to a verified 501(c)(3) of their choice',
             'Contestants donating to charity are encouraged to promote their cause throughout the competition',
           ],
         },
-        `All ${numWinners} winners receive a sponsor prize package`,
       ],
-      tip: `Current prize pool: $${currentPrize.toLocaleString()}+ — and growing!`,
+      tip: `Current cash prize: $${currentPrize.toLocaleString()}+ — and growing!`,
     },
   ];
 

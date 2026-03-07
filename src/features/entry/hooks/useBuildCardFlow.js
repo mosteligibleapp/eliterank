@@ -4,7 +4,7 @@ import { uploadPhoto } from '../utils/uploadPhoto';
 import { getCityName } from '../utils/eligibilityEngine';
 
 // Columns added by 20260213 migration — strip if migration hasn't run yet
-const NEW_COLUMNS = ['city', 'flow_stage'];
+const NEW_COLUMNS = ['flow_stage'];
 
 function stripNewColumns(record) {
   const clean = { ...record };

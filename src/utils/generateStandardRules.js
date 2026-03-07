@@ -194,6 +194,10 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
     content.push('• Contestants in the bottom percentage each round are eliminated');
   }
 
+  content.push('• Bonus votes can be earned by completing challenges (tasks) made available by the host');
+  content.push('• Double days (days where all votes are worth 2x) will be available once through each round');
+  content.push('• A resurrection period may become available (previously eliminated contestants might rejoin based on performance)');
+
   return content.join('\n');
 }
 
@@ -205,12 +209,10 @@ function generatePrizePoolContent({ competition }) {
   const numWinners = competition?.number_of_winners || 5;
 
   const content = [
-    `• Guaranteed minimum prize pool: $${minimum.toLocaleString()}`,
-    '• Prize pool grows with every paid vote purchased',
-    '• 50% of all vote purchases go directly to the prize pool',
-    `• Top ${numWinners} finishers win cash prizes`,
-    '• 1st place receives the largest share of the prize pool',
-    '• Prize distribution is announced before the final round',
+    `• Top ${numWinners} contestants with the most votes earn the year long title`,
+    `• The ${numWinners} winners receive a prize package from competition sponsors`,
+    `• 1st place receives a cash prize (min $${minimum.toLocaleString()})`,
+    '• Cash prize grows from every paid vote purchased',
   ];
 
   return content.join('\n');
