@@ -195,9 +195,9 @@ export function useBuildCardFlow({
       const updateData = {
         flow_stage: 'accepted',
       };
-      if (currentUser?.id) {
-        updateData.user_id = currentUser.id;
-      }
+      // Do NOT set user_id here — the logged-in user might be the nominator,
+      // not the nominee. user_id is set in createAccount after the nominee
+      // has their own authenticated session.
 
       let { error } = await withTimeout(
         supabase
@@ -302,9 +302,10 @@ export function useBuildCardFlow({
         flow_stage: flowStage,
       };
 
-      if (currentUser?.id) {
-        record.user_id = currentUser.id;
-      }
+      // Do NOT set user_id here — it's set in createAccount after the user
+      // has a confirmed auth session. Setting it prematurely (especially from
+      // a stale magic-link session) violates the nominees_update_unclaimed RLS
+      // policy and causes 400 errors.
 
       if (nomineeId) {
         // Update existing nominee record
@@ -518,17 +519,28 @@ export function useBuildCardFlow({
       let userId = currentUser?.id || null;
 
       // --- Already authenticated (e.g. magic link) — just set password ---
+      let sessionValid = false;
       if (currentUser) {
         const { error } = await supabase.auth.updateUser({ password });
-        if (error) throw error;
-
-        if (userId && nomineeId) {
-          await supabase
-            .from('nominees')
-            .update({ user_id: userId, claimed_at: new Date().toISOString() })
-            .eq('id', nomineeId);
+        if (error) {
+          // Session may be stale/expired (e.g. old magic link). Clear it and
+          // fall through to the signUp path below instead of throwing.
+          console.warn('updateUser failed (stale session?), falling back to signUp:', error.message);
+          await supabase.auth.signOut();
+          setCurrentUser(null);
+          userId = null;
+        } else {
+          sessionValid = true;
+          if (userId && nomineeId) {
+            await supabase
+              .from('nominees')
+              .update({ user_id: userId, claimed_at: new Date().toISOString() })
+              .eq('id', nomineeId);
+          }
         }
-      } else {
+      }
+
+      if (!sessionValid && !currentUser) {
         // --- No session — create the account via signUp ---
         const fullName = `${cardData.firstName} ${cardData.lastName}`.trim();
 
