@@ -10,16 +10,11 @@ const corsHeaders = {
  * set-nominee-password
  *
  * Sets a password for a nominee's auth account using the admin API.
- * Used when the auth user was auto-created by the invite system (signInWithOtp)
- * but the nominee arrives at the claim page without a session (e.g. opened the
- * claim link directly instead of via the magic link email).
+ * Used when the nominee arrives at the claim page without a session and
+ * client-side signUp fails (e.g. handle_new_user trigger crash).
  *
  * Accepts: { invite_token: string, password: string, email?: string }
  * Returns: { success: true, user_id: string }
- *
- * The optional email param is used when the nominee record doesn't have an
- * email yet (e.g. phone-only nomination where the nominee entered their email
- * during the claim flow but RLS prevented saving it).
  */
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -50,7 +45,7 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Look up the nominee by invite_token
+    // ── 1. Look up the nominee ──────────────────────────────────────────
     console.log('Looking up nominee by invite_token')
     const { data: nominee, error: fetchError } = await supabase
       .from('nominees')
@@ -59,7 +54,7 @@ serve(async (req) => {
       .single()
 
     if (fetchError || !nominee) {
-      console.error('Nominee lookup failed:', fetchError?.message, fetchError?.code)
+      console.error('Nominee lookup failed:', fetchError?.message)
       return new Response(
         JSON.stringify({ error: 'Invalid or expired invite token' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -68,325 +63,215 @@ serve(async (req) => {
 
     console.log('Found nominee:', JSON.stringify({ id: nominee.id, email: nominee.email, user_id: nominee.user_id }))
 
-    // Use the email from the client if the nominee record doesn't have one
-    // (happens when RLS blocks the persistProgress update for unauthenticated users)
-    const nomineeEmail = nominee.email || clientEmail?.trim() || null
+    // ── 2. Determine the email to use ───────────────────────────────────
+    // IMPORTANT: prefer clientEmail (what the user typed on the form) over
+    // nominee.email (what the nominator entered). The client will sign in
+    // with clientEmail after this function returns — if we create the auth
+    // account with a different email, signInWithPassword will fail.
+    const email = clientEmail?.trim() || nominee.email
+    if (!email) {
+      return new Response(
+        JSON.stringify({ error: 'No email address available to create an account' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
-    // Backfill the email on the nominee record if it was missing
-    if (!nominee.email && nomineeEmail) {
+    console.log('Using email:', email)
+
+    // Backfill / update email on nominee record so it stays in sync
+    if (email !== nominee.email) {
       await supabase
         .from('nominees')
-        .update({ email: nomineeEmail })
+        .update({ email })
         .eq('id', nominee.id)
     }
 
-    // Find the auth user — prefer direct lookup via user_id (set by
-    // send-nomination-invite when it pre-creates the auth user), fall back to
-    // email search if user_id is not available.
-    let authUser: { id: string; email?: string } | null = null
+    // ── 3. Find existing auth user ──────────────────────────────────────
+    let authUserId: string | null = null
 
+    // 3a. Via nominee.user_id (set by send-nomination-invite for existing users)
     if (nominee.user_id) {
-      const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(
-        nominee.user_id
-      )
-      if (!getUserError && userData?.user) {
-        authUser = userData.user
-        console.log('Found auth user via user_id:', authUser.id)
-      } else {
-        console.warn('getUserById failed for user_id:', nominee.user_id, getUserError?.message)
+      const { data, error } = await supabase.auth.admin.getUserById(nominee.user_id)
+      if (!error && data?.user) {
+        authUserId = data.user.id
+        console.log('Found auth user via nominee.user_id:', authUserId)
       }
     }
 
-    // Fallback 1: look up via profiles table (reliable exact-match on email)
-    if (!authUser && nomineeEmail) {
-      console.log('Trying profile lookup for:', nomineeEmail)
+    // 3b. Via profiles table (exact email match)
+    if (!authUserId) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('email', nomineeEmail)
-        .single()
-
-      if (profile?.id) {
-        const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(
-          profile.id
-        )
-        if (!getUserError && userData?.user) {
-          authUser = userData.user
-          console.log('Found auth user via profile lookup:', authUser.id)
-
-          // Backfill user_id on nominee if it was missing
-          if (!nominee.user_id) {
-            await supabase
-              .from('nominees')
-              .update({ user_id: authUser.id })
-              .eq('id', nominee.id)
-          }
-        } else {
-          // Profile exists but NO matching auth user → orphaned profile.
-          // Delete it so createUser's trigger can insert a fresh one.
-          console.warn('Orphaned profile found (no auth user):', profile.id, '— deleting')
-          await supabase.from('profiles').delete().eq('id', profile.id)
-        }
-      }
-    }
-
-    // Fallback 2: case-insensitive profile lookup (handles case mismatches)
-    if (!authUser && nomineeEmail) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .ilike('email', nomineeEmail)
+        .ilike('email', email)
         .maybeSingle()
 
       if (profile?.id) {
-        const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(
-          profile.id
-        )
-        if (!getUserError && userData?.user) {
-          authUser = userData.user
-          console.log('Found auth user via ilike profile lookup:', authUser.id)
-
-          if (!nominee.user_id) {
-            await supabase
-              .from('nominees')
-              .update({ user_id: authUser.id })
-              .eq('id', nominee.id)
-          }
-        } else if (getUserError) {
-          // Another orphaned profile — clean it up
-          console.warn('Orphaned profile found (ilike):', profile.id, '— deleting')
+        // Verify this profile maps to a real auth user
+        const { data, error } = await supabase.auth.admin.getUserById(profile.id)
+        if (!error && data?.user) {
+          authUserId = data.user.id
+          console.log('Found auth user via profile:', authUserId)
+        } else {
+          // Orphaned profile — delete it so createUser trigger won't conflict
+          console.log('Deleting orphaned profile:', profile.id)
           await supabase.from('profiles').delete().eq('id', profile.id)
         }
       }
     }
 
-    // Fallback 3: search auth users by email (fuzzy filter — less reliable)
-    if (!authUser && nomineeEmail) {
-      const listResult = await supabase.auth.admin.listUsers({
-        filter: nomineeEmail,
+    // 3c. Via auth admin listUsers (with email filter)
+    if (!authUserId) {
+      const { data: listData } = await supabase.auth.admin.listUsers({
+        filter: email,
         page: 1,
         perPage: 50,
       })
-
-      if (listResult.error) {
-        console.warn('listUsers failed:', listResult.error.message)
-      } else if (listResult.data?.users?.length) {
-        authUser = listResult.data.users.find(
-          (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
-        ) || null
-        if (authUser) {
-          console.log('Found auth user via listUsers:', authUser.id)
-        }
+      const match = listData?.users?.find(
+        (u: { email?: string }) => u.email?.toLowerCase() === email.toLowerCase()
+      )
+      if (match) {
+        authUserId = match.id
+        console.log('Found auth user via listUsers:', authUserId)
       }
     }
 
-    // Last resort: create the auth user if no lookup found one
-    if (!authUser && nomineeEmail) {
-      console.log('No auth user found, creating one for:', nomineeEmail)
+    // ── 4. Create or update the auth user ───────────────────────────────
+    if (authUserId) {
+      // User exists — just set the password
+      console.log('Setting password on existing user:', authUserId)
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        authUserId,
+        { password, email_confirm: true }
+      )
+      if (updateError) {
+        console.error('Failed to set password:', updateError.message)
+        return new Response(
+          JSON.stringify({ error: 'Failed to set password', details: updateError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } else {
+      // No existing user — create one
+      console.log('Creating new auth user for:', email)
 
-      // Extract name parts for user_metadata (helps handle_new_user trigger)
+      // Clean up any orphaned profiles with this email first (prevents
+      // handle_new_user trigger conflicts on the email unique constraint)
+      const { data: orphanProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('email', email)
+      if (orphanProfiles?.length) {
+        for (const p of orphanProfiles) {
+          console.log('Pre-cleanup: deleting orphan profile:', p.id)
+          await supabase.from('profiles').delete().eq('id', p.id)
+        }
+      }
+
       const nameParts = nominee.name?.split(' ') || []
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || ''
 
-      // PROACTIVE CLEANUP: Delete orphaned profiles with this email BEFORE
-      // createUser. The handle_new_user trigger tries to INSERT a profile
-      // row; if a conflicting email already exists, the trigger crashes and
-      // rolls back the entire auth.users INSERT ("Database error creating
-      // new user"). Cleaning up first prevents this cascade.
-      try {
-        const { data: existingProfiles } = await supabase
-          .from('profiles')
-          .select('id')
-          .ilike('email', nomineeEmail)
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { first_name: firstName, last_name: lastName },
+      })
 
-        if (existingProfiles?.length) {
-          console.log('Found', existingProfiles.length, 'existing profile(s) with email:', nomineeEmail)
-          for (const prof of existingProfiles) {
-            const { data: authCheck, error: getErr } = await supabase.auth.admin.getUserById(prof.id)
-            if (getErr || !authCheck?.user) {
-              console.log('Deleting orphaned profile (no auth user):', prof.id)
-              await supabase.from('profiles').delete().eq('id', prof.id)
-            } else {
-              // Profile belongs to a real auth user — this IS the user we need
-              authUser = { id: authCheck.user.id, email: authCheck.user.email! }
-              console.log('Found real auth user via proactive profile check:', authUser.id)
-              // Backfill user_id on nominee
-              if (!nominee.user_id) {
-                await supabase
-                  .from('nominees')
-                  .update({ user_id: authUser.id })
-                  .eq('id', nominee.id)
-              }
-            }
-          }
-        }
-      } catch (cleanupErr) {
-        console.warn('Proactive profile cleanup failed:', cleanupErr)
-      }
+      if (createError) {
+        console.error('createUser failed:', createError.message)
 
-      // If proactive check found a real auth user, skip createUser
-      if (authUser) {
-        console.log('Skipping createUser — found existing user during proactive cleanup:', authUser.id)
-      } else {
-        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-          email: nomineeEmail,
-          password,
-          email_confirm: true,
-          user_metadata: { first_name: firstName, last_name: lastName },
+        // createUser can fail even if the user was partially created (trigger
+        // crash). Search for the user one more time.
+        const { data: retryList } = await supabase.auth.admin.listUsers({
+          filter: email,
+          page: 1,
+          perPage: 50,
         })
+        const found = retryList?.users?.find(
+          (u: { email?: string }) => u.email?.toLowerCase() === email.toLowerCase()
+        )
 
-        if (createError) {
-          console.warn('createUser failed:', createError.message)
+        if (found) {
+          console.log('Found partially-created user after createUser failure:', found.id)
+          authUserId = found.id
 
-          // "Database error creating new user" usually means the
-          // handle_new_user trigger hit a conflict. Clean up and retry.
-          if (createError.message?.includes('Database error')) {
-            console.log('Trigger failure detected — aggressive cleanup and retry')
+          // Set password + confirm email
+          await supabase.auth.admin.updateUserById(found.id, {
+            password,
+            email_confirm: true,
+          })
 
-            // Delete ALL profiles with this email regardless of auth user
-            // status. The trigger will recreate the profile for the new user.
-            const { data: allProfiles } = await supabase
-              .from('profiles')
-              .select('id')
-              .ilike('email', nomineeEmail)
-
-            if (allProfiles?.length) {
-              for (const p of allProfiles) {
-                console.log('Force-deleting profile for retry:', p.id)
-                await supabase.from('profiles').delete().eq('id', p.id)
-              }
-            }
-
-            // Retry createUser after aggressive cleanup
-            const { data: retryUser, error: retryError } = await supabase.auth.admin.createUser({
-              email: nomineeEmail,
-              password,
-              email_confirm: true,
-              user_metadata: { first_name: firstName, last_name: lastName },
-            })
-
-            if (!retryError && retryUser?.user) {
-              console.log('createUser succeeded after cleanup:', retryUser.user.id)
-              await supabase
-                .from('nominees')
-                .update({ user_id: retryUser.user.id })
-                .eq('id', nominee.id)
-
-              return new Response(
-                JSON.stringify({ success: true, user_id: retryUser.user.id }),
-                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-              )
-            }
-
-            console.warn('createUser retry also failed:', retryError?.message)
-
-            // Last resort: the user might have been partially created in auth
-            // during the first attempt (trigger crashed but GoTrue might have
-            // the user). Check via listUsers.
-            try {
-              const { data: listData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 50 })
-              const found = listData?.users?.find(
-                (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
-              )
-              if (found) {
-                authUser = { id: found.id, email: found.email! }
-                console.log('Found partially-created auth user via listUsers:', authUser.id)
-                // Set the password on this user
-                await supabase.auth.admin.updateUserById(found.id, { password, email_confirm: true })
-                // Ensure profile exists
-                await supabase.from('profiles').upsert({
-                  id: found.id,
-                  email: nomineeEmail,
-                  first_name: firstName,
-                  last_name: lastName,
-                }, { onConflict: 'id' })
-                await supabase
-                  .from('nominees')
-                  .update({ user_id: found.id })
-                  .eq('id', nominee.id)
-
-                return new Response(
-                  JSON.stringify({ success: true, user_id: found.id }),
-                  { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-                )
-              }
-            } catch (listErr) {
-              console.warn('listUsers fallback failed:', listErr)
+          // Ensure profile exists (trigger may have crashed before creating it)
+          await supabase.from('profiles').upsert({
+            id: found.id,
+            email,
+            first_name: firstName,
+            last_name: lastName,
+          }, { onConflict: 'id' })
+        } else {
+          // Truly failed — try one more time after cleaning up
+          console.log('Retrying createUser after cleanup...')
+          const { data: orphans2 } = await supabase
+            .from('profiles')
+            .select('id')
+            .ilike('email', email)
+          if (orphans2?.length) {
+            for (const p of orphans2) {
+              await supabase.from('profiles').delete().eq('id', p.id)
             }
           }
 
-          // If creation failed for any reason, try one more lookup
-          if (!authUser) {
-            const retryList = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
-            if (!retryList.error && retryList.data?.users?.length) {
-              authUser = retryList.data.users.find(
-                (u: { email?: string }) => u.email?.toLowerCase() === nomineeEmail!.toLowerCase()
-              ) || null
-            }
-          }
+          const { data: retryUser, error: retryError } = await supabase.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { first_name: firstName, last_name: lastName },
+          })
 
-          if (!authUser) {
-            console.error('Failed to create or find auth user:', createError.message)
+          if (retryError || !retryUser?.user) {
+            console.error('createUser retry failed:', retryError?.message)
             return new Response(
-              JSON.stringify({ error: `Failed to create account: ${createError.message}` }),
+              JSON.stringify({ error: 'Failed to create account', details: retryError?.message }),
               { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
           }
-          console.log('Found existing auth user after createUser failed:', authUser.id)
-        } else if (newUser?.user) {
-          // Link nominee to the new user
-          await supabase
-            .from('nominees')
-            .update({ user_id: newUser.user.id })
-            .eq('id', nominee.id)
 
-          return new Response(
-            JSON.stringify({ success: true, user_id: newUser.user.id }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
+          authUserId = retryUser.user.id
+          console.log('createUser succeeded on retry:', authUserId)
         }
+      } else if (newUser?.user) {
+        authUserId = newUser.user.id
+        console.log('Created new auth user:', authUserId)
       }
     }
 
-    if (!authUser) {
+    if (!authUserId) {
       return new Response(
-        JSON.stringify({ error: nomineeEmail ? 'Failed to find or create account' : 'No email address available to create an account' }),
-        { status: nomineeEmail ? 500 : 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Set the password via admin API and confirm email (pre-created users
-    // may have email_confirm: false if they never clicked the magic link)
-    const { error: updateError } = await supabase.auth.admin.updateUserById(
-      authUser.id,
-      { password, email_confirm: true }
-    )
-
-    if (updateError) {
-      console.error('Failed to set password:', updateError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to set password' }),
+        JSON.stringify({ error: 'Failed to find or create account' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Backfill user_id on nominee if it was missing
-    if (!nominee.user_id) {
+    // ── 5. Link nominee to the auth user ────────────────────────────────
+    if (!nominee.user_id || nominee.user_id !== authUserId) {
       await supabase
         .from('nominees')
-        .update({ user_id: authUser.id })
+        .update({ user_id: authUserId, claimed_at: new Date().toISOString() })
         .eq('id', nominee.id)
+      console.log('Linked nominee to user:', authUserId)
     }
 
+    console.log('set-nominee-password completed successfully for user:', authUserId)
     return new Response(
-      JSON.stringify({ success: true, user_id: authUser.id }),
+      JSON.stringify({ success: true, user_id: authUserId }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
     console.error('Error in set-nominee-password:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', details: String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
