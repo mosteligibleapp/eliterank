@@ -541,99 +541,100 @@ export function useBuildCardFlow({
       }
 
       if (!sessionValid && !currentUser) {
-        // --- No session — create the account via signUp ---
         const fullName = `${cardData.firstName} ${cardData.lastName}`.trim();
 
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            ...(inviteToken && {
-              emailRedirectTo: `${window.location.origin}/claim/${inviteToken}`,
-            }),
-            data: {
-              full_name: fullName,
-              first_name: cardData.firstName.trim(),
-              last_name: cardData.lastName.trim(),
-            },
-          },
-        });
+        if (inviteToken) {
+          // ── Third-party claim flow ──────────────────────────────────
+          // Use the edge function as the PRIMARY path. It uses admin APIs
+          // which bypass the handle_new_user trigger issues that cause
+          // "Database error creating new user" on client-side signUp.
+          console.log('Claim flow: using set-nominee-password edge function');
 
-        if (signUpError) {
-          if (signUpError.message?.includes('already registered')) {
-            // Account exists — sign in with the password they just entered
-            const { data: signInData, error: signInError } =
-              await supabase.auth.signInWithPassword({ email, password });
-            if (signInError) {
-              throw new Error(
-                'An account with this email already exists. Please use your existing password or reset it.'
-              );
-            }
-            setCurrentUser(signInData.user);
-            userId = signInData.user?.id;
-          } else if (signUpError.message?.includes('Database error') && inviteToken) {
-            // Trigger crashed — fall back to edge function which does
-            // server-side cleanup of orphaned profiles before retrying.
-            console.warn('signUp hit Database error, falling back to edge function');
-            const { data: fnData, error: fnError } = await supabase.functions.invoke(
+          const { data: fnData, error: fnError } = await supabase.functions.invoke(
+            'set-nominee-password',
+            { body: { invite_token: inviteToken, password, email } }
+          );
+
+          const fnErrMsg = fnData?.error || fnError?.message;
+          if (fnErrMsg) {
+            console.warn('set-nominee-password attempt 1 failed:', fnErrMsg);
+            // Retry once after a brief delay
+            await new Promise((r) => setTimeout(r, 2000));
+
+            const { data: retryData, error: retryError } = await supabase.functions.invoke(
               'set-nominee-password',
               { body: { invite_token: inviteToken, password, email } }
             );
 
-            const fnErrMsg = fnData?.error || fnError?.message;
-            if (fnErrMsg) {
-              // Edge function also failed — retry once after a brief delay
-              console.warn('set-nominee-password attempt 1 failed:', fnErrMsg);
-              await new Promise((r) => setTimeout(r, 2000));
-
-              const { data: retryData, error: retryError } = await supabase.functions.invoke(
-                'set-nominee-password',
-                { body: { invite_token: inviteToken, password, email } }
+            const retryErrMsg = retryData?.error || retryError?.message;
+            if (retryErrMsg) {
+              console.error('set-nominee-password attempt 2 failed:', retryErrMsg);
+              throw new Error(
+                'Account setup failed due to a server issue. Please try again in a moment, or contact support if this persists.'
               );
+            }
+          }
 
-              const retryErrMsg = retryData?.error || retryError?.message;
-              if (retryErrMsg) {
+          // Edge function succeeded — sign in with the email the user typed
+          const { data: signInData, error: signInError } =
+            await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) {
+            throw new Error(
+              'Account created but sign-in failed. Please try logging in with your email and password.'
+            );
+          }
+          setCurrentUser(signInData.user);
+          userId = signInData.user?.id;
+        } else {
+          // ── Self-entry flow ─────────────────────────────────────────
+          // Use client-side signUp (no invite token, no edge function)
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: fullName,
+                first_name: cardData.firstName.trim(),
+                last_name: cardData.lastName.trim(),
+              },
+            },
+          });
+
+          if (signUpError) {
+            if (signUpError.message?.includes('already registered')) {
+              const { data: signInData, error: signInError } =
+                await supabase.auth.signInWithPassword({ email, password });
+              if (signInError) {
                 throw new Error(
-                  'Account setup failed due to a server issue. Please try again in a moment, or contact support if this persists.'
+                  'An account with this email already exists. Please use your existing password or reset it.'
                 );
               }
-            }
-
-            // Edge function succeeded — sign in
-            const { data: signInData, error: signInError } =
-              await supabase.auth.signInWithPassword({ email, password });
-            if (signInError) {
+              setCurrentUser(signInData.user);
+              userId = signInData.user?.id;
+            } else if (signUpError.message?.includes('Database error')) {
               throw new Error(
-                'Account created but sign-in failed. Please try logging in with your email and password.'
+                'Account setup failed due to a server issue. Please try again in a moment.'
               );
+            } else {
+              throw signUpError;
             }
-            setCurrentUser(signInData.user);
-            userId = signInData.user?.id;
-          } else if (signUpError.message?.includes('Database error')) {
-            // Self-entry: no edge function fallback — surface the error
-            throw new Error(
-              'Account setup failed due to a server issue. Please try again in a moment.'
-            );
-          } else {
-            throw signUpError;
-          }
-        } else if (signUpData?.user) {
-          if (signUpData.user.identities?.length === 0) {
-            // Supabase returned a user without identities — account already
-            // exists. Try signing in.
-            const { data: signInData, error: signInError } =
-              await supabase.auth.signInWithPassword({ email, password });
-            if (signInError) {
-              throw new Error(
-                'An account with this email already exists. Please try logging in or use the magic link in your email.'
-              );
+          } else if (signUpData?.user) {
+            if (signUpData.user.identities?.length === 0) {
+              // Supabase returned a user without identities — account
+              // already exists. Try signing in.
+              const { data: signInData, error: signInError } =
+                await supabase.auth.signInWithPassword({ email, password });
+              if (signInError) {
+                throw new Error(
+                  'An account with this email already exists. Please try logging in or use the magic link in your email.'
+                );
+              }
+              setCurrentUser(signInData.user);
+              userId = signInData.user?.id;
+            } else {
+              setCurrentUser(signUpData.user);
+              userId = signUpData.user.id;
             }
-            setCurrentUser(signInData.user);
-            userId = signInData.user?.id;
-          } else {
-            // signUp auto-signs in on Supabase — capture the session
-            setCurrentUser(signUpData.user);
-            userId = signUpData.user.id;
           }
         }
 
