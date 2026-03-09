@@ -367,6 +367,7 @@ serve(async (req) => {
         to_email: nomineeData.nominator_email,
         to_name: nomineeData.nominator_name || 'Nominator',
         nominee_name: nomineeData.name,
+        nominee_email: nomineeEmail || undefined,
         nominator_name: nomineeData.nominator_name,
         competition_name: competitionName,
         city_name: cityName,

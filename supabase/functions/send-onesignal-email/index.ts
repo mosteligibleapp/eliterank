@@ -33,6 +33,7 @@ interface EmailRequest {
   reason?: string
   gender?: string | null
   nomination_end?: string | null
+  nominee_email?: string
 }
 
 // HTML email templates
@@ -122,6 +123,10 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
     }
 
     case 'nominator_confirm': {
+      const nomineeEmailLine = req.nominee_email
+        ? `<p style="color:#999;font-size:13px;margin-top:4px;">We'll send the invite to <strong style="color:#ccc;">${req.nominee_email}</strong></p>`
+        : ''
+
       return {
         subject: `Your nomination for ${req.competition_name || 'Most Eligible'} was submitted!`,
         body: wrapper(`
@@ -131,12 +136,13 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             <p style="color:#ccc;font-size:15px;">
               You nominated <strong>${req.nominee_name || 'someone special'}</strong>.
             </p>
+            ${nomineeEmailLine}
             <p style="color:#999;font-size:14px;margin-top:16px;">
               We'll reach out to them and let them know they've been nominated. We'll keep you updated on their status.
             </p>
             ${req.competition_url ? goldButton('View Competition', req.competition_url) : ''}
             <p style="color:#999;font-size:13px;margin-top:16px;">
-              Know someone else who should enter? Share the competition page with them!
+              Share the competition page with your nominee so they know what's at stake!
             </p>
           </div>
         `),
