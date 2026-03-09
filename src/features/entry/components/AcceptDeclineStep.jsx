@@ -41,6 +41,12 @@ export default function AcceptDeclineStep({
           This action cannot be undone.
         </p>
 
+        {error && (
+          <p style={{ color: '#ef4444', fontSize: '14px', textAlign: 'center', margin: '16px 0 0' }}>
+            {error}
+          </p>
+        )}
+
         <div className="entry-accept-actions" style={{ marginTop: '32px' }}>
           <button
             className="entry-btn-secondary"
