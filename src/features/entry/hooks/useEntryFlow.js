@@ -446,19 +446,25 @@ export function useEntryFlow(competition, profile) {
 
       // Update profile if logged in
       if (profile?.id) {
-        await supabase
+        const profileUpdate = {
+          first_name: selfData.firstName.trim(),
+          last_name: selfData.lastName.trim(),
+          updated_at: new Date().toISOString(),
+        };
+        if (avatarUrl) profileUpdate.avatar_url = avatarUrl;
+        if (selfData.bio?.trim()) profileUpdate.bio = selfData.bio.trim();
+        if (selfData.location?.trim()) profileUpdate.city = selfData.location.trim();
+        if (selfData.age) profileUpdate.age = parseInt(selfData.age, 10);
+        if (selfData.instagram?.trim()) profileUpdate.instagram = selfData.instagram.trim();
+
+        const { error: profileErr } = await supabase
           .from('profiles')
-          .update({
-            first_name: selfData.firstName.trim(),
-            last_name: selfData.lastName.trim(),
-            avatar_url: avatarUrl || undefined,
-            bio: selfData.bio?.trim() || undefined,
-            city: selfData.location?.trim() || undefined,
-            age: selfData.age ? parseInt(selfData.age, 10) : undefined,
-            instagram: selfData.instagram?.trim() || undefined,
-            updated_at: new Date().toISOString(),
-          })
+          .update(profileUpdate)
           .eq('id', profile.id);
+
+        if (profileErr) {
+          console.error('Failed to update profile:', profileErr);
+        }
 
         window.dispatchEvent(new Event('profile-updated'));
       }
@@ -571,22 +577,28 @@ export function useEntryFlow(competition, profile) {
       // or the "already registered" sign-in path).
       if (resolvedUserId) {
         const avatarUrl = (selfData.photoPreview && !selfData.photoPreview.startsWith('blob:'))
-          ? selfData.photoPreview : undefined;
-        await supabase
+          ? selfData.photoPreview : null;
+        const profileUpdate = {
+          first_name: selfData.firstName.trim(),
+          last_name: selfData.lastName.trim(),
+          onboarded_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        if (avatarUrl) profileUpdate.avatar_url = avatarUrl;
+        if (selfData.bio?.trim()) profileUpdate.bio = selfData.bio.trim();
+        if (selfData.location?.trim()) profileUpdate.city = selfData.location.trim();
+        if (selfData.age) profileUpdate.age = parseInt(selfData.age, 10);
+        if (selfData.instagram?.trim()) profileUpdate.instagram = selfData.instagram.trim();
+        if (selfData.phone?.trim()) profileUpdate.phone = selfData.phone.trim();
+
+        const { error: profileErr } = await supabase
           .from('profiles')
-          .update({
-            first_name: selfData.firstName.trim(),
-            last_name: selfData.lastName.trim(),
-            avatar_url: avatarUrl,
-            bio: selfData.bio?.trim() || undefined,
-            city: selfData.location?.trim() || undefined,
-            age: selfData.age ? parseInt(selfData.age, 10) : undefined,
-            instagram: selfData.instagram?.trim() || undefined,
-            phone: selfData.phone?.trim() || undefined,
-            onboarded_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
+          .update(profileUpdate)
           .eq('id', resolvedUserId);
+
+        if (profileErr) {
+          console.error('Failed to update profile after account creation:', profileErr);
+        }
 
         // Notify all useSupabaseAuth instances to refetch the profile
         window.dispatchEvent(new Event('profile-updated'));
