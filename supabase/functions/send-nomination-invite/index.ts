@@ -20,9 +20,11 @@ interface NomineeData {
     id: string
     name?: string
     season: number
+    slug?: string
     nomination_end?: string
     city: { name: string } | null
     demographic: { gender: string | null } | null
+    organization: { slug: string } | null
   }
 }
 
@@ -75,7 +77,7 @@ serve(async (req) => {
         nominator_email,
         nominator_anonymous,
         invite_sent_at,
-        competition:competitions(id, name, season, nomination_end, city:cities(name), demographic:demographics(gender))
+        competition:competitions(id, name, season, slug, nomination_end, city:cities(name), demographic:demographics(gender), organization:organizations(slug))
       `)
       .eq('id', nominee_id)
       .single()
@@ -360,7 +362,10 @@ serve(async (req) => {
 
     // 2) Confirmation email to the nominator (fire-and-forget, non-critical)
     if (nomineeData.nominator_email) {
-      const competitionUrl = `${appUrl}/c/${competition.id}`
+      const orgSlug = competition.organization?.slug
+      const competitionUrl = orgSlug
+        ? `${appUrl}/${orgSlug}/${competition.slug || `id/${competition.id}`}`
+        : `${appUrl}/c/${competition.id}`
 
       sendOneSignalEmail({
         type: 'nominator_confirm',
