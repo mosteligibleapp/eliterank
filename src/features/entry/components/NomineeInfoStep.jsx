@@ -127,12 +127,11 @@ export default function NomineeInfoStep({
         className="entry-link-btn"
         onClick={() => {
           const url = `${window.location.origin}${window.location.pathname}`;
-          const name = data.name?.trim() ? data.name.trim().split(' ')[0] : 'someone';
           const msg = `Nominations are open for Most Eligible Bachelorettes! Enter at this link: ${url}`;
           if (navigator.share) {
-            navigator.share({ text: msg, url }).catch(() => {});
+            navigator.share({ text: msg }).catch(() => {});
           } else {
-            window.location.href = `sms:?&body=${encodeURIComponent(msg)}`;
+            window.location.href = `sms:&body=${encodeURIComponent(msg)}`;
           }
         }}
       >
