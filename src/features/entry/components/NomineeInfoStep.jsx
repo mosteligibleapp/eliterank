@@ -1,14 +1,8 @@
 import React, { useRef } from 'react';
 import { Instagram, Camera, X, Mail } from 'lucide-react';
 
-const RELATIONSHIPS = [
-  { id: 'friend', label: 'Friend' },
-  { id: 'coworker', label: 'Coworker' },
-  { id: 'family', label: 'Family' },
-];
-
 /**
- * Nomination: nominee info (name, email, instagram, relationship, optional photo)
+ * Nomination: nominee info (name, email, instagram, optional photo)
  */
 export default function NomineeInfoStep({
   data,
@@ -115,27 +109,6 @@ export default function NomineeInfoStep({
             }
             placeholder="username"
           />
-        </div>
-      </div>
-
-      {/* Relationship chips */}
-      <div className="entry-form-field">
-        <label className="entry-label">How do you know them?</label>
-        <div className="entry-chips">
-          {RELATIONSHIPS.map((rel) => (
-            <button
-              key={rel.id}
-              type="button"
-              className={`entry-chip ${data.relationship === rel.id ? 'active' : ''}`}
-              onClick={() =>
-                onChange({
-                  relationship: data.relationship === rel.id ? '' : rel.id,
-                })
-              }
-            >
-              {rel.label}
-            </button>
-          ))}
         </div>
       </div>
 
