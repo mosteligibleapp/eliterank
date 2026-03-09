@@ -21,7 +21,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined'
+  type: 'nominee_invite' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'nominee_welcome'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -34,6 +34,12 @@ interface EmailRequest {
   gender?: string | null
   nomination_end?: string | null
   nominee_email?: string
+  // Welcome email fields
+  host_name?: string
+  org_name?: string
+  welcome_message?: string
+  // Optional sender overrides (e.g. host's name)
+  from_name?: string
 }
 
 // HTML email templates
@@ -182,6 +188,51 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
               Know someone else who'd be a great fit? You can still nominate more people!
             </p>
             ${req.competition_url ? goldButton('Nominate Someone Else', req.competition_url) : ''}
+          </div>
+        `),
+      }
+    }
+
+    case 'nominee_welcome': {
+      const hostLine = req.host_name
+        ? `<p style="color:#ccc;font-size:15px;margin-top:16px;">— <strong>${req.host_name}</strong>${req.org_name ? `, ${req.org_name}` : ''}</p>`
+        : ''
+
+      const messageLine = req.welcome_message
+        ? `<div style="background:#1a1a1a;border-left:3px solid #d4a843;padding:12px 16px;margin:16px 0;border-radius:4px;">
+            <p style="color:#eee;font-size:14px;margin:0;line-height:1.5;">${req.welcome_message}</p>
+          </div>`
+        : ''
+
+      return {
+        subject: `Welcome to ${req.competition_name || 'the competition'}!`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Welcome, ${req.nominee_name || 'Contestant'}!</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            <p style="color:#ccc;font-size:15px;margin-top:16px;">
+              You've officially accepted your nomination — congratulations! Here's what happens next:
+            </p>
+            ${messageLine}
+            <div style="text-align:left;margin:24px 0;padding:0 8px;">
+              <div style="display:flex;align-items:flex-start;margin:12px 0;">
+                <span style="color:#d4a843;font-weight:bold;margin-right:8px;">1.</span>
+                <span style="color:#ccc;font-size:14px;"><strong style="color:#fff;">Build your card</strong> — Complete your profile with a photo and bio so voters can get to know you.</span>
+              </div>
+              <div style="display:flex;align-items:flex-start;margin:12px 0;">
+                <span style="color:#d4a843;font-weight:bold;margin-right:8px;">2.</span>
+                <span style="color:#ccc;font-size:14px;"><strong style="color:#fff;">Get approved</strong> — The host will review and approve your entry into the competition.</span>
+              </div>
+              <div style="display:flex;align-items:flex-start;margin:12px 0;">
+                <span style="color:#d4a843;font-weight:bold;margin-right:8px;">3.</span>
+                <span style="color:#ccc;font-size:14px;"><strong style="color:#fff;">Rally your votes</strong> — Once voting opens, share your card and get your friends to vote for you!</span>
+              </div>
+            </div>
+            ${hostLine}
+            ${req.competition_url ? goldButton('View Competition', req.competition_url) : ''}
+            <p style="color:#999;font-size:13px;margin-top:16px;">
+              Questions? Reply to this email and we'll help you out.
+            </p>
           </div>
         `),
       }
@@ -343,7 +394,7 @@ serve(async (req) => {
       app_id: appId,
       email_subject: subject,
       email_body: htmlBody,
-      email_from_name: 'EliteRank',
+      email_from_name: body.from_name || 'EliteRank',
       email_from_address: 'info@eliterank.co',
       data: {
         type: body.type,

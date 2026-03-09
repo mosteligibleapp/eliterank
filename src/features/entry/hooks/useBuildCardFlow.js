@@ -226,6 +226,13 @@ export function useBuildCardFlow({
         console.warn('Failed to notify nominator of acceptance:', err);
       });
 
+      // Send welcome email to the nominee from the host (fire-and-forget)
+      supabase.functions.invoke('send-welcome-email', {
+        body: { nominee_id: nominee.id },
+      }).catch((err) => {
+        console.warn('Failed to send welcome email:', err);
+      });
+
       next();
     } catch (err) {
       setSubmitError(err.message || 'Failed to accept nomination');
