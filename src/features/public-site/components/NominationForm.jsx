@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, User, Users, Mail, Phone, Instagram, Check, Share2, Copy, Twitter, MessageCircle } from 'lucide-react';
+import { Crown, User, Users, Mail, Instagram, Check, Share2, Copy, Twitter, MessageCircle } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -30,8 +30,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
   // Nominate someone else form
   const [otherData, setOtherData] = useState({
     nomineeName: '',
-    contactType: 'email',
-    contactValue: '',
+    nomineeEmail: '',
     instagram: '',
     reason: '',
     nominatorName: '',
@@ -157,11 +156,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
       setError("Nominee's name is required");
       return;
     }
-    if (!otherData.contactValue.trim()) {
-      setError(otherData.contactType === 'email' ? 'Email is required' : 'Phone is required');
-      return;
-    }
-    if (otherData.contactType === 'email' && !otherData.contactValue.includes('@')) {
+    if (!otherData.nomineeEmail.trim() || !otherData.nomineeEmail.includes('@')) {
       setError('Valid email is required');
       return;
     }
@@ -179,8 +174,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
         .insert({
           competition_id: competitionId,
           name: otherData.nomineeName.trim(),
-          email: otherData.contactType === 'email' ? otherData.contactValue.trim() : null,
-          phone: otherData.contactType === 'phone' ? otherData.contactValue.trim() : null,
+          email: otherData.nomineeEmail.trim(),
           instagram: otherData.instagram.trim() || null,
           nominated_by: 'third_party',
           nomination_reason: otherData.reason.trim() || null,
@@ -290,12 +284,8 @@ export default function NominationForm({ city, competitionId, onClose }) {
 
     const message = `Hey ${nomineeName}! ${nominatorName} nominated you for Most Eligible ${city} Season 2026 on EliteRank! Claim your nomination and build your card here: ${claimUrl}`;
 
-    if (otherData.contactType === 'phone' && otherData.contactValue) {
-      const phone = otherData.contactValue.trim().replace(/[^\d+]/g, '');
-      // sms: URI with body param opens Messages app with phone number pre-filled
-      window.location.href = `sms:${phone}?&body=${encodeURIComponent(message)}`;
-    } else if (otherData.contactType === 'email' && otherData.contactValue) {
-      const email = otherData.contactValue.trim();
+    if (otherData.nomineeEmail) {
+      const email = otherData.nomineeEmail.trim();
       const subject = `You've been nominated for Most Eligible ${city}!`;
       window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     } else {
@@ -497,60 +487,19 @@ export default function NominationForm({ city, competitionId, onClose }) {
           />
         </div>
 
-        {/* Contact Type Toggle */}
-        <div style={{ marginBottom: spacing.sm }}>
-          <label style={labelStyle}>How can we reach them? *</label>
-          <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.sm }}>
-            <button
-              type="button"
-              onClick={() => setOtherData(prev => ({ ...prev, contactType: 'email', contactValue: '' }))}
-              style={{
-                flex: 1,
-                padding: spacing.sm,
-                background: otherData.contactType === 'email' ? colors.gold.primary : colors.background.secondary,
-                color: otherData.contactType === 'email' ? '#000' : colors.text.primary,
-                border: `1px solid ${otherData.contactType === 'email' ? colors.gold.primary : colors.border.light}`,
-                borderRadius: borderRadius.lg,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: spacing.xs,
-              }}
-            >
-              <Mail size={16} /> Email
-            </button>
-            <button
-              type="button"
-              onClick={() => setOtherData(prev => ({ ...prev, contactType: 'phone', contactValue: '' }))}
-              style={{
-                flex: 1,
-                padding: spacing.sm,
-                background: otherData.contactType === 'phone' ? colors.gold.primary : colors.background.secondary,
-                color: otherData.contactType === 'phone' ? '#000' : colors.text.primary,
-                border: `1px solid ${otherData.contactType === 'phone' ? colors.gold.primary : colors.border.light}`,
-                borderRadius: borderRadius.lg,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: spacing.xs,
-              }}
-            >
-              <Phone size={16} /> Phone
-            </button>
-          </div>
-        </div>
-
-        {/* Contact Value */}
+        {/* Nominee Email */}
         <div style={{ marginBottom: spacing.lg }}>
-          <input
-            type={otherData.contactType === 'email' ? 'email' : 'tel'}
-            value={otherData.contactValue}
-            onChange={(e) => setOtherData(prev => ({ ...prev, contactValue: e.target.value }))}
-            style={inputStyle}
-            placeholder={otherData.contactType === 'email' ? 'their@email.com' : '(555) 555-5555'}
-          />
+          <label style={labelStyle}>Their Email *</label>
+          <div style={{ position: 'relative' }}>
+            <Mail size={18} style={{ position: 'absolute', left: spacing.md, top: '50%', transform: 'translateY(-50%)', color: colors.text.muted }} />
+            <input
+              type="email"
+              value={otherData.nomineeEmail}
+              onChange={(e) => setOtherData(prev => ({ ...prev, nomineeEmail: e.target.value }))}
+              style={{ ...inputStyle, paddingLeft: '44px' }}
+              placeholder="their@email.com"
+            />
+          </div>
         </div>
 
         {/* Instagram */}
@@ -1077,8 +1026,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
             setStep('other');
             setOtherData({
               nomineeName: '',
-              contactType: 'email',
-              contactValue: '',
+              nomineeEmail: '',
               instagram: '',
               reason: '',
               nominatorName: otherData.nominatorName,

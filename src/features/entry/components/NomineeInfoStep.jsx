@@ -1,15 +1,8 @@
 import React, { useRef } from 'react';
-import { Instagram, Camera, X, Mail, Phone } from 'lucide-react';
-
-const RELATIONSHIPS = [
-  { id: 'friend', label: 'Friend' },
-  { id: 'coworker', label: 'Coworker' },
-  { id: 'family', label: 'Family' },
-  { id: 'other', label: "They don't know me yet" },
-];
+import { Instagram, Camera, X, Mail } from 'lucide-react';
 
 /**
- * Nomination: nominee info (name, instagram, age, relationship, optional photo)
+ * Nomination: nominee info (name, email, instagram, optional photo)
  */
 export default function NomineeInfoStep({
   data,
@@ -36,10 +29,7 @@ export default function NomineeInfoStep({
     onChange({ photoFile: file, photoPreview: previewUrl });
   };
 
-  const hasEmail = data.email?.trim();
-  const hasPhone = data.phone?.trim();
-  const hasContact = hasEmail || hasPhone;
-  const isValid = data.name.trim() && hasContact;
+  const isValid = data.name.trim() && data.email?.trim();
 
   return (
     <div className="entry-step entry-step-nominee">
@@ -93,7 +83,7 @@ export default function NomineeInfoStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Their Email</label>
+        <label className="entry-label">Their Email *</label>
         <div className="entry-input-icon">
           <Mail size={18} />
           <input
@@ -105,25 +95,6 @@ export default function NomineeInfoStep({
           />
         </div>
       </div>
-
-      <div className="entry-form-field">
-        <label className="entry-label">Their Phone</label>
-        <div className="entry-input-icon">
-          <Phone size={18} />
-          <input
-            type="tel"
-            className="entry-input"
-            value={data.phone}
-            onChange={(e) => onChange({ phone: e.target.value })}
-            placeholder="(555) 555-5555"
-            inputMode="tel"
-          />
-        </div>
-      </div>
-
-      {!hasContact && (
-        <p className="entry-hint">Email or phone required so we can reach them</p>
-      )}
 
       <div className="entry-form-field">
         <label className="entry-label">Instagram Handle</label>
@@ -141,41 +112,6 @@ export default function NomineeInfoStep({
         </div>
       </div>
 
-      <div className="entry-form-field">
-        <label className="entry-label">Their Age</label>
-        <input
-          type="number"
-          className="entry-input"
-          value={data.age}
-          onChange={(e) => onChange({ age: e.target.value })}
-          placeholder="Age"
-          min="18"
-          max="99"
-          inputMode="numeric"
-        />
-      </div>
-
-      {/* Relationship chips */}
-      <div className="entry-form-field">
-        <label className="entry-label">How do you know them?</label>
-        <div className="entry-chips">
-          {RELATIONSHIPS.map((rel) => (
-            <button
-              key={rel.id}
-              type="button"
-              className={`entry-chip ${data.relationship === rel.id ? 'active' : ''}`}
-              onClick={() =>
-                onChange({
-                  relationship: data.relationship === rel.id ? '' : rel.id,
-                })
-              }
-            >
-              {rel.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {error && <p className="entry-error">{error}</p>}
 
       <button
@@ -184,6 +120,22 @@ export default function NomineeInfoStep({
         onClick={onNext}
       >
         Continue
+      </button>
+
+      <button
+        type="button"
+        className="entry-link-btn"
+        onClick={() => {
+          const url = `${window.location.origin}${window.location.pathname}`;
+          const msg = `Nominations are open for Most Eligible Bachelorettes! Enter at this link: ${url}`;
+          if (navigator.share) {
+            navigator.share({ text: msg }).catch(() => {});
+          } else {
+            window.location.href = `sms:&body=${encodeURIComponent(msg)}`;
+          }
+        }}
+      >
+        Don't know their email? Send them the link instead
       </button>
     </div>
   );

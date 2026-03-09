@@ -31,6 +31,9 @@ interface EmailRequest {
   claim_url?: string
   competition_url?: string
   reason?: string
+  gender?: string | null
+  nomination_end?: string | null
+  nominee_email?: string
 }
 
 // HTML email templates
@@ -76,9 +79,12 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
 
   switch (req.type) {
     case 'nominee_invite': {
+      // Gender-specific language
+      const genderNoun = req.gender === 'female' ? 'women' : req.gender === 'male' ? 'men' : 'people'
+
       const nominatorLine = req.nominator_name
         ? `<p style="color:#ccc;font-size:15px;">Nominated by <strong>${req.nominator_name}</strong></p>`
-        : `<p style="color:#ccc;font-size:15px;">Someone thinks you're one of the most eligible people in ${req.city_name || 'the city'}!</p>`
+        : `<p style="color:#ccc;font-size:15px;">Someone thinks you're one of the most eligible ${genderNoun} in ${req.city_name || 'the city'}!</p>`
 
       const reasonLine = req.reason
         ? `<div style="background:#1a1a1a;border-left:3px solid #d4a843;padding:12px 16px;margin:16px 0;border-radius:4px;">
@@ -86,6 +92,15 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             <p style="color:#eee;font-size:14px;margin:0;font-style:italic;">"${req.reason}"</p>
           </div>`
         : ''
+
+      // Format deadline if available
+      const deadlineLine = req.nomination_end
+        ? (() => {
+            const d = new Date(req.nomination_end)
+            const formatted = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            return `Accept your nomination by <strong>${formatted}</strong> to be considered.`
+          })()
+        : 'Accept your nomination to be considered.'
 
       return {
         subject: `You've been nominated for ${req.competition_name || 'Most Eligible'}!`,
@@ -96,7 +111,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${nominatorLine}
             ${reasonLine}
             <p style="color:#999;font-size:14px;margin-top:16px;">
-              Accept your nomination to build your card and enter the competition.
+              ${deadlineLine}
             </p>
             ${goldButton('Accept Your Nomination', req.claim_url || appUrl)}
             <p style="color:#666;font-size:12px;">
@@ -108,6 +123,10 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
     }
 
     case 'nominator_confirm': {
+      const nomineeEmailLine = req.nominee_email
+        ? `<p style="color:#999;font-size:13px;margin-top:4px;">We'll send the invite to <strong style="color:#ccc;">${req.nominee_email}</strong></p>`
+        : ''
+
       return {
         subject: `Your nomination for ${req.competition_name || 'Most Eligible'} was submitted!`,
         body: wrapper(`
@@ -117,12 +136,13 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             <p style="color:#ccc;font-size:15px;">
               You nominated <strong>${req.nominee_name || 'someone special'}</strong>.
             </p>
+            ${nomineeEmailLine}
             <p style="color:#999;font-size:14px;margin-top:16px;">
               We'll reach out to them and let them know they've been nominated. We'll keep you updated on their status.
             </p>
             ${req.competition_url ? goldButton('View Competition', req.competition_url) : ''}
             <p style="color:#999;font-size:13px;margin-top:16px;">
-              Know someone else who should enter? Share the competition page with them!
+              Share the competition page with your nominee so they know what's at stake!
             </p>
           </div>
         `),

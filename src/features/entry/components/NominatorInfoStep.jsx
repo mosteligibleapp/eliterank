@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, EyeOff } from 'lucide-react';
+import { Mail, EyeOff, Bell } from 'lucide-react';
 
 /**
  * Nomination: Nominator's info (name, email, anonymous toggle)
@@ -22,7 +22,7 @@ export default function NominatorInfoStep({
     <form className="entry-step entry-step-nominator" onSubmit={handleSubmit}>
       <h2 className="entry-step-title">About you</h2>
       <p className="entry-step-subtitle">
-        We'll let you know when your nomination is reviewed
+        We'll send you an email to confirm your nomination has been recorded
       </p>
 
       <div className="entry-form-field">
@@ -61,6 +61,17 @@ export default function NominatorInfoStep({
         <EyeOff size={18} />
         <span>Keep my identity anonymous</span>
         <span className={`entry-toggle-switch ${data.anonymous ? 'on' : ''}`} />
+      </button>
+
+      {/* Email opt-in toggle */}
+      <button
+        type="button"
+        className={`entry-anonymous-toggle ${data.emailOptIn ? 'active' : ''}`}
+        onClick={() => onChange({ emailOptIn: !data.emailOptIn })}
+      >
+        <Bell size={18} />
+        <span>Get updates on the competition & nominee performance</span>
+        <span className={`entry-toggle-switch ${data.emailOptIn ? 'on' : ''}`} />
       </button>
 
       {error && <p className="entry-error">{error}</p>}

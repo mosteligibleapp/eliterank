@@ -625,6 +625,26 @@
   background: rgba(212, 175, 55, 0.1);
 }
 
+.entry-link-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #71717a;
+  font-size: 0.8125rem;
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.entry-link-btn:active {
+  color: #d4af37;
+}
+
 .entry-btn-secondary {
   flex: 1;
   min-height: 48px;

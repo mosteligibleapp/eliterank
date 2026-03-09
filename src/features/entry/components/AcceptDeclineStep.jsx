@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Crown, User, MapPin, Calendar, Clock, Check, X, AlertTriangle } from 'lucide-react';
-import { getCityName } from '../utils/eligibilityEngine';
+import { getCityName, getCompetitionTitle } from '../utils/eligibilityEngine';
 
 /**
  * AcceptDeclineStep - Third-party nominees only
@@ -23,6 +23,7 @@ export default function AcceptDeclineStep({
 
   const cityName = getCityName(competition);
   const season = competition?.season || '';
+  const competitionTitle = getCompetitionTitle(competition);
 
   // Confirmation view
   if (confirmingDecline) {
@@ -34,7 +35,7 @@ export default function AcceptDeclineStep({
 
         <h2 className="entry-step-title">Decline Nomination?</h2>
         <p className="entry-accept-competition" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Are you sure you want to decline your nomination for Most Eligible {cityName} {season}?
+          Are you sure you want to decline your nomination for {competitionTitle}?
         </p>
         <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>
           This action cannot be undone.
@@ -70,7 +71,7 @@ export default function AcceptDeclineStep({
 
       <h2 className="entry-step-title">You've Been Nominated!</h2>
       <p className="entry-accept-competition">
-        Most Eligible {cityName} {season}
+        {competitionTitle}
       </p>
 
       {/* Nomination details */}

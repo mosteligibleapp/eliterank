@@ -82,11 +82,6 @@ export default function ContestantGuide({
     return (
       <div className="contestant-guide contestant-guide--splash">
         <div className="guide-splash-container">
-          {/* Skip button */}
-          <button className="guide-skip-btn" onClick={handleSkip}>
-            Skip
-          </button>
-
           {/* Progress dots */}
           <div className="guide-progress">
             {content.sections.map((_, idx) => (
@@ -150,6 +145,11 @@ export default function ContestantGuide({
               {!isLastStep && <ArrowRight size={18} />}
             </button>
           </div>
+
+          {/* Skip below nav */}
+          <button className="guide-skip-btn guide-skip-btn--bottom" onClick={handleSkip}>
+            Skip for now
+          </button>
         </div>
       </div>
     );
@@ -265,8 +265,12 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
   const roundDetails = rounds
     .filter(r => r.round_type !== 'judging')
     .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
-    .map((r, i) => {
+    .map((r, i, arr) => {
       const label = r.title || `Round ${i + 1}`;
+      const isFinal = i === arr.length - 1;
+      if (isFinal && r.contestants_advance) {
+        return `${label} — Top ${r.contestants_advance} advance to Final Round — Rank Order of Top ${r.contestants_advance} (1st-${r.contestants_advance}th)`;
+      }
       const advance = r.contestants_advance ? ` — Top ${r.contestants_advance} advance` : '';
       return `${label}${advance}`;
     });

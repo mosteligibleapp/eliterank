@@ -18,9 +18,11 @@ interface NomineeData {
   nominator_anonymous: boolean
   competition: {
     id: string
+    name?: string
     season: number
     nomination_end?: string
     city: { name: string } | null
+    demographic: { gender: string | null } | null
   }
 }
 
@@ -73,7 +75,7 @@ serve(async (req) => {
         nominator_email,
         nominator_anonymous,
         invite_sent_at,
-        competition:competitions(id, season, nomination_end, city:cities(name))
+        competition:competitions(id, name, season, nomination_end, city:cities(name), demographic:demographics(gender))
       `)
       .eq('id', nominee_id)
       .single()
@@ -162,7 +164,9 @@ serve(async (req) => {
 
     const competition = nomineeData.competition
     const cityName = competition.city?.name || 'Unknown'
-    const competitionName = `Most Eligible ${cityName} ${competition.season}`
+    const competitionName = competition.name || `Most Eligible ${cityName} ${competition.season}`
+    const gender = competition.demographic?.gender || null
+    const nominationEnd = competition.nomination_end || null
 
     // Check if user already exists by querying profiles table
     // (profiles.id references auth.users.id and email is unique)
@@ -326,6 +330,8 @@ serve(async (req) => {
       city_name: cityName,
       claim_url: nomineeCtaUrl,
       reason: nomineeData.nomination_reason,
+      gender,
+      nomination_end: nominationEnd,
     })
 
     if (!nomineeEmailResult.success) {
@@ -361,6 +367,7 @@ serve(async (req) => {
         to_email: nomineeData.nominator_email,
         to_name: nomineeData.nominator_name || 'Nominator',
         nominee_name: nomineeData.name,
+        nominee_email: nomineeEmail || undefined,
         nominator_name: nomineeData.nominator_name,
         competition_name: competitionName,
         city_name: cityName,

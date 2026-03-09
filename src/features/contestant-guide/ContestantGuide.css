@@ -49,22 +49,22 @@
   }
 }
 
-.guide-skip-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: transparent;
+.guide-skip-btn--bottom {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
   border: none;
   color: var(--guide-text-muted);
-  font-size: 14px;
+  font-size: 0.9rem;
   cursor: pointer;
   padding: 8px 16px;
-  border-radius: 20px;
-  transition: all 0.2s ease;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
 }
 
-.guide-skip-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.guide-skip-btn--bottom:hover,
+.guide-skip-btn--bottom:active {
   color: var(--guide-text);
 }
 
