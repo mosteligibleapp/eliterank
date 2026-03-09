@@ -57,7 +57,7 @@ serve(async (req) => {
         nominator_anonymous,
         nominator_notify,
         nominated_by,
-        competition:competitions(id, season, city:cities(name))
+        competition:competitions(id, name, season, city:cities(name))
       `)
       .eq('id', nominee_id)
       .single()
@@ -90,7 +90,7 @@ serve(async (req) => {
 
     const competition = nominee.competition as any
     const cityName = competition?.city?.name || 'Unknown'
-    const competitionName = `Most Eligible ${cityName} ${competition?.season || ''}`
+    const competitionName = competition?.name || `Most Eligible ${cityName} ${competition?.season || ''}`
     const competitionUrl = `${appUrl}/c/${competition?.id || ''}`
 
     // Determine email type
