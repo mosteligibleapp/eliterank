@@ -121,6 +121,23 @@ export default function NomineeInfoStep({
       >
         Continue
       </button>
+
+      <button
+        type="button"
+        className="entry-link-btn"
+        onClick={() => {
+          const url = `${window.location.origin}${window.location.pathname}`;
+          const name = data.name?.trim() ? data.name.trim().split(' ')[0] : 'someone';
+          const msg = `Hey! I nominated you for Most Eligible — claim your spot here: ${url}`;
+          if (navigator.share) {
+            navigator.share({ text: msg, url }).catch(() => {});
+          } else {
+            window.location.href = `sms:?&body=${encodeURIComponent(msg)}`;
+          }
+        }}
+      >
+        Don't know their email? Send them the link instead
+      </button>
     </div>
   );
 }
