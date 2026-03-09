@@ -86,6 +86,7 @@ export function useEntryFlow(competition, profile) {
     name: '',
     email: '',
     anonymous: false,
+    emailOptIn: false,
   });
 
   // Current steps list — frozen once mode is selected so mid-flow auth
@@ -637,6 +638,7 @@ export function useEntryFlow(competition, profile) {
         nominator_name: nominatorData.anonymous ? null : nominatorData.name.trim(),
         nominator_email: nominatorData.email.trim(),
         nominator_anonymous: nominatorData.anonymous,
+        nominator_email_opt_in: nominatorData.emailOptIn,
         status: 'pending',
         eligibility_answers: eligibilityAnswers,
       };
