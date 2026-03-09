@@ -241,15 +241,22 @@ export function useBuildCardFlow({
     setSubmitError('');
 
     try {
+      // Ensure the auth session is fresh — magic link sessions can leave the
+      // Supabase client in a stale refresh state that hangs DB queries.
+      await supabase.auth.getSession();
+
       const updateData = { status: 'declined' };
       if (currentUser?.id) {
         updateData.user_id = currentUser.id;
       }
 
-      const { error } = await supabase
-        .from('nominees')
-        .update(updateData)
-        .eq('id', nominee.id);
+      const { error } = await withTimeout(
+        supabase
+          .from('nominees')
+          .update(updateData)
+          .eq('id', nominee.id),
+        15000
+      );
 
       if (error) throw error;
 
