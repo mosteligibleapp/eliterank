@@ -53,22 +53,13 @@ export function NominationsPhase() {
 
       {/* Main CTA Card */}
       <section className="nomination-cta-card">
-        <h3 className="nomination-cta-title">Are You An Elite?</h3>
-        <p className="nomination-cta-subtitle">
-          Apply now or nominate someone who deserves the spotlight.
-        </p>
+        <h3 className="nomination-cta-title">Who Deserves The Spotlight?</h3>
         <div className="nomination-cta-buttons">
           <button
             className="btn btn-primary btn-large"
             onClick={handleEnter}
           >
-            Enter Competition
-          </button>
-          <button
-            className="btn btn-outline btn-large"
-            onClick={handleEnter}
-          >
-            Nominate Someone
+            Nominate
           </button>
         </div>
       </section>
