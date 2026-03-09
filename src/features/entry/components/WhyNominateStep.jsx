@@ -21,7 +21,7 @@ export default function WhyNominateStep({
     <div className="entry-step entry-step-why">
       <h2 className="entry-step-title">Why {nomineeName || 'them'}?</h2>
       <p className="entry-step-subtitle">
-        Why should they be in <strong>{title}</strong>? This will appear on their card.
+        Why should they be in <strong>{title}</strong>?
       </p>
 
       <div className="entry-form-field">
