@@ -128,7 +128,7 @@ export default function NomineeInfoStep({
         onClick={() => {
           const url = `${window.location.origin}${window.location.pathname}`;
           const name = data.name?.trim() ? data.name.trim().split(' ')[0] : 'someone';
-          const msg = `Hey! I nominated you for Most Eligible — claim your spot here: ${url}`;
+          const msg = `Nominations are open for Most Eligible Bachelorettes! Enter at this link: ${url}`;
           if (navigator.share) {
             navigator.share({ text: msg, url }).catch(() => {});
           } else {
