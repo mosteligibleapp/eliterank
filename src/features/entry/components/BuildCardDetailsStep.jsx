@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Phone, Instagram, MapPin } from 'lucide-react';
+import { Mail, Instagram, MapPin } from 'lucide-react';
 
 /**
  * BuildCardDetailsStep - Unified details for ALL nominees
@@ -12,20 +12,17 @@ export default function BuildCardDetailsStep({
   onNext,
   error,
   isSubmitting,
-  requireEmail = false,
 }) {
   const handleChange = (field) => (e) => {
     onChange({ [field]: e.target.value });
   };
 
   const hasEmail = data.email?.trim() && data.email.includes('@');
-  const hasPhone = data.phone?.trim().length > 0;
-  const hasContact = requireEmail ? hasEmail : (hasEmail || hasPhone);
 
   const isValid =
     data.firstName?.trim() &&
     data.lastName?.trim() &&
-    hasContact &&
+    hasEmail &&
     data.age &&
     parseInt(data.age, 10) >= 18 &&
     data.location?.trim();
@@ -95,7 +92,7 @@ export default function BuildCardDetailsStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Email {requireEmail || !hasContact ? '*' : ''}</label>
+        <label className="entry-label">Email *</label>
         <div className="entry-input-icon">
           <Mail size={18} />
           <input
@@ -109,23 +106,8 @@ export default function BuildCardDetailsStep({
         </div>
       </div>
 
-      <div className="entry-form-field">
-        <label className="entry-label">Phone {hasContact ? '' : '*'}</label>
-        <div className="entry-input-icon">
-          <Phone size={18} />
-          <input
-            type="tel"
-            className="entry-input"
-            value={data.phone || ''}
-            onChange={handleChange('phone')}
-            placeholder="(555) 555-5555"
-            autoComplete="tel"
-          />
-        </div>
-      </div>
-
-      {!hasContact && (
-        <p className="entry-hint">{requireEmail ? 'Email is required to create your account' : 'Email or phone is required'}</p>
+      {!hasEmail && (
+        <p className="entry-hint">Email is required</p>
       )}
 
       <div className="entry-form-field">
