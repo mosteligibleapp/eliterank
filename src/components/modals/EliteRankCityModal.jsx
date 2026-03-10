@@ -1446,7 +1446,10 @@ export default function EliteRankCityModal({
           ...styleHelpers.flexBetween,
         }}>
           {/* Logo */}
-          <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
+          <div
+            onClick={() => { setActiveTab('competitions'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            style={{ ...styleHelpers.flexStart, gap: spacing.sm, cursor: 'pointer' }}
+          >
             <EliteRankCrown size={isMobile ? 28 : 36} />
             <span style={{
               fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,

@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Star, LogOut } from 'lucide-react';
 import { Avatar, Badge, EliteRankCrown } from '../ui';
 import { colors, gradients, shadows, borderRadius, spacing, typography } from '../../styles/theme';
 
 export default function Header({ hostProfile, onLogout }) {
+  const navigate = useNavigate();
   const headerStyle = {
     background: 'rgba(20,20,30,0.95)',
     borderBottom: `1px solid rgba(212,175,55,0.15)`,
@@ -26,6 +28,7 @@ export default function Header({ hostProfile, onLogout }) {
     display: 'flex',
     alignItems: 'center',
     gap: spacing.md,
+    cursor: 'pointer',
   };
 
   const logoTextStyle = {
@@ -73,7 +76,7 @@ export default function Header({ hostProfile, onLogout }) {
   return (
     <header style={headerStyle}>
       <div style={contentStyle}>
-        <div style={logoStyle}>
+        <div style={logoStyle} onClick={() => navigate('/')}>
           <EliteRankCrown size={36} />
           <span style={logoTextStyle}>
             <span style={{ color: '#ffffff' }}>Elite</span>
