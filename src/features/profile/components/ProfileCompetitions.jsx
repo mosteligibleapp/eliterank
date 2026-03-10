@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, MapPin, Star, UserPlus, Calendar, ArrowRight } from 'lucide-react';
+import { Trophy, Crown, MapPin, Star, UserPlus, Calendar, ArrowRight, Clock } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -7,7 +7,7 @@ import { useResponsive } from '../../../hooks/useResponsive';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
 import { getCityImage } from '../../../utils/cityImages';
-import { getPhaseDisplayConfig } from '../../../utils/competitionPhase';
+import { getPhaseDisplayConfig, computeCompetitionPhase } from '../../../utils/competitionPhase';
 
 function getCompetitionLink(competition) {
   const orgSlug = competition?.organization?.slug || 'most-eligible';
@@ -61,13 +61,30 @@ function RoleBadge({ role, size = 'sm' }) {
   }
 }
 
+function getVotingStartDate(competition) {
+  const rounds = competition?.voting_rounds || [];
+  if (rounds.length > 0) {
+    const sorted = [...rounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+    const first = sorted[0];
+    if (first?.start_date) {
+      return new Date(first.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  }
+  const votingStart = competition?.settings?.voting_start || competition?.voting_start;
+  if (votingStart) {
+    return new Date(votingStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  return null;
+}
+
 function CompetitionCard({ entry, onAcceptClick, isMobile }) {
   const [isHovered, setIsHovered] = useState(false);
   const competition = entry.competition || {};
   const cityName = competition.city?.name || competition.city || '';
-  const cityImage = competition.cover_image || getCityImage(cityName, competition.name);
   const org = competition.organization;
-  const statusConfig = getPhaseDisplayConfig(competition.status);
+  const phase = computeCompetitionPhase(competition);
+  const phaseConfig = getPhaseDisplayConfig(phase);
+  const votingDate = getVotingStartDate(competition);
   const url = entry.url;
 
   return (
@@ -79,172 +96,117 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
     >
       <div
         style={{
-          position: 'relative',
-          borderRadius: borderRadius.xl,
-          overflow: 'hidden',
-          cursor: 'pointer',
-          transform: isHovered ? 'translateY(-3px) scale(1.01)' : 'translateY(0) scale(1)',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          boxShadow: isHovered
-            ? '0 16px 32px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.2)'
-            : '0 6px 18px -6px rgba(0, 0, 0, 0.3)',
-          aspectRatio: isMobile ? '2/1' : '3/2',
-          background: colors.background.card,
-        }}
-      >
-        {/* Background Image */}
-        {cityImage && (
-          <img
-            src={cityImage}
-            alt={competition.name}
-            loading="lazy"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center',
-              transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-              transform: isHovered ? 'scale(1.06)' : 'scale(1)',
-            }}
-          />
-        )}
-
-        {/* Gradient Overlay */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.4) 100%)',
-          transition: 'opacity 0.3s',
-          opacity: isHovered ? 0.9 : 1,
-        }} />
-
-        {/* Content */}
-        <div style={{
-          position: 'relative',
-          height: '100%',
           padding: isMobile ? spacing.md : spacing.lg,
+          borderRadius: borderRadius.lg,
+          background: isHovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+          border: `1px solid ${isHovered ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.06)'}`,
+          transition: 'all 0.2s ease',
+          cursor: 'pointer',
           display: 'flex',
           flexDirection: 'column',
-        }}>
-          {/* Top Row: Status + Role + Org Logo */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
-              {statusConfig && (
-                <Badge variant={statusConfig.variant} size="sm" pill dot={statusConfig.pulse}>
-                  {statusConfig.label}
-                </Badge>
-              )}
-              <RoleBadge role={entry.role} />
-            </div>
-            {org?.logo_url && (
-              <div style={{
-                width: '30px',
-                height: '30px',
-                borderRadius: borderRadius.lg,
-                background: 'rgba(255,255,255,0.15)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <OrganizationLogo logo={org.logo_url} size={22} />
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Content */}
-          <div style={{ marginTop: 'auto' }}>
-            {org?.name && (
-              <p style={{
-                fontSize: typography.fontSize.xs,
-                color: colors.gold.primary,
-                fontWeight: typography.fontWeight.medium,
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                marginBottom: spacing.xs,
-                opacity: 0.9,
-              }}>
-                {org.name}
-              </p>
-            )}
-
-            <h3 style={{
-              fontSize: isMobile ? typography.fontSize.base : typography.fontSize.lg,
-              fontWeight: typography.fontWeight.bold,
-              color: colors.text.primary,
-              marginBottom: spacing.sm,
-              lineHeight: 1.2,
-              textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+          gap: spacing.sm,
+        }}
+      >
+        {/* Row 1: Org logo + name */}
+        {org && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+            {org.logo_url && <OrganizationLogo logo={org.logo_url} size={20} />}
+            <span style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.gold.primary,
+              fontWeight: typography.fontWeight.medium,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
             }}>
-              {competition.name || entry.name}
-            </h3>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.lg,
-              marginBottom: entry.isUnclaimed ? spacing.md : 0,
-            }}>
-              {cityName && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-                  <MapPin size={14} style={{ color: colors.gold.primary }} />
-                  <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                    {cityName}
-                  </span>
-                </div>
-              )}
-              {competition.season && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-                  <Calendar size={14} style={{ color: colors.text.secondary }} />
-                  <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                    Season {competition.season}
-                  </span>
-                </div>
-              )}
-              {entry.votes > 0 && (
-                <Badge variant="gold" size="sm" pill>
-                  {entry.votes.toLocaleString()} votes
-                </Badge>
-              )}
-            </div>
-
-            {/* Unclaimed CTA */}
-            {entry.isUnclaimed && entry.nomination && (
-              <div
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onAcceptClick(entry.nomination);
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                  padding: `${spacing.sm} ${spacing.lg}`,
-                  background: isHovered ? colors.gold.primary : 'rgba(212, 175, 55, 0.15)',
-                  border: `1.5px solid ${colors.gold.primary}`,
-                  borderRadius: borderRadius.lg,
-                  color: isHovered ? colors.text.inverse : colors.gold.primary,
-                  fontSize: typography.fontSize.sm,
-                  fontWeight: typography.fontWeight.semibold,
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  cursor: 'pointer',
-                }}
-              >
-                Accept or Decline
-                <ArrowRight size={14} />
-              </div>
-            )}
+              {org.name}
+            </span>
           </div>
+        )}
+
+        {/* Row 2: Role badge */}
+        <div style={{ display: 'flex', gap: spacing.sm }}>
+          <RoleBadge role={entry.role} />
         </div>
+
+        {/* Row 3: Competition name + phase status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
+          <h4 style={{
+            fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            lineHeight: 1.3,
+          }}>
+            {competition.name || entry.name}
+          </h4>
+          {phaseConfig && (
+            <Badge variant={phaseConfig.variant} size="sm" pill dot={phaseConfig.pulse}>
+              {phaseConfig.label}
+            </Badge>
+          )}
+        </div>
+
+        {/* Row 4-6: Details */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: isMobile ? spacing.sm : spacing.md,
+          alignItems: 'center',
+          color: colors.text.secondary,
+          fontSize: typography.fontSize.sm,
+        }}>
+          {competition.season && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Calendar size={13} />
+              <span>Season {competition.season}</span>
+            </div>
+          )}
+          {cityName && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MapPin size={13} />
+              <span>{cityName}</span>
+            </div>
+          )}
+          {votingDate && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Clock size={13} />
+              <span>Voting starts {votingDate}</span>
+            </div>
+          )}
+          {entry.votes > 0 && (
+            <Badge variant="gold" size="sm" pill>
+              {entry.votes.toLocaleString()} votes
+            </Badge>
+          )}
+        </div>
+
+        {/* Unclaimed CTA */}
+        {entry.isUnclaimed && entry.nomination && (
+          <div
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onAcceptClick(entry.nomination);
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              padding: `${spacing.xs} ${spacing.md}`,
+              background: 'rgba(212, 175, 55, 0.15)',
+              border: `1px solid ${colors.gold.primary}`,
+              borderRadius: borderRadius.md,
+              color: colors.gold.primary,
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.semibold,
+              cursor: 'pointer',
+              marginTop: spacing.xs,
+              alignSelf: 'flex-start',
+            }}
+          >
+            Accept or Decline
+            <ArrowRight size={13} />
+          </div>
+        )}
       </div>
     </a>
   );
@@ -379,7 +341,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
           }}>
             <EliteRankCrown size={isSmall ? 18 : 22} /> Competitions
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg, padding: `${spacing.sm} ${spacing.md}` }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
             {entries.map(entry => (
               <CompetitionCard
                 key={entry.id}
