@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, MapPin, Star, UserPlus, Calendar, ArrowRight, Clock, ChevronRight } from 'lucide-react';
+import { Trophy, Crown, MapPin, Star, Award, Calendar, ArrowRight, Clock, ChevronRight } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -31,7 +31,7 @@ function RoleBadge({ role, size = 'sm' }) {
     case 'nominee':
       return (
         <Badge variant="gold" size={size} pill>
-          <UserPlus size={10} style={{ marginRight: '4px' }} />
+          <Award size={10} style={{ marginRight: '4px' }} />
           Nominee
         </Badge>
       );
@@ -105,21 +105,34 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           gap: spacing.sm,
         }}
       >
-        {/* Row 1: Org logo + org name + role badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-          {org?.logo_url && <OrganizationLogo logo={org.logo_url} size={32} />}
-          {org?.name && (
-            <span style={{
-              fontSize: typography.fontSize.sm,
-              color: colors.gold.primary,
-              fontWeight: typography.fontWeight.medium,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}>
-              {org.name}
-            </span>
-          )}
-          <RoleBadge role={entry.role} />
+        {/* Row 1: Org logo + org name + role badge ... View > */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+            {org?.logo_url && <OrganizationLogo logo={org.logo_url} size={32} />}
+            {org?.name && (
+              <span style={{
+                fontSize: typography.fontSize.sm,
+                color: colors.gold.primary,
+                fontWeight: typography.fontWeight.medium,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}>
+                {org.name}
+              </span>
+            )}
+            <RoleBadge role={entry.role} />
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            color: colors.gold.primary,
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.medium,
+          }}>
+            <span>View</span>
+            <ChevronRight size={14} />
+          </div>
         </div>
 
         {/* Row 2: Competition name + season + location */}
@@ -160,17 +173,6 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
               <span>Voting starts {votingDate}</span>
             </div>
           )}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '3px',
-            color: colors.gold.primary,
-            fontWeight: typography.fontWeight.medium,
-            marginLeft: 'auto',
-          }}>
-            <span>View</span>
-            <ChevronRight size={14} />
-          </div>
         </div>
 
         {entry.votes > 0 && (
