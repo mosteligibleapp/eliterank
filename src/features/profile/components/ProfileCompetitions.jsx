@@ -83,12 +83,12 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           borderRadius: borderRadius.xl,
           overflow: 'hidden',
           cursor: 'pointer',
-          transform: isHovered ? 'translateY(-4px) scale(1.01)' : 'translateY(0) scale(1)',
+          transform: isHovered ? 'translateY(-3px) scale(1.01)' : 'translateY(0) scale(1)',
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           boxShadow: isHovered
-            ? '0 20px 40px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.2)'
-            : '0 8px 24px -8px rgba(0, 0, 0, 0.3)',
-          aspectRatio: isMobile ? '16/8' : '16/9',
+            ? '0 16px 32px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.2)'
+            : '0 6px 18px -6px rgba(0, 0, 0, 0.3)',
+          aspectRatio: isMobile ? '16/7' : '16/7',
           background: colors.background.card,
         }}
       >
@@ -128,7 +128,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
         <div style={{
           position: 'relative',
           height: '100%',
-          padding: isMobile ? spacing.lg : spacing.xl,
+          padding: isMobile ? spacing.md : spacing.lg,
           display: 'flex',
           flexDirection: 'column',
         }}>
@@ -144,8 +144,8 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
             </div>
             {org?.logo_url && (
               <div style={{
-                width: '36px',
-                height: '36px',
+                width: '30px',
+                height: '30px',
                 borderRadius: borderRadius.lg,
                 background: 'rgba(255,255,255,0.15)',
                 backdropFilter: 'blur(10px)',
@@ -155,7 +155,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
                 justifyContent: 'center',
                 flexShrink: 0,
               }}>
-                <OrganizationLogo logo={org.logo_url} size={28} />
+                <OrganizationLogo logo={org.logo_url} size={22} />
               </div>
             )}
           </div>
@@ -177,7 +177,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
             )}
 
             <h3 style={{
-              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+              fontSize: isMobile ? typography.fontSize.base : typography.fontSize.lg,
               fontWeight: typography.fontWeight.bold,
               color: colors.text.primary,
               marginBottom: spacing.sm,
