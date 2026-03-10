@@ -754,49 +754,22 @@ export default function EliteRankCityModal({
                 <div style={{
                   display: 'flex',
                   justifyContent: 'center',
-                  marginBottom: spacing.xl,
+                  marginBottom: spacing.lg,
                 }}>
                   <div style={{
                     animation: 'crownDrop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
                   }}>
-                    <EliteRankCrown size={isMobile ? 64 : 80} />
+                    <EliteRankCrown size={isMobile ? 48 : 64} />
                   </div>
                 </div>
               )}
-
-              {/* Season Status Badge - matches card styling */}
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: spacing.sm,
-                padding: `${spacing.md} ${spacing.lg}`,
-                background: 'rgba(39, 39, 42, 0.5)',
-                borderRadius: borderRadius.xl,
-                border: '1px solid #3f3f46',
-                marginBottom: isMobile ? spacing.lg : spacing.xl,
-              }}>
-                <span style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: colors.gold.primary,
-                  animation: 'pulse 2s infinite',
-                }} />
-                <span style={{
-                  fontSize: typography.fontSize.sm,
-                  color: '#d4d4d8',
-                  fontWeight: typography.fontWeight.medium,
-                }}>
-                  Season {new Date().getFullYear()} · {competitionStats.active} Active Competition{competitionStats.active !== 1 ? 's' : ''} · {competitionStats.openingSoon} Opening Soon
-                </span>
-              </div>
 
               {/* Main Headline */}
               <h1 style={{
                 fontSize: isMobile ? '2rem' : '3rem',
                 fontWeight: typography.fontWeight.bold,
                 lineHeight: 1.15,
-                marginBottom: isMobile ? spacing.sm : spacing.md,
+                marginBottom: spacing.md,
               }}>
                 <span style={{
                   display: 'block',
@@ -809,53 +782,13 @@ export default function EliteRankCityModal({
                 </span>
               </h1>
 
-              {/* Subheadline */}
-              <p style={{
-                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
-                marginBottom: isMobile ? spacing.md : spacing.lg,
-              }}>
-                <span style={{ color: '#a1a1aa' }}>Climb the Ranks. </span>
-                <span style={{ color: '#ffffff', fontWeight: typography.fontWeight.semibold }}>Become an Elite.</span>
-              </p>
-
-              {/* Card */}
-              <div style={{
-                display: 'inline-block',
-                background: 'rgba(39, 39, 42, 0.5)',
-                borderRadius: borderRadius.xl,
-                border: '1px solid #3f3f46',
-                padding: `${spacing.md} ${spacing.xl}`,
-                marginBottom: isMobile ? spacing.md : spacing.lg,
-              }}>
-                <span style={{ color: '#a1a1aa', fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg, display: 'block' }}>
-                  Think you're elite?
-                </span>
-                <span style={{
-                  color: '#d4af37',
-                  fontWeight: typography.fontWeight.bold,
-                  fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
-                  display: 'block',
-                }}>
-                  Prove it.
-                </span>
-              </div>
-
               {/* Action Line */}
               <p style={{
-                fontSize: isMobile ? typography.fontSize.xl : '1.5rem',
+                fontSize: isMobile ? typography.fontSize.lg : '1.5rem',
                 fontWeight: typography.fontWeight.bold,
                 color: '#ffffff',
-                marginBottom: isMobile ? spacing.sm : spacing.md,
               }}>
                 Enter <span style={{ color: '#d4af37' }}>·</span> Compete <span style={{ color: '#d4af37' }}>·</span> Win
-              </p>
-
-              {/* Subtext */}
-              <p style={{
-                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                color: '#71717a',
-              }}>
-                Fans decide who wins
               </p>
             </div>
 
