@@ -2961,6 +2961,18 @@
   padding: var(--spacing-lg);
 }
 
+.rules-collapse-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
 /* Rules Elimination Warning */
 .rules-elimination-warning {
   display: flex;

@@ -5,9 +5,13 @@ import { generateStandardRules } from '../../../utils/generateStandardRules';
 /**
  * Rules accordion — generates rules dynamically from competition configuration.
  * Falls back to sensible defaults when no competition data is provided.
+ *
+ * When `collapsible` is true, the entire rules section is wrapped in a
+ * collapsible container (collapsed by default).
  */
-export function RulesAccordion({ competition, votingRounds = [], about, events = [] }) {
+export function RulesAccordion({ competition, votingRounds = [], about, events = [], collapsible = false }) {
   const [expandedIndex, setExpandedIndex] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const rules = generateStandardRules({ competition, votingRounds, about, events }).map(rule => ({
     id: rule.id,
@@ -22,9 +26,8 @@ export function RulesAccordion({ competition, votingRounds = [], about, events =
     setExpandedIndex(expandedIndex === index ? null : index);
   };
 
-  return (
-    <div className="rules-accordion">
-      <h4 className="section-label">RULES</h4>
+  const rulesContent = (
+    <>
       <p className="rules-subtitle"><em>Subject to Change</em></p>
       <p className="rules-subtitle"><em>Terms and Conditions Apply</em></p>
 
@@ -57,6 +60,28 @@ export function RulesAccordion({ competition, votingRounds = [], about, events =
           </div>
         ))}
       </div>
+    </>
+  );
+
+  if (collapsible) {
+    return (
+      <div className="rules-accordion">
+        <button
+          className="rules-collapse-toggle"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <h4 className="section-label" style={{ margin: 0 }}>RULES</h4>
+          {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+        {isOpen && rulesContent}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rules-accordion">
+      <h4 className="section-label">RULES</h4>
+      {rulesContent}
     </div>
   );
 }
