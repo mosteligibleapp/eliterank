@@ -88,7 +88,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           boxShadow: isHovered
             ? '0 16px 32px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.2)'
             : '0 6px 18px -6px rgba(0, 0, 0, 0.3)',
-          aspectRatio: isMobile ? '16/7' : '16/7',
+          aspectRatio: isMobile ? '2/1' : '16/6',
           background: colors.background.card,
         }}
       >
@@ -379,7 +379,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
           }}>
             <EliteRankCrown size={isSmall ? 18 : 22} /> Competitions
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg, padding: `${spacing.sm} ${spacing.md}` }}>
             {entries.map(entry => (
               <CompetitionCard
                 key={entry.id}
