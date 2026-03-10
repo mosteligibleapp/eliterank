@@ -29,6 +29,8 @@ const AdminPage = lazy(() => import('../pages/AdminPage'));
 const AchievementsPage = lazy(() => import('../pages/AchievementsPage'));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
 const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLayout'));
+const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
+const TermsPage = lazy(() => import('../pages/TermsPage'));
 
 /**
  * Suspense wrapper with consistent loading screen
@@ -147,6 +149,24 @@ export default function AppRoutes() {
         element={
           <SuspenseWrapper message="Loading login...">
             <LoginPageWrapper />
+          </SuspenseWrapper>
+        }
+      />
+
+      {/* Legal pages */}
+      <Route
+        path="/privacy"
+        element={
+          <SuspenseWrapper>
+            <PrivacyPage />
+          </SuspenseWrapper>
+        }
+      />
+      <Route
+        path="/terms"
+        element={
+          <SuspenseWrapper>
+            <TermsPage />
           </SuspenseWrapper>
         }
       />
