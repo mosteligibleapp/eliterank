@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, MapPin, Star, UserPlus, Calendar, ArrowRight, Clock } from 'lucide-react';
+import { Trophy, Crown, MapPin, Star, UserPlus, Calendar, ArrowRight, Clock, ChevronRight } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -82,8 +82,6 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
   const competition = entry.competition || {};
   const cityName = competition.city?.name || competition.city || '';
   const org = competition.organization;
-  const phase = computeCompetitionPhase(competition);
-  const phaseConfig = getPhaseDisplayConfig(phase);
   const votingDate = getVotingStartDate(competition);
   const url = entry.url;
 
@@ -107,12 +105,12 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           gap: spacing.sm,
         }}
       >
-        {/* Row 1: Org logo + name */}
-        {org && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-            {org.logo_url && <OrganizationLogo logo={org.logo_url} size={20} />}
+        {/* Row 1: Org logo + org name + role badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+          {org?.logo_url && <OrganizationLogo logo={org.logo_url} size={32} />}
+          {org?.name && (
             <span style={{
-              fontSize: typography.fontSize.xs,
+              fontSize: typography.fontSize.sm,
               color: colors.gold.primary,
               fontWeight: typography.fontWeight.medium,
               textTransform: 'uppercase',
@@ -120,15 +118,11 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
             }}>
               {org.name}
             </span>
-          </div>
-        )}
-
-        {/* Row 2: Role badge */}
-        <div style={{ display: 'flex', gap: spacing.sm }}>
+          )}
           <RoleBadge role={entry.role} />
         </div>
 
-        {/* Row 3: Competition name + phase status */}
+        {/* Row 2: Competition name + season + location */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
           <h4 style={{
             fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
@@ -138,46 +132,52 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           }}>
             {competition.name || entry.name}
           </h4>
-          {phaseConfig && (
-            <Badge variant={phaseConfig.variant} size="sm" pill dot={phaseConfig.pulse}>
-              {phaseConfig.label}
-            </Badge>
-          )}
-        </div>
-
-        {/* Row 4-6: Details */}
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: isMobile ? spacing.sm : spacing.md,
-          alignItems: 'center',
-          color: colors.text.secondary,
-          fontSize: typography.fontSize.sm,
-        }}>
           {competition.season && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
               <Calendar size={13} />
               <span>Season {competition.season}</span>
             </div>
           )}
           {cityName && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
               <MapPin size={13} />
               <span>{cityName}</span>
             </div>
           )}
+        </div>
+
+        {/* Row 3: Voting start + navigate link */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: spacing.md,
+          color: colors.text.secondary,
+          fontSize: typography.fontSize.sm,
+        }}>
           {votingDate && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Clock size={13} />
               <span>Voting starts {votingDate}</span>
             </div>
           )}
-          {entry.votes > 0 && (
-            <Badge variant="gold" size="sm" pill>
-              {entry.votes.toLocaleString()} votes
-            </Badge>
-          )}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            color: colors.gold.primary,
+            fontWeight: typography.fontWeight.medium,
+            marginLeft: 'auto',
+          }}>
+            <span>View</span>
+            <ChevronRight size={14} />
+          </div>
         </div>
+
+        {entry.votes > 0 && (
+          <Badge variant="gold" size="sm" pill style={{ alignSelf: 'flex-start' }}>
+            {entry.votes.toLocaleString()} votes
+          </Badge>
+        )}
 
         {/* Unclaimed CTA */}
         {entry.isUnclaimed && entry.nomination && (
