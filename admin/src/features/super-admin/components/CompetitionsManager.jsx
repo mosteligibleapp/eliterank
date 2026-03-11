@@ -54,13 +54,15 @@ export default function CompetitionsManager({ onViewDashboard }) {
     if (!supabase) return;
     setLoading(true);
     try {
-      const [orgsRes, citiesRes, catsRes, demosRes, hostsRes, compsRes] = await Promise.all([
+      const [orgsRes, citiesRes, catsRes, demosRes, hostsRes, compsRes, nomineeCounts, contestantCounts] = await Promise.all([
         supabase.from('organizations').select('*').order('name'),
         supabase.from('cities').select('*').order('name'),
         supabase.from('categories').select('*').eq('active', true).order('name'),
         supabase.from('demographics').select('*').eq('active', true).order('id'),
         supabase.from('profiles').select('id, email, first_name, last_name').eq('is_host', true),
         supabase.from('competitions').select('*').order('created_at', { ascending: false }),
+        supabase.from('nominees').select('competition_id'),
+        supabase.from('contestants').select('competition_id'),
       ]);
 
       if (!orgsRes.error) setOrganizations(orgsRes.data || []);
@@ -68,8 +70,23 @@ export default function CompetitionsManager({ onViewDashboard }) {
       if (!catsRes.error) setCategories(catsRes.data || []);
       if (!demosRes.error) setDemographics(demosRes.data || []);
       setHosts(hostsRes.data || []);
-      if (!compsRes.error) setCompetitions(compsRes.data || []);
-      else setCompetitions([]);
+
+      // Build count maps from actual data
+      const nCounts = {};
+      (nomineeCounts.data || []).forEach(r => { nCounts[r.competition_id] = (nCounts[r.competition_id] || 0) + 1; });
+      const cCounts = {};
+      (contestantCounts.data || []).forEach(r => { cCounts[r.competition_id] = (cCounts[r.competition_id] || 0) + 1; });
+
+      // Attach actual counts to competition objects
+      if (!compsRes.error) {
+        setCompetitions((compsRes.data || []).map(comp => ({
+          ...comp,
+          _nominee_count: nCounts[comp.id] || 0,
+          _contestant_count: cCounts[comp.id] || 0,
+        })));
+      } else {
+        setCompetitions([]);
+      }
     } catch (err) {
       toast.error(`Failed to load data: ${err.message}`);
     } finally {
@@ -525,16 +542,28 @@ export default function CompetitionsManager({ onViewDashboard }) {
       },
     },
     {
-      key: 'min_contestants',
+      key: '_nominee_count',
+      label: 'Nominees',
+      sortable: true,
+      width: '90px',
+      render: (_val, row) => (
+        <span style={{ color: row._nominee_count > 0 ? colors.gold.primary : colors.text.tertiary, fontSize: typography.fontSize.sm, fontWeight: row._nominee_count > 0 ? 600 : 400 }}>
+          {row._nominee_count || 0}
+        </span>
+      ),
+    },
+    {
+      key: '_contestant_count',
       label: 'Contestants',
       sortable: true,
       width: '110px',
       render: (_val, row) => {
-        const min = row.min_contestants || 0;
-        const max = row.max_contestants;
+        const actual = row._contestant_count || 0;
+        const target = row.min_contestants || 40;
+        const met = actual >= target;
         return (
-          <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-            {max ? `${min}–${max}` : `${min}+`}
+          <span style={{ color: met ? '#22c55e' : colors.text.secondary, fontSize: typography.fontSize.sm }}>
+            {actual}<span style={{ color: colors.text.tertiary }}> / {target}</span>
           </span>
         );
       },
