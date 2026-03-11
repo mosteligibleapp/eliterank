@@ -1,0 +1,1 @@
+export { useCompetitionManager } from './useCompetitionManager';

@@ -26,43 +26,10 @@ export function getUserRole(profile) {
 }
 
 /**
- * Loading screen for auth check
+ * Empty bg div for auth check (fast from Zustand, no spinner flash)
  */
 function AuthLoadingScreen() {
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)',
-        color: '#d4af37',
-        fontSize: '1.25rem',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-      }}
-    >
-      <div style={{ textAlign: 'center' }}>
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            margin: '0 auto 16px',
-            border: '3px solid rgba(212, 175, 55, 0.2)',
-            borderTopColor: '#d4af37',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }}
-        />
-        Checking authentication...
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    </div>
-  );
+  return <div style={{ minHeight: '100vh', background: '#0a0a0c' }} />;
 }
 
 /**

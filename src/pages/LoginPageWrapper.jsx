@@ -11,7 +11,6 @@ import React, { lazy, Suspense, useCallback, useState, useEffect, useRef } from 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores';
-import LoadingScreen from '../components/common/LoadingScreen';
 
 const LoginPage = lazy(() => import('../features/auth/LoginPage'));
 
@@ -123,7 +122,7 @@ export default function LoginPageWrapper({
   }, [loading, isAuthenticated, returnTo, navigate]);
 
   return (
-    <Suspense fallback={<LoadingScreen message="Loading login..." />}>
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0a0a0c' }} />}>
       <LoginPage onLogin={handleLogin} onBack={handleBack} />
     </Suspense>
   );

@@ -4,14 +4,17 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check } from 'lucide-react';
+import { Bell, Check, Trash2 } from 'lucide-react';
+import NotificationsSkeleton from '../components/skeletons/NotificationsSkeleton';
+import EmptyState from '../components/common/EmptyState';
+import ErrorState from '../components/common/ErrorState';
 import { useNotifications, getNotificationMeta } from '../contexts/NotificationContext';
 import { PageHeader } from '../components/ui';
 import { colors, spacing, borderRadius, typography, transitions } from '../styles/theme';
 import { useResponsive } from '../hooks/useResponsive';
 import { formatRelativeTime } from '../utils/formatters';
 
-function NotificationRow({ notification, onRead, onNavigate }) {
+function NotificationRow({ notification, onRead, onNavigate, onDelete }) {
   const meta = getNotificationMeta(notification.type);
   const isUnread = !notification.read_at;
 
@@ -83,17 +86,36 @@ function NotificationRow({ notification, onRead, onNavigate }) {
         </div>
       </div>
 
-      {/* Unread indicator */}
-      {isUnread && (
-        <div style={{
-          width: '10px',
-          height: '10px',
-          borderRadius: borderRadius.full,
-          background: colors.gold.primary,
-          flexShrink: 0,
-          marginTop: '8px',
-        }} />
-      )}
+      {/* Unread indicator + delete */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing[2], flexShrink: 0 }}>
+        {isUnread && (
+          <div style={{
+            width: '10px',
+            height: '10px',
+            borderRadius: borderRadius.full,
+            background: colors.gold.primary,
+          }} />
+        )}
+        {onDelete && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(notification.id); }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: spacing.xs,
+              borderRadius: borderRadius.sm,
+              color: colors.text.muted,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            aria-label="Delete notification"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
     </button>
   );
 }
@@ -101,7 +123,7 @@ function NotificationRow({ notification, onRead, onNavigate }) {
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const { isMobile } = useResponsive();
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification, fetchNotifications } = useNotifications();
 
   const handleNavigate = (url) => {
     if (url.startsWith('http')) {
@@ -151,24 +173,15 @@ export default function NotificationsPage() {
 
         {/* Notification list */}
         {loading && notifications.length === 0 ? (
-          <div style={{
-            padding: spacing.xxxl,
-            textAlign: 'center',
-            color: colors.text.tertiary,
-          }}>
-            <Bell size={48} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-            <p>Loading notifications...</p>
-          </div>
+          <NotificationsSkeleton />
         ) : notifications.length === 0 ? (
-          <div style={{
-            padding: spacing.xxxl,
-            textAlign: 'center',
-            color: colors.text.tertiary,
-          }}>
-            <Bell size={48} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-            <p style={{ fontSize: typography.fontSize.lg, marginBottom: spacing.sm }}>No notifications yet</p>
-            <p style={{ fontSize: typography.fontSize.sm }}>You'll see updates about votes, rankings, and events here</p>
-          </div>
+          <EmptyState
+            icon={<Bell size={32} />}
+            title="No notifications yet"
+            description="You'll see updates about votes, rankings, and events here"
+            ctaLabel="Browse Competitions"
+            onCta={() => navigate('/')}
+          />
         ) : (
           <div style={{
             background: colors.background.secondary,
@@ -182,6 +195,7 @@ export default function NotificationsPage() {
                 notification={notification}
                 onRead={markAsRead}
                 onNavigate={handleNavigate}
+                onDelete={deleteNotification}
               />
             ))}
           </div>

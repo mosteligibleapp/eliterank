@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Trophy, Sparkles, Loader } from 'lucide-react';
+import { Crown, Trophy, Sparkles } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
+import { SkeletonPulse, SkeletonCircle } from '../../../components/common/Skeleton';
 
 export default function WinnersTab({ city, season, winners = [], competitionId, onViewProfile }) {
   const [loadedWinners, setLoadedWinners] = useState([]);
@@ -74,10 +75,21 @@ export default function WinnersTab({ city, season, winners = [], competitionId, 
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
-        <Loader size={48} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary, marginBottom: spacing.lg }} />
-        <p style={{ color: colors.text.secondary }}>Loading winners...</p>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <div style={{ padding: spacing.xxxl }}>
+        {/* Grand winner skeleton */}
+        <div style={{ maxWidth: '400px', margin: '0 auto', marginBottom: spacing.xxxl, textAlign: 'center' }}>
+          <SkeletonPulse height="24px" width="260px" style={{ margin: '0 auto', marginBottom: spacing.lg }} />
+          <SkeletonPulse height="16px" width="180px" style={{ margin: '0 auto', marginBottom: spacing.xl }} />
+          <SkeletonPulse height="400px" radius={borderRadius.xxl} style={{ marginBottom: spacing.lg }} />
+        </div>
+        {/* Runner-up row skeletons */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: spacing.xl }}>
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md }}>
+              <SkeletonPulse height="280px" radius={borderRadius.xxl} />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

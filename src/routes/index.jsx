@@ -1,6 +1,6 @@
 /**
  * Routes Configuration
- * 
+ *
  * Main route definitions for the EliteRank application.
  * Uses React Router v6 declarative routing.
  */
@@ -13,8 +13,15 @@ import ProtectedRoute, { ROLE } from './ProtectedRoute';
 import { isCompetitionSlug, isIdRoute, isReservedPath } from '../utils/slugs';
 
 // Common components
-import LoadingScreen from '../components/common/LoadingScreen';
 import ErrorBoundary from '../components/common/ErrorBoundary';
+
+// Page skeletons for Suspense fallbacks
+import CompetitionSkeleton from '../components/skeletons/CompetitionSkeleton';
+import ProfileSkeleton from '../components/skeletons/ProfileSkeleton';
+import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
+import NotificationsSkeleton from '../components/skeletons/NotificationsSkeleton';
+import AchievementsSkeleton from '../components/skeletons/AchievementsSkeleton';
+import RewardsSkeleton from '../components/skeletons/RewardsSkeleton';
 
 // Lazy-loaded pages
 const HomePage = lazy(() => import('../pages/HomePage'));
@@ -25,20 +32,27 @@ const ClaimPage = lazy(() => import('../pages/ClaimPage'));
 const UserProfilePage = lazy(() => import('../pages/UserProfilePage'));
 const UserRewardsPage = lazy(() => import('../pages/UserRewardsPage'));
 const ViewPublicProfilePage = lazy(() => import('../pages/ViewPublicProfilePage'));
-const AdminPage = lazy(() => import('../pages/AdminPage'));
 const AchievementsPage = lazy(() => import('../pages/AchievementsPage'));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
 const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLayout'));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
 
+const darkVoid = <div style={{ minHeight: '100vh', background: '#0a0a0c' }} />;
+
 /**
- * Suspense wrapper with consistent loading screen
+ * Suspense wrapper — uses page-matching skeleton when provided, dark bg as default.
+ * Wraps the fallback in a consistent page container so there is no layout shift
+ * between skeleton and real content.
  */
-function SuspenseWrapper({ children, message = 'Loading...' }) {
+function SuspenseWrapper({ children, fallback }) {
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingScreen message={message} />}>
+      <Suspense fallback={
+        fallback
+          ? <div style={{ minHeight: '100vh', background: '#0a0a0c', animation: 'fadeIn 0.2s ease-out' }}>{fallback}</div>
+          : darkVoid
+      }>
         {children}
       </Suspense>
     </ErrorBoundary>
@@ -47,7 +61,7 @@ function SuspenseWrapper({ children, message = 'Loading...' }) {
 
 /**
  * AppRoutes Component
- * 
+ *
  * Main routing configuration. This component should be wrapped in AppShell
  * which handles auth state and common modals.
  */
@@ -100,10 +114,10 @@ export default function AppRoutes() {
   // Password reset flow - intercept before other routes
   if (isResetFlow) {
     return (
-      <SuspenseWrapper message="Loading...">
-        <ResetPasswordPage 
-          onComplete={handleResetComplete} 
-          onBack={handleResetBack} 
+      <SuspenseWrapper>
+        <ResetPasswordPage
+          onComplete={handleResetComplete}
+          onBack={handleResetBack}
         />
       </SuspenseWrapper>
     );
@@ -112,7 +126,7 @@ export default function AppRoutes() {
   // Competition routes - handle separately for cleaner organization
   if (isCompetitionRoute || isLegacyCompetitionRoute) {
     return (
-      <SuspenseWrapper message="Loading competition...">
+      <SuspenseWrapper fallback={<CompetitionSkeleton />}>
         <Routes>
           {/* ID-based lookup: /:orgSlug/id/:competitionId */}
           <Route path="/:orgSlug/id/:competitionId/*" element={<CompetitionLayout />} />
@@ -147,7 +161,7 @@ export default function AppRoutes() {
       <Route
         path="/login"
         element={
-          <SuspenseWrapper message="Loading login...">
+          <SuspenseWrapper>
             <LoginPageWrapper />
           </SuspenseWrapper>
         }
@@ -175,7 +189,7 @@ export default function AppRoutes() {
       <Route
         path="/claim/:token"
         element={
-          <SuspenseWrapper message="Loading nomination...">
+          <SuspenseWrapper>
             <ClaimPage />
           </SuspenseWrapper>
         }
@@ -183,7 +197,7 @@ export default function AppRoutes() {
       <Route
         path="/claim/:token/complete"
         element={
-          <SuspenseWrapper message="Loading nomination...">
+          <SuspenseWrapper>
             <ClaimPage />
           </SuspenseWrapper>
         }
@@ -194,7 +208,7 @@ export default function AppRoutes() {
         path="/profile"
         element={
           <ProtectedRoute>
-            <SuspenseWrapper message="Loading profile...">
+            <SuspenseWrapper fallback={<ProfileSkeleton />}>
               <UserProfilePage />
             </SuspenseWrapper>
           </ProtectedRoute>
@@ -205,7 +219,7 @@ export default function AppRoutes() {
         path="/rewards"
         element={
           <ProtectedRoute>
-            <SuspenseWrapper message="Loading rewards...">
+            <SuspenseWrapper fallback={<RewardsSkeleton />}>
               <UserRewardsPage />
             </SuspenseWrapper>
           </ProtectedRoute>
@@ -216,7 +230,7 @@ export default function AppRoutes() {
         path="/achievements"
         element={
           <ProtectedRoute>
-            <SuspenseWrapper message="Loading achievements...">
+            <SuspenseWrapper fallback={<AchievementsSkeleton />}>
               <AchievementsPage />
             </SuspenseWrapper>
           </ProtectedRoute>
@@ -227,7 +241,7 @@ export default function AppRoutes() {
         path="/notifications"
         element={
           <ProtectedRoute>
-            <SuspenseWrapper message="Loading notifications...">
+            <SuspenseWrapper fallback={<NotificationsSkeleton />}>
               <NotificationsPage />
             </SuspenseWrapper>
           </ProtectedRoute>
@@ -238,7 +252,7 @@ export default function AppRoutes() {
       <Route
         path="/profile/:profileId"
         element={
-          <SuspenseWrapper message="Loading profile...">
+          <SuspenseWrapper fallback={<ProfileSkeleton />}>
             <ViewPublicProfilePage />
           </SuspenseWrapper>
         }
@@ -249,20 +263,8 @@ export default function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute allowedRoles={[ROLE.HOST, ROLE.SUPER_ADMIN]}>
-            <SuspenseWrapper message="Loading dashboard...">
+            <SuspenseWrapper fallback={<DashboardSkeleton />}>
               <DashboardPage />
-            </SuspenseWrapper>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Super admin - requires super_admin role */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute allowedRoles={[ROLE.SUPER_ADMIN]}>
-            <SuspenseWrapper message="Loading admin dashboard...">
-              <AdminPage />
             </SuspenseWrapper>
           </ProtectedRoute>
         }

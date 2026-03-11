@@ -7,8 +7,8 @@
 
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import LoadingScreen from '../components/common/LoadingScreen';
 import ErrorBoundary from '../components/common/ErrorBoundary';
+import CompetitionSkeleton from '../components/skeletons/CompetitionSkeleton';
 
 const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLayout'));
 
@@ -20,7 +20,7 @@ const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLay
 export default function CompetitionRoutes() {
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingScreen message="Loading competition..." />}>
+      <Suspense fallback={<CompetitionSkeleton />}>
         <Routes>
           {/* ID-based lookup: /:orgSlug/id/:competitionId - most reliable */}
           <Route path="/:orgSlug/id/:competitionId/*" element={<CompetitionLayout />} />

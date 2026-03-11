@@ -6,4 +6,3 @@ export { default as UserProfilePage } from './UserProfilePage';
 export { default as UserRewardsPage } from './UserRewardsPage';
 export { default as ViewPublicProfilePage } from './ViewPublicProfilePage';
 export { default as LoginPageWrapper } from './LoginPageWrapper';
-export { default as AdminPage } from './AdminPage';

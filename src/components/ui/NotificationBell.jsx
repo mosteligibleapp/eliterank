@@ -1,11 +1,22 @@
 import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check, ChevronRight } from 'lucide-react';
+import { Bell, Check, ChevronRight, Trash2 } from 'lucide-react';
+
+/**
+ * Safely get navigate function - returns null if no Router context.
+ */
+function useSafeNavigate() {
+  try {
+    return useNavigate();
+  } catch {
+    return null;
+  }
+}
 import { useNotifications, getNotificationMeta } from '../../contexts/NotificationContext';
 import { colors, spacing, borderRadius, typography, shadows, transitions } from '../../styles/theme';
 import { formatRelativeTime } from '../../utils/formatters';
 
-function NotificationItem({ notification, onRead, onNavigate }) {
+function NotificationItem({ notification, onRead, onNavigate, onDelete }) {
   const meta = getNotificationMeta(notification.type);
   const isUnread = !notification.read_at;
 
@@ -83,24 +94,44 @@ function NotificationItem({ notification, onRead, onNavigate }) {
         </div>
       </div>
 
-      {/* Unread indicator */}
-      {isUnread && (
-        <div style={{
-          width: '8px',
-          height: '8px',
-          borderRadius: borderRadius.full,
-          background: colors.gold.primary,
-          flexShrink: 0,
-          marginTop: '6px',
-        }} />
-      )}
+      {/* Unread indicator + delete */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+        {isUnread && (
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: borderRadius.full,
+            background: colors.gold.primary,
+          }} />
+        )}
+        {onDelete && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(notification.id); }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '2px',
+              color: colors.text.muted,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: borderRadius.xs,
+            }}
+            aria-label="Delete notification"
+          >
+            <Trash2 size={12} />
+          </button>
+        )}
+      </div>
     </button>
   );
 }
 
 export default function NotificationBell({ size = 36, onNavigate }) {
-  const navigate = useNavigate();
-  const { notifications, unreadCount, isOpen, loading, togglePanel, closePanel, markAsRead, markAllAsRead } = useNotifications();
+  const routerNavigate = useSafeNavigate();
+  const navigate = onNavigate || routerNavigate || ((path) => { window.location.href = path; });
+  const { notifications, unreadCount, isOpen, loading, togglePanel, closePanel, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const panelRef = useRef(null);
   const bellRef = useRef(null);
 
@@ -264,6 +295,7 @@ export default function NotificationBell({ size = 36, onNavigate }) {
                     closePanel();
                     if (onNavigate) onNavigate(url);
                   }}
+                  onDelete={deleteNotification}
                 />
               ))
             )}

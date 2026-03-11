@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users,
-  Activity, Info, Briefcase, Loader, User, Megaphone, Award, Building, Heart,
+  Activity, Info, Briefcase, User, Megaphone, Award, Building, Heart,
   Home, Search, Bell, Menu, ArrowRight, Play, ExternalLink
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo, ProfileIcon, NotificationBell, EliteRankCrown, CrownIcon } from '../ui';
@@ -29,6 +29,7 @@ import {
   isCompleted,
 } from '../../utils/competitionPhase';
 import { getCityImage } from '../../utils/cityImages';
+import { SkeletonPulse, SkeletonCard, SkeletonText } from '../common/Skeleton';
 
 // Tab configuration
 // Custom wrapper to make CrownIcon work like lucide icons
@@ -724,13 +725,37 @@ export default function EliteRankCityModal({
     if (loading) {
       return (
         <div style={{
-          ...styleHelpers.flexCenter,
-          flexDirection: 'column',
-          minHeight: '60vh',
-          gap: spacing.lg,
+          padding: isMobile ? spacing.lg : spacing.xxl,
+          maxWidth: '1400px',
+          margin: '0 auto',
         }}>
-          <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />
-          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md }}>Loading...</p>
+          {/* Hero skeleton */}
+          <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
+            <SkeletonPulse height="28px" width="240px" style={{ margin: '0 auto', marginBottom: spacing.md }} />
+            <SkeletonPulse height="16px" width="180px" style={{ margin: '0 auto' }} />
+          </div>
+          {/* Filter bar skeleton */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.xl }}>
+            {Array.from({ length: 3 }, (_, i) => (
+              <SkeletonPulse key={i} width="100px" height="36px" radius={borderRadius.pill} />
+            ))}
+          </div>
+          {/* Competition cards skeleton */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: isMobile ? spacing.lg : spacing.xl,
+          }}>
+            {Array.from({ length: isMobile ? 2 : 3 }, (_, i) => (
+              <div key={i} style={{
+                flex: isMobile ? '1 1 100%' : '1 1 380px',
+                maxWidth: isMobile ? '100%' : '500px',
+              }}>
+                <SkeletonCard height={isMobile ? '200px' : '220px'} style={{ borderRadius: borderRadius.xl }} />
+              </div>
+            ))}
+          </div>
         </div>
       );
     }
@@ -1585,10 +1610,6 @@ export default function EliteRankCityModal({
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
         }
         @keyframes shine {
           0% { transform: translateX(-100%); }

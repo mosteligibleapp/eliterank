@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Crown, MapPin, Calendar, Users, Loader, ChevronLeft, Trophy,
+  Crown, MapPin, Calendar, Users, ChevronLeft, Trophy,
   Vote, UserPlus, PartyPopper, Megaphone, BookOpen, Clock, Award
 } from 'lucide-react';
 import { Button } from '../../../components/ui';
@@ -17,6 +17,7 @@ import UpcomingEventCard from '../components/UpcomingEventCard';
 import RealAnnouncementsTab from '../components/AnnouncementsTab';
 import { useOrganizations, useCities } from '../../../hooks/useCachedQuery';
 import { formatEventTime } from '../../../utils/formatters';
+import CompetitionSkeleton from '../../../components/skeletons/CompetitionSkeleton';
 
 // Tab definitions
 const TABS = [
@@ -173,20 +174,7 @@ export default function CompetitionPage() {
   const phaseInfo = getCurrentPhaseInfo();
 
   if (loading || orgsLoading || citiesLoading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: colors.background.primary,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />
-          <p style={{ marginTop: spacing.md, color: colors.text.secondary }}>Loading competition...</p>
-        </div>
-      </div>
-    );
+    return <CompetitionSkeleton />;
   }
 
   if (error) {

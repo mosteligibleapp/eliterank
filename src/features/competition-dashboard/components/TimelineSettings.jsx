@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Calendar, Vote, Plus, Trash2, AlertTriangle, Save, Loader,
+  Calendar, Vote, Plus, Trash2, AlertTriangle, Save,
   Clock, Activity, Trophy, Archive, FileEdit, Lock, Info
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
@@ -24,6 +24,7 @@ import {
   getStatusChangeRestriction,
   getNextAutoTransition,
 } from '../../../utils/competitionStatusEngine';
+import { SkeletonPulse, SkeletonText } from '../../../components/common/Skeleton';
 
 /**
  * Parse a typed date string into an ISO date string
@@ -607,9 +608,14 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: spacing.xxxl }}>
-        <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />
-        <p style={{ marginTop: spacing.md, color: colors.text.secondary }}>Loading timeline settings...</p>
+      <div style={{ padding: spacing.lg }}>
+        <SkeletonPulse height="20px" width="200px" style={{ marginBottom: spacing.lg }} />
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg, alignItems: 'center' }}>
+            <SkeletonPulse width="140px" height="16px" />
+            <SkeletonPulse height="40px" style={{ flex: 1 }} />
+          </div>
+        ))}
       </div>
     );
   }

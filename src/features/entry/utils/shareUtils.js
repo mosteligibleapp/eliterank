@@ -391,6 +391,146 @@ export async function generateShareCard({
   });
 }
 
+/**
+ * Generate a landscape OG card (1200x630) for link sharing previews
+ */
+export async function generateOGCard({
+  name,
+  photoUrl,
+  handle,
+  competitionTitle,
+  cityName,
+  season,
+  accentColor = '#d4af37',
+  organizationLogoUrl,
+  variant = 'nominated', // 'nominated' | 'vote' | 'winner' | 'finalist'
+}) {
+  const OG_W = 1200;
+  const OG_H = 630;
+  const canvas = document.createElement('canvas');
+  canvas.width = OG_W;
+  canvas.height = OG_H;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  const bgGrad = ctx.createLinearGradient(0, 0, OG_W, OG_H);
+  bgGrad.addColorStop(0, '#050507');
+  bgGrad.addColorStop(0.5, '#0a0a10');
+  bgGrad.addColorStop(1, '#050507');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, OG_W, OG_H);
+
+  // Glow
+  const glow = ctx.createRadialGradient(400, 315, 0, 400, 315, 350);
+  glow.addColorStop(0, `${accentColor}18`);
+  glow.addColorStop(0.5, `${accentColor}08`);
+  glow.addColorStop(1, 'transparent');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, OG_W, OG_H);
+
+  // Sparkles
+  const sparkles = [
+    { x: 60, y: 80, size: 8, alpha: 0.3 },
+    { x: 1100, y: 100, size: 10, alpha: 0.35 },
+    { x: 100, y: 500, size: 6, alpha: 0.25 },
+    { x: 1050, y: 520, size: 8, alpha: 0.3 },
+  ];
+  for (const s of sparkles) {
+    drawSparkle(ctx, s.x, s.y, s.size, accentColor, s.alpha);
+  }
+
+  // Photo (left side)
+  const photoRadius = 120;
+  const photoCX = 280;
+  const photoCY = 315;
+
+  if (photoUrl) {
+    try {
+      const img = await loadImage(photoUrl);
+      drawCircularImage(ctx, img, photoCX, photoCY, photoRadius);
+    } catch {
+      drawInitial(ctx, name?.charAt(0) || '?', photoCX, photoCY, photoRadius, accentColor);
+    }
+  } else {
+    drawInitial(ctx, name?.charAt(0) || '?', photoCX, photoCY, photoRadius, accentColor);
+  }
+
+  // Ring
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(photoCX, photoCY, photoRadius + 5, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Right side text
+  const textX = 500;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  // Variant title
+  const variantLabels = {
+    nominated: 'NOMINATED',
+    vote: 'VOTE FOR ME',
+    winner: 'WINNER',
+    finalist: 'FINALIST',
+  };
+
+  let y = 200;
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 52px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText(variantLabels[variant] || 'NOMINATED', textX, y);
+  y += 60;
+
+  // Name
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, sans-serif';
+  let displayName = name || 'Nominee';
+  if (ctx.measureText(displayName).width > 620) {
+    while (ctx.measureText(displayName + '...').width > 620 && displayName.length > 0) {
+      displayName = displayName.slice(0, -1);
+    }
+    displayName += '...';
+  }
+  ctx.fillText(displayName, textX, y);
+  y += 40;
+
+  if (handle) {
+    ctx.fillStyle = '#9a9aaa';
+    ctx.font = '400 24px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(`@${handle.replace('@', '')}`, textX, y);
+    y += 40;
+  }
+
+  // Competition
+  y += 10;
+  ctx.fillStyle = '#e4e4e7';
+  ctx.font = '600 28px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText(competitionTitle || 'Competition', textX, y);
+  y += 36;
+
+  const metaParts = [];
+  if (cityName) metaParts.push(cityName);
+  if (season) metaParts.push(season);
+  if (metaParts.length) {
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '500 22px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(metaParts.join('  ·  '), textX, y);
+  }
+
+  // Bottom bar with branding
+  const barY = OG_H - 60;
+  ctx.fillStyle = `${accentColor}20`;
+  ctx.fillRect(0, barY, OG_W, 60);
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('eliterank.co', OG_W / 2, barY + 38);
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), 'image/png');
+  });
+}
+
 export async function shareOrDownload(blob, fileName = 'eliterank-nomination.png') {
   const file = new File([blob], fileName, { type: 'image/png' });
 

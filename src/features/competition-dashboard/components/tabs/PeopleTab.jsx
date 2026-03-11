@@ -8,7 +8,7 @@ import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
-import WinnersManager from '../../../super-admin/components/WinnersManager';
+import WinnersManager from '../WinnersManager';
 
 /**
  * PeopleTab - Manages winners, nominees, contestants, and host profile

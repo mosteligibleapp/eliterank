@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, Loader, AlertCircle, Pencil, Trash2 } from 'lucide-react';
+import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { Panel, Button } from '../../components/ui';
 import ClaimRewardModal from '../../components/modals/ClaimRewardModal';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks';
+import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 const STATUS_CONFIG = {
   pending: { color: '#eab308', label: 'Pending Claim', description: 'Click to claim this reward' },
@@ -246,18 +247,25 @@ export default function RewardsPage({ hostProfile }) {
     <div>
       {/* Loading State */}
       {loading && (
-        <Panel>
+        <div>
           <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: spacing.xxxl,
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: isMobile ? spacing.md : spacing.xl,
           }}>
-            <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary, marginBottom: spacing.md }} />
-            <p style={{ color: colors.text.secondary }}>Loading your rewards...</p>
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i}>
+                <SkeletonPulse
+                  height={isMobile ? '140px' : '180px'}
+                  radius={isMobile ? borderRadius.lg : borderRadius.xl}
+                  style={{ marginBottom: spacing.sm }}
+                />
+                <SkeletonPulse height="16px" width="70%" style={{ marginBottom: spacing.xs }} />
+                <SkeletonPulse height="12px" width="40%" />
+              </div>
+            ))}
           </div>
-        </Panel>
+        </div>
       )}
 
       {/* Pending Rewards - Action Required */}
@@ -414,13 +422,6 @@ export default function RewardsPage({ hostProfile }) {
         userId={user?.id}
         onClaimed={fetchRewards}
       />
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

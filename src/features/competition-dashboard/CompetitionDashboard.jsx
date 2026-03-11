@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, Loader, AlertCircle
+  Eye, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, AddPersonModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
-import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
+import { useCompetitionDashboard } from './hooks/useCompetitionDashboard';
+import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
 import { OverviewTab, PeopleTab, ContentTab, SetupTab } from './components/tabs';
@@ -341,19 +342,21 @@ export default function CompetitionDashboard({
   const renderContent = () => {
     if (loading) {
       return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: spacing.xxxl,
-          gap: spacing.lg,
-        }}>
-          <Loader size={48} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg }}>
-            Loading competition data...
-          </p>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <div style={{ padding: spacing.lg }}>
+          {/* Tab bar skeleton */}
+          <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.xl }}>
+            {Array.from({ length: 4 }, (_, i) => (
+              <SkeletonPulse key={i} width="100px" height="36px" radius={borderRadius.lg} />
+            ))}
+          </div>
+          {/* Stat cards skeleton */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: spacing.md, marginBottom: spacing.xl }}>
+            {Array.from({ length: 4 }, (_, i) => (
+              <SkeletonCard key={i} height="100px" />
+            ))}
+          </div>
+          {/* Content skeleton */}
+          <SkeletonCard height="300px" />
         </div>
       );
     }
