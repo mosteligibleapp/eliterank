@@ -5,9 +5,9 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   root: __dirname,
-  base: './',
+  base: command === 'serve' ? '/' : '/admin/',
   plugins: [react()],
   envPrefix: ['VITE_', 'SUPABASE_'],
   envDir: '..',
@@ -26,4 +26,4 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
-});
+}));
