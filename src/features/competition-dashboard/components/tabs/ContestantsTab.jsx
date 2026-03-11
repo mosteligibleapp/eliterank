@@ -6,7 +6,7 @@ import {
 import { Button, Badge, Avatar } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
-import WinnersManager from '../../../super-admin/components/WinnersManager';
+import WinnersManager from '../WinnersManager';
 
 export default function ContestantsTab({
   competition,

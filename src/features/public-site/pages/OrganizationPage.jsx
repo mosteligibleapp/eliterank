@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Building2, Crown, MapPin, Calendar, ChevronRight, Loader, ExternalLink
+  Building2, Crown, MapPin, Calendar, ChevronRight, ExternalLink
 } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { STATUS_CONFIG, COMPETITION_STATUS } from '../../../types/competition';
+import { SkeletonPulse, SkeletonCircle, SkeletonCard } from '../../../components/common/Skeleton';
 
 export default function OrganizationPage() {
   const { orgSlug } = useParams();
@@ -81,16 +82,22 @@ export default function OrganizationPage() {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: colors.background.primary,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />
-          <p style={{ marginTop: spacing.md, color: colors.text.secondary }}>Loading...</p>
+      <div style={{ minHeight: '100vh', background: colors.background.primary, padding: spacing.xl }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, marginBottom: spacing.xl }}>
+          <SkeletonCircle size="64px" />
+          <div style={{ flex: 1 }}>
+            <SkeletonPulse height="24px" width="200px" />
+            <SkeletonPulse height="14px" width="120px" style={{ marginTop: spacing.sm }} />
+          </div>
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: spacing.lg,
+        }}>
+          {Array.from({ length: 4 }, (_, i) => (
+            <SkeletonCard key={i} height="240px" />
+          ))}
         </div>
       </div>
     );

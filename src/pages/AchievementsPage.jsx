@@ -18,6 +18,9 @@ import {
   Check,
   X,
 } from 'lucide-react';
+import AchievementsSkeleton from '../components/skeletons/AchievementsSkeleton';
+import EmptyState from '../components/common/EmptyState';
+import ErrorState from '../components/common/ErrorState';
 import { useSupabaseAuth } from '../hooks';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/ui';
@@ -33,6 +36,7 @@ export default function AchievementsPage() {
   const { user, profile, isAuthenticated } = useSupabaseAuth();
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [achievementRecords, setAchievementRecords] = useState([]);
   const [expandedCompetition, setExpandedCompetition] = useState(null);
   const [generating, setGenerating] = useState(null);
@@ -192,6 +196,7 @@ export default function AchievementsPage() {
       }
     } catch (err) {
       console.error('Error fetching achievement records:', err);
+      setError(err);
     } finally {
       setLoading(false);
     }
@@ -415,12 +420,19 @@ export default function AchievementsPage() {
 
   // Loading
   if (loading) {
+    return <AchievementsSkeleton />;
+  }
+
+  // Error
+  if (error) {
     return (
       <div className="achievements-page">
-        <div className="achievements-loading">
-          <Loader size={32} className="spinning" />
-          <p>Loading your achievements...</p>
-        </div>
+        <PageHeader title="My Achievements" />
+        <ErrorState
+          title="Failed to load achievements"
+          message="We couldn't load your achievements. Please try again."
+          onRetry={() => { setError(null); fetchAchievementRecords(); }}
+        />
       </div>
     );
   }
@@ -430,14 +442,13 @@ export default function AchievementsPage() {
     return (
       <div className="achievements-page">
         <PageHeader title="My Achievements" />
-        <div className="achievements-empty">
-          <ImagePlus size={48} />
-          <h2>No active achievements</h2>
-          <p>You're not currently competing in any competitions</p>
-          <button onClick={() => navigate('/')} className="achievements-btn-primary">
-            Explore Competitions
-          </button>
-        </div>
+        <EmptyState
+          icon={<ImagePlus size={32} />}
+          title="No achievements yet"
+          description="Enter a competition to start earning achievements and share cards"
+          ctaLabel="Enter a Competition"
+          onCta={() => navigate('/')}
+        />
       </div>
     );
   }

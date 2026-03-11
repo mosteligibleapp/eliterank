@@ -6,7 +6,8 @@ import {
 } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
-import { useCompetitionDashboard } from '../super-admin/hooks/useCompetitionDashboard';
+import { useCompetitionDashboard } from '../competition-dashboard/hooks/useCompetitionDashboard';
+import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Section configuration for categorized view
 const SECTION_CONFIG = {
@@ -147,17 +148,24 @@ export default function NominationsPage({ competitionId, competitionName }) {
   // Loading state
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: spacing.xxxl,
-        minHeight: '400px',
-      }}>
-        <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary, marginBottom: spacing.md }} />
-        <p style={{ color: colors.text.secondary }}>Loading nominees...</p>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <div>
+        {/* Stats skeleton */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: spacing.lg,
+          marginBottom: spacing.xxl,
+        }}>
+          {Array.from({ length: 4 }, (_, i) => (
+            <SkeletonPulse key={i} height="80px" radius={borderRadius.xl} />
+          ))}
+        </div>
+        {/* Section skeletons */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
+          {Array.from({ length: 3 }, (_, i) => (
+            <SkeletonCard key={i} height="120px" />
+          ))}
+        </div>
       </div>
     );
   }

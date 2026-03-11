@@ -7,7 +7,6 @@
 
 import React, { lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import LoadingScreen from '../components/common/LoadingScreen';
 
 const ClaimNominationPage = lazy(() => import('../features/public-site/pages/ClaimNominationPage'));
 
@@ -29,7 +28,7 @@ export default function ClaimPage() {
   }
 
   return (
-    <Suspense fallback={<LoadingScreen message="Loading nomination..." />}>
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0a0a0c' }} />}>
       <ClaimNominationPage
         token={token}
         onClose={handleClose}

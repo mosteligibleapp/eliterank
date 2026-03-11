@@ -5,6 +5,7 @@ import {
   usePublicCompetition,
 } from '../../contexts/PublicCompetitionContext';
 import { AlertCircle, Loader, X, ArrowLeft } from 'lucide-react';
+import CompetitionSkeleton from '../../components/skeletons/CompetitionSkeleton';
 import { useAuthStore } from '../../stores';
 import { ProfileIcon, NotificationBell } from '../../components/ui';
 
@@ -96,14 +97,7 @@ function CompetitionLayoutInner() {
 
   // Loading state
   if (loading) {
-    return (
-      <div className="competition-layout">
-        <div className="competition-loading">
-          <Loader className="loading-spinner" size={32} />
-          <p>Loading competition...</p>
-        </div>
-      </div>
-    );
+    return <CompetitionSkeleton />;
   }
 
   // Error state

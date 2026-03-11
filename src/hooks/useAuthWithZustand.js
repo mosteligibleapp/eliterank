@@ -13,6 +13,7 @@
  */
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { log } from '../lib/logger';
 import { useAuthStore } from '../stores';
 
 export default function useAuthWithZustand() {
@@ -71,7 +72,7 @@ export default function useAuthWithZustand() {
           (nomineeResult.data?.length ?? 0) > 0,
       };
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      log.error('auth', 'Profile fetch failed', { error: err.message });
       return null;
     }
   }, []);
@@ -98,6 +99,7 @@ export default function useAuthWithZustand() {
 
     // Get initial session
     const initAuth = async () => {
+      log.info('auth', 'Initializing');
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
@@ -107,10 +109,14 @@ export default function useAuthWithZustand() {
           setLoading(false);
 
           if (currentUser) {
+            log.info('auth', 'Session found', { email: currentUser.email });
             loadProfile(currentUser.id, currentUser.email);
+          } else {
+            log.info('auth', 'No session');
           }
         }
       } catch (err) {
+        log.error('auth', 'Init failed', { error: err.message });
         if (mountedRef.current) {
           setError(err.message);
           setLoading(false);
@@ -122,6 +128,7 @@ export default function useAuthWithZustand() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!mountedRef.current) return;
+        log.debug('auth', 'State change', { event });
 
         const currentUser = session?.user ?? null;
         setUser(currentUser);

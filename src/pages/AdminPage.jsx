@@ -1,28 +1,17 @@
 /**
- * AdminPage - Super Admin dashboard wrapper
- * 
- * Wraps the SuperAdminPage feature component and provides logout functionality.
+ * AdminPage - Redirect to separate admin app
+ *
+ * The admin dashboard has been moved to a separate Vite app.
+ * This component redirects old bookmarks and in-app references
+ * to the new standalone admin app at /admin/.
  */
 
-import React, { lazy, Suspense, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../stores';
-import LoadingScreen from '../components/common/LoadingScreen';
-
-const SuperAdminPage = lazy(() => import('../features/super-admin/SuperAdminPage'));
+import React, { useEffect } from 'react';
 
 export default function AdminPage() {
-  const navigate = useNavigate();
-  const signOut = useAuthStore(s => s.signOut);
+  useEffect(() => {
+    window.location.href = '/admin/';
+  }, []);
 
-  const handleLogout = useCallback(async () => {
-    await signOut();
-    navigate('/');
-  }, [signOut, navigate]);
-
-  return (
-    <Suspense fallback={<LoadingScreen message="Loading admin dashboard..." />}>
-      <SuperAdminPage onLogout={handleLogout} />
-    </Suspense>
-  );
+  return null;
 }

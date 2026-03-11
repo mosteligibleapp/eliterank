@@ -1,0 +1,924 @@
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  Crown, Plus, MapPin, Calendar, Edit2, Trash2, UserPlus,
+  Eye, AlertTriangle, Trophy, Radio, FileEdit, Globe,
+} from 'lucide-react';
+import { Button } from '@shared/components/ui';
+import { colors, spacing, borderRadius, typography } from '@shared/styles/theme';
+import { supabase } from '@shared/lib/supabase';
+import { useToast } from '@shared/contexts/ToastContext';
+import {
+  COMPETITION_STATUS,
+  STATUS_CONFIG,
+} from '@shared/types/competition';
+import { validateStatusChange, COMPETITION_STATUSES } from '@shared/utils/competitionPhase';
+import { generateCompetitionSlug } from '@shared/utils/slugs';
+
+import { DataTable, FilterBar, StatRow, FormModal, ActionMenu } from '../../../components';
+import CompetitionCreateWizard from './CompetitionCreateWizard';
+import CompetitionEditModal from './CompetitionEditModal';
+
+export default function CompetitionsManager({ onViewDashboard }) {
+  const toast = useToast();
+
+  // ── Data state ──────────────────────────────────────────
+  const [competitions, setCompetitions] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [demographics, setDemographics] = useState([]);
+  const [hosts, setHosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // ── Modal state ─────────────────────────────────────────
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editDefaultTab, setEditDefaultTab] = useState('basic');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAssignHostModal, setShowAssignHostModal] = useState(false);
+  const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState(null);
+  const [selectedCompetition, setSelectedCompetition] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ── Filter state ────────────────────────────────────────
+  const [searchValue, setSearchValue] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterCity, setFilterCity] = useState('');
+  const [filterSeason, setFilterSeason] = useState('');
+
+  // ── Data fetching ───────────────────────────────────────
+  useEffect(() => { fetchData(); }, []);
+
+  const fetchData = async () => {
+    if (!supabase) return;
+    setLoading(true);
+    try {
+      const [orgsRes, citiesRes, catsRes, demosRes, hostsRes, compsRes] = await Promise.all([
+        supabase.from('organizations').select('*').order('name'),
+        supabase.from('cities').select('*').order('name'),
+        supabase.from('categories').select('*').eq('active', true).order('name'),
+        supabase.from('demographics').select('*').eq('active', true).order('id'),
+        supabase.from('profiles').select('id, email, first_name, last_name').eq('is_host', true),
+        supabase.from('competitions').select('*').order('created_at', { ascending: false }),
+      ]);
+
+      if (!orgsRes.error) setOrganizations(orgsRes.data || []);
+      if (!citiesRes.error) setCities(citiesRes.data || []);
+      if (!catsRes.error) setCategories(catsRes.data || []);
+      if (!demosRes.error) setDemographics(demosRes.data || []);
+      setHosts(hostsRes.data || []);
+      if (!compsRes.error) setCompetitions(compsRes.data || []);
+      else setCompetitions([]);
+    } catch (err) {
+      toast.error(`Failed to load data: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Helpers ─────────────────────────────────────────────
+  const getCompetitionName = useCallback((comp) => {
+    if (comp.name) return comp.name;
+    const org = organizations.find(o => o.id === comp.organization_id);
+    const city = cities.find(c => c.id === comp.city_id);
+    const demographic = demographics.find(d => d.id === comp.demographic_id);
+    const orgName = org?.name || 'Unknown Org';
+    const cityName = city?.name || 'Unknown City';
+    if (demographic && demographic.slug !== 'open') {
+      return `${orgName} ${cityName} - ${demographic.label}`;
+    }
+    return `${orgName} ${cityName}`;
+  }, [organizations, cities, demographics]);
+
+  const getHostName = useCallback((host) => {
+    if (!host) return null;
+    if (host.first_name || host.last_name) {
+      return `${host.first_name || ''} ${host.last_name || ''}`.trim();
+    }
+    return host.email;
+  }, []);
+
+  // ── Filter options ──────────────────────────────────────
+  const uniqueSeasons = useMemo(() => {
+    const seasons = [...new Set(competitions.map(c => c.season))];
+    return seasons.sort((a, b) => b - a);
+  }, [competitions]);
+
+  const statusOptions = useMemo(() =>
+    Object.entries(STATUS_CONFIG).map(([key, config]) => ({
+      value: key,
+      label: config.label,
+    })),
+    [],
+  );
+
+  const cityFilterOptions = useMemo(() =>
+    cities.map(c => ({ value: c.id, label: c.name })),
+    [cities],
+  );
+
+  const seasonFilterOptions = useMemo(() =>
+    uniqueSeasons.map(s => ({ value: String(s), label: String(s) })),
+    [uniqueSeasons],
+  );
+
+  // ── Filtered data ───────────────────────────────────────
+  const filteredCompetitions = useMemo(() => {
+    return competitions.filter(comp => {
+      if (filterStatus && comp.status !== filterStatus) return false;
+      if (filterCity && comp.city_id !== filterCity) return false;
+      if (filterSeason && comp.season !== parseInt(filterSeason)) return false;
+      if (searchValue) {
+        const name = getCompetitionName(comp).toLowerCase();
+        if (!name.includes(searchValue.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [competitions, filterStatus, filterCity, filterSeason, searchValue, getCompetitionName]);
+
+  // ── Stat counts ─────────────────────────────────────────
+  const stats = useMemo(() => {
+    const liveCount = competitions.filter(c => c.status === COMPETITION_STATUS.LIVE).length;
+    const draftCount = competitions.filter(c => c.status === COMPETITION_STATUS.DRAFT).length;
+    const pubCount = competitions.filter(c => c.status === COMPETITION_STATUS.PUBLISH).length;
+    return [
+      { label: 'Total', value: competitions.length, icon: Trophy },
+      { label: 'Live', value: liveCount, icon: Radio, color: colors.status.success },
+      { label: 'Draft', value: draftCount, icon: FileEdit, color: colors.text.muted },
+      { label: 'Published', value: pubCount, icon: Globe, color: colors.gold.primary },
+    ];
+  }, [competitions]);
+
+  // ── Filter change handler ───────────────────────────────
+  const handleFilterChange = useCallback((key, value) => {
+    if (key === 'status') setFilterStatus(value);
+    else if (key === 'city') setFilterCity(value);
+    else if (key === 'season') setFilterSeason(value);
+  }, []);
+
+  // ── Status changes ──────────────────────────────────────
+  const requiresConfirmation = (currentStatus, newStatus) => {
+    if (newStatus === COMPETITION_STATUSES.ARCHIVE) return true;
+    if (newStatus === COMPETITION_STATUSES.COMPLETED) return true;
+    if (currentStatus === COMPETITION_STATUSES.LIVE) return true;
+    return false;
+  };
+
+  const getConfirmationContent = (currentStatus, newStatus) => {
+    if (newStatus === COMPETITION_STATUSES.ARCHIVE) {
+      return {
+        title: 'Archive Competition?',
+        message: 'This will hide the competition from public view and host dashboard.',
+        confirmLabel: 'Archive',
+      };
+    }
+    if (newStatus === COMPETITION_STATUSES.COMPLETED) {
+      return {
+        title: 'Complete Competition?',
+        message: 'This will finalize results and make the competition read-only. This should only be done after winners are determined.',
+        confirmLabel: 'Complete',
+      };
+    }
+    if (currentStatus === COMPETITION_STATUSES.LIVE) {
+      return {
+        title: 'Change Live Competition?',
+        message: 'This competition is currently live. Changing status will affect active voting.',
+        confirmLabel: 'Change Status',
+      };
+    }
+    return {
+      title: 'Change Status?',
+      message: 'Are you sure you want to change the competition status?',
+      confirmLabel: 'Change Status',
+    };
+  };
+
+  const executeStatusChange = async (competitionId, newStatus) => {
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', competitionId);
+      if (error) throw error;
+      toast.success(`Status changed to ${STATUS_CONFIG[newStatus].label}`);
+      fetchData();
+    } catch {
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleStatusChange = async (competitionId, newStatus) => {
+    const competition = competitions.find(c => c.id === competitionId);
+    if (!competition) { toast.error('Competition not found'); return; }
+    if (competition.status === newStatus) return;
+
+    const validation = validateStatusChange(competition, newStatus);
+    if (!validation.valid) { toast.error(validation.error); return; }
+
+    if (requiresConfirmation(competition.status, newStatus)) {
+      setPendingStatusChange({ competitionId, newStatus, competition });
+      setShowStatusConfirmModal(true);
+      return;
+    }
+    await executeStatusChange(competitionId, newStatus);
+  };
+
+  const handleStatusConfirm = async () => {
+    if (!pendingStatusChange) return;
+    await executeStatusChange(pendingStatusChange.competitionId, pendingStatusChange.newStatus);
+    setShowStatusConfirmModal(false);
+    setPendingStatusChange(null);
+  };
+
+  const handleStatusCancel = () => {
+    setShowStatusConfirmModal(false);
+    setPendingStatusChange(null);
+  };
+
+  // ── Create competition ──────────────────────────────────
+  const handleCreate = async (formData) => {
+    if (!formData.organization_id || !formData.city_id || !formData.category_id || !formData.demographic_id) {
+      toast.error('Organization, city, category, and demographic are required');
+      return;
+    }
+    if (formData.minimum_prize < 1000) {
+      toast.error('Minimum prize must be at least $1,000');
+      return;
+    }
+    if (formData.min_contestants < 10) {
+      toast.error('Minimum contestants must be at least 10');
+      return;
+    }
+    const maxContestants = formData.max_contestants ? parseInt(formData.max_contestants, 10) : null;
+    if (maxContestants !== null && maxContestants <= formData.min_contestants) {
+      toast.error('Maximum contestants must be greater than minimum');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Duplicate check
+      const { data: existing } = await supabase
+        .from('competitions')
+        .select('id')
+        .eq('organization_id', formData.organization_id)
+        .eq('city_id', formData.city_id)
+        .eq('category_id', formData.category_id)
+        .eq('demographic_id', formData.demographic_id)
+        .eq('season', formData.season)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        const selectedCategory = categories.find(c => c.id === formData.category_id);
+        const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
+        const selectedCity = cities.find(c => c.id === formData.city_id);
+        toast.error(
+          `A ${selectedCategory?.name || 'Unknown'} competition for ${selectedDemographic?.label || 'Unknown'} in ${selectedCity?.name || 'Unknown'} already exists for Season ${formData.season}.`
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      const selectedCity = cities.find(c => c.id === formData.city_id);
+      const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
+      const competitionSlug = generateCompetitionSlug({
+        name: formData.name || 'competition',
+        citySlug: selectedCity?.slug || selectedCity?.name || 'unknown',
+        season: formData.season,
+        demographicSlug: selectedDemographic?.slug,
+      });
+
+      const { error } = await supabase
+        .from('competitions')
+        .insert({
+          organization_id: formData.organization_id,
+          city_id: formData.city_id,
+          category_id: formData.category_id,
+          demographic_id: formData.demographic_id,
+          name: formData.name || null,
+          slug: competitionSlug,
+          season: formData.season,
+          status: COMPETITION_STATUS.DRAFT,
+          entry_type: 'nominations',
+          has_events: true,
+          number_of_winners: formData.number_of_winners,
+          selection_criteria: 'votes',
+          host_id: formData.host_id || null,
+          description: formData.description || '',
+          minimum_prize_cents: formData.minimum_prize * 100,
+          eligibility_radius_miles: formData.eligibility_radius,
+          min_contestants: formData.min_contestants,
+          max_contestants: maxContestants,
+          price_per_vote: 1.00,
+          use_price_bundler: false,
+          allow_manual_votes: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Competition created successfully');
+      setShowCreateModal(false);
+      fetchData();
+    } catch (err) {
+      toast.error(`Failed to create competition: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── Edit competition ────────────────────────────────────
+  const openEditModal = (comp, tab = 'basic') => {
+    setSelectedCompetition(comp);
+    setEditDefaultTab(tab);
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = async (formData) => {
+    if (!selectedCompetition) return;
+
+    if (formData.minimum_prize < 1000) {
+      toast.error('Minimum prize must be at least $1,000');
+      return;
+    }
+    if (formData.min_contestants < 10) {
+      toast.error('Minimum contestants must be at least 10');
+      return;
+    }
+    const maxContestants = formData.max_contestants ? parseInt(formData.max_contestants, 10) : null;
+    if (maxContestants !== null && maxContestants <= formData.min_contestants) {
+      toast.error('Maximum contestants must be greater than minimum');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({
+          name: formData.name || null,
+          season: formData.season,
+          number_of_winners: formData.number_of_winners,
+          host_id: formData.host_id || null,
+          description: formData.description || '',
+          price_per_vote: formData.price_per_vote,
+          use_price_bundler: formData.use_price_bundler,
+          allow_manual_votes: formData.allow_manual_votes,
+          minimum_prize_cents: formData.minimum_prize * 100,
+          eligibility_radius_miles: formData.eligibility_radius,
+          min_contestants: formData.min_contestants,
+          max_contestants: maxContestants,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedCompetition.id);
+
+      if (error) throw error;
+      toast.success('Competition updated');
+      setShowEditModal(false);
+      setSelectedCompetition(null);
+      fetchData();
+    } catch (err) {
+      toast.error(`Failed to update competition: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── Assign host ─────────────────────────────────────────
+  const handleAssignHost = async (hostId) => {
+    if (!selectedCompetition) return;
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({ host_id: hostId, updated_at: new Date().toISOString() })
+        .eq('id', selectedCompetition.id);
+      if (error) throw error;
+      toast.success('Host assigned successfully');
+      setShowAssignHostModal(false);
+      setSelectedCompetition(null);
+      fetchData();
+    } catch {
+      toast.error('Failed to assign host');
+    }
+  };
+
+  // ── Delete competition ──────────────────────────────────
+  const handleDelete = async () => {
+    if (!selectedCompetition) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .delete()
+        .eq('id', selectedCompetition.id);
+      if (error) throw error;
+      toast.success('Competition deleted successfully');
+      setShowDeleteModal(false);
+      setSelectedCompetition(null);
+      fetchData();
+    } catch {
+      toast.error('Failed to delete competition');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── Table columns ───────────────────────────────────────
+  const formatDate = useCallback((dateStr) => {
+    if (!dateStr) return '--';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }, []);
+
+  const columns = useMemo(() => [
+    {
+      key: 'name',
+      label: 'Competition',
+      sortable: true,
+      width: '260px',
+      render: (_val, row) => {
+        const org = organizations.find(o => o.id === row.organization_id);
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+            <div style={styles.compIcon}>
+              {org?.logo_url ? (
+                <img src={org.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: borderRadius.sm }} />
+              ) : (
+                <Crown size={14} style={{ color: colors.gold.primary }} />
+              )}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <p style={styles.compName}>{getCompetitionName(row)}</p>
+              <p style={styles.compSeason}>Season {row.season}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'city_id',
+      label: 'City',
+      sortable: true,
+      render: (_val, row) => {
+        const city = cities.find(c => c.id === row.city_id);
+        return (
+          <span style={styles.cityCell}>
+            <MapPin size={12} style={{ flexShrink: 0 }} />
+            {city?.name || '--'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      width: '110px',
+      render: (_val, row) => {
+        const config = STATUS_CONFIG[row.status] || STATUS_CONFIG[COMPETITION_STATUS.DRAFT];
+        return (
+          <span style={{
+            ...styles.statusBadge,
+            color: config.color,
+            background: config.bg,
+          }}>
+            {config.label}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'entry_type',
+      label: 'Entry',
+      sortable: true,
+      width: '100px',
+      render: (_val, row) => {
+        const label = row.entry_type === 'nominations' ? 'Nomination' : row.entry_type === 'self' ? 'Self-Entry' : row.entry_type || '--';
+        return (
+          <span style={styles.entryBadge}>
+            {label}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'host_id',
+      label: 'Host',
+      render: (_val, row) => {
+        const host = hosts.find(h => h.id === row.host_id);
+        if (host) {
+          return (
+            <span style={styles.hostBadge}>
+              <UserPlus size={10} style={{ color: colors.gold.primary }} />
+              {getHostName(host)}
+            </span>
+          );
+        }
+        return (
+          <span style={styles.noHostBadge}>
+            <AlertTriangle size={10} />
+            None
+          </span>
+        );
+      },
+    },
+    {
+      key: 'min_contestants',
+      label: 'Contestants',
+      sortable: true,
+      width: '110px',
+      render: (_val, row) => {
+        const min = row.min_contestants || 0;
+        const max = row.max_contestants;
+        return (
+          <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+            {max ? `${min}–${max}` : `${min}+`}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'number_of_winners',
+      label: 'Winners',
+      sortable: true,
+      width: '80px',
+    },
+    {
+      key: 'created_at',
+      label: 'Created',
+      sortable: true,
+      width: '120px',
+      render: (_val, row) => (
+        <span style={{ color: colors.text.tertiary, fontSize: typography.fontSize.xs }}>
+          {formatDate(row.created_at)}
+        </span>
+      ),
+    },
+  ], [organizations, cities, hosts, getCompetitionName, getHostName, formatDate]);
+
+  // ── Table row actions ───────────────────────────────────
+  const rowActions = useCallback((row) => {
+    const org = organizations.find(o => o.id === row.organization_id);
+    const city = cities.find(c => c.id === row.city_id);
+
+    const actions = [];
+    if (onViewDashboard) {
+      actions.push({
+        label: 'View Dashboard',
+        icon: Eye,
+        onClick: () => onViewDashboard({
+          ...row,
+          name: getCompetitionName(row),
+          city,
+          organization: org,
+        }),
+      });
+    }
+    actions.push(
+      { label: 'Edit', icon: Edit2, onClick: () => openEditModal(row, 'basic') },
+      { label: 'Pricing', icon: Calendar, onClick: () => openEditModal(row, 'pricing') },
+    );
+    if (!row.host_id) {
+      actions.push({
+        label: 'Assign Host',
+        icon: UserPlus,
+        onClick: () => { setSelectedCompetition(row); setShowAssignHostModal(true); },
+      });
+    }
+
+    // Status change sub-actions
+    Object.entries(STATUS_CONFIG).forEach(([status, config]) => {
+      if (row.status !== status) {
+        actions.push({
+          label: `Set ${config.label}`,
+          onClick: () => handleStatusChange(row.id, status),
+        });
+      }
+    });
+
+    actions.push({
+      label: 'Delete',
+      icon: Trash2,
+      variant: 'danger',
+      onClick: () => { setSelectedCompetition(row); setShowDeleteModal(true); },
+    });
+
+    return <ActionMenu actions={actions} />;
+  }, [organizations, cities, onViewDashboard, getCompetitionName]);
+
+  // ── Render ──────────────────────────────────────────────
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+      {/* Page header */}
+      <div style={styles.header}>
+        <div>
+          <h2 style={styles.title}>Competitions</h2>
+          <p style={styles.subtitle}>Create and manage competitions</p>
+        </div>
+        <Button icon={Plus} onClick={() => setShowCreateModal(true)}>
+          New Competition
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <StatRow stats={stats} />
+
+      {/* Filters */}
+      <FilterBar
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        searchPlaceholder="Search competitions..."
+        filters={[
+          { key: 'status', label: 'Status', options: statusOptions, value: filterStatus },
+          { key: 'city', label: 'City', options: cityFilterOptions, value: filterCity },
+          { key: 'season', label: 'Season', options: seasonFilterOptions, value: filterSeason },
+        ]}
+        onFilterChange={handleFilterChange}
+      />
+
+      {/* Data table */}
+      <DataTable
+        columns={columns}
+        data={filteredCompetitions}
+        loading={loading}
+        emptyMessage="No competitions found"
+        onRowClick={(row) => {
+          if (onViewDashboard) {
+            const org = organizations.find(o => o.id === row.organization_id);
+            const city = cities.find(c => c.id === row.city_id);
+            onViewDashboard({
+              ...row,
+              name: getCompetitionName(row),
+              city,
+              organization: org,
+            });
+          }
+        }}
+        actions={rowActions}
+      />
+
+      {/* ── Create Wizard ──────────────────────────────── */}
+      <CompetitionCreateWizard
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreate={handleCreate}
+        loading={isSubmitting}
+        organizations={organizations}
+        cities={cities}
+        categories={categories}
+        demographics={demographics}
+        hosts={hosts}
+        getHostName={getHostName}
+      />
+
+      {/* ── Edit Modal ─────────────────────────────────── */}
+      <CompetitionEditModal
+        isOpen={showEditModal}
+        onClose={() => { setShowEditModal(false); setSelectedCompetition(null); }}
+        onSave={handleUpdate}
+        loading={isSubmitting}
+        competition={selectedCompetition}
+        organizations={organizations}
+        cities={cities}
+        categories={categories}
+        demographics={demographics}
+        hosts={hosts}
+        getHostName={getHostName}
+        getCompetitionName={getCompetitionName}
+        defaultTab={editDefaultTab}
+      />
+
+      {/* ── Delete Confirmation ────────────────────────── */}
+      <FormModal
+        isOpen={showDeleteModal && !!selectedCompetition}
+        onClose={() => { setShowDeleteModal(false); setSelectedCompetition(null); }}
+        title="Delete Competition?"
+        subtitle={selectedCompetition ? `"${getCompetitionName(selectedCompetition)}"` : ''}
+        onSubmit={handleDelete}
+        submitLabel={isSubmitting ? 'Deleting...' : 'Delete'}
+        loading={isSubmitting}
+        size="sm"
+      >
+        <div style={styles.deleteBody}>
+          <div style={styles.deleteIcon}>
+            <Trash2 size={24} style={{ color: colors.status.error }} />
+          </div>
+          <p style={styles.deleteText}>
+            Are you sure you want to delete this competition? This action cannot be undone.
+          </p>
+        </div>
+      </FormModal>
+
+      {/* ── Status Confirm ─────────────────────────────── */}
+      {showStatusConfirmModal && pendingStatusChange && (
+        <FormModal
+          isOpen={showStatusConfirmModal}
+          onClose={handleStatusCancel}
+          title={getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).title}
+          onSubmit={handleStatusConfirm}
+          submitLabel={getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).confirmLabel}
+          size="sm"
+        >
+          <div style={styles.deleteBody}>
+            <div style={{
+              ...styles.deleteIcon,
+              background: pendingStatusChange.newStatus === COMPETITION_STATUSES.ARCHIVE
+                ? 'rgba(156,163,175,0.15)'
+                : pendingStatusChange.newStatus === COMPETITION_STATUSES.COMPLETED
+                  ? 'rgba(168,85,247,0.15)'
+                  : 'rgba(251,191,36,0.15)',
+            }}>
+              <AlertTriangle size={24} style={{
+                color: pendingStatusChange.newStatus === COMPETITION_STATUSES.ARCHIVE
+                  ? colors.text.muted
+                  : pendingStatusChange.newStatus === COMPETITION_STATUSES.COMPLETED
+                    ? '#a855f7'
+                    : '#fbbf24',
+              }} />
+            </div>
+            <p style={styles.deleteText}>
+              {getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).message}
+            </p>
+          </div>
+        </FormModal>
+      )}
+
+      {/* ── Assign Host Modal ──────────────────────────── */}
+      <FormModal
+        isOpen={showAssignHostModal && !!selectedCompetition}
+        onClose={() => { setShowAssignHostModal(false); setSelectedCompetition(null); }}
+        title="Assign Host"
+        subtitle={selectedCompetition ? getCompetitionName(selectedCompetition) : ''}
+        size="sm"
+      >
+        {hosts.length === 0 ? (
+          <p style={{ color: colors.text.tertiary, textAlign: 'center', padding: spacing.lg }}>
+            No hosts available
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+            {hosts.map(host => (
+              <button
+                key={host.id}
+                type="button"
+                onClick={() => handleAssignHost(host.id)}
+                style={styles.hostCard}
+              >
+                <div style={styles.hostAvatar}>
+                  {(host.first_name?.[0] || host.email[0]).toUpperCase()}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontWeight: typography.fontWeight.medium, color: colors.text.primary, margin: 0, fontSize: typography.fontSize.sm }}>
+                    {getHostName(host)}
+                  </p>
+                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, margin: 0 }}>
+                    {host.email}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </FormModal>
+    </div>
+  );
+}
+
+// ── Styles ──────────────────────────────────────────────────
+const styles = {
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  title: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    margin: 0,
+    color: colors.text.primary,
+  },
+  subtitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    margin: `${spacing[1]} 0 0`,
+  },
+  compIcon: {
+    width: '32px',
+    height: '32px',
+    borderRadius: borderRadius.sm,
+    background: colors.background.tertiary,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    flexShrink: 0,
+  },
+  compName: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+    margin: 0,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  compSeason: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    margin: 0,
+  },
+  cityCell: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: spacing[1],
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
+  },
+  statusBadge: {
+    display: 'inline-block',
+    padding: `2px ${spacing.sm}`,
+    borderRadius: borderRadius.pill,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.medium,
+    whiteSpace: 'nowrap',
+  },
+  hostBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: spacing[1],
+    padding: `2px ${spacing.sm}`,
+    background: `${colors.gold.primary}15`,
+    borderRadius: borderRadius.sm,
+    fontSize: typography.fontSize.xs,
+    color: colors.gold.primary,
+  },
+  entryBadge: {
+    display: 'inline-block',
+    padding: `2px ${spacing.sm}`,
+    borderRadius: borderRadius.sm,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    background: colors.background.tertiary,
+  },
+  noHostBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: spacing[1],
+    padding: `2px ${spacing.sm}`,
+    background: `${colors.status.error}15`,
+    borderRadius: borderRadius.sm,
+    fontSize: typography.fontSize.xs,
+    color: colors.status.error,
+  },
+  deleteBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    gap: spacing.md,
+  },
+  deleteIcon: {
+    width: '56px',
+    height: '56px',
+    borderRadius: borderRadius.full,
+    background: `${colors.status.error}15`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteText: {
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
+    lineHeight: typography.lineHeight.normal,
+    margin: 0,
+  },
+  hostCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    background: colors.background.tertiary,
+    border: `1px solid ${colors.border.primary}`,
+    borderRadius: borderRadius.md,
+    cursor: 'pointer',
+    textAlign: 'left',
+    width: '100%',
+    fontFamily: typography.fontFamily.sans,
+  },
+  hostAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.full,
+    background: `linear-gradient(135deg, ${colors.gold.primary}, ${colors.gold.light})`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: colors.text.inverse,
+    fontWeight: typography.fontWeight.bold,
+    fontSize: typography.fontSize.sm,
+    flexShrink: 0,
+  },
+};

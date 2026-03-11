@@ -4,19 +4,21 @@ import { useSupabaseAuth } from '../hooks';
 
 const NotificationContext = createContext(null);
 
+const POLL_INTERVAL = 15_000; // 15 seconds
+
 const NOTIFICATION_ICONS = {
-  nominated: { emoji: '🏆', label: 'Nominated' },
-  nomination_approved: { emoji: '✅', label: 'Approved' },
-  new_reward: { emoji: '🎁', label: 'Reward' },
-  prize_package: { emoji: '🎉', label: 'Prize' },
-  rank_change: { emoji: '📊', label: 'Ranking' },
-  vote_received: { emoji: '🗳️', label: 'Votes' },
-  event_posted: { emoji: '📢', label: 'Event' },
-  system_announcement: { emoji: '📣', label: 'System' },
+  nominated: { emoji: '\u{1F3C6}', label: 'Nominated' },
+  nomination_approved: { emoji: '\u2705', label: 'Approved' },
+  new_reward: { emoji: '\u{1F381}', label: 'Reward' },
+  prize_package: { emoji: '\u{1F389}', label: 'Prize' },
+  rank_change: { emoji: '\u{1F4CA}', label: 'Ranking' },
+  vote_received: { emoji: '\u{1F5F3}\uFE0F', label: 'Votes' },
+  event_posted: { emoji: '\u{1F4E2}', label: 'Event' },
+  system_announcement: { emoji: '\u{1F4E3}', label: 'System' },
 };
 
 export function getNotificationMeta(type) {
-  return NOTIFICATION_ICONS[type] || { emoji: '🔔', label: 'Notification' };
+  return NOTIFICATION_ICONS[type] || { emoji: '\u{1F514}', label: 'Notification' };
 }
 
 export function NotificationProvider({ children }) {
@@ -25,9 +27,9 @@ export function NotificationProvider({ children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const channelRef = useRef(null);
+  const pollRef = useRef(null);
 
-  // Fetch notifications from Supabase
+  // Fetch full notification list
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated || !user?.id || !isSupabaseConfigured()) return;
 
@@ -42,6 +44,8 @@ export function NotificationProvider({ children }) {
 
       if (error) throw error;
       setNotifications(data || []);
+      // Also update unread count from the fetched data
+      setUnreadCount((data || []).filter((n) => !n.read_at).length);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     } finally {
@@ -49,7 +53,7 @@ export function NotificationProvider({ children }) {
     }
   }, [isAuthenticated, user?.id]);
 
-  // Fetch unread count
+  // Lightweight unread count poll
   const fetchUnreadCount = useCallback(async () => {
     if (!isAuthenticated || !user?.id || !isSupabaseConfigured()) return;
 
@@ -75,37 +79,21 @@ export function NotificationProvider({ children }) {
       return;
     }
     fetchNotifications();
-    fetchUnreadCount();
-  }, [isAuthenticated, user?.id, fetchNotifications, fetchUnreadCount]);
+  }, [isAuthenticated, user?.id, fetchNotifications]);
 
-  // Realtime subscription
+  // Poll unread count every 15s
   useEffect(() => {
-    if (!isAuthenticated || !user?.id || !isSupabaseConfigured()) return;
+    if (!isAuthenticated || !user?.id) return;
 
-    const channel = supabase
-      .channel(`notifications-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          setNotifications((prev) => [payload.new, ...prev].slice(0, 50));
-          setUnreadCount((prev) => prev + 1);
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
+    pollRef.current = setInterval(fetchUnreadCount, POLL_INTERVAL);
 
     return () => {
-      channel.unsubscribe();
-      channelRef.current = null;
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
     };
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user?.id, fetchUnreadCount]);
 
   // Mark a single notification as read
   const markAsRead = useCallback(async (notificationId) => {
@@ -151,10 +139,40 @@ export function NotificationProvider({ children }) {
     }
   }, [isAuthenticated, user?.id]);
 
-  // Toggle panel
-  const togglePanel = useCallback(() => {
-    setIsOpen((prev) => !prev);
+  // Delete a notification
+  const deleteNotification = useCallback(async (notificationId) => {
+    if (!isSupabaseConfigured()) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
+      setNotifications((prev) => {
+        const removed = prev.find((n) => n.id === notificationId);
+        if (removed && !removed.read_at) {
+          setUnreadCount((c) => Math.max(0, c - 1));
+        }
+        return prev.filter((n) => n.id !== notificationId);
+      });
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
   }, []);
+
+  // Toggle panel — fetch fresh notifications when opening
+  const togglePanel = useCallback(() => {
+    setIsOpen((prev) => {
+      if (!prev) {
+        // Opening — fetch fresh list
+        fetchNotifications();
+      }
+      return !prev;
+    });
+  }, [fetchNotifications]);
 
   // Close panel
   const closePanel = useCallback(() => {
@@ -170,6 +188,7 @@ export function NotificationProvider({ children }) {
     closePanel,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
     fetchNotifications,
   };
 
@@ -192,6 +211,7 @@ export function useNotifications() {
       closePanel: () => {},
       markAsRead: () => {},
       markAllAsRead: () => {},
+      deleteNotification: () => {},
       fetchNotifications: () => {},
     };
   }

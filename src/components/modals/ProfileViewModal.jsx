@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, Star, FileText, Heart, Camera, Trophy, User, Instagram, ExternalLink, Loader } from 'lucide-react';
+import { X, MapPin, Star, FileText, Heart, Camera, Trophy, User, Instagram, ExternalLink } from 'lucide-react';
 import { Badge } from '../ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
+import { SkeletonPulse, SkeletonCircle, SkeletonText } from '../common/Skeleton';
 
 // Role display configuration
 const ROLE_CONFIG = {
@@ -145,10 +146,27 @@ export default function ProfileViewModal({
         </button>
 
         {loading ? (
-          <div style={{ padding: spacing.xxxl, textAlign: 'center' }}>
-            <Loader size={48} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary, marginBottom: spacing.lg }} />
-            <p style={{ color: colors.text.secondary }}>Loading profile...</p>
-            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          <div style={{ padding: spacing.xxl }}>
+            {/* Cover image skeleton */}
+            <SkeletonPulse height="160px" radius={`${borderRadius.xxl} ${borderRadius.xxl} 0 0`} style={{ marginBottom: spacing.lg }} />
+            {/* Avatar + name skeleton */}
+            <div style={{ display: 'flex', gap: spacing.xl, alignItems: 'flex-end', marginBottom: spacing.xl, marginTop: '-50px', padding: `0 ${spacing.xxl}` }}>
+              <SkeletonCircle size="100px" />
+              <div style={{ flex: 1 }}>
+                <SkeletonPulse height="24px" width="200px" style={{ marginBottom: spacing.sm }} />
+                <SkeletonPulse height="14px" width="120px" />
+              </div>
+            </div>
+            {/* Bio skeleton */}
+            <div style={{ padding: `0 ${spacing.xxl}` }}>
+              <SkeletonText lines={3} style={{ marginBottom: spacing.xl }} />
+              {/* Social links skeleton */}
+              <div style={{ display: 'flex', gap: spacing.md }}>
+                {Array.from({ length: 2 }, (_, i) => (
+                  <SkeletonPulse key={i} width="120px" height="36px" radius={borderRadius.lg} />
+                ))}
+              </div>
+            </div>
           </div>
         ) : !displayProfile ? (
           <div style={{ padding: spacing.xxxl, textAlign: 'center' }}>

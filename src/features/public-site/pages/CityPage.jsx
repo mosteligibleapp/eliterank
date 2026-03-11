@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  MapPin, Crown, Calendar, ChevronRight, Loader, Building2
+  MapPin, Crown, Calendar, ChevronRight, Building2
 } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { STATUS_CONFIG, COMPETITION_STATUS, US_STATES } from '../../../types/competition';
+import { SkeletonPulse, SkeletonCard } from '../../../components/common/Skeleton';
 
 export default function CityPage() {
   const { citySlug } = useParams();
@@ -102,16 +103,17 @@ export default function CityPage() {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: colors.background.primary,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <Loader size={32} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />
-          <p style={{ marginTop: spacing.md, color: colors.text.secondary }}>Loading...</p>
+      <div style={{ minHeight: '100vh', background: colors.background.primary, padding: spacing.xl }}>
+        <SkeletonPulse height="200px" radius={borderRadius.xl} />
+        <div style={{
+          marginTop: spacing.xl,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: spacing.lg,
+        }}>
+          {Array.from({ length: 6 }, (_, i) => (
+            <SkeletonCard key={i} height="240px" />
+          ))}
         </div>
       </div>
     );

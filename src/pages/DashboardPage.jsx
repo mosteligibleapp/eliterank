@@ -9,7 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores';
 import { CompetitionDashboard } from '../features/competition-dashboard';
-import LoadingScreen from '../components/common/LoadingScreen';
+import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
+import ErrorState from '../components/common/ErrorState';
 
 /**
  * Build competition display name from city and season
@@ -40,6 +41,7 @@ export default function DashboardPage() {
   
   const [hostCompetition, setHostCompetition] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   // Fetch host's assigned competition from Supabase
   useEffect(() => {
@@ -77,8 +79,9 @@ export default function DashboardPage() {
         } else {
           setHostCompetition(null);
         }
-      } catch {
+      } catch (err) {
         setHostCompetition(null);
+        setFetchError(err);
       }
       setLoading(false);
     };
@@ -107,7 +110,19 @@ export default function DashboardPage() {
   }, [hostCompetition]);
 
   if (loading) {
-    return <LoadingScreen message="Loading dashboard..." />;
+    return <DashboardSkeleton />;
+  }
+
+  if (fetchError) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0a0a0c' }}>
+        <ErrorState
+          title="Failed to load dashboard"
+          message="We couldn't load your competition data. Please try again."
+          onRetry={() => { setFetchError(null); setLoading(true); }}
+        />
+      </div>
+    );
   }
 
   // Host must have an assigned competition to view the dashboard
