@@ -37,6 +37,7 @@ const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
 const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLayout'));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
+const PhotoBoothPage = lazy(() => import('../pages/PhotoBoothPage'));
 
 const darkVoid = <div style={{ minHeight: '100vh', background: '#0a0a0c' }} />;
 
@@ -181,6 +182,16 @@ export default function AppRoutes() {
         element={
           <SuspenseWrapper>
             <TermsPage />
+          </SuspenseWrapper>
+        }
+      />
+
+      {/* Photo booth (temporary event page) */}
+      <Route
+        path="/photobooth"
+        element={
+          <SuspenseWrapper>
+            <PhotoBoothPage />
           </SuspenseWrapper>
         }
       />

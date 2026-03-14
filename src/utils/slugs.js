@@ -141,6 +141,7 @@ export const RESERVED_PATHS = [
   'news',     // News/announcements
   'about',    // About page
   'join',     // Join/signup
+  'photobooth', // Temporary event photo booth
 ];
 
 /**
