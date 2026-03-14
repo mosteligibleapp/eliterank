@@ -15,14 +15,21 @@ const corsHeaders = {
 
 interface PhotoBoothEmailRequest {
   to_email: string
-  photo_url: string
+  photo_urls: string[]  // Array of individual branded photo URLs
+  photo_url?: string    // Legacy single URL (backwards compat)
   nominee_name?: string
 }
 
-function buildPhotoEmail(photoUrl: string, nomineeName?: string): { subject: string; body: string } {
+function buildPhotoEmail(photoUrls: string[], nomineeName?: string): { subject: string; body: string } {
   const subject = nomineeName
-    ? `Your Lucky Disco × Most Eligible photo with ${nomineeName} 🍀`
-    : 'Your Lucky Disco × Most Eligible photo 🍀'
+    ? `Your Lucky Disco × Most Eligible photos with ${nomineeName} 🍀`
+    : 'Your Lucky Disco × Most Eligible photos 🍀'
+
+  const photosHtml = photoUrls.map((url, i) => `
+    <div style="margin:0 auto 16px;text-align:center;">
+      <img src="${url}" alt="Photo ${i + 1}" style="max-width:100%;height:auto;border-radius:8px;" />
+    </div>
+  `).join('')
 
   const body = `
     <!DOCTYPE html>
@@ -34,16 +41,14 @@ function buildPhotoEmail(photoUrl: string, nomineeName?: string): { subject: str
           <span style="font-size:14px;letter-spacing:0.3em;color:#00ff6a;font-weight:bold;">LUCKY DISCO × MOST ELIGIBLE</span>
         </div>
         <div style="text-align:center;">
-          <h1 style="color:#fff;font-size:24px;margin:0 0 8px;">Your Photo Strip 🍀</h1>
+          <h1 style="color:#fff;font-size:24px;margin:0 0 8px;">Your Photos 🍀</h1>
           <p style="color:rgba(255,255,255,.6);font-size:14px;margin:0 0 24px;">
             ${nomineeName ? `Featuring ${nomineeName} — ` : ''}Thanks for stopping by the photo booth!
           </p>
-          <div style="margin:0 auto 24px;text-align:center;">
-            <img src="${photoUrl}" alt="Photo booth strip" style="max-width:100%;height:auto;border-radius:8px;border:1px solid rgba(0,255,106,.2);" />
-          </div>
-          <p style="color:rgba(255,255,255,.4);font-size:12px;margin:16px 0;">
-            Save or screenshot your photo strip above!
+          <p style="color:rgba(255,255,255,.4);font-size:12px;margin:0 0 16px;">
+            Long press each photo to save it to your camera roll
           </p>
+          ${photosHtml}
           <div style="text-align:center;margin:24px 0;">
             <a href="https://www.instagram.com/mosteligiblechi/" style="display:inline-block;padding:14px 32px;background:#00ff6a;color:#060a06;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;">
               Follow @mosteligiblechi
@@ -176,14 +181,17 @@ serve(async (req) => {
     const body: PhotoBoothEmailRequest = await req.json()
     console.log('send-photobooth-photo called:', JSON.stringify({ to_email: body.to_email, photo_url: body.photo_url }))
 
-    if (!body.to_email || !body.photo_url) {
+    // Support both photo_urls array and legacy photo_url string
+    const photoUrls = body.photo_urls || (body.photo_url ? [body.photo_url] : [])
+
+    if (!body.to_email || photoUrls.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'to_email and photo_url are required' }),
+        JSON.stringify({ error: 'to_email and photo_urls are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const { subject, body: htmlBody } = buildPhotoEmail(body.photo_url, body.nominee_name)
+    const { subject, body: htmlBody } = buildPhotoEmail(photoUrls, body.nominee_name)
 
     const { subscriptionId, error: subError } = await ensureEmailSubscription(appId, apiKey, body.to_email)
 
