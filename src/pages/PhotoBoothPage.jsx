@@ -663,25 +663,110 @@ export default function PhotoBoothPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Helper: draw a stylized 4-leaf clover with neon glow
+  const drawStylizedClover = useCallback((ctx, cx, cy, size) => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.shadowColor = C.neon;
+    ctx.shadowBlur = size * 0.6;
+    ctx.fillStyle = C.neon;
+
+    // Draw 4 heart-shaped leaves rotated 90° apart
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.rotate((i * Math.PI) / 2);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(-size * 0.5, -size * 0.1, -size * 0.55, -size * 0.65, 0, -size * 0.85);
+      ctx.bezierCurveTo(size * 0.55, -size * 0.65, size * 0.5, -size * 0.1, 0, 0);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Small stem
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = C.neon;
+    ctx.lineWidth = size * 0.08;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, size * 0.1);
+    ctx.quadraticCurveTo(size * 0.15, size * 0.5, size * 0.05, size * 0.7);
+    ctx.stroke();
+
+    ctx.restore();
+  }, []);
+
+  // Helper: draw gradient separator line (green → gold)
+  const drawGradientLine = useCallback((ctx, x, y, W, h) => {
+    const grad = ctx.createLinearGradient(x, y, x + W, y);
+    grad.addColorStop(0, C.neon);
+    grad.addColorStop(1, '#ffd700');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, W, h);
+  }, []);
+
   // Helper: draw the branded banner on a canvas context
   const drawBanner = useCallback((ctx, W, wmH) => {
-    ctx.fillStyle = 'rgba(6,10,6,.95)';
+    // Dark background
+    ctx.fillStyle = 'rgba(6,10,6,.97)';
     ctx.fillRect(0, 0, W, wmH);
-    ctx.fillStyle = C.neon;
-    ctx.fillRect(0, wmH - 1.5, W, 1.5);
 
-    const fS = Math.max(14, W * 0.034);
-    ctx.font = `900 ${fS}px Arial Black, sans-serif`;
+    // Subtle radial green glow from center-top
+    const glow = ctx.createRadialGradient(W * 0.5, 0, 0, W * 0.5, wmH * 0.5, W * 0.5);
+    glow.addColorStop(0, 'rgba(0,255,106,0.1)');
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, wmH);
+
+    // Gradient separator line at bottom (green → gold)
+    drawGradientLine(ctx, 0, wmH - 2, W, 2);
+
+    // Title with letter-spacing
+    const fS = Math.max(13, W * 0.031);
     ctx.fillStyle = C.neon;
     ctx.textAlign = 'left';
-    ctx.fillText('LUCKY DISCO × MOST ELIGIBLE', W * 0.04, wmH * 0.5);
-    ctx.font = `${fS * 0.62}px sans-serif`;
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.fillText('Chicago 2026', W * 0.04, wmH * 0.8);
-    ctx.font = `${wmH * 0.6}px serif`;
-    ctx.textAlign = 'right';
-    ctx.fillText('🍀', W * 0.97, wmH * 0.78);
-  }, []);
+    ctx.textBaseline = 'middle';
+
+    const title = 'LUCKY DISCO × MOST ELIGIBLE';
+    const spacing = fS * 0.15;
+    ctx.font = `800 ${fS}px "Bebas Neue", Arial Black, sans-serif`;
+    let xPos = W * 0.04;
+    const titleY = wmH * 0.42;
+    for (const ch of title) {
+      ctx.fillText(ch, xPos, titleY);
+      xPos += ctx.measureText(ch).width + spacing;
+    }
+
+    // Subtitle
+    ctx.font = `500 ${fS * 0.6}px "Space Grotesk", sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,.65)';
+    ctx.textBaseline = 'middle';
+    ctx.fillText("St. Patrick's Day 2026", W * 0.04, wmH * 0.76);
+
+    // Stylized clover (top-right)
+    const cloverSize = wmH * 0.28;
+    drawStylizedClover(ctx, W * 0.93, wmH * 0.48, cloverSize);
+
+    ctx.textBaseline = 'alphabetic';
+  }, [drawStylizedClover, drawGradientLine]);
+
+  // Helper: draw the bottom footer bar with @mosteligiblechi
+  const drawFooter = useCallback((ctx, W, y, ftH) => {
+    ctx.fillStyle = 'rgba(6,10,6,.97)';
+    ctx.fillRect(0, y, W, ftH);
+
+    // Gradient separator line at top (green → gold)
+    drawGradientLine(ctx, 0, y, W, 2);
+
+    // Centered @mosteligiblechi
+    const fS = Math.max(12, W * 0.028);
+    ctx.font = `700 ${fS}px "Space Grotesk", Arial, sans-serif`;
+    ctx.fillStyle = C.neon;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('@mosteligiblechi', W * 0.5, y + ftH * 0.55);
+    ctx.textBaseline = 'alphabetic';
+  }, [drawGradientLine]);
 
   const buildPhotos = useCallback(async (allShots) => {
     const canvas = canvasRef.current;
@@ -700,9 +785,9 @@ export default function PhotoBoothPage() {
     const imgs = await Promise.all(allShots.map(loadImage));
 
     // 1. Build preview strip (for display only, not emailed)
-    const SW = 480, SH = 480, pad = 8, wmH = 60;
+    const SW = 480, SH = 480, pad = 8, wmH = 70, ftH = 50;
     const stripW = SW + pad * 2;
-    const stripH = wmH + pad + (SH + pad) * TOTAL_SHOTS + pad;
+    const stripH = wmH + pad + (SH + pad) * TOTAL_SHOTS + pad + ftH;
     canvas.width = stripW;
     canvas.height = stripH;
 
@@ -720,11 +805,13 @@ export default function PhotoBoothPage() {
       ctx.restore();
     });
 
+    drawFooter(ctx, stripW, stripH - ftH, ftH);
+
     setStripDataUrl(canvas.toDataURL('image/jpeg', 0.92));
 
     // 2. Build individual branded photos (banner + photo each, for email)
-    const photoW = 600, photoH = 600, bannerH = 70;
-    const singleH = bannerH + photoH;
+    const photoW = 600, photoH = 600, bannerH = 80, footerH = 50;
+    const singleH = bannerH + photoH + footerH;
     const blobs = [];
 
     for (const img of imgs) {
@@ -735,6 +822,7 @@ export default function PhotoBoothPage() {
       ctx.fillRect(0, 0, photoW, singleH);
       drawBanner(ctx, photoW, bannerH);
       ctx.drawImage(img, 0, bannerH, photoW, photoH);
+      drawFooter(ctx, photoW, bannerH + photoH, footerH);
 
       const blob = await new Promise((resolve) =>
         canvas.toBlob(resolve, 'image/jpeg', 0.92)
@@ -751,7 +839,7 @@ export default function PhotoBoothPage() {
     }
 
     setScreen('preview');
-  }, [drawBanner]);
+  }, [drawBanner, drawFooter]);
 
   // ─── Nomination ──────────────────────────────────────────────────────────
   const goNominate = useCallback(() => {
