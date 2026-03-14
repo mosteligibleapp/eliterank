@@ -806,7 +806,7 @@ export default function PhotoBoothPage() {
         photoUrl = urlData.publicUrl;
       }
 
-      // 2. If nomination, insert nominee record
+      // 2. If nomination, insert nominee record (non-blocking — photo send always happens)
       let nomineeName = null;
       if (!skipNom && nomName.trim()) {
         nomineeName = nomName.trim();
@@ -829,36 +829,34 @@ export default function PhotoBoothPage() {
           insertData.nominator_notify = true;
         }
 
-        const { data: inserted, error: dbError } = await supabase
-          .from('nominees')
-          .insert(insertData)
-          .select('id, invite_token')
-          .single();
+        try {
+          const { data: inserted, error: dbError } = await supabase
+            .from('nominees')
+            .insert(insertData)
+            .select('id, invite_token')
+            .single();
 
-        if (dbError) {
-          if (dbError.code === '23505') {
-            // Already nominated — continue with photo send
-            console.warn('Nominee already exists, continuing with photo delivery');
-          } else {
-            throw dbError;
+          if (dbError) {
+            if (dbError.code === '23505') {
+              console.warn('Nominee already exists, continuing with photo delivery');
+            } else {
+              console.error('Nomination insert error:', dbError);
+            }
           }
-        }
 
-        // Fire-and-forget: send nomination invite email to nominee
-        if (inserted?.id) {
-          supabase.functions.invoke('send-nomination-invite', {
-            body: { nominee_id: inserted.id },
-          }).catch((err) => console.warn('Failed to send nomination invite:', err));
-        }
-
-        // Fire-and-forget: send nominator notification if different email
-        if (isThirdParty && inserted?.id) {
-          // The send-nomination-invite function already handles nominator_confirm emails
-          // so we don't need to do anything extra here
+          // Fire-and-forget: send nomination invite email to nominee
+          if (inserted?.id) {
+            supabase.functions.invoke('send-nomination-invite', {
+              body: { nominee_id: inserted.id },
+            }).catch((err) => console.warn('Failed to send nomination invite:', err));
+          }
+        } catch (nomErr) {
+          // Nomination failed but don't block photo delivery
+          console.error('Nomination error (non-blocking):', nomErr);
         }
       }
 
-      // 3. Send photo email
+      // 3. Send photo email — always runs even if nomination failed
       if (photoUrl) {
         supabase.functions.invoke('send-photobooth-photo', {
           body: {
