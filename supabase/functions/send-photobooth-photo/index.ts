@@ -27,7 +27,7 @@ function buildPhotoEmail(photoUrls: string[], nomineeName?: string): { subject: 
 
   const photosHtml = photoUrls.map((url, i) => `
     <div style="margin:0 auto 16px;text-align:center;">
-      <img src="${url}" alt="Photo ${i + 1}" style="max-width:100%;height:auto;border-radius:8px;" />
+      <img src="${url}" alt="Photo ${i + 1}" width="600" style="width:100%;height:auto;border-radius:8px;display:block;margin:0 auto;" />
     </div>
   `).join('')
 
@@ -36,7 +36,7 @@ function buildPhotoEmail(photoUrls: string[], nomineeName?: string): { subject: 
     <html>
     <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
     <body style="margin:0;padding:0;background:#060a06;color:#fff;">
-      <div style="max-width:480px;margin:0 auto;padding:16px;font-family:Arial,Helvetica,sans-serif;">
+      <div style="max-width:600px;margin:0 auto;padding:16px;font-family:Arial,Helvetica,sans-serif;">
         <div style="text-align:center;padding:32px 0 16px;">
           <span style="font-size:14px;letter-spacing:0.3em;color:#00ff6a;font-weight:bold;">LUCKY DISCO × MOST ELIGIBLE</span>
         </div>
