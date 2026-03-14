@@ -620,11 +620,18 @@ export default function PhotoBoothPage() {
 
     const v = videoRef.current;
     if (v && v.srcObject) {
+      // Center-crop the video to a square (avoid stretching)
+      const vw = v.videoWidth || v.width || W;
+      const vh = v.videoHeight || v.height || H;
+      const cropSize = Math.min(vw, vh);
+      const sx = (vw - cropSize) / 2;
+      const sy = (vh - cropSize) / 2;
+
       // Mirror the image
       ctx.save();
       ctx.translate(W, 0);
       ctx.scale(-1, 1);
-      ctx.drawImage(v, 0, 0, W, H);
+      ctx.drawImage(v, sx, sy, cropSize, cropSize, 0, 0, W, H);
       ctx.restore();
     }
 
