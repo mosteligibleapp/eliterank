@@ -925,6 +925,22 @@ export default function PhotoBoothPage() {
     ...(fieldErrors[fieldName] ? styles.fieldInputErr : {}),
   });
 
+  // ─── Download helpers ─────────────────────────────────────────────────────
+  const downloadDataUrl = useCallback((dataUrl, filename) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+  }, []);
+
+  const downloadStrip = useCallback(() => {
+    if (stripDataUrl) downloadDataUrl(stripDataUrl, 'lucky-disco-strip.jpg');
+  }, [stripDataUrl, downloadDataUrl]);
+
+  const downloadSinglePhoto = useCallback((index) => {
+    if (shots[index]) downloadDataUrl(shots[index], `lucky-disco-photo-${index + 1}.jpg`);
+  }, [shots, downloadDataUrl]);
+
   // ─── QR Code (simple SVG-based approach) ─────────────────────────────────
   const qrRef = useRef(null);
   useEffect(() => {
@@ -1186,13 +1202,56 @@ export default function PhotoBoothPage() {
 
       {/* ─── SUCCESS SCREEN ─── */}
       {screen === 'success' && (
-        <div style={{ ...styles.screen, ...styles.success }}>
+        <div style={{ ...styles.screen, ...styles.success, overflowY: 'auto', justifyContent: 'flex-start', paddingTop: 40 }}>
           <h1 style={styles.successTitle}>
             LOCKED<br />IN & <span style={{ color: C.neon }}>LUCKY</span>
           </h1>
           <p style={styles.successSub}>
             Your photo is on its way! Check your email shortly.
           </p>
+
+          {/* Download section */}
+          <div style={{ width: '100%', maxWidth: 380, marginBottom: 24 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,.38)', textAlign: 'center', marginBottom: 12 }}>
+              Save your photos
+            </div>
+            {stripDataUrl && (
+              <button onClick={downloadStrip} style={{ ...styles.btnNext, maxWidth: 380, marginBottom: 10, fontSize: 16 }}>
+                📥 Download Full Strip
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              {shots.map((shot, i) => (
+                <button
+                  key={i}
+                  onClick={() => downloadSinglePhoto(i)}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255,255,255,.06)',
+                    border: `1px solid rgba(0,255,106,.2)`,
+                    borderRadius: 10,
+                    padding: 0,
+                    cursor: 'pointer',
+                    overflow: 'hidden',
+                    position: 'relative',
+                  }}
+                >
+                  <img src={shot} alt={`Photo ${i + 1}`} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10 }} />
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    background: 'linear-gradient(transparent, rgba(0,0,0,.7))',
+                    padding: '16px 4px 6px',
+                    fontSize: 9, fontWeight: 600, letterSpacing: 1,
+                    textTransform: 'uppercase', color: C.neon,
+                    textAlign: 'center',
+                  }}>
+                    📥 Photo {i + 1}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div style={styles.qrWrap}>
             <div style={styles.qrLabel}>Follow the competition</div>
             <div ref={qrRef} />
@@ -1201,6 +1260,7 @@ export default function PhotoBoothPage() {
           <button style={styles.btnAgain} onClick={reset}>
             ☘️ &nbsp;Take Another Photo
           </button>
+          <div style={{ height: 40 }} />
         </div>
       )}
     </div>
