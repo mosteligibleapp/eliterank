@@ -22,8 +22,8 @@ interface PhotoBoothEmailRequest {
 
 function buildPhotoEmail(photoUrls: string[], nomineeName?: string): { subject: string; body: string } {
   const subject = nomineeName
-    ? `Your Lucky Disco × Most Eligible photos with ${nomineeName} 🍀`
-    : 'Your Lucky Disco × Most Eligible photos 🍀'
+    ? `Your St. Patrick's Day photos with ${nomineeName} 🍀 Lucky Disco × Most Eligible`
+    : `Your St. Patrick's Day photos 🍀 Lucky Disco × Most Eligible`
 
   const photosHtml = photoUrls.map((url, i) => `
     <div style="margin:0 auto 16px;text-align:center;">
@@ -58,7 +58,7 @@ function buildPhotoEmail(photoUrls: string[], nomineeName?: string): { subject: 
         <div style="text-align:center;padding:24px 0;border-top:1px solid rgba(0,255,106,.15);margin-top:32px;">
           <a href="https://eliterank.co" style="color:#00ff6a;font-size:12px;text-decoration:none;">eliterank.co</a>
           <p style="color:rgba(255,255,255,.3);font-size:11px;margin-top:8px;">
-            You're receiving this because you used the photo booth at Lucky Disco × Most Eligible.
+            You're receiving this because you used the photo booth at Lucky Disco × Most Eligible — St. Patrick's Day 2026.
           </p>
         </div>
       </div>
