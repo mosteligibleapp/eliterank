@@ -507,8 +507,8 @@ export default function PhotoBoothPage() {
   // Photo data
   const [shots, setShots] = useState([]);
   const [shotCount, setShotCount] = useState(0);
-  const [stripDataUrl, setStripDataUrl] = useState(null);
-  const [stripBlob, setStripBlob] = useState(null);
+  const [stripDataUrl, setStripDataUrl] = useState(null); // Preview composite
+  const [brandedBlobs, setBrandedBlobs] = useState([]); // Individual branded photos for upload
 
   // UI state
   const [showCountdown, setShowCountdown] = useState(false);
@@ -655,7 +655,7 @@ export default function PhotoBoothPage() {
         }, 900);
       } else {
         // All shots taken — build strip
-        buildStrip(newShots);
+        buildPhotos(newShots);
       }
 
       return newShots;
@@ -663,47 +663,33 @@ export default function PhotoBoothPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const buildStrip = useCallback(async (allShots) => {
-    const SW = 480, SH = 480, pad = 8, wmH = 60;
-    const stripW = SW + pad * 2;
-    const stripH = wmH + pad + (SH + pad) * TOTAL_SHOTS + pad;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    canvas.width = stripW;
-    canvas.height = stripH;
-
-    // Background
-    ctx.fillStyle = C.dark;
-    ctx.fillRect(0, 0, stripW, stripH);
-
-    // Watermark bar
+  // Helper: draw the branded banner on a canvas context
+  const drawBanner = useCallback((ctx, W, wmH) => {
     ctx.fillStyle = 'rgba(6,10,6,.95)';
-    ctx.fillRect(0, 0, stripW, wmH);
+    ctx.fillRect(0, 0, W, wmH);
     ctx.fillStyle = C.neon;
-    ctx.fillRect(0, wmH - 1.5, stripW, 1.5);
+    ctx.fillRect(0, wmH - 1.5, W, 1.5);
 
-    // Wait for fonts
-    try {
-      await document.fonts.ready;
-    } catch (e) {
-      // Font API not available, proceed anyway
-    }
-
-    const fS = Math.max(14, stripW * 0.034);
+    const fS = Math.max(14, W * 0.034);
     ctx.font = `900 ${fS}px Arial Black, sans-serif`;
     ctx.fillStyle = C.neon;
     ctx.textAlign = 'left';
-    ctx.fillText('LUCKY DISCO × MOST ELIGIBLE', stripW * 0.04, wmH * 0.5);
+    ctx.fillText('LUCKY DISCO × MOST ELIGIBLE', W * 0.04, wmH * 0.5);
     ctx.font = `${fS * 0.62}px sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.fillText('Chicago 2026', stripW * 0.04, wmH * 0.8);
+    ctx.fillText('Chicago 2026', W * 0.04, wmH * 0.8);
     ctx.font = `${wmH * 0.6}px serif`;
     ctx.textAlign = 'right';
-    ctx.fillText('🍀', stripW * 0.97, wmH * 0.78);
+    ctx.fillText('🍀', W * 0.97, wmH * 0.78);
+  }, []);
 
-    // Draw each shot
+  const buildPhotos = useCallback(async (allShots) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    try { await document.fonts.ready; } catch (e) { /* proceed */ }
+
     const loadImage = (src) =>
       new Promise((resolve) => {
         const img = new Image();
@@ -712,6 +698,17 @@ export default function PhotoBoothPage() {
       });
 
     const imgs = await Promise.all(allShots.map(loadImage));
+
+    // 1. Build preview strip (for display only, not emailed)
+    const SW = 480, SH = 480, pad = 8, wmH = 60;
+    const stripW = SW + pad * 2;
+    const stripH = wmH + pad + (SH + pad) * TOTAL_SHOTS + pad;
+    canvas.width = stripW;
+    canvas.height = stripH;
+
+    ctx.fillStyle = C.dark;
+    ctx.fillRect(0, 0, stripW, stripH);
+    drawBanner(ctx, stripW, wmH);
 
     imgs.forEach((img, i) => {
       const y = wmH + pad + i * (SH + pad);
@@ -723,17 +720,29 @@ export default function PhotoBoothPage() {
       ctx.restore();
     });
 
-    // Generate data URL and blob
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    setStripDataUrl(dataUrl);
+    setStripDataUrl(canvas.toDataURL('image/jpeg', 0.92));
 
-    canvas.toBlob(
-      (blob) => {
-        setStripBlob(blob);
-      },
-      'image/jpeg',
-      0.92,
-    );
+    // 2. Build individual branded photos (banner + photo each, for email)
+    const photoW = 600, photoH = 600, bannerH = 70;
+    const singleH = bannerH + photoH;
+    const blobs = [];
+
+    for (const img of imgs) {
+      canvas.width = photoW;
+      canvas.height = singleH;
+
+      ctx.fillStyle = C.dark;
+      ctx.fillRect(0, 0, photoW, singleH);
+      drawBanner(ctx, photoW, bannerH);
+      ctx.drawImage(img, 0, bannerH, photoW, photoH);
+
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', 0.92)
+      );
+      blobs.push(blob);
+    }
+
+    setBrandedBlobs(blobs);
 
     // Stop camera stream
     if (streamRef.current) {
@@ -742,7 +751,7 @@ export default function PhotoBoothPage() {
     }
 
     setScreen('preview');
-  }, []);
+  }, [drawBanner]);
 
   // ─── Nomination ──────────────────────────────────────────────────────────
   const goNominate = useCallback(() => {
@@ -787,23 +796,26 @@ export default function PhotoBoothPage() {
     setError('');
 
     try {
-      // 1. Upload photo strip to Supabase Storage
-      let photoUrl = null;
-      if (stripBlob) {
-        const fileName = `photobooth/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.jpg`;
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, stripBlob, {
-            contentType: 'image/jpeg',
-            cacheControl: '3600',
-            upsert: false,
-          });
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw new Error('Failed to upload photo. Please try again.');
+      // 1. Upload individual branded photos to Supabase Storage
+      const photoUrls = [];
+      if (brandedBlobs.length > 0) {
+        const ts = Date.now();
+        for (let i = 0; i < brandedBlobs.length; i++) {
+          const fileName = `photobooth/${ts}-${i + 1}-${Math.random().toString(36).substring(2, 7)}.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, brandedBlobs[i], {
+              contentType: 'image/jpeg',
+              cacheControl: '3600',
+              upsert: false,
+            });
+          if (uploadError) {
+            console.error(`Upload error photo ${i + 1}:`, uploadError);
+            throw new Error('Failed to upload photos. Please try again.');
+          }
+          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+          photoUrls.push(urlData.publicUrl);
         }
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-        photoUrl = urlData.publicUrl;
       }
 
       // 2. If nomination, insert nominee record (non-blocking — photo send always happens)
@@ -857,11 +869,11 @@ export default function PhotoBoothPage() {
       }
 
       // 3. Send photo email — always runs even if nomination failed
-      if (photoUrl) {
+      if (photoUrls.length > 0) {
         supabase.functions.invoke('send-photobooth-photo', {
           body: {
             to_email: email,
-            photo_url: photoUrl,
+            photo_urls: photoUrls,
             nominee_name: nomineeName,
           },
         }).catch((err) => console.warn('Failed to send photo email:', err));
@@ -874,7 +886,7 @@ export default function PhotoBoothPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [sendEmail, stripBlob, skipNom, nomName, nomEmail, nomIg, nomComp]);
+  }, [sendEmail, brandedBlobs, skipNom, nomName, nomEmail, nomIg, nomComp]);
 
   // ─── Reset ───────────────────────────────────────────────────────────────
   const reset = useCallback(() => {
@@ -882,7 +894,7 @@ export default function PhotoBoothPage() {
     setShots([]);
     setShotCount(0);
     setStripDataUrl(null);
-    setStripBlob(null);
+    setBrandedBlobs([]);
     setNomName('');
     setNomIg('');
     setNomEmail('');
@@ -902,7 +914,7 @@ export default function PhotoBoothPage() {
     setShots([]);
     setShotCount(0);
     setStripDataUrl(null);
-    setStripBlob(null);
+    setBrandedBlobs([]);
     if (countdownRef.current) {
       clearInterval(countdownRef.current);
       countdownRef.current = null;
@@ -914,7 +926,7 @@ export default function PhotoBoothPage() {
     setShots([]);
     setShotCount(0);
     setStripDataUrl(null);
-    setStripBlob(null);
+    setBrandedBlobs([]);
     setScreen('welcome');
   }, []);
 
@@ -924,22 +936,6 @@ export default function PhotoBoothPage() {
     ...(focusedField === fieldName ? styles.fieldInputFocus : {}),
     ...(fieldErrors[fieldName] ? styles.fieldInputErr : {}),
   });
-
-  // ─── Download helpers ─────────────────────────────────────────────────────
-  const downloadDataUrl = useCallback((dataUrl, filename) => {
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = filename;
-    a.click();
-  }, []);
-
-  const downloadStrip = useCallback(() => {
-    if (stripDataUrl) downloadDataUrl(stripDataUrl, 'lucky-disco-strip.jpg');
-  }, [stripDataUrl, downloadDataUrl]);
-
-  const downloadSinglePhoto = useCallback((index) => {
-    if (shots[index]) downloadDataUrl(shots[index], `lucky-disco-photo-${index + 1}.jpg`);
-  }, [shots, downloadDataUrl]);
 
   // ─── QR Code (simple SVG-based approach) ─────────────────────────────────
   const qrRef = useRef(null);
@@ -1202,56 +1198,13 @@ export default function PhotoBoothPage() {
 
       {/* ─── SUCCESS SCREEN ─── */}
       {screen === 'success' && (
-        <div style={{ ...styles.screen, ...styles.success, overflowY: 'auto', justifyContent: 'flex-start', paddingTop: 40 }}>
+        <div style={{ ...styles.screen, ...styles.success }}>
           <h1 style={styles.successTitle}>
             LOCKED<br />IN & <span style={{ color: C.neon }}>LUCKY</span>
           </h1>
           <p style={styles.successSub}>
-            Your photo is on its way! Check your email shortly.
+            Your photos are on the way! Check your email shortly.
           </p>
-
-          {/* Download section */}
-          <div style={{ width: '100%', maxWidth: 380, marginBottom: 24 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,.38)', textAlign: 'center', marginBottom: 12 }}>
-              Save your photos
-            </div>
-            {stripDataUrl && (
-              <button onClick={downloadStrip} style={{ ...styles.btnNext, maxWidth: 380, marginBottom: 10, fontSize: 16 }}>
-                📥 Download Full Strip
-              </button>
-            )}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-              {shots.map((shot, i) => (
-                <button
-                  key={i}
-                  onClick={() => downloadSinglePhoto(i)}
-                  style={{
-                    flex: 1,
-                    background: 'rgba(255,255,255,.06)',
-                    border: `1px solid rgba(0,255,106,.2)`,
-                    borderRadius: 10,
-                    padding: 0,
-                    cursor: 'pointer',
-                    overflow: 'hidden',
-                    position: 'relative',
-                  }}
-                >
-                  <img src={shot} alt={`Photo ${i + 1}`} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10 }} />
-                  <div style={{
-                    position: 'absolute', bottom: 0, left: 0, right: 0,
-                    background: 'linear-gradient(transparent, rgba(0,0,0,.7))',
-                    padding: '16px 4px 6px',
-                    fontSize: 9, fontWeight: 600, letterSpacing: 1,
-                    textTransform: 'uppercase', color: C.neon,
-                    textAlign: 'center',
-                  }}>
-                    📥 Photo {i + 1}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div style={styles.qrWrap}>
             <div style={styles.qrLabel}>Follow the competition</div>
             <div ref={qrRef} />
@@ -1260,7 +1213,6 @@ export default function PhotoBoothPage() {
           <button style={styles.btnAgain} onClick={reset}>
             ☘️ &nbsp;Take Another Photo
           </button>
-          <div style={{ height: 40 }} />
         </div>
       )}
     </div>
