@@ -664,7 +664,7 @@ export default function PhotoBoothPage() {
   }, []);
 
   const buildStrip = useCallback(async (allShots) => {
-    const SW = 480, SH = 300, pad = 8, wmH = 60;
+    const SW = 480, SH = 480, pad = 8, wmH = 60;
     const stripW = SW + pad * 2;
     const stripH = wmH + pad + (SH + pad) * TOTAL_SHOTS + pad;
 
@@ -752,18 +752,22 @@ export default function PhotoBoothPage() {
   const goSend = useCallback(() => {
     const errs = {};
     if (!nomName.trim()) errs.name = true;
+    if (!nomEmail.trim() || !nomEmail.includes('@')) errs.email = true;
+    if (!nomIg.trim()) errs.ig = true;
     if (Object.keys(errs).length) {
       setFieldErrors(errs);
+      setError('Please fill in name, email, and instagram to nominate someone.');
       return;
     }
     setFieldErrors({});
+    setError('');
     setSkipNom(false);
     // Pre-fill send email with nominee email if available
     if (nomEmail.trim()) {
       setSendEmail(nomEmail.trim());
     }
     setScreen('send');
-  }, [nomName, nomEmail]);
+  }, [nomName, nomEmail, nomIg]);
 
   const goSendSkip = useCallback(() => {
     setSkipNom(true);
