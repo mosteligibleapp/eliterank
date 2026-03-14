@@ -668,7 +668,7 @@ export default function PhotoBoothPage() {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.shadowColor = C.neon;
-    ctx.shadowBlur = size * 0.6;
+    ctx.shadowBlur = size * 0.2;
     ctx.fillStyle = C.neon;
 
     // Draw 4 heart-shaped leaves rotated 90° apart
@@ -713,7 +713,7 @@ export default function PhotoBoothPage() {
 
     // Subtle radial green glow from center-top
     const glow = ctx.createRadialGradient(W * 0.5, 0, 0, W * 0.5, wmH * 0.5, W * 0.5);
-    glow.addColorStop(0, 'rgba(0,255,106,0.1)');
+    glow.addColorStop(0, 'rgba(0,255,106,0.04)');
     glow.addColorStop(1, 'transparent');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, wmH);
