@@ -92,9 +92,7 @@ export default function ViewPublicProfilePage() {
     navigate(backUrl);
   }, [navigate, backUrl]);
 
-  const displayName = profileData
-    ? `${profileData.firstName} ${profileData.lastName}`.trim() || 'Profile'
-    : 'Profile';
+  const displayName = 'Back to Competition';
 
   if (loading) {
     return <ProfileSkeleton />;
