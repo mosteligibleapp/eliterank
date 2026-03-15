@@ -6,7 +6,7 @@ import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
 import { useToast } from '../../../contexts/ToastContext';
-import { BONUS_TASK_KEYS, loadNomineeBonusActions, saveNomineeBonusAction, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
+import { BONUS_TASK_KEYS, loadNomineeBonusActions, saveNomineeBonusAction, awardNomineeActionBonuses, getEnabledBonusVoteTasks } from '../../../lib/bonusVotes';
 import { spacing, typography, colors, borderRadius } from '../../../styles/theme';
 
 const ContestantGuide = lazy(() => import('../../../features/contestant-guide/ContestantGuide'));
@@ -277,15 +277,26 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
  * Tasks are evaluated based on profile data — no contestant_id needed.
  * When converted to contestant, the real system auto-awards earned votes.
  */
-function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoaded }) {
+function NomineeBonusVotes({ competitionId, competitionName, profile, userId, onBonusVotesLoaded }) {
   const toast = useToast();
   const navigate = useNavigate();
   const [showGuide, setShowGuide] = useState(false);
+  const [dbTasks, setDbTasks] = useState(null);
   const dismissKey = userId ? `bonus_dismissed_nominee_${userId}` : null;
   const [dismissed, setDismissed] = useState(() => {
     if (!dismissKey) return false;
     try { return localStorage.getItem(dismissKey) === 'true'; } catch { return false; }
   });
+
+  // Load task definitions from DB (what the host configured), fallback to defaults
+  useEffect(() => {
+    if (!competitionId) return;
+    getEnabledBonusVoteTasks(competitionId).then(tasks => {
+      if (tasks.length > 0) setDbTasks(tasks);
+    });
+  }, [competitionId]);
+
+  const taskDefinitions = dbTasks || DEFAULT_BONUS_TASKS;
 
   // Load persisted action-task completions from DB (with localStorage fallback)
   const [actionCompleted, setActionCompleted] = useState({});
@@ -314,7 +325,7 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
     const hasPhoto = !!(profile?.avatar_url || profile?.avatarUrl);
     const hasSocial = !!(profile?.instagram || profile?.twitter || profile?.tiktok || profile?.linkedin);
 
-    return DEFAULT_BONUS_TASKS.map(task => {
+    return taskDefinitions.map(task => {
       let completed = false;
       switch (task.task_key) {
         case 'complete_profile':
@@ -328,14 +339,19 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
           break;
         case 'view_how_to_win':
         case 'share_profile':
+        case 'share_achievement_card':
           completed = !!actionCompleted[task.task_key];
           break;
-        default:
+        case 'claim_reward':
+          // Can't complete as nominee — shows as pending until they're a contestant
           completed = false;
+          break;
+        default:
+          completed = !!actionCompleted[task.task_key];
       }
       return { ...task, id: task.task_key, completed };
     });
-  }, [profile, actionCompleted]);
+  }, [profile, actionCompleted, taskDefinitions]);
 
   const completedCount = tasks.filter(t => t.completed).length;
   const totalCount = tasks.length;
@@ -360,7 +376,7 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
     setShowGuide(false);
     if (!actionCompleted[BONUS_TASK_KEYS.VIEW_HOW_TO_WIN]) {
       markActionCompleted(BONUS_TASK_KEYS.VIEW_HOW_TO_WIN);
-      const task = DEFAULT_BONUS_TASKS.find(t => t.task_key === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN);
+      const task = taskDefinitions.find(t => t.task_key === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN);
       toast?.success?.(`+${task?.votes_awarded || 5} bonus votes for reviewing How to Win!`);
     }
   };
@@ -375,7 +391,7 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
           await navigator.share({ title: 'Check out my profile!', url: shareUrl });
           if (!actionCompleted[BONUS_TASK_KEYS.SHARE_PROFILE]) {
             markActionCompleted(BONUS_TASK_KEYS.SHARE_PROFILE);
-            const task = DEFAULT_BONUS_TASKS.find(t => t.task_key === BONUS_TASK_KEYS.SHARE_PROFILE);
+            const task = taskDefinitions.find(t => t.task_key === BONUS_TASK_KEYS.SHARE_PROFILE);
             toast?.success?.(`+${task?.votes_awarded || 5} bonus votes for sharing!`);
           } else {
             toast?.success?.('Profile link shared!');
@@ -386,7 +402,7 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
           await navigator.clipboard.writeText(shareUrl);
           if (!actionCompleted[BONUS_TASK_KEYS.SHARE_PROFILE]) {
             markActionCompleted(BONUS_TASK_KEYS.SHARE_PROFILE);
-            const task = DEFAULT_BONUS_TASKS.find(t => t.task_key === BONUS_TASK_KEYS.SHARE_PROFILE);
+            const task = taskDefinitions.find(t => t.task_key === BONUS_TASK_KEYS.SHARE_PROFILE);
             toast?.success?.(`Link copied! +${task?.votes_awarded || 5} bonus votes for sharing!`);
           } else {
             toast?.success?.('Profile link copied to clipboard!');
@@ -508,6 +524,7 @@ export default function ProfileBonusVotes({ userId, userEmail, profile, onBonusV
       {nomineeEntries.map(nom => (
         <NomineeBonusVotes
           key={nom.id}
+          competitionId={nom.competition?.id}
           competitionName={totalEntries > 1 ? nom.competition?.name : null}
           profile={profile}
           userId={userId}

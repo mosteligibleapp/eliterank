@@ -101,6 +101,29 @@ export async function awardBonusVotes(competitionId, contestantId, userId, taskK
 }
 
 /**
+ * Get enabled bonus vote tasks for a competition (public read).
+ * Used by the nominee checklist so it reads from the DB instead of a hardcoded list.
+ * Falls back gracefully if the competition has no tasks set up yet.
+ */
+export async function getEnabledBonusVoteTasks(competitionId) {
+  if (!supabase || !competitionId) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('bonus_vote_tasks')
+      .select('task_key, label, description, votes_awarded, sort_order')
+      .eq('competition_id', competitionId)
+      .eq('enabled', true)
+      .order('sort_order');
+
+    if (error || !data?.length) return [];
+    return data.filter(t => !DEPRECATED_TASK_KEYS.has(t.task_key));
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Get bonus vote tasks for a competition (admin view)
  */
 export async function getBonusVoteTasks(competitionId) {
