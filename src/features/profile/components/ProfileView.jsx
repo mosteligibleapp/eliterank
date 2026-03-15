@@ -8,6 +8,7 @@ import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import ProfileRewardsCard from './ProfileRewardsCard';
 import BonusVotesEarnedBadge from './BonusVotesEarnedBadge';
+import ProfileUpcomingDates from './ProfileUpcomingDates';
 
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
@@ -300,6 +301,11 @@ export default function ProfileView({ hostProfile, onEdit }) {
 
         {/* Right Column */}
         <div>
+          {/* Upcoming Dates - only for own profile */}
+          {onEdit && hostProfile?.id && (
+            <ProfileUpcomingDates userId={hostProfile.id} userEmail={hostProfile.email} />
+          )}
+
           {/* Bonus Votes Earned Badge - only for own profile */}
           {onEdit && hostProfile?.id && (
             <BonusVotesEarnedBadge userId={hostProfile.id} bonusVotes={bonusVotes} />

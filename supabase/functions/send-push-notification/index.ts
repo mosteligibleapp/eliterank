@@ -113,6 +113,12 @@ function getNotificationContent(req: PushRequest): { title: string; body: string
         body: 'A brand sent you a reward. Tap to check it out!',
       }
 
+    case 'date_reminder':
+      return {
+        title: req.title || 'Competition Reminder',
+        body: req.body || `You have an upcoming competition event.`,
+      }
+
     default:
       return {
         title: req.title || 'EliteRank',

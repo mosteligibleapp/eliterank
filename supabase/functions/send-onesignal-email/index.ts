@@ -21,7 +21,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined'
+  type: 'nominee_invite' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'date_reminder'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -34,6 +34,10 @@ interface EmailRequest {
   gender?: string | null
   nomination_end?: string | null
   nominee_email?: string
+  // date_reminder fields
+  reminder_title?: string
+  reminder_body?: string
+  event_date?: string
 }
 
 // HTML email templates
@@ -182,6 +186,31 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
               Know someone else who'd be a great fit? You can still nominate more people!
             </p>
             ${req.competition_url ? goldButton('Nominate Someone Else', req.competition_url) : ''}
+          </div>
+        `),
+      }
+    }
+
+    case 'date_reminder': {
+      const dateLine = req.event_date
+        ? (() => {
+            const d = new Date(req.event_date)
+            const formatted = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+            return `<p style="color:#d4a843;font-size:20px;font-weight:bold;margin:16px 0;">${formatted}</p>`
+          })()
+        : ''
+
+      return {
+        subject: req.reminder_title || `Reminder: ${req.competition_name || 'Competition'} Update`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">${req.reminder_title || 'Competition Reminder'}</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            ${dateLine}
+            <p style="color:#ccc;font-size:15px;margin-top:16px;">
+              ${req.reminder_body || 'You have an upcoming competition event.'}
+            </p>
+            ${req.competition_url ? goldButton('View Competition', req.competition_url) : ''}
           </div>
         `),
       }
