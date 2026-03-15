@@ -20,9 +20,21 @@ export default function ProfileView({ hostProfile, onEdit }) {
     getCompetitionStats(hostProfile.id).then(setCompetitionStats).catch(console.error);
   }, [hostProfile?.id]);
 
+  const refreshStats = useCallback(() => {
+    if (hostProfile?.id) {
+      getCompetitionStats(hostProfile.id).then(setCompetitionStats).catch(console.error);
+    }
+  }, [hostProfile?.id]);
+
   const handleBonusVotesLoaded = useCallback((data) => {
-    setBonusVotes(data);
-  }, []);
+    setBonusVotes(prev => {
+      // Refetch stats when earned votes change (bonus just awarded)
+      if (prev && prev.totalEarned !== data.totalEarned) {
+        refreshStats();
+      }
+      return data;
+    });
+  }, [refreshStats]);
 
   const handleShare = async () => {
     if (!hostProfile?.id) return; // Profile not loaded yet
