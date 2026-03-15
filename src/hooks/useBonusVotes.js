@@ -99,6 +99,11 @@ export function useBonusVotes(competitionId, contestantId, userId) {
     return awardTask(BONUS_TASK_KEYS.SHARE_PROFILE);
   }, [awardTask]);
 
+  // Mark "share achievement card" as completed
+  const markAchievementCardShared = useCallback(async () => {
+    return awardTask(BONUS_TASK_KEYS.SHARE_ACHIEVEMENT_CARD);
+  }, [awardTask]);
+
   // Computed values
   const completedCount = useMemo(() => tasks.filter(t => t.completed).length, [tasks]);
   const totalCount = useMemo(() => tasks.length, [tasks]);
@@ -129,6 +134,7 @@ export function useBonusVotes(competitionId, contestantId, userId) {
     checkProfile,
     markHowToWinViewed,
     markProfileShared,
+    markAchievementCardShared,
     refetch: fetchStatus,
 
     // Computed

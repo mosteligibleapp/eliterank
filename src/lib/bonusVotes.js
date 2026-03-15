@@ -9,6 +9,7 @@ export const BONUS_TASK_KEYS = {
   ADD_SOCIAL: 'add_social',
   VIEW_HOW_TO_WIN: 'view_how_to_win',
   SHARE_PROFILE: 'share_profile',
+  SHARE_ACHIEVEMENT_CARD: 'share_achievement_card',
 };
 
 /**
@@ -148,6 +149,81 @@ export async function updateBonusVoteTask(taskId, updates) {
   } catch (err) {
     console.error('Error updating bonus vote task:', err);
     return { success: false, error: 'Failed to update task' };
+  }
+}
+
+/**
+ * Create a custom bonus vote task for a competition (host/admin)
+ */
+export async function createBonusVoteTask(competitionId, { taskKey, label, description, votesAwarded = 5 }) {
+  if (!supabase || !competitionId || !taskKey || !label) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    // Determine next sort_order
+    const { data: existing } = await supabase
+      .from('bonus_vote_tasks')
+      .select('sort_order')
+      .eq('competition_id', competitionId)
+      .order('sort_order', { ascending: false })
+      .limit(1);
+
+    const nextOrder = (existing?.[0]?.sort_order || 0) + 1;
+
+    const { data, error } = await supabase
+      .from('bonus_vote_tasks')
+      .insert({
+        competition_id: competitionId,
+        task_key: taskKey,
+        label,
+        description: description || null,
+        votes_awarded: votesAwarded,
+        enabled: true,
+        sort_order: nextOrder,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        return { success: false, error: 'A task with this key already exists' };
+      }
+      console.error('Error creating bonus vote task:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, task: data };
+  } catch (err) {
+    console.error('Error creating bonus vote task:', err);
+    return { success: false, error: 'Failed to create task' };
+  }
+}
+
+/**
+ * Delete a bonus vote task (host/admin)
+ * Only allows deleting custom tasks (not the built-in defaults)
+ */
+export async function deleteBonusVoteTask(taskId) {
+  if (!supabase || !taskId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('bonus_vote_tasks')
+      .delete()
+      .eq('id', taskId);
+
+    if (error) {
+      console.error('Error deleting bonus vote task:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error deleting bonus vote task:', err);
+    return { success: false, error: 'Failed to delete task' };
   }
 }
 
@@ -332,7 +408,7 @@ export async function awardNomineeActionBonuses(competitionId, contestantId, use
   const actions = await loadNomineeBonusActions(userId);
   const awarded = [];
 
-  const actionTaskKeys = [BONUS_TASK_KEYS.VIEW_HOW_TO_WIN, BONUS_TASK_KEYS.SHARE_PROFILE];
+  const actionTaskKeys = [BONUS_TASK_KEYS.VIEW_HOW_TO_WIN, BONUS_TASK_KEYS.SHARE_PROFILE, BONUS_TASK_KEYS.SHARE_ACHIEVEMENT_CARD];
 
   for (const taskKey of actionTaskKeys) {
     if (actions[taskKey]) {

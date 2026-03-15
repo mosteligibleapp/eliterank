@@ -29,6 +29,7 @@ import {
   getAdvancementTitle,
   getPlacementTitle,
 } from '../features/achievement-cards';
+import { awardBonusVotes, BONUS_TASK_KEYS } from '../lib/bonusVotes';
 import './AchievementsPage.css';
 
 export default function AchievementsPage() {
@@ -351,6 +352,7 @@ export default function AchievementsPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      awardCardShareBonus(record);
     } catch (err) {
       console.error('Download failed:', err);
     } finally {
@@ -381,6 +383,7 @@ export default function AchievementsPage() {
           title: `I'm ${card.title.toLowerCase()} in ${competition?.name}!`,
         });
         setShareStatus('shared');
+        awardCardShareBonus(record);
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -391,6 +394,7 @@ export default function AchievementsPage() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         setShareStatus('downloaded');
+        awardCardShareBonus(record);
       }
       setTimeout(() => setShareStatus(null), 2000);
     } catch (err) {
@@ -401,6 +405,14 @@ export default function AchievementsPage() {
       setGenerating(null);
     }
   };
+
+  // Award the share_achievement_card bonus vote (fire-and-forget, idempotent)
+  const awardCardShareBonus = useCallback((record) => {
+    if (!record || record._source !== 'contestant') return;
+    const competitionId = record.competition?.id;
+    if (!competitionId || !record.id || !user?.id) return;
+    awardBonusVotes(competitionId, record.id, user.id, BONUS_TASK_KEYS.SHARE_ACHIEVEMENT_CARD).catch(() => {});
+  }, [user?.id]);
 
   // Not logged in
   if (!isAuthenticated) {

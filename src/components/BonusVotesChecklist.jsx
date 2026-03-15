@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import {
   Gift, CheckCircle, Circle, Camera,
-  Share2, User, BookOpen, Link as LinkIcon, Trophy,
+  Share2, User, BookOpen, Link as LinkIcon, Trophy, Image,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients, transitions } from '../styles/theme';
 import { Badge } from './ui';
@@ -13,6 +13,7 @@ const TASK_ICONS = {
   add_social: LinkIcon,
   view_how_to_win: BookOpen,
   share_profile: Share2,
+  share_achievement_card: Image,
 };
 
 /**

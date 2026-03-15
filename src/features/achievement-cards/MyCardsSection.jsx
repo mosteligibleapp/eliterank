@@ -33,6 +33,7 @@ export default function MyCardsSection({
   organization,
   votingRounds = [],
   onClose,
+  onCardShared,
 }) {
   const {
     cards,
@@ -187,6 +188,10 @@ export default function MyCardsSection({
       const result = await shareCard(imageUrl);
       setShareStatus(result);
       setTimeout(() => setShareStatus(null), 2000);
+      // Notify parent so bonus votes can be awarded
+      if (result === 'shared' || result === 'copied') {
+        onCardShared?.();
+      }
     } catch (err) {
       console.error('Share failed:', err);
     }
@@ -221,6 +226,8 @@ export default function MyCardsSection({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      // Downloading a card counts as sharing for bonus votes
+      onCardShared?.();
     } catch (err) {
       console.error('Download failed:', err);
     } finally {
