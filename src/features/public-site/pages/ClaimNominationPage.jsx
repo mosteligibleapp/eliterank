@@ -49,6 +49,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+
         if (session?.user) {
           setUser(session.user);
           const { data: profileData } = await supabase
