@@ -286,18 +286,35 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
   // Build unified list of all competition entries
   const entries = [];
 
-  // Add nominations
+  // Track competition IDs that already have a contestant entry, to
+  // avoid showing duplicate cards when a nomination was converted.
+  const contestantCompetitionIds = new Set(
+    contestantEntries.map(e => e.competition_id).filter(Boolean)
+  );
+
+  // Add nominations — skip if the nominee was converted AND we already
+  // have a matching contestant entry for that competition.
   nominations.forEach(nom => {
     const competition = nom?.competition;
+    const competitionId = competition?.id;
+
+    if (nom.converted_to_contestant && competitionId && contestantCompetitionIds.has(competitionId)) {
+      return; // Already shown as contestant
+    }
+
+    // If converted but no contestant entry found (user_id was null),
+    // show as contestant role using the nomination data.
+    const isConverted = nom.converted_to_contestant;
+
     entries.push({
       id: `nom-${nom.id}`,
       name: competition?.name || 'Competition',
       url: getCompetitionLink(competition),
-      role: 'nominee',
+      role: isConverted ? 'contestant' : 'nominee',
       status: competition?.status,
       competition: competition,
-      isUnclaimed: !nom.claimed_at,
-      nomination: nom,
+      isUnclaimed: !isConverted && !nom.claimed_at,
+      nomination: isConverted ? null : nom,
       nominatorName: !nom.nominator_anonymous ? nom.nominator_name : null,
     });
   });

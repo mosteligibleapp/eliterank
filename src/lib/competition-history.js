@@ -15,6 +15,7 @@ export async function getNominationsForUser(userId, userEmail) {
       status,
       claimed_at,
       user_id,
+      converted_to_contestant,
       nominator_name,
       nominator_anonymous,
       nomination_reason,
@@ -33,14 +34,15 @@ export async function getNominationsForUser(userId, userEmail) {
     `;
 
     // Run separate queries by user_id and email to avoid PostgREST .or()
-    // parsing issues with email addresses containing dots
+    // parsing issues with email addresses containing dots.
+    // Include converted nominees so we can show them when the contestant
+    // record is missing user_id (data fix for earlier mapping bug).
     const queries = [];
     if (userId) {
       queries.push(
         supabase.from('nominees').select(selectStr)
           .eq('user_id', userId)
           .not('status', 'in', '("rejected","declined")')
-          .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
           .order('created_at', { ascending: false })
       );
     }
@@ -49,7 +51,6 @@ export async function getNominationsForUser(userId, userEmail) {
         supabase.from('nominees').select(selectStr)
           .eq('email', userEmail)
           .not('status', 'in', '("rejected","declined")')
-          .or('converted_to_contestant.is.null,converted_to_contestant.eq.false')
           .order('created_at', { ascending: false })
       );
     }
