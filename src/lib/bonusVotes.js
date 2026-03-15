@@ -10,6 +10,7 @@ export const BONUS_TASK_KEYS = {
   VIEW_HOW_TO_WIN: 'view_how_to_win',
   SHARE_PROFILE: 'share_profile',
   SHARE_ACHIEVEMENT_CARD: 'share_achievement_card',
+  CLAIM_REWARD: 'claim_reward',
 };
 
 /**

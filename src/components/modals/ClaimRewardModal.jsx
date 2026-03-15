@@ -3,6 +3,7 @@ import { Check, MapPin, FileText, ChevronRight, Loader, Package } from 'lucide-r
 import { Modal } from '../ui';
 import { colors, spacing, borderRadius, typography, gradients, shadows } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
+import { awardBonusVotes, BONUS_TASK_KEYS } from '../../lib/bonusVotes';
 
 const STEPS = {
   ADDRESS: 'address',
@@ -179,6 +180,17 @@ export default function ClaimRewardModal({
         .eq('id', assignment.id);
 
       if (error) throw error;
+
+      // Award bonus votes for claiming a reward (fire-and-forget, idempotent)
+      if (assignment.competition_id && assignment.contestant_id) {
+        awardBonusVotes(
+          assignment.competition_id,
+          assignment.contestant_id,
+          userId,
+          BONUS_TASK_KEYS.CLAIM_REWARD
+        ).catch(() => {});
+      }
+
       onClaimed?.();
       onClose();
     } catch (err) {
