@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, X } from 'lucide-react';
 import { getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
@@ -19,6 +20,8 @@ const DEFAULT_BONUS_TASKS = [
   { task_key: 'add_social', label: 'Link a social account', description: 'Connect your Instagram, Twitter, or TikTok', votes_awarded: 5, sort_order: 3 },
   { task_key: 'view_how_to_win', label: 'Review How to Win info', description: 'Read through the competition rules and tips', votes_awarded: 5, sort_order: 4 },
   { task_key: 'share_profile', label: 'Share your profile', description: 'Share your contestant profile link externally', votes_awarded: 5, sort_order: 5 },
+  { task_key: 'share_achievement_card', label: 'Share an achievement card', description: 'Download or share one of your achievement cards on social media', votes_awarded: 5, sort_order: 6 },
+  { task_key: 'claim_reward', label: 'Claim an active reward', description: 'Claim one of the rewards available to you in this competition', votes_awarded: 20, sort_order: 7 },
 ];
 
 /**
@@ -101,6 +104,7 @@ function AllCompleteConfirmation({ totalBonusVotesEarned, onDismiss }) {
 function CompetitionBonusVotes({ competitionId, contestantId, userId, competitionName, onBonusVotesLoaded }) {
   const { profile } = useAuthContextSafe();
   const toast = useToast();
+  const navigate = useNavigate();
   const hasCheckedProfile = useRef(false);
   const [showGuide, setShowGuide] = useState(false);
   const dismissKey = `bonus_dismissed_${contestantId}`;
@@ -199,6 +203,12 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
           }
         } catch { /* clipboard not available */ }
       }
+    } else if (taskKey === BONUS_TASK_KEYS.CLAIM_REWARD) {
+      // Navigate to rewards page — bonus is auto-awarded when they claim
+      navigate('/rewards');
+    } else if (taskKey === BONUS_TASK_KEYS.SHARE_ACHIEVEMENT_CARD) {
+      // Navigate to achievements page — bonus is auto-awarded when they share/download
+      navigate('/achievements');
     } else {
       const result = await awardTask(taskKey);
       if (result?.success) {
@@ -269,6 +279,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
  */
 function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoaded }) {
   const toast = useToast();
+  const navigate = useNavigate();
   const [showGuide, setShowGuide] = useState(false);
   const dismissKey = userId ? `bonus_dismissed_nominee_${userId}` : null;
   const [dismissed, setDismissed] = useState(() => {
@@ -382,6 +393,10 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
           }
         } catch { /* clipboard not available */ }
       }
+    } else if (taskKey === BONUS_TASK_KEYS.CLAIM_REWARD) {
+      navigate('/rewards');
+    } else if (taskKey === BONUS_TASK_KEYS.SHARE_ACHIEVEMENT_CARD) {
+      navigate('/achievements');
     }
   };
 
