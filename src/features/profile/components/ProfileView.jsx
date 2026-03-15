@@ -300,8 +300,8 @@ export default function ProfileView({ hostProfile, onEdit }) {
 
         {/* Right Column */}
         <div>
-          {/* Bonus Votes Earned Badge - visible to everyone */}
-          {hostProfile?.id && (
+          {/* Bonus Votes Earned Badge - only for own profile */}
+          {onEdit && hostProfile?.id && (
             <BonusVotesEarnedBadge userId={hostProfile.id} bonusVotes={bonusVotes} />
           )}
 
