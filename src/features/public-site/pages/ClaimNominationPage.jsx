@@ -44,30 +44,11 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
 
   const flowRef = useRef(null);
 
-  // Strip Supabase auth error fragments from the URL on mount.
-  // When a magic link expires, Supabase redirects with #error=access_denied
-  // which can cause the JS client's getSession() to hang or interfere with
-  // auth state. The claim flow doesn't need the magic link session — it
-  // creates an account in the password step.
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash.includes('error=')) {
-      // Replace hash without triggering a navigation
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-  }, []);
-
   // Check auth state on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Race getSession against a timeout — if Supabase is stuck
-        // processing an expired magic link hash, don't block the flow.
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((resolve) =>
-          setTimeout(() => resolve({ data: { session: null } }), 5000)
-        );
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
           setUser(session.user);
