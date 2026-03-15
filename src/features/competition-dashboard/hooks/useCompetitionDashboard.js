@@ -245,6 +245,7 @@ export function useCompetitionDashboard(competitionId) {
           name: n.name,
           email: n.email,
           phone: n.phone,
+          userId: n.user_id,
           nominatedBy: n.nominated_by,
           nominatorId: n.nominator_id,
           nominatorName: n.nominator_name,
@@ -401,7 +402,7 @@ export function useCompetitionDashboard(competitionId) {
 
     try {
       // Find profile to link to contestant
-      let linkedUserId = nominee.userId || null;
+      let linkedUserId = nominee.userId || nominee.matchedProfileId || null;
 
       if (!linkedUserId && nominee.email) {
         const { data: profileByEmail } = await supabase
