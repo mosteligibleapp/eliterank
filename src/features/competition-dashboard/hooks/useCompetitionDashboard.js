@@ -1147,28 +1147,13 @@ export function useCompetitionDashboard(competitionId) {
 
       if (profileError) throw profileError;
 
-      // Send host welcome email (fire-and-forget)
-      const hostProfile = profilesById.get(userId);
-      if (hostProfile?.email) {
-        const hostName = `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim();
-        supabase.functions.invoke('send-onesignal-email', {
-          body: {
-            type: 'host_welcome',
-            to_email: hostProfile.email,
-            to_name: hostName || undefined,
-            competition_name: data.competition?.name,
-            city_name: data.competition?.city,
-          },
-        }).catch((err) => console.error('Failed to send host welcome email:', err));
-      }
-
       await fetchDashboardData();
       return { success: true };
     } catch (err) {
       console.error('Error assigning host:', err);
       return { success: false, error: err.message };
     }
-  }, [competitionId, fetchDashboardData, profilesById, data.competition]);
+  }, [competitionId, fetchDashboardData]);
 
   const removeHost = useCallback(async () => {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
