@@ -483,6 +483,7 @@ export async function generateAchievementCard({
   }
 
   // === VOTING DATE + CTA BUTTON ===
+  console.log('[AchievementCard] votingStartDate:', votingStartDate, '| achievementType:', achievementType, '| isNominated:', isNominated);
   const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
   let ctaY = y + 80;
 
