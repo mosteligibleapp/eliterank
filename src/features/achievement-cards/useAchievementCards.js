@@ -80,7 +80,7 @@ export function useAchievementCards(contestantId) {
         name: contestant?.name,
         photoUrl: contestant?.avatar_url,
         handle: contestant?.instagram,
-        competitionName: competition?.name || `Most Eligible ${competition?.city}`,
+        competitionName: competition?.name || `Most Eligible ${typeof competition?.city === 'string' ? competition.city : (competition?.city?.name || '')}`,
         cityName: typeof competition?.city === 'string' ? competition.city : (competition?.city?.name || ''),
         season: competition?.season?.toString(),
         organizationName: organization?.name || 'Most Eligible',
