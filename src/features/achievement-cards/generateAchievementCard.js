@@ -18,8 +18,8 @@ export const ACHIEVEMENT_TYPES = {
     subtitle: 'for',
   },
   contestant: {
-    title: 'COMPETING',
-    subtitle: 'in',
+    title: 'CONTESTANT',
+    subtitle: '',
   },
   advanced: {
     title: 'ADVANCED',
@@ -440,11 +440,13 @@ export async function generateAchievementCard({
   ctx.fillText(displayTitle, CX, y);
   y += titleFontSize * 0.6 + 10;
 
-  // Subtitle
-  ctx.fillStyle = '#a1a1aa';
-  ctx.font = `400 42px ${fontBody}`;
-  ctx.fillText(subtitle, CX, y);
-  y += 64;
+  // Subtitle (skip if empty)
+  if (subtitle) {
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = `400 42px ${fontBody}`;
+    ctx.fillText(subtitle, CX, y);
+    y += 64;
+  }
 
   // Competition name
   ctx.fillStyle = '#e4e4e7';
@@ -464,8 +466,7 @@ export async function generateAchievementCard({
       ctx.fillText(String(season), CX, y);
     } else {
       ctx.font = `500 38px ${fontBody}`;
-      const seasonLabel = formatSeasonLabel(season);
-      const metaText = cityName ? `${cityName}  \u00B7  ${seasonLabel}` : seasonLabel;
+      const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
       ctx.fillText(metaText, CX, y);
     }
   }
@@ -489,36 +490,54 @@ export async function generateAchievementCard({
     ctx.textBaseline = 'alphabetic';
   }
 
-  // === VOTING DATE + CTA BUTTON ===
+  // === BOTTOM CTA BOX (voting date + URL button) ===
   const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
-  let ctaY = y + 80;
+  const ctaText = 'www.eliterank.co';
+  const btnHeight = 68;
+  const boxPadTop = formattedDate ? 40 : 30;
+  const boxPadBottom = 30;
+  const gapDateBtn = formattedDate ? 28 : 0;
+  const dateLineH = formattedDate ? 44 : 0;
+  const boxHeight = boxPadTop + dateLineH + gapDateBtn + btnHeight + boxPadBottom;
+  const boxWidth = 560;
+  const boxX = CX - boxWidth / 2;
+  const boxY = y + 60;
+  const boxR = 28;
 
-  // Voting date text above button (contestant cards only)
+  // Box background
+  roundRect(ctx, boxX, boxY, boxWidth, boxHeight, boxR);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fill();
+  roundRect(ctx, boxX, boxY, boxWidth, boxHeight, boxR);
+  ctx.strokeStyle = `${accentColor}30`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  let innerY = boxY + boxPadTop;
+
+  // Voting date text inside box
   if (formattedDate) {
-    ctx.fillStyle = '#a1a1aa';
-    ctx.font = `500 38px ${fontBody}`;
+    ctx.fillStyle = accentColor;
+    ctx.font = `500 36px ${fontBody}`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText(`Voting opens on ${formattedDate}`, CX, ctaY);
-    ctaY += 50;
+    ctx.textBaseline = 'top';
+    ctx.fillText(`Voting opens on ${formattedDate}`, CX, innerY);
+    innerY += dateLineH + gapDateBtn;
   }
 
-  // CTA button
-  const ctaHeight = 68;
-  const ctaText = 'www.eliterank.co';
-
+  // CTA button inside box
   ctx.font = `bold 26px ${fontBody}`;
   const ctaTextWidth = ctx.measureText(ctaText).width;
-  const ctaWidth = Math.max(480, ctaTextWidth + 100);
-  const ctaX = CX - ctaWidth / 2;
+  const btnWidth = Math.max(460, ctaTextWidth + 100);
+  const btnX = CX - btnWidth / 2;
 
   // Button shadow
   ctx.save();
   ctx.shadowColor = `${accentColor}40`;
   ctx.shadowBlur = 30;
   ctx.shadowOffsetY = 4;
-  roundRect(ctx, ctaX, ctaY, ctaWidth, ctaHeight, ctaHeight / 2);
-  const ctaGrad = ctx.createLinearGradient(ctaX, ctaY, ctaX + ctaWidth, ctaY + ctaHeight);
+  roundRect(ctx, btnX, innerY, btnWidth, btnHeight, btnHeight / 2);
+  const ctaGrad = ctx.createLinearGradient(btnX, innerY, btnX + btnWidth, innerY + btnHeight);
   ctaGrad.addColorStop(0, accentColor);
   ctaGrad.addColorStop(1, '#f4d03f');
   ctx.fillStyle = ctaGrad;
@@ -530,10 +549,10 @@ export async function generateAchievementCard({
   ctx.font = `bold 26px ${fontBody}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(ctaText, CX, ctaY + ctaHeight / 2);
+  ctx.fillText(ctaText, CX, innerY + btnHeight / 2);
 
-  // Subtle border on button for depth
-  roundRect(ctx, ctaX, ctaY, ctaWidth, ctaHeight, ctaHeight / 2);
+  // Subtle border on button
+  roundRect(ctx, btnX, innerY, btnWidth, btnHeight, btnHeight / 2);
   ctx.strokeStyle = 'rgba(255,255,255,0.2)';
   ctx.lineWidth = 1;
   ctx.stroke();
