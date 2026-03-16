@@ -165,7 +165,7 @@ export async function generateAchievementCard({
   photoUrl,
   handle,
   competitionName,
-  cityName,
+  cityName: rawCityName,
   season,
   organizationName = 'Most Eligible',
   organizationLogoUrl,
@@ -183,6 +183,11 @@ export async function generateAchievementCard({
   const displayTitle = customTitle || achievement.title;
   const subtitle = achievement.subtitle;
   const isNominated = achievementType === 'nominated';
+
+  // Safety: coerce cityName to string (callers may pass an object)
+  const cityName = (rawCityName && typeof rawCityName === 'object')
+    ? (rawCityName.name || rawCityName.city_name || '')
+    : (rawCityName || '');
 
   // === BACKGROUND — pure black, no effects ===
   ctx.fillStyle = '#000000';
@@ -205,14 +210,39 @@ export async function generateAchievementCard({
     }
   }
 
-  // === PHOTO — 560×700, 16px border-radius, positioned at 220px from top ===
-  const photoW = 560;
-  const photoH = 700;
+  // === PHOTO — fit to image aspect ratio within max bounds ===
+  const maxPhotoW = 560;
+  const maxPhotoH = 700;
   const photoR = 16;
-  const photoX = CX - photoW / 2;
-  const photoY = 220;
+  const photoStartY = 220;
   const frameOffset = 4;
   const frameR = photoR + frameOffset;
+
+  let photoW = maxPhotoW;
+  let photoH = maxPhotoH;
+  let loadedImg = null;
+
+  if (photoUrl) {
+    try {
+      loadedImg = await loadImage(photoUrl);
+      const imgAspect = loadedImg.width / loadedImg.height;
+      // Fit image within max bounds preserving aspect ratio
+      if (imgAspect > maxPhotoW / maxPhotoH) {
+        // Wider than tall — constrain by width
+        photoW = maxPhotoW;
+        photoH = maxPhotoW / imgAspect;
+      } else {
+        // Taller than wide — constrain by height
+        photoH = maxPhotoH;
+        photoW = maxPhotoH * imgAspect;
+      }
+    } catch {
+      loadedImg = null;
+    }
+  }
+
+  const photoX = CX - photoW / 2;
+  const photoY = photoStartY;
 
   // Photo frame: 2px solid gold border, 4px offset from photo edge
   roundRect(
@@ -228,19 +258,21 @@ export async function generateAchievementCard({
   ctx.stroke();
 
   // Photo or initial fallback
-  if (photoUrl) {
-    try {
-      const img = await loadImage(photoUrl);
-      drawRoundedRectImage(ctx, img, photoX, photoY, photoW, photoH, photoR);
-    } catch {
-      drawInitialRect(ctx, name?.charAt(0) || '?', photoX, photoY, photoW, photoH, photoR);
-    }
+  if (loadedImg) {
+    drawRoundedRectImage(ctx, loadedImg, photoX, photoY, photoW, photoH, photoR);
   } else {
     drawInitialRect(ctx, name?.charAt(0) || '?', photoX, photoY, photoW, photoH, photoR);
   }
 
-  // === CONTENT SECTION — starts at 980px from top ===
-  let y = 980;
+  // === CONTENT SECTION — starts after photo, vertically centered in remaining space ===
+  // Estimate total content height to center it in the space below the photo
+  const contentTop = photoY + photoH + 60;
+  const estimatedContentH = 72 + 36 + 66 + 40 + (subtitle ? 34 : 0) + 42 + 16
+    + (season ? 30 + 48 : 0) + (rank && achievementType !== 'nominated' && achievementType !== 'contestant' ? 46 : 0)
+    + ((!isNominated && votingStartDate) ? 34 + 32 : 0) + 92;
+  const availableSpace = CARD_HEIGHT - contentTop;
+  const contentOffset = Math.max(0, (availableSpace - estimatedContentH) / 2);
+  let y = contentTop + contentOffset;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
 
