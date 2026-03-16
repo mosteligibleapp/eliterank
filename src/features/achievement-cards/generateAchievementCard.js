@@ -64,7 +64,12 @@ function formatVotingDate(dateStr) {
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return null;
-    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const month = d.toLocaleDateString('en-US', { month: 'long' });
+    const day = d.getDate();
+    const suffix = day === 1 || day === 21 || day === 31 ? 'st'
+      : day === 2 || day === 22 ? 'nd'
+      : day === 3 || day === 23 ? 'rd' : 'th';
+    return `${month} ${day}${suffix}`;
   } catch {
     return null;
   }
@@ -473,11 +478,23 @@ export async function generateAchievementCard({
     ctx.textBaseline = 'alphabetic';
   }
 
-  // === CTA BUTTON ===
-  const ctaY = y + 80;
-  const ctaHeight = 68;
+  // === VOTING DATE + CTA BUTTON ===
   const formattedDate = formatVotingDate(votingStartDate);
-  const ctaText = formattedDate ? `VOTING OPENS ${formattedDate.toUpperCase()}` : 'www.eliterank.co';
+  let ctaY = y + 80;
+
+  // Voting date text above button
+  if (formattedDate) {
+    ctx.fillStyle = '#e4e4e7';
+    ctx.font = `500 36px ${FONT_DISPLAY}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(`Voting opens on ${formattedDate}`, CX, ctaY);
+    ctaY += 50;
+  }
+
+  // CTA button
+  const ctaHeight = 68;
+  const ctaText = 'www.eliterank.co';
 
   ctx.font = `bold 26px ${FONT_BODY}`;
   const ctaTextWidth = ctx.measureText(ctaText).width;
