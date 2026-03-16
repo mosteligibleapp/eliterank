@@ -147,6 +147,7 @@ export default function MyCardsSection({
         accentColor: competition?.theme_primary || '#d4af37',
         voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
         rank: cardOption.rank,
+        votingStartDate: competition?.voting_start,
       });
 
       const url = URL.createObjectURL(blob);
@@ -210,6 +211,7 @@ export default function MyCardsSection({
         accentColor: competition?.theme_primary || '#d4af37',
         voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
         rank: cardOption.rank,
+        votingStartDate: competition?.voting_start,
       });
 
       // Download directly

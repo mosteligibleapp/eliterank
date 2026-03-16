@@ -57,6 +57,7 @@ export default function OverviewTab({
         organizationLogoUrl: competition?.organizationLogoUrl,
         accentColor: competition?.themePrimary || '#d4af37',
         voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+        votingStartDate: competition?.votingStart,
       });
 
       const url = URL.createObjectURL(blob);

@@ -87,6 +87,7 @@ export function useAchievementCards(contestantId) {
         accentColor: competition?.theme_primary || '#d4af37',
         voteUrl,
         rank,
+        votingStartDate: competition?.voting_start,
       });
 
       // Upload to Supabase Storage

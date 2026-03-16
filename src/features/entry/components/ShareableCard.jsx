@@ -1,5 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
 
+const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
+const FONT_BODY = "'Inter', system-ui, sans-serif";
+
+function formatSeasonLabel(season) {
+  if (!season) return null;
+  const year = typeof season === 'number' ? season : Number(season);
+  if (!isNaN(year) && year > 0) {
+    return `Season ${year}`;
+  }
+  return String(season);
+}
+
 /**
  * ShareableCard - Canvas-rendered preview of the IG Story card
  * Matches the full-size PNG from shareUtils but at 360x640 preview scale
@@ -153,7 +165,7 @@ export default function ShareableCard({
       y += logoH / 2 + 40 * s;
     } else {
       ctx.fillStyle = `${accentColor}cc`;
-      ctx.font = `500 ${28 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `500 ${28 * s}px ${FONT_DISPLAY}`;
       ctx.fillText('E L I T E R A N K', cx, y);
       y += 40 * s;
     }
@@ -189,7 +201,7 @@ export default function ShareableCard({
       ctx.restore();
 
       ctx.fillStyle = accentColor;
-      ctx.font = `bold ${photoR * 0.9}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `bold ${photoR * 0.9}px ${FONT_DISPLAY}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText((name?.charAt(0) || '?').toUpperCase(), cx, photoCY + 2 * s);
@@ -230,7 +242,7 @@ export default function ShareableCard({
 
       // Name
       ctx.fillStyle = '#ffffff';
-      ctx.font = `bold ${56 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `bold ${56 * s}px ${FONT_DISPLAY}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(name || 'Nominee', cx, ry);
@@ -239,7 +251,7 @@ export default function ShareableCard({
       // Handle
       if (handle) {
         ctx.fillStyle = '#9a9aaa';
-        ctx.font = `400 ${28 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+        ctx.font = `400 ${28 * s}px ${FONT_BODY}`;
         ctx.fillText(`@${handle.replace('@', '')}`, cx, ry);
         ry += 40 * s;
       }
@@ -254,33 +266,36 @@ export default function ShareableCard({
       ctx.shadowColor = accentColor;
       ctx.shadowBlur = 15 * s;
       ctx.fillStyle = accentColor;
-      ctx.font = `bold ${88 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `bold ${88 * s}px ${FONT_DISPLAY}`;
       ctx.fillText('NOMINATED', cx, ry);
       ctx.restore();
 
       ctx.fillStyle = accentColor;
-      ctx.font = `bold ${88 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `bold ${88 * s}px ${FONT_DISPLAY}`;
       ctx.fillText('NOMINATED', cx, ry);
       ry += 66 * s;
 
       // Subtitle
       ctx.fillStyle = '#a1a1aa';
-      ctx.font = `400 ${36 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `400 ${36 * s}px ${FONT_BODY}`;
       ctx.fillText('for', cx, ry);
       ry += 56 * s;
 
       ctx.fillStyle = '#e4e4e7';
-      ctx.font = `600 ${46 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `600 ${46 * s}px ${FONT_DISPLAY}`;
       ctx.fillText(competitionTitle || 'Competition', cx, ry);
-      ry += 52 * s;
+      ry += 64 * s;
 
       const metaParts = [];
       if (cityName) metaParts.push(cityName);
-      if (season) metaParts.push(String(season));
+      if (season) {
+        const seasonLabel = formatSeasonLabel(season);
+        metaParts.push(seasonLabel);
+      }
       if (metaParts.length) {
         ctx.fillStyle = '#a1a1aa';
-        ctx.font = `500 ${34 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
-        ctx.fillText(metaParts.join('  ·  '), cx, ry);
+        ctx.font = `500 ${34 * s}px ${FONT_BODY}`;
+        ctx.fillText(metaParts.join('  \u00B7  '), cx, ry);
       }
 
       // CTA
@@ -325,7 +340,7 @@ export default function ShareableCard({
       ctx.stroke();
 
       ctx.fillStyle = '#0a0a0c';
-      ctx.font = `bold ${26 * s}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `bold ${26 * s}px ${FONT_BODY}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('www.eliterank.co', cx, ctaY + ctaH / 2);

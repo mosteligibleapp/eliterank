@@ -9,6 +9,9 @@ const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1920;
 const CX = CARD_WIDTH / 2;
 
+const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
+const FONT_BODY = "'Inter', system-ui, sans-serif";
+
 export const ACHIEVEMENT_TYPES = {
   nominated: {
     title: 'NOMINATED',
@@ -54,6 +57,26 @@ export function getRoundAdvancementTitle(round, nextRound) {
     return `${round.title.toUpperCase()} QUALIFIER`;
   }
   return 'ADVANCED';
+}
+
+function formatVotingDate(dateStr) {
+  if (!dateStr) return null;
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  } catch {
+    return null;
+  }
+}
+
+function formatSeasonLabel(season) {
+  if (!season) return null;
+  const year = typeof season === 'number' ? season : Number(season);
+  if (!isNaN(year) && year > 0) {
+    return `Season ${year}`;
+  }
+  return String(season);
 }
 
 function loadImage(src) {
@@ -147,7 +170,7 @@ function drawInitial(ctx, initial, cx, cy, radius, accentColor) {
   ctx.restore();
 
   ctx.fillStyle = accentColor;
-  ctx.font = `bold ${radius * 0.9}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.font = `bold ${radius * 0.9}px ${FONT_DISPLAY}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(initial.toUpperCase(), cx, cy + 4);
@@ -195,6 +218,7 @@ export async function generateAchievementCard({
   accentColor = '#d4af37',
   voteUrl,
   rank,
+  votingStartDate,
 }) {
   const canvas = document.createElement('canvas');
   canvas.width = CARD_WIDTH;
@@ -295,13 +319,13 @@ export async function generateAchievementCard({
       y += logoH / 2 + 40;
     } catch {
       ctx.fillStyle = `${accentColor}cc`;
-      ctx.font = '500 36px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.font = `500 36px ${FONT_DISPLAY}`;
       ctx.fillText(organizationName.toUpperCase(), CX, y);
       y += 50;
     }
   } else {
     ctx.fillStyle = `${accentColor}cc`;
-    ctx.font = '500 36px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = `500 36px ${FONT_DISPLAY}`;
     ctx.fillText(organizationName.toUpperCase(), CX, y);
     y += 50;
   }
@@ -370,7 +394,7 @@ export async function generateAchievementCard({
 
   // === NAME ===
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 68px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = `bold 68px ${FONT_DISPLAY}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   let displayName = name || 'Contestant';
@@ -386,10 +410,10 @@ export async function generateAchievementCard({
   // === ACHIEVEMENT TITLE with glow ===
   // Auto-size title to prevent overflow
   let titleFontSize = 100;
-  ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.font = `bold ${titleFontSize}px ${FONT_DISPLAY}`;
   while (ctx.measureText(displayTitle).width > 900 && titleFontSize > 48) {
     titleFontSize -= 4;
-    ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    ctx.font = `bold ${titleFontSize}px ${FONT_DISPLAY}`;
   }
 
   // Subtle glow pass
@@ -402,31 +426,32 @@ export async function generateAchievementCard({
 
   // Crisp text pass
   ctx.fillStyle = accentColor;
-  ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.font = `bold ${titleFontSize}px ${FONT_DISPLAY}`;
   ctx.fillText(displayTitle, CX, y);
   y += titleFontSize * 0.6 + 10;
 
   // Subtitle
   ctx.fillStyle = '#a1a1aa';
-  ctx.font = '400 42px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = `400 42px ${FONT_BODY}`;
   ctx.fillText(subtitle, CX, y);
   y += 64;
 
   // Competition name
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = '600 54px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = `600 54px ${FONT_DISPLAY}`;
   let compDisplay = competitionName || 'the competition';
   if (ctx.measureText(compDisplay).width > 900) {
-    ctx.font = '600 44px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = `600 44px ${FONT_DISPLAY}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += 52;
+  y += 70;
 
   // Season
   if (season) {
+    const seasonLabel = formatSeasonLabel(season);
     ctx.fillStyle = '#a1a1aa';
-    ctx.font = '500 40px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(season, CX, y);
+    ctx.font = `500 38px ${FONT_BODY}`;
+    ctx.fillText(seasonLabel, CX, y);
   }
 
   // Rank badge (for top placements)
@@ -442,7 +467,7 @@ export async function generateAchievementCard({
     ctx.stroke();
 
     ctx.fillStyle = accentColor;
-    ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = `bold 24px ${FONT_BODY}`;
     ctx.textBaseline = 'middle';
     ctx.fillText(`#${rank}`, CX, y + badgeH / 2);
     ctx.textBaseline = 'alphabetic';
@@ -451,9 +476,10 @@ export async function generateAchievementCard({
   // === CTA BUTTON ===
   const ctaY = y + 80;
   const ctaHeight = 68;
-  const ctaText = 'www.eliterank.co';
+  const formattedDate = formatVotingDate(votingStartDate);
+  const ctaText = formattedDate ? `VOTING OPENS ${formattedDate.toUpperCase()}` : 'www.eliterank.co';
 
-  ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = `bold 26px ${FONT_BODY}`;
   const ctaTextWidth = ctx.measureText(ctaText).width;
   const ctaWidth = Math.max(480, ctaTextWidth + 100);
   const ctaX = CX - ctaWidth / 2;
@@ -473,7 +499,7 @@ export async function generateAchievementCard({
 
   // Button text
   ctx.fillStyle = '#0a0a0c';
-  ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = `bold 26px ${FONT_BODY}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(ctaText, CX, ctaY + ctaHeight / 2);

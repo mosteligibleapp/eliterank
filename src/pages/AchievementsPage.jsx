@@ -307,6 +307,7 @@ export default function AchievementsPage() {
         ? `mosteligible.co/${organization?.slug || 'most-eligible'}/${competition.slug}`
         : 'mosteligible.co',
       rank: cardOption.rank,
+      votingStartDate: competition?.voting_start,
     };
   };
 
