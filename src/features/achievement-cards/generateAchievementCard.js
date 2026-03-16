@@ -194,8 +194,8 @@ export async function generateAchievementCard({
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
   // === LOGO (top, centered) ===
-  const logoSize = 64;
-  const logoY = 80;
+  const logoSize = 120;
+  const logoY = 60;
 
   if (organizationLogoUrl) {
     try {
@@ -203,39 +203,26 @@ export async function generateAchievementCard({
       const logoAspect = logo.width / logo.height;
       let drawW = logoSize * logoAspect;
       let drawH = logoSize;
-      if (drawW > 200) { drawW = 200; drawH = drawW / logoAspect; }
+      if (drawW > 360) { drawW = 360; drawH = drawW / logoAspect; }
       ctx.drawImage(logo, CX - drawW / 2, logoY, drawW, drawH);
     } catch {
       // No fallback text — logo only
     }
   }
 
-  // === PHOTO — fit to image aspect ratio within max bounds ===
-  const maxPhotoW = 560;
-  const maxPhotoH = 700;
+  // === PHOTO — fixed frame, cover crop ===
+  const photoW = 560;
+  const photoH = 700;
   const photoR = 16;
   const photoStartY = 220;
   const frameOffset = 4;
   const frameR = photoR + frameOffset;
 
-  let photoW = maxPhotoW;
-  let photoH = maxPhotoH;
   let loadedImg = null;
 
   if (photoUrl) {
     try {
       loadedImg = await loadImage(photoUrl);
-      const imgAspect = loadedImg.width / loadedImg.height;
-      // Fit image within max bounds preserving aspect ratio
-      if (imgAspect > maxPhotoW / maxPhotoH) {
-        // Wider than tall — constrain by width
-        photoW = maxPhotoW;
-        photoH = maxPhotoW / imgAspect;
-      } else {
-        // Taller than wide — constrain by height
-        photoH = maxPhotoH;
-        photoW = maxPhotoH * imgAspect;
-      }
     } catch {
       loadedImg = null;
     }
