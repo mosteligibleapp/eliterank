@@ -2,14 +2,14 @@
  * Achievement Card Generator
  *
  * Generates branded shareable cards for contestant milestones.
- * Premium photo-first design optimized for Instagram Stories (1080x1920).
+ * Editorial fashion-meets-luxury design, optimized for Instagram Stories (1080x1920).
  */
 
 const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1920;
 const CX = CARD_WIDTH / 2;
 
-const FONT_DISPLAY = "'Cormorant Garamond', 'Playfair Display', Georgia, serif";
+const FONT_DISPLAY = "'Inter', 'Montserrat', system-ui, sans-serif";
 const FONT_BODY = "'Inter', system-ui, sans-serif";
 
 export const ACHIEVEMENT_TYPES = {
@@ -85,10 +85,6 @@ function formatSeasonLabel(season) {
 }
 
 function loadImage(src) {
-  // Fetch as blob first to avoid CORS/tainted-canvas issues.
-  // CDNs can cache a non-CORS response and serve it when the browser
-  // retries with crossOrigin='anonymous', which silently breaks canvas.
-  // Loading via a blob URL is always same-origin and safe for toBlob().
   return fetch(src)
     .then((res) => {
       if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
@@ -126,88 +122,43 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawSparkle(ctx, x, y, size, color, alpha = 1) {
+function drawRoundedRectImage(ctx, img, x, y, w, h, r) {
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x, y - size);
-  ctx.quadraticCurveTo(x + size * 0.15, y - size * 0.15, x + size, y);
-  ctx.quadraticCurveTo(x + size * 0.15, y + size * 0.15, x, y + size);
-  ctx.quadraticCurveTo(x - size * 0.15, y + size * 0.15, x - size, y);
-  ctx.quadraticCurveTo(x - size * 0.15, y - size * 0.15, x, y - size);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawCircularImage(ctx, img, cx, cy, radius) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  roundRect(ctx, x, y, w, h, r);
   ctx.clip();
   const imgAspect = img.width / img.height;
-  let drawW, drawH, drawX, drawY;
-  if (imgAspect > 1) {
-    drawH = radius * 2;
-    drawW = drawH * imgAspect;
-    drawX = cx - drawW / 2;
-    drawY = cy - radius;
+  const boxAspect = w / h;
+  let dw, dh, dx, dy;
+  if (imgAspect > boxAspect) {
+    dh = h;
+    dw = dh * imgAspect;
+    dx = x + (w - dw) / 2;
+    dy = y;
   } else {
-    drawW = radius * 2;
-    drawH = drawW / imgAspect;
-    drawX = cx - radius;
-    drawY = cy - drawH / 2;
+    dw = w;
+    dh = dw / imgAspect;
+    dx = x;
+    dy = y + (h - dh) / 2;
   }
-  ctx.drawImage(img, drawX, drawY, drawW, drawH);
+  ctx.drawImage(img, dx, dy, dw, dh);
   ctx.restore();
 }
 
-function drawInitial(ctx, initial, cx, cy, radius, accentColor) {
+function drawInitialRect(ctx, initial, x, y, w, h, r, accentColor, fontFamily) {
   ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  const gradient = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
-  gradient.addColorStop(0, '#1a1a20');
-  gradient.addColorStop(1, '#0d0d10');
-  ctx.fillStyle = gradient;
+  roundRect(ctx, x, y, w, h, r);
+  const grad = ctx.createLinearGradient(x, y, x + w, y + h);
+  grad.addColorStop(0, '#16161a');
+  grad.addColorStop(1, '#0c0c10');
+  ctx.fillStyle = grad;
   ctx.fill();
   ctx.restore();
 
-  ctx.fillStyle = accentColor;
-  ctx.font = `bold ${radius * 0.9}px ${FONT_DISPLAY}`;
+  ctx.fillStyle = `${accentColor}50`;
+  ctx.font = `200 ${Math.min(w, h) * 0.35}px ${fontFamily}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(initial.toUpperCase(), cx, cy + 4);
-}
-
-/**
- * Draw a decorative line with sparkle endpoints
- */
-function drawDecorativeLine(ctx, cx, y, width, color) {
-  // Left line
-  const lineGradL = ctx.createLinearGradient(cx - width / 2, y, cx - 20, y);
-  lineGradL.addColorStop(0, 'transparent');
-  lineGradL.addColorStop(1, `${color}60`);
-  ctx.strokeStyle = lineGradL;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(cx - width / 2, y);
-  ctx.lineTo(cx - 20, y);
-  ctx.stroke();
-
-  // Right line
-  const lineGradR = ctx.createLinearGradient(cx + 20, y, cx + width / 2, y);
-  lineGradR.addColorStop(0, `${color}60`);
-  lineGradR.addColorStop(1, 'transparent');
-  ctx.strokeStyle = lineGradR;
-  ctx.beginPath();
-  ctx.moveTo(cx + 20, y);
-  ctx.lineTo(cx + width / 2, y);
-  ctx.stroke();
-
-  // Center sparkle
-  drawSparkle(ctx, cx, y, 6, color, 0.8);
+  ctx.fillText(initial.toUpperCase(), x + w / 2, y + h / 2);
 }
 
 export async function generateAchievementCard({
@@ -239,326 +190,260 @@ export async function generateAchievementCard({
   const fontDisplay = isNominated ? FONT_SYS : FONT_DISPLAY;
   const fontBody = isNominated ? FONT_SYS : FONT_BODY;
 
-  // === BACKGROUND ===
-  // Rich multi-stop gradient
+  // === BACKGROUND — clean, deep dark ===
   const bgGrad = ctx.createLinearGradient(0, 0, 0, CARD_HEIGHT);
-  bgGrad.addColorStop(0, '#050507');
-  bgGrad.addColorStop(0.15, '#0a0a10');
-  bgGrad.addColorStop(0.4, '#0e0e14');
+  bgGrad.addColorStop(0, '#06060a');
+  bgGrad.addColorStop(0.3, '#0a0a10');
   bgGrad.addColorStop(0.6, '#0c0c12');
-  bgGrad.addColorStop(0.85, '#0a0a10');
-  bgGrad.addColorStop(1, '#050507');
+  bgGrad.addColorStop(1, '#06060a');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-  // Large warm glow behind photo area
-  const glow1 = ctx.createRadialGradient(CX, 620, 0, CX, 620, 500);
-  glow1.addColorStop(0, `${accentColor}20`);
-  glow1.addColorStop(0.4, `${accentColor}0c`);
-  glow1.addColorStop(1, 'transparent');
-  ctx.fillStyle = glow1;
+  // Single warm ambient glow behind photo zone
+  const ambientGlow = ctx.createRadialGradient(CX, 580, 80, CX, 580, 560);
+  ambientGlow.addColorStop(0, `${accentColor}14`);
+  ambientGlow.addColorStop(0.5, `${accentColor}08`);
+  ambientGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = ambientGlow;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-  // Secondary glow behind achievement title
-  const glow2 = ctx.createRadialGradient(CX, 1150, 0, CX, 1150, 400);
-  glow2.addColorStop(0, `${accentColor}14`);
-  glow2.addColorStop(0.5, `${accentColor}08`);
-  glow2.addColorStop(1, 'transparent');
-  ctx.fillStyle = glow2;
-  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-
-  // Subtle bottom glow
-  const glow3 = ctx.createRadialGradient(CX, 1700, 0, CX, 1700, 300);
-  glow3.addColorStop(0, `${accentColor}10`);
-  glow3.addColorStop(1, 'transparent');
-  ctx.fillStyle = glow3;
-  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-
-  // === SPARKLES - rich distribution ===
-  const sparkles = [
-    // Top area - flanking org name
-    { x: 120, y: 180, size: 8, alpha: 0.3 },
-    { x: 960, y: 200, size: 10, alpha: 0.35 },
-    { x: 200, y: 260, size: 5, alpha: 0.2 },
-    { x: 880, y: 270, size: 6, alpha: 0.25 },
-    // Around photo
-    { x: 160, y: 440, size: 14, alpha: 0.5 },
-    { x: 920, y: 480, size: 12, alpha: 0.45 },
-    { x: 130, y: 620, size: 6, alpha: 0.2 },
-    { x: 950, y: 580, size: 8, alpha: 0.3 },
-    { x: 180, y: 780, size: 10, alpha: 0.35 },
-    { x: 900, y: 740, size: 16, alpha: 0.5 },
-    // Mid section - around name and title
-    { x: 140, y: 980, size: 6, alpha: 0.2 },
-    { x: 940, y: 1020, size: 8, alpha: 0.25 },
-    { x: 100, y: 1150, size: 12, alpha: 0.4 },
-    { x: 980, y: 1130, size: 10, alpha: 0.35 },
-    { x: 160, y: 1280, size: 5, alpha: 0.15 },
-    { x: 920, y: 1300, size: 7, alpha: 0.2 },
-    // Bottom area
-    { x: 200, y: 1500, size: 10, alpha: 0.3 },
-    { x: 880, y: 1460, size: 14, alpha: 0.45 },
-    { x: 140, y: 1650, size: 6, alpha: 0.2 },
-    { x: 940, y: 1680, size: 8, alpha: 0.25 },
-    { x: 300, y: 1780, size: 5, alpha: 0.15 },
-    { x: 780, y: 1800, size: 7, alpha: 0.2 },
-    // Scattered small ones for texture
-    { x: 260, y: 360, size: 4, alpha: 0.12 },
-    { x: 820, y: 340, size: 3, alpha: 0.1 },
-    { x: 240, y: 1100, size: 4, alpha: 0.12 },
-    { x: 840, y: 1400, size: 3, alpha: 0.1 },
-  ];
-  for (const s of sparkles) {
-    drawSparkle(ctx, s.x, s.y, s.size, accentColor, s.alpha);
-  }
+  // Subtle vignette (darker edges)
+  const vigL = ctx.createLinearGradient(0, 0, 200, 0);
+  vigL.addColorStop(0, 'rgba(0,0,0,0.3)');
+  vigL.addColorStop(1, 'transparent');
+  ctx.fillStyle = vigL;
+  ctx.fillRect(0, 0, 200, CARD_HEIGHT);
+  const vigR = ctx.createLinearGradient(CARD_WIDTH, 0, CARD_WIDTH - 200, 0);
+  vigR.addColorStop(0, 'rgba(0,0,0,0.3)');
+  vigR.addColorStop(1, 'transparent');
+  ctx.fillStyle = vigR;
+  ctx.fillRect(CARD_WIDTH - 200, 0, 200, CARD_HEIGHT);
 
   // === ORGANIZATION BRANDING (top) ===
-  let y = 200;
+  let y = 80;
   ctx.textAlign = 'center';
 
   if (organizationLogoUrl) {
     try {
       const logo = await loadImage(organizationLogoUrl);
-      const maxH = 140;
-      const maxW = 600;
+      const maxH = 120;
+      const maxW = 500;
       let logoW = logo.width;
       let logoH = logo.height;
       if (logoH > maxH) { logoW = (maxH / logoH) * logoW; logoH = maxH; }
       if (logoW > maxW) { logoH = (maxW / logoW) * logoH; logoW = maxW; }
-      ctx.drawImage(logo, CX - logoW / 2, y - logoH / 2, logoW, logoH);
-      y += logoH / 2 + 40;
+      ctx.drawImage(logo, CX - logoW / 2, y, logoW, logoH);
+      y += logoH + 44;
     } catch {
-      ctx.fillStyle = `${accentColor}cc`;
-      ctx.font = `500 36px ${fontDisplay}`;
+      ctx.fillStyle = `${accentColor}aa`;
+      ctx.font = `600 32px ${fontBody}`;
+      ctx.textBaseline = 'top';
       ctx.fillText(organizationName.toUpperCase(), CX, y);
-      y += 50;
+      y += 56;
     }
   } else {
-    ctx.fillStyle = `${accentColor}cc`;
-    ctx.font = `500 36px ${fontDisplay}`;
+    ctx.fillStyle = `${accentColor}aa`;
+    ctx.font = `600 32px ${fontBody}`;
+    ctx.textBaseline = 'top';
     ctx.fillText(organizationName.toUpperCase(), CX, y);
-    y += 50;
+    y += 56;
   }
 
-  // Decorative divider below org
-  drawDecorativeLine(ctx, CX, y, 260, accentColor);
-  y += 50;
+  // === PHOTO — editorial rounded rectangle ===
+  const photoW = 580;
+  const photoH = 680;
+  const photoR = 28;
+  const photoX = CX - photoW / 2;
+  const photoY = y;
 
-  // === PHOTO (hero element) ===
-  const photoRadius = 260;
-  const photoCY = y + photoRadius;
-
-  // Multi-layered glow behind photo
+  // Soft glow halo behind photo frame
   ctx.save();
-  const outerGlow = ctx.createRadialGradient(CX, photoCY, photoRadius * 0.5, CX, photoCY, photoRadius + 100);
-  outerGlow.addColorStop(0, `${accentColor}18`);
-  outerGlow.addColorStop(0.6, `${accentColor}0a`);
-  outerGlow.addColorStop(1, 'transparent');
-  ctx.fillStyle = outerGlow;
-  ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 100, 0, Math.PI * 2);
+  ctx.shadowColor = `${accentColor}40`;
+  ctx.shadowBlur = 80;
+  roundRect(ctx, photoX + 20, photoY + 20, photoW - 40, photoH - 40, photoR);
+  ctx.fillStyle = `${accentColor}06`;
   ctx.fill();
   ctx.restore();
 
-  // Photo or initial
+  // Photo or initial fallback
   if (photoUrl) {
     try {
       const img = await loadImage(photoUrl);
-      drawCircularImage(ctx, img, CX, photoCY, photoRadius);
+      drawRoundedRectImage(ctx, img, photoX, photoY, photoW, photoH, photoR);
     } catch {
-      drawInitial(ctx, name?.charAt(0) || '?', CX, photoCY, photoRadius, accentColor);
+      drawInitialRect(ctx, name?.charAt(0) || '?', photoX, photoY, photoW, photoH, photoR, accentColor, fontDisplay);
     }
   } else {
-    drawInitial(ctx, name?.charAt(0) || '?', CX, photoCY, photoRadius, accentColor);
+    drawInitialRect(ctx, name?.charAt(0) || '?', photoX, photoY, photoW, photoH, photoR, accentColor, fontDisplay);
   }
 
-  // Triple ring effect
-  // Inner accent ring
-  ctx.strokeStyle = accentColor;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 6, 0, Math.PI * 2);
+  // Bottom vignette on photo (editorial fade)
+  ctx.save();
+  roundRect(ctx, photoX, photoY, photoW, photoH, photoR);
+  ctx.clip();
+  const photoVig = ctx.createLinearGradient(0, photoY + photoH * 0.65, 0, photoY + photoH);
+  photoVig.addColorStop(0, 'transparent');
+  photoVig.addColorStop(1, 'rgba(6,6,10,0.55)');
+  ctx.fillStyle = photoVig;
+  ctx.fillRect(photoX, photoY, photoW, photoH);
+  ctx.restore();
+
+  // Thin gold border on photo
+  roundRect(ctx, photoX, photoY, photoW, photoH, photoR);
+  ctx.strokeStyle = `${accentColor}50`;
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Middle subtle ring
-  ctx.strokeStyle = `${accentColor}20`;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 18, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Outer faint ring
-  ctx.strokeStyle = `${accentColor}12`;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 30, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Small sparkles on the ring
-  drawSparkle(ctx, CX - photoRadius - 10, photoCY - 40, 5, accentColor, 0.5);
-  drawSparkle(ctx, CX + photoRadius + 14, photoCY + 30, 4, accentColor, 0.4);
-  drawSparkle(ctx, CX - 30, photoCY - photoRadius - 12, 5, accentColor, 0.45);
-  drawSparkle(ctx, CX + 50, photoCY + photoRadius + 15, 4, accentColor, 0.35);
-
-  // === TEXT SECTION — use 'top' baseline for predictable spacing ===
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-
-  y = photoCY + photoRadius + 40;
+  y = photoY + photoH + 48;
 
   // === NAME ===
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
   ctx.fillStyle = '#ffffff';
-  ctx.font = `600 72px ${fontDisplay}`;
+  ctx.font = `700 62px ${fontDisplay}`;
   let displayName = name || 'Contestant';
-  if (ctx.measureText(displayName).width > 860) {
-    while (ctx.measureText(displayName + '...').width > 860 && displayName.length > 0) {
+  if (ctx.measureText(displayName).width > 880) {
+    while (ctx.measureText(displayName + '...').width > 880 && displayName.length > 0) {
       displayName = displayName.slice(0, -1);
     }
     displayName += '...';
   }
   ctx.fillText(displayName, CX, y);
-  y += 88;
+  y += 82;
 
-  // === ACHIEVEMENT TITLE with glow ===
-  let titleFontSize = 84;
-  ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
-  while (ctx.measureText(displayTitle).width > 900 && titleFontSize > 48) {
-    titleFontSize -= 4;
-    ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
+  // === ACHIEVEMENT PILL BADGE ===
+  ctx.font = `700 26px ${fontBody}`;
+  let pillText = displayTitle;
+  // Measure and size the pill
+  let pillFontSize = 26;
+  let pillTextWidth = ctx.measureText(pillText).width;
+  if (pillTextWidth > 400) {
+    pillFontSize = 22;
+    ctx.font = `700 ${pillFontSize}px ${fontBody}`;
+    pillTextWidth = ctx.measureText(pillText).width;
   }
+  const pillPadH = 40;
+  const pillPadV = 14;
+  const pillW = pillTextWidth + pillPadH * 2;
+  const pillH = pillFontSize + pillPadV * 2;
+  const pillX = CX - pillW / 2;
+  const pillY = y;
 
-  // Glow pass
-  ctx.save();
-  ctx.shadowColor = accentColor;
-  ctx.shadowBlur = 18;
+  // Pill background — very subtle gold fill
+  roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+  ctx.fillStyle = `${accentColor}12`;
+  ctx.fill();
+
+  // Pill border
+  roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+  ctx.strokeStyle = `${accentColor}90`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Pill text
   ctx.fillStyle = accentColor;
-  ctx.fillText(displayTitle, CX, y);
-  ctx.restore();
+  ctx.font = `700 ${pillFontSize}px ${fontBody}`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(pillText, CX, pillY + pillH / 2);
+  y = pillY + pillH + 28;
 
-  // Crisp pass
-  ctx.fillStyle = accentColor;
-  ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
-  ctx.fillText(displayTitle, CX, y);
-  y += titleFontSize + 12;
+  // === SUBTITLE + COMPETITION NAME ===
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'center';
 
-  // Subtitle (skip if empty)
   if (subtitle) {
-    ctx.fillStyle = '#a1a1aa';
-    ctx.font = `400 40px ${fontBody}`;
+    ctx.fillStyle = '#71717a';
+    ctx.font = `400 30px ${fontBody}`;
     ctx.fillText(subtitle, CX, y);
-    y += 54;
+    y += 42;
   }
 
   // Competition name
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = `600 48px ${fontDisplay}`;
+  let compFontSize = 40;
+  ctx.font = `600 ${compFontSize}px ${fontDisplay}`;
   let compDisplay = competitionName || 'the competition';
   if (ctx.measureText(compDisplay).width > 900) {
-    ctx.font = `600 40px ${fontDisplay}`;
+    compFontSize = 34;
+    ctx.font = `600 ${compFontSize}px ${fontDisplay}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += isNominated ? 56 : 64;
+  y += compFontSize + 18;
 
-  // Season (and city for contestant cards)
+  // Season / City line
   if (season) {
-    ctx.fillStyle = '#a1a1aa';
+    ctx.fillStyle = '#71717a';
     if (isNominated) {
-      ctx.font = `500 38px ${fontBody}`;
+      ctx.font = `400 30px ${fontBody}`;
       ctx.fillText(String(season), CX, y);
     } else {
-      ctx.font = `400 34px ${fontBody}`;
+      ctx.font = `400 30px ${fontBody}`;
       const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
       ctx.fillText(metaText, CX, y);
     }
-    y += 52;
-  }
-
-  // Tagline (contestant and advancement cards only)
-  if (!isNominated) {
-    ctx.fillStyle = '#52525b';
-    ctx.font = `300 24px ${fontBody}`;
-    ctx.fillText('The premier competition for confidence, connection & recognition', CX, y);
-    y += 40;
+    y += 48;
   }
 
   // Rank badge (for top placements)
   if (rank && achievementType !== 'nominated' && achievementType !== 'contestant') {
-    y += 16;
-    const badgeW = 160;
-    const badgeH = 50;
-    roundRect(ctx, CX - badgeW / 2, y, badgeW, badgeH, 25);
-    ctx.fillStyle = `${accentColor}20`;
-    ctx.fill();
-    ctx.strokeStyle = `${accentColor}60`;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
+    y += 8;
     ctx.fillStyle = accentColor;
-    ctx.font = `bold 24px ${fontBody}`;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`#${rank}`, CX, y + badgeH / 2);
-    ctx.textBaseline = 'top';
-    y += badgeH;
+    ctx.font = `700 28px ${fontBody}`;
+    ctx.fillText(`#${rank}`, CX, y);
+    y += 44;
   }
 
-  // === BOTTOM CTA BOX ===
-  const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
-  const ctaText = 'www.eliterank.co';
-  const btnHeight = 60;
-  const boxPadTop = formattedDate ? 40 : 32;
-  const boxPadBottom = 32;
-  const gapDateBtn = formattedDate ? 24 : 0;
-  const dateLineH = formattedDate ? 38 : 0;
-  const boxHeight = boxPadTop + dateLineH + gapDateBtn + btnHeight + boxPadBottom;
-  const boxWidth = 580;
-  const boxX = CX - boxWidth / 2;
-  const boxY = y + 48;
-  const boxR = 20;
-
-  // Box — no fill, just a subtle border
-  roundRect(ctx, boxX, boxY, boxWidth, boxHeight, boxR);
-  ctx.fillStyle = 'rgba(255,255,255,0.025)';
-  ctx.fill();
-  roundRect(ctx, boxX, boxY, boxWidth, boxHeight, boxR);
-  ctx.strokeStyle = `${accentColor}18`;
+  // === THIN SEPARATOR ===
+  const lineW = 160;
+  const lineGrad = ctx.createLinearGradient(CX - lineW / 2, 0, CX + lineW / 2, 0);
+  lineGrad.addColorStop(0, 'transparent');
+  lineGrad.addColorStop(0.2, `${accentColor}30`);
+  lineGrad.addColorStop(0.8, `${accentColor}30`);
+  lineGrad.addColorStop(1, 'transparent');
+  ctx.strokeStyle = lineGrad;
   ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(CX - lineW / 2, y);
+  ctx.lineTo(CX + lineW / 2, y);
   ctx.stroke();
+  y += 28;
 
-  let innerY = boxY + boxPadTop;
-
-  // Voting date text
+  // === VOTING DATE ===
+  const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
   if (formattedDate) {
     ctx.fillStyle = accentColor;
-    ctx.font = `600 32px ${fontBody}`;
-    ctx.textAlign = 'center';
+    ctx.font = `500 28px ${fontBody}`;
     ctx.textBaseline = 'top';
-    ctx.fillText(`Voting opens on ${formattedDate}`, CX, innerY);
-    innerY += dateLineH + gapDateBtn;
+    ctx.fillText(`Voting opens ${formattedDate}`, CX, y);
+    y += 52;
   }
 
-  // CTA button
-  const btnPadX = 44;
-  const btnWidth = boxWidth - btnPadX * 2;
-  const btnX = CX - btnWidth / 2;
+  // === CTA BUTTON (standalone, no box) ===
+  const ctaText = 'www.eliterank.co';
+  const btnH = 58;
+  const btnW = 380;
+  const btnX = CX - btnW / 2;
+  const btnY = y;
 
+  // Button shadow
   ctx.save();
-  ctx.shadowColor = `${accentColor}25`;
-  ctx.shadowBlur = 20;
-  ctx.shadowOffsetY = 2;
-  roundRect(ctx, btnX, innerY, btnWidth, btnHeight, btnHeight / 2);
-  const ctaGrad = ctx.createLinearGradient(btnX, innerY, btnX + btnWidth, innerY + btnHeight);
+  ctx.shadowColor = `${accentColor}30`;
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 4;
+  roundRect(ctx, btnX, btnY, btnW, btnH, btnH / 2);
+  const ctaGrad = ctx.createLinearGradient(btnX, btnY, btnX + btnW, btnY + btnH);
   ctaGrad.addColorStop(0, accentColor);
-  ctaGrad.addColorStop(1, '#f4d03f');
+  ctaGrad.addColorStop(1, '#c9a84c');
   ctx.fillStyle = ctaGrad;
   ctx.fill();
   ctx.restore();
 
   // Button text
   ctx.fillStyle = '#0a0a0c';
-  ctx.font = `600 24px ${fontBody}`;
+  ctx.font = `600 22px ${fontBody}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(ctaText, CX, innerY + btnHeight / 2);
+  ctx.fillText(ctaText, CX, btnY + btnH / 2);
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png');
