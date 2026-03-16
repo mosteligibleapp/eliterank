@@ -483,14 +483,13 @@ export async function generateAchievementCard({
   }
 
   // === VOTING DATE + CTA BUTTON ===
-  console.log('[AchievementCard] votingStartDate:', votingStartDate, '| achievementType:', achievementType, '| isNominated:', isNominated);
   const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
   let ctaY = y + 80;
 
   // Voting date text above button (contestant cards only)
   if (formattedDate) {
-    ctx.fillStyle = '#e4e4e7';
-    ctx.font = `500 36px ${fontDisplay}`;
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = `500 38px ${fontBody}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(`Voting opens on ${formattedDate}`, CX, ctaY);
