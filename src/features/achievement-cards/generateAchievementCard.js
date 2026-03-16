@@ -9,7 +9,7 @@ const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1920;
 const CX = CARD_WIDTH / 2;
 
-const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
+const FONT_DISPLAY = "'Cormorant Garamond', 'Playfair Display', Georgia, serif";
 const FONT_BODY = "'Inter', system-ui, sans-serif";
 
 export const ACHIEVEMENT_TYPES = {
@@ -404,7 +404,7 @@ export async function generateAchievementCard({
 
   // === NAME ===
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 68px ${fontDisplay}`;
+  ctx.font = `600 72px ${fontDisplay}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   let displayName = name || 'Contestant';
@@ -469,6 +469,16 @@ export async function generateAchievementCard({
       const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
       ctx.fillText(metaText, CX, y);
     }
+    y += 56;
+  }
+
+  // Tagline (contestant and advancement cards only)
+  if (!isNominated) {
+    ctx.fillStyle = '#71717a';
+    ctx.font = `300 26px ${fontBody}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('The premier competition for confidence, connection & recognition', CX, y);
   }
 
   // Rank badge (for top placements)
