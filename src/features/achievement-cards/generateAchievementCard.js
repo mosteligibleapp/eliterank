@@ -400,7 +400,7 @@ export async function generateAchievementCard({
   drawSparkle(ctx, CX - 30, photoCY - photoRadius - 12, 5, accentColor, 0.45);
   drawSparkle(ctx, CX + 50, photoCY + photoRadius + 15, 4, accentColor, 0.35);
 
-  y = photoCY + photoRadius + 110;
+  y = photoCY + photoRadius + 100;
 
   // === NAME ===
   ctx.fillStyle = '#ffffff';
@@ -415,7 +415,7 @@ export async function generateAchievementCard({
     displayName += '...';
   }
   ctx.fillText(displayName, CX, y);
-  y += 130;
+  y += 82;
 
   // === ACHIEVEMENT TITLE with glow ===
   // Auto-size title to prevent overflow
@@ -438,7 +438,7 @@ export async function generateAchievementCard({
   ctx.fillStyle = accentColor;
   ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
   ctx.fillText(displayTitle, CX, y);
-  y += titleFontSize * 0.6 + 10;
+  y += titleFontSize * 0.55 + 20;
 
   // Subtitle (skip if empty)
   if (subtitle) {
@@ -450,13 +450,13 @@ export async function generateAchievementCard({
 
   // Competition name
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = `600 54px ${fontDisplay}`;
+  ctx.font = `600 50px ${fontDisplay}`;
   let compDisplay = competitionName || 'the competition';
   if (ctx.measureText(compDisplay).width > 900) {
-    ctx.font = `600 44px ${fontDisplay}`;
+    ctx.font = `600 42px ${fontDisplay}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += isNominated ? 52 : 70;
+  y += isNominated ? 52 : 60;
 
   // Season (and city for contestant cards)
   if (season) {
@@ -465,7 +465,7 @@ export async function generateAchievementCard({
       ctx.font = `500 40px ${fontBody}`;
       ctx.fillText(String(season), CX, y);
     } else {
-      ctx.font = `500 38px ${fontBody}`;
+      ctx.font = `500 36px ${fontBody}`;
       const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
       ctx.fillText(metaText, CX, y);
     }
@@ -493,23 +493,24 @@ export async function generateAchievementCard({
   // === BOTTOM CTA BOX (voting date + URL button) ===
   const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
   const ctaText = 'www.eliterank.co';
-  const btnHeight = 68;
-  const boxPadTop = formattedDate ? 40 : 30;
-  const boxPadBottom = 30;
-  const gapDateBtn = formattedDate ? 28 : 0;
-  const dateLineH = formattedDate ? 44 : 0;
+  const btnHeight = 64;
+  const boxPadX = 48;
+  const boxPadTop = formattedDate ? 48 : 36;
+  const boxPadBottom = 36;
+  const gapDateBtn = formattedDate ? 32 : 0;
+  const dateLineH = formattedDate ? 42 : 0;
   const boxHeight = boxPadTop + dateLineH + gapDateBtn + btnHeight + boxPadBottom;
-  const boxWidth = 560;
+  const boxWidth = 620;
   const boxX = CX - boxWidth / 2;
-  const boxY = y + 60;
-  const boxR = 28;
+  const boxY = y + 80;
+  const boxR = 24;
 
-  // Box background
+  // Box background — soft frosted glass feel
   roundRect(ctx, boxX, boxY, boxWidth, boxHeight, boxR);
-  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
   ctx.fill();
   roundRect(ctx, boxX, boxY, boxWidth, boxHeight, boxR);
-  ctx.strokeStyle = `${accentColor}30`;
+  ctx.strokeStyle = `${accentColor}1a`;
   ctx.lineWidth = 1;
   ctx.stroke();
 
@@ -518,7 +519,7 @@ export async function generateAchievementCard({
   // Voting date text inside box
   if (formattedDate) {
     ctx.fillStyle = accentColor;
-    ctx.font = `500 36px ${fontBody}`;
+    ctx.font = `600 34px ${fontBody}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText(`Voting opens on ${formattedDate}`, CX, innerY);
@@ -526,16 +527,14 @@ export async function generateAchievementCard({
   }
 
   // CTA button inside box
-  ctx.font = `bold 26px ${fontBody}`;
-  const ctaTextWidth = ctx.measureText(ctaText).width;
-  const btnWidth = Math.max(460, ctaTextWidth + 100);
+  const btnWidth = boxWidth - boxPadX * 2;
   const btnX = CX - btnWidth / 2;
 
   // Button shadow
   ctx.save();
-  ctx.shadowColor = `${accentColor}40`;
-  ctx.shadowBlur = 30;
-  ctx.shadowOffsetY = 4;
+  ctx.shadowColor = `${accentColor}30`;
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 3;
   roundRect(ctx, btnX, innerY, btnWidth, btnHeight, btnHeight / 2);
   const ctaGrad = ctx.createLinearGradient(btnX, innerY, btnX + btnWidth, innerY + btnHeight);
   ctaGrad.addColorStop(0, accentColor);
@@ -551,9 +550,9 @@ export async function generateAchievementCard({
   ctx.textBaseline = 'middle';
   ctx.fillText(ctaText, CX, innerY + btnHeight / 2);
 
-  // Subtle border on button
+  // Subtle inner highlight on button
   roundRect(ctx, btnX, innerY, btnWidth, btnHeight, btnHeight / 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 1;
   ctx.stroke();
 
