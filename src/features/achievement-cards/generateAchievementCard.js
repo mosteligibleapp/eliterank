@@ -400,13 +400,15 @@ export async function generateAchievementCard({
   drawSparkle(ctx, CX - 30, photoCY - photoRadius - 12, 5, accentColor, 0.45);
   drawSparkle(ctx, CX + 50, photoCY + photoRadius + 15, 4, accentColor, 0.35);
 
-  y = photoCY + photoRadius + 100;
+  // === TEXT SECTION — use 'top' baseline for predictable spacing ===
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  y = photoCY + photoRadius + 40;
 
   // === NAME ===
   ctx.fillStyle = '#ffffff';
   ctx.font = `600 72px ${fontDisplay}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
   let displayName = name || 'Contestant';
   if (ctx.measureText(displayName).width > 860) {
     while (ctx.measureText(displayName + '...').width > 860 && displayName.length > 0) {
@@ -415,75 +417,73 @@ export async function generateAchievementCard({
     displayName += '...';
   }
   ctx.fillText(displayName, CX, y);
-  y += 82;
+  y += 88;
 
   // === ACHIEVEMENT TITLE with glow ===
-  // Auto-size title to prevent overflow
-  let titleFontSize = 100;
+  let titleFontSize = 84;
   ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
   while (ctx.measureText(displayTitle).width > 900 && titleFontSize > 48) {
     titleFontSize -= 4;
     ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
   }
 
-  // Subtle glow pass
+  // Glow pass
   ctx.save();
   ctx.shadowColor = accentColor;
-  ctx.shadowBlur = 15;
+  ctx.shadowBlur = 18;
   ctx.fillStyle = accentColor;
   ctx.fillText(displayTitle, CX, y);
   ctx.restore();
 
-  // Crisp text pass
+  // Crisp pass
   ctx.fillStyle = accentColor;
   ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
   ctx.fillText(displayTitle, CX, y);
-  y += titleFontSize * 0.55 + 20;
+  y += titleFontSize + 12;
 
   // Subtitle (skip if empty)
   if (subtitle) {
     ctx.fillStyle = '#a1a1aa';
-    ctx.font = `400 42px ${fontBody}`;
+    ctx.font = `400 40px ${fontBody}`;
     ctx.fillText(subtitle, CX, y);
-    y += 64;
+    y += 54;
   }
 
   // Competition name
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = `600 50px ${fontDisplay}`;
+  ctx.font = `600 48px ${fontDisplay}`;
   let compDisplay = competitionName || 'the competition';
   if (ctx.measureText(compDisplay).width > 900) {
-    ctx.font = `600 42px ${fontDisplay}`;
+    ctx.font = `600 40px ${fontDisplay}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += isNominated ? 52 : 60;
+  y += isNominated ? 56 : 64;
 
   // Season (and city for contestant cards)
   if (season) {
     ctx.fillStyle = '#a1a1aa';
     if (isNominated) {
-      ctx.font = `500 40px ${fontBody}`;
+      ctx.font = `500 38px ${fontBody}`;
       ctx.fillText(String(season), CX, y);
     } else {
-      ctx.font = `500 36px ${fontBody}`;
+      ctx.font = `400 34px ${fontBody}`;
       const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
       ctx.fillText(metaText, CX, y);
     }
-    y += 56;
+    y += 52;
   }
 
   // Tagline (contestant and advancement cards only)
   if (!isNominated) {
-    ctx.fillStyle = '#71717a';
-    ctx.font = `300 26px ${fontBody}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#52525b';
+    ctx.font = `300 24px ${fontBody}`;
     ctx.fillText('The premier competition for confidence, connection & recognition', CX, y);
+    y += 40;
   }
 
   // Rank badge (for top placements)
   if (rank && achievementType !== 'nominated' && achievementType !== 'contestant') {
-    y += 50;
+    y += 16;
     const badgeW = 160;
     const badgeH = 50;
     roundRect(ctx, CX - badgeW / 2, y, badgeW, badgeH, 25);
@@ -497,54 +497,54 @@ export async function generateAchievementCard({
     ctx.font = `bold 24px ${fontBody}`;
     ctx.textBaseline = 'middle';
     ctx.fillText(`#${rank}`, CX, y + badgeH / 2);
-    ctx.textBaseline = 'alphabetic';
+    ctx.textBaseline = 'top';
+    y += badgeH;
   }
 
-  // === BOTTOM CTA BOX (voting date + URL button) ===
+  // === BOTTOM CTA BOX ===
   const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
   const ctaText = 'www.eliterank.co';
-  const btnHeight = 64;
-  const boxPadX = 48;
-  const boxPadTop = formattedDate ? 48 : 36;
-  const boxPadBottom = 36;
-  const gapDateBtn = formattedDate ? 32 : 0;
-  const dateLineH = formattedDate ? 42 : 0;
+  const btnHeight = 60;
+  const boxPadTop = formattedDate ? 40 : 32;
+  const boxPadBottom = 32;
+  const gapDateBtn = formattedDate ? 24 : 0;
+  const dateLineH = formattedDate ? 38 : 0;
   const boxHeight = boxPadTop + dateLineH + gapDateBtn + btnHeight + boxPadBottom;
-  const boxWidth = 620;
+  const boxWidth = 580;
   const boxX = CX - boxWidth / 2;
-  const boxY = y + 80;
-  const boxR = 24;
+  const boxY = y + 48;
+  const boxR = 20;
 
-  // Box background — soft frosted glass feel
+  // Box — no fill, just a subtle border
   roundRect(ctx, boxX, boxY, boxWidth, boxHeight, boxR);
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fillStyle = 'rgba(255,255,255,0.025)';
   ctx.fill();
   roundRect(ctx, boxX, boxY, boxWidth, boxHeight, boxR);
-  ctx.strokeStyle = `${accentColor}1a`;
+  ctx.strokeStyle = `${accentColor}18`;
   ctx.lineWidth = 1;
   ctx.stroke();
 
   let innerY = boxY + boxPadTop;
 
-  // Voting date text inside box
+  // Voting date text
   if (formattedDate) {
     ctx.fillStyle = accentColor;
-    ctx.font = `600 34px ${fontBody}`;
+    ctx.font = `600 32px ${fontBody}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText(`Voting opens on ${formattedDate}`, CX, innerY);
     innerY += dateLineH + gapDateBtn;
   }
 
-  // CTA button inside box
-  const btnWidth = boxWidth - boxPadX * 2;
+  // CTA button
+  const btnPadX = 44;
+  const btnWidth = boxWidth - btnPadX * 2;
   const btnX = CX - btnWidth / 2;
 
-  // Button shadow
   ctx.save();
-  ctx.shadowColor = `${accentColor}30`;
-  ctx.shadowBlur = 24;
-  ctx.shadowOffsetY = 3;
+  ctx.shadowColor = `${accentColor}25`;
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetY = 2;
   roundRect(ctx, btnX, innerY, btnWidth, btnHeight, btnHeight / 2);
   const ctaGrad = ctx.createLinearGradient(btnX, innerY, btnX + btnWidth, innerY + btnHeight);
   ctaGrad.addColorStop(0, accentColor);
@@ -555,16 +555,10 @@ export async function generateAchievementCard({
 
   // Button text
   ctx.fillStyle = '#0a0a0c';
-  ctx.font = `bold 26px ${fontBody}`;
+  ctx.font = `600 24px ${fontBody}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(ctaText, CX, innerY + btnHeight / 2);
-
-  // Subtle inner highlight on button
-  roundRect(ctx, btnX, innerY, btnWidth, btnHeight, btnHeight / 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png');
