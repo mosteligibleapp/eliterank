@@ -8,18 +8,6 @@ const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1920;
 const CX = CARD_WIDTH / 2;
 
-const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
-const FONT_BODY = "'Inter', system-ui, sans-serif";
-
-function formatSeasonLabel(season) {
-  if (!season) return null;
-  const year = typeof season === 'number' ? season : Number(season);
-  if (!isNaN(year) && year > 0) {
-    return `Season ${year}`;
-  }
-  return String(season);
-}
-
 function loadImage(src) {
   return fetch(src)
     .then((res) => {
@@ -107,7 +95,7 @@ function drawInitial(ctx, initial, cx, cy, radius, accentColor) {
   ctx.restore();
 
   ctx.fillStyle = accentColor;
-  ctx.font = `bold ${radius * 0.9}px ${FONT_DISPLAY}`;
+  ctx.font = `bold ${radius * 0.9}px -apple-system, BlinkMacSystemFont, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(initial.toUpperCase(), cx, cy + 4);
@@ -238,13 +226,13 @@ export async function generateShareCard({
       y += logoH / 2 + 40;
     } catch {
       ctx.fillStyle = `${accentColor}cc`;
-      ctx.font = `500 28px ${FONT_DISPLAY}`;
+      ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
       ctx.fillText('E L I T E R A N K', CX, y);
       y += 40;
     }
   } else {
     ctx.fillStyle = `${accentColor}cc`;
-    ctx.font = `500 28px ${FONT_DISPLAY}`;
+    ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText('E L I T E R A N K', CX, y);
     y += 40;
   }
@@ -308,7 +296,7 @@ export async function generateShareCard({
 
   // === NAME ===
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 56px ${FONT_DISPLAY}`;
+  ctx.font = 'bold 56px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   let displayName = name || 'Nominee';
@@ -323,7 +311,7 @@ export async function generateShareCard({
 
   if (handle) {
     ctx.fillStyle = '#9a9aaa';
-    ctx.font = `400 28px ${FONT_BODY}`;
+    ctx.font = '400 28px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(`@${handle.replace('@', '')}`, CX, y);
     y += 40;
   }
@@ -339,47 +327,40 @@ export async function generateShareCard({
   ctx.shadowColor = accentColor;
   ctx.shadowBlur = 15;
   ctx.fillStyle = accentColor;
-  ctx.font = `bold 88px ${FONT_DISPLAY}`;
+  ctx.font = 'bold 88px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('NOMINATED', CX, y);
   ctx.restore();
 
   // Crisp pass
   ctx.fillStyle = accentColor;
-  ctx.font = `bold 88px ${FONT_DISPLAY}`;
+  ctx.font = 'bold 88px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('NOMINATED', CX, y);
   y += 66;
 
   // Subtitle
   ctx.fillStyle = '#a1a1aa';
-  ctx.font = `400 36px ${FONT_BODY}`;
+  ctx.font = '400 36px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText('for', CX, y);
   y += 56;
 
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = `600 46px ${FONT_DISPLAY}`;
+  ctx.font = '600 46px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText(competitionTitle || 'Competition', CX, y);
-  y += 64;
+  y += 52;
 
   const metaParts = [];
   if (cityName) metaParts.push(cityName);
-  if (season) {
-    const seasonLabel = formatSeasonLabel(season);
-    metaParts.push(seasonLabel);
-  }
+  if (season) metaParts.push(season);
   if (metaParts.length) {
     ctx.fillStyle = '#a1a1aa';
-    ctx.font = `500 34px ${FONT_BODY}`;
-    ctx.fillText(metaParts.join('  \u00B7  '), CX, y);
+    ctx.font = '500 34px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(metaParts.join('  ·  '), CX, y);
   }
 
   // === CTA ===
   const ctaY = y + 80;
   const ctaHeight = 68;
-  const ctaText = 'www.eliterank.co';
-
-  ctx.font = `bold 26px ${FONT_BODY}`;
-  const ctaTextWidth = ctx.measureText(ctaText).width;
-  const ctaWidth = Math.max(480, ctaTextWidth + 100);
+  const ctaWidth = 480;
   const ctaX = CX - ctaWidth / 2;
 
   ctx.save();
@@ -395,10 +376,10 @@ export async function generateShareCard({
   ctx.restore();
 
   ctx.fillStyle = '#0a0a0c';
-  ctx.font = `bold 26px ${FONT_BODY}`;
+  ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(ctaText, CX, ctaY + ctaHeight / 2);
+  ctx.fillText('www.eliterank.co', CX, ctaY + ctaHeight / 2);
 
   roundRect(ctx, ctaX, ctaY, ctaWidth, ctaHeight, ctaHeight / 2);
   ctx.strokeStyle = 'rgba(255,255,255,0.2)';
@@ -496,13 +477,13 @@ export async function generateOGCard({
 
   let y = 200;
   ctx.fillStyle = accentColor;
-  ctx.font = `bold 52px ${FONT_DISPLAY}`;
+  ctx.font = 'bold 52px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText(variantLabels[variant] || 'NOMINATED', textX, y);
   y += 60;
 
   // Name
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 40px ${FONT_DISPLAY}`;
+  ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, sans-serif';
   let displayName = name || 'Nominee';
   if (ctx.measureText(displayName).width > 620) {
     while (ctx.measureText(displayName + '...').width > 620 && displayName.length > 0) {
@@ -515,7 +496,7 @@ export async function generateOGCard({
 
   if (handle) {
     ctx.fillStyle = '#9a9aaa';
-    ctx.font = `400 24px ${FONT_BODY}`;
+    ctx.font = '400 24px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(`@${handle.replace('@', '')}`, textX, y);
     y += 40;
   }
@@ -523,20 +504,17 @@ export async function generateOGCard({
   // Competition
   y += 10;
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = `600 28px ${FONT_DISPLAY}`;
+  ctx.font = '600 28px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText(competitionTitle || 'Competition', textX, y);
   y += 36;
 
   const metaParts = [];
   if (cityName) metaParts.push(cityName);
-  if (season) {
-    const seasonLabel = formatSeasonLabel(season);
-    metaParts.push(seasonLabel);
-  }
+  if (season) metaParts.push(season);
   if (metaParts.length) {
     ctx.fillStyle = '#a1a1aa';
-    ctx.font = `500 22px ${FONT_BODY}`;
-    ctx.fillText(metaParts.join('  \u00B7  '), textX, y);
+    ctx.font = '500 22px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(metaParts.join('  ·  '), textX, y);
   }
 
   // Bottom bar with branding
@@ -544,7 +522,7 @@ export async function generateOGCard({
   ctx.fillStyle = `${accentColor}20`;
   ctx.fillRect(0, barY, OG_W, 60);
   ctx.fillStyle = accentColor;
-  ctx.font = `bold 20px ${FONT_BODY}`;
+  ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('eliterank.co', OG_W / 2, barY + 38);
 
