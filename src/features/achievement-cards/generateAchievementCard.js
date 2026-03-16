@@ -233,6 +233,10 @@ export async function generateAchievementCard({
   const achievement = ACHIEVEMENT_TYPES[achievementType] || ACHIEVEMENT_TYPES.nominated;
   const displayTitle = customTitle || achievement.title;
   const subtitle = achievement.subtitle;
+  const isNominated = achievementType === 'nominated';
+  const FONT_SYS = "-apple-system, BlinkMacSystemFont, sans-serif";
+  const fontDisplay = isNominated ? FONT_SYS : FONT_DISPLAY;
+  const fontBody = isNominated ? FONT_SYS : FONT_BODY;
 
   // === BACKGROUND ===
   // Rich multi-stop gradient
@@ -324,13 +328,13 @@ export async function generateAchievementCard({
       y += logoH / 2 + 40;
     } catch {
       ctx.fillStyle = `${accentColor}cc`;
-      ctx.font = `500 36px ${FONT_DISPLAY}`;
+      ctx.font = `500 36px ${fontDisplay}`;
       ctx.fillText(organizationName.toUpperCase(), CX, y);
       y += 50;
     }
   } else {
     ctx.fillStyle = `${accentColor}cc`;
-    ctx.font = `500 36px ${FONT_DISPLAY}`;
+    ctx.font = `500 36px ${fontDisplay}`;
     ctx.fillText(organizationName.toUpperCase(), CX, y);
     y += 50;
   }
@@ -399,7 +403,7 @@ export async function generateAchievementCard({
 
   // === NAME ===
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 68px ${FONT_DISPLAY}`;
+  ctx.font = `bold 68px ${fontDisplay}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   let displayName = name || 'Contestant';
@@ -415,10 +419,10 @@ export async function generateAchievementCard({
   // === ACHIEVEMENT TITLE with glow ===
   // Auto-size title to prevent overflow
   let titleFontSize = 100;
-  ctx.font = `bold ${titleFontSize}px ${FONT_DISPLAY}`;
+  ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
   while (ctx.measureText(displayTitle).width > 900 && titleFontSize > 48) {
     titleFontSize -= 4;
-    ctx.font = `bold ${titleFontSize}px ${FONT_DISPLAY}`;
+    ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
   }
 
   // Subtle glow pass
@@ -431,31 +435,31 @@ export async function generateAchievementCard({
 
   // Crisp text pass
   ctx.fillStyle = accentColor;
-  ctx.font = `bold ${titleFontSize}px ${FONT_DISPLAY}`;
+  ctx.font = `bold ${titleFontSize}px ${fontDisplay}`;
   ctx.fillText(displayTitle, CX, y);
   y += titleFontSize * 0.6 + 10;
 
   // Subtitle
   ctx.fillStyle = '#a1a1aa';
-  ctx.font = `400 42px ${FONT_BODY}`;
+  ctx.font = `400 42px ${fontBody}`;
   ctx.fillText(subtitle, CX, y);
   y += 64;
 
   // Competition name
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = `600 54px ${FONT_DISPLAY}`;
+  ctx.font = `600 54px ${fontDisplay}`;
   let compDisplay = competitionName || 'the competition';
   if (ctx.measureText(compDisplay).width > 900) {
-    ctx.font = `600 44px ${FONT_DISPLAY}`;
+    ctx.font = `600 44px ${fontDisplay}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += 70;
+  y += isNominated ? 52 : 70;
 
   // Season
   if (season) {
-    const seasonLabel = formatSeasonLabel(season);
+    const seasonLabel = isNominated ? String(season) : formatSeasonLabel(season);
     ctx.fillStyle = '#a1a1aa';
-    ctx.font = `500 38px ${FONT_BODY}`;
+    ctx.font = `500 ${isNominated ? 40 : 38}px ${fontBody}`;
     ctx.fillText(seasonLabel, CX, y);
   }
 
@@ -472,20 +476,20 @@ export async function generateAchievementCard({
     ctx.stroke();
 
     ctx.fillStyle = accentColor;
-    ctx.font = `bold 24px ${FONT_BODY}`;
+    ctx.font = `bold 24px ${fontBody}`;
     ctx.textBaseline = 'middle';
     ctx.fillText(`#${rank}`, CX, y + badgeH / 2);
     ctx.textBaseline = 'alphabetic';
   }
 
   // === VOTING DATE + CTA BUTTON ===
-  const formattedDate = formatVotingDate(votingStartDate);
+  const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
   let ctaY = y + 80;
 
-  // Voting date text above button
+  // Voting date text above button (contestant cards only)
   if (formattedDate) {
     ctx.fillStyle = '#e4e4e7';
-    ctx.font = `500 36px ${FONT_DISPLAY}`;
+    ctx.font = `500 36px ${fontDisplay}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(`Voting opens on ${formattedDate}`, CX, ctaY);
@@ -496,7 +500,7 @@ export async function generateAchievementCard({
   const ctaHeight = 68;
   const ctaText = 'www.eliterank.co';
 
-  ctx.font = `bold 26px ${FONT_BODY}`;
+  ctx.font = `bold 26px ${fontBody}`;
   const ctaTextWidth = ctx.measureText(ctaText).width;
   const ctaWidth = Math.max(480, ctaTextWidth + 100);
   const ctaX = CX - ctaWidth / 2;
@@ -516,7 +520,7 @@ export async function generateAchievementCard({
 
   // Button text
   ctx.fillStyle = '#0a0a0c';
-  ctx.font = `bold 26px ${FONT_BODY}`;
+  ctx.font = `bold 26px ${fontBody}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(ctaText, CX, ctaY + ctaHeight / 2);
