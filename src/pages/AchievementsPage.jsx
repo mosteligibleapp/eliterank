@@ -301,6 +301,7 @@ export default function AchievementsPage() {
       photoUrl: record.avatar_url || profile?.avatar_url,
       handle: record.instagram,
       competitionName: competition?.name || `Most Eligible ${competition?.city?.name}`,
+      cityName: competition?.city?.name,
       season: competition?.season?.toString(),
       organizationName: organization?.name || 'Most Eligible',
       organizationLogoUrl: organization?.logo_url,

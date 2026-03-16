@@ -48,6 +48,7 @@ export default function PeopleTab({
         photoUrl: person.avatarUrl,
         handle: person.instagram,
         competitionName: competition?.name || `Most Eligible ${competition?.city}`,
+        cityName: competition?.city,
         season: competition?.season?.toString(),
         organizationName: competition?.organizationName || 'Most Eligible',
         organizationLogoUrl: competition?.organizationLogoUrl,

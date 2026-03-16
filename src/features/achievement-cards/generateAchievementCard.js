@@ -217,6 +217,7 @@ export async function generateAchievementCard({
   photoUrl,
   handle,
   competitionName,
+  cityName,
   season,
   organizationName = 'Most Eligible',
   organizationLogoUrl,
@@ -455,12 +456,18 @@ export async function generateAchievementCard({
   ctx.fillText(compDisplay, CX, y);
   y += isNominated ? 52 : 70;
 
-  // Season
+  // Season (and city for contestant cards)
   if (season) {
-    const seasonLabel = isNominated ? String(season) : formatSeasonLabel(season);
     ctx.fillStyle = '#a1a1aa';
-    ctx.font = `500 ${isNominated ? 40 : 38}px ${fontBody}`;
-    ctx.fillText(seasonLabel, CX, y);
+    if (isNominated) {
+      ctx.font = `500 40px ${fontBody}`;
+      ctx.fillText(String(season), CX, y);
+    } else {
+      ctx.font = `500 38px ${fontBody}`;
+      const seasonLabel = formatSeasonLabel(season);
+      const metaText = cityName ? `${cityName}  \u00B7  ${seasonLabel}` : seasonLabel;
+      ctx.fillText(metaText, CX, y);
+    }
   }
 
   // Rank badge (for top placements)
