@@ -81,7 +81,7 @@ export function useAchievementCards(contestantId) {
         photoUrl: contestant?.avatar_url,
         handle: contestant?.instagram,
         competitionName: competition?.name || `Most Eligible ${competition?.city}`,
-        cityName: competition?.city?.name || competition?.city,
+        cityName: typeof competition?.city === 'string' ? competition.city : (competition?.city?.name || ''),
         season: competition?.season?.toString(),
         organizationName: organization?.name || 'Most Eligible',
         organizationLogoUrl: organization?.logo_url,
