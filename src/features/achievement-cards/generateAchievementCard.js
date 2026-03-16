@@ -264,15 +264,8 @@ export async function generateAchievementCard({
     drawInitialRect(ctx, name?.charAt(0) || '?', photoX, photoY, photoW, photoH, photoR);
   }
 
-  // === CONTENT SECTION — starts after photo, vertically centered in remaining space ===
-  // Estimate total content height to center it in the space below the photo
-  const contentTop = photoY + photoH + 60;
-  const estimatedContentH = 72 + 36 + 66 + 40 + (subtitle ? 34 : 0) + 42 + 16
-    + (season ? 30 + 48 : 0) + (rank && achievementType !== 'nominated' && achievementType !== 'contestant' ? 46 : 0)
-    + ((!isNominated && votingStartDate) ? 34 + 32 : 0) + 92;
-  const availableSpace = CARD_HEIGHT - contentTop;
-  const contentOffset = Math.max(0, (availableSpace - estimatedContentH) / 2);
-  let y = contentTop + contentOffset;
+  // === CONTENT SECTION — starts after photo ===
+  let y = photoY + photoH + 60;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
 
