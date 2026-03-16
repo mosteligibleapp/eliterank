@@ -21,7 +21,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined'
+  type: 'nominee_invite' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'host_welcome'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -187,6 +187,25 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
     }
 
+    case 'host_welcome': {
+      return {
+        subject: `You're now a host for ${req.competition_name || 'Most Eligible'}!`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Welcome, Host!</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            <p style="color:#ccc;font-size:15px;">
+              Congratulations${req.to_name ? `, ${req.to_name}` : ''}! You've been selected as a host${req.city_name ? ` for ${req.city_name}` : ''}.
+            </p>
+            <p style="color:#999;font-size:14px;margin-top:16px;">
+              As a host, you'll help shape the competition and guide contestants through their journey. Log in to your dashboard to get started.
+            </p>
+            ${goldButton('Go to Dashboard', `${appUrl}/dashboard`)}
+          </div>
+        `),
+      }
+    }
+
     default:
       return {
         subject: 'EliteRank Notification',
@@ -339,12 +358,16 @@ serve(async (req) => {
     // Build the notification payload — prefer targeting by subscription ID
     // (guaranteed to work) with fallback to email token (works for existing
     // subscriptions that may have a different external_id).
+    // Use Crystal's email for host_welcome, default for everything else
+    const fromAddress = body.type === 'host_welcome' ? 'crystal@mosteligibleusa.com' : 'info@eliterank.co'
+    const fromName = body.type === 'host_welcome' ? 'Crystal - Most Eligible' : 'EliteRank'
+
     const oneSignalPayload: Record<string, unknown> = {
       app_id: appId,
       email_subject: subject,
       email_body: htmlBody,
-      email_from_name: 'EliteRank',
-      email_from_address: 'info@eliterank.co',
+      email_from_name: fromName,
+      email_from_address: fromAddress,
       data: {
         type: body.type,
         to_email: body.to_email,
