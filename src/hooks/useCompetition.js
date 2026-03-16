@@ -179,36 +179,8 @@ export default function useCompetition(competitionId = null) {
       rank: contestants.length + 1,
     };
 
-    // Sync nominee data to the profiles table so the profile page displays
-    // correctly.  Self-nominated users may have their profile row created with
-    // only first_name/last_name (from the auth trigger) while the richer data
-    // (avatar, bio, city, etc.) lives only in the nominees table.
-    if (nominee.user_id && !isDemoMode) {
-      const nameParts = (nominee.name || '').trim().split(/\s+/);
-      const profileUpdate = {
-        updated_at: new Date().toISOString(),
-      };
-      if (nameParts.length > 0 && nameParts[0]) profileUpdate.first_name = nameParts[0];
-      if (nameParts.length > 1) profileUpdate.last_name = nameParts.slice(1).join(' ');
-      if (nominee.avatar_url) profileUpdate.avatar_url = nominee.avatar_url;
-      if (nominee.bio) profileUpdate.bio = nominee.bio;
-      if (nominee.city) profileUpdate.city = nominee.city;
-      if (nominee.age) profileUpdate.age = nominee.age;
-      if (nominee.instagram) profileUpdate.instagram = nominee.instagram;
-      if (nominee.phone) profileUpdate.phone = nominee.phone;
-      if (nominee.interests) profileUpdate.interests = nominee.interests;
-
-      supabase
-        .from('profiles')
-        .update(profileUpdate)
-        .eq('id', nominee.user_id)
-        .then(({ error: profileErr }) => {
-          if (profileErr) console.error('Failed to sync nominee data to profile:', profileErr);
-        });
-    }
-
     return addContestant(contestantData);
-  }, [nominees, contestants, updateNominee, addContestant, isDemoMode]);
+  }, [nominees, contestants, updateNominee, addContestant]);
 
   // CRUD operations for judges
   const addJudge = useCallback(async (data) => {

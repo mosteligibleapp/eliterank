@@ -509,28 +509,17 @@ export function useEntryFlow(competition, profile) {
       // trigger can populate the profile row even if the subsequent UPDATE
       // is blocked by RLS (e.g. when email confirmation is enabled and no
       // session exists yet).
-      // Pass all available profile fields in metadata so the handle_new_user
-      // trigger can populate the profile even when the subsequent client-side
-      // UPDATE is blocked by RLS (e.g. email confirmation enabled, no session).
-      const avatarUrl = (selfData.photoPreview && !selfData.photoPreview.startsWith('blob:'))
-        ? selfData.photoPreview : undefined;
-      const signUpMeta = {
-        first_name: selfData.firstName.trim(),
-        last_name: selfData.lastName.trim(),
-        full_name: fullName,
-        nominee_id: nomineeId,
-      };
-      if (avatarUrl) signUpMeta.avatar_url = avatarUrl;
-      if (selfData.bio?.trim()) signUpMeta.bio = selfData.bio.trim();
-      if (selfData.location?.trim()) signUpMeta.city = selfData.location.trim();
-      if (selfData.age) signUpMeta.age = parseInt(selfData.age, 10);
-      if (selfData.instagram?.trim()) signUpMeta.instagram = selfData.instagram.trim();
-      if (selfData.phone?.trim()) signUpMeta.phone = selfData.phone.trim();
-
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: signUpMeta },
+        options: {
+          data: {
+            first_name: selfData.firstName.trim(),
+            last_name: selfData.lastName.trim(),
+            full_name: fullName,
+            nominee_id: nomineeId,
+          },
+        },
       });
 
       if (signUpError) {
