@@ -52,11 +52,13 @@ export default function OverviewTab({
         photoUrl: person.avatarUrl,
         handle: person.instagram,
         competitionName: competition?.name || `Most Eligible ${competition?.city}`,
+        cityName: competition?.city,
         season: competition?.season?.toString(),
         organizationName: competition?.organizationName || 'Most Eligible',
         organizationLogoUrl: competition?.organizationLogoUrl,
         accentColor: competition?.themePrimary || '#d4af37',
         voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+        votingStartDate: competition?.votingStart,
       });
 
       const url = URL.createObjectURL(blob);

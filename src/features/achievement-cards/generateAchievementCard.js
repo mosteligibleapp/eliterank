@@ -2,12 +2,15 @@
  * Achievement Card Generator
  *
  * Generates branded shareable cards for contestant milestones.
- * Premium photo-first design optimized for Instagram Stories (1080x1920).
+ * Clean, minimal design on pure black. Optimized for Instagram Stories (1080x1920).
  */
 
 const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1920;
 const CX = CARD_WIDTH / 2;
+
+const FONT = "'Montserrat', 'Inter', system-ui, sans-serif";
+const GOLD = '#d4af37';
 
 export const ACHIEVEMENT_TYPES = {
   nominated: {
@@ -15,8 +18,8 @@ export const ACHIEVEMENT_TYPES = {
     subtitle: 'for',
   },
   contestant: {
-    title: 'COMPETING',
-    subtitle: 'in',
+    title: 'CONTESTANT',
+    subtitle: '',
   },
   advanced: {
     title: 'ADVANCED',
@@ -56,11 +59,32 @@ export function getRoundAdvancementTitle(round, nextRound) {
   return 'ADVANCED';
 }
 
+function formatVotingDate(dateStr) {
+  if (!dateStr) return null;
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    const month = d.toLocaleDateString('en-US', { month: 'long' });
+    const day = d.getDate();
+    const suffix = day === 1 || day === 21 || day === 31 ? 'st'
+      : day === 2 || day === 22 ? 'nd'
+      : day === 3 || day === 23 ? 'rd' : 'th';
+    return `${month} ${day}${suffix}`;
+  } catch {
+    return null;
+  }
+}
+
+function formatSeasonLabel(season) {
+  if (!season) return null;
+  const year = typeof season === 'number' ? season : Number(season);
+  if (!isNaN(year) && year > 0) {
+    return `Season ${year}`;
+  }
+  return String(season);
+}
+
 function loadImage(src) {
-  // Fetch as blob first to avoid CORS/tainted-canvas issues.
-  // CDNs can cache a non-CORS response and serve it when the browser
-  // retries with crossOrigin='anonymous', which silently breaks canvas.
-  // Loading via a blob URL is always same-origin and safe for toBlob().
   return fetch(src)
     .then((res) => {
       if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
@@ -98,88 +122,40 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawSparkle(ctx, x, y, size, color, alpha = 1) {
+function drawRoundedRectImage(ctx, img, x, y, w, h, r) {
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x, y - size);
-  ctx.quadraticCurveTo(x + size * 0.15, y - size * 0.15, x + size, y);
-  ctx.quadraticCurveTo(x + size * 0.15, y + size * 0.15, x, y + size);
-  ctx.quadraticCurveTo(x - size * 0.15, y + size * 0.15, x - size, y);
-  ctx.quadraticCurveTo(x - size * 0.15, y - size * 0.15, x, y - size);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawCircularImage(ctx, img, cx, cy, radius) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  roundRect(ctx, x, y, w, h, r);
   ctx.clip();
   const imgAspect = img.width / img.height;
-  let drawW, drawH, drawX, drawY;
-  if (imgAspect > 1) {
-    drawH = radius * 2;
-    drawW = drawH * imgAspect;
-    drawX = cx - drawW / 2;
-    drawY = cy - radius;
+  const boxAspect = w / h;
+  let dw, dh, dx, dy;
+  if (imgAspect > boxAspect) {
+    dh = h;
+    dw = dh * imgAspect;
+    dx = x + (w - dw) / 2;
+    dy = y;
   } else {
-    drawW = radius * 2;
-    drawH = drawW / imgAspect;
-    drawX = cx - radius;
-    drawY = cy - drawH / 2;
+    dw = w;
+    dh = dw / imgAspect;
+    dx = x;
+    dy = y + (h - dh) / 2;
   }
-  ctx.drawImage(img, drawX, drawY, drawW, drawH);
+  ctx.drawImage(img, dx, dy, dw, dh);
   ctx.restore();
 }
 
-function drawInitial(ctx, initial, cx, cy, radius, accentColor) {
+function drawInitialRect(ctx, initial, x, y, w, h, r) {
   ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  const gradient = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
-  gradient.addColorStop(0, '#1a1a20');
-  gradient.addColorStop(1, '#0d0d10');
-  ctx.fillStyle = gradient;
+  roundRect(ctx, x, y, w, h, r);
+  ctx.fillStyle = '#111111';
   ctx.fill();
   ctx.restore();
 
-  ctx.fillStyle = accentColor;
-  ctx.font = `bold ${radius * 0.9}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = `${GOLD}40`;
+  ctx.font = `300 ${Math.min(w, h) * 0.35}px ${FONT}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(initial.toUpperCase(), cx, cy + 4);
-}
-
-/**
- * Draw a decorative line with sparkle endpoints
- */
-function drawDecorativeLine(ctx, cx, y, width, color) {
-  // Left line
-  const lineGradL = ctx.createLinearGradient(cx - width / 2, y, cx - 20, y);
-  lineGradL.addColorStop(0, 'transparent');
-  lineGradL.addColorStop(1, `${color}60`);
-  ctx.strokeStyle = lineGradL;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(cx - width / 2, y);
-  ctx.lineTo(cx - 20, y);
-  ctx.stroke();
-
-  // Right line
-  const lineGradR = ctx.createLinearGradient(cx + 20, y, cx + width / 2, y);
-  lineGradR.addColorStop(0, `${color}60`);
-  lineGradR.addColorStop(1, 'transparent');
-  ctx.strokeStyle = lineGradR;
-  ctx.beginPath();
-  ctx.moveTo(cx + 20, y);
-  ctx.lineTo(cx + width / 2, y);
-  ctx.stroke();
-
-  // Center sparkle
-  drawSparkle(ctx, cx, y, 6, color, 0.8);
+  ctx.fillText(initial.toUpperCase(), x + w / 2, y + h / 2);
 }
 
 export async function generateAchievementCard({
@@ -189,12 +165,14 @@ export async function generateAchievementCard({
   photoUrl,
   handle,
   competitionName,
+  cityName,
   season,
   organizationName = 'Most Eligible',
   organizationLogoUrl,
-  accentColor = '#d4af37',
+  accentColor = GOLD,
   voteUrl,
   rank,
+  votingStartDate,
 }) {
   const canvas = document.createElement('canvas');
   canvas.width = CARD_WIDTH;
@@ -204,285 +182,197 @@ export async function generateAchievementCard({
   const achievement = ACHIEVEMENT_TYPES[achievementType] || ACHIEVEMENT_TYPES.nominated;
   const displayTitle = customTitle || achievement.title;
   const subtitle = achievement.subtitle;
+  const isNominated = achievementType === 'nominated';
 
-  // === BACKGROUND ===
-  // Rich multi-stop gradient
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, CARD_HEIGHT);
-  bgGrad.addColorStop(0, '#050507');
-  bgGrad.addColorStop(0.15, '#0a0a10');
-  bgGrad.addColorStop(0.4, '#0e0e14');
-  bgGrad.addColorStop(0.6, '#0c0c12');
-  bgGrad.addColorStop(0.85, '#0a0a10');
-  bgGrad.addColorStop(1, '#050507');
-  ctx.fillStyle = bgGrad;
+  // === BACKGROUND — pure black, no effects ===
+  ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-  // Large warm glow behind photo area
-  const glow1 = ctx.createRadialGradient(CX, 620, 0, CX, 620, 500);
-  glow1.addColorStop(0, `${accentColor}20`);
-  glow1.addColorStop(0.4, `${accentColor}0c`);
-  glow1.addColorStop(1, 'transparent');
-  ctx.fillStyle = glow1;
-  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-
-  // Secondary glow behind achievement title
-  const glow2 = ctx.createRadialGradient(CX, 1150, 0, CX, 1150, 400);
-  glow2.addColorStop(0, `${accentColor}14`);
-  glow2.addColorStop(0.5, `${accentColor}08`);
-  glow2.addColorStop(1, 'transparent');
-  ctx.fillStyle = glow2;
-  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-
-  // Subtle bottom glow
-  const glow3 = ctx.createRadialGradient(CX, 1700, 0, CX, 1700, 300);
-  glow3.addColorStop(0, `${accentColor}10`);
-  glow3.addColorStop(1, 'transparent');
-  ctx.fillStyle = glow3;
-  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-
-  // === SPARKLES - rich distribution ===
-  const sparkles = [
-    // Top area - flanking org name
-    { x: 120, y: 180, size: 8, alpha: 0.3 },
-    { x: 960, y: 200, size: 10, alpha: 0.35 },
-    { x: 200, y: 260, size: 5, alpha: 0.2 },
-    { x: 880, y: 270, size: 6, alpha: 0.25 },
-    // Around photo
-    { x: 160, y: 440, size: 14, alpha: 0.5 },
-    { x: 920, y: 480, size: 12, alpha: 0.45 },
-    { x: 130, y: 620, size: 6, alpha: 0.2 },
-    { x: 950, y: 580, size: 8, alpha: 0.3 },
-    { x: 180, y: 780, size: 10, alpha: 0.35 },
-    { x: 900, y: 740, size: 16, alpha: 0.5 },
-    // Mid section - around name and title
-    { x: 140, y: 980, size: 6, alpha: 0.2 },
-    { x: 940, y: 1020, size: 8, alpha: 0.25 },
-    { x: 100, y: 1150, size: 12, alpha: 0.4 },
-    { x: 980, y: 1130, size: 10, alpha: 0.35 },
-    { x: 160, y: 1280, size: 5, alpha: 0.15 },
-    { x: 920, y: 1300, size: 7, alpha: 0.2 },
-    // Bottom area
-    { x: 200, y: 1500, size: 10, alpha: 0.3 },
-    { x: 880, y: 1460, size: 14, alpha: 0.45 },
-    { x: 140, y: 1650, size: 6, alpha: 0.2 },
-    { x: 940, y: 1680, size: 8, alpha: 0.25 },
-    { x: 300, y: 1780, size: 5, alpha: 0.15 },
-    { x: 780, y: 1800, size: 7, alpha: 0.2 },
-    // Scattered small ones for texture
-    { x: 260, y: 360, size: 4, alpha: 0.12 },
-    { x: 820, y: 340, size: 3, alpha: 0.1 },
-    { x: 240, y: 1100, size: 4, alpha: 0.12 },
-    { x: 840, y: 1400, size: 3, alpha: 0.1 },
-  ];
-  for (const s of sparkles) {
-    drawSparkle(ctx, s.x, s.y, s.size, accentColor, s.alpha);
-  }
-
-  // === ORGANIZATION BRANDING (top) ===
-  let y = 200;
-  ctx.textAlign = 'center';
+  // === LOGO (top, centered) ===
+  const logoSize = 64;
+  const logoY = 80;
 
   if (organizationLogoUrl) {
     try {
       const logo = await loadImage(organizationLogoUrl);
-      const maxH = 140;
-      const maxW = 600;
-      let logoW = logo.width;
-      let logoH = logo.height;
-      if (logoH > maxH) { logoW = (maxH / logoH) * logoW; logoH = maxH; }
-      if (logoW > maxW) { logoH = (maxW / logoW) * logoH; logoW = maxW; }
-      ctx.drawImage(logo, CX - logoW / 2, y - logoH / 2, logoW, logoH);
-      y += logoH / 2 + 40;
+      const logoAspect = logo.width / logo.height;
+      let drawW = logoSize * logoAspect;
+      let drawH = logoSize;
+      if (drawW > 200) { drawW = 200; drawH = drawW / logoAspect; }
+      ctx.drawImage(logo, CX - drawW / 2, logoY, drawW, drawH);
     } catch {
-      ctx.fillStyle = `${accentColor}cc`;
-      ctx.font = '500 36px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText(organizationName.toUpperCase(), CX, y);
-      y += 50;
+      // No fallback text — logo only
     }
-  } else {
-    ctx.fillStyle = `${accentColor}cc`;
-    ctx.font = '500 36px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(organizationName.toUpperCase(), CX, y);
-    y += 50;
   }
 
-  // Decorative divider below org
-  drawDecorativeLine(ctx, CX, y, 260, accentColor);
-  y += 50;
+  // === PHOTO — 560×700, 16px border-radius, positioned at 220px from top ===
+  const photoW = 560;
+  const photoH = 700;
+  const photoR = 16;
+  const photoX = CX - photoW / 2;
+  const photoY = 220;
+  const frameOffset = 4;
+  const frameR = photoR + frameOffset;
 
-  // === PHOTO (hero element) ===
-  const photoRadius = 260;
-  const photoCY = y + photoRadius;
+  // Photo frame: 2px solid gold border, 4px offset from photo edge
+  roundRect(
+    ctx,
+    photoX - frameOffset,
+    photoY - frameOffset,
+    photoW + frameOffset * 2,
+    photoH + frameOffset * 2,
+    frameR,
+  );
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
-  // Multi-layered glow behind photo
-  ctx.save();
-  const outerGlow = ctx.createRadialGradient(CX, photoCY, photoRadius * 0.5, CX, photoCY, photoRadius + 100);
-  outerGlow.addColorStop(0, `${accentColor}18`);
-  outerGlow.addColorStop(0.6, `${accentColor}0a`);
-  outerGlow.addColorStop(1, 'transparent');
-  ctx.fillStyle = outerGlow;
-  ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 100, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // Photo or initial
+  // Photo or initial fallback
   if (photoUrl) {
     try {
       const img = await loadImage(photoUrl);
-      drawCircularImage(ctx, img, CX, photoCY, photoRadius);
+      drawRoundedRectImage(ctx, img, photoX, photoY, photoW, photoH, photoR);
     } catch {
-      drawInitial(ctx, name?.charAt(0) || '?', CX, photoCY, photoRadius, accentColor);
+      drawInitialRect(ctx, name?.charAt(0) || '?', photoX, photoY, photoW, photoH, photoR);
     }
   } else {
-    drawInitial(ctx, name?.charAt(0) || '?', CX, photoCY, photoRadius, accentColor);
+    drawInitialRect(ctx, name?.charAt(0) || '?', photoX, photoY, photoW, photoH, photoR);
   }
 
-  // Triple ring effect
-  // Inner accent ring
-  ctx.strokeStyle = accentColor;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 6, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Middle subtle ring
-  ctx.strokeStyle = `${accentColor}20`;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 18, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Outer faint ring
-  ctx.strokeStyle = `${accentColor}12`;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(CX, photoCY, photoRadius + 30, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Small sparkles on the ring
-  drawSparkle(ctx, CX - photoRadius - 10, photoCY - 40, 5, accentColor, 0.5);
-  drawSparkle(ctx, CX + photoRadius + 14, photoCY + 30, 4, accentColor, 0.4);
-  drawSparkle(ctx, CX - 30, photoCY - photoRadius - 12, 5, accentColor, 0.45);
-  drawSparkle(ctx, CX + 50, photoCY + photoRadius + 15, 4, accentColor, 0.35);
-
-  y = photoCY + photoRadius + 110;
-
-  // === NAME ===
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 68px -apple-system, BlinkMacSystemFont, sans-serif';
+  // === CONTENT SECTION — starts at 980px from top ===
+  let y = 980;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
+  ctx.textBaseline = 'top';
+
+  // === NAME — 72px, weight 700, white ===
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `700 72px ${FONT}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-1.44px';
   let displayName = name || 'Contestant';
-  if (ctx.measureText(displayName).width > 860) {
-    while (ctx.measureText(displayName + '...').width > 860 && displayName.length > 0) {
+  if (ctx.measureText(displayName).width > 960) {
+    while (ctx.measureText(displayName + '...').width > 960 && displayName.length > 0) {
       displayName = displayName.slice(0, -1);
     }
     displayName += '...';
   }
   ctx.fillText(displayName, CX, y);
-  y += 130;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  y += 72 + 36;
 
-  // === ACHIEVEMENT TITLE with glow ===
-  // Auto-size title to prevent overflow
-  let titleFontSize = 100;
-  ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
-  while (ctx.measureText(displayTitle).width > 900 && titleFontSize > 48) {
-    titleFontSize -= 4;
-    ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  // === BADGE — pill, gold border, transparent bg, gold dots on sides ===
+  const badgeFontSize = 26;
+  ctx.font = `700 ${badgeFontSize}px ${FONT}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4px';
+  const badgeText = displayTitle;
+  const badgeTextW = ctx.measureText(badgeText).width;
+  const badgePadH = 56;
+  const badgePadV = 20;
+  const badgeW = badgeTextW + badgePadH * 2;
+  const badgeH = badgeFontSize + badgePadV * 2;
+  const badgeX = CX - badgeW / 2;
+  const badgeY = y;
+
+  // Pill border (transparent bg, gold outline)
+  roundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Gold dots on each side of text
+  const dotR = 5;
+  const dotY = badgeY + badgeH / 2;
+  const textHalfW = badgeTextW / 2;
+  ctx.fillStyle = GOLD;
+  // Left dot
+  ctx.beginPath();
+  ctx.arc(CX - textHalfW - 20, dotY, dotR, 0, Math.PI * 2);
+  ctx.fill();
+  // Right dot
+  ctx.beginPath();
+  ctx.arc(CX + textHalfW + 20, dotY, dotR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Badge text
+  ctx.fillStyle = GOLD;
+  ctx.font = `700 ${badgeFontSize}px ${FONT}`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(badgeText, CX, badgeY + badgeH / 2);
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  y = badgeY + badgeH + 40;
+
+  // === SUBTITLE (for nominated: "for", for advanced: "in", etc.) ===
+  ctx.textBaseline = 'top';
+  if (subtitle) {
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = `400 24px ${FONT}`;
+    ctx.fillText(subtitle, CX, y);
+    y += 34;
   }
 
-  // Subtle glow pass
-  ctx.save();
-  ctx.shadowColor = accentColor;
-  ctx.shadowBlur = 15;
-  ctx.fillStyle = accentColor;
-  ctx.fillText(displayTitle, CX, y);
-  ctx.restore();
-
-  // Crisp text pass
-  ctx.fillStyle = accentColor;
-  ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
-  ctx.fillText(displayTitle, CX, y);
-  y += titleFontSize * 0.6 + 10;
-
-  // Subtitle
-  ctx.fillStyle = '#a1a1aa';
-  ctx.font = '400 42px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText(subtitle, CX, y);
-  y += 64;
-
-  // Competition name
-  ctx.fillStyle = '#e4e4e7';
-  ctx.font = '600 54px -apple-system, BlinkMacSystemFont, sans-serif';
+  // === COMPETITION NAME — 28px canvas mapped to ~42px for readability ===
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `600 42px ${FONT}`;
   let compDisplay = competitionName || 'the competition';
-  if (ctx.measureText(compDisplay).width > 900) {
-    ctx.font = '600 44px -apple-system, BlinkMacSystemFont, sans-serif';
+  if (ctx.measureText(compDisplay).width > 960) {
+    ctx.font = `600 36px ${FONT}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += 52;
+  y += 42 + 16;
 
-  // Season
+  // === LOCATION — muted, tracked ===
   if (season) {
-    ctx.fillStyle = '#a1a1aa';
-    ctx.font = '500 40px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(season, CX, y);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = `500 30px ${FONT}`;
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4.5px';
+    if (isNominated) {
+      ctx.fillText(String(season), CX, y);
+    } else {
+      const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
+      ctx.fillText(metaText, CX, y);
+    }
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+    y += 30 + 48;
   }
 
-  // Rank badge (for top placements)
+  // Rank (for top placements only)
   if (rank && achievementType !== 'nominated' && achievementType !== 'contestant') {
-    y += 50;
-    const badgeW = 160;
-    const badgeH = 50;
-    roundRect(ctx, CX - badgeW / 2, y, badgeW, badgeH, 25);
-    ctx.fillStyle = `${accentColor}20`;
-    ctx.fill();
-    ctx.strokeStyle = `${accentColor}60`;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.fillStyle = accentColor;
-    ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`#${rank}`, CX, y + badgeH / 2);
-    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = GOLD;
+    ctx.font = `700 30px ${FONT}`;
+    ctx.fillText(`#${rank}`, CX, y);
+    y += 46;
   }
 
-  // === CTA BUTTON ===
-  const ctaY = y + 80;
-  const ctaHeight = 68;
+  // === VOTING DATE — gold ===
+  const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
+  if (formattedDate) {
+    ctx.fillStyle = GOLD;
+    ctx.font = `500 34px ${FONT}`;
+    ctx.fillText(`Voting opens ${formattedDate}`, CX, y);
+    y += 34 + 32;
+  }
+
+  // === CTA BUTTON — solid gold pill, black text ===
   const ctaText = 'www.eliterank.co';
+  const ctaFontSize = 28;
+  ctx.font = `700 ${ctaFontSize}px ${FONT}`;
+  const ctaTextW = ctx.measureText(ctaText).width;
+  const ctaPadH = 80;
+  const ctaPadV = 32;
+  const ctaW = ctaTextW + ctaPadH * 2;
+  const ctaH = ctaFontSize + ctaPadV * 2;
+  const ctaX = CX - ctaW / 2;
+  const ctaY = y;
 
-  ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif';
-  const ctaTextWidth = ctx.measureText(ctaText).width;
-  const ctaWidth = Math.max(480, ctaTextWidth + 100);
-  const ctaX = CX - ctaWidth / 2;
-
-  // Button shadow
-  ctx.save();
-  ctx.shadowColor = `${accentColor}40`;
-  ctx.shadowBlur = 30;
-  ctx.shadowOffsetY = 4;
-  roundRect(ctx, ctaX, ctaY, ctaWidth, ctaHeight, ctaHeight / 2);
-  const ctaGrad = ctx.createLinearGradient(ctaX, ctaY, ctaX + ctaWidth, ctaY + ctaHeight);
-  ctaGrad.addColorStop(0, accentColor);
-  ctaGrad.addColorStop(1, '#f4d03f');
-  ctx.fillStyle = ctaGrad;
+  // Solid gold background
+  roundRect(ctx, ctaX, ctaY, ctaW, ctaH, ctaH / 2);
+  ctx.fillStyle = GOLD;
   ctx.fill();
-  ctx.restore();
 
-  // Button text
-  ctx.fillStyle = '#0a0a0c';
-  ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.textAlign = 'center';
+  // Black text
+  ctx.fillStyle = '#000000';
+  ctx.font = `700 ${ctaFontSize}px ${FONT}`;
   ctx.textBaseline = 'middle';
-  ctx.fillText(ctaText, CX, ctaY + ctaHeight / 2);
-
-  // Subtle border on button for depth
-  roundRect(ctx, ctaX, ctaY, ctaWidth, ctaHeight, ctaHeight / 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  ctx.fillText(ctaText, CX, ctaY + ctaH / 2);
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png');

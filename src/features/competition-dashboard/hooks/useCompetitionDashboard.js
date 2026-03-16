@@ -118,7 +118,8 @@ export function useCompetitionDashboard(competitionId) {
             category:categories(id, name, slug),
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
-            organization:organizations(id, name, slug, logo_url)
+            organization:organizations(id, name, slug, logo_url),
+            voting_rounds(id, start_date, round_type)
           `)
           .eq('id', competitionId)
           .single(),
@@ -342,7 +343,12 @@ export function useCompetitionDashboard(competitionId) {
           cityId: competition.city_id,
           nominationStart: competition.nomination_start,
           nominationEnd: competition.nomination_end,
-          votingStart: competition.voting_start,
+          votingStart: competition.voting_start
+            || competition.voting_rounds
+              ?.filter(r => r.round_type === 'voting')
+              ?.map(r => r.start_date)
+              ?.sort()[0]
+            || null,
           votingEnd: competition.voting_end,
           finalsDate: competition.finals_date,
           hasEvents: competition.has_events,

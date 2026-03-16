@@ -141,12 +141,14 @@ export default function MyCardsSection({
         photoUrl: contestant?.avatar_url,
         handle: contestant?.instagram,
         competitionName: competition?.name || `Most Eligible ${competition?.city}`,
+        cityName: competition?.city?.name || competition?.city,
         season: competition?.season?.toString(),
         organizationName: organization?.name || 'Most Eligible',
         organizationLogoUrl: organization?.logo_url,
         accentColor: competition?.theme_primary || '#d4af37',
         voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
         rank: cardOption.rank,
+        votingStartDate: competition?.voting_start,
       });
 
       const url = URL.createObjectURL(blob);
@@ -204,12 +206,14 @@ export default function MyCardsSection({
         photoUrl: contestant?.avatar_url,
         handle: contestant?.instagram,
         competitionName: competition?.name || `Most Eligible ${competition?.city}`,
+        cityName: competition?.city?.name || competition?.city,
         season: competition?.season?.toString(),
         organizationName: organization?.name || 'Most Eligible',
         organizationLogoUrl: organization?.logo_url,
         accentColor: competition?.theme_primary || '#d4af37',
         voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
         rank: cardOption.rank,
+        votingStartDate: competition?.voting_start,
       });
 
       // Download directly
