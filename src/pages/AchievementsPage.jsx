@@ -63,6 +63,7 @@ export default function AchievementsPage() {
           status,
           theme_primary,
           number_of_winners,
+          voting_start,
           organization:organizations (
             id,
             name,
@@ -72,6 +73,7 @@ export default function AchievementsPage() {
           voting_rounds (
             id,
             title,
+            start_date,
             round_order,
             contestants_advance,
             round_type
@@ -307,7 +309,12 @@ export default function AchievementsPage() {
         ? `mosteligible.co/${organization?.slug || 'most-eligible'}/${competition.slug}`
         : 'mosteligible.co',
       rank: cardOption.rank,
-      votingStartDate: competition?.voting_start,
+      votingStartDate: competition?.voting_start
+        || competition?.voting_rounds
+          ?.filter(r => r.round_type === 'voting')
+          ?.map(r => r.start_date)
+          ?.sort()[0]
+        || null,
     };
   };
 
