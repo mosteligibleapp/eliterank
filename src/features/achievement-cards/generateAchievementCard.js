@@ -10,7 +10,7 @@ const CARD_HEIGHT = 1920;
 const CX = CARD_WIDTH / 2;
 
 const FONT = "'Montserrat', 'Inter', system-ui, sans-serif";
-const GOLD = '#C9A85C';
+const GOLD = '#d4af37';
 
 export const ACHIEVEMENT_TYPES = {
   nominated: {
@@ -191,7 +191,6 @@ export async function generateAchievementCard({
   // === LOGO (top, centered) ===
   const logoSize = 64;
   const logoY = 80;
-  let logoTextY = logoY + logoSize + 12;
 
   if (organizationLogoUrl) {
     try {
@@ -201,20 +200,10 @@ export async function generateAchievementCard({
       let drawH = logoSize;
       if (drawW > 200) { drawW = 200; drawH = drawW / logoAspect; }
       ctx.drawImage(logo, CX - drawW / 2, logoY, drawW, drawH);
-      logoTextY = logoY + drawH + 12;
     } catch {
-      // Fall through to text fallback
+      // No fallback text — logo only
     }
   }
-
-  // "ELITE RANK" text below logo
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = GOLD;
-  ctx.font = `700 18px ${FONT}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '3px';
-  ctx.fillText('ELITE RANK', CX, logoTextY);
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
 
   // === PHOTO — 560×700, 16px border-radius, positioned at 220px from top ===
   const photoW = 560;
@@ -268,7 +257,7 @@ export async function generateAchievementCard({
   }
   ctx.fillText(displayName, CX, y);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += 72 + 20;
+  y += 72 + 36;
 
   // === BADGE — pill, gold border, transparent bg, gold dots on sides ===
   const badgeFontSize = 26;
@@ -309,7 +298,7 @@ export async function generateAchievementCard({
   ctx.textBaseline = 'middle';
   ctx.fillText(badgeText, CX, badgeY + badgeH / 2);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y = badgeY + badgeH + 20;
+  y = badgeY + badgeH + 40;
 
   // === SUBTITLE (for nominated: "for", for advanced: "in", etc.) ===
   ctx.textBaseline = 'top';
@@ -328,7 +317,7 @@ export async function generateAchievementCard({
     ctx.font = `600 36px ${FONT}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += 42 + 8;
+  y += 42 + 16;
 
   // === LOCATION — muted, tracked ===
   if (season) {
@@ -342,7 +331,7 @@ export async function generateAchievementCard({
       ctx.fillText(metaText, CX, y);
     }
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-    y += 30 + 32;
+    y += 30 + 48;
   }
 
   // Rank (for top placements only)
@@ -359,7 +348,7 @@ export async function generateAchievementCard({
     ctx.fillStyle = GOLD;
     ctx.font = `500 34px ${FONT}`;
     ctx.fillText(`Voting opens ${formattedDate}`, CX, y);
-    y += 34 + 16;
+    y += 34 + 32;
   }
 
   // === CTA BUTTON — solid gold pill, black text ===
@@ -384,19 +373,6 @@ export async function generateAchievementCard({
   ctx.font = `700 ${ctaFontSize}px ${FONT}`;
   ctx.textBaseline = 'middle';
   ctx.fillText(ctaText, CX, ctaY + ctaH / 2);
-
-  // Small arrow icon (right of text)
-  const arrowX = CX + ctaTextW / 2 + 16;
-  const arrowY = ctaY + ctaH / 2;
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(arrowX, arrowY - 6);
-  ctx.lineTo(arrowX + 7, arrowY);
-  ctx.lineTo(arrowX, arrowY + 6);
-  ctx.stroke();
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png');
