@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Users, UserCheck, UserPlus, Archive, ChevronDown, ChevronUp,
   ExternalLink, User, Mail, Phone, Instagram, Check, X, RotateCcw,
-  Loader, AlertCircle, Link2
+  Loader, AlertCircle, Link2, Send
 } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -55,6 +55,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
     rejectNominee,
     archiveNominee,
     restoreNominee,
+    resendInvite,
   } = useCompetitionDashboard(competitionId);
 
   const [expandedSections, setExpandedSections] = useState({
@@ -66,6 +67,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
 
   const [processingId, setProcessingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [resentId, setResentId] = useState(null);
 
   const handleCopyClaimLink = async (item) => {
     if (!item.inviteToken) return;
@@ -84,6 +86,16 @@ export default function NominationsPage({ competitionId, competitionName }) {
       document.body.removeChild(textarea);
       setCopiedId(item.id);
       setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
+
+  const handleResendInvite = async (item) => {
+    setProcessingId(item.id);
+    const result = await resendInvite(item.id);
+    setProcessingId(null);
+    if (result.success) {
+      setResentId(item.id);
+      setTimeout(() => setResentId(null), 2000);
     }
   };
 
@@ -412,6 +424,22 @@ export default function NominationsPage({ competitionId, competitionName }) {
                                 }}
                               >
                                 {copiedId === item.id ? 'Copied!' : 'Claim Link'}
+                              </Button>
+                            )}
+
+                            {/* Resend invite button for external third-party nominees */}
+                            {!isContestants && !isArchived && item.nominatedBy === 'third_party' && item.inviteToken && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                icon={resentId === item.id ? Check : Send}
+                                onClick={() => handleResendInvite(item)}
+                                style={{
+                                  padding: `${spacing.xs} ${spacing.sm}`,
+                                  ...(resentId === item.id ? { color: colors.status.success, borderColor: colors.status.success } : {}),
+                                }}
+                              >
+                                {resentId === item.id ? 'Sent!' : 'Resend Invite'}
                               </Button>
                             )}
 

@@ -48,6 +48,7 @@ export default function CompetitionDashboard({
     rejectNominee,
     archiveNominee,
     restoreNominee,
+    resendInvite,
     addContestant,
     addJudge,
     updateJudge,
@@ -418,6 +419,7 @@ export default function CompetitionDashboard({
             onOpenAddPersonModal={openAddPersonModal}
             onShowHostAssignment={() => setShowHostAssignment(true)}
             onRemoveHost={removeHost}
+            onResendInvite={resendInvite}
           />
         );
       case 'content':
