@@ -428,7 +428,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
                             )}
 
                             {/* Resend invite button for external third-party nominees */}
-                            {!isContestants && !isArchived && item.nominatedBy === 'third_party' && item.inviteToken && (
+                            {!isContestants && !isArchived && item.nominatedBy === 'third_party' && !item.hasProfile && item.inviteToken && (
                               <Button
                                 variant="secondary"
                                 size="sm"

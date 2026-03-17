@@ -189,11 +189,11 @@ export default function PeopleTab({
             {isCopied ? <Check size={16} /> : <Link2 size={16} />}
           </button>
         )}
-        {nominee.nominatedBy === 'third_party' && !nominee.claimedAt && onResendInvite && (
+        {nominee.nominatedBy === 'third_party' && !nominee.hasProfile && onResendInvite && (
           <button
             onClick={() => handleResendInvite(nominee)}
             disabled={isProcessing}
-            title={resentId === nominee.id ? 'Invite sent!' : 'Resend invite email'}
+            title={resentId === nominee.id ? 'Sent!' : nominee.claimedAt ? 'Send profile completion reminder' : 'Resend invite email'}
             style={{
               padding: spacing.xs,
               background: resentId === nominee.id ? 'rgba(34,197,94,0.1)' : 'rgba(168,85,247,0.1)',
