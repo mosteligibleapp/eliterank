@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader
+  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
@@ -27,11 +27,13 @@ export default function PeopleTab({
   onOpenAddPersonModal,
   onShowHostAssignment,
   onRemoveHost,
+  onResendInvite,
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
   const [processingId, setProcessingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [resentId, setResentId] = useState(null);
   const [generatingCardId, setGeneratingCardId] = useState(null);
 
   const handleViewProfile = (profileId) => {
@@ -87,6 +89,17 @@ export default function PeopleTab({
     }
     setCopiedId(nominee.id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleResendInvite = async (nominee) => {
+    if (!onResendInvite) return;
+    setProcessingId(nominee.id);
+    const result = await onResendInvite(nominee.id);
+    setProcessingId(null);
+    if (result?.success) {
+      setResentId(nominee.id);
+      setTimeout(() => setResentId(null), 2000);
+    }
   };
 
   // Categorize nominees
@@ -174,6 +187,28 @@ export default function PeopleTab({
             }}
           >
             {isCopied ? <Check size={16} /> : <Link2 size={16} />}
+          </button>
+        )}
+        {nominee.nominatedBy === 'third_party' && !nominee.claimedAt && onResendInvite && (
+          <button
+            onClick={() => handleResendInvite(nominee)}
+            disabled={isProcessing}
+            title={resentId === nominee.id ? 'Invite sent!' : 'Resend invite email'}
+            style={{
+              padding: spacing.xs,
+              background: resentId === nominee.id ? 'rgba(34,197,94,0.1)' : 'rgba(168,85,247,0.1)',
+              border: 'none',
+              borderRadius: borderRadius.sm,
+              cursor: isProcessing ? 'not-allowed' : 'pointer',
+              color: resentId === nominee.id ? '#22c55e' : '#a855f7',
+              minWidth: '32px',
+              minHeight: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {resentId === nominee.id ? <Check size={16} /> : <Send size={16} />}
           </button>
         )}
         <button
