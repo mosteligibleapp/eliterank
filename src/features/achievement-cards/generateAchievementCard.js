@@ -194,7 +194,7 @@ export async function generateAchievementCard({
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
   // === LOGO (top, centered) ===
-  const logoSize = 120;
+  const logoSize = 160;
   const logoY = 60;
 
   if (organizationLogoUrl) {
@@ -214,7 +214,7 @@ export async function generateAchievementCard({
   const photoW = 560;
   const photoH = 700;
   const photoR = 16;
-  const photoStartY = 220;
+  const photoStartY = 270;
   const frameOffset = 4;
   const frameR = photoR + frameOffset;
 
@@ -272,7 +272,7 @@ export async function generateAchievementCard({
   y += 72 + 36;
 
   // === BADGE — pill, gold border, transparent bg, gold dots on sides ===
-  const badgeFontSize = 26;
+  const badgeFontSize = 34;
   ctx.font = `700 ${badgeFontSize}px ${FONT}`;
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4px';
   const badgeText = displayTitle;
@@ -310,40 +310,46 @@ export async function generateAchievementCard({
   ctx.textBaseline = 'middle';
   ctx.fillText(badgeText, CX, badgeY + badgeH / 2);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y = badgeY + badgeH + 40;
+  // === SUBTITLE + COMPETITION NAME — center "for" between badge and comp name ===
+  const gapAfterBadge = 24;
+  const gapBeforeComp = 26; // space from subtitle to competition name top
+  const compFontSize = 52;
+  const subtitleFontSize = 38;
 
-  // === SUBTITLE (for nominated: "for", for advanced: "in", etc.) ===
-  ctx.textBaseline = 'top';
   if (subtitle) {
+    // Total gap between badge bottom and competition name baseline
+    const totalGap = gapAfterBadge + subtitleFontSize + gapBeforeComp;
+    const subtitleY = badgeY + badgeH + totalGap / 2;
+
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `400 24px ${FONT}`;
-    ctx.fillText(subtitle, CX, y);
-    y += 34;
+    ctx.font = `400 ${subtitleFontSize}px ${FONT}`;
+    ctx.fillText(subtitle, CX, subtitleY);
+
+    y = badgeY + badgeH + totalGap;
+  } else {
+    y = badgeY + badgeH + gapAfterBadge;
   }
 
-  // === COMPETITION NAME — 28px canvas mapped to ~42px for readability ===
+  ctx.textBaseline = 'top';
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = `600 42px ${FONT}`;
+  ctx.font = `600 ${compFontSize}px ${FONT}`;
   let compDisplay = competitionName || 'the competition';
   if (ctx.measureText(compDisplay).width > 960) {
-    ctx.font = `600 36px ${FONT}`;
+    ctx.font = `600 44px ${FONT}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += 42 + 16;
+  y += compFontSize + 16;
 
   // === LOCATION — muted, tracked ===
   if (season) {
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `500 30px ${FONT}`;
+    ctx.font = `500 38px ${FONT}`;
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4.5px';
-    if (isNominated) {
-      ctx.fillText(String(season), CX, y);
-    } else {
-      const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
-      ctx.fillText(metaText, CX, y);
-    }
+    const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
+    ctx.fillText(metaText, CX, y);
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-    y += 30 + 48;
+    y += 38 + 48;
   }
 
   // Rank (for top placements only)
@@ -365,7 +371,7 @@ export async function generateAchievementCard({
 
   // === CTA BUTTON — solid gold pill, black text ===
   const ctaText = 'www.eliterank.co';
-  const ctaFontSize = 28;
+  const ctaFontSize = 34;
   ctx.font = `700 ${ctaFontSize}px ${FONT}`;
   const ctaTextW = ctx.measureText(ctaText).width;
   const ctaPadH = 80;

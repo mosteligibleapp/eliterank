@@ -189,11 +189,11 @@ export default function PeopleTab({
             {isCopied ? <Check size={16} /> : <Link2 size={16} />}
           </button>
         )}
-        {nominee.nominatedBy === 'third_party' && !nominee.claimedAt && onResendInvite && (
+        {nominee.nominatedBy === 'third_party' && !nominee.hasProfile && onResendInvite && (
           <button
             onClick={() => handleResendInvite(nominee)}
             disabled={isProcessing}
-            title={resentId === nominee.id ? 'Invite sent!' : 'Resend invite email'}
+            title={resentId === nominee.id ? 'Sent!' : nominee.claimedAt ? 'Send profile completion reminder' : 'Resend invite email'}
             style={{
               padding: spacing.xs,
               background: resentId === nominee.id ? 'rgba(34,197,94,0.1)' : 'rgba(168,85,247,0.1)',
@@ -275,32 +275,128 @@ export default function PeopleTab({
   };
 
   // Download card button shared across rows
-  const CardDownloadButton = ({ person, type }) => (
-    <button
-      onClick={() => handleDownloadCard(person, type)}
-      disabled={generatingCardId === person.id}
-      title="Download share card"
-      style={{
-        padding: spacing.xs,
-        background: 'rgba(212,175,55,0.1)',
-        border: 'none',
-        borderRadius: borderRadius.sm,
-        cursor: generatingCardId === person.id ? 'wait' : 'pointer',
-        color: colors.gold.primary,
-        minWidth: '32px',
-        minHeight: '32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {generatingCardId === person.id ? (
-        <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-      ) : (
-        <Download size={16} />
-      )}
-    </button>
-  );
+  const CardDownloadButton = ({ person, type }) => {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const isContestant = type === 'contestant';
+
+    if (!isContestant) {
+      return (
+        <button
+          onClick={() => handleDownloadCard(person, type)}
+          disabled={generatingCardId === person.id}
+          title="Download share card"
+          style={{
+            padding: spacing.xs,
+            background: 'rgba(212,175,55,0.1)',
+            border: 'none',
+            borderRadius: borderRadius.sm,
+            cursor: generatingCardId === person.id ? 'wait' : 'pointer',
+            color: colors.gold.primary,
+            minWidth: '32px',
+            minHeight: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {generatingCardId === person.id ? (
+            <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : (
+            <Download size={16} />
+          )}
+        </button>
+      );
+    }
+
+    return (
+      <div style={{ position: 'relative' }}>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          disabled={generatingCardId === person.id}
+          title="Download share card"
+          style={{
+            padding: spacing.xs,
+            background: 'rgba(212,175,55,0.1)',
+            border: 'none',
+            borderRadius: borderRadius.sm,
+            cursor: generatingCardId === person.id ? 'wait' : 'pointer',
+            color: colors.gold.primary,
+            minWidth: '32px',
+            minHeight: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {generatingCardId === person.id ? (
+            <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : (
+            <Download size={16} />
+          )}
+        </button>
+        {menuOpen && (
+          <>
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 9 }}
+              onClick={() => setMenuOpen(false)}
+            />
+            <div style={{
+              position: 'absolute',
+              right: 0,
+              top: '100%',
+              marginTop: 4,
+              background: colors.background.secondary,
+              border: `1px solid ${colors.border.primary}`,
+              borderRadius: borderRadius.md,
+              padding: spacing.xs,
+              zIndex: 10,
+              minWidth: 160,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+            }}>
+              <button
+                onClick={() => { setMenuOpen(false); handleDownloadCard(person, 'contestant'); }}
+                style={{
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  background: 'none',
+                  border: 'none',
+                  color: colors.text.primary,
+                  cursor: 'pointer',
+                  borderRadius: borderRadius.sm,
+                  textAlign: 'left',
+                  fontSize: typography.fontSize.sm,
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                onMouseLeave={e => e.target.style.background = 'none'}
+              >
+                Contestant Card
+              </button>
+              <button
+                onClick={() => { setMenuOpen(false); handleDownloadCard(person, 'nominee'); }}
+                style={{
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  background: 'none',
+                  border: 'none',
+                  color: colors.text.primary,
+                  cursor: 'pointer',
+                  borderRadius: borderRadius.sm,
+                  textAlign: 'left',
+                  fontSize: typography.fontSize.sm,
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                onMouseLeave={e => e.target.style.background = 'none'}
+              >
+                Nominated Card
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
 
   // Person row component - shared between contestants and nominees
   const PersonRow = ({ person, actions, dimmed, showVotes, onNameClick, cardType }) => (

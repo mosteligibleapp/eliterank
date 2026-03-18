@@ -10,6 +10,7 @@ const corsHeaders = {
  *
  * Supports multiple email types:
  *   - nominee_invite:       Branded "You've been nominated!" email to the nominee
+ *   - nominee_reminder:     "Finish your profile" reminder for accepted but not onboarded nominees
  *   - nominator_confirm:    "Your nomination was submitted" confirmation to the nominator
  *   - nominee_accepted:     "Your nominee accepted!" notification to the nominator
  *   - nominee_declined:     "Your nominee declined" notification to the nominator
@@ -21,7 +22,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined'
+  type: 'nominee_invite' | 'nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -116,6 +117,28 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${goldButton('Accept Your Nomination', req.claim_url || appUrl)}
             <p style="color:#666;font-size:12px;">
               Not interested? Simply ignore this email.
+            </p>
+          </div>
+        `),
+      }
+    }
+
+    case 'nominee_reminder': {
+      return {
+        subject: `Finish your profile for ${req.competition_name || 'Most Eligible'}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Almost There!</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            <p style="color:#ccc;font-size:15px;">
+              You accepted your nomination — now finish setting up your profile to be eligible to compete.
+            </p>
+            <p style="color:#999;font-size:14px;margin-top:16px;">
+              It only takes a minute. Pick up right where you left off.
+            </p>
+            ${goldButton('Complete Your Profile', req.claim_url || appUrl)}
+            <p style="color:#666;font-size:12px;">
+              You must complete your profile before you can be approved as a contestant.
             </p>
           </div>
         `),
