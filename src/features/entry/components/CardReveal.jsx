@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Share2, Copy, Check, UserPlus, Send } from 'lucide-react';
 import ShareableCard from './ShareableCard';
-import { generateShareCard, shareOrDownload, copyLink } from '../utils/shareUtils';
+import { shareOrDownload, copyLink } from '../utils/shareUtils';
+import { generateAchievementCard } from '../../achievement-cards/generateAchievementCard';
 import { getCompetitionTitle, getCityName } from '../utils/eligibilityEngine';
 import { ContestantGuide } from '../../contestant-guide';
 
@@ -38,20 +39,23 @@ export default function CardReveal({
   }, []);
 
   const cardParams = {
+    achievementType: 'nominated',
     name: submittedData.name,
     photoUrl: submittedData.photoUrl,
     handle: submittedData.handle,
-    competitionTitle: title,
+    competitionName: title,
     cityName,
     season: String(season || ''),
     accentColor,
     organizationLogoUrl,
+    voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+    votingStartDate: competition?.voting_start,
   };
 
   const handleShare = async () => {
     setIsGenerating(true);
     try {
-      const blob = await generateShareCard(cardParams);
+      const blob = await generateAchievementCard(cardParams);
       await shareOrDownload(blob, `eliterank-${submittedData.name?.toLowerCase().replace(/\s+/g, '-')}.png`);
     } catch (err) {
       console.error('Share failed:', err);
@@ -63,7 +67,7 @@ export default function CardReveal({
   const handleDownload = async () => {
     setIsGenerating(true);
     try {
-      const blob = await generateShareCard(cardParams);
+      const blob = await generateAchievementCard(cardParams);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -143,6 +147,8 @@ export default function CardReveal({
           season={season}
           accentColor={accentColor}
           organizationLogoUrl={organizationLogoUrl}
+          voteUrl={competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co'}
+          votingStartDate={competition?.voting_start}
         />
       </div>
 
