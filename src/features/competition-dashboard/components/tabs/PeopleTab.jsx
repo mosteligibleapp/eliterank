@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send
+  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
+import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
+import { supabase } from '../../../../lib/supabase';
 import WinnersManager from '../WinnersManager';
 
 /**
@@ -35,6 +37,36 @@ export default function PeopleTab({
   const [copiedId, setCopiedId] = useState(null);
   const [resentId, setResentId] = useState(null);
   const [generatingCardId, setGeneratingCardId] = useState(null);
+  const [uploadingAvatarId, setUploadingAvatarId] = useState(null);
+  const avatarFileRef = useRef(null);
+  const avatarUploadTarget = useRef(null);
+
+  const handleAvatarClick = (nominee) => {
+    avatarUploadTarget.current = nominee;
+    avatarFileRef.current?.click();
+  };
+
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !avatarUploadTarget.current) return;
+    const nominee = avatarUploadTarget.current;
+    e.target.value = '';
+
+    setUploadingAvatarId(nominee.id);
+    try {
+      const url = await uploadPhoto(file, 'host-uploads');
+      await supabase
+        .from('nominees')
+        .update({ avatar_url: url })
+        .eq('id', nominee.id);
+      onRefresh?.();
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+    } finally {
+      setUploadingAvatarId(null);
+      avatarUploadTarget.current = null;
+    }
+  };
 
   const handleViewProfile = (profileId) => {
     if (!profileId) return;
@@ -108,6 +140,7 @@ export default function PeopleTab({
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
+  const declinedNominees = nominees.filter(n => n.status === 'declined');
   const archivedNominees = nominees.filter(n => n.status === 'archived');
 
   // Whether a third-party nominee can be approved (must have accepted first)
@@ -399,7 +432,7 @@ export default function PeopleTab({
   };
 
   // Person row component - shared between contestants and nominees
-  const PersonRow = ({ person, actions, dimmed, showVotes, onNameClick, cardType }) => (
+  const PersonRow = ({ person, actions, dimmed, showVotes, onNameClick, cardType, onAvatarUpload }) => (
     <div style={{
       display: 'flex',
       alignItems: 'center',
@@ -409,7 +442,45 @@ export default function PeopleTab({
       borderRadius: borderRadius.lg,
       opacity: dimmed ? 0.7 : 1,
     }}>
-      <Avatar name={person.name} size={40} src={person.avatarUrl} />
+      {onAvatarUpload ? (
+        <button
+          onClick={() => onAvatarUpload(person)}
+          title={person.avatarUrl ? 'Change photo' : 'Upload photo'}
+          style={{
+            position: 'relative',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: uploadingAvatarId === person.id ? 'wait' : 'pointer',
+            borderRadius: '50%',
+            flexShrink: 0,
+          }}
+        >
+          <Avatar name={person.name} size={40} src={person.avatarUrl} />
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: uploadingAvatarId === person.id ? 1 : 0,
+            transition: 'opacity 0.15s',
+          }}
+            onMouseEnter={e => { if (uploadingAvatarId !== person.id) e.currentTarget.style.opacity = '0.8'; }}
+            onMouseLeave={e => { if (uploadingAvatarId !== person.id) e.currentTarget.style.opacity = '0'; }}
+          >
+            {uploadingAvatarId === person.id ? (
+              <Loader size={16} style={{ color: '#fff', animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Camera size={16} style={{ color: '#fff' }} />
+            )}
+          </div>
+        </button>
+      ) : (
+        <Avatar name={person.name} size={40} src={person.avatarUrl} />
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         {onNameClick ? (
           <button
@@ -475,6 +546,14 @@ export default function PeopleTab({
 
   return (
     <div>
+      {/* Hidden file input for nominee avatar uploads */}
+      <input
+        ref={avatarFileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic"
+        style={{ display: 'none' }}
+        onChange={handleAvatarFileChange}
+      />
       {/* Host Profile Section */}
       <Panel
         title="Host Profile"
@@ -732,6 +811,7 @@ export default function PeopleTab({
                   cardType="nominee"
                   onNameClick={n.matchedProfileId ? () => handleViewProfile(n.matchedProfileId) : undefined}
                   actions={<NomineeActions nominee={n} />}
+                  onAvatarUpload={handleAvatarClick}
                 />
               ))}
             </div>
@@ -761,12 +841,38 @@ export default function PeopleTab({
                   showVotes
                   cardType="nominee"
                   actions={<NomineeActions nominee={n} />}
+                  onAvatarUpload={handleAvatarClick}
                 />
               ))}
             </div>
           )}
         </div>
       </Panel>
+
+      {/* Declined */}
+      {declinedNominees.length > 0 && (
+        <Panel
+          title={`Declined (${declinedNominees.length})`}
+          icon={XCircle}
+          collapsible
+          defaultCollapsed
+        >
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {declinedNominees.map(n => (
+                <PersonRow
+                  key={n.id}
+                  person={n}
+                  dimmed
+                  actions={
+                    <Badge variant="error" size="sm">Declined</Badge>
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        </Panel>
+      )}
 
       {/* Archived */}
       <Panel
