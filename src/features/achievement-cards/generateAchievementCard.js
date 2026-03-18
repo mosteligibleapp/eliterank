@@ -336,12 +336,8 @@ export async function generateAchievementCard({
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = `500 30px ${FONT}`;
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4.5px';
-    if (isNominated) {
-      ctx.fillText(String(season), CX, y);
-    } else {
-      const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
-      ctx.fillText(metaText, CX, y);
-    }
+    const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
+    ctx.fillText(metaText, CX, y);
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
     y += 30 + 48;
   }
