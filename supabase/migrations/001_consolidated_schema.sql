@@ -363,7 +363,7 @@ CREATE TABLE nominees (
   relationship TEXT,  -- friend, coworker, family, other
   
   -- Status flow
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'expired')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'expired', 'declined')),
   converted_to_contestant BOOLEAN DEFAULT FALSE,
   
   -- Claim tracking

@@ -140,6 +140,7 @@ export default function PeopleTab({
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
+  const declinedNominees = nominees.filter(n => n.status === 'declined');
   const archivedNominees = nominees.filter(n => n.status === 'archived');
 
   // Whether a third-party nominee can be approved (must have accepted first)
@@ -847,6 +848,31 @@ export default function PeopleTab({
           )}
         </div>
       </Panel>
+
+      {/* Declined */}
+      {declinedNominees.length > 0 && (
+        <Panel
+          title={`Declined (${declinedNominees.length})`}
+          icon={XCircle}
+          collapsible
+          defaultCollapsed
+        >
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {declinedNominees.map(n => (
+                <PersonRow
+                  key={n.id}
+                  person={n}
+                  dimmed
+                  actions={
+                    <Badge variant="error" size="sm">Declined</Badge>
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        </Panel>
+      )}
 
       {/* Archived */}
       <Panel
