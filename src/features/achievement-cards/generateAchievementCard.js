@@ -310,26 +310,36 @@ export async function generateAchievementCard({
   ctx.textBaseline = 'middle';
   ctx.fillText(badgeText, CX, badgeY + badgeH / 2);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y = badgeY + badgeH + 40;
+  // === SUBTITLE + COMPETITION NAME — center "for" between badge and comp name ===
+  const gapAfterBadge = 40;
+  const gapBeforeComp = 42; // space from subtitle to competition name top
+  const compFontSize = 42;
+  const subtitleFontSize = 32;
 
-  // === SUBTITLE (for nominated: "for", for advanced: "in", etc.) ===
-  ctx.textBaseline = 'top';
   if (subtitle) {
+    // Total gap between badge bottom and competition name baseline
+    const totalGap = gapAfterBadge + subtitleFontSize + gapBeforeComp;
+    const subtitleY = badgeY + badgeH + totalGap / 2;
+
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `400 32px ${FONT}`;
-    ctx.fillText(subtitle, CX, y);
-    y += 42;
+    ctx.font = `400 ${subtitleFontSize}px ${FONT}`;
+    ctx.fillText(subtitle, CX, subtitleY);
+
+    y = badgeY + badgeH + totalGap;
+  } else {
+    y = badgeY + badgeH + gapAfterBadge;
   }
 
-  // === COMPETITION NAME — 28px canvas mapped to ~42px for readability ===
+  ctx.textBaseline = 'top';
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = `600 42px ${FONT}`;
+  ctx.font = `600 ${compFontSize}px ${FONT}`;
   let compDisplay = competitionName || 'the competition';
   if (ctx.measureText(compDisplay).width > 960) {
     ctx.font = `600 36px ${FONT}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += 42 + 16;
+  y += compFontSize + 16;
 
   // === LOCATION — muted, tracked ===
   if (season) {
