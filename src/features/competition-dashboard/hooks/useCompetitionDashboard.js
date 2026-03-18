@@ -225,10 +225,13 @@ export function useCompetitionDashboard(competitionId) {
         if (n.user_id) {
           matchedProfileId = n.user_id;
           matchedProfile = nomineeProfilesById.get(n.user_id) || profilesById.get(n.user_id) || null;
-          // Only count as "has profile" if the user has completed onboarding
+          // Count as "has profile" if the user has completed onboarding
           // (set a password). Pre-created profiles from admin.createUser() have
           // onboarded_at = null and should not be treated as real users yet.
-          hasProfile = !!matchedProfile?.onboarded_at;
+          // Self-nominations and claimed nominations always count — they
+          // completed the full entry flow even if the profile update was
+          // blocked by RLS (email confirmation may prevent onboarded_at write).
+          hasProfile = n.nominated_by === 'self' || !!n.claimed_at || !!matchedProfile?.onboarded_at;
         }
         // Fall back to email matching
         else if (n.email) {
