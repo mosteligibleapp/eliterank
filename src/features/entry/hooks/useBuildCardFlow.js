@@ -558,24 +558,35 @@ export function useBuildCardFlow({
           // "Database error creating new user" on client-side signUp.
           console.log('Claim flow: using set-nominee-password edge function');
 
-          const { data: fnData, error: fnError } = await supabase.functions.invoke(
-            'set-nominee-password',
-            { body: { invite_token: inviteToken, password, email } }
-          );
+          // Use direct fetch instead of supabase.functions.invoke() because
+          // the user has no session yet (they're setting up their password).
+          // supabase.functions.invoke() relies on the session JWT for the
+          // Authorization header, which causes a 401 when unauthenticated.
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+          const fnUrl = `${supabaseUrl}/functions/v1/set-nominee-password`;
+          const fnHeaders = {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+          };
+          const fnBody = JSON.stringify({ invite_token: inviteToken, password, email });
 
-          const fnErrMsg = fnData?.error || fnError?.message;
-          if (fnErrMsg) {
+          let fnResp = await fetch(fnUrl, { method: 'POST', headers: fnHeaders, body: fnBody });
+          let fnData = null;
+          try { fnData = await fnResp.json(); } catch (_) { /* non-JSON response */ }
+
+          if (!fnResp.ok || fnData?.error) {
+            const fnErrMsg = fnData?.error || `Edge Function returned status ${fnResp.status}`;
             console.warn('set-nominee-password attempt 1 failed:', fnErrMsg);
             // Retry once after a brief delay
             await new Promise((r) => setTimeout(r, 2000));
 
-            const { data: retryData, error: retryError } = await supabase.functions.invoke(
-              'set-nominee-password',
-              { body: { invite_token: inviteToken, password, email } }
-            );
+            fnResp = await fetch(fnUrl, { method: 'POST', headers: fnHeaders, body: fnBody });
+            try { fnData = await fnResp.json(); } catch (_) { fnData = null; }
 
-            const retryErrMsg = retryData?.error || retryError?.message;
-            if (retryErrMsg) {
+            if (!fnResp.ok || fnData?.error) {
+              const retryErrMsg = fnData?.error || `Edge Function returned status ${fnResp.status}`;
               console.error('set-nominee-password attempt 2 failed:', retryErrMsg);
               throw new Error(
                 'Account setup failed due to a server issue. Please try again in a moment, or contact support if this persists.'
