@@ -214,7 +214,7 @@ export async function generateAchievementCard({
   const photoW = 560;
   const photoH = 700;
   const photoR = 16;
-  const photoStartY = 220;
+  const photoStartY = 270;
   const frameOffset = 4;
   const frameR = photoR + frameOffset;
 
@@ -311,8 +311,8 @@ export async function generateAchievementCard({
   ctx.fillText(badgeText, CX, badgeY + badgeH / 2);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
   // === SUBTITLE + COMPETITION NAME — center "for" between badge and comp name ===
-  const gapAfterBadge = 40;
-  const gapBeforeComp = 42; // space from subtitle to competition name top
+  const gapAfterBadge = 24;
+  const gapBeforeComp = 26; // space from subtitle to competition name top
   const compFontSize = 52;
   const subtitleFontSize = 38;
 
