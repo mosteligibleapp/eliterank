@@ -316,9 +316,9 @@ export async function generateAchievementCard({
   ctx.textBaseline = 'top';
   if (subtitle) {
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `400 24px ${FONT}`;
+    ctx.font = `400 32px ${FONT}`;
     ctx.fillText(subtitle, CX, y);
-    y += 34;
+    y += 42;
   }
 
   // === COMPETITION NAME — 28px canvas mapped to ~42px for readability ===
