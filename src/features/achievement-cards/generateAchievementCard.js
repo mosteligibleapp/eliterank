@@ -194,7 +194,7 @@ export async function generateAchievementCard({
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
   // === LOGO (top, centered) ===
-  const logoSize = 120;
+  const logoSize = 160;
   const logoY = 60;
 
   if (organizationLogoUrl) {
@@ -272,7 +272,7 @@ export async function generateAchievementCard({
   y += 72 + 36;
 
   // === BADGE — pill, gold border, transparent bg, gold dots on sides ===
-  const badgeFontSize = 26;
+  const badgeFontSize = 34;
   ctx.font = `700 ${badgeFontSize}px ${FONT}`;
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4px';
   const badgeText = displayTitle;
@@ -313,8 +313,8 @@ export async function generateAchievementCard({
   // === SUBTITLE + COMPETITION NAME — center "for" between badge and comp name ===
   const gapAfterBadge = 40;
   const gapBeforeComp = 42; // space from subtitle to competition name top
-  const compFontSize = 42;
-  const subtitleFontSize = 32;
+  const compFontSize = 52;
+  const subtitleFontSize = 38;
 
   if (subtitle) {
     // Total gap between badge bottom and competition name baseline
@@ -336,7 +336,7 @@ export async function generateAchievementCard({
   ctx.font = `600 ${compFontSize}px ${FONT}`;
   let compDisplay = competitionName || 'the competition';
   if (ctx.measureText(compDisplay).width > 960) {
-    ctx.font = `600 36px ${FONT}`;
+    ctx.font = `600 44px ${FONT}`;
   }
   ctx.fillText(compDisplay, CX, y);
   y += compFontSize + 16;
@@ -344,12 +344,12 @@ export async function generateAchievementCard({
   // === LOCATION — muted, tracked ===
   if (season) {
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `500 30px ${FONT}`;
+    ctx.font = `500 38px ${FONT}`;
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4.5px';
     const metaText = cityName ? `${cityName}  \u00B7  ${season}` : formatSeasonLabel(season);
     ctx.fillText(metaText, CX, y);
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-    y += 30 + 48;
+    y += 38 + 48;
   }
 
   // Rank (for top placements only)
@@ -371,7 +371,7 @@ export async function generateAchievementCard({
 
   // === CTA BUTTON — solid gold pill, black text ===
   const ctaText = 'www.eliterank.co';
-  const ctaFontSize = 28;
+  const ctaFontSize = 34;
   ctx.font = `700 ${ctaFontSize}px ${FONT}`;
   const ctaTextW = ctx.measureText(ctaText).width;
   const ctaPadH = 80;
