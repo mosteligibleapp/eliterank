@@ -222,7 +222,7 @@ export default function PeopleTab({
             {isCopied ? <Check size={16} /> : <Link2 size={16} />}
           </button>
         )}
-        {nominee.nominatedBy === 'third_party' && !nominee.hasProfile && onResendInvite && (
+        {!nominee.hasProfile && onResendInvite && (
           <button
             onClick={() => handleResendInvite(nominee)}
             disabled={isProcessing}
