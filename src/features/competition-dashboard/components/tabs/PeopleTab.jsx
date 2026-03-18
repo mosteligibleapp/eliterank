@@ -222,11 +222,11 @@ export default function PeopleTab({
             {isCopied ? <Check size={16} /> : <Link2 size={16} />}
           </button>
         )}
-        {nominee.nominatedBy === 'third_party' && !nominee.hasProfile && onResendInvite && (
+        {!nominee.hasProfile && onResendInvite && (
           <button
             onClick={() => handleResendInvite(nominee)}
             disabled={isProcessing}
-            title={resentId === nominee.id ? 'Sent!' : nominee.claimedAt ? 'Send profile completion reminder' : 'Resend invite email'}
+            title={resentId === nominee.id ? 'Sent!' : `${nominee.claimedAt ? 'Send profile completion reminder' : 'Resend invite email'}${nominee.inviteSentAt ? `\nLast sent: ${new Date(nominee.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}` : '\nNever sent'}`}
             style={{
               padding: spacing.xs,
               background: resentId === nominee.id ? 'rgba(34,197,94,0.1)' : 'rgba(168,85,247,0.1)',
@@ -520,6 +520,11 @@ export default function PeopleTab({
         )}
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
           {person.email}{showVotes ? `${person.email ? ' · ' : ''}${person.votes || 0} votes` : ''}
+          {person.inviteSentAt && (
+            <span style={{ color: colors.text.muted, opacity: 0.7 }}>
+              {' · '}Invited {new Date(person.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+          )}
         </p>
       </div>
       {onNameClick && (
