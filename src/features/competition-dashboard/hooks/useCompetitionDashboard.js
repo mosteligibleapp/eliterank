@@ -244,6 +244,13 @@ export function useCompetitionDashboard(competitionId) {
           }
         }
 
+        // Self-nominees who completed the flow but whose user_id wasn't linked
+        // (RLS blocked the client-side update). They have an avatar from the
+        // entry flow, so treat them as having a profile.
+        if (!hasProfile && n.nominated_by === 'self' && n.avatar_url) {
+          hasProfile = true;
+        }
+
         return {
           id: n.id,
           name: n.name,
