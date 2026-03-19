@@ -139,7 +139,7 @@ serve(async (req) => {
           ? `${nominee.name} accepted your nomination!`
           : `${nominee.name} declined your nomination`
         const notifBody = event === 'accepted'
-          ? `${nominee.name} is now a contestant in ${competitionName}!`
+          ? `${nominee.name} accepted their nomination for ${competitionName}! Our team is reviewing their submission — we'll let you know if they're approved as an official contestant.`
           : `${nominee.name} has decided not to enter ${competitionName} at this time.`
 
         await supabase
