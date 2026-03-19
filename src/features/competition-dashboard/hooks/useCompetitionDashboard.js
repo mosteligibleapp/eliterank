@@ -249,9 +249,9 @@ export function useCompetitionDashboard(competitionId) {
         }
 
         // Self-nominees who completed the flow but whose user_id wasn't linked
-        // (RLS blocked the client-side update). They have an avatar from the
-        // entry flow, so treat them as having a profile.
-        if (!hasProfile && n.nominated_by === 'self' && n.avatar_url) {
+        // (RLS blocked the client-side update). Only count them if we found a
+        // matching profile by email (meaning they created an account).
+        if (!hasProfile && n.nominated_by === 'self' && matchedProfile) {
           hasProfile = true;
         }
 
