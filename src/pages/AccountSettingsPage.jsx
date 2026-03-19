@@ -150,13 +150,34 @@ const styles = {
 
 function PasswordSection() {
   const toast = useToast();
+  const user = useAuthStore(s => s.user);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
   const [error, setError] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+
+  const handleForgotPassword = useCallback(async () => {
+    if (!user?.email) return;
+    setSendingReset(true);
+    setError('');
+    setResetSent(false);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) throw resetError;
+      setResetSent(true);
+    } catch (err) {
+      setError(err.message || 'Failed to send reset email');
+    } finally {
+      setSendingReset(false);
+    }
+  }, [user?.email]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -221,6 +242,12 @@ function PasswordSection() {
             {error}
           </div>
         )}
+        {resetSent && (
+          <div style={styles.success}>
+            <Check size={16} />
+            Password reset link sent to {user?.email}. Check your inbox.
+          </div>
+        )}
 
         <div style={styles.field}>
           <label style={styles.label}>Current Password</label>
@@ -242,6 +269,22 @@ function PasswordSection() {
               {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            disabled={sendingReset}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: colors.gold.primary,
+              fontSize: typography.fontSize.sm,
+              cursor: sendingReset ? 'not-allowed' : 'pointer',
+              padding: `${spacing.xs} 0`,
+              marginTop: spacing.xs,
+            }}
+          >
+            {sendingReset ? 'Sending reset link...' : "Forgot password?"}
+          </button>
         </div>
 
         <div style={styles.field}>
