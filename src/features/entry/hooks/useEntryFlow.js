@@ -390,7 +390,9 @@ export function useEntryFlow(competition, profile) {
         avatar_url: avatarUrl || null,
         age: selfData.age ? parseInt(selfData.age, 10) : null,
         city: selfData.location?.trim() || null,
-        flow_stage: 'card',
+        // Anon users still need the password step — set 'bio' so resume
+        // maps to 'password'. Logged-in users skip password, so 'card'.
+        flow_stage: isLoggedIn ? 'card' : 'bio',
       };
 
       if (profile?.id) {
@@ -602,6 +604,15 @@ export function useEntryFlow(competition, profile) {
 
         // Notify all useSupabaseAuth instances to refetch the profile
         window.dispatchEvent(new Event('profile-updated'));
+      }
+
+      // Account created — now safe to mark flow_stage as 'card'
+      if (nomineeId) {
+        await supabase
+          .from('nominees')
+          .update({ flow_stage: 'card' })
+          .eq('id', nomineeId)
+          .catch(() => {}); // non-critical
       }
 
       // Move to card
