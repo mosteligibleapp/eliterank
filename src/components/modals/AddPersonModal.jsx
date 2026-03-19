@@ -45,7 +45,7 @@ export default function AddPersonModal({
       const searchTerm = query.toLowerCase().trim();
 
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('id, email, first_name, last_name, avatar_url, instagram, city')
         .limit(100);
 

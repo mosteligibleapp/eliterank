@@ -77,7 +77,7 @@ export function useCompetitionManager() {
       let hostsMap = {};
       if (hostIds.length > 0) {
         const { data: hostsData } = await supabase
-          .from('profiles')
+          .from('users')
           .select('id, email, first_name, last_name')
           .in('id', hostIds);
 

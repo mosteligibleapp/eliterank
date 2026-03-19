@@ -37,7 +37,7 @@ export default function AdminHeader({ title, subtitle, onLogout, actions, user, 
     ? `${profile.first_name} ${profile.last_name || ''}`.trim()
     : user?.email?.split('@')[0] || 'Admin';
 
-  const roleLabel = profile?.is_super_admin ? 'Super Admin' : 'Admin';
+  const roleLabel = (profile?.roles || []).includes('super_admin') ? 'Super Admin' : 'Admin';
 
   // Close dropdown on outside click
   useEffect(() => {

@@ -53,7 +53,7 @@ export default function JudgeModal({
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from('profiles')
+          .from('users')
           .select('id, email, first_name, last_name, avatar_url, bio')
           .order('first_name')
           .limit(100);

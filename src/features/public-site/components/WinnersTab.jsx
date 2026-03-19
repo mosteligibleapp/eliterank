@@ -36,7 +36,7 @@ export default function WinnersTab({ city, season, winners = [], competitionId, 
 
           // Fetch winner profiles with all fields
           const { data: profiles, error: profilesError } = await supabase
-            .from('profiles')
+            .from('users')
             .select('*')
             .in('id', compData.winners);
 

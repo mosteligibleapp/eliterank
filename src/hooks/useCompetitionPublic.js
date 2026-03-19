@@ -13,7 +13,7 @@ const COMPETITION_SELECT = `
   city:cities(*),
   category:categories(*),
   demographic:demographics(*),
-  host:profiles!competitions_host_id_fkey (
+  host:users!competitions_host_id_fkey (
     id, first_name, last_name, bio, avatar_url, city,
     instagram, twitter, linkedin
   ),

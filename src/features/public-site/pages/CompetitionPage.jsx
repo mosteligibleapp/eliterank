@@ -113,7 +113,7 @@ export default function CompetitionPage() {
       // Fetch winners if competition has them
       if (compData.winners && compData.winners.length > 0) {
         const { data: winnerProfiles, error: winnersError } = await supabase
-          .from('profiles')
+          .from('users')
           .select('id, email, first_name, last_name, avatar_url')
           .in('id', compData.winners);
 

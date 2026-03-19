@@ -59,7 +59,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
         supabase.from('cities').select('*').order('name'),
         supabase.from('categories').select('*').eq('active', true).order('name'),
         supabase.from('demographics').select('*').eq('active', true).order('id'),
-        supabase.from('profiles').select('id, email, first_name, last_name').eq('is_host', true),
+        supabase.from('users').select('id, email, first_name, last_name').contains('roles', ['host']),
         supabase.from('competitions').select('*').order('created_at', { ascending: false }),
         supabase.from('nominees').select('competition_id'),
         supabase.from('contestants').select('competition_id'),

@@ -17,7 +17,7 @@ export default function HostsManager() {
   const fetchHosts = useCallback(async () => {
     if (!supabase) { setHosts([]); return; }
     try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('is_host', true).order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('users').select('*').contains('roles', ['host']).order('created_at', { ascending: false });
       if (error) { setHosts([]); return; }
       setHosts((data || []).map(h => ({
         id: h.id,

@@ -38,7 +38,7 @@ function AdminApp() {
     log.info('admin', 'Loading profile', { userId: sessionUser.id });
     try {
       const { data: profileData, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('id', sessionUser.id)
         .single();
@@ -53,7 +53,7 @@ function AdminApp() {
         setUser(sessionUser);
         log.info('admin', 'Auth complete', {
           email: sessionUser.email,
-          isSuperAdmin: profileData?.is_super_admin === true,
+          isSuperAdmin: (profileData?.roles || []).includes('super_admin'),
         });
       }
     } catch (err) {

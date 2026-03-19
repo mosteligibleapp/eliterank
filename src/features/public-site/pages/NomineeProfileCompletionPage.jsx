@@ -150,7 +150,7 @@ export default function NomineeProfileCompletionPage({
     try {
       // Update user profile
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from('users')
         .update({
           first_name: formData.firstName.trim(),
           last_name: formData.lastName.trim(),

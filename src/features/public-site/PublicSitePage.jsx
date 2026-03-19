@@ -135,10 +135,10 @@ export default function PublicSitePage({
         // Fetch only dynamic data - sponsors, host, and voting rounds come from cached hooks
         const [contestantsResult, eventsResult, announcementsResult, judgesResult] = await Promise.all([
           // Join with profiles to get full profile data when contestant is linked to a user
-          supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('votes', { ascending: false }),
+          supabase.from('contestants').select('*, profile:users!user_id(*)').eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
-          supabase.from('judges').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('sort_order'),
+          supabase.from('judges').select('*, profile:users!user_id(*)').eq('competition_id', competitionId).order('sort_order'),
         ]);
 
         setFetchedData({
@@ -252,7 +252,7 @@ export default function PublicSitePage({
     try {
       const { data: contestantsData } = await supabase
         .from('contestants')
-        .select('*, profile:profiles!user_id(*)')
+        .select('*, profile:users!user_id(*)')
         .eq('competition_id', competitionId)
         .order('votes', { ascending: false });
 

@@ -60,7 +60,7 @@ function CompetitionLayoutInner() {
   const signOut = useAuthStore(s => s.signOut);
 
   // Check if user has dashboard access
-  const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
+  const hasDashboardAccess = profile?.is_host || (profile?.roles || []).includes('super_admin');
 
   // Navigation handlers for profile icon
   const handleLogin = () => {

@@ -25,7 +25,7 @@ export default function HostAssignmentModal({
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from('profiles')
+          .from('users')
           .select('id, email, first_name, last_name, avatar_url, is_host')
           .order('first_name')
           .limit(100);

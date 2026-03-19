@@ -138,24 +138,24 @@ serve(async (req) => {
       }
     }
 
-    // 3b. Via profiles table (exact email match)
+    // 3b. Via users table (exact email match)
     if (!authUserId) {
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('users')
         .select('id')
         .ilike('email', email)
         .maybeSingle()
 
       if (profile?.id) {
-        // Verify this profile maps to a real auth user
+        // Verify this user record maps to a real auth user
         const { data, error } = await supabase.auth.admin.getUserById(profile.id)
         if (!error && data?.user) {
           authUserId = data.user.id
           console.log('Found auth user via profile:', authUserId)
         } else {
-          // Orphaned profile — delete it so createUser trigger won't conflict
-          console.log('Deleting orphaned profile:', profile.id)
-          await supabase.from('profiles').delete().eq('id', profile.id)
+          // Orphaned user record — delete it so createUser trigger won't conflict
+          console.log('Deleting orphaned user record:', profile.id)
+          await supabase.from('users').delete().eq('id', profile.id)
         }
       }
     }
@@ -195,16 +195,16 @@ serve(async (req) => {
       // No existing user — create one
       console.log('Creating new auth user for:', email)
 
-      // Clean up any orphaned profiles with this email first (prevents
+      // Clean up any orphaned user records with this email first (prevents
       // handle_new_user trigger conflicts on the email unique constraint)
       const { data: orphanProfiles } = await supabase
-        .from('profiles')
+        .from('users')
         .select('id')
         .ilike('email', email)
       if (orphanProfiles?.length) {
         for (const p of orphanProfiles) {
-          console.log('Pre-cleanup: deleting orphan profile:', p.id)
-          await supabase.from('profiles').delete().eq('id', p.id)
+          console.log('Pre-cleanup: deleting orphan user record:', p.id)
+          await supabase.from('users').delete().eq('id', p.id)
         }
       }
 
@@ -243,8 +243,8 @@ serve(async (req) => {
             email_confirm: true,
           })
 
-          // Ensure profile exists (trigger may have crashed before creating it)
-          await supabase.from('profiles').upsert({
+          // Ensure user record exists (trigger may have crashed before creating it)
+          await supabase.from('users').upsert({
             id: found.id,
             email,
             first_name: firstName,
@@ -254,12 +254,12 @@ serve(async (req) => {
           // Truly failed — try one more time after cleaning up
           console.log('Retrying createUser after cleanup...')
           const { data: orphans2 } = await supabase
-            .from('profiles')
+            .from('users')
             .select('id')
             .ilike('email', email)
           if (orphans2?.length) {
             for (const p of orphans2) {
-              await supabase.from('profiles').delete().eq('id', p.id)
+              await supabase.from('users').delete().eq('id', p.id)
             }
           }
 
@@ -303,10 +303,10 @@ serve(async (req) => {
       console.log('Linked nominee to user:', authUserId)
     }
 
-    // ── 6. Ensure profile has nominee card data ──────────────────────────
+    // ── 6. Ensure user record has nominee card data ──────────────────────
     // The handle_new_user trigger may not have copied card data (it only
     // does so when nominee_id is in user_metadata). Fetch full nominee
-    // data and upsert into the profile to fill any gaps.
+    // data and upsert into the user record to fill any gaps.
     const { data: fullNominee } = await supabase
       .from('nominees')
       .select('name, email, avatar_url, bio, city, age, instagram, phone')
@@ -315,7 +315,7 @@ serve(async (req) => {
 
     if (fullNominee) {
       const nameParts = fullNominee.name?.split(' ') || []
-      const { error: profileError } = await supabase.from('profiles').upsert({
+      const { error: profileError } = await supabase.from('users').upsert({
         id: authUserId,
         email: email,
         first_name: nameParts[0] || '',
@@ -331,9 +331,9 @@ serve(async (req) => {
       }, { onConflict: 'id' })
 
       if (profileError) {
-        console.error('Profile upsert failed (non-fatal):', profileError.message)
+        console.error('User upsert failed (non-fatal):', profileError.message)
       } else {
-        console.log('Profile synced with nominee data for user:', authUserId)
+        console.log('User record synced with nominee data for user:', authUserId)
       }
     }
 

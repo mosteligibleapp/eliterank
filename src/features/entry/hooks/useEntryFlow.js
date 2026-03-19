@@ -460,7 +460,7 @@ export function useEntryFlow(competition, profile) {
         if (selfData.instagram?.trim()) profileUpdate.instagram = selfData.instagram.trim();
 
         const { error: profileErr } = await supabase
-          .from('profiles')
+          .from('users')
           .update(profileUpdate)
           .eq('id', profile.id);
 
@@ -594,7 +594,7 @@ export function useEntryFlow(competition, profile) {
         if (selfData.phone?.trim()) profileUpdate.phone = selfData.phone.trim();
 
         const { error: profileErr } = await supabase
-          .from('profiles')
+          .from('users')
           .update(profileUpdate)
           .eq('id', resolvedUserId);
 

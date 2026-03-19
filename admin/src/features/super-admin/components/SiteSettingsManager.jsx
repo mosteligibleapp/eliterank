@@ -80,7 +80,7 @@ export default function SiteSettingsManager() {
       setIsSearching(true);
       try {
         const { data, error } = await supabase
-          .from('profiles')
+          .from('users')
           .select('id, first_name, last_name, avatar_url, city')
           .or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`)
           .limit(10);

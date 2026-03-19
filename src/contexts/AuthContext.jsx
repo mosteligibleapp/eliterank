@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
   } = useSupabaseAuth();
 
   // Check if user is super admin from Supabase profile
-  const isSuperAdmin = profile?.is_super_admin === true;
+  const isSuperAdmin = (profile?.roles || []).includes('super_admin');
 
   // Check if user is host (derived from competitions table in useSupabaseAuth)
   const isHost = profile?.is_host === true;

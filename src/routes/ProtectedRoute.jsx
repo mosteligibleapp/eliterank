@@ -20,7 +20,7 @@ export const ROLE = ROLES;
  */
 export function getUserRole(profile) {
   if (!profile) return ROLES.FAN;
-  if (profile.is_super_admin) return ROLES.SUPER_ADMIN;
+  if ((profile.roles || []).includes(ROLES.SUPER_ADMIN)) return ROLES.SUPER_ADMIN;
   if (profile.is_host) return ROLES.HOST;
   return ROLES.FAN;
 }

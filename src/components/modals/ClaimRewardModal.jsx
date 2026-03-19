@@ -129,7 +129,7 @@ export default function ClaimRewardModal({
       setLoading(true);
       try {
         const { data } = await supabase
-          .from('profiles')
+          .from('users')
           .select('shipping_address')
           .eq('id', userId)
           .single();
@@ -165,7 +165,7 @@ export default function ClaimRewardModal({
     setClaiming(true);
     try {
       await supabase
-        .from('profiles')
+        .from('users')
         .update({ shipping_address: address })
         .eq('id', userId);
 

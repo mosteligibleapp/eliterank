@@ -202,7 +202,7 @@ serve(async (req) => {
 
     // Check if user is super admin
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+      .from('users')
       .select('is_super_admin')
       .eq('id', user.id)
       .single()

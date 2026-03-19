@@ -53,7 +53,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         if (session?.user) {
           setUser(session.user);
           const { data: profileData } = await supabase
-            .from('profiles')
+            .from('users')
             .select('*')
             .eq('id', session.user.id)
             .single();
@@ -72,7 +72,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
         const { data: profileData } = await supabase
-          .from('profiles')
+          .from('users')
           .select('*')
           .eq('id', session.user.id)
           .single();

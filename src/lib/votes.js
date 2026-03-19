@@ -270,14 +270,14 @@ async function updateProfileVotes(userId, voteValue) {
       console.warn('RPC increment_profile_votes failed, using fallback:', error);
 
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('users')
         .select('total_votes_received')
         .eq('id', userId)
         .single();
 
       if (profile) {
         await supabase
-          .from('profiles')
+          .from('users')
           .update({
             total_votes_received: (profile.total_votes_received || 0) + voteValue,
           })

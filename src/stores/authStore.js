@@ -10,11 +10,15 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
 
-// User roles (aligned with database schema)
+// User roles (aligned with database user_role enum)
 export const ROLES = Object.freeze({
-  SUPER_ADMIN: 'super_admin',
-  HOST: 'host',
   FAN: 'fan',
+  NOMINEE: 'nominee',
+  CONTESTANT: 'contestant',
+  WINNER: 'winner',
+  HOST: 'host',
+  ADMIN: 'admin',
+  SUPER_ADMIN: 'super_admin',
 });
 
 export const useAuthStore = create(
@@ -92,19 +96,28 @@ export const useAuthStore = create(
       getUserRole: () => {
         const { profile } = get();
         if (!profile) return ROLES.FAN;
-        if (profile.is_super_admin) return ROLES.SUPER_ADMIN;
-        if (profile.is_host) return ROLES.HOST;
+        const roles = profile.roles || [];
+        if (roles.includes(ROLES.SUPER_ADMIN)) return ROLES.SUPER_ADMIN;
+        if (roles.includes(ROLES.HOST) || profile.is_host) return ROLES.HOST;
         return ROLES.FAN;
       },
 
       getIsSuperAdmin: () => {
         const { profile } = get();
-        return profile?.is_super_admin === true;
+        const roles = profile?.roles || [];
+        return roles.includes(ROLES.SUPER_ADMIN);
       },
 
       getIsHost: () => {
         const { profile } = get();
-        return profile?.is_host === true;
+        const roles = profile?.roles || [];
+        return roles.includes(ROLES.HOST) || profile?.is_host === true;
+      },
+
+      hasRole: (role) => {
+        const { profile } = get();
+        const roles = profile?.roles || [];
+        return roles.includes(role);
       },
 
       getHasDashboardAccess: () => {
@@ -196,18 +209,26 @@ export const useAuthStore = create(
 
 export const useUserRole = () => useAuthStore((state) => {
   if (!state.profile) return ROLES.FAN;
-  if (state.profile.is_super_admin) return ROLES.SUPER_ADMIN;
-  if (state.profile.is_host) return ROLES.HOST;
+  const roles = state.profile.roles || [];
+  if (roles.includes(ROLES.SUPER_ADMIN)) return ROLES.SUPER_ADMIN;
+  if (roles.includes(ROLES.HOST) || state.profile.is_host) return ROLES.HOST;
   return ROLES.FAN;
 });
 
-export const useIsSuperAdmin = () => useAuthStore((state) => 
-  state.profile?.is_super_admin === true
-);
+export const useIsSuperAdmin = () => useAuthStore((state) => {
+  const roles = state.profile?.roles || [];
+  return roles.includes(ROLES.SUPER_ADMIN);
+});
 
-export const useIsHost = () => useAuthStore((state) => 
-  state.profile?.is_host === true
-);
+export const useIsHost = () => useAuthStore((state) => {
+  const roles = state.profile?.roles || [];
+  return roles.includes(ROLES.HOST) || state.profile?.is_host === true;
+});
+
+export const useHasRole = (role) => useAuthStore((state) => {
+  const roles = state.profile?.roles || [];
+  return roles.includes(role);
+});
 
 export const useHasDashboardAccess = () => {
   const role = useUserRole();

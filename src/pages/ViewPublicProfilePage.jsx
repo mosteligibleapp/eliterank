@@ -33,7 +33,7 @@ export default function ViewPublicProfilePage() {
         // Fetch profile and their most recent competition entry in parallel
         const [profileResult, contestantResult] = await Promise.all([
           supabase
-            .from('profiles')
+            .from('users')
             .select('*')
             .eq('id', profileId)
             .maybeSingle(),

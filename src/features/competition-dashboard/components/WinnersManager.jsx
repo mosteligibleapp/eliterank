@@ -51,7 +51,7 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
       if (winnerIds.length > 0) {
         // Fetch winner profiles
         const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
+          .from('users')
           .select('id, email, first_name, last_name, avatar_url')
           .in('id', winnerIds);
 
@@ -90,7 +90,7 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
       // Fetch profiles and filter client-side for more reliable search
       // This works around RLS and query syntax issues
       const { data, error: fetchError } = await supabase
-        .from('profiles')
+        .from('users')
         .select('id, email, first_name, last_name, avatar_url')
         .limit(100);
 

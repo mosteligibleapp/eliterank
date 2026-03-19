@@ -157,7 +157,7 @@ export async function getCompetitionStats(userId) {
   try {
     const [profileResult, contestantsResult] = await Promise.all([
       supabase
-        .from('profiles')
+        .from('users')
         .select('total_votes_received, total_competitions, wins, best_placement')
         .eq('id', userId)
         .single(),

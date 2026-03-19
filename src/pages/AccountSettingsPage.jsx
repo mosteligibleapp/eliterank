@@ -444,7 +444,7 @@ function PhoneSection() {
     setSaving(true);
     try {
       const { error: updateError } = await supabase
-        .from('profiles')
+        .from('users')
         .update({ phone: trimmed || null, updated_at: new Date().toISOString() })
         .eq('id', profile.id);
 

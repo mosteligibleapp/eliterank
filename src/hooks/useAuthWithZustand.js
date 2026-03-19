@@ -38,7 +38,7 @@ export default function useAuthWithZustand() {
     try {
       const [profileResult, hostResult, contestantResult, nomineeResult] = await Promise.all([
         supabase
-          .from('profiles')
+          .from('users')
           .select('*')
           .eq('id', userId)
           .maybeSingle(),
@@ -212,7 +212,7 @@ export default function useAuthWithZustand() {
 
     try {
       const { error: updateError } = await supabase
-        .from('profiles')
+        .from('users')
         .update(updates)
         .eq('id', user.id);
 

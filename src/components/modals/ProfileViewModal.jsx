@@ -39,7 +39,7 @@ export default function ProfileViewModal({
 
       try {
         const { data, error } = await supabase
-          .from('profiles')
+          .from('users')
           .select('*')
           .eq('id', profileId)
           .single();

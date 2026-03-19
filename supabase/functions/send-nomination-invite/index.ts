@@ -123,7 +123,7 @@ serve(async (req) => {
 
     if (!nomineeEmail && nomineeData.phone) {
       const { data: profileByPhone } = await supabase
-        .from('profiles')
+        .from('users')
         .select('id, email')
         .eq('phone', nomineeData.phone)
         .maybeSingle()
@@ -172,12 +172,12 @@ serve(async (req) => {
     const gender = competition.demographic?.gender || null
     const nominationEnd = competition.nomination_end || null
 
-    // Check if user already exists by querying profiles table
-    // (profiles.id references auth.users.id and email is unique)
+    // Check if user already exists by querying users table
+    // (users.id references auth.users.id and email is unique)
     // Note: listUsers() only returns the first page (~50 users) so it
     // silently missed existing users once the user-base grew.
     const { data: existingProfile } = await supabase
-      .from('profiles')
+      .from('users')
       .select('id, email')
       .ilike('email', nomineeEmail)
       .maybeSingle()
@@ -202,7 +202,7 @@ serve(async (req) => {
 
     // DO NOT pre-create auth users here. Auth accounts should only be created
     // when the nominee actually sets a password during the claim flow. Creating
-    // ghost users causes "already registered" errors and orphaned profiles.
+    // ghost users causes "already registered" errors and orphaned user records.
     if (!existingUser) {
       console.log('Nominee has no existing account — will be created when they claim and set a password')
     }
@@ -329,7 +329,7 @@ serve(async (req) => {
     if (nomineeRaw.claimed_at && nomineeRaw.user_id) {
       // Check if the user has completed onboarding
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('users')
         .select('onboarded_at')
         .eq('id', nomineeRaw.user_id)
         .maybeSingle()

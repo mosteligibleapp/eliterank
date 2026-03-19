@@ -63,7 +63,7 @@ export function useCompetitionDashboard(competitionId) {
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
         supabase
           .from('contestants')
-          .select('*, profile:profiles!user_id(*)')
+          .select('*, profile:users!user_id(*)')
           .eq('competition_id', competitionId)
           .order('votes', { ascending: false }),
 
@@ -77,7 +77,7 @@ export function useCompetitionDashboard(competitionId) {
         // Judges ordered by sort_order - join with profiles for full data
         supabase
           .from('judges')
-          .select('*, profile:profiles!user_id(*)')
+          .select('*, profile:users!user_id(*)')
           .eq('competition_id', competitionId)
           .order('sort_order'),
 
@@ -191,14 +191,14 @@ export function useCompetitionDashboard(competitionId) {
         // Use ilike-based OR filter for case-insensitive email matching
         const emailFilter = nomineeEmails.map(e => `email.ilike.${e}`).join(',');
         profileLookups.push(
-          supabase.from('profiles')
+          supabase.from('users')
             .select('id, email, avatar_url, instagram, onboarded_at')
             .or(emailFilter)
         );
       }
       if (nomineeUserIds.length > 0) {
         profileLookups.push(
-          supabase.from('profiles')
+          supabase.from('users')
             .select('id, email, avatar_url, instagram, onboarded_at')
             .in('id', nomineeUserIds)
         );
@@ -426,7 +426,7 @@ export function useCompetitionDashboard(competitionId) {
 
       if (!linkedUserId && nominee.email) {
         const { data: profileByEmail } = await supabase
-          .from('profiles')
+          .from('users')
           .select('id')
           .ilike('email', nominee.email)
           .limit(1)
@@ -486,7 +486,7 @@ export function useCompetitionDashboard(competitionId) {
           await setupDefaultBonusTasks(competitionId);
           // Award profile-based tasks
           const { data: profile } = await supabase
-            .from('profiles')
+            .from('users')
             .select('first_name, bio, city, avatar_url, instagram, twitter, tiktok, linkedin')
             .eq('id', linkedUserId)
             .maybeSingle();
@@ -527,14 +527,14 @@ export function useCompetitionDashboard(competitionId) {
           if (rpcError) {
             // Fallback to manual update
             const { data: profile } = await supabase
-              .from('profiles')
+              .from('users')
               .select('total_competitions')
               .eq('id', linkedUserId)
               .maybeSingle();
 
             if (profile) {
               await supabase
-                .from('profiles')
+                .from('users')
                 .update({
                   total_competitions: (profile.total_competitions || 0) + 1,
                 })
@@ -696,14 +696,14 @@ export function useCompetitionDashboard(competitionId) {
           if (rpcError) {
             // Fallback to manual update
             const { data: profile } = await supabase
-              .from('profiles')
+              .from('users')
               .select('total_competitions')
               .eq('id', linkedUserId)
               .maybeSingle();
 
             if (profile) {
               await supabase
-                .from('profiles')
+                .from('users')
                 .update({
                   total_competitions: (profile.total_competitions || 0) + 1,
                 })
@@ -1175,7 +1175,7 @@ export function useCompetitionDashboard(competitionId) {
 
       // Set is_host on the user's profile
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from('users')
         .update({ is_host: true })
         .eq('id', userId);
 

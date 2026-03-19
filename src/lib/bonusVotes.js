@@ -257,7 +257,7 @@ export async function loadNomineeBonusActions(userId) {
 
   try {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('users')
       .select('bonus_actions')
       .eq('id', userId)
       .single();
@@ -305,7 +305,7 @@ export async function saveNomineeBonusAction(userId, taskKey) {
   try {
     // Read current bonus_actions then merge
     const { data } = await supabase
-      .from('profiles')
+      .from('users')
       .select('bonus_actions')
       .eq('id', userId)
       .single();
@@ -313,7 +313,7 @@ export async function saveNomineeBonusAction(userId, taskKey) {
     const merged = { ...(data?.bonus_actions || {}), [taskKey]: true };
 
     await supabase
-      .from('profiles')
+      .from('users')
       .update({ bonus_actions: merged })
       .eq('id', userId);
   } catch (err) {

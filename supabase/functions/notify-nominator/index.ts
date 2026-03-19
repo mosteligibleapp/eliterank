@@ -129,7 +129,7 @@ serve(async (req) => {
     // Also create an in-app notification for the nominator if they have an account
     if (nominee.nominator_email) {
       const { data: nominatorProfile } = await supabase
-        .from('profiles')
+        .from('users')
         .select('id')
         .ilike('email', nominee.nominator_email)
         .maybeSingle()

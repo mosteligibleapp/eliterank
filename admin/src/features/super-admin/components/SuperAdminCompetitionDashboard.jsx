@@ -137,7 +137,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
 
       try {
         const { data: hostData, error } = await supabase
-          .from('profiles')
+          .from('users')
           .select('id, email, first_name, last_name')
           .eq('id', competition.host_id)
           .single();

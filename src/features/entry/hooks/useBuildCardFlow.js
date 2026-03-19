@@ -471,7 +471,7 @@ export function useBuildCardFlow({
       // Also update profile if user is logged in
       if (currentUser?.id) {
         await supabase
-          .from('profiles')
+          .from('users')
           .update({
             first_name: cardData.firstName.trim(),
             last_name: cardData.lastName.trim(),
@@ -650,7 +650,7 @@ export function useBuildCardFlow({
         const avatarUrl = (cardData.photoPreview && !cardData.photoPreview.startsWith('blob:'))
           ? cardData.photoPreview : undefined;
         const { error: profileError } = await supabase
-          .from('profiles')
+          .from('users')
           .upsert({
             id: userId,
             email: cardData.email?.trim() || email,
@@ -699,7 +699,7 @@ export function useBuildCardFlow({
     if (!email?.trim()) return false;
     try {
       const { data } = await supabase
-        .from('profiles')
+        .from('users')
         .select('id')
         .eq('email', email.trim())
         .maybeSingle();
@@ -726,7 +726,7 @@ export function useBuildCardFlow({
 
       // Fetch profile and pre-fill
       const { data: profileData } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single();

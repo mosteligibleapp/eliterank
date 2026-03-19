@@ -68,7 +68,7 @@ export default function EliteRankCityModal({
   const profile = useAuthStore(s => s.profile);
 
   // Check if user has dashboard access
-  const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
+  const hasDashboardAccess = profile?.is_host || (profile?.roles || []).includes('super_admin');
   const [activeTab, setActiveTab] = useState('competitions');
   const [showCrownAnimation, setShowCrownAnimation] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);

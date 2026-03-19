@@ -51,7 +51,7 @@ export default function LoginPage({ onLogin, onBack }) {
       // Check if user has an existing account by looking up their profile
       // (Previously used signInWithOtp which sent an unwanted email every time)
       const { data: existingProfile } = await supabase
-        .from('profiles')
+        .from('users')
         .select('id')
         .ilike('email', email)
         .limit(1)
