@@ -1207,6 +1207,53 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  // ============================================================================
+  // NOMINEE ACCOUNT REPAIR OPERATIONS
+  // ============================================================================
+
+  /**
+   * Repair a single nominee's account (create auth user if missing, sync profile data)
+   * Uses the repair-nominee-accounts edge function (admin API, bypasses RLS)
+   */
+  const repairNomineeAccount = useCallback(async (nomineeId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { data: result, error: fnError } = await supabase.functions.invoke('repair-nominee-accounts', {
+        body: { competition_id: competitionId, nominee_id: nomineeId },
+      });
+
+      if (fnError) throw fnError;
+
+      await fetchDashboardData();
+      return { success: true, data: result };
+    } catch (err) {
+      console.error('Error repairing nominee account:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  /**
+   * Repair all nominee accounts for this competition
+   */
+  const repairAllNomineeAccounts = useCallback(async () => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { data: result, error: fnError } = await supabase.functions.invoke('repair-nominee-accounts', {
+        body: { competition_id: competitionId },
+      });
+
+      if (fnError) throw fnError;
+
+      await fetchDashboardData();
+      return { success: true, data: result };
+    } catch (err) {
+      console.error('Error repairing all nominee accounts:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   return {
     data,
     loading,
@@ -1219,6 +1266,8 @@ export function useCompetitionDashboard(competitionId) {
     archiveNominee,
     restoreNominee,
     resendInvite,
+    repairNomineeAccount,
+    repairAllNomineeAccounts,
     // Contestant operations
     addContestant,
     // Judge operations

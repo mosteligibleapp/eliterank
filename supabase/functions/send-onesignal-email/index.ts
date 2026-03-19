@@ -22,7 +22,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined'
+  type: 'nominee_invite' | 'nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -35,6 +35,7 @@ interface EmailRequest {
   gender?: string | null
   nomination_end?: string | null
   nominee_email?: string
+  reset_password_url?: string
 }
 
 // HTML email templates
@@ -206,6 +207,29 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
               Know someone else who'd be a great fit? You can still nominate more people!
             </p>
             ${req.competition_url ? goldButton('Nominate Someone Else', req.competition_url) : ''}
+          </div>
+        `),
+      }
+    }
+
+    case 'account_ready': {
+      const resetUrl = req.reset_password_url || `${appUrl}/login`
+      return {
+        subject: `Your ${req.competition_name || 'Most Eligible'} account is ready — set your password`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Your Account is Ready!</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            <p style="color:#ccc;font-size:15px;">
+              Hi${req.nominee_name ? ` ${req.nominee_name.split(' ')[0]}` : ''}! Your EliteRank account has been set up with your nomination details.
+            </p>
+            <p style="color:#ccc;font-size:15px;margin-top:12px;">
+              Set your password below so you can log in, view your profile, and track your progress in the competition.
+            </p>
+            ${goldButton('Set Your Password', resetUrl)}
+            <p style="color:#999;font-size:13px;margin-top:16px;">
+              This link expires in 24 hours. If it expires, you can always use "Forgot Password" on the login page.
+            </p>
           </div>
         `),
       }

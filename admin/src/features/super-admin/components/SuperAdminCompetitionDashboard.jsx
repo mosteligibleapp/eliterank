@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Crown, ArrowLeft, Shield, Star, LogOut, BarChart3, UserPlus, FileText, Settings as SettingsIcon,
   User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, Archive, RotateCcw, ExternalLink,
-  UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus
+  UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Wrench
 } from 'lucide-react';
 import { Button, Badge, Avatar, StatCard } from '@shared/components/ui';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '@shared/styles/theme';
@@ -48,9 +48,14 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   const {
     data, loading, error, refresh,
     addNominee, approveNominee, rejectNominee, archiveNominee, restoreNominee,
+    repairNomineeAccount, repairAllNomineeAccounts,
     addContestant,
     addAnnouncement, updateAnnouncement, deleteAnnouncement,
   } = useCompetitionDashboard(competition?.id);
+
+  // Repair state
+  const [repairLoading, setRepairLoading] = useState(false);
+  const [repairResult, setRepairResult] = useState(null);
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -575,6 +580,26 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         </div>
         {showActions && !isArchived && (
           <div style={{ display: 'flex', gap: spacing.sm }}>
+            {!nominee.hasProfile && nominee.email && (
+              <Button variant="secondary" size="sm" title="Repair account (create auth user + sync profile)" onClick={async () => {
+                const result = await repairNomineeAccount(nominee.id);
+                if (!result.success) {
+                  alert(`Failed to repair: ${result.error}`);
+                } else {
+                  const repairData = result.data;
+                  const msg = repairData?.repaired?.length
+                    ? `Repaired: ${repairData.repaired.map(r => r.action).join(', ')}`
+                    : repairData?.skipped?.length
+                      ? `Already OK: ${repairData.skipped[0]?.reason}`
+                      : repairData?.errors?.length
+                        ? `Error: ${repairData.errors[0]?.error}`
+                        : 'Done';
+                  alert(msg);
+                }
+              }}>
+                <Wrench size={14} />
+              </Button>
+            )}
             <Button variant="approve" size="sm" onClick={async () => {
               const result = await approveNominee(nominee);
               if (!result.success) {
@@ -765,14 +790,57 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           marginBottom: spacing.lg,
           overflow: 'hidden',
         }}>
-          <SectionHeader
-            title="External Nominees"
-            count={externalNominees.length}
-            icon={Users}
-            iconColor="#f59e0b"
-            sectionKey="external"
-            badge="warning"
-          />
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <SectionHeader
+              title="External Nominees"
+              count={externalNominees.length}
+              icon={Users}
+              iconColor="#f59e0b"
+              sectionKey="external"
+              badge="warning"
+            />
+            {externalNominees.length > 0 && (
+              <div style={{ paddingRight: spacing.lg }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={repairLoading}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!confirm(`Repair all ${externalNominees.length} external nominee accounts? This will create auth users and sync profiles for any that are missing.`)) return;
+                    setRepairLoading(true);
+                    setRepairResult(null);
+                    const result = await repairAllNomineeAccounts();
+                    setRepairLoading(false);
+                    if (result.success) {
+                      setRepairResult(result.data);
+                      alert(result.data?.summary || 'Repair complete');
+                    } else {
+                      alert(`Repair failed: ${result.error}`);
+                    }
+                  }}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  <Wrench size={14} style={{ marginRight: spacing.xs }} />
+                  {repairLoading ? 'Repairing...' : 'Repair All Accounts'}
+                </Button>
+              </div>
+            )}
+          </div>
+          {repairResult && (
+            <div style={{
+              padding: `0 ${spacing.lg} ${spacing.md}`,
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary,
+            }}>
+              {repairResult.summary}
+              {repairResult.errors?.length > 0 && (
+                <span style={{ color: '#ef4444', marginLeft: spacing.sm }}>
+                  Errors: {repairResult.errors.map(e => `${e.name}: ${e.error}`).join('; ')}
+                </span>
+              )}
+            </div>
+          )}
           {expandedSections.external && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
               {externalNominees.length === 0 ? (
