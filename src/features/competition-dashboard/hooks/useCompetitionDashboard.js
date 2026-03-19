@@ -466,6 +466,20 @@ export function useCompetitionDashboard(competitionId) {
         console.error('Nominee status update failed after contestant insert:', updateError);
       }
 
+      // Migrate reward assignments from nominee → contestant so claimed
+      // status, discount codes, etc. carry over after promotion.
+      if (insertedContestant?.id) {
+        try {
+          await supabase
+            .from('reward_assignments')
+            .update({ contestant_id: insertedContestant.id })
+            .eq('nominee_id', nominee.id)
+            .is('contestant_id', null);
+        } catch (rewardErr) {
+          console.warn('Error migrating reward assignments to contestant:', rewardErr);
+        }
+      }
+
       // Auto-award bonus votes earned during nominee phase
       if (linkedUserId && insertedContestant?.id) {
         try {
