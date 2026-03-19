@@ -177,15 +177,16 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
         subject: `${req.nominee_name || 'Your nominee'} accepted their nomination!`,
         body: wrapper(`
           <div style="text-align:center;">
-            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">They're In!</h1>
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Nomination Accepted!</h1>
             <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
             <p style="color:#ccc;font-size:15px;">
-              <strong>${req.nominee_name || 'Your nominee'}</strong> accepted their nomination and is now a contestant!
+              <strong>${req.nominee_name || 'Your nominee'}</strong> has accepted their nomination! The Most Eligible team is now reviewing their submission — we'll let you know if they are approved as an official contestant.
             </p>
-            <p style="color:#999;font-size:14px;margin-top:16px;">
-              Thanks for nominating them. When voting opens, make sure to cast your votes!
+            <p style="color:#ccc;font-size:15px;margin-top:16px;">
+              In the meantime, celebrate ${req.nominee_name || 'them'} at our annual <strong>Night of the Nominees</strong> event on <strong>April 16th, 2026</strong> at Joy District!
             </p>
-            ${req.competition_url ? goldButton('View Competition', req.competition_url) : ''}
+            ${goldButton('RSVP — Night of the Nominees', 'https://posh.vip/e/most-eligible-season-2026contestants-revealed')}
+            ${req.competition_url ? `<p style="color:#999;font-size:13px;margin-top:8px;"><a href="${req.competition_url}" style="color:#d4a843;text-decoration:underline;">View Competition</a></p>` : ''}
           </div>
         `),
       }
