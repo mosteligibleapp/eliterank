@@ -1,7 +1,7 @@
 import React from 'react';
 import { getCompetitionTitle, getCityName } from '../utils/eligibilityEngine';
 
-const MAX_CHARS = 150;
+const MAX_CHARS = 500;
 
 /**
  * Bio step: "Tell people about yourself"
