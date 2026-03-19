@@ -608,11 +608,14 @@ export function useEntryFlow(competition, profile) {
 
       // Account created — now safe to mark flow_stage as 'card'
       if (nomineeId) {
-        await supabase
-          .from('nominees')
-          .update({ flow_stage: 'card' })
-          .eq('id', nomineeId)
-          .catch(() => {}); // non-critical
+        try {
+          await supabase
+            .from('nominees')
+            .update({ flow_stage: 'card' })
+            .eq('id', nomineeId);
+        } catch (_) {
+          // non-critical
+        }
       }
 
       // Move to card
