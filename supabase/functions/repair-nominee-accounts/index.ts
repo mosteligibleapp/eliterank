@@ -14,7 +14,8 @@ const corsHeaders = {
  *   1. Creates an auth user (if missing) with a random temp password
  *   2. Syncs all nominee card data to the profile
  *   3. Links the nominee record to the auth user
- *   4. Sends a password reset email so the user can set their own password
+ *   4. Sends a branded "set your password" email via OneSignal so the
+ *      user knows they have an account and can log in
  *
  * Accepts: { competition_id: string, nominee_id?: string }
  *   - If nominee_id is provided, repairs only that nominee
@@ -39,6 +40,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -47,7 +49,7 @@ serve(async (req) => {
     // ── 1. Fetch nominees to repair ──────────────────────────────────────
     let query = supabase
       .from('nominees')
-      .select('id, name, email, phone, age, bio, city, avatar_url, instagram, user_id, nominated_by, claimed_at, status')
+      .select('id, name, email, phone, age, bio, city, avatar_url, instagram, user_id, nominated_by, claimed_at, status, competition_id')
 
     if (nominee_id) {
       query = query.eq('id', nominee_id)
@@ -75,7 +77,19 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Repairing ${nominees.length} nominees`)
+    // ── Fetch competition name for the email ────────────────────────────
+    const compId = competition_id || nominees[0]?.competition_id
+    let competitionName = 'Most Eligible'
+    if (compId) {
+      const { data: comp } = await supabase
+        .from('competitions')
+        .select('name')
+        .eq('id', compId)
+        .maybeSingle()
+      if (comp?.name) competitionName = comp.name
+    }
+
+    console.log(`Repairing ${nominees.length} nominees for ${competitionName}`)
 
     const repaired: Array<{ id: string; name: string; email: string; action: string }> = []
     const skipped: Array<{ id: string; name: string; email: string; reason: string }> = []
@@ -91,6 +105,7 @@ serve(async (req) => {
       try {
         // ── 2. Check if auth user already exists ─────────────────────────
         let authUserId: string | null = null
+        let isNewAccount = false
 
         // 2a. Via nominee.user_id
         if (nominee.user_id) {
@@ -174,6 +189,8 @@ serve(async (req) => {
 
         // Case B: No auth user — create one
         if (!authUserId) {
+          isNewAccount = true
+
           // Clean up any orphaned profiles
           const { data: orphans } = await supabase
             .from('profiles')
@@ -189,7 +206,7 @@ serve(async (req) => {
           const firstName = nameParts[0] || ''
           const lastName = nameParts.slice(1).join(' ') || ''
 
-          // Generate a random temp password (user will reset via email)
+          // Generate a random temp password (user will set their own via reset link)
           const tempPassword = crypto.randomUUID() + '!A1'
 
           const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
@@ -262,25 +279,64 @@ serve(async (req) => {
             .eq('id', nominee.id)
         }
 
-        // ── 7. Send password reset email ─────────────────────────────────
-        // Only for nominees that didn't have an auth user before (new accounts)
-        if (!nominee.user_id) {
-          const { error: resetError } = await supabase.auth.admin.generateLink({
-            type: 'recovery',
-            email,
-          })
-          if (resetError) {
-            console.warn(`Password reset email failed for ${email}:`, resetError.message)
-            // Non-fatal — user can use "forgot password" later
+        // ── 7. Send "set your password" email for new/unlinked accounts ──
+        // Generate a recovery link so the user can set their own password,
+        // then send a branded email via OneSignal with that link.
+        if (!nominee.user_id || isNewAccount) {
+          try {
+            // Generate the recovery link (redirects to /reset-password)
+            const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+              type: 'recovery',
+              email,
+              options: {
+                redirectTo: `${appUrl}/reset-password`,
+              },
+            })
+
+            if (linkError) {
+              console.warn(`generateLink failed for ${email}:`, linkError.message)
+            } else {
+              const recoveryLink = linkData?.properties?.action_link
+              if (recoveryLink) {
+                // Send branded email via send-onesignal-email edge function
+                const emailPayload = {
+                  type: 'account_ready',
+                  to_email: email,
+                  to_name: nominee.name,
+                  nominee_name: nominee.name,
+                  competition_name: competitionName,
+                  reset_password_url: recoveryLink,
+                }
+
+                const emailResp = await fetch(`${supabaseUrl}/functions/v1/send-onesignal-email`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseServiceKey}`,
+                  },
+                  body: JSON.stringify(emailPayload),
+                })
+
+                if (!emailResp.ok) {
+                  const emailErr = await emailResp.text()
+                  console.warn(`OneSignal email failed for ${email}:`, emailErr)
+                } else {
+                  console.log(`Password setup email sent to ${email}`)
+                }
+              }
+            }
+          } catch (emailErr) {
+            console.warn(`Email send error for ${email}:`, emailErr)
+            // Non-fatal — user can always use "Forgot Password" on login page
           }
         }
 
         // ── Determine action description ─────────────────────────────────
         let action = ''
-        if (!nominee.user_id && !profileExists) {
-          action = 'Created auth user + profile + linked nominee'
+        if (isNewAccount) {
+          action = 'Created auth user + profile + sent password setup email'
         } else if (!nominee.user_id) {
-          action = 'Linked existing auth user + synced profile data'
+          action = 'Linked existing auth user + synced profile + sent password setup email'
         } else if (profileNeedsData) {
           action = 'Synced missing nominee data to profile'
         } else {
