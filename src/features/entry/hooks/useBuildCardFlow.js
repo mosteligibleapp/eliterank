@@ -551,37 +551,50 @@ export function useBuildCardFlow({
       if (!sessionValid && !currentUser) {
         const fullName = `${cardData.firstName} ${cardData.lastName}`.trim();
 
-        if (inviteToken) {
-          // ── Third-party claim flow ──────────────────────────────────
-          // Use the edge function as the PRIMARY path. It uses admin APIs
-          // which bypass the handle_new_user trigger issues that cause
-          // "Database error creating new user" on client-side signUp.
-          console.log('Claim flow: using set-nominee-password edge function');
+        // ── Use edge function for ALL flows (self + third-party) ────────
+        // The edge function uses admin APIs which bypass RLS and the
+        // handle_new_user trigger issues. It creates the auth user, sets
+        // the password, links the nominee, and syncs profile data — all
+        // server-side with the service role key.
+        console.log('Using set-nominee-password edge function for account creation');
 
-          // Use direct fetch instead of supabase.functions.invoke() because
-          // the user has no session yet (they're setting up their password).
-          // supabase.functions.invoke() relies on the session JWT for the
-          // Authorization header, which causes a 401 when unauthenticated.
-          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-          const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-          const fnUrl = `${supabaseUrl}/functions/v1/set-nominee-password`;
-          const fnHeaders = {
-            'Content-Type': 'application/json',
-            'apikey': supabaseAnonKey,
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-          };
-          const fnBody = JSON.stringify({ invite_token: inviteToken, password, email });
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const fnUrl = `${supabaseUrl}/functions/v1/set-nominee-password`;
+        const fnHeaders = {
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+        };
+        const fnBody = JSON.stringify({
+          invite_token: inviteToken || undefined,
+          nominee_id: nomineeId || undefined,
+          password,
+          email,
+        });
 
-          let fnResp = await fetch(fnUrl, { method: 'POST', headers: fnHeaders, body: fnBody });
-          let fnData = null;
-          try { fnData = await fnResp.json(); } catch (_) { /* non-JSON response */ }
+        let fnResp = await fetch(fnUrl, { method: 'POST', headers: fnHeaders, body: fnBody });
+        let fnData = null;
+        try { fnData = await fnResp.json(); } catch (_) { /* non-JSON response */ }
 
-          if (!fnResp.ok || fnData?.error) {
-            const fnErrMsg = fnData?.error || `Edge Function returned status ${fnResp.status}`;
-            console.warn('set-nominee-password attempt 1 failed:', fnErrMsg);
+        if (!fnResp.ok || fnData?.error) {
+          const fnErrMsg = fnData?.error || `Edge Function returned status ${fnResp.status}`;
+          console.warn('set-nominee-password attempt 1 failed:', fnErrMsg);
+
+          // If it's an "already registered" style error, try signing in directly
+          if (fnErrMsg.includes('already') || fnErrMsg.includes('exists')) {
+            const { data: signInData, error: signInError } =
+              await supabase.auth.signInWithPassword({ email, password });
+            if (signInError) {
+              throw new Error(
+                'An account with this email already exists. Please use your existing password or reset it.'
+              );
+            }
+            setCurrentUser(signInData.user);
+            userId = signInData.user?.id;
+          } else {
             // Retry once after a brief delay
             await new Promise((r) => setTimeout(r, 2000));
-
             fnResp = await fetch(fnUrl, { method: 'POST', headers: fnHeaders, body: fnBody });
             try { fnData = await fnResp.json(); } catch (_) { fnData = null; }
 
@@ -593,8 +606,10 @@ export function useBuildCardFlow({
               );
             }
           }
+        }
 
-          // Edge function succeeded — sign in with the email the user typed
+        // Edge function succeeded — sign in to establish client session
+        if (!userId) {
           const { data: signInData, error: signInError } =
             await supabase.auth.signInWithPassword({ email, password });
           if (signInError) {
@@ -604,57 +619,6 @@ export function useBuildCardFlow({
           }
           setCurrentUser(signInData.user);
           userId = signInData.user?.id;
-        } else {
-          // ── Self-entry flow ─────────────────────────────────────────
-          // Use client-side signUp (no invite token, no edge function)
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                full_name: fullName,
-                first_name: cardData.firstName.trim(),
-                last_name: cardData.lastName.trim(),
-              },
-            },
-          });
-
-          if (signUpError) {
-            if (signUpError.message?.includes('already registered')) {
-              const { data: signInData, error: signInError } =
-                await supabase.auth.signInWithPassword({ email, password });
-              if (signInError) {
-                throw new Error(
-                  'An account with this email already exists. Please use your existing password or reset it.'
-                );
-              }
-              setCurrentUser(signInData.user);
-              userId = signInData.user?.id;
-            } else if (signUpError.message?.includes('Database error')) {
-              throw new Error(
-                'Account setup failed due to a server issue. Please try again in a moment.'
-              );
-            } else {
-              throw signUpError;
-            }
-          } else if (signUpData?.user) {
-            if (signUpData.user.identities?.length === 0) {
-              // Supabase returned a user without identities — account
-              // already exists. Try signing in.
-              const { data: signInData, error: signInError } =
-                await supabase.auth.signInWithPassword({ email, password });
-              if (signInError) {
-                throw new Error(
-                  'An account with this email already exists. Please try logging in or use the magic link in your email.'
-                );
-              }
-              setCurrentUser(signInData.user);
-              userId = signInData.user?.id;
-            } else {
-              setCurrentUser(signUpData.user);
-              userId = signUpData.user.id;
-            }
-          }
         }
 
         // If we still don't have a session, sign in explicitly
@@ -679,12 +643,13 @@ export function useBuildCardFlow({
         }
       }
 
-      // Populate the profile with all card data now that the account exists.
-      // The trigger seeds email/name but we need the full card data.
+      // The edge function already synced nominee data to the profile
+      // (step 6). Do a client-side update too with the latest card data
+      // in case the user edited fields after the nominee was persisted.
       if (userId) {
         const avatarUrl = (cardData.photoPreview && !cardData.photoPreview.startsWith('blob:'))
           ? cardData.photoPreview : undefined;
-        await supabase
+        const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
             id: userId,
@@ -700,6 +665,11 @@ export function useBuildCardFlow({
             onboarded_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }, { onConflict: 'id' });
+
+        if (profileError) {
+          // Not fatal — edge function already synced the core data
+          console.warn('Client-side profile upsert failed (edge fn already synced):', profileError.message);
+        }
 
         window.dispatchEvent(new Event('profile-updated'));
       }

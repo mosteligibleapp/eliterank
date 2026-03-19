@@ -369,6 +369,7 @@ serve(async (req) => {
       email_body: htmlBody,
       email_from_name: 'EliteRank',
       email_from_address: 'info@eliterank.co',
+      disable_email_click_tracking: true,
       data: {
         type: body.type,
         to_email: body.to_email,
