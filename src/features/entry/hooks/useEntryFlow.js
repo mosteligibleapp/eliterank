@@ -493,6 +493,12 @@ export function useEntryFlow(competition, profile) {
   }, [competition, selfData, eligibilityAnswers, profile, steps, isLoggedIn, nomineeId]);
 
   // ---- Create account for anon self-nominees ----
+  //
+  // Uses the set-nominee-password edge function (server-side admin API) to
+  // reliably create the auth user, link the nominee, and sync all card data
+  // to the profile. This bypasses RLS and avoids the multiple failure modes
+  // of client-side signUp (email confirmation blocking sessions, fake users
+  // returned for existing emails, trigger crashes swallowed silently).
   const createAccount = useCallback(async (password) => {
     setIsSubmitting(true);
     setSubmitError('');
@@ -501,117 +507,119 @@ export function useEntryFlow(competition, profile) {
       const email = selfData.email?.trim();
       if (!email) throw new Error('Email is required to create an account');
 
-      const fullName = `${selfData.firstName} ${selfData.lastName}`.trim();
-
-      // Track the resolved user id in a local variable so it's available
-      // immediately (React state via setCurrentUser is async).
       let resolvedUserId = null;
 
-      // Pass first_name / last_name separately so the handle_new_user DB
-      // trigger can populate the profile row even if the subsequent UPDATE
-      // is blocked by RLS (e.g. when email confirmation is enabled and no
-      // session exists yet).
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
+      // ── Use the set-nominee-password edge function ──────────────────
+      // This creates the auth user via admin API, sets the password,
+      // links the nominee record, and syncs all card data to the profile
+      // — all server-side with the service role key.
+      console.log('Using set-nominee-password edge function for self-nomination account creation');
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const fnUrl = `${supabaseUrl}/functions/v1/set-nominee-password`;
+      const fnHeaders = {
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      };
+      const fnBody = JSON.stringify({
+        nominee_id: nomineeId || undefined,
         password,
-        options: {
-          data: {
-            first_name: selfData.firstName.trim(),
-            last_name: selfData.lastName.trim(),
-            full_name: fullName,
-            nominee_id: nomineeId,
-          },
-        },
+        email,
       });
 
-      if (signUpError) {
-        if (signUpError.message?.includes('already registered')) {
-          // Account exists — check if we already have a session (e.g. magic link)
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session?.user?.email?.toLowerCase() === email.toLowerCase()) {
-            // Valid session — just set the password
-            const { error: updateErr } = await supabase.auth.updateUser({ password });
-            if (updateErr) throw updateErr;
-            resolvedUserId = sessionData.session.user.id;
-            setCurrentUser(sessionData.session.user);
-          } else {
-            // No matching session — try signing in with password
-            const { data: signInData, error: signInError } =
-              await supabase.auth.signInWithPassword({ email, password });
+      let fnResp = await fetch(fnUrl, { method: 'POST', headers: fnHeaders, body: fnBody });
+      let fnData = null;
+      try { fnData = await fnResp.json(); } catch (_) { /* non-JSON response */ }
 
-            if (signInError) {
-              throw new Error(
-                'An account with this email already exists. Please use your existing password.'
-              );
-            }
-            resolvedUserId = signInData.user?.id;
-            setCurrentUser(signInData.user);
-          }
+      if (!fnResp.ok || fnData?.error) {
+        const fnErrMsg = fnData?.error || `Edge Function returned status ${fnResp.status}`;
+        console.warn('set-nominee-password attempt 1 failed:', fnErrMsg);
 
-          if (resolvedUserId && nomineeId) {
-            await supabase
-              .from('nominees')
-              .update({ user_id: resolvedUserId, claimed_at: new Date().toISOString() })
-              .eq('id', nomineeId);
+        // If it's an "already registered" style error, try signing in directly
+        if (fnErrMsg.includes('already') || fnErrMsg.includes('exists')) {
+          const { data: signInData, error: signInError } =
+            await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) {
+            throw new Error(
+              'An account with this email already exists. Please use your existing password or reset it.'
+            );
           }
+          setCurrentUser(signInData.user);
+          resolvedUserId = signInData.user?.id;
         } else {
-          throw signUpError;
-        }
-      } else if (data?.user) {
-        resolvedUserId = data.user.id;
-        setCurrentUser(data.user);
+          // Retry once after a brief delay
+          await new Promise((r) => setTimeout(r, 2000));
+          fnResp = await fetch(fnUrl, { method: 'POST', headers: fnHeaders, body: fnBody });
+          try { fnData = await fnResp.json(); } catch (_) { fnData = null; }
 
-        if (resolvedUserId && nomineeId) {
-          await supabase
-            .from('nominees')
-            .update({ user_id: resolvedUserId, claimed_at: new Date().toISOString() })
-            .eq('id', nomineeId);
+          if (!fnResp.ok || fnData?.error) {
+            const retryErrMsg = fnData?.error || `Edge Function returned status ${fnResp.status}`;
+            console.error('set-nominee-password attempt 2 failed:', retryErrMsg);
+            throw new Error(
+              'Account setup failed due to a server issue. Please try again in a moment, or contact support if this persists.'
+            );
+          }
         }
       }
 
-      // Populate the profile with all card data now that the account exists.
-      // submitSelfEntry skipped this because profile?.id was null at that point.
-      //
-      // Note: if email confirmation is enabled the signUp call won't create a
-      // session, so this UPDATE may be blocked by RLS.  That's now OK because
-      // the trigger already received first_name/last_name via user metadata.
-      // We still attempt the update in case a session DOES exist (auto-confirm
-      // or the "already registered" sign-in path).
+      // Edge function succeeded — sign in to establish client session
+      if (!resolvedUserId) {
+        const { data: signInData, error: signInError } =
+          await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          throw new Error(
+            'Account created but sign-in failed. Please try logging in with your email and password.'
+          );
+        }
+        setCurrentUser(signInData.user);
+        resolvedUserId = signInData.user?.id;
+      }
+
+      // Link user to nominee and mark claimed (edge fn does this too, but
+      // ensure it's set in case of race conditions)
+      if (resolvedUserId && nomineeId) {
+        await supabase
+          .from('nominees')
+          .update({ user_id: resolvedUserId, claimed_at: new Date().toISOString() })
+          .eq('id', nomineeId);
+      }
+
+      // The edge function already synced nominee data to the profile.
+      // Do a client-side upsert too with the latest card data in case
+      // the user edited fields after the nominee was persisted.
       if (resolvedUserId) {
         const avatarUrl = (selfData.photoPreview && !selfData.photoPreview.startsWith('blob:'))
           ? selfData.photoPreview : null;
-        const profileUpdate = {
-          first_name: selfData.firstName.trim(),
-          last_name: selfData.lastName.trim(),
-          onboarded_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        if (avatarUrl) profileUpdate.avatar_url = avatarUrl;
-        if (selfData.bio?.trim()) profileUpdate.bio = selfData.bio.trim();
-        if (selfData.location?.trim()) profileUpdate.city = selfData.location.trim();
-        if (selfData.age) profileUpdate.age = parseInt(selfData.age, 10);
-        if (selfData.instagram?.trim()) profileUpdate.instagram = selfData.instagram.trim();
-        if (selfData.phone?.trim()) profileUpdate.phone = selfData.phone.trim();
 
         const { error: profileErr } = await supabase
           .from('profiles')
-          .update(profileUpdate)
-          .eq('id', resolvedUserId);
+          .upsert({
+            id: resolvedUserId,
+            email,
+            first_name: selfData.firstName.trim(),
+            last_name: selfData.lastName.trim(),
+            avatar_url: avatarUrl || undefined,
+            bio: selfData.bio?.trim() || null,
+            city: selfData.location?.trim() || null,
+            age: selfData.age ? parseInt(selfData.age, 10) : null,
+            instagram: selfData.instagram?.trim() || null,
+            phone: selfData.phone?.trim() || null,
+            onboarded_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'id' });
 
         if (profileErr) {
-          console.error('Failed to update profile after account creation:', profileErr);
+          // Not fatal — edge function already synced the core data
+          console.warn('Client-side profile upsert failed (edge fn already synced):', profileErr.message);
         }
 
         // Notify all useSupabaseAuth instances to refetch the profile
         window.dispatchEvent(new Event('profile-updated'));
       }
 
-      // Account created — now safe to mark flow_stage as 'card'.
-      // Note: Supabase query builders are thenables (have .then()) but NOT
-      // full Promises (no .catch()), so we avoid try/catch here — the bundler
-      // can transform `try { await thenable } catch {}` into `thenable.catch()`
-      // which breaks.  Supabase returns { data, error } instead of throwing,
-      // so simply awaiting without checking error is safe for non-critical updates.
+      // Mark flow_stage as 'card' now that account is created
       if (nomineeId) {
         await supabase
           .from('nominees')
