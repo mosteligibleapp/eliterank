@@ -28,6 +28,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   const handleRewards = () => navigate('/rewards');
   const handleAchievements = () => navigate('/achievements');
   const handleDashboard = () => navigate('/dashboard');
+  const handleAccountSettings = () => navigate('/account');
   const handleLogout = async () => {
     // Navigate away from protected route FIRST to prevent ProtectedRoute
     // from redirecting to /login while signOut clears Zustand state.
@@ -69,6 +70,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             onProfile={handleProfile}
             onRewards={handleRewards}
             onAchievements={handleAchievements}
+            onAccountSettings={handleAccountSettings}
             onHowToCompete={handleHowToCompete}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}

@@ -38,6 +38,7 @@ const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLay
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
 const PhotoBoothPage = lazy(() => import('../pages/PhotoBoothPage'));
+const AccountSettingsPage = lazy(() => import('../pages/AccountSettingsPage'));
 
 const darkVoid = <div style={{ minHeight: '100vh', background: '#0a0a0c' }} />;
 
@@ -254,6 +255,17 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <SuspenseWrapper fallback={<NotificationsSkeleton />}>
               <NotificationsPage />
+            </SuspenseWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/account"
+        element={
+          <ProtectedRoute>
+            <SuspenseWrapper>
+              <AccountSettingsPage />
             </SuspenseWrapper>
           </ProtectedRoute>
         }

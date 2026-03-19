@@ -228,10 +228,14 @@ export function useCompetitionDashboard(competitionId) {
           // Count as "has profile" if the user has completed onboarding
           // (set a password). Pre-created profiles from admin.createUser() have
           // onboarded_at = null and should not be treated as real users yet.
-          // Self-nominations and claimed nominations always count — they
-          // completed the full entry flow even if the profile update was
-          // blocked by RLS (email confirmation may prevent onboarded_at write).
-          hasProfile = n.nominated_by === 'self' || !!n.claimed_at || !!matchedProfile?.onboarded_at;
+          // Claimed nominations always count — they completed the accept flow.
+          // Self-nominees only count if they actually completed the entry flow
+          // (have onboarded_at, an avatar, or a claimed_at timestamp).
+          if (!!n.claimed_at || !!matchedProfile?.onboarded_at) {
+            hasProfile = true;
+          } else if (n.nominated_by === 'self') {
+            hasProfile = !!n.avatar_url || !!matchedProfile?.avatar_url;
+          }
         }
         // Fall back to email matching
         else if (n.email) {
@@ -245,9 +249,9 @@ export function useCompetitionDashboard(competitionId) {
         }
 
         // Self-nominees who completed the flow but whose user_id wasn't linked
-        // (RLS blocked the client-side update). They have an avatar from the
-        // entry flow, so treat them as having a profile.
-        if (!hasProfile && n.nominated_by === 'self' && n.avatar_url) {
+        // (RLS blocked the client-side update). Only count them if we found a
+        // matching profile by email (meaning they created an account).
+        if (!hasProfile && n.nominated_by === 'self' && matchedProfile) {
           hasProfile = true;
         }
 

@@ -77,6 +77,10 @@ export default function HomePage({
   // Guide modal state (generic guide for home page)
   const [showGuide, setShowGuide] = useState(false);
 
+  const handleAccountSettings = useCallback(() => {
+    navigate('/account');
+  }, [navigate]);
+
   const handleHowToCompete = useCallback(() => {
     setShowGuide(true);
   }, []);
@@ -97,6 +101,7 @@ export default function HomePage({
         onProfile={isAuthenticated ? onShowProfile : null}
         onRewards={isAuthenticated ? onShowRewards : null}
         onAchievements={isAuthenticated ? onShowAchievements : null}
+        onAccountSettings={isAuthenticated ? handleAccountSettings : null}
         onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
