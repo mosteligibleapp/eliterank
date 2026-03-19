@@ -606,16 +606,17 @@ export function useEntryFlow(competition, profile) {
         window.dispatchEvent(new Event('profile-updated'));
       }
 
-      // Account created — now safe to mark flow_stage as 'card'
+      // Account created — now safe to mark flow_stage as 'card'.
+      // Note: Supabase query builders are thenables (have .then()) but NOT
+      // full Promises (no .catch()), so we avoid try/catch here — the bundler
+      // can transform `try { await thenable } catch {}` into `thenable.catch()`
+      // which breaks.  Supabase returns { data, error } instead of throwing,
+      // so simply awaiting without checking error is safe for non-critical updates.
       if (nomineeId) {
-        try {
-          await supabase
-            .from('nominees')
-            .update({ flow_stage: 'card' })
-            .eq('id', nomineeId);
-        } catch (_) {
-          // non-critical
-        }
+        await supabase
+          .from('nominees')
+          .update({ flow_stage: 'card' })
+          .eq('id', nomineeId);
       }
 
       // Move to card
