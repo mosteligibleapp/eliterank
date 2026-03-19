@@ -83,6 +83,10 @@ function CompetitionLayoutInner() {
     navigate('/achievements');
   };
 
+  const handleAccountSettings = () => {
+    navigate('/account');
+  };
+
   const handleHowToCompete = () => {
     setShowGuide(true);
   };
@@ -184,6 +188,7 @@ function CompetitionLayoutInner() {
             onProfile={handleProfile}
             onRewards={handleRewards}
             onAchievements={handleAchievements}
+            onAccountSettings={handleAccountSettings}
             onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
