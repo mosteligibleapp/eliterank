@@ -13,7 +13,8 @@ const corsHeaders = {
  * Used when the nominee arrives at the claim page without a session and
  * client-side signUp fails (e.g. handle_new_user trigger crash).
  *
- * Accepts: { invite_token: string, password: string, email?: string }
+ * Accepts: { invite_token?: string, nominee_id?: string, password: string, email?: string }
+ *   - Looks up nominee by invite_token first, then nominee_id, then email
  * Returns: { success: true, user_id: string }
  */
 serve(async (req) => {
@@ -22,11 +23,18 @@ serve(async (req) => {
   }
 
   try {
-    const { invite_token, password, email: clientEmail } = await req.json()
+    const { invite_token, nominee_id, password, email: clientEmail } = await req.json()
 
-    if (!invite_token || !password) {
+    if (!password) {
       return new Response(
-        JSON.stringify({ error: 'invite_token and password are required' }),
+        JSON.stringify({ error: 'password is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!invite_token && !nominee_id && !clientEmail) {
+      return new Response(
+        JSON.stringify({ error: 'One of invite_token, nominee_id, or email is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -46,17 +54,49 @@ serve(async (req) => {
     })
 
     // ── 1. Look up the nominee ──────────────────────────────────────────
-    console.log('Looking up nominee by invite_token')
-    const { data: nominee, error: fetchError } = await supabase
-      .from('nominees')
-      .select('id, email, user_id, name')
-      .eq('invite_token', invite_token)
-      .single()
+    // Try invite_token first, then nominee_id, then email
+    let nominee: { id: string; email: string; user_id: string | null; name: string } | null = null
+    let fetchError: { message?: string } | null = null
+
+    if (invite_token) {
+      console.log('Looking up nominee by invite_token')
+      const result = await supabase
+        .from('nominees')
+        .select('id, email, user_id, name')
+        .eq('invite_token', invite_token)
+        .single()
+      nominee = result.data
+      fetchError = result.error
+    }
+
+    if (!nominee && nominee_id) {
+      console.log('Looking up nominee by nominee_id:', nominee_id)
+      const result = await supabase
+        .from('nominees')
+        .select('id, email, user_id, name')
+        .eq('id', nominee_id)
+        .single()
+      nominee = result.data
+      fetchError = result.error
+    }
+
+    if (!nominee && clientEmail) {
+      console.log('Looking up nominee by email:', clientEmail)
+      const result = await supabase
+        .from('nominees')
+        .select('id, email, user_id, name')
+        .ilike('email', clientEmail.trim())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      nominee = result.data
+      fetchError = result.error
+    }
 
     if (fetchError || !nominee) {
       console.error('Nominee lookup failed:', fetchError?.message)
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired invite token' }),
+        JSON.stringify({ error: 'Nominee not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -261,6 +301,40 @@ serve(async (req) => {
         .update({ user_id: authUserId, claimed_at: new Date().toISOString() })
         .eq('id', nominee.id)
       console.log('Linked nominee to user:', authUserId)
+    }
+
+    // ── 6. Ensure profile has nominee card data ──────────────────────────
+    // The handle_new_user trigger may not have copied card data (it only
+    // does so when nominee_id is in user_metadata). Fetch full nominee
+    // data and upsert into the profile to fill any gaps.
+    const { data: fullNominee } = await supabase
+      .from('nominees')
+      .select('name, email, avatar_url, bio, city, age, instagram, phone')
+      .eq('id', nominee.id)
+      .single()
+
+    if (fullNominee) {
+      const nameParts = fullNominee.name?.split(' ') || []
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: authUserId,
+        email: email,
+        first_name: nameParts[0] || '',
+        last_name: nameParts.slice(1).join(' ') || '',
+        avatar_url: fullNominee.avatar_url || null,
+        bio: fullNominee.bio || null,
+        city: fullNominee.city || null,
+        age: fullNominee.age || null,
+        instagram: fullNominee.instagram || null,
+        phone: fullNominee.phone || null,
+        onboarded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' })
+
+      if (profileError) {
+        console.error('Profile upsert failed (non-fatal):', profileError.message)
+      } else {
+        console.log('Profile synced with nominee data for user:', authUserId)
+      }
     }
 
     console.log('set-nominee-password completed successfully for user:', authUserId)

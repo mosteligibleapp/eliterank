@@ -631,9 +631,50 @@ export function useBuildCardFlow({
               setCurrentUser(signInData.user);
               userId = signInData.user?.id;
             } else if (signUpError.message?.includes('Database error')) {
-              throw new Error(
-                'Account setup failed due to a server issue. Please try again in a moment.'
-              );
+              // Fallback to edge function for self-entry when trigger crashes
+              console.log('Self-entry signUp failed with DB error, falling back to edge function');
+              const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+              const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+              const fnUrl = `${supabaseUrl}/functions/v1/set-nominee-password`;
+              const fnHeaders = {
+                'Content-Type': 'application/json',
+                'apikey': supabaseAnonKey,
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+              };
+              const fnBody = JSON.stringify({
+                nominee_id: nomineeId || undefined,
+                password,
+                email,
+              });
+
+              let fnResp = await fetch(fnUrl, { method: 'POST', headers: fnHeaders, body: fnBody });
+              let fnData = null;
+              try { fnData = await fnResp.json(); } catch (_) { /* non-JSON */ }
+
+              if (!fnResp.ok || fnData?.error) {
+                console.warn('Edge function fallback failed:', fnData?.error);
+                // Retry once
+                await new Promise((r) => setTimeout(r, 2000));
+                fnResp = await fetch(fnUrl, { method: 'POST', headers: fnHeaders, body: fnBody });
+                try { fnData = await fnResp.json(); } catch (_) { fnData = null; }
+
+                if (!fnResp.ok || fnData?.error) {
+                  throw new Error(
+                    'Account setup failed due to a server issue. Please try again in a moment.'
+                  );
+                }
+              }
+
+              // Edge function succeeded — sign in
+              const { data: signInData, error: signInError } =
+                await supabase.auth.signInWithPassword({ email, password });
+              if (signInError) {
+                throw new Error(
+                  'Account created but sign-in failed. Please try logging in with your email and password.'
+                );
+              }
+              setCurrentUser(signInData.user);
+              userId = signInData.user?.id;
             } else {
               throw signUpError;
             }
