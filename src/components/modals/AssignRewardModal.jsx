@@ -220,6 +220,8 @@ export default function AssignRewardModal({
     selectedPeople.forEach(id => {
       const person = people.find(p => p.id === id);
       if (!person) return;
+      // Skip already-assigned people to avoid resetting their existing assignment status
+      if (person.alreadyAssigned) return;
       if (person.type === 'contestant') contestantIds.push(person.sourceId);
       else if (person.type === 'nominee') nomineeIds.push(person.sourceId);
     });

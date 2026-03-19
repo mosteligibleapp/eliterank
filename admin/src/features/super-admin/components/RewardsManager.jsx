@@ -225,10 +225,10 @@ export default function RewardsManager() {
         (cData || []).forEach(c => { map[c.id] = c.competition_id; });
         const rows = assignmentData.contestantIds.map(cid => ({
           reward_id: assigningReward.id, competition_id: map[cid],
-          contestant_id: cid, discount_code: null, tracking_link: null, status: 'pending',
+          contestant_id: cid, status: 'pending',
         }));
         const { error } = await supabase
-          .from('reward_assignments').upsert(rows, { onConflict: 'reward_id,contestant_id' });
+          .from('reward_assignments').upsert(rows, { onConflict: 'reward_id,contestant_id', ignoreDuplicates: true });
         if (error) throw error;
       }
       if (assignmentData.nomineeIds?.length > 0) {
@@ -238,10 +238,10 @@ export default function RewardsManager() {
         (nData || []).forEach(n => { map[n.id] = n.competition_id; });
         const rows = assignmentData.nomineeIds.map(nid => ({
           reward_id: assigningReward.id, competition_id: map[nid],
-          nominee_id: nid, discount_code: null, tracking_link: null, status: 'pending',
+          nominee_id: nid, status: 'pending',
         }));
         const { error } = await supabase
-          .from('reward_assignments').upsert(rows, { onConflict: 'reward_id,nominee_id' });
+          .from('reward_assignments').upsert(rows, { onConflict: 'reward_id,nominee_id', ignoreDuplicates: true });
         if (error) throw error;
       }
       await Promise.all([fetchAssignments(), fetchCompetitionAssignments()]);
