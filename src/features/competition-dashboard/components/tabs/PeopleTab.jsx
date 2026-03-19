@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera
+  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
@@ -30,6 +30,8 @@ export default function PeopleTab({
   onShowHostAssignment,
   onRemoveHost,
   onResendInvite,
+  onRepairNomineeAccount,
+  onRepairAllNomineeAccounts,
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
@@ -242,6 +244,42 @@ export default function PeopleTab({
             }}
           >
             {resentId === nominee.id ? <Check size={16} /> : <Send size={16} />}
+          </button>
+        )}
+        {!nominee.hasProfile && nominee.email && onRepairNomineeAccount && (
+          <button
+            onClick={async () => {
+              setProcessingId(nominee.id);
+              const result = await onRepairNomineeAccount(nominee.id);
+              setProcessingId(null);
+              if (result.success) {
+                const msg = result.data?.repaired?.length
+                  ? `Repaired: ${result.data.repaired[0]?.action}`
+                  : result.data?.skipped?.length
+                    ? `Already OK: ${result.data.skipped[0]?.reason}`
+                    : 'Done';
+                alert(msg);
+              } else {
+                alert(`Repair failed: ${result.error}`);
+              }
+            }}
+            disabled={isProcessing}
+            title="Repair account (create auth user + sync profile data)"
+            style={{
+              padding: spacing.xs,
+              background: 'rgba(245,158,11,0.1)',
+              border: 'none',
+              borderRadius: borderRadius.sm,
+              cursor: isProcessing ? 'not-allowed' : 'pointer',
+              color: '#f59e0b',
+              minWidth: '32px',
+              minHeight: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Wrench size={16} />
           </button>
         )}
         <button
@@ -832,6 +870,29 @@ export default function PeopleTab({
         defaultCollapsed
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          {externalNominees.length > 0 && onRepairAllNomineeAccounts && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.md }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={processingId === 'repair-all'}
+                onClick={async () => {
+                  if (!confirm(`Repair all ${externalNominees.length} external nominee accounts? This will create auth users and sync profiles for any that are missing.`)) return;
+                  setProcessingId('repair-all');
+                  const result = await onRepairAllNomineeAccounts();
+                  setProcessingId(null);
+                  if (result.success) {
+                    alert(result.data?.summary || 'Repair complete');
+                  } else {
+                    alert(`Repair failed: ${result.error}`);
+                  }
+                }}
+              >
+                <Wrench size={14} style={{ marginRight: spacing.xs }} />
+                {processingId === 'repair-all' ? 'Repairing...' : 'Repair All Accounts'}
+              </Button>
+            </div>
+          )}
           {externalNominees.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <Users size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />

@@ -68,6 +68,8 @@ export default function CompetitionDashboard({
     deleteRule,
     assignHost,
     removeHost,
+    repairNomineeAccount,
+    repairAllNomineeAccounts,
   } = dashboard;
 
   const competition = data.competition;
@@ -420,6 +422,8 @@ export default function CompetitionDashboard({
             onShowHostAssignment={() => setShowHostAssignment(true)}
             onRemoveHost={removeHost}
             onResendInvite={resendInvite}
+            onRepairNomineeAccount={repairNomineeAccount}
+            onRepairAllNomineeAccounts={repairAllNomineeAccounts}
           />
         );
       case 'content':
