@@ -32,10 +32,12 @@ export default function ContestantsTab({
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Categorize nominees
-  const activeNominees = nominees.filter(n =>
-    n.status === 'pending' || n.status === 'profile_complete' || n.status === 'awaiting_profile'
-  );
+  // Categorize nominees — exclude incomplete self-nominations (no claimed_at)
+  const activeNominees = nominees.filter(n => {
+    if (n.status !== 'pending' && n.status !== 'profile_complete' && n.status !== 'awaiting_profile') return false;
+    if (n.nominatedBy === 'self' && !n.claimedAt) return false;
+    return true;
+  });
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
   const archivedNominees = nominees.filter(n => n.status === 'archived');

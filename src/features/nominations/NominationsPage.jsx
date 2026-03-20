@@ -105,9 +105,12 @@ export default function NominationsPage({ competitionId, competitionName }) {
     const contestants = data.contestants || [];
 
     // Active nominees (pending status, not archived)
-    const activeNominees = nominees.filter(n =>
-      n.status === 'pending' || n.status === 'profile_complete' || n.status === 'awaiting_profile'
-    );
+    // Exclude incomplete self-nominations (started flow but didn't finish)
+    const activeNominees = nominees.filter(n => {
+      if (n.status !== 'pending' && n.status !== 'profile_complete' && n.status !== 'awaiting_profile') return false;
+      if (n.nominatedBy === 'self' && !n.claimedAt) return false;
+      return true;
+    });
 
     // Nominees with profile (has user_id)
     const withProfile = activeNominees.filter(n => n.hasProfile);
