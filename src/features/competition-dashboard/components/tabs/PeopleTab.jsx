@@ -137,9 +137,15 @@ export default function PeopleTab({
   };
 
   // Categorize nominees
-  const activeNominees = nominees.filter(n =>
-    n.status === 'pending' || n.status === 'profile_complete' || n.status === 'awaiting_profile'
-  );
+  // Exclude incomplete self-nominations: when a self-nominee starts the entry
+  // flow, persistSelfProgress creates a 'pending' record at the details step.
+  // If they abandon before completing (no claimed_at), hide them from the host
+  // dashboard — they haven't actually finished nominating themselves.
+  const activeNominees = nominees.filter(n => {
+    if (n.status !== 'pending' && n.status !== 'profile_complete' && n.status !== 'awaiting_profile') return false;
+    if (n.nominatedBy === 'self' && !n.claimedAt) return false;
+    return true;
+  });
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
   const declinedNominees = nominees.filter(n => n.status === 'declined');
@@ -760,7 +766,7 @@ export default function PeopleTab({
         marginBottom: spacing.xl,
       }}>
         {[
-          { label: 'Total Nominees', value: nominees.length, color: colors.gold.primary },
+          { label: 'Total Nominees', value: activeNominees.length, color: colors.gold.primary },
           { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
           { label: 'External', value: externalNominees.length, color: '#f59e0b' },
           { label: 'Approved', value: contestants.length, color: '#22c55e' },

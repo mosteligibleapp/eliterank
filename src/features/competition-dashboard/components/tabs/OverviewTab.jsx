@@ -81,8 +81,12 @@ export default function OverviewTab({
   }, [contestants]);
 
   const topContestants = rankedContestants.slice(0, 5);
-  const pendingNominees = (nominees || []).filter(n => n.status === 'pending').length;
-  const totalNominees = (nominees || []).length;
+  // Exclude incomplete self-nominations (started flow but didn't finish)
+  const completedNominees = (nominees || []).filter(n =>
+    !(n.nominatedBy === 'self' && !n.claimedAt)
+  );
+  const pendingNominees = completedNominees.filter(n => n.status === 'pending').length;
+  const totalNominees = completedNominees.length;
 
   const upcomingEvents = useMemo(() => {
     // Use string comparison to avoid timezone issues
