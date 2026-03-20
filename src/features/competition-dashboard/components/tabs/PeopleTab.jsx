@@ -246,7 +246,7 @@ export default function PeopleTab({
             {resentId === nominee.id ? <Check size={16} /> : <Send size={16} />}
           </button>
         )}
-        {!nominee.hasProfile && nominee.email && onRepairNomineeAccount && (
+        {!nominee.hasProfile && nominee.email && nominee.claimedAt && onRepairNomineeAccount && (
           <button
             onClick={async () => {
               setProcessingId(nominee.id);
