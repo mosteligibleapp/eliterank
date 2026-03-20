@@ -11,7 +11,6 @@ import AcceptDeclineStep from '../../entry/components/AcceptDeclineStep';
 import EligibilityConfirmStep from '../../entry/components/EligibilityConfirmStep';
 import PhotoUpload from '../../entry/components/PhotoUpload';
 import BuildCardDetailsStep from '../../entry/components/BuildCardDetailsStep';
-import SelfPitchStep from '../../entry/components/SelfPitchStep';
 import CreatePasswordStep from '../../entry/components/CreatePasswordStep';
 import CardReveal from '../../entry/components/CardReveal';
 import CompetitionBanner from '../../entry/components/CompetitionBanner';
@@ -225,11 +224,10 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     }
   };
 
-  // Handle details next with early persistence
+  // Submit card after details step (bio step removed)
   const handleDetailsNext = async () => {
     try {
-      await flow.persistProgress('details');
-      flow.next();
+      await flow.submitCard();
     } catch {
       // Error set in hook
     }
@@ -395,18 +393,6 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
           onNext={handleDetailsNext}
           error={flow.submitError}
           isSubmitting={flow.isSubmitting}
-        />
-      );
-
-    case 'bio':
-      return (
-        <SelfPitchStep
-          bio={flow.cardData.bio}
-          onChange={(bio) => flow.updateCardData({ bio })}
-          onSubmit={flow.submitCard}
-          isSubmitting={flow.isSubmitting}
-          error={flow.submitError}
-          competition={competition}
         />
       );
 

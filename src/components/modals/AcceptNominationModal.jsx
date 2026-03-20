@@ -8,7 +8,6 @@ import AcceptDeclineStep from '../../features/entry/components/AcceptDeclineStep
 import EligibilityConfirmStep from '../../features/entry/components/EligibilityConfirmStep';
 import PhotoUpload from '../../features/entry/components/PhotoUpload';
 import BuildCardDetailsStep from '../../features/entry/components/BuildCardDetailsStep';
-import SelfPitchStep from '../../features/entry/components/SelfPitchStep';
 import CreatePasswordStep from '../../features/entry/components/CreatePasswordStep';
 import CardReveal from '../../features/entry/components/CardReveal';
 import CompetitionBanner from '../../features/entry/components/CompetitionBanner';
@@ -67,8 +66,7 @@ export default function AcceptNominationModal({
 
   const handleDetailsNext = async () => {
     try {
-      await flow.persistProgress('details');
-      flow.next();
+      await flow.submitCard();
     } catch {
       // Error set in hook
     }
@@ -182,18 +180,6 @@ function renderModalStep(flow, competition, nomination, handleDecline, handleIne
           onNext={handleDetailsNext}
           error={flow.submitError}
           isSubmitting={flow.isSubmitting}
-        />
-      );
-
-    case 'bio':
-      return (
-        <SelfPitchStep
-          bio={flow.cardData.bio}
-          onChange={(bio) => flow.updateCardData({ bio })}
-          onSubmit={flow.submitCard}
-          isSubmitting={flow.isSubmitting}
-          error={flow.submitError}
-          competition={competition}
         />
       );
 

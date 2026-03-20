@@ -12,7 +12,6 @@ import ModeSelect from './components/ModeSelect';
 import EligibilityStep from './components/EligibilityStep';
 import PhotoUpload from './components/PhotoUpload';
 import BuildCardDetailsStep from './components/BuildCardDetailsStep';
-import SelfPitchStep from './components/SelfPitchStep';
 import CreatePasswordStep from './components/CreatePasswordStep';
 import NomineeInfoStep from './components/NomineeInfoStep';
 import WhyNominateStep from './components/WhyNominateStep';
@@ -69,11 +68,10 @@ export default function EntryFlow() {
     navigate(`/${orgSlug}/${competitionSlug}`);
   };
 
-  // Early persist after details step for self-entry
+  // Submit self-entry after details step (bio step removed)
   const handleDetailsNext = async () => {
     try {
-      await flow.persistSelfProgress('details');
-      flow.next();
+      await flow.submitSelfEntry();
     } catch {
       // Error already set in hook — don't navigate
     }
@@ -226,18 +224,6 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           onNext={handleDetailsNext}
           error={flow.submitError}
           isSubmitting={flow.isSubmitting}
-        />
-      );
-
-    case 'bio':
-      return (
-        <SelfPitchStep
-          bio={flow.selfData.bio}
-          onChange={(bio) => flow.updateSelfData({ bio })}
-          onSubmit={flow.submitSelfEntry}
-          isSubmitting={flow.isSubmitting}
-          error={flow.submitError}
-          competition={competition}
         />
       );
 
