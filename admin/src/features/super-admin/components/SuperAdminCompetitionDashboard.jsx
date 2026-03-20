@@ -580,7 +580,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         </div>
         {showActions && !isArchived && (
           <div style={{ display: 'flex', gap: spacing.sm }}>
-            {!nominee.hasProfile && nominee.email && (
+            {!nominee.hasProfile && nominee.email && nominee.claimedAt && (
               <Button variant="secondary" size="sm" title="Repair account (create auth user + sync profile)" onClick={async () => {
                 const result = await repairNomineeAccount(nominee.id);
                 if (!result.success) {
