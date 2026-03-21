@@ -176,9 +176,11 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   useEffect(() => {
     if (loading || authLoading || !nominee) return;
 
-    setNeedsPassword(true);
+    // Self-nominees who are already logged in don't need to set a password
+    const isSelfNominee = nominee?.nominated_by === 'self';
+    setNeedsPassword(isSelfNominee ? !user : true);
     setReady(true);
-  }, [loading, authLoading, nominee]);
+  }, [loading, authLoading, nominee, user]);
 
   // Only treat the logged-in user as the nominee if their email matches.
   // Without this guard, a logged-in nominator opening the claim link would
@@ -189,8 +191,12 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   const effectiveProfile = isNomineeUser ? profile : null;
 
   // Initialize the Build Your Card flow
+  // Self-nominees resuming via claim link use the self flow (no accept/decline step)
+  const flowMode = nominee?.nominated_by === 'self'
+    ? (effectiveUser ? 'self-auth' : 'self-anon')
+    : 'third-party';
   const flow = useBuildCardFlow({
-    mode: 'third-party',
+    mode: flowMode,
     competition,
     profile: effectiveProfile,
     user: effectiveUser,

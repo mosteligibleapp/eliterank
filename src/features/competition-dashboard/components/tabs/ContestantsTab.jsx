@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, Archive, RotateCcw, ExternalLink,
-  UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus
+  UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Clock
 } from 'lucide-react';
 import { Button, Badge, Avatar } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
@@ -33,8 +33,14 @@ export default function ContestantsTab({
   };
 
   // Categorize nominees
-  const activeNominees = nominees.filter(n =>
-    n.status === 'pending' || n.status === 'profile_complete' || n.status === 'awaiting_profile'
+  const activeNominees = nominees.filter(n => {
+    if (n.status !== 'pending' && n.status !== 'profile_complete' && n.status !== 'awaiting_profile') return false;
+    if (n.nominatedBy === 'self' && !n.claimedAt) return false;
+    return true;
+  });
+  const incompleteNominees = nominees.filter(n =>
+    (n.status === 'pending' || n.status === 'awaiting_profile') &&
+    n.nominatedBy === 'self' && !n.claimedAt
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
@@ -45,6 +51,7 @@ export default function ContestantsTab({
     { label: 'Total Nominees', value: nominees.length, color: colors.gold.primary },
     { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
     { label: 'External', value: externalNominees.length, color: '#f59e0b' },
+    { label: 'Incomplete', value: incompleteNominees.length, color: '#fbbf24' },
     { label: 'Approved', value: contestants.length, color: '#22c55e' },
     { label: 'Archived', value: archivedNominees.length, color: '#6b7280' },
   ];
@@ -300,6 +307,27 @@ export default function ContestantsTab({
           </div>
         )}
       </div>
+
+      {/* Incomplete Self-Nominations */}
+      {incompleteNominees.length > 0 && (
+        <div style={{
+          background: colors.background.card,
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.xl,
+          marginBottom: spacing.lg,
+          overflow: 'hidden',
+        }}>
+          <SectionHeader title="Incomplete" count={incompleteNominees.length} icon={Clock} iconColor="#fbbf24" sectionKey="incomplete" badge="warning" />
+          {expandedSections.incomplete && (
+            <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
+              <p style={{ color: colors.text.secondary, fontSize: '13px', marginBottom: spacing.md }}>
+                Started self-entry but haven't finished. They can resume via their claim link.
+              </p>
+              {incompleteNominees.map(n => <NomineeRow key={n.id} nominee={n} showActions={false} />)}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Archived */}
       <div style={{

@@ -159,6 +159,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           )}
         </div>
 
+
         {/* Row 3: Voting start + navigate link */}
         <div style={{
           display: 'flex',

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Users, UserCheck, UserPlus, Archive, ChevronDown, ChevronUp,
   ExternalLink, User, Mail, Phone, Instagram, Check, X, RotateCcw,
-  Loader, AlertCircle, Link2, Send
+  Loader, AlertCircle, Link2, Send, Clock
 } from 'lucide-react';
 import { Button, Badge } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -35,6 +35,14 @@ const SECTION_CONFIG = {
     bgColor: 'rgba(245,158,11,0.15)',
     borderColor: 'rgba(245,158,11,0.3)',
   },
+  incomplete: {
+    title: 'Incomplete Self-Nominations',
+    subtitle: 'Started entry but haven\'t finished',
+    icon: Clock,
+    color: '#fbbf24',
+    bgColor: 'rgba(251,191,36,0.15)',
+    borderColor: 'rgba(251,191,36,0.3)',
+  },
   archived: {
     title: 'Archived',
     subtitle: 'Archived nominees',
@@ -62,6 +70,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
     contestants: true,
     withProfile: true,
     external: true,
+    incomplete: true,
     archived: false,
   });
 
@@ -105,8 +114,15 @@ export default function NominationsPage({ competitionId, competitionName }) {
     const contestants = data.contestants || [];
 
     // Active nominees (pending status, not archived)
-    const activeNominees = nominees.filter(n =>
-      n.status === 'pending' || n.status === 'profile_complete' || n.status === 'awaiting_profile'
+    // Incomplete self-nominations (started but not finished) go in a separate bucket
+    const activeNominees = nominees.filter(n => {
+      if (n.status !== 'pending' && n.status !== 'profile_complete' && n.status !== 'awaiting_profile') return false;
+      if (n.nominatedBy === 'self' && !n.claimedAt) return false;
+      return true;
+    });
+    const incompleteNominees = nominees.filter(n =>
+      (n.status === 'pending' || n.status === 'awaiting_profile') &&
+      n.nominatedBy === 'self' && !n.claimedAt
     );
 
     // Nominees with profile (has user_id)
@@ -122,6 +138,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
       contestants,
       withProfile,
       external,
+      incomplete: incompleteNominees,
       archived,
     };
   }, [data.nominees, data.contestants]);
@@ -551,6 +568,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
       {renderSection('contestants', categorizedData.contestants)}
       {renderSection('withProfile', categorizedData.withProfile)}
       {renderSection('external', categorizedData.external)}
+      {categorizedData.incomplete.length > 0 && renderSection('incomplete', categorizedData.incomplete)}
       {renderSection('archived', categorizedData.archived)}
     </div>
   );

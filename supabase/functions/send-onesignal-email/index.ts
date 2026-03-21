@@ -22,7 +22,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -140,6 +140,28 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${goldButton('Complete Your Profile', req.claim_url || appUrl)}
             <p style="color:#666;font-size:12px;">
               You must complete your profile before you can be approved as a contestant.
+            </p>
+          </div>
+        `),
+      }
+    }
+
+    case 'self_nominee_reminder': {
+      return {
+        subject: `You're almost in — finish your entry for ${req.competition_name || 'Most Eligible'}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You're So Close!</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            <p style="color:#ccc;font-size:15px;">
+              You started entering but didn't finish your profile. Complete it now so the hosts can review and approve you.
+            </p>
+            <p style="color:#999;font-size:14px;margin-top:16px;">
+              It only takes a minute. Pick up right where you left off.
+            </p>
+            ${goldButton('Finish My Entry', req.claim_url || appUrl)}
+            <p style="color:#666;font-size:12px;">
+              Your profile must be complete before you can be approved as a contestant.
             </p>
           </div>
         `),

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench
+  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
@@ -137,8 +137,16 @@ export default function PeopleTab({
   };
 
   // Categorize nominees
-  const activeNominees = nominees.filter(n =>
-    n.status === 'pending' || n.status === 'profile_complete' || n.status === 'awaiting_profile'
+  const activeNominees = nominees.filter(n => {
+    if (n.status !== 'pending' && n.status !== 'profile_complete' && n.status !== 'awaiting_profile') return false;
+    // Incomplete self-nominees go in their own bucket
+    if (n.nominatedBy === 'self' && !n.claimedAt) return false;
+    return true;
+  });
+  // Incomplete self-nominations: started the flow but haven't finished
+  const incompleteNominees = nominees.filter(n =>
+    (n.status === 'pending' || n.status === 'awaiting_profile') &&
+    n.nominatedBy === 'self' && !n.claimedAt
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
@@ -760,7 +768,7 @@ export default function PeopleTab({
         marginBottom: spacing.xl,
       }}>
         {[
-          { label: 'Total Nominees', value: nominees.length, color: colors.gold.primary },
+          { label: 'Total Nominees', value: activeNominees.length, color: colors.gold.primary },
           { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
           { label: 'External', value: externalNominees.length, color: '#f59e0b' },
           { label: 'Approved', value: contestants.length, color: '#22c55e' },
@@ -914,6 +922,108 @@ export default function PeopleTab({
           )}
         </div>
       </Panel>
+
+      {/* Incomplete Self-Nominations */}
+      {incompleteNominees.length > 0 && (
+        <Panel
+          title={`Incomplete Self-Nominations (${incompleteNominees.length})`}
+          icon={Clock}
+          collapsible
+          defaultCollapsed={false}
+        >
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
+              These people started entering but haven't finished their profile. Send a reminder to nudge them to complete.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {incompleteNominees.map(n => (
+                <PersonRow
+                  key={n.id}
+                  person={n}
+                  cardType="nominee"
+                  actions={
+                    <div style={{ display: 'flex', gap: spacing.xs, alignItems: 'center' }}>
+                      <span style={{
+                        fontSize: typography.fontSize.xs,
+                        padding: `2px ${spacing.sm}`,
+                        borderRadius: borderRadius.sm,
+                        background: 'rgba(251,191,36,0.15)',
+                        color: '#fbbf24',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        Incomplete
+                      </span>
+                      {n.inviteToken && (
+                        <button
+                          onClick={() => handleCopyClaimLink(n)}
+                          title={copiedId === n.id ? 'Copied!' : 'Copy resume link'}
+                          style={{
+                            padding: spacing.xs,
+                            background: copiedId === n.id ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
+                            border: 'none',
+                            borderRadius: borderRadius.sm,
+                            cursor: 'pointer',
+                            color: copiedId === n.id ? '#22c55e' : '#3b82f6',
+                            minWidth: '32px',
+                            minHeight: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {copiedId === n.id ? <Check size={16} /> : <Link2 size={16} />}
+                        </button>
+                      )}
+                      {n.email && onResendInvite && (
+                        <button
+                          onClick={() => handleResendInvite(n)}
+                          disabled={processingId === n.id}
+                          title={resentId === n.id ? 'Sent!' : `Send reminder to finish profile${n.inviteSentAt ? `\nLast sent: ${new Date(n.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}`}
+                          style={{
+                            padding: spacing.xs,
+                            background: resentId === n.id ? 'rgba(34,197,94,0.1)' : 'rgba(168,85,247,0.1)',
+                            border: 'none',
+                            borderRadius: borderRadius.sm,
+                            cursor: processingId === n.id ? 'not-allowed' : 'pointer',
+                            color: resentId === n.id ? '#22c55e' : '#a855f7',
+                            minWidth: '32px',
+                            minHeight: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {resentId === n.id ? <Check size={16} /> : <Send size={16} />}
+                        </button>
+                      )}
+                      <button
+                        onClick={async () => { setProcessingId(n.id); await onArchiveNominee(n.id); setProcessingId(null); }}
+                        disabled={processingId === n.id}
+                        title="Archive"
+                        style={{
+                          padding: spacing.xs,
+                          background: 'rgba(107,114,128,0.1)',
+                          border: 'none',
+                          borderRadius: borderRadius.sm,
+                          cursor: 'pointer',
+                          color: '#6b7280',
+                          minWidth: '32px',
+                          minHeight: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Archive size={16} />
+                      </button>
+                    </div>
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        </Panel>
+      )}
 
       {/* Declined */}
       {declinedNominees.length > 0 && (

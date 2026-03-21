@@ -81,8 +81,16 @@ export default function OverviewTab({
   }, [contestants]);
 
   const topContestants = rankedContestants.slice(0, 5);
-  const pendingNominees = (nominees || []).filter(n => n.status === 'pending').length;
-  const totalNominees = (nominees || []).length;
+  // Separate completed vs incomplete self-nominations
+  const completedNominees = (nominees || []).filter(n =>
+    !(n.nominatedBy === 'self' && !n.claimedAt)
+  );
+  const incompleteCount = (nominees || []).filter(n =>
+    n.nominatedBy === 'self' && !n.claimedAt &&
+    (n.status === 'pending' || n.status === 'awaiting_profile')
+  ).length;
+  const pendingNominees = completedNominees.filter(n => n.status === 'pending').length;
+  const totalNominees = completedNominees.length;
 
   const upcomingEvents = useMemo(() => {
     // Use string comparison to avoid timezone issues
@@ -140,7 +148,7 @@ export default function OverviewTab({
             label="Nominations"
             value={totalNominees}
             goal={300}
-            goalLabel={pendingNominees > 0 ? `${pendingNominees} pending` : null}
+            goalLabel={[pendingNominees > 0 && `${pendingNominees} pending`, incompleteCount > 0 && `${incompleteCount} incomplete`].filter(Boolean).join(', ') || null}
             variant="default"
             cta="People →"
             onCtaClick={() => onNavigateToTab?.('people')}
