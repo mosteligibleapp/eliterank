@@ -85,7 +85,7 @@ export async function getHostedCompetitions(userId) {
   try {
     const { data, error } = await supabase
       .from('competitions')
-      .select('*, city:cities(name), organization:organizations(name, slug, logo_url), category:categories(name, slug), cover_image')
+      .select('*, city:cities(name), organization:organizations(name, slug, logo_url), category:categories(name, slug)')
       .eq('host_id', userId)
       .order('created_at', { ascending: false });
 
@@ -125,7 +125,7 @@ export async function getContestantCompetitions(userId) {
 
     const { data: competitions, error: competitionsError } = await supabase
       .from('competitions')
-      .select('*, city:cities(name), organization:organizations(name, slug, logo_url), category:categories(name, slug), cover_image')
+      .select('*, city:cities(name), organization:organizations(name, slug, logo_url), category:categories(name, slug)')
       .in('id', competitionIds);
 
     if (competitionsError) {
