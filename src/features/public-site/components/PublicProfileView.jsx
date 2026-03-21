@@ -196,7 +196,7 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
             gap: spacing.md,
             marginTop: spacing.lg,
           }}>
-            {!isOwnProfile && isAuthenticated && (
+            {!isOwnProfile && (
               <Button
                 onClick={toggleFan}
                 icon={Heart}

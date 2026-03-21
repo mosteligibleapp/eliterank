@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores';
 import { checkIsFan, addFan, removeFan, getFanCount } from '../lib/fans';
 
 export function useFan(profileId) {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [isFan, setIsFan] = useState(false);
   const [fanCount, setFanCount] = useState(0);
@@ -22,7 +24,14 @@ export function useFan(profileId) {
   }, [profileId, currentUserId, isOwnProfile]);
 
   const toggleFan = useCallback(async () => {
-    if (!currentUserId || !profileId || isOwnProfile || loading) return;
+    if (!profileId || isOwnProfile || loading) return;
+
+    // Redirect to login if not authenticated
+    if (!currentUserId) {
+      const returnTo = encodeURIComponent(window.location.pathname);
+      navigate(`/login?returnTo=${returnTo}`);
+      return;
+    }
 
     setLoading(true);
     // Optimistic update
@@ -40,7 +49,7 @@ export function useFan(profileId) {
       setFanCount((c) => wasFan ? c + 1 : Math.max(c - 1, 0));
     }
     setLoading(false);
-  }, [currentUserId, profileId, isOwnProfile, isFan, loading]);
+  }, [currentUserId, profileId, isOwnProfile, isFan, loading, navigate]);
 
   return { isFan, fanCount, toggleFan, loading, isOwnProfile, isAuthenticated: !!currentUserId };
 }
