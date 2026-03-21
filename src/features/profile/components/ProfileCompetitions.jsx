@@ -82,6 +82,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
   const competition = entry.competition || {};
   const cityName = competition.city?.name || competition.city || '';
   const org = competition.organization;
+  const categoryName = competition.category?.name || '';
   const votingDate = getVotingStartDate(competition);
   const url = entry.url;
 
@@ -158,6 +159,20 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
             </div>
           )}
         </div>
+
+        {/* Row 2b: Category */}
+        {categoryName && (
+          <span style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.gold.primary,
+            background: 'rgba(212,175,55,0.1)',
+            padding: `2px ${spacing.sm}`,
+            borderRadius: borderRadius.sm,
+            alignSelf: 'flex-start',
+          }}>
+            {categoryName}
+          </span>
+        )}
 
         {/* Row 3: Voting start + navigate link */}
         <div style={{
