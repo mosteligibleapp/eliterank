@@ -49,14 +49,17 @@ export default function SetupTab({
   judges,
   sponsors,
   events,
+  prizes = [],
   isSuperAdmin = false,
   onRefresh,
   onDeleteJudge,
   onDeleteSponsor,
   onDeleteEvent,
+  onDeletePrize,
   onOpenJudgeModal,
   onOpenSponsorModal,
   onOpenEventModal,
+  onOpenPrizeModal,
 }) {
   const { isMobile } = useResponsive();
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
@@ -471,6 +474,93 @@ export default function SetupTab({
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      </Panel>
+
+      {/* Prizes Section (Rotating Rewards Carousel) */}
+      <Panel
+        title={`Prizes (${prizes.length})`}
+        icon={Gift}
+        action={<Button size="sm" icon={Plus} onClick={() => onOpenPrizeModal(null)}>Add Prize</Button>}
+        collapsible
+        defaultCollapsed
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          {prizes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+              <Gift size={48} style={{ marginBottom: spacing.md, opacity: 0.5, color: colors.gold.primary }} />
+              <p>No prizes added yet</p>
+              <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginTop: spacing.sm }}>
+                Add prizes to display in the rotating rewards carousel on your competition page.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: spacing.md }}>
+              {prizes.map((prize) => (
+                <div key={prize.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.lg,
+                  padding: spacing.lg,
+                  background: colors.background.secondary,
+                  borderRadius: borderRadius.lg,
+                  flexWrap: isMobile ? 'wrap' : 'nowrap',
+                }}>
+                  {prize.imageUrl ? (
+                    <img src={prize.imageUrl} alt={prize.title} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 48, height: 48, background: 'rgba(212,175,55,0.2)', borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Gift size={24} style={{ color: colors.gold.primary }} />
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: typography.fontWeight.medium }}>{prize.title}</p>
+                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {prize.value ? `$${Number(prize.value).toLocaleString()}` : ''}
+                      {prize.value && prize.description ? ' · ' : ''}
+                      {prize.description || ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onOpenPrizeModal(prize)}
+                    style={{
+                      padding: spacing.sm,
+                      background: 'transparent',
+                      border: `1px solid ${colors.border.primary || 'rgba(255,255,255,0.15)'}`,
+                      borderRadius: borderRadius.md,
+                      color: colors.text.secondary,
+                      cursor: 'pointer',
+                      minWidth: '36px',
+                      minHeight: '36px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => onDeletePrize(prize.id)}
+                    style={{
+                      padding: spacing.sm,
+                      background: 'transparent',
+                      border: `1px solid rgba(239,68,68,0.3)`,
+                      borderRadius: borderRadius.md,
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      minWidth: '36px',
+                      minHeight: '36px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

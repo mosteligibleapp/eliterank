@@ -126,9 +126,6 @@ export function Rewards() {
             </div>
           )}
           <h4 className="reward-name reward-name-featured">{currentPrize.title}</h4>
-          {currentPrize.sponsor_name && (
-            <span className="rewards-sponsor">by {currentPrize.sponsor_name}</span>
-          )}
           {currentPrize.description && (
             <p className="reward-description">{currentPrize.description}</p>
           )}

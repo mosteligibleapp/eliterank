@@ -20,6 +20,7 @@ export function useCompetitionDashboard(competitionId) {
     events: [],
     announcements: [],
     rules: [],
+    prizes: [],
     host: null,
     competition: null,
   });
@@ -58,6 +59,7 @@ export function useCompetitionDashboard(competitionId) {
         eventsResult,
         announcementsResult,
         rulesResult,
+        prizesResult,
         competitionResult,
       ] = await Promise.all([
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
@@ -110,6 +112,13 @@ export function useCompetitionDashboard(competitionId) {
           .eq('competition_id', competitionId)
           .order('sort_order'),
 
+        // Prizes ordered by sort_order
+        supabase
+          .from('competition_prizes')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('sort_order'),
+
         // Get competition info with category, demographic, city, and organization joins
         supabase
           .from('competitions')
@@ -134,6 +143,7 @@ export function useCompetitionDashboard(competitionId) {
         eventsResult.error,
         announcementsResult.error,
         rulesResult.error,
+        prizesResult.error,
         competitionResult.error,
       ].filter(Boolean);
 
@@ -338,6 +348,17 @@ export function useCompetitionDashboard(competitionId) {
         sortOrder: r.sort_order,
       }));
 
+      // Transform prizes
+      const prizes = (prizesResult.data || []).map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        imageUrl: p.image_url,
+        value: p.value,
+        externalUrl: p.external_url,
+        sortOrder: p.sort_order,
+      }));
+
       setData({
         contestants,
         nominees,
@@ -346,6 +367,7 @@ export function useCompetitionDashboard(competitionId) {
         events,
         announcements,
         rules,
+        prizes,
         host,
         competition: competition ? {
           id: competition.id,
@@ -1109,6 +1131,79 @@ export function useCompetitionDashboard(competitionId) {
   }, [fetchDashboardData]);
 
   // ============================================================================
+  // PRIZE OPERATIONS
+  // ============================================================================
+
+  const addPrize = useCallback(async (prizeData) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const maxSort = data.prizes.length > 0 ? Math.max(...data.prizes.map(p => p.sortOrder || 0)) : 0;
+      const { error } = await supabase
+        .from('competition_prizes')
+        .insert({
+          competition_id: competitionId,
+          title: prizeData.title,
+          description: prizeData.description || null,
+          image_url: prizeData.imageUrl || null,
+          value: prizeData.value || null,
+          external_url: prizeData.externalUrl || null,
+          sort_order: maxSort + 1,
+        });
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding prize:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, data.prizes, fetchDashboardData]);
+
+  const updatePrize = useCallback(async (prizeId, prizeData) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competition_prizes')
+        .update({
+          title: prizeData.title,
+          description: prizeData.description || null,
+          image_url: prizeData.imageUrl || null,
+          value: prizeData.value || null,
+          external_url: prizeData.externalUrl || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', prizeId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating prize:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  const deletePrize = useCallback(async (prizeId) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competition_prizes')
+        .delete()
+        .eq('id', prizeId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error deleting prize:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  // ============================================================================
   // COMPETITION TIMELINE OPERATIONS
   // ============================================================================
 
@@ -1292,6 +1387,10 @@ export function useCompetitionDashboard(competitionId) {
     addRule,
     updateRule,
     deleteRule,
+    // Prize operations
+    addPrize,
+    updatePrize,
+    deletePrize,
     // Competition operations
     updateTimeline,
     updateWinners,

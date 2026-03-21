@@ -4,7 +4,7 @@ import {
   Eye, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
-import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, AddPersonModal } from '../../components/modals';
+import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, PrizeModal, AddPersonModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
@@ -66,6 +66,9 @@ export default function CompetitionDashboard({
     addRule,
     updateRule,
     deleteRule,
+    addPrize,
+    updatePrize,
+    deletePrize,
     assignHost,
     removeHost,
     repairNomineeAccount,
@@ -114,6 +117,7 @@ export default function CompetitionDashboard({
   const [judgeModal, setJudgeModal] = useState({ isOpen: false, judge: null });
   const [sponsorModal, setSponsorModal] = useState({ isOpen: false, sponsor: null });
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
+  const [prizeModal, setPrizeModal] = useState({ isOpen: false, prize: null });
 
   // ============================================================================
   // HEADER
@@ -447,14 +451,17 @@ export default function CompetitionDashboard({
             judges={data.judges}
             sponsors={data.sponsors}
             events={data.events}
+            prizes={data.prizes}
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onDeleteJudge={deleteJudge}
             onDeleteSponsor={deleteSponsor}
             onDeleteEvent={deleteEvent}
+            onDeletePrize={deletePrize}
             onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
             onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+            onOpenPrizeModal={(prize) => setPrizeModal({ isOpen: true, prize })}
           />
         );
       default:
@@ -527,6 +534,19 @@ export default function CompetitionDashboard({
           }
           toast.success(eventModal.event ? 'Event updated' : 'Event added');
           setEventModal({ isOpen: false, event: null });
+        }}
+      />
+      <PrizeModal
+        isOpen={prizeModal.isOpen}
+        onClose={() => setPrizeModal({ isOpen: false, prize: null })}
+        prize={prizeModal.prize}
+        onSave={async (prizeData) => {
+          if (prizeModal.prize) {
+            await updatePrize(prizeModal.prize.id, prizeData);
+          } else {
+            await addPrize(prizeData);
+          }
+          setPrizeModal({ isOpen: false, prize: null });
         }}
       />
       <AddPersonModal
