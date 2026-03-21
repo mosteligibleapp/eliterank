@@ -274,6 +274,7 @@ export function useCompetitionDashboard(competitionId) {
           inviteToken: n.invite_token,
           inviteSentAt: n.invite_sent_at,
           claimedAt: n.claimed_at,
+          flowStage: n.flow_stage || null,
           convertedToContestant: n.converted_to_contestant,
           createdAt: n.created_at,
         };

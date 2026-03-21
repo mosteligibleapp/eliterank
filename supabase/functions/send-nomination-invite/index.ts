@@ -79,6 +79,8 @@ serve(async (req) => {
         invite_sent_at,
         claimed_at,
         user_id,
+        nominated_by,
+        flow_stage,
         competition:competitions(id, name, season, slug, nomination_end, city:cities(name), demographic:demographics(gender), organization:organizations(slug))
       `)
       .eq('id', nominee_id)
@@ -323,11 +325,18 @@ serve(async (req) => {
       console.warn('Using plain claim URL (no magic link) — nominee will need to create password during claim flow')
     }
 
-    // Determine if this is a reminder (accepted but not onboarded) vs fresh invite
+    // Determine if this is a reminder vs fresh invite
     const nomineeRaw = nominee as any
     let isReminder = false
-    if (nomineeRaw.claimed_at && nomineeRaw.user_id) {
-      // Check if the user has completed onboarding
+    let isSelfNomineeReminder = false
+
+    // Incomplete self-nominee: started entry flow but didn't finish (no claimed_at)
+    if (nomineeRaw.nominated_by === 'self' && !nomineeRaw.claimed_at && nomineeRaw.flow_stage) {
+      isReminder = true
+      isSelfNomineeReminder = true
+    }
+    // Third-party nominee who accepted but hasn't completed onboarding
+    else if (nomineeRaw.claimed_at && nomineeRaw.user_id) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('onboarded_at')
@@ -339,8 +348,11 @@ serve(async (req) => {
     }
 
     // 1) Branded nominee email via OneSignal (critical path)
+    const emailType = isSelfNomineeReminder
+      ? 'self_nominee_reminder'
+      : isReminder ? 'nominee_reminder' : 'nominee_invite'
     const nomineeEmailResult = await sendOneSignalEmail({
-      type: isReminder ? 'nominee_reminder' : 'nominee_invite',
+      type: emailType,
       to_email: nomineeEmail,
       to_name: nomineeData.name,
       nominee_name: nomineeData.name,
