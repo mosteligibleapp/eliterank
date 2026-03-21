@@ -412,7 +412,7 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
           </div>
         )}
       </div>
-      <FanLoginPrompt isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
+      <FanLoginPrompt isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} profileId={fanProfileId} />
     </div>
   );
 }

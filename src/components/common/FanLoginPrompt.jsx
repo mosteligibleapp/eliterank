@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, X } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
-export default function FanLoginPrompt({ isOpen, onClose }) {
+export default function FanLoginPrompt({ isOpen, onClose, profileId }) {
   const navigate = useNavigate();
 
   if (!isOpen) return null;
 
   const handleLogin = () => {
-    const returnTo = encodeURIComponent(window.location.pathname);
-    navigate(`/login?returnTo=${returnTo}`);
+    const returnPath = `${window.location.pathname}?fan=${profileId}`;
+    navigate(`/login?returnTo=${encodeURIComponent(returnPath)}`);
   };
 
   return (

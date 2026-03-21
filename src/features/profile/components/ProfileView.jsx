@@ -513,7 +513,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
 
         </div>
       </div>
-      <FanLoginPrompt isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
+      <FanLoginPrompt isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} profileId={hostProfile?.id} />
     </div>
   );
 }
