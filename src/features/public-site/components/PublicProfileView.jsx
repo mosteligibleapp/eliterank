@@ -4,6 +4,7 @@ import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, styleHelpers } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { useFan } from '../../../hooks/useFan';
+import FanLoginPrompt from '../../../components/common/FanLoginPrompt';
 
 // Role display configuration
 const ROLE_CONFIG = {
@@ -17,7 +18,7 @@ const ROLE_CONFIG = {
 export default function PublicProfileView({ profile, role = 'fan', onBack }) {
   const { isMobile } = useResponsive();
   const fanProfileId = profile?.user_id || profile?.id;
-  const { isFan, fanCount, toggleFan, loading: fanLoading, isOwnProfile, isAuthenticated } = useFan(fanProfileId);
+  const { isFan, fanCount, toggleFan, loading: fanLoading, isOwnProfile, showLoginPrompt, setShowLoginPrompt } = useFan(fanProfileId);
 
   if (!profile) return null;
 
@@ -411,6 +412,7 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
           </div>
         )}
       </div>
+      <FanLoginPrompt isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
     </div>
   );
 }

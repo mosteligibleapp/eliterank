@@ -9,10 +9,11 @@ import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import ProfileRewardsCard from './ProfileRewardsCard';
 import BonusVotesEarnedBadge from './BonusVotesEarnedBadge';
+import FanLoginPrompt from '../../../components/common/FanLoginPrompt';
 
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
-  const { isFan, fanCount, toggleFan, loading: fanLoading, isOwnProfile } = useFan(hostProfile?.id);
+  const { isFan, fanCount, toggleFan, loading: fanLoading, isOwnProfile, showLoginPrompt, setShowLoginPrompt } = useFan(hostProfile?.id);
   const [competitionStats, setCompetitionStats] = useState(null);
   const [bonusVotes, setBonusVotes] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -512,6 +513,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
 
         </div>
       </div>
+      <FanLoginPrompt isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
     </div>
   );
 }
