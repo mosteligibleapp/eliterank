@@ -37,7 +37,7 @@ BEGIN
     UPDATE profiles SET fan_count = COALESCE(fan_count, 0) + 1 WHERE id = NEW.profile_id;
 
     -- Create in-app notification for the person being fanned
-    INSERT INTO notifications (user_id, type, title, message, metadata)
+    INSERT INTO notifications (user_id, type, title, body, metadata)
     SELECT NEW.profile_id, 'new_fan',
       COALESCE(p.first_name, 'Someone') || ' became your fan!',
       COALESCE(p.first_name, 'Someone') || ' ' || COALESCE(p.last_name, '') || ' is now your fan.',
