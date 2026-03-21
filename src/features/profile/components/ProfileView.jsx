@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Users } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { useFan } from '../../../hooks/useFan';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import ProfileRewardsCard from './ProfileRewardsCard';
@@ -11,6 +12,7 @@ import BonusVotesEarnedBadge from './BonusVotesEarnedBadge';
 
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
+  const { isFan, fanCount, toggleFan, loading: fanLoading, isOwnProfile } = useFan(hostProfile?.id);
   const [competitionStats, setCompetitionStats] = useState(null);
   const [bonusVotes, setBonusVotes] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -63,6 +65,23 @@ export default function ProfileView({ hostProfile, onEdit }) {
       <Panel style={{ marginBottom: isMobile ? spacing.lg : spacing.xxl }}>
         <div style={{ position: 'relative', padding: isMobile ? spacing.sm : spacing.lg, paddingBottom: 0 }}>
           <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg, display: 'flex', gap: spacing.sm, zIndex: 2 }}>
+            {!onEdit && !isOwnProfile && (
+              <Button
+                onClick={toggleFan}
+                icon={Heart}
+                size={isMobile ? 'sm' : 'md'}
+                disabled={fanLoading}
+                style={{
+                  background: isFan ? 'rgba(212,175,55,0.9)' : 'rgba(255,255,255,0.06)',
+                  backdropFilter: 'blur(8px)',
+                  color: isFan ? '#fff' : colors.gold.primary,
+                  border: isFan ? '1px solid rgba(212,175,55,0.6)' : '1px solid rgba(212,175,55,0.3)',
+                  minWidth: isMobile ? 'auto' : '100px',
+                }}
+              >
+                {isFan ? 'Fan' : (isMobile ? 'Fan' : 'Become a Fan')}
+              </Button>
+            )}
             <Button
               onClick={handleShare}
               icon={copied ? Check : Share2}
@@ -146,7 +165,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 const displayVotes = statsVotes + nomineeBonusVotes;
                 const wins = competitionStats?.wins || 0;
 
-                if (displayVotes <= 0 && wins <= 0) return null;
+                if (displayVotes <= 0 && wins <= 0 && fanCount <= 0) return null;
 
                 return (
                   <div style={{
@@ -189,6 +208,23 @@ export default function ProfileView({ hostProfile, onEdit }) {
                       }}>
                         <TrendingUp size={isMobile ? 14 : 16} />
                         {wins} {wins === 1 ? 'win' : 'wins'}
+                      </span>
+                    )}
+                    {fanCount > 0 && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: spacing.xs,
+                        padding: `${spacing.xs} ${spacing.md}`,
+                        background: 'rgba(212,175,55,0.1)',
+                        border: '1px solid rgba(212,175,55,0.2)',
+                        borderRadius: borderRadius.pill,
+                        fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                        fontWeight: typography.fontWeight.semibold,
+                        color: colors.gold.primary,
+                      }}>
+                        <Users size={isMobile ? 14 : 16} />
+                        {fanCount.toLocaleString()} {fanCount === 1 ? 'fan' : 'fans'}
                       </span>
                     )}
                   </div>

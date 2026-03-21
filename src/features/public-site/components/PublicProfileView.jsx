@@ -1,8 +1,9 @@
 import React from 'react';
-import { MapPin, FileText, Heart, Camera, Globe, Trophy, Crown, Award, Star, Instagram, Twitter, Linkedin, ChevronLeft, Briefcase } from 'lucide-react';
+import { MapPin, FileText, Heart, Camera, Globe, Trophy, Crown, Award, Star, Instagram, Twitter, Linkedin, ChevronLeft, Briefcase, Users } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, styleHelpers } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { useFan } from '../../../hooks/useFan';
 
 // Role display configuration
 const ROLE_CONFIG = {
@@ -15,6 +16,8 @@ const ROLE_CONFIG = {
 
 export default function PublicProfileView({ profile, role = 'fan', onBack }) {
   const { isMobile } = useResponsive();
+  const fanProfileId = profile?.user_id || profile?.id;
+  const { isFan, fanCount, toggleFan, loading: fanLoading, isOwnProfile, isAuthenticated } = useFan(fanProfileId);
 
   if (!profile) return null;
 
@@ -184,6 +187,41 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
             )}
             {age && (
               <span>{age} years old</span>
+            )}
+          </div>
+
+          {/* Fan button + count */}
+          <div style={{
+            ...styleHelpers.flexCenter,
+            gap: spacing.md,
+            marginTop: spacing.lg,
+          }}>
+            {!isOwnProfile && isAuthenticated && (
+              <Button
+                onClick={toggleFan}
+                icon={Heart}
+                size="sm"
+                disabled={fanLoading}
+                style={{
+                  background: isFan ? 'rgba(212,175,55,0.9)' : 'transparent',
+                  color: isFan ? '#fff' : colors.gold.primary,
+                  border: isFan ? '1px solid rgba(212,175,55,0.6)' : '1px solid rgba(212,175,55,0.3)',
+                  borderRadius: borderRadius.pill,
+                }}
+              >
+                {isFan ? 'Fan' : 'Become a Fan'}
+              </Button>
+            )}
+            {fanCount > 0 && (
+              <span style={{
+                ...styleHelpers.flexCenter,
+                gap: spacing.xs,
+                fontSize: typography.fontSize.sm,
+                color: colors.text.secondary,
+              }}>
+                <Users size={14} />
+                {fanCount.toLocaleString()} {fanCount === 1 ? 'fan' : 'fans'}
+              </span>
             )}
           </div>
         </div>
