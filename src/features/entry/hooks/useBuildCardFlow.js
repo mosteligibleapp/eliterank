@@ -31,9 +31,9 @@ function withTimeout(promise, ms) {
  * useBuildCardFlow - Unified "Build Your Card" orchestrator
  *
  * Three entry scenarios:
- * - 'self-auth':   Logged-in self-nominee  → eligibility, photo, details, card
- * - 'self-anon':   Not-logged-in self-nom  → eligibility, photo, details, password, card
- * - 'third-party': Third-party nominee     → accept, eligibility-confirm, photo, details, password?, card
+ * - 'self-auth':   Logged-in self-nominee  → eligibility, photo, details, bio, card
+ * - 'self-anon':   Not-logged-in self-nom  → eligibility, photo, details, bio, password, card
+ * - 'third-party': Third-party nominee     → accept, eligibility-confirm, photo, details, bio, password?, card
  *
  * @param {Object} options
  * @param {'self-auth'|'self-anon'|'third-party'} options.mode
@@ -55,17 +55,17 @@ export function useBuildCardFlow({
   const steps = useMemo(() => {
     switch (mode) {
       case 'self-auth':
-        return ['eligibility', 'photo', 'details', 'card'];
+        return ['eligibility', 'photo', 'details', 'bio', 'card'];
       case 'self-anon':
-        return ['eligibility', 'photo', 'details', 'password', 'card'];
+        return ['eligibility', 'photo', 'details', 'bio', 'password', 'card'];
       case 'third-party': {
-        const base = ['accept', 'eligibility-confirm', 'photo', 'details'];
+        const base = ['accept', 'eligibility-confirm', 'photo', 'details', 'bio'];
         if (needsPassword) base.push('password');
         base.push('card');
         return base;
       }
       default:
-        return ['photo', 'details', 'card'];
+        return ['photo', 'details', 'bio', 'card'];
     }
   }, [mode, needsPassword]);
 
@@ -105,7 +105,7 @@ export function useBuildCardFlow({
     instagram: profile?.instagram || nominee?.instagram || '',
     photoFile: null,
     photoPreview: profile?.avatar_url || nominee?.avatar_url || '',
-    bio: '',  // no longer collected in flow; kept for DB compat
+    bio: profile?.bio || nominee?.bio || '',
   });
 
   // Sync nominee data when the async fetch completes (nominee goes from null → data).
@@ -132,7 +132,7 @@ export function useBuildCardFlow({
         phone: prev.phone || nominee.phone || '',
         instagram: prev.instagram || nominee.instagram || '',
         photoPreview: prev.photoPreview || nominee.avatar_url || '',
-        bio: '',
+        bio: prev.bio || nominee.bio || '',
       };
     });
   }, [nominee]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -146,7 +146,7 @@ export function useBuildCardFlow({
 
     const stageToResumeStep = {
       accepted: 'eligibility-confirm',
-      details: needsPassword ? 'password' : 'card',
+      details: 'bio',
       card: needsPassword ? 'password' : 'card',
     };
     const resumeStep = stageToResumeStep[nominee.flow_stage];
@@ -387,13 +387,13 @@ export function useBuildCardFlow({
     }
   }, [cardData, currentUser, nomineeId, competition, eligibilityAnswers]);
 
-  // ---- Submit final card (details step) ----
+  // ---- Submit final card (pitch step) ----
   const submitCard = useCallback(async () => {
     setIsSubmitting(true);
     setSubmitError('');
 
     try {
-      // Persist card data
+      // Persist with pitch included
       let avatarUrl = cardData.photoPreview;
       if (cardData.photoFile) {
         avatarUrl = await uploadPhoto(cardData.photoFile, 'avatars');
@@ -416,7 +416,7 @@ export function useBuildCardFlow({
       if (currentUser?.id) {
         record.user_id = currentUser.id;
         // If no password step follows, this is the final step — mark claimed
-        if (!steps.includes('password')) {
+        if (!steps.includes('password') || steps.indexOf('password') < steps.indexOf('bio')) {
           record.claimed_at = new Date().toISOString();
         }
       }
@@ -495,7 +495,9 @@ export function useBuildCardFlow({
         isNomination: false,
       });
 
-      // Advance to the next step (password or card).
+      // Advance to the next step. For third-party flows with needsPassword,
+      // the next step after 'bio' is 'password' — jumping directly to
+      // 'card' would skip it.  Using next() respects the step order.
       next();
     } catch (err) {
       setSubmitError(err.message || 'Failed to submit entry');

@@ -15,13 +15,14 @@ function isSchemaError(error) {
   return error?.message?.includes('schema cache') || error?.code === 'PGRST204';
 }
 
-const SELF_STEPS_AUTH = ['mode', 'eligibility', 'photo', 'details', 'card'];
-const SELF_STEPS_ANON = ['mode', 'eligibility', 'photo', 'details', 'password', 'card'];
+const SELF_STEPS_AUTH = ['mode', 'eligibility', 'photo', 'details', 'bio', 'card'];
+const SELF_STEPS_ANON = ['mode', 'eligibility', 'photo', 'details', 'bio', 'password', 'card'];
 const NOMINATE_STEPS = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'card'];
 
 // Map flow_stage values to step names
 const FLOW_STAGE_TO_STEP = {
-  'details': 'password', // After details is saved, next step is password (or card for logged in)
+  'details': 'bio', // After details is saved, next step is bio
+  'bio': 'password', // After bio is saved, next step is password (or card for logged in)
   'password': 'card', // After password, show card
   'card': 'card', // Already at card
 };
@@ -67,7 +68,7 @@ export function useEntryFlow(competition, profile) {
     location: profile?.city || '',
     photoFile: null,
     photoPreview: profile?.avatar_url || '',
-    bio: '',  // no longer collected in flow; kept for DB compat
+    bio: '',
   });
 
   // Nomination data
@@ -155,7 +156,7 @@ export function useEntryFlow(competition, profile) {
           age: existingNominee.age ? String(existingNominee.age) : prev.age,
           location: existingNominee.city || prev.location,
           photoPreview: existingNominee.avatar_url || prev.photoPreview,
-          bio: '',
+          bio: existingNominee.bio || prev.bio,
         }));
 
         if (existingNominee.eligibility_answers) {
@@ -389,7 +390,9 @@ export function useEntryFlow(competition, profile) {
         avatar_url: avatarUrl || null,
         age: selfData.age ? parseInt(selfData.age, 10) : null,
         city: selfData.location?.trim() || null,
-        flow_stage: isLoggedIn ? 'card' : 'details',
+        // Anon users still need the password step — set 'bio' so resume
+        // maps to 'password'. Logged-in users skip password, so 'card'.
+        flow_stage: isLoggedIn ? 'card' : 'bio',
       };
 
       if (profile?.id) {
