@@ -36,8 +36,9 @@ export function useFan(profileId) {
     searchParams.delete('fan');
     setSearchParams(searchParams, { replace: true });
 
-    // Auto-become a fan
-    checkIsFan(currentUserId, profileId).then(async (alreadyFan) => {
+    // Auto-become a fan (with retry for new accounts where profile may not exist yet)
+    const attemptFan = async (retries = 3) => {
+      const alreadyFan = await checkIsFan(currentUserId, profileId);
       if (alreadyFan) {
         setIsFan(true);
         return;
@@ -45,11 +46,17 @@ export function useFan(profileId) {
       setIsFan(true);
       setFanCount((c) => c + 1);
       const { error } = await addFan(currentUserId, profileId);
+      if (error && retries > 0) {
+        // Profile may not exist yet for brand-new accounts, retry after a delay
+        await new Promise((r) => setTimeout(r, 1500));
+        return attemptFan(retries - 1);
+      }
       if (error) {
         setIsFan(false);
         setFanCount((c) => Math.max(c - 1, 0));
       }
-    });
+    };
+    attemptFan();
   }, [searchParams, currentUserId, profileId, isOwnProfile, setSearchParams]);
 
   const toggleFan = useCallback(async () => {

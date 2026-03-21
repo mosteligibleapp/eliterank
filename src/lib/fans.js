@@ -20,6 +20,7 @@ export async function addFan(fanId, profileId) {
     .from('fans')
     .insert({ fan_id: fanId, profile_id: profileId });
 
+  if (error) console.error('addFan error:', error.message, error.code);
   return { error };
 }
 
