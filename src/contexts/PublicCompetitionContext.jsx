@@ -40,6 +40,7 @@ export function PublicCompetitionProvider({
     theme,
     sponsors,
     events,
+    prizes,
     rules,
     announcements,
     votingRounds,
@@ -138,6 +139,7 @@ export function PublicCompetitionProvider({
       // Related data
       sponsors,
       events,
+      prizes,
       rules,
       announcements,
       votingRounds,
@@ -189,6 +191,7 @@ export function PublicCompetitionProvider({
       countdown,
       sponsors,
       events,
+      prizes,
       rules,
       announcements,
       votingRounds,
