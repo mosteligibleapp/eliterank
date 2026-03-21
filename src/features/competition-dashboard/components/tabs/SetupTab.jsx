@@ -518,8 +518,10 @@ export default function SetupTab({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: typography.fontWeight.medium }}>{prize.title}</p>
                     <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {prize.sponsorName ? `by ${prize.sponsorName}` : ''}
+                      {prize.sponsorName && prize.value ? ' · ' : ''}
                       {prize.value ? `$${Number(prize.value).toLocaleString()}` : ''}
-                      {prize.value && prize.description ? ' · ' : ''}
+                      {(prize.sponsorName || prize.value) && prize.description ? ' · ' : ''}
                       {prize.description || ''}
                     </p>
                   </div>

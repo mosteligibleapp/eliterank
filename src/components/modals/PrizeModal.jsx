@@ -6,6 +6,7 @@ import { useModalForm } from '../../hooks';
 
 const INITIAL_STATE = {
   title: '',
+  sponsorName: '',
   description: '',
   imageUrl: '',
   value: '',
@@ -25,6 +26,7 @@ export default function PrizeModal({
     if (!prize) return null;
     return {
       title: prize.title || '',
+      sponsorName: prize.sponsorName || '',
       description: prize.description || '',
       imageUrl: prize.imageUrl || '',
       value: prize.value?.toString() || '',
@@ -124,12 +126,20 @@ export default function PrizeModal({
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
-        <Input
-          label="Prize Title *"
-          value={form.title}
-          onChange={(e) => updateField('title', e.target.value)}
-          placeholder="e.g., Diamond Necklace"
-        />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
+          <Input
+            label="Prize Title *"
+            value={form.title}
+            onChange={(e) => updateField('title', e.target.value)}
+            placeholder="e.g., Diamond Necklace"
+          />
+          <Input
+            label="Brand / Sponsor Name"
+            value={form.sponsorName}
+            onChange={(e) => updateField('sponsorName', e.target.value)}
+            placeholder="e.g., Kay Jewelers"
+          />
+        </div>
 
         {/* Prize Image Upload */}
         <div>

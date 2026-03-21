@@ -355,6 +355,7 @@ export function useCompetitionDashboard(competitionId) {
         description: p.description,
         imageUrl: p.image_url,
         value: p.value,
+        sponsorName: p.sponsor_name,
         externalUrl: p.external_url,
         sortOrder: p.sort_order,
       }));
@@ -1147,6 +1148,7 @@ export function useCompetitionDashboard(competitionId) {
           description: prizeData.description || null,
           image_url: prizeData.imageUrl || null,
           value: prizeData.value || null,
+          sponsor_name: prizeData.sponsorName || null,
           external_url: prizeData.externalUrl || null,
           sort_order: maxSort + 1,
         });
@@ -1171,6 +1173,7 @@ export function useCompetitionDashboard(competitionId) {
           description: prizeData.description || null,
           image_url: prizeData.imageUrl || null,
           value: prizeData.value || null,
+          sponsor_name: prizeData.sponsorName || null,
           external_url: prizeData.externalUrl || null,
           updated_at: new Date().toISOString(),
         })

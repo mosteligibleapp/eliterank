@@ -25,7 +25,7 @@ const COMPETITION_SELECT = `
   ),
   sponsors (id, name, tier, amount, logo_url, website_url, sort_order),
   events (*),
-  competition_prizes (id, title, description, image_url, value, external_url, sort_order),
+  competition_prizes (id, title, description, image_url, value, sponsor_name, external_url, sort_order),
   competition_rules (id, section_title, section_content, sort_order),
   voting_rounds (
     id, title, round_order, start_date, end_date,
