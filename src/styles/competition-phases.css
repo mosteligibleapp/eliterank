@@ -4782,9 +4782,8 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 .competition-footer-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   padding: var(--spacing-md) var(--spacing-lg);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -4792,8 +4791,8 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 }
 
 .competition-footer-logo {
-  width: 120px;
-  height: auto;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
