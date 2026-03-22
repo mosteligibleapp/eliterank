@@ -1139,7 +1139,8 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 .who-competes-header h3 {
   font-family: var(--font-display);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
   margin: 0;
 }
 
@@ -1275,6 +1276,18 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   border: 1px solid rgba(var(--color-primary-rgb), 0.15);
   text-align: center;
   position: relative;
+  text-decoration: none;
+  color: inherit;
+}
+
+.hall-of-winners-card-clickable {
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.hall-of-winners-card-clickable:hover {
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+  transform: translateY(-2px);
 }
 
 .hall-of-winners-rank {
