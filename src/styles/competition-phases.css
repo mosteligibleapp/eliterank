@@ -1141,7 +1141,8 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 .who-competes-header h3 {
   font-family: var(--font-display);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
   margin: 0;
 }
 
