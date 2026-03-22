@@ -1069,7 +1069,18 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* Side-by-side layout for winner + contestant carousels on desktop */
+.rewards-dual-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
 @media (max-width: 768px) {
+  .rewards-dual-layout {
+    grid-template-columns: 1fr;
+  }
+
   .rewards-carousel-viewport {
     min-height: 180px;
   }

@@ -179,8 +179,10 @@ export function Rewards() {
     );
   }
 
+  const hasBoth = winnerPrizes.length > 0 && contestantRewards.length > 0;
+
   return (
-    <>
+    <div className={hasBoth ? 'rewards-dual-layout' : undefined}>
       {winnerPrizes.length > 0 && (
         <PrizeCarousel
           prizes={winnerPrizes}
@@ -196,7 +198,7 @@ export function Rewards() {
           icon={Gift}
         />
       )}
-    </>
+    </div>
   );
 }
 
