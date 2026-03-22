@@ -1,4 +1,4 @@
-import { User, Crown } from 'lucide-react';
+import { User } from 'lucide-react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import useAppSettings from '../../../hooks/useAppSettings';
 import { EliteRankCrown } from '../../../components/ui/icons';
@@ -49,7 +49,6 @@ export function HallOfWinnersSection() {
           </div>
         ))}
         <div className="hall-of-winners-card hall-of-winners-intro-card">
-          <Crown size={28} className="hall-of-winners-intro-icon" />
           <span className="hall-of-winners-intro-number">{competition?.number_of_winners || 5}</span>
           <span className="hall-of-winners-intro-text">Winners Each Year</span>
         </div>
