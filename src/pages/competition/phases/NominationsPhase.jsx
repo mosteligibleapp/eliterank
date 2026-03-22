@@ -99,7 +99,7 @@ export function NominationsPhase() {
 
       <hr className="phase-divider" />
 
-      {/* Timeline & Host/Rules */}
+      {/* Timeline & Host + Rules */}
       <section className="phase-grid phase-grid-2">
         <Timeline />
         <div className="sidebar-stack">

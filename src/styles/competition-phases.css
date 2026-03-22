@@ -933,6 +933,192 @@
   }
 }
 
+/* Rewards Carousel */
+.rewards-carousel .rewards-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rewards-counter {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rewards-carousel-viewport {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.rewards-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.rewards-carousel-arrow:hover {
+  background: rgba(var(--color-primary-rgb), 0.2);
+  color: var(--color-primary);
+}
+
+.rewards-carousel-arrow-left {
+  left: 0;
+}
+
+.rewards-carousel-arrow-right {
+  right: 0;
+}
+
+.rewards-carousel-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--spacing-xl) 48px;
+  opacity: 1;
+  transition: opacity 0.35s ease;
+  max-width: 500px;
+}
+
+.rewards-slide-transitioning {
+  opacity: 0;
+}
+
+a.rewards-carousel-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+a.rewards-carousel-link:hover {
+  opacity: 0.85;
+}
+
+a.rewards-carousel-link:hover .rewards-prize-image-wrap {
+  border-color: var(--color-primary);
+}
+
+.rewards-prize-image-wrap {
+  width: 140px;
+  height: 140px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rewards-prize-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reward-icon-large {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.reward-name-featured {
+  font-size: var(--font-size-xl);
+}
+
+.rewards-sponsor {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.rewards-value {
+  display: inline-block;
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.1);
+  padding: 2px 12px;
+  border-radius: var(--radius-full);
+}
+
+.rewards-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.rewards-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.rewards-dot-active {
+  background: var(--color-primary);
+  transform: scale(1.3);
+}
+
+.rewards-dot:hover:not(.rewards-dot-active) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Side-by-side layout for winner + contestant carousels on desktop */
+.rewards-dual-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .rewards-dual-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .rewards-carousel-viewport {
+    min-height: 180px;
+  }
+
+  .rewards-carousel-slide {
+    padding: var(--spacing-lg) 40px;
+  }
+
+  .rewards-prize-image-wrap {
+    width: 110px;
+    height: 110px;
+  }
+
+  .rewards-carousel-arrow {
+    width: 30px;
+    height: 30px;
+  }
+
+  .reward-icon-large {
+    width: 52px;
+    height: 52px;
+  }
+}
+
 /* Who Competes */
 .who-competes {
   background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.1), rgba(var(--color-primary-rgb), 0.02));
@@ -2961,6 +3147,28 @@
   padding: var(--spacing-lg);
 }
 
+/* Compact variant when inside sidebar */
+.sidebar-stack .rules-accordion {
+  padding: var(--spacing-md);
+}
+
+.sidebar-stack .rules-accordion .section-label {
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.sidebar-stack .rules-accordion .rule-header {
+  padding: var(--spacing-xs) 0;
+}
+
+.sidebar-stack .rules-accordion .rule-title {
+  font-size: var(--font-size-sm);
+}
+
+.sidebar-stack .rules-accordion .rules-disclaimer {
+  font-size: var(--font-size-xs);
+}
+
 /* Rules Elimination Warning */
 .rules-elimination-warning {
   display: flex;
@@ -3911,6 +4119,10 @@
 
 .host-profile-header {
   margin-bottom: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .host-modal-avatar {
