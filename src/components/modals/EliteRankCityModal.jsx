@@ -644,10 +644,9 @@ export default function EliteRankCityModal({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '4px',
+          gap: '2px',
           marginBottom: spacing.md,
         }}>
-          <EliteRankCrown size={22} />
           <h2 style={{
             fontSize: typography.fontSize.md,
             fontWeight: typography.fontWeight.bold,
@@ -655,8 +654,16 @@ export default function EliteRankCityModal({
             margin: 0,
             textAlign: 'center',
           }}>
-            Most Eligible Bachelorettes {year}
+            Most Eligible Bachelorettes
           </h2>
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.muted,
+            margin: 0,
+            textAlign: 'center',
+          }}>
+            Chicago {year}
+          </p>
         </div>
 
         {/* Winners Grid - compact circular avatar style */}
