@@ -442,6 +442,9 @@ export default function CompetitionDashboard({
             onUpdateAnnouncement={updateAnnouncement}
             onDeleteAnnouncement={deleteAnnouncement}
             onTogglePin={toggleAnnouncementPin}
+            organizationId={competition?.organizationId}
+            organizationHeaderLogoUrl={competition?.organizationHeaderLogoUrl}
+            organizationWebsiteUrl={competition?.organizationWebsiteUrl}
           />
         );
       case 'setup':

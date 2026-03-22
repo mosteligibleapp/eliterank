@@ -8,16 +8,25 @@ import { EliteRankCrown } from '../../../components/ui/icons';
 export function CompetitionFooter() {
   const { organization } = usePublicCompetition();
 
+  const footerLogo = organization?.header_logo_url || organization?.logo_url;
+  const websiteUrl = organization?.website_url;
+
   return (
     <footer className="competition-footer">
       <div className="competition-footer-items">
-        {organization?.logo_url && (
+        {footerLogo && (
           <div className="competition-footer-item">
             <div className="competition-footer-text">
               <span className="competition-footer-label">Presented by</span>
             </div>
             <div className="competition-footer-logo">
-              <img src={organization.logo_url} alt={organization.name} />
+              {websiteUrl ? (
+                <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={footerLogo} alt={organization.name} />
+                </a>
+              ) : (
+                <img src={footerLogo} alt={organization.name} />
+              )}
             </div>
           </div>
         )}

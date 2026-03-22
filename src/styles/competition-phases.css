@@ -76,6 +76,10 @@
   justify-content: center;
 }
 
+.org-logo a {
+  display: flex;
+}
+
 .org-logo img {
   width: 100%;
   height: 100%;
@@ -4793,6 +4797,12 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.competition-footer-logo a {
+  display: flex;
+  width: 100%;
+  height: 100%;
 }
 
 .competition-footer-logo img {
