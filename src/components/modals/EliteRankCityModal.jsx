@@ -670,8 +670,9 @@ export default function EliteRankCityModal({
 
         {/* Winners Grid - circular avatar style matching competition page */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : `repeat(${Math.min(winners.length, 5)}, 1fr)`,
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
           gap: spacing.md,
         }}>
           {winners.slice(0, 5).map((winner, index) => {
@@ -685,6 +686,7 @@ export default function EliteRankCityModal({
                 key={winner.id}
                 {...linkProps}
                 style={{
+                  width: isMobile ? 'calc(33.33% - 10px)' : '160px',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
