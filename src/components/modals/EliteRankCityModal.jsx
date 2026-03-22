@@ -731,7 +731,7 @@ export default function EliteRankCityModal({
                   width: isMobile ? '64px' : '80px',
                   height: isMobile ? '64px' : '80px',
                   borderRadius: '50%',
-                  background: colors.bg.elevated,
+                  background: colors.background.elevated,
                   border: '2px solid rgba(212, 175, 55, 0.35)',
                   overflow: 'hidden',
                   flexShrink: 0,
