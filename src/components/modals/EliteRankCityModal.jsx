@@ -630,7 +630,7 @@ export default function EliteRankCityModal({
 
     return (
       <div style={{
-        maxWidth: '900px',
+        maxWidth: '600px',
         margin: '0 auto',
         marginTop: spacing.xxxl,
         marginBottom: spacing.xxxl,
