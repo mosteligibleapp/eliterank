@@ -1000,6 +1000,20 @@
   opacity: 0;
 }
 
+a.rewards-carousel-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+a.rewards-carousel-link:hover {
+  opacity: 0.85;
+}
+
+a.rewards-carousel-link:hover .rewards-prize-image-wrap {
+  border-color: var(--color-primary);
+}
+
 .rewards-prize-image-wrap {
   width: 140px;
   height: 140px;

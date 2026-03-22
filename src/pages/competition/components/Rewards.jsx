@@ -88,33 +88,44 @@ function PrizeCarousel({ prizes, title, icon: Icon }) {
           </button>
         )}
 
-        <div className={`rewards-carousel-slide ${isTransitioning ? 'rewards-slide-transitioning' : ''}`}>
-          {currentPrize.image_url ? (
-            <div className="rewards-prize-image-wrap">
-              <img
-                src={currentPrize.image_url}
-                alt={currentPrize.title}
-                className="rewards-prize-image"
-              />
-            </div>
-          ) : (
-            <div className="reward-icon reward-icon-large">
-              <Gift size={32} />
-            </div>
-          )}
-          <h4 className="reward-name reward-name-featured">{currentPrize.title}</h4>
-          {currentPrize.sponsor_name && (
-            <span className="rewards-sponsor">by {currentPrize.sponsor_name}</span>
-          )}
-          {currentPrize.description && (
-            <p className="reward-description">{currentPrize.description}</p>
-          )}
-          {currentPrize.value && (
-            <span className="rewards-value">
-              ${Number(currentPrize.value).toLocaleString()}
-            </span>
-          )}
-        </div>
+        {(() => {
+          const Wrapper = currentPrize.external_url ? 'a' : 'div';
+          const wrapperProps = currentPrize.external_url
+            ? { href: currentPrize.external_url, target: '_blank', rel: 'noopener noreferrer' }
+            : {};
+          return (
+            <Wrapper
+              {...wrapperProps}
+              className={`rewards-carousel-slide ${isTransitioning ? 'rewards-slide-transitioning' : ''} ${currentPrize.external_url ? 'rewards-carousel-link' : ''}`}
+            >
+              {currentPrize.image_url ? (
+                <div className="rewards-prize-image-wrap">
+                  <img
+                    src={currentPrize.image_url}
+                    alt={currentPrize.title}
+                    className="rewards-prize-image"
+                  />
+                </div>
+              ) : (
+                <div className="reward-icon reward-icon-large">
+                  <Gift size={32} />
+                </div>
+              )}
+              <h4 className="reward-name reward-name-featured">{currentPrize.title}</h4>
+              {currentPrize.sponsor_name && (
+                <span className="rewards-sponsor">by {currentPrize.sponsor_name}</span>
+              )}
+              {currentPrize.description && (
+                <p className="reward-description">{currentPrize.description}</p>
+              )}
+              {currentPrize.value && (
+                <span className="rewards-value">
+                  ${Number(currentPrize.value).toLocaleString()}
+                </span>
+              )}
+            </Wrapper>
+          );
+        })()}
 
         {totalPrizes > 1 && (
           <button
