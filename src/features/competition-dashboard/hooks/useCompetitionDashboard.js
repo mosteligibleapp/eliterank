@@ -127,7 +127,7 @@ export function useCompetitionDashboard(competitionId) {
             category:categories(id, name, slug),
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
-            organization:organizations(id, name, slug, logo_url),
+            organization:organizations(id, name, slug, logo_url, header_logo_url, website_url),
             voting_rounds(id, start_date, round_type)
           `)
           .eq('id', competitionId)
@@ -415,6 +415,8 @@ export function useCompetitionDashboard(competitionId) {
           slug: competition.slug || null,
           organizationName: competition.organization?.name || null,
           organizationLogoUrl: competition.organization?.logo_url || null,
+          organizationHeaderLogoUrl: competition.organization?.header_logo_url || null,
+          organizationWebsiteUrl: competition.organization?.website_url || null,
           themePrimary: competition.theme_primary || null,
         } : null,
       });

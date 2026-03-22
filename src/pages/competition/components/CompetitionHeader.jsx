@@ -16,22 +16,29 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
     complete: 'phase-badge-complete',
   }[badgeVariant] || '';
 
+  const headerLogo = organization?.header_logo_url || organization?.logo_url;
+  const websiteUrl = organization?.website_url;
+
+  const logoContent = headerLogo ? (
+    <img src={headerLogo} alt={organization.name} />
+  ) : (
+    <Crown size={40} />
+  );
+
   return (
     <section className="competition-header">
       {/* Organization Branding */}
       <div className="org-branding">
+        <span className="org-presented-by">Presented by</span>
         <div className="org-logo">
-          {organization?.logo_url ? (
-            <img
-              src={organization.logo_url}
-              alt={organization.name}
-            />
+          {websiteUrl ? (
+            <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+              {logoContent}
+            </a>
           ) : (
-            <Crown size={40} />
+            logoContent
           )}
         </div>
-        <span className="org-presented-by">Presented by</span>
-        <span className="org-name">{organization?.name || 'Elite Rank'}</span>
       </div>
 
       {/* Season Tag */}
