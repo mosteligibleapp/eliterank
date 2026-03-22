@@ -69,8 +69,8 @@
 }
 
 .org-logo {
-  width: 80px;
-  height: 80px;
+  width: 200px;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,13 +93,6 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 2px;
-  margin-top: var(--spacing-sm);
-}
-
-.org-name {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
 }
 
 .competition-season {
@@ -4784,8 +4777,9 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 .competition-footer-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -4793,8 +4787,8 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 }
 
 .competition-footer-logo {
-  width: 36px;
-  height: 36px;
+  width: 120px;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4809,6 +4803,8 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 }
 
 .competition-footer-logo-eliterank {
+  width: 36px;
+  height: 36px;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   border-radius: var(--radius-sm);
   color: #000;

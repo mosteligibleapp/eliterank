@@ -13,12 +13,11 @@ export function CompetitionFooter() {
       <div className="competition-footer-items">
         {organization?.logo_url && (
           <div className="competition-footer-item">
-            <div className="competition-footer-logo">
-              <img src={organization.logo_url} alt={organization.name} />
-            </div>
             <div className="competition-footer-text">
               <span className="competition-footer-label">Presented by</span>
-              <span className="competition-footer-name">{organization.name}</span>
+            </div>
+            <div className="competition-footer-logo">
+              <img src={organization.logo_url} alt={organization.name} />
             </div>
           </div>
         )}

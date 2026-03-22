@@ -20,6 +20,7 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
     <section className="competition-header">
       {/* Organization Branding */}
       <div className="org-branding">
+        <span className="org-presented-by">Presented by</span>
         <div className="org-logo">
           {organization?.logo_url ? (
             <img
@@ -30,8 +31,6 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
             <Crown size={40} />
           )}
         </div>
-        <span className="org-presented-by">Presented by</span>
-        <span className="org-name">{organization?.name || 'Elite Rank'}</span>
       </div>
 
       {/* Season Tag */}
