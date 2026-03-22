@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1000" width="1200" height="1000">
+  <defs>
+    <clipPath id="heartClip">
+      <path d="M600,880 C600,880 150,580 150,350 C150,200 260,120 370,120 C460,120 540,180 600,260 C660,180 740,120 830,120 C940,120 1050,200 1050,350 C1050,580 600,880 600,880 Z"/>
+    </clipPath>
+    <linearGradient id="heartGrad" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#E81C1C"/>
+      <stop offset="50%" stop-color="#D41919"/>
+      <stop offset="100%" stop-color="#B81414"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Black background -->
+  <rect width="1200" height="1000" fill="#000000"/>
+
+  <!-- Red heart shape -->
+  <path d="M600,880 C600,880 150,580 150,350 C150,200 260,120 370,120 C460,120 540,180 600,260 C660,180 740,120 830,120 C940,120 1050,200 1050,350 C1050,580 600,880 600,880 Z" fill="#E21A1A"/>
+
+  <!-- Darker red shadow on left side of heart for depth -->
+  <path d="M600,880 C600,880 150,580 150,350 C150,200 260,120 370,120 C460,120 540,180 600,260 L600,880 Z" fill="#CC1616" opacity="0.3"/>
+
+  <!-- City skyline group clipped to heart -->
+  <g clip-path="url(#heartClip)">
+
+    <!-- Building 1 - far left, short -->
+    <rect x="280" y="480" width="65" height="400" fill="#1A1A1A"/>
+    <!-- Shadow on building 1 -->
+    <rect x="280" y="480" width="20" height="400" fill="#0D0D0D" opacity="0.5"/>
+    <!-- Windows building 1 -->
+    <rect x="295" y="500" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="318" y="500" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="295" y="540" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="318" y="540" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="295" y="580" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="318" y="580" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="295" y="620" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="318" y="620" width="14" height="22" rx="1" fill="#FFFFFF"/>
+
+    <!-- Building 2 - left-center, medium tall -->
+    <rect x="355" y="420" width="80" height="460" fill="#111111"/>
+    <rect x="355" y="420" width="22" height="460" fill="#0A0A0A" opacity="0.4"/>
+    <!-- Windows building 2 -->
+    <rect x="370" y="445" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="395" y="445" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="370" y="485" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="395" y="485" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="370" y="525" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="395" y="525" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="370" y="565" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="395" y="565" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="370" y="605" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="395" y="605" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="370" y="645" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="395" y="645" width="16" height="24" rx="1" fill="#FFFFFF"/>
+
+    <!-- Building 3 - center-left, tallest -->
+    <rect x="448" y="340" width="90" height="540" fill="#0D0D0D"/>
+    <rect x="448" y="340" width="25" height="540" fill="#050505" opacity="0.5"/>
+    <!-- Windows building 3 -->
+    <rect x="465" y="365" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="492" y="365" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="519" y="365" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="465" y="405" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="492" y="405" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="519" y="405" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="465" y="445" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="492" y="445" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="519" y="445" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="465" y="485" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="492" y="485" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="519" y="485" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="465" y="525" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="492" y="525" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="519" y="525" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="465" y="565" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="492" y="565" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="519" y="565" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="465" y="605" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="492" y="605" width="16" height="24" rx="1" fill="#FFFFFF"/>
+    <rect x="519" y="605" width="16" height="24" rx="1" fill="#FFFFFF"/>
+
+    <!-- Building 4 - center, very tall narrow -->
+    <rect x="550" y="310" width="55" height="570" fill="#161616"/>
+    <rect x="550" y="310" width="16" height="570" fill="#080808" opacity="0.4"/>
+    <!-- Windows building 4 -->
+    <rect x="560" y="335" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="580" y="335" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="560" y="370" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="580" y="370" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="560" y="405" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="580" y="405" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="560" y="440" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="580" y="440" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="560" y="475" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="580" y="475" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="560" y="510" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="580" y="510" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="560" y="545" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="580" y="545" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="560" y="580" width="12" height="20" rx="1" fill="#FFFFFF"/>
+    <rect x="580" y="580" width="12" height="20" rx="1" fill="#FFFFFF"/>
+
+    <!-- Building 5 - center-right, tall -->
+    <rect x="618" y="380" width="85" height="500" fill="#0F0F0F"/>
+    <rect x="618" y="380" width="22" height="500" fill="#060606" opacity="0.4"/>
+    <!-- Windows building 5 -->
+    <rect x="633" y="405" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="658" y="405" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="683" y="405" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="633" y="445" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="658" y="445" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="683" y="445" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="633" y="485" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="658" y="485" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="683" y="485" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="633" y="525" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="658" y="525" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="683" y="525" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="633" y="565" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="658" y="565" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="683" y="565" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="633" y="605" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="658" y="605" width="15" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="683" y="605" width="15" height="22" rx="1" fill="#FFFFFF"/>
+
+    <!-- Building 6 - right, medium -->
+    <rect x="715" y="450" width="75" height="430" fill="#141414"/>
+    <rect x="715" y="450" width="20" height="430" fill="#080808" opacity="0.4"/>
+    <!-- Windows building 6 -->
+    <rect x="730" y="475" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="754" y="475" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="730" y="515" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="754" y="515" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="730" y="555" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="754" y="555" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="730" y="595" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="754" y="595" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="730" y="635" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="754" y="635" width="14" height="22" rx="1" fill="#FFFFFF"/>
+
+    <!-- Building 7 - far right, short -->
+    <rect x="800" y="500" width="70" height="380" fill="#181818"/>
+    <rect x="800" y="500" width="18" height="380" fill="#0A0A0A" opacity="0.4"/>
+    <!-- Windows building 7 -->
+    <rect x="815" y="520" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="840" y="520" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="815" y="560" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="840" y="560" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="815" y="600" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="840" y="600" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="815" y="640" width="14" height="22" rx="1" fill="#FFFFFF"/>
+    <rect x="840" y="640" width="14" height="22" rx="1" fill="#FFFFFF"/>
+
+  </g>
+</svg>
