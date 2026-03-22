@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DollarSign, Crown, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
+import { DollarSign, Crown, Gift, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 
 // Default rewards when no prizes are uploaded by the host
@@ -24,18 +24,14 @@ const DEFAULT_REWARDS = [
 const AUTO_ROTATE_INTERVAL = 4000;
 
 /**
- * Rewards display component
- * Shows a rotating carousel of prizes uploaded by the host,
- * or falls back to static default reward cards.
+ * Carousel sub-component for a list of prizes
  */
-export function Rewards() {
-  const { prizes } = usePublicCompetition();
+function PrizeCarousel({ prizes, title, icon: Icon }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
-  const hasPrizes = prizes && prizes.length > 0;
-  const totalPrizes = hasPrizes ? prizes.length : 0;
+  const totalPrizes = prizes.length;
 
   const goTo = useCallback((index) => {
     if (isTransitioning) return;
@@ -56,32 +52,10 @@ export function Rewards() {
 
   // Auto-rotate
   useEffect(() => {
-    if (!hasPrizes || totalPrizes <= 1 || isPaused) return;
+    if (totalPrizes <= 1 || isPaused) return;
     const timer = setInterval(goNext, AUTO_ROTATE_INTERVAL);
     return () => clearInterval(timer);
-  }, [hasPrizes, totalPrizes, isPaused, goNext]);
-
-  // Static fallback — same as before
-  if (!hasPrizes) {
-    return (
-      <div className="rewards-section">
-        <div className="rewards-header">
-          <h3 className="rewards-title">Rewards</h3>
-        </div>
-        <div className="rewards-grid">
-          {DEFAULT_REWARDS.map((reward) => (
-            <div key={reward.title} className="reward-card">
-              <div className="reward-icon">
-                <reward.icon size={24} />
-              </div>
-              <h4 className="reward-name">{reward.title}</h4>
-              <p className="reward-description">{reward.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  }, [totalPrizes, isPaused, goNext]);
 
   const currentPrize = prizes[currentIndex];
 
@@ -92,7 +66,10 @@ export function Rewards() {
       onMouseLeave={() => setIsPaused(false)}
     >
       <div className="rewards-header">
-        <h3 className="rewards-title">Rewards</h3>
+        <h3 className="rewards-title">
+          {Icon && <Icon size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />}
+          {title}
+        </h3>
         {totalPrizes > 1 && (
           <span className="rewards-counter">
             {currentIndex + 1} / {totalPrizes}
@@ -163,6 +140,63 @@ export function Rewards() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Rewards display component
+ * Shows separate sections for Winner's Prize Package and Contestant Rewards.
+ * Falls back to static default reward cards when no prizes exist.
+ */
+export function Rewards() {
+  const { prizes } = usePublicCompetition();
+
+  const hasPrizes = prizes && prizes.length > 0;
+
+  // Split prizes by type
+  const winnerPrizes = hasPrizes ? prizes.filter(p => (p.prize_type || 'winner') === 'winner') : [];
+  const contestantRewards = hasPrizes ? prizes.filter(p => p.prize_type === 'contestant') : [];
+
+  // Static fallback — same as before
+  if (!hasPrizes) {
+    return (
+      <div className="rewards-section">
+        <div className="rewards-header">
+          <h3 className="rewards-title">Rewards</h3>
+        </div>
+        <div className="rewards-grid">
+          {DEFAULT_REWARDS.map((reward) => (
+            <div key={reward.title} className="reward-card">
+              <div className="reward-icon">
+                <reward.icon size={24} />
+              </div>
+              <h4 className="reward-name">{reward.title}</h4>
+              <p className="reward-description">{reward.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {winnerPrizes.length > 0 && (
+        <PrizeCarousel
+          prizes={winnerPrizes}
+          title="Winner's Prize Package"
+          icon={Trophy}
+        />
+      )}
+
+      {contestantRewards.length > 0 && (
+        <PrizeCarousel
+          prizes={contestantRewards}
+          title="Contestant Rewards"
+          icon={Gift}
+        />
+      )}
+    </>
   );
 }
 

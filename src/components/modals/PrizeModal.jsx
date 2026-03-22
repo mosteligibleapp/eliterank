@@ -18,6 +18,7 @@ export default function PrizeModal({
   onClose,
   prize,
   onSave,
+  prizeType = 'winner',
 }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
@@ -92,6 +93,7 @@ export default function PrizeModal({
 
   const handleSave = () => {
     const data = getFormData();
+    data.prizeType = prize?.prizeType || prizeType;
     onSave(data);
   };
 
@@ -99,7 +101,7 @@ export default function PrizeModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? 'Edit Prize' : 'Add Prize'}
+      title={isEditing ? 'Edit Prize' : `Add ${prizeType === 'contestant' ? 'Contestant Reward' : 'Winner Prize'}`}
       maxWidth="500px"
       footer={
         <>

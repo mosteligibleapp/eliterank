@@ -117,7 +117,7 @@ export default function CompetitionDashboard({
   const [judgeModal, setJudgeModal] = useState({ isOpen: false, judge: null });
   const [sponsorModal, setSponsorModal] = useState({ isOpen: false, sponsor: null });
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
-  const [prizeModal, setPrizeModal] = useState({ isOpen: false, prize: null });
+  const [prizeModal, setPrizeModal] = useState({ isOpen: false, prize: null, prizeType: 'winner' });
 
   // ============================================================================
   // HEADER
@@ -461,7 +461,7 @@ export default function CompetitionDashboard({
             onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
             onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
-            onOpenPrizeModal={(prize) => setPrizeModal({ isOpen: true, prize })}
+            onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
           />
         );
       default:
@@ -538,15 +538,16 @@ export default function CompetitionDashboard({
       />
       <PrizeModal
         isOpen={prizeModal.isOpen}
-        onClose={() => setPrizeModal({ isOpen: false, prize: null })}
+        onClose={() => setPrizeModal({ isOpen: false, prize: null, prizeType: 'winner' })}
         prize={prizeModal.prize}
+        prizeType={prizeModal.prizeType}
         onSave={async (prizeData) => {
           if (prizeModal.prize) {
             await updatePrize(prizeModal.prize.id, prizeData);
           } else {
             await addPrize(prizeData);
           }
-          setPrizeModal({ isOpen: false, prize: null });
+          setPrizeModal({ isOpen: false, prize: null, prizeType: 'winner' });
         }}
       />
       <AddPersonModal
