@@ -8,26 +8,36 @@ import { EliteRankCrown } from '../../../components/ui/icons';
 export function CompetitionFooter() {
   const { organization } = usePublicCompetition();
 
-  const footerLogo = organization?.header_logo_url || organization?.logo_url;
   const websiteUrl = organization?.website_url;
+
+  const orgLogoContent = organization?.logo_url ? (
+    <div className="competition-footer-logo">
+      <img src={organization.logo_url} alt={organization.name} />
+    </div>
+  ) : null;
 
   return (
     <footer className="competition-footer">
       <div className="competition-footer-items">
-        {footerLogo && (
+        {organization?.logo_url && (
           <div className="competition-footer-item">
-            <div className="competition-footer-text">
-              <span className="competition-footer-label">Presented by</span>
-            </div>
-            <div className="competition-footer-logo">
-              {websiteUrl ? (
-                <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
-                  <img src={footerLogo} alt={organization.name} />
-                </a>
-              ) : (
-                <img src={footerLogo} alt={organization.name} />
-              )}
-            </div>
+            {websiteUrl ? (
+              <a href={websiteUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 'inherit', textDecoration: 'none', color: 'inherit' }}>
+                {orgLogoContent}
+                <div className="competition-footer-text">
+                  <span className="competition-footer-label">Presented by</span>
+                  <span className="competition-footer-name">{organization.name}</span>
+                </div>
+              </a>
+            ) : (
+              <>
+                {orgLogoContent}
+                <div className="competition-footer-text">
+                  <span className="competition-footer-label">Presented by</span>
+                  <span className="competition-footer-name">{organization.name}</span>
+                </div>
+              </>
+            )}
           </div>
         )}
 
