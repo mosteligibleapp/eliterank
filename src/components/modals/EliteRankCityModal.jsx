@@ -642,30 +642,21 @@ export default function EliteRankCityModal({
         {/* Header */}
         <div style={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: spacing.sm,
+          gap: '4px',
           marginBottom: spacing.md,
         }}>
           <EliteRankCrown size={22} />
-          <div>
-            <p style={{
-              fontSize: '10px',
-              color: colors.text.muted,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '1px',
-            }}>
-              ELITES
-            </p>
-            <h2 style={{
-              fontSize: typography.fontSize.md,
-              fontWeight: typography.fontWeight.bold,
-              color: colors.text.primary,
-              margin: 0,
-            }}>
-              Most Eligible {year}
-            </h2>
-          </div>
+          <h2 style={{
+            fontSize: typography.fontSize.md,
+            fontWeight: typography.fontWeight.bold,
+            color: colors.text.primary,
+            margin: 0,
+            textAlign: 'center',
+          }}>
+            Most Eligible Bachelorettes {year}
+          </h2>
         </div>
 
         {/* Winners Grid - compact circular avatar style */}
