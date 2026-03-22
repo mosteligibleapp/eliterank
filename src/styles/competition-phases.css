@@ -3144,23 +3144,28 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+/* Compact variant when inside sidebar */
+.sidebar-stack .rules-accordion {
   padding: var(--spacing-md);
 }
 
-.rules-accordion .section-label {
+.sidebar-stack .rules-accordion .section-label {
   font-size: var(--font-size-xs);
   margin-bottom: var(--spacing-sm);
 }
 
-.rules-accordion .rule-header {
+.sidebar-stack .rules-accordion .rule-header {
   padding: var(--spacing-xs) 0;
 }
 
-.rules-accordion .rule-title {
+.sidebar-stack .rules-accordion .rule-title {
   font-size: var(--font-size-sm);
 }
 
-.rules-accordion .rules-disclaimer {
+.sidebar-stack .rules-accordion .rules-disclaimer {
   font-size: var(--font-size-xs);
 }
 
