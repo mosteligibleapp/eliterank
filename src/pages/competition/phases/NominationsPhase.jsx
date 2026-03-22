@@ -99,15 +99,13 @@ export function NominationsPhase() {
 
       <hr className="phase-divider" />
 
-      {/* Timeline & Host */}
+      {/* Timeline & Host + Rules */}
       <section className="phase-grid phase-grid-2">
         <Timeline />
-        <HostCard />
-      </section>
-
-      {/* Rules */}
-      <section className="phase-section">
-        <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
+        <div className="sidebar-stack">
+          <HostCard />
+          <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
+        </div>
       </section>
 
       {/* Footer */}
