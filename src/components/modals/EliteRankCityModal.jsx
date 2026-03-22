@@ -601,6 +601,31 @@ export default function EliteRankCityModal({
     // Use dynamic data from app settings
     const winners = hallOfWinnersData?.winners || [];
     const year = hallOfWinnersData?.year || new Date().getFullYear();
+    const [igMap, setIgMap] = useState({});
+
+    useEffect(() => {
+      const profileIds = winners.slice(0, 5).map(w => w.profileId).filter(Boolean);
+      if (!profileIds.length) return;
+      supabase
+        .from('profiles')
+        .select('id, instagram')
+        .in('id', profileIds)
+        .then(({ data }) => {
+          if (data) {
+            const m = {};
+            data.forEach(p => { if (p.instagram) m[p.id] = p.instagram; });
+            setIgMap(m);
+          }
+        });
+    }, [winners]);
+
+    const getIgUrl = (winner) => {
+      const handle = igMap[winner.profileId];
+      if (!handle) return null;
+      const clean = handle.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '');
+      return `https://instagram.com/${clean}`;
+    };
+
     if (!winners.length) return null;
 
     return (
@@ -651,69 +676,89 @@ export default function EliteRankCityModal({
           justifyContent: 'center',
           gap: spacing.sm,
         }}>
-          {winners.slice(0, 5).map((winner, index) => (
-            <div
-              key={winner.id}
-              style={{
-                flex: isMobile ? '0 1 calc(50% - 8px)' : undefined,
-                minWidth: isMobile ? '140px' : undefined,
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.sm,
-                padding: `${spacing.sm} ${spacing.md}`,
-                background: 'rgba(0, 0, 0, 0.2)',
-                borderRadius: borderRadius.md,
-                border: `1px solid rgba(212, 175, 55, 0.15)`,
-              }}
-            >
-              {/* Rank */}
-              <div style={{
-                width: '22px',
-                height: '22px',
-                background: 'rgba(212, 175, 55, 0.2)',
-                borderRadius: '50%',
-                ...styleHelpers.flexCenter,
-                flexShrink: 0,
-                fontSize: typography.fontSize.xs,
-                fontWeight: typography.fontWeight.bold,
-                color: colors.gold.primary,
-              }}>
-                {index + 1}
-              </div>
-
-              {/* Profile Image */}
-              <WinnerAvatar
-                src={winner.imageUrl}
-                name={winner.name}
-              />
-
-              {/* Info */}
-              <div style={{ minWidth: 0 }}>
-                <p style={{
-                  fontSize: typography.fontSize.sm,
-                  fontWeight: typography.fontWeight.semibold,
-                  color: colors.text.primary,
-                  marginBottom: '1px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+          {winners.slice(0, 5).map((winner, index) => {
+            const igUrl = getIgUrl(winner);
+            const Tag = igUrl ? 'a' : 'div';
+            const linkProps = igUrl
+              ? { href: igUrl, target: '_blank', rel: 'noopener noreferrer' }
+              : {};
+            return (
+              <Tag
+                key={winner.id}
+                {...linkProps}
+                style={{
+                  flex: isMobile ? '0 1 calc(50% - 8px)' : undefined,
+                  minWidth: isMobile ? '140px' : undefined,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  padding: `${spacing.sm} ${spacing.md}`,
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  borderRadius: borderRadius.md,
+                  border: `1px solid rgba(212, 175, 55, 0.15)`,
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  cursor: igUrl ? 'pointer' : 'default',
+                  transition: 'border-color 0.2s ease, transform 0.2s ease',
+                }}
+                onMouseEnter={igUrl ? (e) => {
+                  e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.45)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                } : undefined}
+                onMouseLeave={igUrl ? (e) => {
+                  e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.15)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                } : undefined}
+              >
+                {/* Rank */}
+                <div style={{
+                  width: '22px',
+                  height: '22px',
+                  background: 'rgba(212, 175, 55, 0.2)',
+                  borderRadius: '50%',
+                  ...styleHelpers.flexCenter,
+                  flexShrink: 0,
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.gold.primary,
                 }}>
-                  {winner.name}
-                </p>
-                {winner.city && (
+                  {index + 1}
+                </div>
+
+                {/* Profile Image */}
+                <WinnerAvatar
+                  src={winner.imageUrl}
+                  name={winner.name}
+                />
+
+                {/* Info */}
+                <div style={{ minWidth: 0 }}>
                   <p style={{
-                    fontSize: typography.fontSize.xs,
-                    color: colors.text.muted,
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.primary,
+                    marginBottom: '1px',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                   }}>
-                    {winner.city}
+                    {winner.name}
                   </p>
-                )}
-              </div>
-            </div>
-          ))}
+                  {winner.city && (
+                    <p style={{
+                      fontSize: typography.fontSize.xs,
+                      color: colors.text.muted,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {winner.city}
+                    </p>
+                  )}
+                </div>
+              </Tag>
+            );
+          })}
         </div>
       </div>
     );
