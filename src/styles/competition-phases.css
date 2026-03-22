@@ -4098,6 +4098,10 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 .host-profile-header {
   margin-bottom: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .host-modal-avatar {
