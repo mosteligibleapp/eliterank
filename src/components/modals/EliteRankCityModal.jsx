@@ -634,7 +634,7 @@ export default function EliteRankCityModal({
         margin: '0 auto',
         marginTop: spacing.xxxl,
         marginBottom: spacing.xxxl,
-        padding: spacing.xl,
+        padding: spacing.md,
         background: 'rgba(255, 255, 255, 0.05)',
         borderRadius: borderRadius.xl,
         border: `1px solid rgba(255, 255, 255, 0.1)`,
@@ -643,22 +643,22 @@ export default function EliteRankCityModal({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: spacing.md,
-          marginBottom: spacing.xl,
+          gap: spacing.sm,
+          marginBottom: spacing.md,
         }}>
-          <EliteRankCrown size={28} />
+          <EliteRankCrown size={22} />
           <div>
             <p style={{
-              fontSize: typography.fontSize.xs,
+              fontSize: '10px',
               color: colors.text.muted,
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
-              marginBottom: '2px',
+              marginBottom: '1px',
             }}>
               ELITES
             </p>
             <h2 style={{
-              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+              fontSize: typography.fontSize.md,
               fontWeight: typography.fontWeight.bold,
               color: colors.text.primary,
               margin: 0,
@@ -668,12 +668,12 @@ export default function EliteRankCityModal({
           </div>
         </div>
 
-        {/* Winners Grid - circular avatar style matching competition page */}
+        {/* Winners Grid - compact circular avatar style */}
         <div style={{
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'center',
-          gap: spacing.md,
+          gap: spacing.sm,
         }}>
           {winners.slice(0, 5).map((winner, index) => {
             const igUrl = getIgUrl(winner);
@@ -686,14 +686,14 @@ export default function EliteRankCityModal({
                 key={winner.id}
                 {...linkProps}
                 style={{
-                  width: isMobile ? 'calc(33.33% - 10px)' : '160px',
+                  width: isMobile ? 'calc(33.33% - 8px)' : '120px',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: spacing.sm,
-                  padding: `${spacing.lg} ${spacing.sm}`,
+                  gap: '6px',
+                  padding: `${spacing.md} ${spacing.xs}`,
                   background: 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: borderRadius.xl,
+                  borderRadius: borderRadius.lg,
                   border: `1px solid rgba(212, 175, 55, 0.15)`,
                   textAlign: 'center',
                   position: 'relative',
@@ -713,25 +713,25 @@ export default function EliteRankCityModal({
               >
                 {/* Rank Badge */}
                 <div style={{
-                  width: '24px',
-                  height: '24px',
+                  width: '20px',
+                  height: '20px',
                   background: 'rgba(212, 175, 55, 0.25)',
                   borderRadius: '50%',
                   ...styleHelpers.flexCenter,
-                  fontSize: typography.fontSize.xs,
+                  fontSize: '10px',
                   fontWeight: typography.fontWeight.bold,
                   color: colors.gold.primary,
                   position: 'absolute',
-                  top: spacing.sm,
-                  left: spacing.sm,
+                  top: '6px',
+                  left: '6px',
                 }}>
                   {index + 1}
                 </div>
 
                 {/* Circular Avatar */}
                 <div style={{
-                  width: isMobile ? '64px' : '80px',
-                  height: isMobile ? '64px' : '80px',
+                  width: isMobile ? '48px' : '56px',
+                  height: isMobile ? '48px' : '56px',
                   borderRadius: '50%',
                   background: colors.background.elevated,
                   border: '2px solid rgba(212, 175, 55, 0.35)',
@@ -746,13 +746,13 @@ export default function EliteRankCityModal({
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
-                    <User size={32} style={{ color: colors.text.muted }} />
+                    <User size={24} style={{ color: colors.text.muted }} />
                   )}
                 </div>
 
                 {/* Name */}
                 <p style={{
-                  fontSize: typography.fontSize.sm,
+                  fontSize: typography.fontSize.xs,
                   fontWeight: typography.fontWeight.semibold,
                   color: colors.text.primary,
                   margin: 0,
