@@ -668,13 +668,11 @@ export default function EliteRankCityModal({
           </div>
         </div>
 
-        {/* Winners Grid */}
+        {/* Winners Grid - circular avatar style matching competition page */}
         <div style={{
-          display: isMobile ? 'flex' : 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: spacing.sm,
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : `repeat(${Math.min(winners.length, 5)}, 1fr)`,
+          gap: spacing.md,
         }}>
           {winners.slice(0, 5).map((winner, index) => {
             const igUrl = getIgUrl(winner);
@@ -687,15 +685,16 @@ export default function EliteRankCityModal({
                 key={winner.id}
                 {...linkProps}
                 style={{
-                  flex: isMobile ? '0 1 calc(50% - 8px)' : undefined,
-                  minWidth: isMobile ? '140px' : undefined,
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   gap: spacing.sm,
-                  padding: `${spacing.sm} ${spacing.md}`,
+                  padding: `${spacing.lg} ${spacing.sm}`,
                   background: 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: borderRadius.md,
+                  borderRadius: borderRadius.xl,
                   border: `1px solid rgba(212, 175, 55, 0.15)`,
+                  textAlign: 'center',
+                  position: 'relative',
                   textDecoration: 'none',
                   color: 'inherit',
                   cursor: igUrl ? 'pointer' : 'default',
@@ -710,52 +709,55 @@ export default function EliteRankCityModal({
                   e.currentTarget.style.transform = 'translateY(0)';
                 } : undefined}
               >
-                {/* Rank */}
+                {/* Rank Badge */}
                 <div style={{
-                  width: '22px',
-                  height: '22px',
-                  background: 'rgba(212, 175, 55, 0.2)',
+                  width: '24px',
+                  height: '24px',
+                  background: 'rgba(212, 175, 55, 0.25)',
                   borderRadius: '50%',
                   ...styleHelpers.flexCenter,
-                  flexShrink: 0,
                   fontSize: typography.fontSize.xs,
                   fontWeight: typography.fontWeight.bold,
                   color: colors.gold.primary,
+                  position: 'absolute',
+                  top: spacing.sm,
+                  left: spacing.sm,
                 }}>
                   {index + 1}
                 </div>
 
-                {/* Profile Image */}
-                <WinnerAvatar
-                  src={winner.imageUrl}
-                  name={winner.name}
-                />
-
-                {/* Info */}
-                <div style={{ minWidth: 0 }}>
-                  <p style={{
-                    fontSize: typography.fontSize.sm,
-                    fontWeight: typography.fontWeight.semibold,
-                    color: colors.text.primary,
-                    marginBottom: '1px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}>
-                    {winner.name}
-                  </p>
-                  {winner.city && (
-                    <p style={{
-                      fontSize: typography.fontSize.xs,
-                      color: colors.text.muted,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}>
-                      {winner.city}
-                    </p>
+                {/* Circular Avatar */}
+                <div style={{
+                  width: isMobile ? '64px' : '80px',
+                  height: isMobile ? '64px' : '80px',
+                  borderRadius: '50%',
+                  background: colors.bg.elevated,
+                  border: '2px solid rgba(212, 175, 55, 0.35)',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  ...styleHelpers.flexCenter,
+                }}>
+                  {winner.imageUrl ? (
+                    <img
+                      src={winner.imageUrl}
+                      alt={winner.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <User size={32} style={{ color: colors.text.muted }} />
                   )}
                 </div>
+
+                {/* Name */}
+                <p style={{
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: typography.fontWeight.semibold,
+                  color: colors.text.primary,
+                  margin: 0,
+                  lineHeight: 1.3,
+                }}>
+                  {winner.name}
+                </p>
               </Tag>
             );
           })}
