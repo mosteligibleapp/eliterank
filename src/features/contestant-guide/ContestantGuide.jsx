@@ -279,7 +279,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     // Section 1: Welcome / How It Works
     {
       icon: <Trophy size={48} className="guide-icon guide-icon--gold" />,
-      title: 'Welcome to the Competition!',
+      title: `How ${competitionName} Works:`,
       subtitle: `You will be notified via email if you are accepted as an official contestant.`,
       points: [
         `Compete against other contestants from ${cityName}`,
@@ -287,7 +287,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
         `Top ${numWinners} finishers win prizes — 1st place takes home cash`,
         hasResurrection ? 'Resurrection round gives eliminated contestants a second chance!' : 'Every vote counts toward your ranking',
       ].filter(Boolean),
-      tip: `How ${competitionName} works: The more votes you get, the higher you rank!`,
+      tip: 'The more votes you get, the higher you rank!',
     },
 
     // Section 2: How Voting Works
