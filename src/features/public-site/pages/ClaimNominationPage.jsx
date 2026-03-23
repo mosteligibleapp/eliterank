@@ -8,6 +8,7 @@ import { useBuildCardFlow } from '../../entry/hooks/useBuildCardFlow';
 
 // Shared step components
 import AcceptDeclineStep from '../../entry/components/AcceptDeclineStep';
+import EligibilityStep from '../../entry/components/EligibilityStep';
 import EligibilityConfirmStep from '../../entry/components/EligibilityConfirmStep';
 import PhotoUpload from '../../entry/components/PhotoUpload';
 import BuildCardDetailsStep from '../../entry/components/BuildCardDetailsStep';
@@ -366,6 +367,17 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
           onDecline={handleDecline}
           processing={flow.isSubmitting}
           error={flow.submitError}
+        />
+      );
+
+    case 'eligibility':
+      return (
+        <EligibilityStep
+          competition={competition}
+          isSelf={nominee?.nominated_by === 'self'}
+          answers={flow.eligibilityAnswers}
+          onToggle={flow.setEligibility}
+          onNext={flow.next}
         />
       );
 
