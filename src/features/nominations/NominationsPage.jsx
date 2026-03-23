@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Users, UserCheck, UserPlus, Archive, ChevronDown, ChevronUp,
+  Users, UserCheck, UserPlus, XCircle, ChevronDown, ChevronUp,
   ExternalLink, User, Mail, Phone, Instagram, Check, X, RotateCcw,
   Loader, AlertCircle, Link2, Send, Clock
 } from 'lucide-react';
@@ -43,13 +43,13 @@ const SECTION_CONFIG = {
     bgColor: 'rgba(251,191,36,0.15)',
     borderColor: 'rgba(251,191,36,0.3)',
   },
-  archived: {
-    title: 'Archived',
-    subtitle: 'Archived nominees',
-    icon: Archive,
-    color: '#6b7280',
-    bgColor: 'rgba(107,114,128,0.15)',
-    borderColor: 'rgba(107,114,128,0.3)',
+  rejected: {
+    title: 'Rejected / Declined',
+    subtitle: 'Denied or declined nominations',
+    icon: XCircle,
+    color: '#ef4444',
+    bgColor: 'rgba(239,68,68,0.15)',
+    borderColor: 'rgba(239,68,68,0.3)',
   },
 };
 
@@ -61,7 +61,6 @@ export default function NominationsPage({ competitionId, competitionName }) {
     refresh,
     approveNominee,
     rejectNominee,
-    archiveNominee,
     restoreNominee,
     resendInvite,
   } = useCompetitionDashboard(competitionId);
@@ -71,7 +70,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
     withProfile: true,
     external: true,
     incomplete: true,
-    archived: false,
+    rejected: false,
   });
 
   const [processingId, setProcessingId] = useState(null);
@@ -131,15 +130,15 @@ export default function NominationsPage({ competitionId, competitionName }) {
     // External nominees (no user_id)
     const external = activeNominees.filter(n => !n.hasProfile);
 
-    // Archived + declined nominees
-    const archived = nominees.filter(n => n.status === 'archived' || n.status === 'declined');
+    // Rejected + declined nominees
+    const rejected = nominees.filter(n => n.status === 'rejected' || n.status === 'declined');
 
     return {
       contestants,
       withProfile,
       external,
       incomplete: incompleteNominees,
-      archived,
+      rejected,
     };
   }, [data.nominees, data.contestants]);
 
@@ -159,12 +158,6 @@ export default function NominationsPage({ competitionId, competitionName }) {
   const handleReject = async (nomineeId) => {
     setProcessingId(nomineeId);
     await rejectNominee(nomineeId);
-    setProcessingId(null);
-  };
-
-  const handleArchive = async (nomineeId) => {
-    setProcessingId(nomineeId);
-    await archiveNominee(nomineeId);
     setProcessingId(null);
   };
 
@@ -247,7 +240,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
     const Icon = config.icon;
     const isExpanded = expandedSections[sectionKey];
     const isContestants = sectionKey === 'contestants';
-    const isArchived = sectionKey === 'archived';
+    const isRejected = sectionKey === 'rejected';
 
     return (
       <div
@@ -445,7 +438,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
                             )}
 
                             {/* Resend invite button for nominees without a profile */}
-                            {!isContestants && !isArchived && !item.hasProfile && item.inviteToken && (
+                            {!isContestants && !isRejected && !item.hasProfile && item.inviteToken && (
                               <Button
                                 variant="secondary"
                                 size="sm"
@@ -461,7 +454,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
                             )}
 
                             {/* Approve button for pending nominees */}
-                            {!isContestants && !isArchived && (
+                            {!isContestants && !isRejected && (
                               <Button
                                 variant="primary"
                                 size="sm"
@@ -473,19 +466,19 @@ export default function NominationsPage({ competitionId, competitionName }) {
                               </Button>
                             )}
 
-                            {/* Archive button for non-archived nominees */}
-                            {!isContestants && !isArchived && (
+                            {/* Reject/Deny button for active nominees */}
+                            {!isContestants && !isRejected && (
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                icon={Archive}
-                                onClick={() => handleArchive(item.id)}
-                                style={{ padding: `${spacing.xs} ${spacing.sm}` }}
+                                icon={XCircle}
+                                onClick={() => handleReject(item.id)}
+                                style={{ padding: `${spacing.xs} ${spacing.sm}`, color: colors.status.error, borderColor: colors.status.error }}
                               />
                             )}
 
-                            {/* Restore button for archived nominees */}
-                            {isArchived && (
+                            {/* Restore button for rejected/declined nominees */}
+                            {isRejected && (
                               <Button
                                 variant="secondary"
                                 size="sm"
@@ -569,7 +562,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
       {renderSection('withProfile', categorizedData.withProfile)}
       {renderSection('external', categorizedData.external)}
       {categorizedData.incomplete.length > 0 && renderSection('incomplete', categorizedData.incomplete)}
-      {renderSection('archived', categorizedData.archived)}
+      {renderSection('rejected', categorizedData.rejected)}
     </div>
   );
 }
