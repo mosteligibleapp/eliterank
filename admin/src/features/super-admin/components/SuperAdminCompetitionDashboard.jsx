@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Crown, ArrowLeft, Shield, Star, LogOut, BarChart3, UserPlus, FileText, Settings as SettingsIcon,
-  User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, Archive, RotateCcw, ExternalLink,
+  User, TrendingUp, Calendar, Eye, Edit2, Loader, AlertCircle, RotateCcw, ExternalLink,
   UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Wrench
 } from 'lucide-react';
 import { Button, Badge, Avatar, StatCard } from '@shared/components/ui';
@@ -47,7 +47,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   // Fetch real data from Supabase
   const {
     data, loading, error, refresh,
-    addNominee, approveNominee, rejectNominee, archiveNominee, restoreNominee,
+    addNominee, approveNominee, rejectNominee, restoreNominee,
     repairNomineeAccount, repairAllNomineeAccounts,
     addContestant,
     addAnnouncement, updateAnnouncement, deleteAnnouncement,
@@ -61,7 +61,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   const [expandedSections, setExpandedSections] = useState({
     withProfile: true,
     external: true,
-    archived: false,
+    rejected: false,
     contestants: true,
   });
 
@@ -485,10 +485,10 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
   // Nominations tab
   const renderNominations = () => {
     // Categorize nominees
-    const activeNominees = data.nominees.filter(n => !['approved', 'rejected', 'archived'].includes(n.status));
+    const activeNominees = data.nominees.filter(n => !['approved', 'rejected', 'declined'].includes(n.status));
     const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
     const externalNominees = activeNominees.filter(n => !n.hasProfile);
-    const archivedNominees = data.nominees.filter(n => n.status === 'archived');
+    const rejectedNominees = data.nominees.filter(n => n.status === 'rejected' || n.status === 'declined');
     const approvedContestants = data.contestants;
 
     // Calculate stats
@@ -529,7 +529,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
     );
 
     // Nominee row component
-    const NomineeRow = ({ nominee, showActions = true, showProfileLink = false, isArchived = false }) => (
+    const NomineeRow = ({ nominee, showActions = true, showProfileLink = false, isRejected = false }) => (
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -538,7 +538,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         background: colors.background.secondary,
         borderRadius: borderRadius.lg,
         marginBottom: spacing.sm,
-        opacity: isArchived ? 0.7 : 1,
+        opacity: isRejected ? 0.7 : 1,
       }}>
         <Avatar name={nominee.name} size={48} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -578,7 +578,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
             <Badge variant="success" size="sm">Has Profile</Badge>
           )}
         </div>
-        {showActions && !isArchived && (
+        {showActions && !isRejected && (
           <div style={{ display: 'flex', gap: spacing.sm }}>
             {!nominee.hasProfile && nominee.email && nominee.claimedAt && (
               <Button variant="secondary" size="sm" title="Repair account (create auth user + sync profile)" onClick={async () => {
@@ -616,12 +616,9 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
             }}>
               <XCircle size={14} />
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => archiveNominee(nominee.id)}>
-              <Archive size={14} />
-            </Button>
           </div>
         )}
-        {isArchived && (
+        {isRejected && (
           <Button variant="secondary" size="sm" onClick={() => restoreNominee(nominee.id)}>
             <RotateCcw size={14} style={{ marginRight: spacing.xs }} /> Restore
           </Button>
@@ -685,7 +682,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
             { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
             { label: 'External', value: externalNominees.length, color: '#f59e0b' },
             { label: 'Approved', value: approvedCount, color: '#22c55e' },
-            { label: 'Archived', value: archivedNominees.length, color: '#6b7280' },
+            { label: 'Rejected', value: rejectedNominees.length, color: '#ef4444' },
           ].map((stat, i) => (
             <div key={i} style={{
               background: colors.background.card,
@@ -857,30 +854,30 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           )}
         </div>
 
-        {/* Archived Nominees */}
+        {/* Rejected / Declined Nominees */}
         <div style={{
           background: colors.background.card,
-          border: `1px solid ${colors.border.light}`,
+          border: `1px solid rgba(239,68,68,0.3)`,
           borderRadius: borderRadius.xl,
           overflow: 'hidden',
         }}>
           <SectionHeader
-            title="Archived"
-            count={archivedNominees.length}
-            icon={Archive}
-            iconColor="#6b7280"
-            sectionKey="archived"
+            title="Rejected / Declined"
+            count={rejectedNominees.length}
+            icon={XCircle}
+            iconColor="#ef4444"
+            sectionKey="rejected"
           />
-          {expandedSections.archived && (
+          {expandedSections.rejected && (
             <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
-              {archivedNominees.length === 0 ? (
+              {rejectedNominees.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                  <Archive size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                  <p>No archived nominees</p>
+                  <XCircle size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
+                  <p>No rejected or declined nominees</p>
                 </div>
               ) : (
-                archivedNominees.map((nominee) => (
-                  <NomineeRow key={nominee.id} nominee={nominee} showActions={false} isArchived={true} />
+                rejectedNominees.map((nominee) => (
+                  <NomineeRow key={nominee.id} nominee={nominee} showActions={false} isRejected={true} />
                 ))
               )}
             </div>

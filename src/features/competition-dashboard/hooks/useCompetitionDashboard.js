@@ -598,24 +598,6 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
-  const archiveNominee = useCallback(async (nomineeId) => {
-    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
-
-    try {
-      const { error: updateError } = await supabase
-        .from('nominees')
-        .update({ status: 'archived' })
-        .eq('id', nomineeId);
-
-      if (updateError) throw updateError;
-      await fetchDashboardData();
-      return { success: true };
-    } catch (err) {
-      console.error('Error archiving nominee:', err);
-      return { success: false, error: err.message };
-    }
-  }, [competitionId, fetchDashboardData]);
-
   const restoreNominee = useCallback(async (nomineeId) => {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
@@ -1365,7 +1347,6 @@ export function useCompetitionDashboard(competitionId) {
     addNominee,
     approveNominee,
     rejectNominee,
-    archiveNominee,
     restoreNominee,
     resendInvite,
     repairNomineeAccount,

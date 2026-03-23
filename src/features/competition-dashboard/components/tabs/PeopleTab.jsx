@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
+  Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
   Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +24,6 @@ export default function PeopleTab({
   onRefresh,
   onApproveNominee,
   onRejectNominee,
-  onArchiveNominee,
   onRestoreNominee,
   onOpenAddPersonModal,
   onShowHostAssignment,
@@ -150,8 +149,7 @@ export default function PeopleTab({
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
-  const declinedNominees = nominees.filter(n => n.status === 'declined');
-  const archivedNominees = nominees.filter(n => n.status === 'archived');
+  const rejectedNominees = nominees.filter(n => n.status === 'rejected' || n.status === 'declined');
 
   // Whether a third-party nominee can be approved (must have accepted first)
   const canApprove = (nominee) => {
@@ -329,25 +327,6 @@ export default function PeopleTab({
           }}
         >
           <XCircle size={16} />
-        </button>
-        <button
-          onClick={async () => { setProcessingId(nominee.id); await onArchiveNominee(nominee.id); setProcessingId(null); }}
-          disabled={isProcessing}
-          style={{
-            padding: spacing.xs,
-            background: 'rgba(107,114,128,0.1)',
-            border: 'none',
-            borderRadius: borderRadius.sm,
-            cursor: 'pointer',
-            color: '#6b7280',
-            minWidth: '32px',
-            minHeight: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Archive size={16} />
         </button>
       </div>
     );
@@ -772,7 +751,7 @@ export default function PeopleTab({
           { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
           { label: 'External', value: externalNominees.length, color: '#f59e0b' },
           { label: 'Approved', value: contestants.length, color: '#22c55e' },
-          { label: 'Archived', value: archivedNominees.length, color: '#6b7280' },
+          { label: 'Rejected', value: rejectedNominees.length, color: '#ef4444' },
         ].map((stat, i, arr) => (
           <div
             key={stat.label}
@@ -996,26 +975,6 @@ export default function PeopleTab({
                           {resentId === n.id ? <Check size={16} /> : <Send size={16} />}
                         </button>
                       )}
-                      <button
-                        onClick={async () => { setProcessingId(n.id); await onArchiveNominee(n.id); setProcessingId(null); }}
-                        disabled={processingId === n.id}
-                        title="Archive"
-                        style={{
-                          padding: spacing.xs,
-                          background: 'rgba(107,114,128,0.1)',
-                          border: 'none',
-                          borderRadius: borderRadius.sm,
-                          cursor: 'pointer',
-                          color: '#6b7280',
-                          minWidth: '32px',
-                          minHeight: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Archive size={16} />
-                      </button>
                     </div>
                   }
                 />
@@ -1025,75 +984,55 @@ export default function PeopleTab({
         </Panel>
       )}
 
-      {/* Declined */}
-      {declinedNominees.length > 0 && (
-        <Panel
-          title={`Declined (${declinedNominees.length})`}
-          icon={XCircle}
-          collapsible
-          defaultCollapsed
-        >
-          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {declinedNominees.map(n => (
-                <PersonRow
-                  key={n.id}
-                  person={n}
-                  dimmed
-                  actions={
-                    <Badge variant="error" size="sm">Declined</Badge>
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        </Panel>
-      )}
-
-      {/* Archived */}
+      {/* Rejected / Declined */}
       <Panel
-        title={`Archived (${archivedNominees.length})`}
-        icon={Archive}
+        title={`Rejected / Declined (${rejectedNominees.length})`}
+        icon={XCircle}
         collapsible
         defaultCollapsed
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {archivedNominees.length === 0 ? (
+          {rejectedNominees.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Archive size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No archived nominees</p>
+              <XCircle size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p>No rejected or declined nominees</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {archivedNominees.map(n => (
+              {rejectedNominees.map(n => (
                 <PersonRow
                   key={n.id}
                   person={n}
                   dimmed
                   showVotes
                   actions={
-                    <button
-                      onClick={async () => {
-                        setProcessingId(n.id);
-                        await onRestoreNominee(n.id);
-                        setProcessingId(null);
-                      }}
-                      disabled={processingId === n.id}
-                      style={{
-                        padding: `${spacing.xs} ${spacing.sm}`,
-                        background: 'rgba(34,197,94,0.1)',
-                        border: 'none',
-                        borderRadius: borderRadius.sm,
-                        cursor: 'pointer',
-                        color: '#22c55e',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        fontSize: typography.fontSize.sm,
-                      }}
-                    >
-                      <RotateCcw size={14} /> Restore
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                      <Badge variant={n.status === 'declined' ? 'error' : 'secondary'} size="sm">
+                        {n.status === 'declined' ? 'Declined' : 'Rejected'}
+                      </Badge>
+                      <button
+                        onClick={async () => {
+                          setProcessingId(n.id);
+                          await onRestoreNominee(n.id);
+                          setProcessingId(null);
+                        }}
+                        disabled={processingId === n.id}
+                        style={{
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          background: 'rgba(34,197,94,0.1)',
+                          border: 'none',
+                          borderRadius: borderRadius.sm,
+                          cursor: 'pointer',
+                          color: '#22c55e',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: spacing.xs,
+                          fontSize: typography.fontSize.sm,
+                        }}
+                      >
+                        <RotateCcw size={14} /> Restore
+                      </button>
+                    </div>
                   }
                 />
               ))}
