@@ -156,7 +156,14 @@ export function useBuildCardFlow({
     }
   }, [nominee, steps, mode, needsPassword]);
 
-  const currentStep = steps[currentStepIndex] || steps[0];
+  // When mode changes (e.g. self-anon → self-auth after password creation),
+  // the steps array shrinks and currentStepIndex may be out of bounds.
+  // Clamp it to the last step (card) rather than falling back to steps[0].
+  useEffect(() => {
+    setCurrentStepIndex((i) => Math.min(i, steps.length - 1));
+  }, [steps]);
+
+  const currentStep = steps[currentStepIndex] || steps[steps.length - 1];
   const totalSteps = steps.length;
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === steps.length - 1;

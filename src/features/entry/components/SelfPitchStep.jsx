@@ -50,7 +50,7 @@ export default function SelfPitchStep({
         onClick={onSubmit}
         disabled={isSubmitting}
       >
-        {isSubmitting ? 'Submitting...' : 'Submit Entry'}
+        {isSubmitting ? 'Saving...' : 'Continue'}
       </button>
     </div>
   );
