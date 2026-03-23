@@ -292,7 +292,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
         `Top ${numWinners} finishers win prizes — 1st place takes home cash`,
         hasResurrection ? 'Resurrection round gives eliminated contestants a second chance!' : 'Every vote counts toward your ranking',
       ].filter(Boolean),
-      tip: 'The more votes you get, the higher you rank. Top performers advance to the next round!',
+      tip: 'You will be notified if your nomination is approved and you are accepted as an official contestant. The more votes you get, the higher you rank!',
     },
 
     // Section 2: How Voting Works
