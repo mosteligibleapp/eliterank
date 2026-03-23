@@ -41,7 +41,6 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   const [error, setError] = useState(null);
   const [needsPassword, setNeedsPassword] = useState(false);
   const [ready, setReady] = useState(false);
-  const [alreadyClaimed, setAlreadyClaimed] = useState(false);
 
   const flowRef = useRef(null);
 
@@ -146,15 +145,8 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
           }
         }
 
-        // If nominee has already completed the full acceptance flow,
-        // don't let them go through it again — just redirect to login/profile
-        if (nomineeData.claimed_at && nomineeData.user_id) {
-          setNominee(nomineeData);
-          setCompetition(comp);
-          setAlreadyClaimed(true);
-          setLoading(false);
-          return;
-        }
+        // Nominees who claimed but didn't finish their profile are allowed
+        // to resume the build card flow — no "already claimed" block here.
 
         setNominee(nomineeData);
         setCompetition(comp);
@@ -247,47 +239,13 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     onSuccess?.();
   };
 
-  // If already claimed and user is authenticated, redirect straight to profile
-  useEffect(() => {
-    if (alreadyClaimed && !authLoading && user) {
-      navigate('/profile', { replace: true });
-    }
-  }, [alreadyClaimed, authLoading, user, navigate]);
-
   // ---- Loading ----
   if (loading || authLoading || !ready) {
-    // If already claimed, show loading while we check auth / redirect
-    if (alreadyClaimed && loading === false) {
-      return (
-        <div className="entry-flow">
-          <div className="entry-loading">
-            <div className="entry-spinner" />
-            <p>Redirecting to your profile...</p>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="entry-flow">
         <div className="entry-loading">
           <div className="entry-spinner" />
           <p>Loading your nomination...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ---- Already Claimed (not authenticated) ----
-  if (alreadyClaimed) {
-    return (
-      <div className="entry-flow">
-        <div className="entry-error-state">
-          <h2>You've already accepted this nomination!</h2>
-          <p>Log in to view your profile and competition details.</p>
-          <Button onClick={() => navigate('/login', { replace: true })}>
-            Log In
-          </Button>
         </div>
       </div>
     );
