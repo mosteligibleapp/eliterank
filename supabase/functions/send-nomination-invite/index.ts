@@ -336,13 +336,18 @@ serve(async (req) => {
       isSelfNomineeReminder = true
     }
     // Third-party nominee who accepted but hasn't completed onboarding
-    else if (nomineeRaw.claimed_at && nomineeRaw.user_id) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('onboarded_at')
-        .eq('id', nomineeRaw.user_id)
-        .maybeSingle()
-      if (!profile?.onboarded_at) {
+    else if (nomineeRaw.claimed_at) {
+      if (nomineeRaw.user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarded_at')
+          .eq('id', nomineeRaw.user_id)
+          .maybeSingle()
+        if (!profile?.onboarded_at) {
+          isReminder = true
+        }
+      } else {
+        // Accepted but no auth user created yet (dropped off before setting password)
         isReminder = true
       }
     }
