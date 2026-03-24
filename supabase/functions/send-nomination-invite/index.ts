@@ -338,7 +338,13 @@ serve(async (req) => {
       isReminder = true
       isSelfNomineeReminder = true
     }
-    // Nominee who accepted but hasn't completed onboarding
+    // Third-party nominee who started the claim flow but didn't finish
+    // (flow_stage is set beyond initial state, but no claimed_at yet)
+    else if (!nomineeData.claimed_at && nomineeData.flow_stage &&
+             ['accepted', 'details', 'bio', 'password', 'card'].includes(nomineeData.flow_stage)) {
+      isReminder = true
+    }
+    // Nominee who accepted and has claimed_at but hasn't completed onboarding
     else if (nomineeData.claimed_at) {
       if (nomineeData.user_id) {
         const { data: profile } = await supabase
