@@ -252,7 +252,7 @@ export function useCompetitionDashboard(competitionId) {
           const emailLower = n.email.toLowerCase();
           const directMatch = nomineeProfilesByEmail.get(emailLower);
           if (directMatch) {
-            hasProfile = !!directMatch.onboarded_at;
+            hasProfile = !!directMatch.onboarded_at || !!n.claimed_at;
             matchedProfileId = directMatch.id;
             matchedProfile = directMatch;
           }
