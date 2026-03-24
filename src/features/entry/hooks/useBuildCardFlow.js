@@ -201,7 +201,8 @@ export function useBuildCardFlow({
 
       const updateData = {
         flow_stage: 'accepted',
-        claimed_at: new Date().toISOString(),
+        // Don't set claimed_at here — it should only be set when the nominee
+        // finishes the full flow (creates account / sets password).
       };
       // Do NOT set user_id here — the logged-in user might be the nominator,
       // not the nominee. user_id is set in createAccount after the nominee
