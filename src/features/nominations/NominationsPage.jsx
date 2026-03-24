@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Users, UserCheck, UserPlus, Archive, ChevronDown, ChevronUp,
+  Users, UserCheck, UserPlus, XCircle, ChevronDown, ChevronUp,
   ExternalLink, User, Mail, Phone, Instagram, Check, X, RotateCcw,
   Loader, AlertCircle, Link2, Send, Clock
 } from 'lucide-react';
@@ -43,13 +43,13 @@ const SECTION_CONFIG = {
     bgColor: 'rgba(251,191,36,0.15)',
     borderColor: 'rgba(251,191,36,0.3)',
   },
-  archived: {
-    title: 'Archived',
-    subtitle: 'Archived nominees',
-    icon: Archive,
-    color: '#6b7280',
-    bgColor: 'rgba(107,114,128,0.15)',
-    borderColor: 'rgba(107,114,128,0.3)',
+  declined: {
+    title: 'Declined',
+    subtitle: 'Declined & rejected nominees',
+    icon: XCircle,
+    color: '#ef4444',
+    bgColor: 'rgba(239,68,68,0.15)',
+    borderColor: 'rgba(239,68,68,0.3)',
   },
 };
 
@@ -61,7 +61,6 @@ export default function NominationsPage({ competitionId, competitionName }) {
     refresh,
     approveNominee,
     rejectNominee,
-    archiveNominee,
     restoreNominee,
     resendInvite,
   } = useCompetitionDashboard(competitionId);
@@ -71,7 +70,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
     withProfile: true,
     external: true,
     incomplete: true,
-    archived: false,
+    declined: false,
   });
 
   const [processingId, setProcessingId] = useState(null);
@@ -113,7 +112,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
     const nominees = data.nominees || [];
     const contestants = data.contestants || [];
 
-    // Active nominees (pending status, not archived)
+    // Active nominees (pending status, not declined/rejected)
     // Incomplete self-nominations (started but not finished) go in a separate bucket
     const activeNominees = nominees.filter(n => {
       if (n.status !== 'pending' && n.status !== 'profile_complete' && n.status !== 'awaiting_profile') return false;
@@ -131,15 +130,15 @@ export default function NominationsPage({ competitionId, competitionName }) {
     // External nominees (no user_id)
     const external = activeNominees.filter(n => !n.hasProfile);
 
-    // Archived + declined nominees
-    const archived = nominees.filter(n => n.status === 'archived' || n.status === 'declined');
+    // Declined + rejected nominees
+    const declined = nominees.filter(n => n.status === 'declined' || n.status === 'rejected' || n.status === 'archived');
 
     return {
       contestants,
       withProfile,
       external,
       incomplete: incompleteNominees,
-      archived,
+      declined,
     };
   }, [data.nominees, data.contestants]);
 
@@ -159,12 +158,6 @@ export default function NominationsPage({ competitionId, competitionName }) {
   const handleReject = async (nomineeId) => {
     setProcessingId(nomineeId);
     await rejectNominee(nomineeId);
-    setProcessingId(null);
-  };
-
-  const handleArchive = async (nomineeId) => {
-    setProcessingId(nomineeId);
-    await archiveNominee(nomineeId);
     setProcessingId(null);
   };
 
@@ -247,7 +240,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
     const Icon = config.icon;
     const isExpanded = expandedSections[sectionKey];
     const isContestants = sectionKey === 'contestants';
-    const isArchived = sectionKey === 'archived';
+    const isDeclined = sectionKey === 'declined';
 
     return (
       <div
@@ -367,10 +360,10 @@ export default function NominationsPage({ competitionId, competitionName }) {
                                 {item.nominatedBy === 'self' ? 'Self-nominated' : 'Third-party'}
                               </Badge>
                             )}
-                            {/* Declined badge */}
-                            {item.status === 'declined' && (
+                            {/* Declined/Rejected badge */}
+                            {(item.status === 'declined' || item.status === 'rejected') && (
                               <Badge variant="error" size="sm">
-                                Declined
+                                {item.status === 'declined' ? 'Declined' : 'Rejected'}
                               </Badge>
                             )}
                             {/* Profile linked badge */}
@@ -445,7 +438,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
                             )}
 
                             {/* Resend invite button for nominees without a profile */}
-                            {!isContestants && !isArchived && !item.hasProfile && item.inviteToken && (
+                            {!isContestants && !isDeclined && !item.hasProfile && item.inviteToken && (
                               <Button
                                 variant="secondary"
                                 size="sm"
@@ -461,7 +454,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
                             )}
 
                             {/* Approve button for pending nominees */}
-                            {!isContestants && !isArchived && (
+                            {!isContestants && !isDeclined && (
                               <Button
                                 variant="primary"
                                 size="sm"
@@ -473,19 +466,8 @@ export default function NominationsPage({ competitionId, competitionName }) {
                               </Button>
                             )}
 
-                            {/* Archive button for non-archived nominees */}
-                            {!isContestants && !isArchived && (
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                icon={Archive}
-                                onClick={() => handleArchive(item.id)}
-                                style={{ padding: `${spacing.xs} ${spacing.sm}` }}
-                              />
-                            )}
-
-                            {/* Restore button for archived nominees */}
-                            {isArchived && (
+                            {/* Restore button for declined/rejected nominees */}
+                            {isDeclined && (
                               <Button
                                 variant="secondary"
                                 size="sm"
@@ -569,7 +551,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
       {renderSection('withProfile', categorizedData.withProfile)}
       {renderSection('external', categorizedData.external)}
       {categorizedData.incomplete.length > 0 && renderSection('incomplete', categorizedData.incomplete)}
-      {renderSection('archived', categorizedData.archived)}
+      {renderSection('declined', categorizedData.declined)}
     </div>
   );
 }

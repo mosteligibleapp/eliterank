@@ -90,7 +90,7 @@ export default function OverviewTab({
     (n.status === 'pending' || n.status === 'awaiting_profile')
   ).length;
   const pendingNominees = completedNominees.filter(n => n.status === 'pending').length;
-  const totalNominees = completedNominees.length;
+  const totalNominees = (nominees || []).length;
 
   const upcomingEvents = useMemo(() => {
     // Use string comparison to avoid timezone issues
