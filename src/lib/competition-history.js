@@ -112,6 +112,7 @@ export async function getContestantCompetitions(userId) {
       .from('contestants')
       .select('*')
       .eq('user_id', userId)
+      .neq('status', 'eliminated')
       .order('created_at', { ascending: false });
 
     if (contestantsError || !contestants?.length) {
@@ -164,7 +165,8 @@ export async function getCompetitionStats(userId) {
       supabase
         .from('contestants')
         .select('votes, rank, status')
-        .eq('user_id', userId),
+        .eq('user_id', userId)
+        .neq('status', 'eliminated'),
     ]);
 
     const profile = profileResult.data;
