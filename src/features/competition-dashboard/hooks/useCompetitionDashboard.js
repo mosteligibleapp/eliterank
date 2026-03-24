@@ -235,13 +235,11 @@ export function useCompetitionDashboard(competitionId) {
         if (n.user_id) {
           matchedProfileId = n.user_id;
           matchedProfile = nomineeProfilesById.get(n.user_id) || profilesById.get(n.user_id) || null;
-          // Count as "has profile" if the user has completed onboarding
-          // (set a password). Pre-created profiles from admin.createUser() have
-          // onboarded_at = null and should not be treated as real users yet.
-          // Claimed nominations always count — they completed the accept flow.
-          // Self-nominees only count if they actually completed the entry flow
-          // (have onboarded_at, an avatar, or a claimed_at timestamp).
-          if (!!n.claimed_at || !!matchedProfile?.onboarded_at) {
+          // Count as "has profile" if the user has completed onboarding or
+          // has a real profile (matched profile with onboarded_at, or avatar).
+          // claimed_at alone is NOT sufficient — it can be set when the nominee
+          // clicks "Accept" before finishing the flow.
+          if (!!matchedProfile?.onboarded_at || (!!n.claimed_at && !!matchedProfile)) {
             hasProfile = true;
           } else if (n.nominated_by === 'self') {
             hasProfile = !!n.avatar_url || !!matchedProfile?.avatar_url;
@@ -252,7 +250,7 @@ export function useCompetitionDashboard(competitionId) {
           const emailLower = n.email.toLowerCase();
           const directMatch = nomineeProfilesByEmail.get(emailLower);
           if (directMatch) {
-            hasProfile = !!directMatch.onboarded_at || !!n.claimed_at;
+            hasProfile = !!directMatch.onboarded_at;
             matchedProfileId = directMatch.id;
             matchedProfile = directMatch;
           }

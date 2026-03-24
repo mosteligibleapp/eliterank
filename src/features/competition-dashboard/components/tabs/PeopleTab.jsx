@@ -178,7 +178,7 @@ export default function PeopleTab({
         </span>
       );
     }
-    if (nominee.claimedAt) {
+    if (nominee.claimedAt && nominee.userId) {
       return (
         <span style={{
           fontSize: typography.fontSize.xs,
@@ -189,6 +189,20 @@ export default function PeopleTab({
           whiteSpace: 'nowrap',
         }}>
           Accepted
+        </span>
+      );
+    }
+    if (nominee.claimedAt || (nominee.flowStage && nominee.flowStage !== 'pending')) {
+      return (
+        <span style={{
+          fontSize: typography.fontSize.xs,
+          padding: `2px ${spacing.sm}`,
+          borderRadius: borderRadius.sm,
+          background: 'rgba(251,146,60,0.15)',
+          color: '#fb923c',
+          whiteSpace: 'nowrap',
+        }}>
+          In Progress
         </span>
       );
     }
