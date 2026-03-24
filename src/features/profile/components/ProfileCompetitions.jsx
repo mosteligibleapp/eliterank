@@ -303,9 +303,10 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
       return; // Already shown as contestant
     }
 
-    // If converted but no contestant entry found (user_id was null),
-    // show as contestant role using the nomination data.
-    const isConverted = nom.converted_to_contestant;
+    // Only treat as converted if the nominee flag is set AND a matching
+    // contestant record actually exists. This handles cases where the
+    // contestant row was removed but the nominee flag wasn't cleared.
+    const isConverted = nom.converted_to_contestant && competitionId && contestantCompetitionIds.has(competitionId);
 
     entries.push({
       id: `nom-${nom.id}`,
