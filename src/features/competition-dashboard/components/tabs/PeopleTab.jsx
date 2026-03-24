@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  Crown, Archive, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
+  Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
   Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +24,6 @@ export default function PeopleTab({
   onRefresh,
   onApproveNominee,
   onRejectNominee,
-  onArchiveNominee,
   onRestoreNominee,
   onOpenAddPersonModal,
   onShowHostAssignment,
@@ -155,8 +154,7 @@ export default function PeopleTab({
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
-  const declinedNominees = nominees.filter(n => n.status === 'declined' || n.status === 'rejected');
-  const archivedNominees = nominees.filter(n => n.status === 'archived');
+  const declinedNominees = nominees.filter(n => n.status === 'declined' || n.status === 'rejected' || n.status === 'archived');
 
   // Whether a nominee can be approved (must have accepted and have a profile)
   const canApprove = (nominee) => {
@@ -337,25 +335,6 @@ export default function PeopleTab({
           }}
         >
           <XCircle size={16} />
-        </button>
-        <button
-          onClick={async () => { addProcessing(nominee.id); try { await onArchiveNominee(nominee.id); } finally { removeProcessing(nominee.id); } }}
-          disabled={isProcessing}
-          style={{
-            padding: spacing.xs,
-            background: 'rgba(107,114,128,0.1)',
-            border: 'none',
-            borderRadius: borderRadius.sm,
-            cursor: 'pointer',
-            color: '#6b7280',
-            minWidth: '32px',
-            minHeight: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Archive size={16} />
         </button>
       </div>
     );
@@ -763,7 +742,7 @@ export default function PeopleTab({
           { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
           { label: 'External', value: externalNominees.length, color: '#f59e0b' },
           { label: 'Approved', value: contestants.length, color: '#22c55e' },
-          { label: 'Archived', value: archivedNominees.length, color: '#6b7280' },
+          { label: 'Declined', value: declinedNominees.length, color: '#ef4444' },
         ].map((stat, i, arr) => (
           <div
             key={stat.label}
@@ -992,16 +971,16 @@ export default function PeopleTab({
                         </button>
                       )}
                       <button
-                        onClick={async () => { addProcessing(n.id); try { await onArchiveNominee(n.id); } finally { removeProcessing(n.id); } }}
+                        onClick={async () => { addProcessing(n.id); try { await onRejectNominee(n.id); } finally { removeProcessing(n.id); } }}
                         disabled={processingIds.has(n.id)}
-                        title="Archive"
+                        title="Reject"
                         style={{
                           padding: spacing.xs,
-                          background: 'rgba(107,114,128,0.1)',
+                          background: 'rgba(239,68,68,0.1)',
                           border: 'none',
                           borderRadius: borderRadius.sm,
                           cursor: 'pointer',
-                          color: '#6b7280',
+                          color: '#ef4444',
                           minWidth: '32px',
                           minHeight: '32px',
                           display: 'flex',
@@ -1009,7 +988,7 @@ export default function PeopleTab({
                           justifyContent: 'center',
                         }}
                       >
-                        <Archive size={16} />
+                        <XCircle size={16} />
                       </button>
                     </div>
                   }
@@ -1020,7 +999,7 @@ export default function PeopleTab({
         </Panel>
       )}
 
-      {/* Declined */}
+      {/* Declined / Rejected */}
       {declinedNominees.length > 0 && (
         <Panel
           title={`Declined (${declinedNominees.length})`}
@@ -1036,7 +1015,33 @@ export default function PeopleTab({
                   person={n}
                   dimmed
                   actions={
-                    <Badge variant="error" size="sm">Declined</Badge>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                      <Badge variant="error" size="sm">
+                        {n.status === 'declined' ? 'Declined' : 'Rejected'}
+                      </Badge>
+                      <button
+                        onClick={async () => {
+                          addProcessing(n.id);
+                          try { await onRestoreNominee(n.id); } finally { removeProcessing(n.id); }
+                        }}
+                        disabled={processingIds.has(n.id)}
+                        title="Unreject"
+                        style={{
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          background: 'rgba(34,197,94,0.1)',
+                          border: 'none',
+                          borderRadius: borderRadius.sm,
+                          cursor: processingIds.has(n.id) ? 'not-allowed' : 'pointer',
+                          color: '#22c55e',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: spacing.xs,
+                          fontSize: typography.fontSize.sm,
+                        }}
+                      >
+                        <RotateCcw size={14} /> Restore
+                      </button>
+                    </div>
                   }
                 />
               ))}
@@ -1044,57 +1049,6 @@ export default function PeopleTab({
           </div>
         </Panel>
       )}
-
-      {/* Archived */}
-      <Panel
-        title={`Archived (${archivedNominees.length})`}
-        icon={Archive}
-        collapsible
-        defaultCollapsed
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {archivedNominees.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Archive size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No archived nominees</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {archivedNominees.map(n => (
-                <PersonRow
-                  key={n.id}
-                  person={n}
-                  dimmed
-                  showVotes
-                  actions={
-                    <button
-                      onClick={async () => {
-                        addProcessing(n.id);
-                        try { await onRestoreNominee(n.id); } finally { removeProcessing(n.id); }
-                      }}
-                      disabled={processingIds.has(n.id)}
-                      style={{
-                        padding: `${spacing.xs} ${spacing.sm}`,
-                        background: 'rgba(34,197,94,0.1)',
-                        border: 'none',
-                        borderRadius: borderRadius.sm,
-                        cursor: 'pointer',
-                        color: '#22c55e',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        fontSize: typography.fontSize.sm,
-                      }}
-                    >
-                      <RotateCcw size={14} /> Restore
-                    </button>
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </Panel>
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Crown, Archive, RotateCcw, ExternalLink,
+  Crown, RotateCcw, ExternalLink,
   UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Clock
 } from 'lucide-react';
 import { Button, Badge, Avatar } from '../../../../components/ui';
@@ -15,7 +15,6 @@ export default function ContestantsTab({
   onRefresh,
   onApproveNominee,
   onRejectNominee,
-  onArchiveNominee,
   onRestoreNominee,
   onOpenAddPersonModal,
 }) {
@@ -44,7 +43,7 @@ export default function ContestantsTab({
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
-  const archivedNominees = nominees.filter(n => n.status === 'archived');
+  const declinedNominees = nominees.filter(n => n.status === 'declined' || n.status === 'rejected' || n.status === 'archived');
 
   // Stats
   const stats = [
@@ -53,7 +52,7 @@ export default function ContestantsTab({
     { label: 'External', value: externalNominees.length, color: '#f59e0b' },
     { label: 'Incomplete', value: incompleteNominees.length, color: '#fbbf24' },
     { label: 'Approved', value: contestants.length, color: '#22c55e' },
-    { label: 'Archived', value: archivedNominees.length, color: '#6b7280' },
+    { label: 'Declined', value: declinedNominees.length, color: '#ef4444' },
   ];
 
   const SectionHeader = ({ title, count, icon: Icon, iconColor, sectionKey, badge }) => (
@@ -82,7 +81,7 @@ export default function ContestantsTab({
     </button>
   );
 
-  const NomineeRow = ({ nominee, showActions = true, isArchived = false }) => (
+  const NomineeRow = ({ nominee, showActions = true, isDeclined = false }) => (
     <div style={{
       display: 'flex',
       alignItems: 'center',
@@ -91,7 +90,7 @@ export default function ContestantsTab({
       background: colors.background.secondary,
       borderRadius: borderRadius.lg,
       marginBottom: spacing.sm,
-      opacity: isArchived ? 0.7 : 1,
+      opacity: isDeclined ? 0.7 : 1,
     }}>
       <Avatar name={nominee.name} size={48} />
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -119,7 +118,7 @@ export default function ContestantsTab({
       <Badge variant={nominee.nominatedBy === 'self' ? 'gold' : 'secondary'} size="sm">
         {nominee.nominatedBy === 'self' ? 'Self' : 'Third Party'}
       </Badge>
-      {showActions && !isArchived && (
+      {showActions && !isDeclined && (
         <div style={{ display: 'flex', gap: spacing.sm }}>
           <Button
             variant="approve"
@@ -137,17 +136,9 @@ export default function ContestantsTab({
           >
             <XCircle size={14} />
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => { setProcessingId(nominee.id); onArchiveNominee(nominee.id).then(() => setProcessingId(null)); }}
-            disabled={processingId === nominee.id}
-          >
-            <Archive size={14} />
-          </Button>
         </div>
       )}
-      {isArchived && (
+      {isDeclined && (
         <Button
           variant="secondary"
           size="sm"
@@ -329,22 +320,22 @@ export default function ContestantsTab({
         </div>
       )}
 
-      {/* Archived */}
+      {/* Declined / Rejected */}
       <div style={{
         background: colors.background.card,
         border: `1px solid ${colors.border.light}`,
         borderRadius: borderRadius.xl,
         overflow: 'hidden',
       }}>
-        <SectionHeader title="Archived" count={archivedNominees.length} icon={Archive} iconColor="#6b7280" sectionKey="archived" />
+        <SectionHeader title="Declined" count={declinedNominees.length} icon={XCircle} iconColor="#ef4444" sectionKey="archived" />
         {expandedSections.archived && (
           <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
-            {archivedNominees.length === 0 ? (
+            {declinedNominees.length === 0 ? (
               <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-                <Archive size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                <p>No archived nominees</p>
+                <XCircle size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
+                <p>No declined nominees</p>
               </div>
-            ) : archivedNominees.map(n => <NomineeRow key={n.id} nominee={n} showActions={false} isArchived />)}
+            ) : declinedNominees.map(n => <NomineeRow key={n.id} nominee={n} showActions={false} isDeclined />)}
           </div>
         )}
       </div>
