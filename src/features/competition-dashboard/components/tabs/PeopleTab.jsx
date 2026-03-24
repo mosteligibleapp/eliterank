@@ -35,7 +35,9 @@ export default function PeopleTab({
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
-  const [processingId, setProcessingId] = useState(null);
+  const [processingIds, setProcessingIds] = useState(new Set());
+  const addProcessing = (id) => setProcessingIds(prev => new Set(prev).add(id));
+  const removeProcessing = (id) => setProcessingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
   const [copiedId, setCopiedId] = useState(null);
   const [resentId, setResentId] = useState(null);
   const [generatingCardId, setGeneratingCardId] = useState(null);
@@ -83,8 +85,8 @@ export default function PeopleTab({
         name: person.name,
         photoUrl: person.avatarUrl,
         handle: person.instagram,
-        competitionName: competition?.name || `Most Eligible ${competition?.city}`,
-        cityName: competition?.city,
+        competitionName: competition?.name || `Most Eligible ${competition?.city?.name || competition?.city}`,
+        cityName: competition?.city?.name || competition?.city,
         season: competition?.season?.toString(),
         organizationName: competition?.organizationName || 'Most Eligible',
         organizationLogoUrl: competition?.organizationLogoUrl,
@@ -127,12 +129,15 @@ export default function PeopleTab({
 
   const handleResendInvite = async (nominee) => {
     if (!onResendInvite) return;
-    setProcessingId(nominee.id);
-    const result = await onResendInvite(nominee.id);
-    setProcessingId(null);
-    if (result?.success) {
-      setResentId(nominee.id);
-      setTimeout(() => setResentId(null), 2000);
+    addProcessing(nominee.id);
+    try {
+      const result = await onResendInvite(nominee.id);
+      if (result?.success) {
+        setResentId(nominee.id);
+        setTimeout(() => setResentId(null), 2000);
+      }
+    } finally {
+      removeProcessing(nominee.id);
     }
   };
 
@@ -145,18 +150,18 @@ export default function PeopleTab({
   });
   // Incomplete self-nominations: started the flow but haven't finished
   const incompleteNominees = nominees.filter(n =>
-    (n.status === 'pending' || n.status === 'awaiting_profile') &&
+    (n.status === 'pending' || n.status === 'awaiting_profile' || n.status === 'profile_complete') &&
     n.nominatedBy === 'self' && !n.claimedAt
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
-  const declinedNominees = nominees.filter(n => n.status === 'declined');
+  const declinedNominees = nominees.filter(n => n.status === 'declined' || n.status === 'rejected');
   const archivedNominees = nominees.filter(n => n.status === 'archived');
 
-  // Whether a third-party nominee can be approved (must have accepted first)
+  // Whether a nominee can be approved (must have accepted and have a profile)
   const canApprove = (nominee) => {
-    if (nominee.nominatedBy === 'self') return true; // Self-nominations are auto-accepted
-    return !!nominee.claimedAt; // Third-party must have accepted
+    if (nominee.nominatedBy === 'self') return !!nominee.hasProfile;
+    return !!nominee.claimedAt && !!nominee.hasProfile;
   };
 
   // Acceptance status badge for nominees
@@ -205,7 +210,7 @@ export default function PeopleTab({
 
   // Action buttons for nominee rows
   const NomineeActions = ({ nominee }) => {
-    const isProcessing = processingId === nominee.id;
+    const isProcessing = processingIds.has(nominee.id);
     const approveDisabled = isProcessing || !canApprove(nominee);
     const isCopied = copiedId === nominee.id;
     return (
@@ -232,7 +237,7 @@ export default function PeopleTab({
             {isCopied ? <Check size={16} /> : <Link2 size={16} />}
           </button>
         )}
-        {!nominee.hasProfile && onResendInvite && (
+        {nominee.email && onResendInvite && (!nominee.hasProfile || (nominee.claimedAt && !nominee.convertedToContestant)) && (
           <button
             onClick={() => handleResendInvite(nominee)}
             disabled={isProcessing}
@@ -257,18 +262,21 @@ export default function PeopleTab({
         {!nominee.hasProfile && nominee.email && nominee.claimedAt && nominee.userId && onRepairNomineeAccount && (
           <button
             onClick={async () => {
-              setProcessingId(nominee.id);
-              const result = await onRepairNomineeAccount(nominee.id);
-              setProcessingId(null);
-              if (result.success) {
-                const msg = result.data?.repaired?.length
-                  ? `Repaired: ${result.data.repaired[0]?.action}`
-                  : result.data?.skipped?.length
-                    ? `Already OK: ${result.data.skipped[0]?.reason}`
-                    : 'Done';
-                alert(msg);
-              } else {
-                alert(`Repair failed: ${result.error}`);
+              addProcessing(nominee.id);
+              try {
+                const result = await onRepairNomineeAccount(nominee.id);
+                if (result?.success) {
+                  const msg = result.data?.repaired?.length
+                    ? `Repaired: ${result.data.repaired[0]?.action}`
+                    : result.data?.skipped?.length
+                      ? `Already OK: ${result.data.skipped[0]?.reason}`
+                      : 'Done';
+                  alert(msg);
+                } else {
+                  alert(`Repair failed: ${result?.error || 'Unknown error'}`);
+                }
+              } finally {
+                removeProcessing(nominee.id);
               }
             }}
             disabled={isProcessing}
@@ -291,7 +299,7 @@ export default function PeopleTab({
           </button>
         )}
         <button
-          onClick={async () => { setProcessingId(nominee.id); await onApproveNominee(nominee); setProcessingId(null); }}
+          onClick={async () => { addProcessing(nominee.id); try { await onApproveNominee(nominee); } finally { removeProcessing(nominee.id); } }}
           disabled={approveDisabled}
           title={!canApprove(nominee) ? 'Nominee must accept first' : 'Approve'}
           style={{
@@ -312,7 +320,7 @@ export default function PeopleTab({
           <CheckCircle size={16} />
         </button>
         <button
-          onClick={async () => { setProcessingId(nominee.id); await onRejectNominee(nominee.id); setProcessingId(null); }}
+          onClick={async () => { addProcessing(nominee.id); try { await onRejectNominee(nominee.id); } finally { removeProcessing(nominee.id); } }}
           disabled={isProcessing}
           style={{
             padding: spacing.xs,
@@ -331,7 +339,7 @@ export default function PeopleTab({
           <XCircle size={16} />
         </button>
         <button
-          onClick={async () => { setProcessingId(nominee.id); await onArchiveNominee(nominee.id); setProcessingId(null); }}
+          onClick={async () => { addProcessing(nominee.id); try { await onArchiveNominee(nominee.id); } finally { removeProcessing(nominee.id); } }}
           disabled={isProcessing}
           style={{
             padding: spacing.xs,
@@ -565,7 +573,7 @@ export default function PeopleTab({
           </p>
         )}
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-          {person.email}{showVotes ? `${person.email ? ' · ' : ''}${person.votes || 0} votes` : ''}
+          {person.email}{showVotes && person.votes > 0 ? `${person.email ? ' · ' : ''}${person.votes} votes` : ''}
           {person.inviteSentAt && (
             <span style={{ color: colors.text.muted, opacity: 0.7 }}>
               {' · '}Invited {new Date(person.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -573,23 +581,6 @@ export default function PeopleTab({
           )}
         </p>
       </div>
-      {onNameClick && (
-        <button
-          onClick={onNameClick}
-          title="View profile"
-          style={{
-            background: 'none',
-            border: 'none',
-            color: colors.gold.primary,
-            padding: spacing.xs,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <ExternalLink size={14} />
-        </button>
-      )}
       {cardType && <CardDownloadButton person={person} type={cardType} />}
       {actions}
     </div>
@@ -825,6 +816,7 @@ export default function PeopleTab({
                 <PersonRow
                   key={c.id}
                   person={c}
+                  showVotes
                   cardType="contestant"
                   onNameClick={c.userId ? () => handleViewProfile(c.userId) : undefined}
                 />
@@ -883,21 +875,24 @@ export default function PeopleTab({
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={processingId === 'repair-all'}
+                disabled={processingIds.has('repair-all')}
                 onClick={async () => {
                   if (!confirm(`Repair all ${externalNominees.length} external nominee accounts? This will create auth users and sync profiles for any that are missing.`)) return;
-                  setProcessingId('repair-all');
-                  const result = await onRepairAllNomineeAccounts();
-                  setProcessingId(null);
-                  if (result.success) {
-                    alert(result.data?.summary || 'Repair complete');
-                  } else {
-                    alert(`Repair failed: ${result.error}`);
+                  addProcessing('repair-all');
+                  try {
+                    const result = await onRepairAllNomineeAccounts();
+                    if (result?.success) {
+                      alert(result.data?.summary || 'Repair complete');
+                    } else {
+                      alert(`Repair failed: ${result?.error || 'Unknown error'}`);
+                    }
+                  } finally {
+                    removeProcessing('repair-all');
                   }
                 }}
               >
                 <Wrench size={14} style={{ marginRight: spacing.xs }} />
-                {processingId === 'repair-all' ? 'Repairing...' : 'Repair All Accounts'}
+                {processingIds.has('repair-all') ? 'Repairing...' : 'Repair All Accounts'}
               </Button>
             </div>
           )}
@@ -977,14 +972,14 @@ export default function PeopleTab({
                       {n.email && onResendInvite && (
                         <button
                           onClick={() => handleResendInvite(n)}
-                          disabled={processingId === n.id}
+                          disabled={processingIds.has(n.id)}
                           title={resentId === n.id ? 'Sent!' : `Send reminder to finish profile${n.inviteSentAt ? `\nLast sent: ${new Date(n.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}`}
                           style={{
                             padding: spacing.xs,
                             background: resentId === n.id ? 'rgba(34,197,94,0.1)' : 'rgba(168,85,247,0.1)',
                             border: 'none',
                             borderRadius: borderRadius.sm,
-                            cursor: processingId === n.id ? 'not-allowed' : 'pointer',
+                            cursor: processingIds.has(n.id) ? 'not-allowed' : 'pointer',
                             color: resentId === n.id ? '#22c55e' : '#a855f7',
                             minWidth: '32px',
                             minHeight: '32px',
@@ -997,8 +992,8 @@ export default function PeopleTab({
                         </button>
                       )}
                       <button
-                        onClick={async () => { setProcessingId(n.id); await onArchiveNominee(n.id); setProcessingId(null); }}
-                        disabled={processingId === n.id}
+                        onClick={async () => { addProcessing(n.id); try { await onArchiveNominee(n.id); } finally { removeProcessing(n.id); } }}
+                        disabled={processingIds.has(n.id)}
                         title="Archive"
                         style={{
                           padding: spacing.xs,
@@ -1074,11 +1069,10 @@ export default function PeopleTab({
                   actions={
                     <button
                       onClick={async () => {
-                        setProcessingId(n.id);
-                        await onRestoreNominee(n.id);
-                        setProcessingId(null);
+                        addProcessing(n.id);
+                        try { await onRestoreNominee(n.id); } finally { removeProcessing(n.id); }
                       }}
-                      disabled={processingId === n.id}
+                      disabled={processingIds.has(n.id)}
                       style={{
                         padding: `${spacing.xs} ${spacing.sm}`,
                         background: 'rgba(34,197,94,0.1)',

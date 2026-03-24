@@ -259,10 +259,10 @@ export function useCompetitionDashboard(competitionId) {
         }
 
         // Self-nominees who completed the flow but whose user_id wasn't linked
-        // (RLS blocked the client-side update). Only count them if we found a
-        // matching profile by email (meaning they created an account).
+        // (RLS blocked the client-side update). Only count them if they have a
+        // matching profile with onboarding evidence (not just a pre-created shell).
         if (!hasProfile && n.nominated_by === 'self' && matchedProfile) {
-          hasProfile = true;
+          hasProfile = !!matchedProfile.onboarded_at || !!matchedProfile.avatar_url;
         }
 
         return {
@@ -378,7 +378,8 @@ export function useCompetitionDashboard(competitionId) {
           season: competition.season,
           hostId: competition.host_id,
           organizationId: competition.organization_id,
-          city: competition.city,
+          city: competition.city?.name || null,
+          cityData: competition.city,
           cityId: competition.city_id,
           nominationStart: competition.nomination_start,
           nominationEnd: competition.nomination_end,
@@ -622,9 +623,23 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
+      // Determine the appropriate status to restore to based on the nominee's flow state
+      const { data: nominee } = await supabase
+        .from('nominees')
+        .select('flow_stage, claimed_at')
+        .eq('id', nomineeId)
+        .single();
+
+      let restoreStatus = 'pending';
+      if (nominee?.flow_stage === 'complete' || nominee?.flow_stage === 'profile_complete') {
+        restoreStatus = 'profile_complete';
+      } else if (nominee?.claimed_at) {
+        restoreStatus = 'awaiting_profile';
+      }
+
       const { error: updateError } = await supabase
         .from('nominees')
-        .update({ status: 'pending' })
+        .update({ status: restoreStatus })
         .eq('id', nomineeId);
 
       if (updateError) throw updateError;
@@ -673,7 +688,8 @@ export function useCompetitionDashboard(competitionId) {
           name: nomineeData.name,
           email: nomineeData.email || null,
           phone: nomineeData.phone || null,
-          nominated_by: 'self',
+          nominated_by: 'host',
+          invite_token: crypto.randomUUID(),
           status: 'pending',
         });
 
