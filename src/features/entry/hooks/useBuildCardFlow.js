@@ -227,12 +227,9 @@ export function useBuildCardFlow({
       }
       if (error) throw error;
 
-      // Notify the nominator that their nominee accepted (fire-and-forget)
-      supabase.functions.invoke('notify-nominator', {
-        body: { nominee_id: nominee.id, event: 'accepted' },
-      }).catch((err) => {
-        console.warn('Failed to notify nominator of acceptance:', err);
-      });
+      // Don't notify nominator yet — wait until the nominee finishes the
+      // full flow (sets password / creates account). Notification is sent
+      // at the end of createAccount.
 
       next();
     } catch (err) {
@@ -682,13 +679,23 @@ export function useBuildCardFlow({
         window.dispatchEvent(new Event('profile-updated'));
       }
 
+      // Notify the nominator now that the nominee has truly completed the
+      // flow (account created, password set, profile synced).
+      if (mode === 'third-party' && nomineeId) {
+        supabase.functions.invoke('notify-nominator', {
+          body: { nominee_id: nomineeId, event: 'accepted' },
+        }).catch((err) => {
+          console.warn('Failed to notify nominator of acceptance:', err);
+        });
+      }
+
       next();
     } catch (err) {
       setSubmitError(err.message || 'Failed to create account');
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentUser, cardData, nomineeId, inviteToken, next]);
+  }, [currentUser, cardData, nomineeId, inviteToken, mode, next]);
 
   // ---- Skip password — send magic link so they can claim their account later ----
   const skipPassword = useCallback(() => {
