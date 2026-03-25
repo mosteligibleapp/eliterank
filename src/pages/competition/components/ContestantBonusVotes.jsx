@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
+import SubmitProofModal from '../../../components/modals/SubmitProofModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
 
@@ -17,6 +18,7 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
   const hasCheckedProfile = useRef(false);
   const [showGuide, setShowGuide] = useState(false);
 
+  const [proofTask, setProofTask] = useState(null);
   const bonusVotes = useBonusVotes(competitionId, contestantId, userId);
 
   const {
@@ -33,6 +35,7 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
     markHowToWinViewed,
     markProfileShared,
     awardTask,
+    submitProof,
   } = bonusVotes;
 
   // Auto-check profile on mount to award any profile-related bonuses
@@ -84,8 +87,22 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
     }
   };
 
+  // Handle proof submission for custom tasks
+  const handleSubmitProof = async (taskId, proofUrl) => {
+    const result = await submitProof(taskId, proofUrl);
+    if (result?.success) {
+      toast?.success?.('Proof submitted! Waiting for host approval.');
+    }
+  };
+
   // Handle task actions (e.g., clicking "view how to win" or "share profile")
-  const handleTaskAction = async (taskKey) => {
+  const handleTaskAction = async (taskKey, task) => {
+    // Custom approval-based tasks open the proof modal
+    if (task?.requires_approval) {
+      setProofTask(task);
+      return;
+    }
+
     if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
       setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
@@ -148,6 +165,12 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
           />
         </Suspense>
       )}
+      <SubmitProofModal
+        isOpen={!!proofTask}
+        onClose={() => setProofTask(null)}
+        task={proofTask}
+        onSubmit={handleSubmitProof}
+      />
     </>
   );
 }

@@ -5,6 +5,7 @@ import {
   awardBonusVotes,
   checkAndAwardProfileBonuses,
   setupDefaultBonusTasks,
+  submitBonusProof,
   BONUS_TASK_KEYS,
   DEPRECATED_TASK_KEYS,
 } from '../lib/bonusVotes';
@@ -99,6 +100,24 @@ export function useBonusVotes(competitionId, contestantId, userId) {
     return awardTask(BONUS_TASK_KEYS.SHARE_PROFILE);
   }, [awardTask]);
 
+  // Submit proof for an approval-based custom task
+  const submitProof = useCallback(async (taskId, proofUrl) => {
+    if (!competitionId || !contestantId || isDemoMode) return null;
+
+    const result = await submitBonusProof(competitionId, contestantId, userId, taskId, proofUrl);
+
+    if (result.success) {
+      // Optimistically update the task's submission status to 'pending'
+      setTasks(prev => prev.map(t =>
+        t.id === taskId
+          ? { ...t, submission_status: 'pending', proof_url: proofUrl, rejection_reason: null }
+          : t
+      ));
+    }
+
+    return result;
+  }, [competitionId, contestantId, userId, isDemoMode]);
+
   // Computed values
   const completedCount = useMemo(() => tasks.filter(t => t.completed).length, [tasks]);
   const totalCount = useMemo(() => tasks.length, [tasks]);
@@ -126,6 +145,7 @@ export function useBonusVotes(competitionId, contestantId, userId) {
 
     // Actions
     awardTask,
+    submitProof,
     checkProfile,
     markHowToWinViewed,
     markProfileShared,
