@@ -134,7 +134,11 @@ export default function PeopleTab({
       if (result?.success) {
         setResentId(nominee.id);
         setTimeout(() => setResentId(null), 2000);
+      } else {
+        alert(result?.error || 'Failed to send reminder. Please try again.');
       }
+    } catch (err) {
+      alert('Failed to send reminder. Please try again.');
     } finally {
       removeProcessing(nominee.id);
     }
