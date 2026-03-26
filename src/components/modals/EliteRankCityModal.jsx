@@ -367,9 +367,20 @@ export default function EliteRankCityModal({
         }}>
           {/* Top Row */}
           <div style={{ ...styleHelpers.flexBetween }}>
-            <Badge variant={config.variant} size={isMobile ? 'sm' : 'md'} pill dot={config.pulse}>
-              {config.label}
-            </Badge>
+            {config.pulse ? (
+              <span style={{
+                width: isMobile ? '10px' : '12px',
+                height: isMobile ? '10px' : '12px',
+                borderRadius: '50%',
+                background: colors.status.success,
+                boxShadow: `0 0 6px ${colors.status.success}`,
+                animation: 'pulseGlow 2s infinite',
+              }} />
+            ) : (
+              <Badge variant={config.variant} size={isMobile ? 'sm' : 'md'} pill dot={false}>
+                {config.label}
+              </Badge>
+            )}
             {org && (
               <div style={{
                 width: isMobile ? '36px' : '40px',
@@ -1659,6 +1670,10 @@ export default function EliteRankCityModal({
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 1; box-shadow: 0 0 6px ${colors.status.success}; }
+          50% { opacity: 0.6; box-shadow: 0 0 12px ${colors.status.success}; }
         }
         @keyframes shine {
           0% { transform: translateX(-100%); }
