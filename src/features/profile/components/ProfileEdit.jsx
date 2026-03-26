@@ -320,16 +320,6 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         </FormGrid>
       </FormSection>
 
-      {/* Hobbies Selection */}
-      <FormSection title="Hobbies & Interests" icon={Heart}>
-        <HobbySelector
-          hobbies={ALL_HOBBIES}
-          selected={hostProfile.hobbies}
-          onChange={handleHobbiesChange}
-          max={MAX_HOBBIES}
-        />
-      </FormSection>
-
       {/* Photo Gallery Upload */}
       <FormSection title="Photo Gallery" icon={Camera}>
         <p style={{

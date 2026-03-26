@@ -254,39 +254,6 @@ export default function ProfileViewModal({
                 </div>
               )}
 
-              {/* Interests */}
-              {displayProfile.interests && displayProfile.interests.length > 0 && (
-                <div style={{ marginBottom: spacing.xl }}>
-                  <h3 style={{
-                    fontSize: typography.fontSize.md,
-                    fontWeight: typography.fontWeight.semibold,
-                    marginBottom: spacing.md,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.sm,
-                    color: colors.text.secondary,
-                  }}>
-                    <Heart size={16} style={{ color: colors.gold.primary }} /> Interests
-                  </h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-                    {displayProfile.interests.map((interest, idx) => (
-                      <span
-                        key={idx}
-                        style={{
-                          padding: `${spacing.xs} ${spacing.md}`,
-                          background: 'rgba(212,175,55,0.1)',
-                          border: `1px solid rgba(212,175,55,0.3)`,
-                          borderRadius: borderRadius.pill,
-                          fontSize: typography.fontSize.sm,
-                          color: colors.gold.primary,
-                        }}
-                      >
-                        {interest}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Social Links */}
               {socialLinks.length > 0 && (

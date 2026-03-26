@@ -219,45 +219,6 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
           </div>
         )}
 
-        {/* Interests */}
-        {hobbies && hobbies.length > 0 && (
-          <div style={{
-            background: colors.background.card,
-            borderRadius: borderRadius.xl,
-            padding: isMobile ? spacing.lg : spacing.xl,
-            marginBottom: spacing.lg,
-            border: `1px solid ${colors.border.primary}`,
-          }}>
-            <h3 style={{
-              ...styleHelpers.flexStart,
-              gap: spacing.sm,
-              fontSize: typography.fontSize.md,
-              fontWeight: typography.fontWeight.semibold,
-              color: colors.text.primary,
-              marginBottom: spacing.md,
-            }}>
-              <Heart size={18} style={{ color: roleConfig.color }} />
-              Interests
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-              {hobbies.map((hobby, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    padding: `${spacing.xs} ${spacing.md}`,
-                    background: `${roleConfig.color}15`,
-                    border: `1px solid ${roleConfig.color}30`,
-                    borderRadius: borderRadius.pill,
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  {hobby}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Social Links */}
         {socialLinks.length > 0 && (

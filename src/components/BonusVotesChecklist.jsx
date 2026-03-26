@@ -1,8 +1,8 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import {
   Gift, CheckCircle, Circle, Camera,
   Share2, User, BookOpen, Link as LinkIcon, Trophy,
-  Clock, XCircle, Upload, ExternalLink,
+  Clock, XCircle, Upload, ExternalLink, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients, transitions } from '../styles/theme';
 import { Badge } from './ui';
@@ -252,7 +252,10 @@ function BonusVotesChecklist({
   onTaskAction,
   compact = false,
   showHeader = true,
+  collapsible = false,
+  defaultCollapsed = false,
 }) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   if (loading) {
     return (
       <div style={{
@@ -287,18 +290,22 @@ function BonusVotesChecklist({
     }}>
       {/* Header */}
       {showHeader && (
-        <div style={{
-          padding: `${spacing.lg} ${spacing.xl}`,
-          borderBottom: `1px solid ${colors.border.secondary}`,
-          background: allCompleted
-            ? 'rgba(34, 197, 94, 0.05)'
-            : 'rgba(212, 175, 55, 0.03)',
-        }}>
+        <div
+          style={{
+            padding: `${spacing.lg} ${spacing.xl}`,
+            borderBottom: (!collapsible || !collapsed) ? `1px solid ${colors.border.secondary}` : 'none',
+            background: allCompleted
+              ? 'rgba(34, 197, 94, 0.05)'
+              : 'rgba(212, 175, 55, 0.03)',
+            cursor: collapsible ? 'pointer' : 'default',
+          }}
+          onClick={collapsible ? () => setCollapsed(prev => !prev) : undefined}
+        >
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: spacing.md,
+            marginBottom: (!collapsible || !collapsed) ? spacing.md : 0,
           }}>
             <div style={{
               display: 'flex',
@@ -318,47 +325,60 @@ function BonusVotesChecklist({
                 {allCompleted ? 'All Bonus Votes Earned!' : 'Earn Bonus Votes'}
               </h3>
             </div>
-            <Badge
-              variant={allCompleted ? 'success' : 'gold'}
-              size="sm"
-            >
-              {completedCount}/{totalCount}
-            </Badge>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+              <Badge
+                variant={allCompleted ? 'success' : 'gold'}
+                size="sm"
+              >
+                {completedCount}/{totalCount}
+              </Badge>
+              {collapsible && (
+                collapsed
+                  ? <ChevronDown size={18} style={{ color: colors.text.secondary }} />
+                  : <ChevronUp size={18} style={{ color: colors.text.secondary }} />
+              )}
+            </div>
           </div>
 
-          <ProgressBar
-            progress={progress}
-            earned={totalBonusVotesEarned}
-            total={totalBonusVotesAvailable}
-          />
+          {(!collapsible || !collapsed) && (
+            <>
+              <ProgressBar
+                progress={progress}
+                earned={totalBonusVotesEarned}
+                total={totalBonusVotesAvailable}
+              />
 
-          {!allCompleted && (
-            <p style={{
-              fontSize: typography.fontSize.sm,
-              color: colors.text.secondary,
-            }}>
-              Complete tasks below to earn free bonus votes for your campaign.
-            </p>
+              {!allCompleted && (
+                <p style={{
+                  fontSize: typography.fontSize.sm,
+                  color: colors.text.secondary,
+                }}>
+                  Complete tasks below to earn free bonus votes for your campaign.
+                </p>
+              )}
+            </>
           )}
         </div>
       )}
 
       {/* Tasks list */}
-      <div style={{
-        padding: compact ? spacing.md : spacing.lg,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: spacing.sm,
-      }}>
-        {tasks.map((task) => (
-          <TaskRow
-            key={task.id || task.task_key}
-            task={task}
-            onAction={onTaskAction}
-            isAwarding={awarding}
-          />
-        ))}
-      </div>
+      {(!collapsible || !collapsed) && (
+        <div style={{
+          padding: compact ? spacing.md : spacing.lg,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spacing.sm,
+        }}>
+          {tasks.map((task) => (
+            <TaskRow
+              key={task.id || task.task_key}
+              task={task}
+              onAction={onTaskAction}
+              isAwarding={awarding}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
