@@ -162,16 +162,16 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   }, [token]);
 
   // Determine password needs after auth check.
-  // Always require password — third-party nominees arriving via claim link
-  // need to set a password regardless of how they authenticated. The old
-  // cameViaMagicLink detection was unreliable (Supabase can clear the URL
-  // hash before React mounts).
   useEffect(() => {
     if (loading || authLoading || !nominee) return;
 
-    // Self-nominees who are already logged in don't need to set a password
     const isSelfNominee = nominee?.nominated_by === 'self';
-    setNeedsPassword(isSelfNominee ? !user : true);
+    // Check if the logged-in user IS the nominee (email match)
+    const loggedInAsNominee = user?.email && nominee?.email &&
+      user.email.toLowerCase() === nominee.email.toLowerCase();
+
+    // Skip password step if already logged in as this nominee
+    setNeedsPassword(isSelfNominee ? !user : !loggedInAsNominee);
     setReady(true);
   }, [loading, authLoading, nominee, user]);
 
@@ -239,8 +239,17 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     onSuccess?.();
   };
 
+  // ---- Already completed: redirect to profile ----
+  // If nominee already claimed and the logged-in user matches, send them to their profile
+  const alreadyCompleted = nominee?.claimed_at && effectiveUser && effectiveProfile?.onboarded_at;
+  useEffect(() => {
+    if (alreadyCompleted) {
+      navigate('/profile', { replace: true });
+    }
+  }, [alreadyCompleted, navigate]);
+
   // ---- Loading ----
-  if (loading || authLoading || !ready) {
+  if (loading || authLoading || !ready || alreadyCompleted) {
     return (
       <div className="entry-flow">
         <div className="entry-loading">
