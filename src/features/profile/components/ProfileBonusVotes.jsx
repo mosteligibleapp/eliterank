@@ -260,6 +260,8 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
           progress={progress}
           allCompleted={allCompleted}
           onTaskAction={handleTaskAction}
+          collapsible
+          defaultCollapsed
         />
       </div>
       {showGuide && (
@@ -440,6 +442,8 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
           progress={progress}
           allCompleted={allCompleted}
           onTaskAction={handleTaskAction}
+          collapsible
+          defaultCollapsed
         />
       </div>
       {showGuide && (

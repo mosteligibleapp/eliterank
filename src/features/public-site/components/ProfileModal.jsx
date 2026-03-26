@@ -301,30 +301,6 @@ export default function ProfileModal({
               </div>
             )}
 
-            {/* Interests Section */}
-            {interests.length > 0 && (
-              <div
-                style={{
-                  background: colors.background.card,
-                  border: `1px solid ${colors.border.light}`,
-                  borderRadius: borderRadius.xl,
-                  padding: spacing.xxl,
-                  marginBottom: spacing.xl,
-                }}
-              >
-                <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                  <Heart size={20} style={{ color: type === 'host' ? '#8b5cf6' : colors.gold.primary }} /> Interests
-                </h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.md }}>
-                  {interests.map((interest) => (
-                    <InterestTag key={interest} size="lg">
-                      {interest}
-                    </InterestTag>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Photo Gallery Placeholder */}
             <div
               style={{
