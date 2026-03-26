@@ -639,17 +639,26 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase) return { success: false, error: 'Missing configuration' };
 
     try {
+      // Refresh session before calling edge function to avoid 401
+      await supabase.auth.getSession();
+
       const { data, error } = await supabase.functions.invoke('send-nomination-invite', {
         body: { nominee_id: nomineeId, force_resend: true },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check for auth errors
+        if (error.message?.includes('401') || error.message?.includes('unauthorized') || error.message?.includes('JWT')) {
+          return { success: false, error: 'Your session has expired. Please refresh the page and try again.' };
+        }
+        throw error;
+      }
 
       await fetchDashboardData();
       return { success: true, data };
     } catch (err) {
       console.error('Error resending invite:', err);
-      return { success: false, error: err.message };
+      return { success: false, error: err.message || 'Failed to send reminder' };
     }
   }, [fetchDashboardData]);
 

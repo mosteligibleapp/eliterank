@@ -4,6 +4,7 @@ import { getContestantCompetitions, getNominationsForUser } from '../../../lib/c
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
+import SubmitProofModal from '../../../components/modals/SubmitProofModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS, loadNomineeBonusActions, saveNomineeBonusAction, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
 import { spacing, typography, colors, borderRadius } from '../../../styles/theme';
@@ -103,6 +104,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
   const toast = useToast();
   const hasCheckedProfile = useRef(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [proofTask, setProofTask] = useState(null);
   const dismissKey = `bonus_dismissed_${contestantId}`;
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem(dismissKey) === 'true'; } catch { return false; }
@@ -113,7 +115,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     completedCount, totalCount,
     totalBonusVotesEarned, totalBonusVotesAvailable,
     progress, allCompleted,
-    checkProfile, awardTask, markHowToWinViewed, markProfileShared,
+    checkProfile, awardTask, submitProof, markHowToWinViewed, markProfileShared,
   } = useBonusVotes(competitionId, contestantId, userId);
 
   // Report bonus votes to parent
@@ -176,7 +178,19 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     }
   };
 
-  const handleTaskAction = async (taskKey) => {
+  const handleSubmitProof = async (taskId, proofUrl) => {
+    const result = await submitProof(taskId, proofUrl);
+    if (result?.success) {
+      toast?.success?.('Proof submitted! Waiting for host approval.');
+    }
+  };
+
+  const handleTaskAction = async (taskKey, task) => {
+    if (task?.requires_approval) {
+      setProofTask(task);
+      return;
+    }
+
     if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
       setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
@@ -258,6 +272,12 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
           />
         </Suspense>
       )}
+      <SubmitProofModal
+        isOpen={!!proofTask}
+        onClose={() => setProofTask(null)}
+        task={proofTask}
+        onSubmit={handleSubmitProof}
+      />
     </>
   );
 }

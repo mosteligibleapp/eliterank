@@ -192,6 +192,182 @@ export async function getBonusVoteCompletionStats(competitionId) {
   }
 }
 
+// =============================================================================
+// Custom Bonus Task CRUD (Host)
+// =============================================================================
+
+/**
+ * Create a custom bonus vote task for a competition
+ */
+export async function createCustomBonusTask(competitionId, { label, description, votesAwarded, proofLabel, createdBy }) {
+  if (!supabase || !competitionId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const taskKey = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const { data: existingTasks } = await supabase
+      .from('bonus_vote_tasks')
+      .select('sort_order')
+      .eq('competition_id', competitionId)
+      .order('sort_order', { ascending: false })
+      .limit(1);
+
+    const nextSortOrder = (existingTasks?.[0]?.sort_order || 10) + 1;
+
+    const { data, error } = await supabase
+      .from('bonus_vote_tasks')
+      .insert({
+        competition_id: competitionId,
+        task_key: taskKey,
+        label,
+        description: description || null,
+        votes_awarded: votesAwarded || 5,
+        proof_label: proofLabel || 'Submit your content link',
+        is_custom: true,
+        requires_approval: true,
+        created_by: createdBy || null,
+        sort_order: nextSortOrder,
+        enabled: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating custom bonus task:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, task: data };
+  } catch (err) {
+    console.error('Error creating custom bonus task:', err);
+    return { success: false, error: 'Failed to create custom task' };
+  }
+}
+
+/**
+ * Delete a custom bonus vote task
+ */
+export async function deleteCustomBonusTask(taskId) {
+  if (!supabase || !taskId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('bonus_vote_tasks')
+      .delete()
+      .eq('id', taskId)
+      .eq('is_custom', true);
+
+    if (error) {
+      console.error('Error deleting custom bonus task:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error deleting custom bonus task:', err);
+    return { success: false, error: 'Failed to delete custom task' };
+  }
+}
+
+// =============================================================================
+// Proof Submission (Contestant)
+// =============================================================================
+
+/**
+ * Submit proof for an approval-based bonus task
+ */
+export async function submitBonusProof(competitionId, contestantId, userId, taskId, proofUrl) {
+  if (!supabase || !competitionId || !contestantId || !taskId || !proofUrl) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('submit_bonus_proof', {
+      p_competition_id: competitionId,
+      p_contestant_id: contestantId,
+      p_user_id: userId || null,
+      p_task_id: taskId,
+      p_proof_url: proofUrl,
+    });
+
+    if (error) {
+      console.error('Error submitting bonus proof:', error);
+      return { success: false, error: error.message };
+    }
+
+    return data || { success: false, error: 'No response' };
+  } catch (err) {
+    console.error('Error submitting bonus proof:', err);
+    return { success: false, error: 'Failed to submit proof' };
+  }
+}
+
+// =============================================================================
+// Submission Review (Host)
+// =============================================================================
+
+/**
+ * Get pending submissions for a competition (host view)
+ */
+export async function getPendingSubmissions(competitionId) {
+  if (!supabase || !competitionId) {
+    return { submissions: [], error: null };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('bonus_vote_submissions')
+      .select(`
+        *,
+        task:bonus_vote_tasks(label, votes_awarded, proof_label),
+        contestant:contestants(name, avatar_url, user_id)
+      `)
+      .eq('competition_id', competitionId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching submissions:', error);
+      return { submissions: [], error: error.message };
+    }
+
+    return { submissions: data || [], error: null };
+  } catch (err) {
+    console.error('Error fetching submissions:', err);
+    return { submissions: [], error: 'Failed to fetch submissions' };
+  }
+}
+
+/**
+ * Approve or reject a bonus vote submission
+ */
+export async function reviewBonusSubmission(submissionId, reviewerId, action, rejectionReason) {
+  if (!supabase || !submissionId || !reviewerId || !action) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('review_bonus_submission', {
+      p_submission_id: submissionId,
+      p_reviewer_id: reviewerId,
+      p_action: action,
+      p_rejection_reason: rejectionReason || null,
+    });
+
+    if (error) {
+      console.error('Error reviewing submission:', error);
+      return { success: false, error: error.message };
+    }
+
+    return data || { success: false, error: 'No response' };
+  } catch (err) {
+    console.error('Error reviewing submission:', err);
+    return { success: false, error: 'Failed to review submission' };
+  }
+}
+
 /**
  * Check if a user has earned all bonus votes in any active competition.
  * Used to display the "All Bonus Votes Earned" badge on profiles.

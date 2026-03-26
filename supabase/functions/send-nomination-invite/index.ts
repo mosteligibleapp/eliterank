@@ -334,7 +334,7 @@ serve(async (req) => {
     let isSelfNomineeReminder = false
 
     // Incomplete self-nominee: started entry flow but didn't finish (no claimed_at)
-    if (nomineeData.nominated_by === 'self' && !nomineeData.claimed_at && nomineeData.flow_stage) {
+    if (nomineeData.nominated_by === 'self' && !nomineeData.claimed_at) {
       isReminder = true
       isSelfNomineeReminder = true
     }
@@ -404,7 +404,8 @@ serve(async (req) => {
     }
 
     // 2) Confirmation email to the nominator (fire-and-forget, non-critical)
-    if (nomineeData.nominator_email) {
+    // Only send on initial invite — not on reminders or force_resend
+    if (nomineeData.nominator_email && !isReminder && !force_resend) {
       const orgSlug = competition.organization?.slug
       const competitionUrl = orgSlug
         ? `${appUrl}/${orgSlug}/${competition.slug || `id/${competition.id}`}`

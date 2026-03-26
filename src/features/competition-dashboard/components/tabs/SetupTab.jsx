@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, XCircle, ExternalLink, Check, X, Clock, Upload } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
-import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats } from '../../../../lib/bonusVotes';
+import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
+import CustomBonusTaskModal from '../../../../components/modals/CustomBonusTaskModal';
+import { useAuthContextSafe } from '../../../../contexts/AuthContext';
 
 // Helper to format currency from cents
 const formatCurrency = (cents) => {
@@ -62,6 +64,7 @@ export default function SetupTab({
   onOpenPrizeModal,
 }) {
   const { isMobile } = useResponsive();
+  const { profile: currentUser } = useAuthContextSafe();
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
 
   // Bonus votes state
@@ -69,6 +72,17 @@ export default function SetupTab({
   const [bonusStats, setBonusStats] = useState(null);
   const [bonusLoading, setBonusLoading] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
+
+  // Custom task modal state
+  const [showCustomTaskModal, setShowCustomTaskModal] = useState(false);
+  const [editingCustomTask, setEditingCustomTask] = useState(null);
+
+  // Submission review state
+  const [submissions, setSubmissions] = useState([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [reviewingId, setReviewingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const competitionId = competition?.id;
 
@@ -84,9 +98,18 @@ export default function SetupTab({
     setBonusLoading(false);
   }, [competitionId]);
 
+  const loadSubmissions = useCallback(async () => {
+    if (!competitionId || !isSupabaseConfigured()) return;
+    setSubmissionsLoading(true);
+    const result = await getPendingSubmissions(competitionId);
+    setSubmissions(result.submissions);
+    setSubmissionsLoading(false);
+  }, [competitionId]);
+
   useEffect(() => {
     loadBonusTasks();
-  }, [loadBonusTasks]);
+    loadSubmissions();
+  }, [loadBonusTasks, loadSubmissions]);
 
   const handleSetupBonusTasks = async () => {
     if (!competitionId) return;
@@ -106,6 +129,52 @@ export default function SetupTab({
     if (isNaN(votes) || votes < 0) return;
     await updateBonusVoteTask(taskId, { votes_awarded: votes });
     setBonusTasks(prev => prev.map(t => t.id === taskId ? { ...t, votes_awarded: votes } : t));
+  };
+
+  const handleSaveCustomTask = async (data) => {
+    if (!competitionId) return;
+    if (editingCustomTask) {
+      await updateBonusVoteTask(editingCustomTask.id, {
+        label: data.label,
+        description: data.description,
+        votes_awarded: data.votesAwarded,
+        proof_label: data.proofLabel,
+      });
+    } else {
+      await createCustomBonusTask(competitionId, {
+        ...data,
+        createdBy: currentUser?.id || null,
+      });
+    }
+    setShowCustomTaskModal(false);
+    setEditingCustomTask(null);
+    await loadBonusTasks();
+  };
+
+  const handleDeleteCustomTask = async (taskId) => {
+    if (!window.confirm('Delete this custom task? Any pending submissions will also be removed.')) return;
+    await deleteCustomBonusTask(taskId);
+    setBonusTasks(prev => prev.filter(t => t.id !== taskId));
+    await loadSubmissions();
+  };
+
+  const handleApproveSubmission = async (submissionId) => {
+    if (!currentUser?.id) return;
+    setReviewingId(submissionId);
+    await reviewBonusSubmission(submissionId, currentUser.id, 'approve');
+    setReviewingId(null);
+    await Promise.all([loadSubmissions(), loadBonusTasks()]);
+    if (onRefresh) onRefresh();
+  };
+
+  const handleRejectSubmission = async (submissionId) => {
+    if (!currentUser?.id) return;
+    setReviewingId(submissionId);
+    await reviewBonusSubmission(submissionId, currentUser.id, 'reject', rejectionReason);
+    setReviewingId(null);
+    setRejectingId(null);
+    setRejectionReason('');
+    await loadSubmissions();
   };
 
   // View-only field component - stacked layout for better mobile display
@@ -754,7 +823,7 @@ export default function SetupTab({
                     padding: spacing.md,
                     background: task.enabled ? colors.background.secondary : 'rgba(100,100,100,0.08)',
                     borderRadius: borderRadius.lg,
-                    border: `1px solid ${task.enabled ? colors.border.primary : 'rgba(100,100,100,0.15)'}`,
+                    border: `1px solid ${task.enabled ? (task.is_custom ? 'rgba(212,175,55,0.2)' : colors.border.primary) : 'rgba(100,100,100,0.15)'}`,
                     opacity: task.enabled ? 1 : 0.6,
                   }}>
                     {/* Toggle */}
@@ -782,9 +851,16 @@ export default function SetupTab({
 
                     {/* Task info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.base }}>
-                        {task.label}
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                        <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.base }}>
+                          {task.label}
+                        </p>
+                        {task.is_custom && (
+                          <Badge variant="gold" size="sm" style={{ fontSize: '10px' }}>
+                            Requires Approval
+                          </Badge>
+                        )}
+                      </div>
                       <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
                         {task.description || task.task_key}
                       </p>
@@ -820,13 +896,250 @@ export default function SetupTab({
                         {bonusStats.completionsByTask[task.id]} done
                       </Badge>
                     )}
+
+                    {/* Edit / Delete for custom tasks */}
+                    {task.is_custom && (
+                      <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0 }}>
+                        <button
+                          onClick={() => { setEditingCustomTask(task); setShowCustomTaskModal(true); }}
+                          style={{
+                            padding: spacing.sm,
+                            background: 'transparent',
+                            border: `1px solid ${colors.border.primary}`,
+                            borderRadius: borderRadius.md,
+                            color: colors.text.secondary,
+                            cursor: 'pointer',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCustomTask(task.id)}
+                          style={{
+                            padding: spacing.sm,
+                            background: 'transparent',
+                            border: '1px solid rgba(239,68,68,0.3)',
+                            borderRadius: borderRadius.md,
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {/* Add Custom Task button */}
+              <div style={{ marginTop: spacing.lg }}>
+                <Button
+                  onClick={() => { setEditingCustomTask(null); setShowCustomTaskModal(true); }}
+                  variant="secondary"
+                  icon={Plus}
+                  size="sm"
+                >
+                  Add Custom Task
+                </Button>
+              </div>
+
+              {/* Pending Submissions Review */}
+              {(() => {
+                const pendingSubs = submissions.filter(s => s.status === 'pending');
+                if (pendingSubs.length === 0) return null;
+                return (
+                  <div style={{ marginTop: spacing.xl }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.sm,
+                      marginBottom: spacing.md,
+                    }}>
+                      <Clock size={18} style={{ color: colors.gold.primary }} />
+                      <h4 style={{
+                        fontSize: typography.fontSize.base,
+                        fontWeight: typography.fontWeight.semibold,
+                        color: colors.text.primary,
+                      }}>
+                        Pending Submissions
+                      </h4>
+                      <Badge variant="gold" size="sm">{pendingSubs.length}</Badge>
+                    </div>
+                    <div style={{ display: 'grid', gap: spacing.sm }}>
+                      {pendingSubs.map((sub) => (
+                        <div key={sub.id} style={{
+                          padding: spacing.md,
+                          background: 'rgba(212,175,55,0.04)',
+                          borderRadius: borderRadius.lg,
+                          border: '1px solid rgba(212,175,55,0.15)',
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: isMobile ? 'flex-start' : 'center',
+                            gap: spacing.md,
+                            flexDirection: isMobile ? 'column' : 'row',
+                          }}>
+                            {/* Contestant info */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{
+                                fontWeight: typography.fontWeight.medium,
+                                fontSize: typography.fontSize.sm,
+                                color: colors.text.primary,
+                              }}>
+                                {sub.contestant?.name || 'Unknown'}
+                              </p>
+                              <p style={{
+                                fontSize: typography.fontSize.xs,
+                                color: colors.text.muted,
+                                marginTop: '2px',
+                              }}>
+                                {sub.task?.label} — +{sub.task?.votes_awarded} votes
+                              </p>
+                            </div>
+
+                            {/* Proof link */}
+                            <a
+                              href={sub.proof_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: typography.fontSize.xs,
+                                color: colors.gold.primary,
+                                textDecoration: 'none',
+                                maxWidth: '200px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ExternalLink size={12} />
+                              View proof
+                            </a>
+
+                            {/* Action buttons */}
+                            {rejectingId === sub.id ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flexShrink: 0 }}>
+                                <input
+                                  type="text"
+                                  placeholder="Reason (optional)"
+                                  value={rejectionReason}
+                                  onChange={(e) => setRejectionReason(e.target.value)}
+                                  style={{
+                                    width: isMobile ? '120px' : '160px',
+                                    padding: `${spacing.xs} ${spacing.sm}`,
+                                    background: colors.background.card,
+                                    border: `1px solid ${colors.border.primary}`,
+                                    borderRadius: borderRadius.sm,
+                                    color: colors.text.primary,
+                                    fontSize: typography.fontSize.xs,
+                                  }}
+                                />
+                                <button
+                                  onClick={() => handleRejectSubmission(sub.id)}
+                                  disabled={reviewingId === sub.id}
+                                  style={{
+                                    padding: `${spacing.xs} ${spacing.sm}`,
+                                    background: 'rgba(239,68,68,0.15)',
+                                    border: '1px solid rgba(239,68,68,0.3)',
+                                    borderRadius: borderRadius.sm,
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    fontSize: typography.fontSize.xs,
+                                    fontWeight: typography.fontWeight.medium,
+                                  }}
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => { setRejectingId(null); setRejectionReason(''); }}
+                                  style={{
+                                    padding: spacing.xs,
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: colors.text.muted,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0 }}>
+                                <button
+                                  onClick={() => handleApproveSubmission(sub.id)}
+                                  disabled={reviewingId === sub.id}
+                                  style={{
+                                    padding: `${spacing.xs} ${spacing.sm}`,
+                                    background: 'rgba(34,197,94,0.15)',
+                                    border: '1px solid rgba(34,197,94,0.3)',
+                                    borderRadius: borderRadius.sm,
+                                    color: colors.status.success,
+                                    cursor: 'pointer',
+                                    fontSize: typography.fontSize.xs,
+                                    fontWeight: typography.fontWeight.medium,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  <Check size={12} /> Approve
+                                </button>
+                                <button
+                                  onClick={() => setRejectingId(sub.id)}
+                                  disabled={reviewingId === sub.id}
+                                  style={{
+                                    padding: `${spacing.xs} ${spacing.sm}`,
+                                    background: 'rgba(239,68,68,0.08)',
+                                    border: '1px solid rgba(239,68,68,0.2)',
+                                    borderRadius: borderRadius.sm,
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    fontSize: typography.fontSize.xs,
+                                    fontWeight: typography.fontWeight.medium,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  <X size={12} /> Reject
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>
       </Panel>
+
+      {/* Custom Bonus Task Modal */}
+      <CustomBonusTaskModal
+        isOpen={showCustomTaskModal}
+        onClose={() => { setShowCustomTaskModal(false); setEditingCustomTask(null); }}
+        task={editingCustomTask}
+        onSave={handleSaveCustomTask}
+      />
     </div>
   );
 }
