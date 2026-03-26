@@ -334,7 +334,7 @@ serve(async (req) => {
     let isSelfNomineeReminder = false
 
     // Incomplete self-nominee: started entry flow but didn't finish (no claimed_at)
-    if (nomineeData.nominated_by === 'self' && !nomineeData.claimed_at && nomineeData.flow_stage) {
+    if (nomineeData.nominated_by === 'self' && !nomineeData.claimed_at) {
       isReminder = true
       isSelfNomineeReminder = true
     }
