@@ -933,6 +933,7 @@ export default function PeopleTab({
                   key={n.id}
                   person={n}
                   cardType="nominee"
+                  onAvatarUpload={handleAvatarClick}
                   actions={
                     <div style={{ display: 'flex', gap: spacing.xs, alignItems: 'center' }}>
                       <span style={{
