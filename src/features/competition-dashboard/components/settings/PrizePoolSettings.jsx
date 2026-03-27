@@ -271,18 +271,51 @@ export function PrizePoolSettings({ competition, onSave }) {
     marginTop: spacing.lg,
   };
 
-  return (
-    <Panel
-      title="Prize Pool"
-      icon={Trophy}
-      action={
-        isLocked && (
+  // Locked: compact read-only summary
+  if (isLocked) {
+    return (
+      <Panel
+        title="Prize Pool"
+        icon={Trophy}
+        action={
           <Badge variant="secondary" size="sm">
             <Lock size={12} style={{ marginRight: spacing.xs }} />
             Locked
           </Badge>
-        )
-      }
+        }
+      >
+        <div style={{ padding: spacing.xl }}>
+          <div style={breakdownGridStyle}>
+            <div style={breakdownItemStyle(true)}>
+              <span style={placeStyle}>1st Place</span>
+              <span style={amountStyle(true)}>{prizePreview.formatted.firstPrize}</span>
+            </div>
+            <div style={breakdownItemStyle(false)}>
+              <span style={placeStyle}>2nd Place</span>
+              <span style={amountStyle(false)}>{prizePreview.formatted.secondPrize}</span>
+            </div>
+            <div style={breakdownItemStyle(false)}>
+              <span style={placeStyle}>3rd Place</span>
+              <span style={amountStyle(false)}>{prizePreview.formatted.thirdPrize}</span>
+            </div>
+          </div>
+          <div style={totalStyle}>
+            <span style={{ color: colors.text.secondary }}>Starting Prize Pool</span>
+            <span style={totalAmountStyle}>{prizePreview.formatted.totalPrizePool}</span>
+          </div>
+          <p style={growthNoteStyle}>
+            Prize pool grows as votes are purchased. 50% of vote revenue is added to prizes.
+          </p>
+        </div>
+      </Panel>
+    );
+  }
+
+  // Editable: full form
+  return (
+    <Panel
+      title="Prize Pool"
+      icon={Trophy}
     >
       <div style={{ padding: spacing.xl }}>
         <p style={descStyle}>
@@ -307,7 +340,6 @@ export function PrizePoolSettings({ competition, onSave }) {
                 step={100}
                 value={minimum}
                 onChange={(e) => setMinimum(Number(e.target.value))}
-                disabled={isLocked}
                 style={inputStyle}
               />
             </div>
@@ -395,17 +427,15 @@ export function PrizePoolSettings({ competition, onSave }) {
         </div>
 
         {/* Save Button */}
-        {!isLocked && (
-          <div style={actionsStyle}>
-            <Button
-              onClick={saveChanges}
-              disabled={!hasChanges() || saving || minError}
-              icon={saved ? Check : null}
-            >
-              {saving ? 'Saving...' : saved ? 'Saved' : 'Save Changes'}
-            </Button>
-          </div>
-        )}
+        <div style={actionsStyle}>
+          <Button
+            onClick={saveChanges}
+            disabled={!hasChanges() || saving || minError}
+            icon={saved ? Check : null}
+          >
+            {saving ? 'Saving...' : saved ? 'Saved' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
     </Panel>
   );

@@ -4,7 +4,7 @@ import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { formatRelativeTime } from '../../../../utils/formatters';
-import { AboutSectionEditor, PrizePoolSettings, OrganizationBrandingEditor } from '../settings';
+import { AboutSectionEditor, OrganizationBrandingEditor } from '../settings';
 
 /**
  * ContentTab - Manages about section, prize pool, and announcements
@@ -67,9 +67,6 @@ export default function ContentTab({
 
       {/* About Section */}
       <AboutSectionEditor competition={competition} organization={null} onSave={onRefresh} />
-
-      {/* Prize Pool Settings */}
-      <PrizePoolSettings competition={competition} onSave={onRefresh} />
 
       {/* Create Announcement Section */}
       <Panel title="Create Announcement" icon={Plus} collapsible defaultCollapsed>
