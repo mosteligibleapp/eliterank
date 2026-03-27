@@ -50,6 +50,13 @@ export default function MetricCard({
 
   const style = variantStyles[variant] || variantStyles.default;
 
+  const iconBgMap = {
+    default: 'rgba(96,165,250,0.12)',
+    gold: 'rgba(212,175,55,0.15)',
+    warning: 'rgba(251,191,36,0.15)',
+    success: 'rgba(34,197,94,0.15)',
+  };
+
   return (
     <div style={{
       padding: isMobile ? spacing.md : spacing.lg,
@@ -59,20 +66,22 @@ export default function MetricCard({
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      transition: 'box-shadow 0.2s ease, transform 0.2s ease',
     }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         gap: spacing.sm,
-        marginBottom: spacing.sm,
+        marginBottom: spacing.md,
       }}>
         {Icon && (
           <div style={{
-            width: isMobile ? '28px' : '32px',
-            height: isMobile ? '28px' : '32px',
+            width: isMobile ? '30px' : '34px',
+            height: isMobile ? '30px' : '34px',
             borderRadius: borderRadius.md,
-            background: 'rgba(255,255,255,0.05)',
+            background: iconBgMap[variant] || iconBgMap.default,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -124,17 +133,18 @@ export default function MetricCard({
       {progress !== null && (
         <div style={{ marginBottom: spacing.sm }}>
           <div style={{
-            height: '6px',
+            height: '5px',
             background: style.progressBg,
-            borderRadius: borderRadius.xs,
+            borderRadius: borderRadius.pill,
             overflow: 'hidden',
           }}>
             <div style={{
               width: `${progress}%`,
               height: '100%',
               background: isGoalMet ? 'linear-gradient(90deg, #22c55e, #4ade80)' : style.progressFill,
-              borderRadius: borderRadius.xs,
-              transition: 'width 0.3s ease',
+              borderRadius: borderRadius.pill,
+              transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: isGoalMet ? '0 0 6px rgba(34,197,94,0.3)' : 'none',
             }} />
           </div>
         </div>

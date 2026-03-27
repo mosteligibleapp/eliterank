@@ -68,9 +68,23 @@ export default function TimelineCard({ competition, events = [] }) {
     <div style={{
       padding: isMobile ? spacing.md : spacing.xl,
       borderRadius: borderRadius.xl,
-      background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))',
-      border: `1px solid ${colors.border.gold}`,
+      background: 'linear-gradient(135deg, rgba(212,175,55,0.12) 0%, rgba(212,175,55,0.04) 60%, rgba(139,92,246,0.04) 100%)',
+      border: `1px solid rgba(212,175,55,0.2)`,
+      boxShadow: '0 2px 16px rgba(212,175,55,0.08)',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+    {/* Decorative corner glow */}
+    <div style={{
+      position: 'absolute',
+      top: '-30px',
+      left: '-30px',
+      width: '100px',
+      height: '100px',
+      borderRadius: '50%',
+      background: 'radial-gradient(circle, rgba(212,175,55,0.1) 0%, transparent 70%)',
+      pointerEvents: 'none',
+    }} />
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -141,21 +155,32 @@ export default function TimelineCard({ competition, events = [] }) {
                   gap: spacing.xs,
                 }}>
                   <div style={{
-                    width: isMobile ? '24px' : '28px',
-                    height: isMobile ? '24px' : '28px',
+                    width: isMobile ? '28px' : '32px',
+                    height: isMobile ? '28px' : '32px',
                     borderRadius: '50%',
                     background: phaseStatus === 'completed'
-                      ? colors.gold.primary
+                      ? 'linear-gradient(135deg, #d4af37, #f4d03f)'
                       : phaseStatus === 'current'
-                        ? 'rgba(212,175,55,0.3)'
-                        : 'rgba(255,255,255,0.1)',
-                    border: phaseStatus === 'current' ? `2px solid ${colors.gold.primary}` : 'none',
+                        ? 'rgba(212,175,55,0.2)'
+                        : 'rgba(255,255,255,0.08)',
+                    border: phaseStatus === 'current' ? `2px solid ${colors.gold.primary}` : phaseStatus === 'completed' ? 'none' : '1px solid rgba(255,255,255,0.1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    boxShadow: phaseStatus === 'current' ? '0 0 12px rgba(212,175,55,0.3)' : phaseStatus === 'completed' ? '0 2px 8px rgba(212,175,55,0.25)' : 'none',
+                    transition: 'all 0.3s ease',
                   }}>
                     {phaseStatus === 'completed' && (
-                      <span style={{ color: '#000', fontSize: '12px' }}>✓</span>
+                      <span style={{ color: '#000', fontSize: '12px', fontWeight: 'bold' }}>✓</span>
+                    )}
+                    {phaseStatus === 'current' && (
+                      <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: colors.gold.primary,
+                        boxShadow: '0 0 6px rgba(212,175,55,0.5)',
+                      }} />
                     )}
                   </div>
                   <span style={{
@@ -173,9 +198,10 @@ export default function TimelineCard({ competition, events = [] }) {
                     height: '2px',
                     background: getPhaseStatus(TIMELINE_PHASES[index + 1].id) === 'completed' ||
                                getPhaseStatus(phase.id) === 'completed'
-                      ? colors.gold.primary
-                      : 'rgba(255,255,255,0.1)',
+                      ? 'linear-gradient(90deg, #d4af37, #f4d03f)'
+                      : 'rgba(255,255,255,0.08)',
                     marginBottom: spacing.lg,
+                    borderRadius: '1px',
                   }} />
                 )}
               </React.Fragment>
