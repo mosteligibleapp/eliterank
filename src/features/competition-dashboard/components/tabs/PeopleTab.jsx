@@ -583,8 +583,11 @@ export default function PeopleTab({
     </div>
   );
 
+  const totalPeople = activeNominees.length + contestants.length;
+  const isNewHost = totalPeople === 0;
+
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
       {/* Hidden file input for nominee avatar uploads */}
       <input
         ref={avatarFileRef}
@@ -593,10 +596,47 @@ export default function PeopleTab({
         style={{ display: 'none' }}
         onChange={handleAvatarFileChange}
       />
+
+      {/* Getting Started - shown when no people yet */}
+      {isNewHost && (
+        <div style={{
+          padding: isMobile ? spacing.lg : spacing.xl,
+          borderRadius: borderRadius.xl,
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(139,92,246,0.06) 100%)',
+          border: '1px solid rgba(212,175,55,0.2)',
+        }}>
+          <h3 style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.semibold,
+            marginBottom: spacing.sm,
+            color: colors.gold.primary,
+          }}>
+            Get your first nominees
+          </h3>
+          <p style={{
+            color: colors.text.secondary,
+            fontSize: typography.fontSize.sm,
+            lineHeight: 1.6,
+            marginBottom: spacing.lg,
+          }}>
+            Share your competition link to collect nominations, or add people manually to get started.
+          </p>
+          <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+            <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
+              Add Nominee
+            </Button>
+            <Button size="sm" variant="secondary" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
+              Add Contestant
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Host Profile Section */}
       <Panel
         title="Host Profile"
         icon={User}
+        style={{ marginBottom: 0 }}
         collapsible
         action={
           host && isSuperAdmin ? (
@@ -748,12 +788,11 @@ export default function PeopleTab({
       {/* Winners Manager */}
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
 
-      {/* Stats Row */}
-      <div style={{
+      {/* Stats Row - hide when all zeros */}
+      {!isNewHost && <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
         gap: spacing.sm,
-        marginBottom: spacing.xl,
       }}>
         {[
           { label: 'Total Nominees', value: activeNominees.length, color: colors.gold.primary },
@@ -788,12 +827,13 @@ export default function PeopleTab({
             </p>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Contestants Section */}
       <Panel
         title={`Contestants (${contestants.length})`}
         icon={Crown}
+        style={{ marginBottom: 0 }}
         action={
           <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
             Add
@@ -804,8 +844,14 @@ export default function PeopleTab({
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {contestants.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Crown size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No contestants yet. Approve nominees or add manually.</p>
+              <Crown size={40} style={{ marginBottom: spacing.md, opacity: 0.4, color: colors.gold.primary }} />
+              <p style={{ marginBottom: spacing.md, fontSize: typography.fontSize.sm }}>No contestants yet</p>
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.lg }}>
+                Approve nominees or add people manually to build your lineup.
+              </p>
+              <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
+                Add Contestant
+              </Button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
@@ -827,6 +873,7 @@ export default function PeopleTab({
       <Panel
         title={`Nominees with Profile (${nomineesWithProfile.length})`}
         icon={UserCheck}
+        style={{ marginBottom: 0 }}
         action={
           <Button size="sm" variant="secondary" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
             Add
@@ -838,8 +885,11 @@ export default function PeopleTab({
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {nomineesWithProfile.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <UserCheck size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No nominees with linked profiles</p>
+              <UserCheck size={40} style={{ marginBottom: spacing.md, opacity: 0.4 }} />
+              <p style={{ fontSize: typography.fontSize.sm }}>No nominees with linked profiles yet</p>
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                Nominees who accept their invitation and create a profile will appear here.
+              </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
@@ -863,6 +913,7 @@ export default function PeopleTab({
       <Panel
         title={`External Nominees (${externalNominees.length})`}
         icon={Users}
+        style={{ marginBottom: 0 }}
         collapsible
         defaultCollapsed
       >
@@ -895,8 +946,11 @@ export default function PeopleTab({
           )}
           {externalNominees.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Users size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No external nominees</p>
+              <Users size={40} style={{ marginBottom: spacing.md, opacity: 0.4 }} />
+              <p style={{ fontSize: typography.fontSize.sm }}>No external nominees</p>
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                Nominees without a linked profile will appear here.
+              </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
@@ -920,6 +974,7 @@ export default function PeopleTab({
         <Panel
           title={`Incomplete Self-Nominations (${incompleteNominees.length})`}
           icon={Clock}
+          style={{ marginBottom: 0 }}
           collapsible
           defaultCollapsed={false}
         >
@@ -1023,6 +1078,7 @@ export default function PeopleTab({
         <Panel
           title={`Declined (${declinedNominees.length})`}
           icon={XCircle}
+          style={{ marginBottom: 0 }}
           collapsible
           defaultCollapsed
         >
