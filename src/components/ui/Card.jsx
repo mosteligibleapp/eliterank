@@ -55,6 +55,7 @@ const panelBaseStyle = {
   borderRadius: borderRadius.xxl,
   overflow: 'hidden',
   marginBottom: spacing.xxl,
+  boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
 };
 
 const headerBaseStyle = {
