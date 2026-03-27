@@ -132,6 +132,7 @@ export default function OverviewTab({
       display: 'grid',
       gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
       gap: isMobile ? spacing.lg : spacing.xl,
+      alignItems: 'start',
     }}>
       {/* Left Column */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
@@ -180,6 +181,7 @@ export default function OverviewTab({
         <Panel
           title="Upcoming Events"
           icon={Calendar}
+          style={{ marginBottom: 0 }}
           action={<Button size="sm" icon={Plus} onClick={() => onOpenEventModal?.(null)}>Add Event</Button>}
           collapsible
         >
@@ -318,6 +320,7 @@ export default function OverviewTab({
         <Panel
           title="Top Contestants"
           icon={Crown}
+          style={{ marginBottom: 0 }}
           action={
             <button
               onClick={() => onNavigateToTab?.('people')}
@@ -456,6 +459,7 @@ export default function OverviewTab({
         <Panel
           title="Announcements"
           icon={FileText}
+          style={{ marginBottom: 0 }}
           action={<Button size="sm" icon={Plus} onClick={() => setShowAnnouncementForm(true)}>New Post</Button>}
           collapsible
         >
