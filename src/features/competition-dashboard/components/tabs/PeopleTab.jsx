@@ -795,9 +795,9 @@ export default function PeopleTab({
         gap: spacing.sm,
       }}>
         {[
-          { label: 'Total Nominees', value: activeNominees.length, color: colors.gold.primary },
-          { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
-          { label: 'External', value: externalNominees.length, color: '#f59e0b' },
+          { label: 'Nominees', value: activeNominees.length, color: colors.gold.primary },
+          { label: 'Ready', value: nomineesWithProfile.length, color: '#3b82f6' },
+          { label: 'Awaiting', value: externalNominees.length, color: '#f59e0b' },
           { label: 'Approved', value: contestants.length, color: '#22c55e' },
           { label: 'Declined', value: declinedNominees.length, color: '#ef4444' },
         ].map((stat, i, arr) => (
@@ -869,9 +869,9 @@ export default function PeopleTab({
         </div>
       </Panel>
 
-      {/* Nominees with Profile */}
+      {/* Ready to Approve */}
       <Panel
-        title={`Nominees with Profile (${nomineesWithProfile.length})`}
+        title={`Ready to Approve (${nomineesWithProfile.length})`}
         icon={UserCheck}
         style={{ marginBottom: 0 }}
         action={
@@ -886,9 +886,9 @@ export default function PeopleTab({
           {nomineesWithProfile.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <UserCheck size={40} style={{ marginBottom: spacing.md, opacity: 0.4 }} />
-              <p style={{ fontSize: typography.fontSize.sm }}>No nominees with linked profiles yet</p>
+              <p style={{ fontSize: typography.fontSize.sm }}>No nominees ready to approve yet</p>
               <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
-                Nominees who accept their invitation and create a profile will appear here.
+                Nominees who accept and complete their profile will appear here for your review.
               </p>
             </div>
           ) : (
@@ -911,7 +911,7 @@ export default function PeopleTab({
 
       {/* External Nominees */}
       <Panel
-        title={`External Nominees (${externalNominees.length})`}
+        title={`Awaiting Response (${externalNominees.length})`}
         icon={Users}
         style={{ marginBottom: 0 }}
         collapsible
@@ -947,9 +947,9 @@ export default function PeopleTab({
           {externalNominees.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <Users size={40} style={{ marginBottom: spacing.md, opacity: 0.4 }} />
-              <p style={{ fontSize: typography.fontSize.sm }}>No external nominees</p>
+              <p style={{ fontSize: typography.fontSize.sm }}>No one awaiting response</p>
               <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
-                Nominees without a linked profile will appear here.
+                Nominees who haven't accepted their invitation yet will appear here.
               </p>
             </div>
           ) : (
