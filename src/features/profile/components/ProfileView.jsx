@@ -101,9 +101,12 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 width: isMobile ? '140px' : '150px',
                 height: isMobile ? '140px' : '150px',
                 borderRadius: borderRadius.xxl,
-                background: hostProfile.avatarUrl
-                  ? `url(${hostProfile.avatarUrl}) center/cover`
+                backgroundImage: hostProfile.avatarUrl
+                  ? `url(${hostProfile.avatarUrl})`
                   : 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundColor: hostProfile.avatarUrl ? '#111' : undefined,
                 border: `3px solid rgba(212,175,55,0.3)`,
                 display: 'flex',
                 alignItems: 'center',
