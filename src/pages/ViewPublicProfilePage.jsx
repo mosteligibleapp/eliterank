@@ -9,6 +9,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCompetitionUrl, getCompetitionUrlById } from '../utils/slugs';
 import { PageHeader } from '../components/ui';
+import SiteFooter from '../components/layout/SiteFooter';
 import ProfileSkeleton from '../components/skeletons/ProfileSkeleton';
 
 const ProfilePage = lazy(() => import('../features/profile/ProfilePage'));
@@ -157,9 +158,9 @@ export default function ViewPublicProfilePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', overflow: 'auto' }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
       <PageHeader title={displayName} onBack={handleBack} />
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', flex: 1 }}>
         <Suspense fallback={<ProfileSkeleton />}>
           <ProfilePage
             hostProfile={profileData}
@@ -167,6 +168,7 @@ export default function ViewPublicProfilePage() {
           />
         </Suspense>
       </div>
+      <SiteFooter />
     </div>
   );
 }

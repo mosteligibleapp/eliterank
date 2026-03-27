@@ -7,6 +7,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { colors, spacing, typography, borderRadius, transitions } from '../styles/theme';
+import SiteFooter from '../components/layout/SiteFooter';
 
 const styles = {
   page: {
@@ -318,6 +319,7 @@ export default function TermsPage() {
         </section>
 
       </div>
+      <SiteFooter />
     </div>
   );
 }

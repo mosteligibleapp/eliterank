@@ -23,6 +23,7 @@ const ActivityView = lazy(() => import('./views/ActivityView'));
 // Shared components
 import { CompetitionHeader } from './components/CompetitionHeader';
 import VoteModal from '../../features/public-site/components/VoteModal';
+import SiteFooter from '../../components/layout/SiteFooter';
 
 // Entry flow (lazy loaded)
 const EntryFlow = lazy(() => import('../../features/entry/EntryFlow'));
@@ -229,6 +230,9 @@ function CompetitionLayoutInner() {
           )}
         </Suspense>
       </main>
+
+      {/* Site Footer */}
+      <SiteFooter />
 
       {/* Modals rendered at layout level */}
       <ContestantModals />
