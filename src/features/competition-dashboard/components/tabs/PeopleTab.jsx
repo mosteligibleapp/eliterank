@@ -632,7 +632,13 @@ export default function PeopleTab({
         </div>
       )}
 
-      {/* Host Profile Section */}
+      {/* Host Profile + Winners Row */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: spacing.xl,
+        alignItems: 'start',
+      }}>
       <Panel
         title="Host Profile"
         icon={User}
@@ -787,6 +793,7 @@ export default function PeopleTab({
 
       {/* Winners Manager */}
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
+      </div>
 
       {/* Stats Row - hide when all zeros */}
       {!isNewHost && <div style={{
