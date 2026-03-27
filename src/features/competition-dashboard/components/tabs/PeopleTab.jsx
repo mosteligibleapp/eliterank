@@ -874,11 +874,6 @@ export default function PeopleTab({
         title={`Ready to Approve (${nomineesWithProfile.length})`}
         icon={UserCheck}
         style={{ marginBottom: 0 }}
-        action={
-          <Button size="sm" variant="secondary" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
-            Add
-          </Button>
-        }
         collapsible
         defaultCollapsed
       >
