@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Loader, AlertCircle, Clock } from 'lucide-react';
+import { Upload, Loader, AlertCircle, Clock, Video } from 'lucide-react';
 import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { uploadVideo } from '../../lib/uploadVideo';
@@ -52,88 +52,107 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Submit Video Response"
-      maxWidth="550px"
-      footer={
-        <>
-          <Button variant="secondary" onClick={handleClose} style={{ width: 'auto' }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!file || uploading}
-            icon={uploading ? Loader : Upload}
-          >
-            {uploading ? 'Uploading...' : 'Submit Video'}
-          </Button>
-        </>
-      }
+      title=""
+      maxWidth="480px"
+      centered
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: borderRadius.lg,
+            background: colors.background.elevated,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: `0 auto ${spacing.md}`,
+          }}>
+            <Video size={22} style={{ color: colors.text.secondary }} />
+          </div>
+          <h2 style={{
+            fontSize: typography.fontSize['2xl'],
+            fontWeight: typography.fontWeight.bold,
+            margin: `0 0 ${spacing.xs}`,
+          }}>
+            Video Response
+          </h2>
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.secondary,
+            margin: 0,
+          }}>
+            Record or upload your answer
+          </p>
+        </div>
+
         {/* Prompt question */}
         <div style={{
-          padding: spacing.xl,
-          background: colors.background.tertiary,
+          padding: spacing.lg,
+          background: colors.background.secondary,
           borderRadius: borderRadius.lg,
+          borderLeft: `3px solid ${colors.text.muted}`,
         }}>
           <p style={{
             fontSize: typography.fontSize.md,
-            fontWeight: typography.fontWeight.semibold,
+            fontWeight: typography.fontWeight.medium,
             color: colors.text.primary,
-            marginBottom: prompt?.description ? spacing.xs : 0,
+            margin: 0,
+            lineHeight: 1.5,
           }}>
-            {prompt?.prompt_text}
+            "{prompt?.prompt_text}"
           </p>
           {prompt?.description && (
-            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginTop: spacing.xs }}>
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, margin: `${spacing.sm} 0 0` }}>
               {prompt.description}
             </p>
           )}
         </div>
 
-        {/* Existing response status */}
+        {/* Status messages */}
         {isPending && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: spacing.sm,
-            padding: spacing.md,
-            background: colors.background.tertiary,
-            borderRadius: borderRadius.md,
+            display: 'flex', alignItems: 'center', gap: spacing.md,
+            padding: spacing.lg,
+            background: colors.background.secondary,
+            borderRadius: borderRadius.lg,
           }}>
-            <Clock size={16} style={{ color: colors.text.secondary, flexShrink: 0 }} />
-            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-              Your response is pending review. Upload again to replace it.
-            </span>
+            <Clock size={18} style={{ color: colors.text.muted, flexShrink: 0 }} />
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, margin: 0 }}>
+              Your response is pending review. You can upload a new one to replace it.
+            </p>
           </div>
         )}
         {isRejected && (
           <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: spacing.sm,
-            padding: spacing.md,
+            display: 'flex', alignItems: 'flex-start', gap: spacing.md,
+            padding: spacing.lg,
             background: colors.status.errorMuted,
-            borderRadius: borderRadius.md,
+            borderRadius: borderRadius.lg,
           }}>
-            <AlertCircle size={16} style={{ color: colors.status.error, flexShrink: 0, marginTop: '2px' }} />
+            <AlertCircle size={18} style={{ color: colors.status.errorLight, flexShrink: 0, marginTop: '1px' }} />
             <div>
-              <span style={{ fontSize: typography.fontSize.sm, color: colors.status.error, display: 'block' }}>
-                Response was not accepted. Please re-upload.
-              </span>
+              <p style={{ fontSize: typography.fontSize.sm, color: colors.status.errorLight, margin: 0 }}>
+                Your response was not accepted. Please upload a new one.
+              </p>
               {existingResponse.rejection_reason && (
-                <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, display: 'block', marginTop: spacing.xs }}>
+                <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, margin: `${spacing.xs} 0 0` }}>
                   Reason: {existingResponse.rejection_reason}
-                </span>
+                </p>
               )}
             </div>
           </div>
         )}
 
-        {/* Video preview or upload area */}
+        {/* Upload area */}
         {previewUrl ? (
           <div>
-            <VideoPlayer src={previewUrl} maxHeight="300px" />
+            <VideoPlayer src={previewUrl} maxHeight="280px" />
             <button
               onClick={() => { if (previewUrl) URL.revokeObjectURL(previewUrl); setFile(null); setPreviewUrl(null); }}
               style={{
-                marginTop: spacing.sm, background: 'none', border: 'none',
+                marginTop: spacing.md, background: 'none', border: 'none',
                 color: colors.text.muted, fontSize: typography.fontSize.sm,
                 cursor: 'pointer', padding: 0,
               }}
@@ -142,25 +161,42 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
             </button>
           </div>
         ) : (
-          <div
+          <button
             onClick={() => fileRef.current?.click()}
             style={{
-              padding: spacing.xxl,
+              padding: `${spacing.xxl} ${spacing.xl}`,
               border: `1px solid ${colors.border.primary}`,
-              borderRadius: borderRadius.lg,
+              borderRadius: borderRadius.xl,
               textAlign: 'center',
               cursor: 'pointer',
-              background: colors.background.tertiary,
+              background: colors.background.secondary,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: spacing.sm,
+              color: 'inherit',
+              fontFamily: 'inherit',
             }}
           >
-            <Upload size={28} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: borderRadius.full,
+              background: colors.background.elevated,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: spacing.sm,
+            }}>
+              <Upload size={24} style={{ color: colors.text.secondary }} />
+            </div>
+            <p style={{ color: colors.text.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, margin: 0 }}>
               Tap to select a video
             </p>
-            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
-              MP4, MOV, or WebM up to 100MB
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, margin: 0 }}>
+              MP4, MOV, or WebM — up to 100MB
             </p>
-          </div>
+          </button>
         )}
 
         <input
@@ -171,18 +207,71 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
           onChange={handleFileChange}
         />
 
+        {/* Error */}
         {error && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: spacing.sm,
-            padding: spacing.md,
+            display: 'flex', alignItems: 'center', gap: spacing.md,
+            padding: spacing.lg,
             background: colors.status.errorMuted,
-            borderRadius: borderRadius.md,
+            borderRadius: borderRadius.lg,
           }}>
-            <AlertCircle size={16} style={{ color: colors.status.error }} />
-            <span style={{ fontSize: typography.fontSize.sm, color: colors.status.error }}>{error}</span>
+            <AlertCircle size={18} style={{ color: colors.status.errorLight }} />
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.status.errorLight, margin: 0 }}>{error}</p>
           </div>
         )}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: spacing.md }}>
+          <button
+            onClick={handleClose}
+            style={{
+              flex: 1,
+              padding: spacing.lg,
+              background: colors.background.secondary,
+              border: `1px solid ${colors.border.primary}`,
+              borderRadius: borderRadius.lg,
+              color: colors.text.secondary,
+              fontSize: typography.fontSize.md,
+              fontWeight: typography.fontWeight.medium,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!file || uploading}
+            style={{
+              flex: 1,
+              padding: spacing.lg,
+              background: (!file || uploading) ? colors.background.elevated : 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)',
+              border: 'none',
+              borderRadius: borderRadius.lg,
+              color: (!file || uploading) ? colors.text.muted : '#0a0a0c',
+              fontSize: typography.fontSize.md,
+              fontWeight: typography.fontWeight.semibold,
+              cursor: (!file || uploading) ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: spacing.sm,
+              fontFamily: 'inherit',
+            }}
+          >
+            {uploading ? (
+              <>
+                <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                Uploading...
+              </>
+            ) : (
+              'Submit Video'
+            )}
+          </button>
+        </div>
       </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </Modal>
   );
 }
