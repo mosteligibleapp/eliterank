@@ -7,17 +7,19 @@ import VideoUploadModal from './modals/VideoUploadModal';
 /**
  * VideoPromptsChecklist - Contestant view of video prompts assigned to them
  */
-export default function VideoPromptsChecklist({ competitionId, contestantId, userId }) {
+export default function VideoPromptsChecklist({ competitionId, contestantId, userId, previewEmail }) {
   const [prompts, setPrompts] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Preview mode: only show for info@eliterank.co while testing
+  const PREVIEW_EMAIL = 'info@eliterank.co';
 
   const fetchPrompts = async () => {
     if (!competitionId || !contestantId) return;
     setLoading(true);
     const { prompts: data, error } = await getVideoPromptsForContestant(competitionId, contestantId);
-    // Preview mode: show mock data when tables don't exist yet
-    if ((!data || data.length === 0) && error) {
+    if ((!data || data.length === 0) && error && previewEmail === PREVIEW_EMAIL) {
       setPrompts([
         { id: 'preview-1', prompt_text: 'What makes you the most eligible?', description: 'Tell us in 60 seconds or less!', response: null },
         { id: 'preview-2', prompt_text: 'Describe your ideal first date', response: { status: 'pending' } },

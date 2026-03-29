@@ -100,7 +100,7 @@ function AllCompleteConfirmation({ totalBonusVotesEarned, onDismiss }) {
 /**
  * Renders the bonus votes checklist for a contestant (DB-backed).
  */
-function CompetitionBonusVotes({ competitionId, contestantId, userId, competitionName, onBonusVotesLoaded }) {
+function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail, competitionName, onBonusVotesLoaded }) {
   const { profile } = useAuthContextSafe();
   const toast = useToast();
   const hasCheckedProfile = useRef(false);
@@ -226,7 +226,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     // Still show video prompts even when no bonus tasks
     return (
       <div style={{ marginBottom: spacing.xl }}>
-        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} />
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} previewEmail={userEmail} />
       </div>
     );
   }
@@ -235,7 +235,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
   if (allCompleted) {
     if (dismissed) return (
       <div style={{ marginBottom: spacing.xl }}>
-        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} />
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} previewEmail={userEmail} />
       </div>
     );
     return (
@@ -244,7 +244,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
           totalBonusVotesEarned={totalBonusVotesEarned}
           onDismiss={handleDismiss}
         />
-        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} />
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} previewEmail={userEmail} />
       </div>
     );
   }
@@ -276,7 +276,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
           collapsible
           defaultCollapsed
         />
-        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} />
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} previewEmail={userEmail} />
       </div>
       {showGuide && (
         <Suspense fallback={null}>
@@ -524,6 +524,7 @@ export default function ProfileBonusVotes({ userId, userEmail, profile, onBonusV
           competitionId={entry.competition_id}
           contestantId={entry.id}
           userId={userId}
+          userEmail={userEmail}
           competitionName={totalEntries > 1 ? entry.competition?.name : null}
           onBonusVotesLoaded={onBonusVotesLoaded}
         />
