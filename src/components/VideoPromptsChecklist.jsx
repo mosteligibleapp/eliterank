@@ -16,10 +16,21 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
   const PREVIEW_EMAIL = 'info@eliterank.co';
 
   const fetchPrompts = async () => {
-    if (!competitionId || !contestantId) return;
+    if (!competitionId || !contestantId) {
+      // No contestant entry — show preview for test account anyway
+      if (previewEmail === PREVIEW_EMAIL) {
+        setPrompts([
+          { id: 'preview-1', prompt_text: 'What makes you the most eligible?', description: 'Tell us in 60 seconds or less!', response: null },
+          { id: 'preview-2', prompt_text: 'Describe your ideal first date', response: { status: 'pending' } },
+          { id: 'preview-3', prompt_text: 'What\'s your hidden talent?', response: { status: 'approved' } },
+        ]);
+      }
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const { prompts: data, error } = await getVideoPromptsForContestant(competitionId, contestantId);
-    if ((!data || data.length === 0) && error && previewEmail === PREVIEW_EMAIL) {
+    const { prompts: data } = await getVideoPromptsForContestant(competitionId, contestantId);
+    if ((!data || data.length === 0) && previewEmail === PREVIEW_EMAIL) {
       setPrompts([
         { id: 'preview-1', prompt_text: 'What makes you the most eligible?', description: 'Tell us in 60 seconds or less!', response: null },
         { id: 'preview-2', prompt_text: 'Describe your ideal first date', response: { status: 'pending' } },

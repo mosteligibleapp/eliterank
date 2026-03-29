@@ -303,7 +303,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
  * Tasks are evaluated based on profile data — no contestant_id needed.
  * When converted to contestant, the real system auto-awards earned votes.
  */
-function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoaded }) {
+function NomineeBonusVotes({ competitionName, profile, userId, userEmail, onBonusVotesLoaded }) {
   const toast = useToast();
   const [showGuide, setShowGuide] = useState(false);
   const dismissKey = userId ? `bonus_dismissed_nominee_${userId}` : null;
@@ -459,6 +459,7 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
           collapsible
           defaultCollapsed
         />
+        <VideoPromptsChecklist previewEmail={userEmail} />
       </div>
       {showGuide && (
         <Suspense fallback={null}>
@@ -535,6 +536,7 @@ export default function ProfileBonusVotes({ userId, userEmail, profile, onBonusV
           competitionName={totalEntries > 1 ? nom.competition?.name : null}
           profile={profile}
           userId={userId}
+          userEmail={userEmail}
           onBonusVotesLoaded={onBonusVotesLoaded}
         />
       ))}
