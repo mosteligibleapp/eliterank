@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Check } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
-import { colors, spacing, typography } from '../../styles/theme';
+import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import useModalForm from '../../hooks/useModalForm';
 
 const INITIAL_STATE = {
@@ -71,7 +71,7 @@ export default function VideoPromptModal({ isOpen, onClose, prompt, onSave }) {
               padding: spacing.md,
               background: colors.background.secondary,
               border: `1px solid ${colors.border.primary}`,
-              borderRadius: '8px',
+              borderRadius: borderRadius.md,
               color: colors.text.primary,
               fontSize: '16px',
               resize: 'vertical',
@@ -89,9 +89,8 @@ export default function VideoPromptModal({ isOpen, onClose, prompt, onSave }) {
 
         <div style={{
           padding: spacing.md,
-          background: 'rgba(212,175,55,0.06)',
-          borderRadius: '8px',
-          border: '1px solid rgba(212,175,55,0.15)',
+          background: colors.background.tertiary,
+          borderRadius: borderRadius.md,
         }}>
           <p style={{
             fontSize: typography.fontSize.xs,

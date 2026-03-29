@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Loader, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, Loader, AlertCircle, Clock } from 'lucide-react';
 import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { uploadVideo } from '../../lib/uploadVideo';
@@ -72,21 +72,20 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
         {/* Prompt question */}
         <div style={{
-          padding: spacing.md,
-          background: 'rgba(212,175,55,0.08)',
+          padding: spacing.lg,
+          background: colors.background.tertiary,
           borderRadius: borderRadius.lg,
-          border: '1px solid rgba(212,175,55,0.2)',
         }}>
           <p style={{
             fontSize: typography.fontSize.md,
             fontWeight: typography.fontWeight.semibold,
-            color: colors.gold.primary,
+            color: colors.text.primary,
             marginBottom: prompt?.description ? spacing.xs : 0,
           }}>
             {prompt?.prompt_text}
           </p>
           {prompt?.description && (
-            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginTop: spacing.xs }}>
               {prompt.description}
             </p>
           )}
@@ -96,11 +95,12 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
         {isPending && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: spacing.sm,
-            padding: spacing.md, background: 'rgba(251,191,36,0.1)',
+            padding: spacing.md,
+            background: colors.background.tertiary,
             borderRadius: borderRadius.md,
           }}>
-            <CheckCircle size={16} style={{ color: '#fbbf24' }} />
-            <span style={{ fontSize: typography.fontSize.sm, color: '#fbbf24' }}>
+            <Clock size={16} style={{ color: colors.text.secondary, flexShrink: 0 }} />
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
               Your response is pending review. Upload again to replace it.
             </span>
           </div>
@@ -108,12 +108,13 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
         {isRejected && (
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: spacing.sm,
-            padding: spacing.md, background: 'rgba(239,68,68,0.1)',
+            padding: spacing.md,
+            background: colors.status.errorMuted,
             borderRadius: borderRadius.md,
           }}>
-            <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
+            <AlertCircle size={16} style={{ color: colors.status.error, flexShrink: 0, marginTop: '2px' }} />
             <div>
-              <span style={{ fontSize: typography.fontSize.sm, color: '#ef4444', display: 'block' }}>
+              <span style={{ fontSize: typography.fontSize.sm, color: colors.status.error, display: 'block' }}>
                 Response was not accepted. Please re-upload.
               </span>
               {existingResponse.rejection_reason && (
@@ -145,14 +146,14 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
             onClick={() => fileRef.current?.click()}
             style={{
               padding: spacing.xl,
-              border: `2px dashed ${colors.border.primary}`,
-              borderRadius: borderRadius.xl,
+              border: `1px solid ${colors.border.primary}`,
+              borderRadius: borderRadius.lg,
               textAlign: 'center',
               cursor: 'pointer',
-              background: 'rgba(255,255,255,0.02)',
+              background: colors.background.tertiary,
             }}
           >
-            <Upload size={32} style={{ color: colors.text.muted, marginBottom: spacing.md }} />
+            <Upload size={28} style={{ color: colors.text.muted, marginBottom: spacing.md }} />
             <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>
               Tap to select a video
             </p>
@@ -173,11 +174,12 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
         {error && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: spacing.sm,
-            padding: spacing.md, background: 'rgba(239,68,68,0.1)',
+            padding: spacing.md,
+            background: colors.status.errorMuted,
             borderRadius: borderRadius.md,
           }}>
-            <AlertCircle size={16} style={{ color: '#ef4444' }} />
-            <span style={{ fontSize: typography.fontSize.sm, color: '#ef4444' }}>{error}</span>
+            <AlertCircle size={16} style={{ color: colors.status.error }} />
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.status.error }}>{error}</span>
           </div>
         )}
       </div>
