@@ -531,38 +531,104 @@
 
 /* Charity Proceeds Highlight */
 .charity-highlight {
+  margin-top: var(--spacing-2xl);
+  margin-bottom: var(--spacing-xl);
+}
+
+.charity-highlight-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-lg);
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.charity-highlight-link:hover {
+  transform: translateY(-1px);
+}
+
+.charity-highlight-link:hover .charity-highlight-visit {
+  color: #ec4899;
+}
+
+.charity-highlight-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(236, 72, 153, 0.03));
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  border-radius: var(--radius-lg);
+}
+
+.charity-highlight-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.charity-highlight-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: rgba(236, 72, 153, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  margin-bottom: var(--spacing-2xl);
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(236, 72, 153, 0.04));
-  border: 1px solid rgba(236, 72, 153, 0.2);
-  border-radius: var(--radius-lg);
-  text-align: center;
+  flex-shrink: 0;
 }
 
 .charity-highlight-icon {
   color: #ec4899;
-  flex-shrink: 0;
   fill: rgba(236, 72, 153, 0.3);
 }
 
-.charity-highlight-text {
+.charity-highlight-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.charity-highlight-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+.charity-highlight-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.charity-highlight-visit {
   font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin: 0;
-  letter-spacing: 0.3px;
+  color: var(--color-text-muted);
+  padding: var(--spacing-sm) var(--spacing-xl);
+  text-align: right;
+  transition: color 0.2s;
 }
 
 @media (max-width: 768px) {
-  .charity-highlight {
-    padding: var(--spacing-sm) var(--spacing-md);
+  .charity-highlight-inner {
+    padding: var(--spacing-md) var(--spacing-lg);
+    gap: var(--spacing-md);
   }
 
-  .charity-highlight-text {
-    font-size: var(--font-size-xs);
+  .charity-highlight-logo,
+  .charity-highlight-icon-wrap {
+    width: 44px;
+    height: 44px;
+  }
+
+  .charity-highlight-name {
+    font-size: var(--font-size-sm);
   }
 }
 

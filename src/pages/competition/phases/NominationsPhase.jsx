@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Users, Clock, Heart } from 'lucide-react';
+import { Users, Clock } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
@@ -11,6 +11,7 @@ import { HostCard } from '../components/HostCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CompetitionFooter } from '../components/CompetitionFooter';
+import { CharityHighlight } from '../components/CharityHighlight';
 
 /**
  * Nominations phase view
@@ -82,14 +83,6 @@ export function NominationsPhase() {
         </div>
       </section>
 
-      {/* Charity Proceeds Highlight */}
-      <section className="charity-highlight">
-        <Heart size={18} className="charity-highlight-icon" />
-        <p className="charity-highlight-text">
-          A portion of the proceeds benefits charitable causes in the community
-        </p>
-      </section>
-
       {/* Who Competes */}
       <section className="phase-section">
         <WhoCompetes />
@@ -115,6 +108,9 @@ export function NominationsPhase() {
           <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
         </div>
       </section>
+
+      {/* Charity Proceeds - Bottom of page */}
+      <CharityHighlight />
 
       {/* Footer */}
       <CompetitionFooter />

@@ -417,6 +417,10 @@ export function useCompetitionDashboard(competitionId) {
           organizationHeaderLogoUrl: competition.organization?.header_logo_url || null,
           organizationWebsiteUrl: competition.organization?.website_url || null,
           themePrimary: competition.theme_primary || null,
+          // Charity fields
+          charityName: competition.charity_name || null,
+          charityLogoUrl: competition.charity_logo_url || null,
+          charityWebsiteUrl: competition.charity_website_url || null,
         } : null,
       });
     } catch (err) {
@@ -825,6 +829,54 @@ export function useCompetitionDashboard(competitionId) {
       return { success: false, error: err.message };
     }
   }, [fetchDashboardData]);
+
+  // ============================================================================
+  // CHARITY OPERATIONS
+  // ============================================================================
+
+  const updateCharity = useCallback(async (charityData) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({
+          charity_name: charityData.name || null,
+          charity_logo_url: charityData.logoUrl || null,
+          charity_website_url: charityData.websiteUrl || null,
+        })
+        .eq('id', competitionId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating charity:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  const removeCharity = useCallback(async () => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({
+          charity_name: null,
+          charity_logo_url: null,
+          charity_website_url: null,
+        })
+        .eq('id', competitionId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error removing charity:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
 
   // ============================================================================
   // SPONSOR OPERATIONS
@@ -1382,6 +1434,9 @@ export function useCompetitionDashboard(competitionId) {
     addJudge,
     updateJudge,
     deleteJudge,
+    // Charity operations
+    updateCharity,
+    removeCharity,
     // Sponsor operations
     addSponsor,
     updateSponsor,

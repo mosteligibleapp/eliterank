@@ -4,7 +4,7 @@ import {
   Eye, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
-import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, PrizeModal, AddPersonModal } from '../../components/modals';
+import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
@@ -52,6 +52,8 @@ export default function CompetitionDashboard({
     addJudge,
     updateJudge,
     deleteJudge,
+    updateCharity,
+    removeCharity,
     addSponsor,
     updateSponsor,
     deleteSponsor,
@@ -117,6 +119,7 @@ export default function CompetitionDashboard({
   const [sponsorModal, setSponsorModal] = useState({ isOpen: false, sponsor: null });
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
   const [prizeModal, setPrizeModal] = useState({ isOpen: false, prize: null, prizeType: 'winner' });
+  const [charityModal, setCharityModal] = useState(false);
 
   // ============================================================================
   // HEADER
@@ -463,6 +466,7 @@ export default function CompetitionDashboard({
             onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
             onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
+            onOpenCharityModal={() => setCharityModal(true)}
           />
         );
       default:
@@ -516,6 +520,23 @@ export default function CompetitionDashboard({
             await addSponsor(sponsorData);
           }
           setSponsorModal({ isOpen: false, sponsor: null });
+        }}
+      />
+      <CharityModal
+        isOpen={charityModal}
+        onClose={() => setCharityModal(false)}
+        charity={competition?.charityName ? {
+          name: competition.charityName,
+          logoUrl: competition.charityLogoUrl,
+          websiteUrl: competition.charityWebsiteUrl,
+        } : null}
+        onSave={async (charityData) => {
+          await updateCharity(charityData);
+          setCharityModal(false);
+        }}
+        onRemove={async () => {
+          await removeCharity();
+          setCharityModal(false);
         }}
       />
       <EventModal
