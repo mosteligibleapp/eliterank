@@ -15,8 +15,17 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
   const fetchPrompts = async () => {
     if (!competitionId || !contestantId) return;
     setLoading(true);
-    const { prompts: data } = await getVideoPromptsForContestant(competitionId, contestantId);
-    setPrompts(data);
+    const { prompts: data, error } = await getVideoPromptsForContestant(competitionId, contestantId);
+    // Preview mode: show mock data when tables don't exist yet
+    if ((!data || data.length === 0) && error) {
+      setPrompts([
+        { id: 'preview-1', prompt_text: 'What makes you the most eligible?', description: 'Tell us in 60 seconds or less!', response: null },
+        { id: 'preview-2', prompt_text: 'Describe your ideal first date', response: { status: 'pending' } },
+        { id: 'preview-3', prompt_text: 'What\'s your hidden talent?', response: { status: 'approved' } },
+      ]);
+    } else {
+      setPrompts(data);
+    }
     setLoading(false);
   };
 
