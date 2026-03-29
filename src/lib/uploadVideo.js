@@ -1,8 +1,11 @@
+import { upload } from '@vercel/blob/client';
+
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/mov'];
 
 /**
- * Upload a video file to Vercel Blob
+ * Upload a video file directly to Vercel Blob (client-side upload).
+ * Bypasses the 4.5MB serverless function body limit.
  * @param {File} file - The video file to upload
  * @returns {Promise<{ url: string, durationSeconds: number | null }>}
  */
@@ -20,21 +23,15 @@ export async function uploadVideo(file) {
   // Extract duration client-side
   const durationSeconds = await getVideoDuration(file).catch(() => null);
 
-  // Upload to Vercel Blob
+  // Client-side upload directly to Vercel Blob (no 4.5MB limit)
   const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4';
   const fileName = `videos/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
 
-  const response = await fetch(`/api/upload?filename=${encodeURIComponent(fileName)}`, {
-    method: 'POST',
-    body: file,
+  const blob = await upload(fileName, file, {
+    access: 'public',
+    handleUploadUrl: '/api/upload-video',
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Upload failed');
-  }
-
-  const blob = await response.json();
   return { url: blob.url, durationSeconds };
 }
 

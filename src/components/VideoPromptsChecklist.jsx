@@ -48,6 +48,16 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
 
   const handleSubmit = async (videoUrl, durationSeconds) => {
     if (!selectedPrompt) return;
+    // Preview mode: skip DB call, just update UI
+    if (selectedPrompt.id?.startsWith('preview-')) {
+      setPrompts(prev => prev.map(p =>
+        p.id === selectedPrompt.id
+          ? { ...p, response: { status: 'pending', video_url: videoUrl } }
+          : p
+      ));
+      setSelectedPrompt(null);
+      return;
+    }
     const result = await submitVideoResponse(
       selectedPrompt.id,
       competitionId,
