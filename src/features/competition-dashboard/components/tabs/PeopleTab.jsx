@@ -644,6 +644,7 @@ export default function PeopleTab({
         icon={User}
         style={{ marginBottom: 0 }}
         collapsible
+        defaultCollapsed
         action={
           host && isSuperAdmin ? (
             <div style={{ display: 'flex', gap: spacing.sm }}>
@@ -841,12 +842,13 @@ export default function PeopleTab({
         title={`Contestants (${contestants.length})`}
         icon={Crown}
         style={{ marginBottom: 0 }}
+        collapsible
+        defaultCollapsed
         action={
           <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
             Add
           </Button>
         }
-        collapsible
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {contestants.length === 0 ? (
@@ -978,7 +980,7 @@ export default function PeopleTab({
           icon={Clock}
           style={{ marginBottom: 0 }}
           collapsible
-          defaultCollapsed={false}
+          defaultCollapsed
         >
           <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
             <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
