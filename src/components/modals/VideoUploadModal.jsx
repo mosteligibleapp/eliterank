@@ -69,10 +69,10 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
         {/* Prompt question */}
         <div style={{
-          padding: spacing.lg,
+          padding: spacing.xl,
           background: colors.background.tertiary,
           borderRadius: borderRadius.lg,
         }}>
@@ -145,7 +145,7 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
           <div
             onClick={() => fileRef.current?.click()}
             style={{
-              padding: spacing.xl,
+              padding: spacing.xxl,
               border: `1px solid ${colors.border.primary}`,
               borderRadius: borderRadius.lg,
               textAlign: 'center',
@@ -153,7 +153,7 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
               background: colors.background.tertiary,
             }}
           >
-            <Upload size={28} style={{ color: colors.text.muted, marginBottom: spacing.md }} />
+            <Upload size={28} style={{ color: colors.text.muted, marginBottom: spacing.lg }} />
             <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>
               Tap to select a video
             </p>
