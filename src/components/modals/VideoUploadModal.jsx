@@ -63,13 +63,13 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
             width: '48px',
             height: '48px',
             borderRadius: borderRadius.lg,
-            background: colors.background.elevated,
+            background: 'rgba(255,255,255,0.06)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: `0 auto ${spacing.md}`,
           }}>
-            <Video size={22} style={{ color: colors.text.secondary }} />
+            <Video size={22} style={{ color: colors.gold.primary }} />
           </div>
           <h2 style={{
             fontSize: typography.fontSize['2xl'],
@@ -90,9 +90,9 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
         {/* Prompt question */}
         <div style={{
           padding: spacing.lg,
-          background: colors.background.secondary,
+          background: 'rgba(255,255,255,0.04)',
           borderRadius: borderRadius.lg,
-          borderLeft: `3px solid ${colors.text.muted}`,
+          borderLeft: `3px solid ${colors.gold.primary}`,
         }}>
           <p style={{
             fontSize: typography.fontSize.md,
@@ -115,7 +115,7 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
           <div style={{
             display: 'flex', alignItems: 'center', gap: spacing.md,
             padding: spacing.lg,
-            background: colors.background.secondary,
+            background: 'rgba(255,255,255,0.04)',
             borderRadius: borderRadius.lg,
           }}>
             <Clock size={18} style={{ color: colors.text.muted, flexShrink: 0 }} />
@@ -165,11 +165,11 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
             onClick={() => fileRef.current?.click()}
             style={{
               padding: `${spacing.xxl} ${spacing.xl}`,
-              border: `1px solid ${colors.border.primary}`,
+              border: `1px solid rgba(255,255,255,0.08)`,
               borderRadius: borderRadius.xl,
               textAlign: 'center',
               cursor: 'pointer',
-              background: colors.background.secondary,
+              background: 'rgba(255,255,255,0.03)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -182,7 +182,7 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
               width: '56px',
               height: '56px',
               borderRadius: borderRadius.full,
-              background: colors.background.elevated,
+              background: 'rgba(255,255,255,0.06)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -227,8 +227,8 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
             style={{
               flex: 1,
               padding: spacing.lg,
-              background: colors.background.secondary,
-              border: `1px solid ${colors.border.primary}`,
+              background: 'rgba(255,255,255,0.05)',
+              border: `1px solid rgba(255,255,255,0.1)`,
               borderRadius: borderRadius.lg,
               color: colors.text.secondary,
               fontSize: typography.fontSize.md,
@@ -245,7 +245,7 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
             style={{
               flex: 1,
               padding: spacing.lg,
-              background: (!file || uploading) ? colors.background.elevated : 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)',
+              background: (!file || uploading) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)',
               border: 'none',
               borderRadius: borderRadius.lg,
               color: (!file || uploading) ? colors.text.muted : '#0a0a0c',
