@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
+import VideoPromptsChecklist from '../../../components/VideoPromptsChecklist';
 import SubmitProofModal from '../../../components/modals/SubmitProofModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
@@ -154,6 +155,11 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
         progress={progress}
         allCompleted={allCompleted}
         onTaskAction={handleTaskAction}
+      />
+      <VideoPromptsChecklist
+        competitionId={competitionId}
+        contestantId={contestantId}
+        userId={userId}
       />
       {showGuide && (
         <Suspense fallback={null}>
