@@ -529,6 +529,43 @@
   font-weight: 500;
 }
 
+/* Charity Proceeds Highlight */
+.charity-highlight {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(236, 72, 153, 0.04));
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.charity-highlight-icon {
+  color: #ec4899;
+  flex-shrink: 0;
+  fill: rgba(236, 72, 153, 0.3);
+}
+
+.charity-highlight-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+@media (max-width: 768px) {
+  .charity-highlight {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .charity-highlight-text {
+    font-size: var(--font-size-xs);
+  }
+}
+
 /* =====================
    VOTING PHASE
    ===================== */

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Users, Clock } from 'lucide-react';
+import { Users, Clock, Heart } from 'lucide-react';
 import { Rewards } from '../components/Rewards';
 import { WhoCompetes } from '../components/WhoCompetes';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
@@ -80,6 +80,14 @@ export function NominationsPhase() {
           <span className="stat-value">200+</span>
           <span className="stat-label">Entries</span>
         </div>
+      </section>
+
+      {/* Charity Proceeds Highlight */}
+      <section className="charity-highlight">
+        <Heart size={18} className="charity-highlight-icon" />
+        <p className="charity-highlight-text">
+          A portion of the proceeds benefits charitable causes in the community
+        </p>
       </section>
 
       {/* Who Competes */}
