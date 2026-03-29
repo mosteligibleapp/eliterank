@@ -23,7 +23,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   const userRole = useUserRole();
   const [showGuide, setShowGuide] = useState(false);
 
-  const handleBack = onBack || (() => navigate('/'));
+  const handleBack = onBack || (() => navigate(-1));
   const handleProfile = () => navigate('/profile');
   const handleRewards = () => navigate('/rewards');
   const handleAchievements = () => navigate('/achievements');
