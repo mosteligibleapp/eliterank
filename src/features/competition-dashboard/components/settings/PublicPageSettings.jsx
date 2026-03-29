@@ -2,7 +2,6 @@ import React from 'react';
 import { ExternalLink, Eye, AlertCircle, CheckCircle } from 'lucide-react';
 import { AboutSectionEditor } from './AboutSectionEditor';
 import { ThemeEditor } from './ThemeEditor';
-import { PrizePoolSettings } from './PrizePoolSettings';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { Button } from '../../../../components/ui';
 import { isLive, isCompleted } from '../../../../utils/competitionPhase';
@@ -154,7 +153,6 @@ export function PublicPageSettings({ competition, organization, onSave }) {
           organization={organization}
           onSave={onSave}
         />
-        <PrizePoolSettings competition={competition} onSave={onSave} />
         <ThemeEditor competition={competition} organization={organization} onSave={onSave} />
       </div>
     </div>

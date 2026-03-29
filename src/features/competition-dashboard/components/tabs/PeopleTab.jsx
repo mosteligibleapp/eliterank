@@ -632,12 +632,17 @@ export default function PeopleTab({
         </div>
       )}
 
-      {/* Host Profile Section */}
+      {/* Host Profile + Winners Row */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: spacing.xl,
+        alignItems: 'start',
+      }}>
       <Panel
         title="Host Profile"
         icon={User}
         style={{ marginBottom: 0 }}
-        collapsible
         action={
           host && isSuperAdmin ? (
             <div style={{ display: 'flex', gap: spacing.sm }}>
@@ -787,6 +792,7 @@ export default function PeopleTab({
 
       {/* Winners Manager */}
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
+      </div>
 
       {/* Stats Row - hide when all zeros */}
       {!isNewHost && <div style={{
@@ -834,12 +840,13 @@ export default function PeopleTab({
         title={`Contestants (${contestants.length})`}
         icon={Crown}
         style={{ marginBottom: 0 }}
+        collapsible
+        defaultCollapsed
         action={
           <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
             Add
           </Button>
         }
-        collapsible
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {contestants.length === 0 ? (
@@ -971,7 +978,7 @@ export default function PeopleTab({
           icon={Clock}
           style={{ marginBottom: 0 }}
           collapsible
-          defaultCollapsed={false}
+          defaultCollapsed
         >
           <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
             <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
