@@ -4,6 +4,7 @@ import { getContestantCompetitions, getNominationsForUser } from '../../../lib/c
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
+import VideoPromptsChecklist from '../../../components/VideoPromptsChecklist';
 import SubmitProofModal from '../../../components/modals/SubmitProofModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS, loadNomineeBonusActions, saveNomineeBonusAction, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
@@ -221,17 +222,29 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     }
   };
 
-  if (loading || tasks.length === 0) return null;
+  if (loading || tasks.length === 0) {
+    // Still show video prompts even when no bonus tasks
+    return (
+      <div style={{ marginBottom: spacing.xl }}>
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} />
+      </div>
+    );
+  }
 
   // All tasks complete - show compact confirmation or nothing if dismissed
   if (allCompleted) {
-    if (dismissed) return null;
+    if (dismissed) return (
+      <div style={{ marginBottom: spacing.xl }}>
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} />
+      </div>
+    );
     return (
       <div style={{ marginBottom: spacing.xl }}>
         <AllCompleteConfirmation
           totalBonusVotesEarned={totalBonusVotesEarned}
           onDismiss={handleDismiss}
         />
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} />
       </div>
     );
   }
@@ -263,6 +276,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
           collapsible
           defaultCollapsed
         />
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} />
       </div>
       {showGuide && (
         <Suspense fallback={null}>
