@@ -1,6 +1,6 @@
 import { upload } from '@vercel/blob/client';
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/mov'];
 
 /**
@@ -13,7 +13,7 @@ export async function uploadVideo(file) {
   if (!file) throw new Error('No file provided');
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error('Video must be under 100MB');
+    throw new Error('Video must be under 500MB');
   }
 
   if (!ALLOWED_TYPES.includes(file.type) && !file.type.startsWith('video/')) {

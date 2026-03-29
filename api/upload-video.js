@@ -17,7 +17,7 @@ export default async function handler(request, response) {
         }
         return {
           allowedContentTypes: ['video/mp4', 'video/quicktime', 'video/webm', 'video/mov'],
-          maximumSizeInBytes: 100 * 1024 * 1024, // 100MB
+          maximumSizeInBytes: 500 * 1024 * 1024, // 500MB
         };
       },
       onUploadCompleted: async ({ blob }) => {

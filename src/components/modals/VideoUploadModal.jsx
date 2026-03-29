@@ -194,7 +194,7 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
               Tap to select a video
             </p>
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, margin: 0 }}>
-              MP4, MOV, or WebM — up to 100MB
+              MP4, MOV, or WebM — up to 500MB
             </p>
           </button>
         )}
