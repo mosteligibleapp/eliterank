@@ -7,6 +7,7 @@ import useModalForm from '../../hooks/useModalForm';
 const INITIAL_STATE = {
   promptText: '',
   description: '',
+  votesAwarded: '0',
 };
 
 export default function VideoPromptModal({ isOpen, onClose, prompt, onSave }) {
@@ -15,6 +16,7 @@ export default function VideoPromptModal({ isOpen, onClose, prompt, onSave }) {
     return {
       promptText: prompt.prompt_text || '',
       description: prompt.description || '',
+      votesAwarded: (prompt.votes_awarded || 0).toString(),
     };
   }, [prompt]);
 
@@ -26,6 +28,7 @@ export default function VideoPromptModal({ isOpen, onClose, prompt, onSave }) {
     onSave({
       promptText: data.promptText.trim(),
       description: data.description.trim() || null,
+      votesAwarded: parseInt(data.votesAwarded, 10) || 0,
     });
   };
 
@@ -87,18 +90,40 @@ export default function VideoPromptModal({ isOpen, onClose, prompt, onSave }) {
           placeholder="Additional context for the contestant..."
         />
 
-        <div style={{
-          padding: spacing.md,
-          background: colors.background.tertiary,
-          borderRadius: borderRadius.md,
-        }}>
-          <p style={{
-            fontSize: typography.fontSize.xs,
+        <div>
+          <label style={{
+            display: 'block',
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.medium,
             color: colors.text.secondary,
-            lineHeight: 1.5,
+            marginBottom: spacing.xs,
           }}>
-            Contestants will see this prompt and can upload a video response from their device. You'll review each response before it's published.
-          </p>
+            Bonus Votes (optional)
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+            <input
+              type="number"
+              value={form.votesAwarded}
+              onChange={(e) => updateField('votesAwarded', e.target.value)}
+              min="0"
+              max="100"
+              style={{
+                width: '80px',
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: colors.background.secondary,
+                border: `1px solid ${colors.border.primary}`,
+                borderRadius: borderRadius.md,
+                color: colors.gold.primary,
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.semibold,
+                textAlign: 'center',
+                fontFamily: 'inherit',
+              }}
+            />
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>
+              votes awarded on approval
+            </span>
+          </div>
         </div>
       </div>
     </Modal>

@@ -173,17 +173,18 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
                 {!response && (
                   <span style={{
                     fontSize: typography.fontSize.xs,
-                    color: colors.text.muted,
+                    fontWeight: typography.fontWeight.semibold,
+                    color: prompt.votes_awarded > 0 ? colors.gold.primary : colors.text.muted,
                     padding: `${spacing.xs} ${spacing.sm}`,
-                    background: 'rgba(255,255,255,0.06)',
+                    background: prompt.votes_awarded > 0 ? 'rgba(212,175,55,0.1)' : 'rgba(255,255,255,0.06)',
+                    border: prompt.votes_awarded > 0 ? '1px solid rgba(212,175,55,0.2)' : 'none',
                     borderRadius: borderRadius.sm,
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
                     whiteSpace: 'nowrap',
                   }}>
-                    <Upload size={12} />
-                    Upload
+                    {prompt.votes_awarded > 0 ? `+${prompt.votes_awarded}` : <><Upload size={12} /> Upload</>}
                   </span>
                 )}
               </div>

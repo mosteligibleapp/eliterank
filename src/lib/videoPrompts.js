@@ -7,7 +7,7 @@ import { supabase } from './supabase';
 /**
  * Create a video prompt for a competition
  */
-export async function createVideoPrompt(competitionId, { promptText, description, dueDate, createdBy }) {
+export async function createVideoPrompt(competitionId, { promptText, description, dueDate, createdBy, votesAwarded }) {
   if (!supabase || !competitionId || !promptText) {
     return { success: false, error: 'Missing required parameters' };
   }
@@ -30,6 +30,7 @@ export async function createVideoPrompt(competitionId, { promptText, description
         prompt_text: promptText,
         description: description || null,
         due_date: dueDate || null,
+        votes_awarded: votesAwarded || 0,
         sort_order: nextSort,
       })
       .select()
