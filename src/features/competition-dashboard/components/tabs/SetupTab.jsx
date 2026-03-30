@@ -91,6 +91,8 @@ export default function SetupTab({
   const [videoPrompts, setVideoPrompts] = useState([]);
   const [videoResponses, setVideoResponses] = useState([]);
   const [showVideoPromptModal, setShowVideoPromptModal] = useState(false);
+  const [videoRejectingId, setVideoRejectingId] = useState(null);
+  const [videoRejectionReason, setVideoRejectionReason] = useState('');
 
   const competitionId = competition?.id;
 
@@ -1288,47 +1290,83 @@ export default function SetupTab({
                           </p>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
-                        <a
-                          href={resp.video_url}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Download video"
-                          style={{
-                            padding: spacing.sm,
-                            background: 'rgba(255,255,255,0.05)',
-                            border: `1px solid ${colors.border.primary}`,
-                            borderRadius: borderRadius.md,
-                            color: colors.text.secondary,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            textDecoration: 'none',
-                          }}
-                        >
-                          <Download size={14} />
-                        </a>
-                        <div style={{ flex: 1 }} />
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                          onClick={() => {
-                            const reason = window.prompt('Rejection reason (optional):');
-                            handleReviewVideoResponse(resp.id, 'reject', reason);
-                          }}
-                        >
-                          Reject
-                        </Button>
-                        <Button
-                          size="sm"
-                          icon={CheckCircle}
-                          onClick={() => handleReviewVideoResponse(resp.id, 'approve')}
-                        >
-                          Approve
-                        </Button>
-                      </div>
+                      {videoRejectingId === resp.id ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+                          <input
+                            type="text"
+                            placeholder="Reason (optional)"
+                            value={videoRejectionReason}
+                            onChange={(e) => setVideoRejectionReason(e.target.value)}
+                            autoFocus
+                            style={{
+                              width: '100%',
+                              padding: `${spacing.sm} ${spacing.md}`,
+                              background: colors.background.card,
+                              border: `1px solid ${colors.border.primary}`,
+                              borderRadius: borderRadius.md,
+                              color: colors.text.primary,
+                              fontSize: typography.fontSize.sm,
+                              fontFamily: 'inherit',
+                            }}
+                          />
+                          <div style={{ display: 'flex', gap: spacing.sm, justifyContent: 'flex-end' }}>
+                            <Button size="sm" variant="secondary" onClick={() => { setVideoRejectingId(null); setVideoRejectionReason(''); }}>
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                              onClick={() => {
+                                handleReviewVideoResponse(resp.id, 'reject', videoRejectionReason);
+                                setVideoRejectingId(null);
+                                setVideoRejectionReason('');
+                              }}
+                            >
+                              Confirm Reject
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
+                          <a
+                            href={resp.video_url}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Download video"
+                            style={{
+                              padding: spacing.sm,
+                              background: 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${colors.border.primary}`,
+                              borderRadius: borderRadius.md,
+                              color: colors.text.secondary,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <Download size={14} />
+                          </a>
+                          <div style={{ flex: 1 }} />
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                            onClick={() => setVideoRejectingId(resp.id)}
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+                            icon={CheckCircle}
+                            onClick={() => handleReviewVideoResponse(resp.id, 'approve')}
+                          >
+                            Approve
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
