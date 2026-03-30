@@ -378,9 +378,9 @@ function BonusVotesChecklist({
               isAwarding={awarding}
             />
           ))}
+          {children}
         </div>
       )}
-      {children}
     </div>
   );
 }

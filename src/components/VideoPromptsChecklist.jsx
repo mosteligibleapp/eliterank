@@ -73,12 +73,7 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
 
   return (
     <>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: spacing.sm,
-      }}>
-        {prompts.map((prompt) => {
+      {prompts.map((prompt) => {
           const response = prompt.response;
           const isApproved = response?.status === 'approved';
           const isPending = response?.status === 'pending';
@@ -195,7 +190,6 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
             </div>
           );
         })}
-      </div>
 
       <VideoUploadModal
         isOpen={!!selectedPrompt}
