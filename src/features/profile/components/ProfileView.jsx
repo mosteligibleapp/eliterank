@@ -65,7 +65,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
       <Panel style={{ marginBottom: spacing.xl }}>
         {/* Hero Section */}
         <div style={{ position: 'relative', padding: isMobile ? spacing.sm : spacing.lg, paddingBottom: 0 }}>
-          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg, display: 'flex', gap: spacing.sm, zIndex: 2 }}>
+          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, left: isMobile ? spacing.sm : spacing.lg, zIndex: 2 }}>
             <Button
               onClick={handleShare}
               icon={copied ? Check : Share2}
@@ -80,7 +80,9 @@ export default function ProfileView({ hostProfile, onEdit }) {
             >
               {copied ? 'Copied!' : 'Share'}
             </Button>
-            {onEdit && (
+          </div>
+          {onEdit && (
+            <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg, zIndex: 2 }}>
               <Button
                 onClick={onEdit}
                 icon={Edit}
@@ -94,8 +96,8 @@ export default function ProfileView({ hostProfile, onEdit }) {
               >
                 {isMobile ? 'Edit' : 'Edit Profile'}
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         <div style={{ padding: isMobile ? `${spacing.xxl} ${spacing.lg} ${spacing.lg}` : `${spacing.xxxl} ${spacing.xxxl} ${spacing.xxxl}` }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md }}>
