@@ -10,7 +10,7 @@ import { useAuthStore } from '../../../../stores';
 import CustomBonusTaskModal from '../../../../components/modals/CustomBonusTaskModal';
 import VideoPromptModal from '../../../../components/modals/VideoPromptModal';
 import VideoPlayer from '../../../../components/VideoPlayer';
-import { getVideoPrompts, getVideoResponses, createVideoPrompt, deleteVideoPrompt, reviewVideoResponse } from '../../../../lib/videoPrompts';
+import { getVideoPrompts, getVideoResponses, createVideoPrompt, deleteVideoPrompt, reviewVideoResponse, notifyContestantsOfPrompt } from '../../../../lib/videoPrompts';
 import { useAuthContextSafe } from '../../../../contexts/AuthContext';
 
 // Helper to format currency from cents
@@ -137,7 +137,10 @@ export default function SetupTab({
   }, [loadBonusTasks, loadSubmissions, loadVideoData]);
 
   const handleCreateVideoPrompt = async (data) => {
-    await createVideoPrompt(competitionId, { ...data, createdBy: reviewerId });
+    const result = await createVideoPrompt(competitionId, { ...data, createdBy: reviewerId });
+    if (result.success) {
+      notifyContestantsOfPrompt(competitionId, data.promptText).catch(() => {});
+    }
     setShowVideoPromptModal(false);
     loadVideoData();
   };

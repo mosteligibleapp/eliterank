@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Video, CheckCircle, Clock, XCircle, Upload } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, transitions } from '../styles/theme';
-import { getVideoPromptsForContestant, submitVideoResponse } from '../lib/videoPrompts';
+import { getVideoPromptsForContestant, submitVideoResponse, notifyHostOfResponse } from '../lib/videoPrompts';
 import VideoUploadModal from './modals/VideoUploadModal';
 
 /**
@@ -65,6 +65,7 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
       durationSeconds,
     );
     if (result.success) {
+      notifyHostOfResponse(competitionId, 'A contestant', selectedPrompt.prompt_text).catch(() => {});
       fetchPrompts();
     }
   };
