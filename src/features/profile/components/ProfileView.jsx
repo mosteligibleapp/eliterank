@@ -305,14 +305,11 @@ export default function ProfileView({ hostProfile, onEdit }) {
           </>
         )}
 
-        {/* Bonus Votes + Video Prompts - only for own profile */}
+        {/* Rewards + Bonus Votes + Video Prompts - only for own profile */}
         {onEdit && hostProfile?.id && (
           <>
-            <div style={dividerStyle} />
-            <div style={{ padding: sectionPadding }}>
-              <ProfileRewardsCard userId={hostProfile.id} />
-              <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} onBonusVotesLoaded={handleBonusVotesLoaded} />
-            </div>
+            <ProfileRewardsCard userId={hostProfile.id} />
+            <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} onBonusVotesLoaded={handleBonusVotesLoaded} />
           </>
         )}
 
