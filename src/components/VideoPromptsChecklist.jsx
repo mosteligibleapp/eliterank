@@ -170,7 +170,21 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
               <div style={{ flexShrink: 0 }}>
                 {isApproved && <CheckCircle size={22} style={{ color: colors.status.success }} />}
                 {isPending && <Clock size={22} style={{ color: colors.gold.primary }} />}
-                {isRejected && <XCircle size={22} style={{ color: colors.status.error }} />}
+                {isRejected && (
+                  <span style={{
+                    fontSize: typography.fontSize.xs,
+                    color: colors.text.muted,
+                    padding: `${spacing.xs} ${spacing.sm}`,
+                    background: 'rgba(255,255,255,0.06)',
+                    borderRadius: borderRadius.sm,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    <Upload size={12} /> Upload
+                  </span>
+                )}
                 {!response && (
                   <span style={{
                     fontSize: typography.fontSize.xs,
