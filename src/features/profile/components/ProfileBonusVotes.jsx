@@ -231,19 +231,10 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
     );
   }
 
-  // All tasks complete - show compact confirmation or nothing if dismissed
+  // All tasks complete - just show video prompts
   if (allCompleted) {
-    if (dismissed) return (
-      <div style={{ marginBottom: spacing.xl }}>
-        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} previewEmail={userEmail} />
-      </div>
-    );
     return (
       <div style={{ marginBottom: spacing.xl }}>
-        <AllCompleteConfirmation
-          totalBonusVotesEarned={totalBonusVotesEarned}
-          onDismiss={handleDismiss}
-        />
         <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} previewEmail={userEmail} />
       </div>
     );
