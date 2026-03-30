@@ -436,7 +436,7 @@ export default function AchievementsPage() {
   if (error) {
     return (
       <div className="achievements-page">
-        <PageHeader title="My Achievements" />
+        <PageHeader title="" />
         <ErrorState
           title="Failed to load achievements"
           message="We couldn't load your achievements. Please try again."
@@ -450,7 +450,7 @@ export default function AchievementsPage() {
   if (achievementRecords.length === 0) {
     return (
       <div className="achievements-page">
-        <PageHeader title="My Achievements" />
+        <PageHeader title="" />
         <EmptyState
           icon={<ImagePlus size={32} />}
           title="No achievements yet"
@@ -464,7 +464,7 @@ export default function AchievementsPage() {
 
   return (
     <div className="achievements-page">
-      <PageHeader title="My Achievements" subtitle="Share cards for your competitions" />
+      <PageHeader title="" />
 
       <div className="achievements-list">
         {achievementRecords.map((record) => {

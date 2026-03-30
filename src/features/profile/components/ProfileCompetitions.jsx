@@ -52,7 +52,7 @@ function RoleBadge({ role, size = 'sm' }) {
     case 'contestant':
       return (
         <Badge variant="success" size={size} pill>
-          <Star size={10} style={{ marginRight: '4px' }} />
+          <Crown size={10} style={{ marginRight: '4px' }} />
           Contestant
         </Badge>
       );
@@ -176,12 +176,6 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           )}
         </div>
 
-        {entry.votes > 0 && (
-          <Badge variant="gold" size="sm" pill style={{ alignSelf: 'flex-start' }}>
-            {entry.votes.toLocaleString()} votes
-          </Badge>
-        )}
-
         {/* Unclaimed CTA */}
         {entry.isUnclaimed && entry.nomination && (
           <div
@@ -274,14 +268,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
   }
 
   if (!hasHosted && !hasContestant && !hasNominations) {
-    return (
-      <Panel style={{ marginBottom: spacing.xl }}>
-        <div style={{ padding: spacing.xl, textAlign: 'center', color: colors.text.muted }}>
-          <Trophy size={32} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-          <p style={{ fontSize: typography.fontSize.sm }}>No competitions yet</p>
-        </div>
-      </Panel>
-    );
+    return null;
   }
 
   // Build unified list of all competition entries
@@ -350,18 +337,8 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
 
   return (
     <>
-      <Panel style={{ marginBottom: spacing.xl }}>
-        <div style={{ padding: isSmall ? spacing.lg : spacing.xl }}>
-          <h3 style={{
-            fontSize: isSmall ? typography.fontSize.lg : typography.fontSize.xl,
-            fontWeight: typography.fontWeight.semibold,
-            marginBottom: spacing.lg,
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.md,
-          }}>
-            <EliteRankCrown size={isSmall ? 18 : 22} /> Competitions
-          </h3>
+      <div style={{ borderTop: `1px solid ${colors.border.secondary}` }} />
+      <div style={{ padding: isSmall ? spacing.lg : spacing.xxl }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
             {entries.map(entry => (
               <CompetitionCard
@@ -372,8 +349,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
               />
             ))}
           </div>
-        </div>
-      </Panel>
+      </div>
 
       {/* Accept Nomination Modal */}
       {selectedNomination && (

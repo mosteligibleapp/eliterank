@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats } from '../../../lib/competition-history';
@@ -50,19 +50,28 @@ export default function ProfileView({ hostProfile, onEdit }) {
   const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
   const gallery = hostProfile.gallery || [];
 
+  const TikTokIcon = ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" style={style}>
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.1a8.16 8.16 0 0 0 4.76 1.52v-3.4c-.83 0-1.63-.18-2.36-.53h-.01l.01.01z"/>
+    </svg>
+  );
+
   const socialLinks = [
-    { platform: 'Instagram', handle: hostProfile.instagram, icon: '📷', gradient: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCAF45)', url: hostProfile.instagram ? `https://instagram.com/${hostProfile.instagram.replace('@', '')}` : null },
-    { platform: 'Twitter / X', handle: hostProfile.twitter, icon: '𝕏', background: '#000', url: hostProfile.twitter ? `https://twitter.com/${hostProfile.twitter.replace('@', '')}` : null },
-    { platform: 'LinkedIn', handle: hostProfile.linkedin, icon: 'in', background: '#0A66C2', url: hostProfile.linkedin ? `https://linkedin.com/in/${hostProfile.linkedin}` : null },
-    { platform: 'TikTok', handle: hostProfile.tiktok, icon: '♪', gradient: 'linear-gradient(135deg, #00f2ea, #ff0050)', url: hostProfile.tiktok ? `https://tiktok.com/@${hostProfile.tiktok.replace('@', '')}` : null },
+    { platform: 'Instagram', handle: hostProfile.instagram, Icon: Instagram, gradient: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCAF45)', url: hostProfile.instagram ? `https://instagram.com/${hostProfile.instagram.replace('@', '')}` : null },
+    { platform: 'TikTok', handle: hostProfile.tiktok, Icon: TikTokIcon, gradient: 'linear-gradient(135deg, #00f2ea, #ff0050)', url: hostProfile.tiktok ? `https://tiktok.com/@${hostProfile.tiktok.replace('@', '')}` : null },
+    { platform: 'LinkedIn', handle: hostProfile.linkedin, Icon: Linkedin, background: '#0A66C2', url: hostProfile.linkedin ? `https://linkedin.com/in/${hostProfile.linkedin}` : null },
+    ...(hostProfile.website ? [{ platform: 'Link', handle: hostProfile.website.replace(/^https?:\/\//, ''), Icon: LinkIcon, background: '#52525b', url: hostProfile.website.startsWith('http') ? hostProfile.website : `https://${hostProfile.website}` }] : []),
   ].filter(link => link.handle);
+
+  const sectionPadding = isMobile ? spacing.lg : spacing.xxl;
+  const dividerStyle = { borderTop: `1px solid ${colors.border.secondary}`, margin: `0 ${sectionPadding}` };
 
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-      {/* Hero Section */}
-      <Panel style={{ marginBottom: isMobile ? spacing.lg : spacing.xxl }}>
+      <Panel style={{ marginBottom: spacing.xl }}>
+        {/* Hero Section */}
         <div style={{ position: 'relative', padding: isMobile ? spacing.sm : spacing.lg, paddingBottom: 0 }}>
-          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg, display: 'flex', gap: spacing.sm, zIndex: 2 }}>
+          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, left: isMobile ? spacing.sm : spacing.lg, zIndex: 2 }}>
             <Button
               onClick={handleShare}
               icon={copied ? Check : Share2}
@@ -77,7 +86,9 @@ export default function ProfileView({ hostProfile, onEdit }) {
             >
               {copied ? 'Copied!' : 'Share'}
             </Button>
-            {onEdit && (
+          </div>
+          {onEdit && (
+            <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg, zIndex: 2 }}>
               <Button
                 onClick={onEdit}
                 icon={Edit}
@@ -91,8 +102,8 @@ export default function ProfileView({ hostProfile, onEdit }) {
               >
                 {isMobile ? 'Edit' : 'Edit Profile'}
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         <div style={{ padding: isMobile ? `${spacing.xxl} ${spacing.lg} ${spacing.lg}` : `${spacing.xxxl} ${spacing.xxxl} ${spacing.xxxl}` }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md }}>
@@ -197,28 +208,43 @@ export default function ProfileView({ hostProfile, onEdit }) {
             </div>
           </div>
         </div>
-      </Panel>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isSmall ? '1fr' : '2fr 1fr', gap: isMobile ? spacing.lg : spacing.xxl }}>
-        {/* Left Column */}
-        <div>
-          {/* Competitions Section - First box */}
-          <ProfileCompetitions
-            userId={hostProfile?.id}
-            userEmail={hostProfile?.email}
-            user={{ id: hostProfile?.id, email: hostProfile?.email }}
-            profile={{
-              first_name: hostProfile?.firstName,
-              last_name: hostProfile?.lastName,
-              avatar_url: hostProfile?.avatarUrl,
-              bio: hostProfile?.bio,
-              city: hostProfile?.city,
-            }}
-          />
+        {/* Competitions */}
+        <ProfileCompetitions
+          userId={hostProfile?.id}
+          userEmail={hostProfile?.email}
+          user={{ id: hostProfile?.id, email: hostProfile?.email }}
+          profile={{
+            first_name: hostProfile?.firstName,
+            last_name: hostProfile?.lastName,
+            avatar_url: hostProfile?.avatarUrl,
+            bio: hostProfile?.bio,
+            city: hostProfile?.city,
+          }}
+        />
 
-          {/* Bio Section */}
-          <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
-            <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
+        {/* About */}
+        {hostProfile.bio && (
+          <>
+            <div style={dividerStyle} />
+            <div style={{ padding: sectionPadding }}>
+              <p style={{
+                color: colors.text.secondary,
+                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                lineHeight: '1.7',
+              }}>
+                {hostProfile.bio}
+              </p>
+            </div>
+          </>
+        )}
+
+
+        {/* Photo Gallery */}
+        {gallery.length > 0 && (
+          <>
+            <div style={dividerStyle} />
+            <div style={{ padding: sectionPadding }}>
               <h3 style={{
                 fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
                 fontWeight: typography.fontWeight.semibold,
@@ -227,255 +253,74 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 alignItems: 'center',
                 gap: spacing.md
               }}>
-                <FileText size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> About
+                <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
               </h3>
-              <p style={{
-                color: colors.text.light,
-                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
-                lineHeight: '1.7'
-              }}>
-                {hostProfile.bio || 'No bio added yet.'}
-              </p>
-            </div>
-          </Panel>
-
-          {/* Photo Gallery - only shown when user has photos */}
-          {gallery.length > 0 && (
-            <Panel>
-              <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
-                <h3 style={{
-                  fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-                  fontWeight: typography.fontWeight.semibold,
-                  marginBottom: spacing.lg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md
-                }}>
-                  <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
-                </h3>
-                {isMobile ? (
-                  <div
-                    className="hide-scrollbar"
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: spacing.sm }}>
+                {gallery.filter(Boolean).map((imageUrl, index) => (
+                  <a
+                    key={index}
+                    href={imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
-                      display: 'flex',
-                      overflowX: 'auto',
-                      scrollSnapType: 'x mandatory',
-                      gap: spacing.sm,
-                      WebkitOverflowScrolling: 'touch',
-                      scrollbarWidth: 'none',
-                      msOverflowStyle: 'none',
-                    }}
-                  >
-                    {gallery.map((imageUrl, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          flex: '0 0 100%',
-                          scrollSnapAlign: 'start',
-                          aspectRatio: '4 / 3',
-                          background: `url(${imageUrl}) center/cover`,
-                          borderRadius: borderRadius.lg,
-                        }}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
-                    {gallery.map((imageUrl, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          aspectRatio: '1',
-                          background: `url(${imageUrl}) center/cover`,
-                          borderRadius: borderRadius.lg,
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Panel>
-          )}
-        </div>
-
-        {/* Right Column */}
-        <div>
-          {/* Bonus Votes Earned Badge - only for own profile */}
-          {onEdit && hostProfile?.id && (
-            <BonusVotesEarnedBadge userId={hostProfile.id} bonusVotes={bonusVotes} />
-          )}
-
-          {/* Rewards Card - only for own profile */}
-          {onEdit && hostProfile?.id && (
-            <ProfileRewardsCard userId={hostProfile.id} />
-          )}
-
-          {/* Bonus Votes Checklist - only for own profile */}
-          {onEdit && hostProfile?.id && (
-            <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} onBonusVotesLoaded={handleBonusVotesLoaded} />
-          )}
-
-          {/* Social Links */}
-          {socialLinks.length > 0 && (
-            <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
-              <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
-                <h3 style={{
-                  fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-                  fontWeight: typography.fontWeight.semibold,
-                  marginBottom: spacing.lg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md
-                }}>
-                  <Globe size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Connect
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-                  {socialLinks.map((link) => (
-                    <a
-                      key={link.platform}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: spacing.md,
-                        padding: isMobile ? spacing.sm : spacing.md,
-                        background: 'rgba(255,255,255,0.03)',
-                        borderRadius: borderRadius.lg,
-                        textDecoration: 'none',
-                        color: colors.text.primary,
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: isMobile ? '36px' : '40px',
-                          height: isMobile ? '36px' : '40px',
-                          background: link.gradient || link.background,
-                          borderRadius: borderRadius.md,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: link.icon === 'in' ? '14px' : '16px',
-                          fontWeight: typography.fontWeight.bold,
-                          color: '#fff',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {link.icon}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{
-                          fontWeight: typography.fontWeight.medium,
-                          fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md
-                        }}>
-                          {link.platform}
-                        </p>
-                        <p style={{
-                          color: colors.text.secondary,
-                          fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.base,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {link.handle}
-                        </p>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </Panel>
-          )}
-
-          {/* Competition Stats */}
-          {competitionStats && (competitionStats.totalCompetitions > 0 || competitionStats.totalVotes > 0) && (
-            <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl }}>
-              <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
-                <h3 style={{
-                  fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-                  fontWeight: typography.fontWeight.semibold,
-                  marginBottom: spacing.lg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md
-                }}>
-                  <TrendingUp size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Stats
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: isMobile ? spacing.sm : spacing.md }}>
-                  <div style={{
-                    textAlign: 'center',
-                    padding: isMobile ? spacing.sm : spacing.md,
-                    background: 'rgba(255,255,255,0.03)',
-                    borderRadius: borderRadius.lg
-                  }}>
-                    <p style={{
-                      fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.xxxl,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.gold.primary
-                    }}>
-                      {competitionStats.totalCompetitions}
-                    </p>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>Competitions</p>
-                  </div>
-                  <div style={{
-                    textAlign: 'center',
-                    padding: isMobile ? spacing.sm : spacing.md,
-                    background: 'rgba(255,255,255,0.03)',
-                    borderRadius: borderRadius.lg
-                  }}>
-                    <p style={{
-                      fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.xxxl,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.gold.primary
-                    }}>
-                      {competitionStats.totalVotes.toLocaleString()}
-                    </p>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>Total Votes</p>
-                  </div>
-                  {competitionStats.wins > 0 && (
-                    <div style={{
-                      textAlign: 'center',
-                      padding: isMobile ? spacing.sm : spacing.md,
-                      background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))',
+                      display: 'block',
+                      aspectRatio: '4 / 5',
+                      background: `url(${imageUrl}) center/cover`,
                       borderRadius: borderRadius.lg,
-                      border: '1px solid rgba(212,175,55,0.2)'
-                    }}>
-                      <p style={{
-                        fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.xxxl,
-                        fontWeight: typography.fontWeight.bold,
-                        color: colors.gold.primary
-                      }}>
-                        {competitionStats.wins}
-                      </p>
-                      <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary }}>Wins</p>
-                    </div>
-                  )}
-                  {competitionStats.bestPlacement && (
-                    <div style={{
-                      textAlign: 'center',
-                      padding: isMobile ? spacing.sm : spacing.md,
-                      background: 'rgba(255,255,255,0.03)',
-                      borderRadius: borderRadius.lg
-                    }}>
-                      <p style={{
-                        fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.xxxl,
-                        fontWeight: typography.fontWeight.bold,
-                        color: colors.text.primary
-                      }}>
-                        #{competitionStats.bestPlacement}
-                      </p>
-                      <p style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>Best Finish</p>
-                    </div>
-                  )}
-                </div>
+                      cursor: 'pointer',
+                    }}
+                  />
+                ))}
               </div>
-            </Panel>
-          )}
+            </div>
+          </>
+        )}
 
-        </div>
-      </div>
+        {/* Rewards + Bonus Votes + Video Prompts - only for own profile */}
+        {onEdit && hostProfile?.id && (
+          <>
+            <ProfileRewardsCard userId={hostProfile.id} />
+            <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} onBonusVotesLoaded={handleBonusVotesLoaded} />
+          </>
+        )}
+
+        {/* Social Links Footer */}
+        {socialLinks.length > 0 && (
+          <>
+            <div style={dividerStyle} />
+            <div style={{
+              padding: `${spacing.lg} ${sectionPadding}`,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: spacing.md,
+            }}>
+              {socialLinks.map((link) => (
+                <a
+                  key={link.platform}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`${link.platform}: ${link.handle}`}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    background: link.gradient || link.background,
+                    borderRadius: borderRadius.full,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <link.Icon size={18} />
+                </a>
+              ))}
+            </div>
+          </>
+        )}
+
+      </Panel>
     </div>
   );
 }

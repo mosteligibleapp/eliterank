@@ -76,16 +76,21 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
     setUploading(prev => ({ ...prev, avatar: false }));
   };
 
-  // Handle gallery image upload
+  // Handle gallery image upload — fills the first available slot
   const handleGalleryUpload = async (e, index) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(prev => ({ ...prev, gallery: index }));
+    const gallery = [...(hostProfile.gallery || [])];
+    // Find first empty slot
+    let targetIndex = gallery.findIndex((img, i) => !img);
+    if (targetIndex === -1) targetIndex = gallery.length;
+    if (targetIndex >= 6) return; // max 6 photos
+
+    setUploading(prev => ({ ...prev, gallery: targetIndex }));
     const url = await uploadImage(file, 'gallery');
     if (url) {
-      const gallery = [...(hostProfile.gallery || [])];
-      gallery[index] = url;
+      gallery[targetIndex] = url;
       handleFieldChange('gallery', gallery);
     }
     setUploading(prev => ({ ...prev, gallery: null }));
@@ -290,8 +295,8 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         />
       </FormSection>
 
-      {/* Social Media Form */}
-      <FormSection title="Social Media" icon={Globe}>
+      {/* Connect */}
+      <FormSection title="Connect" icon={Globe}>
         <FormGrid>
           <Input
             label="Instagram"
@@ -300,9 +305,9 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             placeholder="@username"
           />
           <Input
-            label="Twitter / X"
-            value={hostProfile.twitter}
-            onChange={(e) => handleFieldChange('twitter', e.target.value)}
+            label="TikTok"
+            value={hostProfile.tiktok}
+            onChange={(e) => handleFieldChange('tiktok', e.target.value)}
             placeholder="@username"
           />
           <Input
@@ -312,10 +317,10 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             placeholder="username"
           />
           <Input
-            label="TikTok"
-            value={hostProfile.tiktok}
-            onChange={(e) => handleFieldChange('tiktok', e.target.value)}
-            placeholder="@username"
+            label="Link"
+            value={hostProfile.website}
+            onChange={(e) => handleFieldChange('website', e.target.value)}
+            placeholder="https://yourwebsite.com"
           />
         </FormGrid>
       </FormSection>

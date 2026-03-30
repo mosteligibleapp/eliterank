@@ -41,7 +41,7 @@ export default function UserRewardsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', overflowX: 'hidden' }}>
-      <PageHeader title="Rewards" />
+      <PageHeader title="" />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
         <Suspense fallback={<RewardsSkeleton />}>
           <RewardsPage hostProfile={hostProfile} />

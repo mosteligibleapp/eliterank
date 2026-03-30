@@ -38,6 +38,7 @@ export default function UserProfilePage() {
       twitter: profile.twitter || '',
       linkedin: profile.linkedin || '',
       tiktok: profile.tiktok || '',
+      website: profile.website || '',
       hobbies: Array.isArray(profile.interests) ? profile.interests : [],
       avatarUrl: profile.avatar_url || '',
       coverImage: profile.cover_image || '',
@@ -66,6 +67,7 @@ export default function UserProfilePage() {
         twitter: editingData.twitter,
         linkedin: editingData.linkedin,
         tiktok: editingData.tiktok,
+        website: editingData.website,
         interests: editingData.hobbies,
         avatar_url: editingData.avatarUrl,
         cover_image: editingData.coverImage,
@@ -102,7 +104,7 @@ export default function UserProfilePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', overflow: 'auto' }}>
-      <PageHeader title="My Profile" />
+      <PageHeader title="" />
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px' }}>
         <Suspense fallback={<ProfileSkeleton />}>
           <ProfilePage
