@@ -105,9 +105,8 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           gap: spacing.sm,
         }}
       >
-        {/* Row 1: Org logo + org name + role badge ... View > */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+        {/* Row 1: Org logo + org name + role badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
             {org?.logo_url && <OrganizationLogo logo={org.logo_url} size={32} />}
             {org?.name && (
               <span style={{
@@ -121,42 +120,36 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
               </span>
             )}
             <RoleBadge role={entry.role} />
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '3px',
-            color: colors.gold.primary,
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.medium,
-          }}>
-            <span>View</span>
-            <ChevronRight size={14} />
-          </div>
         </div>
 
-        {/* Row 2: Competition name + season + location */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
-          <h4 style={{
-            fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
-            fontWeight: typography.fontWeight.semibold,
-            color: colors.text.primary,
-            lineHeight: 1.3,
-          }}>
-            {competition.name || entry.name}
-          </h4>
-          {competition.season && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              <Calendar size={13} />
-              <span>Season {competition.season}</span>
+        {/* Row 2: Competition name */}
+        <h4 style={{
+          fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
+          fontWeight: typography.fontWeight.semibold,
+          color: colors.text.primary,
+          lineHeight: 1.3,
+        }}>
+          {competition.name || entry.name}
+        </h4>
+
+        {/* Row 3: Season + City + View */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+            {competition.season && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                <Calendar size={13} />
+                <span>Season {competition.season}</span>
+              </div>
+            )}
+            {cityName && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                <MapPin size={13} />
+                <span>{cityName}</span>
+              </div>
+            )}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px', color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>
+              <span>View</span>
+              <ChevronRight size={14} />
             </div>
-          )}
-          {cityName && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              <MapPin size={13} />
-              <span>{cityName}</span>
-            </div>
-          )}
         </div>
 
 
