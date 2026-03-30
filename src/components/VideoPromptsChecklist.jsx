@@ -99,40 +99,26 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
 
   return (
     <>
-      <div style={{
-        background: colors.background.card,
-        border: `1px solid ${colors.border.primary}`,
-        borderRadius: borderRadius.xl,
-        overflow: 'hidden',
-      }}>
+      <div style={{ borderTop: `1px solid ${colors.border.primary}`, marginTop: spacing.md }}>
         {/* Header */}
         <div style={{
-          padding: spacing.lg,
-          borderBottom: `1px solid ${colors.border.primary}`,
+          padding: `${spacing.lg} ${spacing.md} ${spacing.sm}`,
           display: 'flex',
           alignItems: 'center',
-          gap: spacing.md,
+          gap: spacing.sm,
         }}>
-          <Video size={20} style={{ color: colors.gold.primary }} />
+          <Video size={16} style={{ color: colors.gold.primary }} />
           <span style={{
-            fontSize: typography.fontSize.lg,
+            fontSize: typography.fontSize.sm,
             fontWeight: typography.fontWeight.semibold,
+            color: colors.text.secondary,
           }}>
             Video Prompts
-          </span>
-          <span style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
-            background: 'rgba(255,255,255,0.05)',
-            padding: `2px ${spacing.sm}`,
-            borderRadius: borderRadius.sm,
-          }}>
-            {prompts.filter(p => p.response?.status === 'approved').length}/{prompts.length}
           </span>
         </div>
 
         {/* Prompts list */}
-        <div style={{ padding: spacing.md }}>
+        <div style={{ padding: `0 ${spacing.md} ${spacing.md}` }}>
           {prompts.map((prompt) => {
             const canSubmit = !prompt.response || prompt.response.status !== 'approved';
             return (

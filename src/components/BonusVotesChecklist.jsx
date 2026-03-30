@@ -254,6 +254,7 @@ function BonusVotesChecklist({
   showHeader = true,
   collapsible = false,
   defaultCollapsed = false,
+  children,
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   if (loading) {
@@ -379,6 +380,7 @@ function BonusVotesChecklist({
           ))}
         </div>
       )}
+      {children}
     </div>
   );
 }
