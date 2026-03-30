@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
-import { Heart, X } from 'lucide-react';
 import { getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
@@ -23,79 +22,7 @@ const DEFAULT_BONUS_TASKS = [
   { task_key: 'share_profile', label: 'Share your profile', description: 'Share your contestant profile link externally', votes_awarded: 5, sort_order: 5 },
 ];
 
-/**
- * Compact confirmation shown when all bonus votes are earned.
- * Displays a summary and a dismiss button.
- */
-function AllCompleteConfirmation({ totalBonusVotesEarned, onDismiss }) {
-  return (
-    <div style={{
-      background: 'rgba(34, 197, 94, 0.06)',
-      border: '1px solid rgba(34, 197, 94, 0.25)',
-      borderRadius: borderRadius.xl,
-      padding: spacing.lg,
-      display: 'flex',
-      alignItems: 'center',
-      gap: spacing.md,
-    }}>
-      <div style={{
-        width: '40px',
-        height: '40px',
-        borderRadius: borderRadius.lg,
-        background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.08))',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <Heart size={20} style={{ color: '#22c55e', fill: '#22c55e' }} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{
-          fontSize: typography.fontSize.md,
-          fontWeight: typography.fontWeight.semibold,
-          color: colors.text.primary,
-        }}>
-          All Bonus Votes Earned!
-        </span>
-        <p style={{
-          fontSize: typography.fontSize.xs,
-          color: colors.text.secondary,
-          marginTop: '2px',
-        }}>
-          +{totalBonusVotesEarned} votes added to your total
-        </p>
-        <p style={{
-          fontSize: typography.fontSize.xs,
-          color: colors.text.muted,
-          marginTop: '2px',
-          fontStyle: 'italic',
-        }}>
-          Stay tuned for more bonus vote opportunities
-        </p>
-      </div>
-      {onDismiss && (
-        <button
-          onClick={onDismiss}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: spacing.xs,
-            cursor: 'pointer',
-            color: colors.text.muted,
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          aria-label="Dismiss"
-        >
-          <X size={16} />
-        </button>
-      )}
-    </div>
-  );
-}
+
 
 /**
  * Renders the bonus votes checklist for a contestant (DB-backed).
