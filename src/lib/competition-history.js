@@ -186,7 +186,7 @@ export async function getCompetitionStats(userId) {
 
     return {
       totalCompetitions: Math.max(profileComps, contestants.length),
-      totalVotes: Math.max(profileVotes, contestantVotes),
+      totalVotes: contestantVotes || profileVotes,
       wins: Math.max(profileWins, contestantWins),
       bestPlacement: profile?.best_placement || bestRank,
     };
