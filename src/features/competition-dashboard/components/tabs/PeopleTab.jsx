@@ -769,10 +769,10 @@ export default function PeopleTab({
                     gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(150px, 1fr))',
                     gap: spacing.md,
                   }}>
-                    {host.gallery.map((img, i) => (
+                    {host.gallery.filter(Boolean).map((img, i) => (
                       <img
                         key={i}
-                        src={typeof img === 'string' ? img : img.url}
+                        src={typeof img === 'string' ? img : img?.url}
                         alt={`Gallery ${i + 1}`}
                         style={{
                           width: '100%',
