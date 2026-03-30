@@ -509,7 +509,7 @@ export default function AccountSettingsPage() {
 
   return (
     <div style={styles.page}>
-      <PageHeader title="Account Settings" />
+      <PageHeader title="" />
       <div style={{
         ...styles.container,
         padding: isMobile ? spacing.lg : spacing.xl,

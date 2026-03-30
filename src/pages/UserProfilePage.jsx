@@ -104,7 +104,7 @@ export default function UserProfilePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', overflow: 'auto' }}>
-      <PageHeader title="My Profile" />
+      <PageHeader title="" />
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px' }}>
         <Suspense fallback={<ProfileSkeleton />}>
           <ProfilePage
