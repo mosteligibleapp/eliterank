@@ -7,37 +7,19 @@ import VideoUploadModal from './modals/VideoUploadModal';
 /**
  * VideoPromptsChecklist - Renders video prompts as task rows inside BonusVotesChecklist
  */
-export default function VideoPromptsChecklist({ competitionId, contestantId, userId, previewEmail }) {
+export default function VideoPromptsChecklist({ competitionId, contestantId, userId }) {
   const [prompts, setPrompts] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Preview mode: only show for info@eliterank.co while testing
-  const PREVIEW_EMAIL = 'info@eliterank.co';
-
   const fetchPrompts = async () => {
     if (!competitionId || !contestantId) {
-      if (previewEmail === PREVIEW_EMAIL) {
-        setPrompts([
-          { id: 'preview-1', prompt_text: 'What makes you the most eligible?', description: 'Tell us in 60 seconds or less!', response: null },
-          { id: 'preview-2', prompt_text: 'Describe your ideal first date', response: { status: 'pending' } },
-          { id: 'preview-3', prompt_text: 'What\'s your hidden talent?', response: { status: 'approved' } },
-        ]);
-      }
       setLoading(false);
       return;
     }
     setLoading(true);
     const { prompts: data } = await getVideoPromptsForContestant(competitionId, contestantId);
-    if ((!data || data.length === 0) && previewEmail === PREVIEW_EMAIL) {
-      setPrompts([
-        { id: 'preview-1', prompt_text: 'What makes you the most eligible?', description: 'Tell us in 60 seconds or less!', response: null },
-        { id: 'preview-2', prompt_text: 'Describe your ideal first date', response: { status: 'pending' } },
-        { id: 'preview-3', prompt_text: 'What\'s your hidden talent?', response: { status: 'approved' } },
-      ]);
-    } else {
-      setPrompts(data);
-    }
+    setPrompts(data || []);
     setLoading(false);
   };
 
@@ -47,15 +29,6 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
 
   const handleSubmit = async (videoUrl, durationSeconds) => {
     if (!selectedPrompt) return;
-    if (selectedPrompt.id?.startsWith('preview-')) {
-      setPrompts(prev => prev.map(p =>
-        p.id === selectedPrompt.id
-          ? { ...p, response: { status: 'pending', video_url: videoUrl } }
-          : p
-      ));
-      setSelectedPrompt(null);
-      return;
-    }
     const result = await submitVideoResponse(
       selectedPrompt.id,
       competitionId,

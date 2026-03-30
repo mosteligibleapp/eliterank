@@ -153,7 +153,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
     // Still show video prompts even when no bonus tasks
     return (
       <div style={{ marginBottom: spacing.xl }}>
-        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} previewEmail={userEmail} />
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
       </div>
     );
   }
@@ -162,7 +162,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
   if (allCompleted) {
     return (
       <div style={{ marginBottom: spacing.xl }}>
-        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} previewEmail={userEmail} />
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
       </div>
     );
   }
@@ -194,7 +194,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
           collapsible
           defaultCollapsed
         >
-          <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId} previewEmail={userEmail} />
+          <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
         </BonusVotesChecklist>
       </div>
       {showGuide && (
@@ -344,7 +344,7 @@ function NomineeBonusVotes({ competitionName, profile, userId, userEmail, onBonu
   if (allCompleted) {
     return (
       <div style={{ marginBottom: spacing.xl }}>
-        <VideoPromptsChecklist previewEmail={userEmail} />
+        <VideoPromptsChecklist  />
       </div>
     );
   }
@@ -374,7 +374,7 @@ function NomineeBonusVotes({ competitionName, profile, userId, userEmail, onBonu
           collapsible
           defaultCollapsed
         >
-          <VideoPromptsChecklist previewEmail={userEmail} />
+          <VideoPromptsChecklist  />
         </BonusVotesChecklist>
       </div>
       {showGuide && (
