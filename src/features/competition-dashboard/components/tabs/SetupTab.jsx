@@ -67,7 +67,8 @@ export default function SetupTab({
   onOpenPrizeModal,
 }) {
   const { isMobile } = useResponsive();
-  const { profile: currentUser } = useAuthContextSafe();
+  const { profile: currentUser, user: authUser } = useAuthContextSafe();
+  const reviewerId = currentUser?.id || authUser?.id;
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
 
   // Bonus votes state
@@ -134,7 +135,7 @@ export default function SetupTab({
   }, [loadBonusTasks, loadSubmissions, loadVideoData]);
 
   const handleCreateVideoPrompt = async (data) => {
-    await createVideoPrompt(competitionId, { ...data, createdBy: currentUser?.id });
+    await createVideoPrompt(competitionId, { ...data, createdBy: reviewerId });
     setShowVideoPromptModal(false);
     loadVideoData();
   };
@@ -146,7 +147,7 @@ export default function SetupTab({
   };
 
   const handleReviewVideoResponse = async (responseId, action, reason) => {
-    const result = await reviewVideoResponse(responseId, currentUser?.id, action, reason);
+    const result = await reviewVideoResponse(responseId, reviewerId, action, reason);
     if (!result.success) {
       console.error('Video review failed:', result.error);
       alert(`Review failed: ${result.error || 'Unknown error'}`);
