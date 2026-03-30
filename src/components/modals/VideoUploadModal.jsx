@@ -136,7 +136,7 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
               <p style={{ fontSize: typography.fontSize.sm, color: colors.status.errorLight, margin: 0 }}>
                 Your response was not accepted. Please upload a new one.
               </p>
-              {existingResponse.rejection_reason && (
+              {existingResponse?.rejection_reason && (
                 <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, margin: `${spacing.xs} 0 0` }}>
                   Reason: {existingResponse.rejection_reason}
                 </p>
