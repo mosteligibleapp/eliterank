@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, XCircle, ExternalLink, Check, X, Clock, Upload } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, XCircle, ExternalLink, Check, X, Clock, Upload, Download } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -1250,45 +1250,85 @@ export default function SetupTab({
                 <Clock size={16} style={{ color: '#fbbf24' }} />
                 Pending Review ({pendingVideoResponses.length})
               </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: spacing.md }}>
                 {pendingVideoResponses.map(resp => (
                   <div key={resp.id} style={{
-                    padding: spacing.md,
                     background: colors.background.secondary,
                     borderRadius: borderRadius.lg,
-                    border: '1px solid rgba(251,191,36,0.2)',
+                    overflow: 'hidden',
+                    border: `1px solid ${colors.border.primary}`,
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
-                      <Avatar name={resp.contestant?.name} src={resp.contestant?.avatar_url} size={32} />
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.sm }}>
-                          {resp.contestant?.name}
-                        </p>
-                        <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary }}>
-                          {resp.prompt?.prompt_text}
-                        </p>
-                      </div>
-                    </div>
-                    <VideoPlayer src={resp.video_url} maxHeight="250px" />
-                    <div style={{ display: 'flex', gap: spacing.sm, marginTop: spacing.md, justifyContent: 'flex-end' }}>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                        onClick={() => {
-                          const reason = window.prompt('Rejection reason (optional):');
-                          handleReviewVideoResponse(resp.id, 'reject', reason);
+                    {/* Square video */}
+                    <div style={{ position: 'relative', paddingTop: '100%', background: '#000' }}>
+                      <video
+                        src={resp.video_url}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
                         }}
-                      >
-                        Reject
-                      </Button>
-                      <Button
-                        size="sm"
-                        icon={CheckCircle}
-                        onClick={() => handleReviewVideoResponse(resp.id, 'approve')}
-                      >
-                        Approve
-                      </Button>
+                      />
+                    </div>
+                    {/* Info + actions */}
+                    <div style={{ padding: spacing.md }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+                        <Avatar name={resp.contestant?.name} src={resp.contestant?.avatar_url} size={28} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.sm, margin: 0 }}>
+                            {resp.contestant?.name}
+                          </p>
+                          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {resp.prompt?.prompt_text}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
+                        <a
+                          href={resp.video_url}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Download video"
+                          style={{
+                            padding: spacing.sm,
+                            background: 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${colors.border.primary}`,
+                            borderRadius: borderRadius.md,
+                            color: colors.text.secondary,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <Download size={14} />
+                        </a>
+                        <div style={{ flex: 1 }} />
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                          onClick={() => {
+                            const reason = window.prompt('Rejection reason (optional):');
+                            handleReviewVideoResponse(resp.id, 'reject', reason);
+                          }}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          icon={CheckCircle}
+                          onClick={() => handleReviewVideoResponse(resp.id, 'approve')}
+                        >
+                          Approve
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
