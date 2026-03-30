@@ -77,7 +77,6 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
         display: 'flex',
         flexDirection: 'column',
         gap: spacing.sm,
-        padding: `${spacing.sm} ${spacing.lg} ${spacing.md}`,
       }}>
         {prompts.map((prompt) => {
           const response = prompt.response;
@@ -183,8 +182,12 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
                     padding: `${spacing.xs} ${spacing.sm}`,
                     background: 'rgba(255,255,255,0.06)',
                     borderRadius: borderRadius.sm,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap',
                   }}>
-                    <Upload size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                    <Upload size={12} />
                     Upload
                   </span>
                 )}
