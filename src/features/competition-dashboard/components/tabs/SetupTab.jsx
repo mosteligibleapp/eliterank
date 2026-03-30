@@ -146,7 +146,11 @@ export default function SetupTab({
   };
 
   const handleReviewVideoResponse = async (responseId, action, reason) => {
-    await reviewVideoResponse(responseId, currentUser?.id, action, reason);
+    const result = await reviewVideoResponse(responseId, currentUser?.id, action, reason);
+    if (!result.success) {
+      console.error('Video review failed:', result.error);
+      alert(`Review failed: ${result.error || 'Unknown error'}`);
+    }
     loadVideoData();
   };
 
