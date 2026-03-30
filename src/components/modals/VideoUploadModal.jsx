@@ -56,7 +56,7 @@ export default function VideoUploadModal({ isOpen, onClose, prompt, existingResp
       maxWidth="480px"
       centered
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl, padding: `0 ${spacing.sm}` }}>
         {/* Header */}
         <div style={{ textAlign: 'center' }}>
           <div style={{
