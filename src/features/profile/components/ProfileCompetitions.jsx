@@ -176,12 +176,6 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           )}
         </div>
 
-        {entry.votes > 0 && (
-          <Badge variant="gold" size="sm" pill style={{ alignSelf: 'flex-start' }}>
-            {entry.votes.toLocaleString()} votes
-          </Badge>
-        )}
-
         {/* Unclaimed CTA */}
         {entry.isUnclaimed && entry.nomination && (
           <div
