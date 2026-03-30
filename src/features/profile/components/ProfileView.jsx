@@ -242,57 +242,6 @@ export default function ProfileView({ hostProfile, onEdit }) {
           </p>
         </div>
 
-        {/* Social Links */}
-        {socialLinks.length > 0 && (
-          <>
-            <div style={dividerStyle} />
-            <div style={{ padding: sectionPadding }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.platform}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      padding: `${spacing.sm} ${spacing.md}`,
-                      background: 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${colors.border.primary}`,
-                      borderRadius: borderRadius.pill,
-                      textDecoration: 'none',
-                      color: colors.text.primary,
-                      fontSize: typography.fontSize.sm,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        background: link.gradient || link.background,
-                        borderRadius: borderRadius.full,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: link.icon === 'in' ? '11px' : '12px',
-                        fontWeight: typography.fontWeight.bold,
-                        color: '#fff',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {link.icon}
-                    </div>
-                    <span style={{ color: colors.text.secondary }}>
-                      {link.handle}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
 
         {/* Photo Gallery */}
         {gallery.length > 0 && (
@@ -361,6 +310,44 @@ export default function ProfileView({ hostProfile, onEdit }) {
               <BonusVotesEarnedBadge userId={hostProfile.id} bonusVotes={bonusVotes} />
               <ProfileRewardsCard userId={hostProfile.id} />
               <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} onBonusVotesLoaded={handleBonusVotesLoaded} />
+            </div>
+          </>
+        )}
+
+        {/* Social Links Footer */}
+        {socialLinks.length > 0 && (
+          <>
+            <div style={dividerStyle} />
+            <div style={{
+              padding: `${spacing.lg} ${sectionPadding}`,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: spacing.md,
+            }}>
+              {socialLinks.map((link) => (
+                <a
+                  key={link.platform}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`${link.platform}: ${link.handle}`}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    background: link.gradient || link.background,
+                    borderRadius: borderRadius.full,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: link.icon === 'in' ? '14px' : '15px',
+                    fontWeight: typography.fontWeight.bold,
+                    color: '#fff',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {link.icon}
+                </a>
+              ))}
             </div>
           </>
         )}
