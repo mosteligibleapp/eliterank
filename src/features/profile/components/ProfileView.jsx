@@ -52,9 +52,9 @@ export default function ProfileView({ hostProfile, onEdit }) {
 
   const socialLinks = [
     { platform: 'Instagram', handle: hostProfile.instagram, icon: '📷', gradient: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCAF45)', url: hostProfile.instagram ? `https://instagram.com/${hostProfile.instagram.replace('@', '')}` : null },
-    { platform: 'Twitter / X', handle: hostProfile.twitter, icon: '𝕏', background: '#000', url: hostProfile.twitter ? `https://twitter.com/${hostProfile.twitter.replace('@', '')}` : null },
-    { platform: 'LinkedIn', handle: hostProfile.linkedin, icon: 'in', background: '#0A66C2', url: hostProfile.linkedin ? `https://linkedin.com/in/${hostProfile.linkedin}` : null },
     { platform: 'TikTok', handle: hostProfile.tiktok, icon: '♪', gradient: 'linear-gradient(135deg, #00f2ea, #ff0050)', url: hostProfile.tiktok ? `https://tiktok.com/@${hostProfile.tiktok.replace('@', '')}` : null },
+    { platform: 'LinkedIn', handle: hostProfile.linkedin, icon: 'in', background: '#0A66C2', url: hostProfile.linkedin ? `https://linkedin.com/in/${hostProfile.linkedin}` : null },
+    ...(hostProfile.website ? [{ platform: 'Link', handle: hostProfile.website.replace(/^https?:\/\//, ''), icon: '🔗', background: colors.background.elevated, url: hostProfile.website.startsWith('http') ? hostProfile.website : `https://${hostProfile.website}` }] : []),
   ].filter(link => link.handle);
 
   return (

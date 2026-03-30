@@ -52,13 +52,13 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
       gradient: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCAF45)',
     });
   }
-  if (profile.twitter) {
+  if (profile.tiktok) {
     socialLinks.push({
-      platform: 'Twitter / X',
-      handle: profile.twitter.startsWith('@') ? profile.twitter : `@${profile.twitter}`,
-      icon: Twitter,
-      url: `https://twitter.com/${profile.twitter.replace('@', '')}`,
-      background: '#000',
+      platform: 'TikTok',
+      handle: profile.tiktok.startsWith('@') ? profile.tiktok : `@${profile.tiktok}`,
+      icon: Globe,
+      url: `https://tiktok.com/@${profile.tiktok.replace('@', '')}`,
+      gradient: 'linear-gradient(135deg, #00f2ea, #ff0050)',
     });
   }
   if (profile.linkedin) {
@@ -68,6 +68,15 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
       icon: Linkedin,
       url: `https://linkedin.com/in/${profile.linkedin}`,
       background: '#0A66C2',
+    });
+  }
+  if (profile.website) {
+    socialLinks.push({
+      platform: 'Link',
+      handle: profile.website.replace(/^https?:\/\//, ''),
+      icon: Globe,
+      url: profile.website.startsWith('http') ? profile.website : `https://${profile.website}`,
+      background: '#52525b',
     });
   }
 
