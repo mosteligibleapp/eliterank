@@ -1260,8 +1260,8 @@ export default function SetupTab({
                     overflow: 'hidden',
                     border: `1px solid ${colors.border.primary}`,
                   }}>
-                    {/* Square video */}
-                    <div style={{ position: 'relative', paddingTop: '100%', background: '#000' }}>
+                    {/* 4:3 video */}
+                    <div style={{ position: 'relative', paddingTop: '75%', background: '#000' }}>
                       <video
                         src={resp.video_url}
                         controls
@@ -1279,7 +1279,7 @@ export default function SetupTab({
                     </div>
                     {/* Info + actions */}
                     <div style={{ padding: spacing.md }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
                         <Avatar name={resp.contestant?.name} src={resp.contestant?.avatar_url} size={28} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.sm, margin: 0 }}>
@@ -1289,9 +1289,30 @@ export default function SetupTab({
                             {resp.prompt?.prompt_text}
                           </p>
                         </div>
+                        <a
+                          href={resp.video_url}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Download video"
+                          style={{
+                            padding: spacing.sm,
+                            background: 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${colors.border.primary}`,
+                            borderRadius: borderRadius.md,
+                            color: colors.text.secondary,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textDecoration: 'none',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Download size={14} />
+                        </a>
                       </div>
                       {videoRejectingId === resp.id ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+                        <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
                           <input
                             type="text"
                             placeholder="Reason (optional)"
@@ -1299,57 +1320,41 @@ export default function SetupTab({
                             onChange={(e) => setVideoRejectionReason(e.target.value)}
                             autoFocus
                             style={{
-                              width: '100%',
+                              flex: 1,
                               padding: `${spacing.sm} ${spacing.md}`,
                               background: colors.background.card,
                               border: `1px solid ${colors.border.primary}`,
                               borderRadius: borderRadius.md,
                               color: colors.text.primary,
-                              fontSize: typography.fontSize.sm,
+                              fontSize: typography.fontSize.xs,
                               fontFamily: 'inherit',
+                              minWidth: 0,
                             }}
                           />
-                          <div style={{ display: 'flex', gap: spacing.sm, justifyContent: 'flex-end' }}>
-                            <Button size="sm" variant="secondary" onClick={() => { setVideoRejectingId(null); setVideoRejectionReason(''); }}>
-                              Cancel
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                              onClick={() => {
-                                handleReviewVideoResponse(resp.id, 'reject', videoRejectionReason);
-                                setVideoRejectingId(null);
-                                setVideoRejectionReason('');
-                              }}
-                            >
-                              Confirm Reject
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
-                          <a
-                            href={resp.video_url}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Download video"
+                          <button
+                            onClick={() => { setVideoRejectingId(null); setVideoRejectionReason(''); }}
                             style={{
-                              padding: spacing.sm,
-                              background: 'rgba(255,255,255,0.05)',
-                              border: `1px solid ${colors.border.primary}`,
-                              borderRadius: borderRadius.md,
-                              color: colors.text.secondary,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              textDecoration: 'none',
+                              padding: spacing.sm, background: 'none', border: 'none',
+                              color: colors.text.muted, cursor: 'pointer', flexShrink: 0,
                             }}
                           >
-                            <Download size={14} />
-                          </a>
-                          <div style={{ flex: 1 }} />
+                            <X size={14} />
+                          </button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)', flexShrink: 0 }}
+                            onClick={() => {
+                              handleReviewVideoResponse(resp.id, 'reject', videoRejectionReason);
+                              setVideoRejectingId(null);
+                              setVideoRejectionReason('');
+                            }}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: spacing.sm, justifyContent: 'flex-end' }}>
                           <Button
                             size="sm"
                             variant="secondary"
