@@ -52,7 +52,7 @@ function RoleBadge({ role, size = 'sm' }) {
     case 'contestant':
       return (
         <Badge variant="success" size={size} pill>
-          <Star size={10} style={{ marginRight: '4px' }} />
+          <Crown size={10} style={{ marginRight: '4px' }} />
           Contestant
         </Badge>
       );
@@ -344,18 +344,8 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
 
   return (
     <>
-      <Panel style={{ marginBottom: spacing.xl }}>
-        <div style={{ padding: isSmall ? spacing.lg : spacing.xl }}>
-          <h3 style={{
-            fontSize: isSmall ? typography.fontSize.lg : typography.fontSize.xl,
-            fontWeight: typography.fontWeight.semibold,
-            marginBottom: spacing.lg,
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.md,
-          }}>
-            <EliteRankCrown size={isSmall ? 18 : 22} /> Competitions
-          </h3>
+      <Panel style={{ marginBottom: 0, border: 'none', background: 'transparent' }}>
+        <div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
             {entries.map(entry => (
               <CompetitionCard
