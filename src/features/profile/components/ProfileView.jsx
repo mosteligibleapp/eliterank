@@ -247,17 +247,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
           <>
             <div style={dividerStyle} />
             <div style={{ padding: sectionPadding }}>
-              <h3 style={{
-                fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-                fontWeight: typography.fontWeight.semibold,
-                marginBottom: spacing.lg,
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.md
-              }}>
-                <Globe size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Connect
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
                 {socialLinks.map((link) => (
                   <a
                     key={link.platform}
@@ -265,26 +255,28 @@ export default function ProfileView({ hostProfile, onEdit }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: spacing.md,
-                      padding: isMobile ? spacing.sm : spacing.md,
-                      background: 'rgba(255,255,255,0.03)',
-                      borderRadius: borderRadius.lg,
+                      gap: spacing.sm,
+                      padding: `${spacing.sm} ${spacing.md}`,
+                      background: 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${colors.border.primary}`,
+                      borderRadius: borderRadius.pill,
                       textDecoration: 'none',
                       color: colors.text.primary,
+                      fontSize: typography.fontSize.sm,
                     }}
                   >
                     <div
                       style={{
-                        width: isMobile ? '36px' : '40px',
-                        height: isMobile ? '36px' : '40px',
+                        width: '24px',
+                        height: '24px',
                         background: link.gradient || link.background,
-                        borderRadius: borderRadius.md,
+                        borderRadius: borderRadius.full,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: link.icon === 'in' ? '14px' : '16px',
+                        fontSize: link.icon === 'in' ? '11px' : '12px',
                         fontWeight: typography.fontWeight.bold,
                         color: '#fff',
                         flexShrink: 0,
@@ -292,23 +284,9 @@ export default function ProfileView({ hostProfile, onEdit }) {
                     >
                       {link.icon}
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{
-                        fontWeight: typography.fontWeight.medium,
-                        fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md
-                      }}>
-                        {link.platform}
-                      </p>
-                      <p style={{
-                        color: colors.text.secondary,
-                        fontSize: isMobile ? typography.fontSize.xs : typography.fontSize.base,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {link.handle}
-                      </p>
-                    </div>
+                    <span style={{ color: colors.text.secondary }}>
+                      {link.handle}
+                    </span>
                   </a>
                 ))}
               </div>
