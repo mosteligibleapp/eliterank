@@ -307,7 +307,6 @@ export default function ProfileView({ hostProfile, onEdit }) {
           <>
             <div style={dividerStyle} />
             <div style={{ padding: sectionPadding }}>
-              <BonusVotesEarnedBadge userId={hostProfile.id} bonusVotes={bonusVotes} />
               <ProfileRewardsCard userId={hostProfile.id} />
               <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} onBonusVotesLoaded={handleBonusVotesLoaded} />
             </div>
