@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Video, CheckCircle, Clock, XCircle, Upload } from 'lucide-react';
-import { colors, spacing, borderRadius, typography } from '../styles/theme';
+import { colors, spacing, borderRadius, typography, transitions } from '../styles/theme';
 import { getVideoPromptsForContestant, submitVideoResponse } from '../lib/videoPrompts';
 import VideoUploadModal from './modals/VideoUploadModal';
 
 /**
- * VideoPromptsChecklist - Contestant view of video prompts assigned to them
+ * VideoPromptsChecklist - Renders video prompts as task rows inside BonusVotesChecklist
  */
 export default function VideoPromptsChecklist({ competitionId, contestantId, userId, previewEmail }) {
   const [prompts, setPrompts] = useState([]);
@@ -17,7 +17,6 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
 
   const fetchPrompts = async () => {
     if (!competitionId || !contestantId) {
-      // No contestant entry — show preview for test account anyway
       if (previewEmail === PREVIEW_EMAIL) {
         setPrompts([
           { id: 'preview-1', prompt_text: 'What makes you the most eligible?', description: 'Tell us in 60 seconds or less!', response: null },
@@ -48,7 +47,6 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
 
   const handleSubmit = async (videoUrl, durationSeconds) => {
     if (!selectedPrompt) return;
-    // Preview mode: skip DB call, just update UI
     if (selectedPrompt.id?.startsWith('preview-')) {
       setPrompts(prev => prev.map(p =>
         p.id === selectedPrompt.id
@@ -73,95 +71,127 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
 
   if (loading || prompts.length === 0) return null;
 
-  const getStatusIcon = (response) => {
-    if (!response) return <Upload size={16} style={{ color: colors.text.muted }} />;
-    if (response.status === 'approved') return <CheckCircle size={16} style={{ color: '#22c55e' }} />;
-    if (response.status === 'pending') return <Clock size={16} style={{ color: '#fbbf24' }} />;
-    if (response.status === 'rejected') return <XCircle size={16} style={{ color: '#ef4444' }} />;
-    return null;
-  };
-
-  const getStatusLabel = (response) => {
-    if (!response) return 'Not submitted';
-    if (response.status === 'approved') return 'Approved';
-    if (response.status === 'pending') return 'Pending review';
-    if (response.status === 'rejected') return 'Resubmit';
-    return '';
-  };
-
-  const getStatusColor = (response) => {
-    if (!response) return colors.text.muted;
-    if (response.status === 'approved') return '#22c55e';
-    if (response.status === 'pending') return '#fbbf24';
-    if (response.status === 'rejected') return '#ef4444';
-    return colors.text.muted;
-  };
-
   return (
     <>
-      <div style={{ borderTop: `1px solid ${colors.border.primary}`, marginTop: spacing.md }}>
-        {/* Header */}
-        <div style={{
-          padding: `${spacing.lg} ${spacing.md} ${spacing.sm}`,
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.sm,
-        }}>
-          <Video size={16} style={{ color: colors.gold.primary }} />
-          <span style={{
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.semibold,
-            color: colors.text.secondary,
-          }}>
-            Video Prompts
-          </span>
-        </div>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: spacing.sm,
+        padding: `${spacing.sm} ${spacing.lg} ${spacing.md}`,
+      }}>
+        {prompts.map((prompt) => {
+          const response = prompt.response;
+          const isApproved = response?.status === 'approved';
+          const isPending = response?.status === 'pending';
+          const isRejected = response?.status === 'rejected';
+          const canSubmit = !isApproved;
 
-        {/* Prompts list */}
-        <div style={{ padding: `0 ${spacing.md} ${spacing.md}` }}>
-          {prompts.map((prompt) => {
-            const canSubmit = !prompt.response || prompt.response.status !== 'approved';
-            return (
-              <button
-                key={prompt.id}
-                onClick={canSubmit ? () => setSelectedPrompt(prompt) : undefined}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md,
-                  padding: spacing.md,
-                  background: 'none',
-                  border: 'none',
-                  borderRadius: borderRadius.md,
-                  cursor: canSubmit ? 'pointer' : 'default',
-                  textAlign: 'left',
-                  color: 'inherit',
-                  opacity: prompt.response?.status === 'approved' ? 0.7 : 1,
-                }}
-              >
-                {getStatusIcon(prompt.response)}
+          const getBorderColor = () => {
+            if (isApproved) return 'rgba(34, 197, 94, 0.2)';
+            if (isPending) return 'rgba(212, 175, 55, 0.25)';
+            if (isRejected) return 'rgba(239, 68, 68, 0.2)';
+            return 'rgba(255, 255, 255, 0.06)';
+          };
+
+          const getBackground = () => {
+            if (isApproved) return 'rgba(34, 197, 94, 0.08)';
+            if (isPending) return 'rgba(212, 175, 55, 0.05)';
+            if (isRejected) return 'rgba(239, 68, 68, 0.04)';
+            return 'rgba(255, 255, 255, 0.03)';
+          };
+
+          const getIconColor = () => {
+            if (isApproved) return colors.status.success;
+            if (isPending) return colors.gold.primary;
+            if (isRejected) return colors.status.error;
+            return colors.gold.primary;
+          };
+
+          const getIconBg = () => {
+            if (isApproved) return 'rgba(34, 197, 94, 0.15)';
+            if (isPending) return 'rgba(212, 175, 55, 0.12)';
+            if (isRejected) return 'rgba(239, 68, 68, 0.1)';
+            return 'rgba(212, 175, 55, 0.1)';
+          };
+
+          return (
+            <div
+              key={prompt.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.md,
+                padding: `${spacing.md} ${spacing.lg}`,
+                borderRadius: borderRadius.lg,
+                background: getBackground(),
+                border: `1px solid ${getBorderColor()}`,
+                transition: transitions.all,
+                cursor: canSubmit ? 'pointer' : 'default',
+              }}
+              onClick={() => canSubmit && setSelectedPrompt(prompt)}
+            >
+              {/* Icon */}
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: borderRadius.md,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: getIconBg(),
+                flexShrink: 0,
+              }}>
+                <Video size={18} style={{ color: getIconColor() }} />
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <span style={{
-                  flex: 1,
-                  fontSize: typography.fontSize.sm,
-                  color: colors.text.primary,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
+                  fontSize: typography.fontSize.base,
+                  fontWeight: typography.fontWeight.medium,
+                  color: isApproved ? colors.text.secondary : colors.text.primary,
+                  textDecoration: isApproved ? 'line-through' : 'none',
                 }}>
                   {prompt.prompt_text}
                 </span>
-                <span style={{
-                  fontSize: typography.fontSize.xs,
-                  color: getStatusColor(prompt.response),
-                  whiteSpace: 'nowrap',
-                }}>
-                  {getStatusLabel(prompt.response)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                {prompt.description && (
+                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: '2px' }}>
+                    {prompt.description}
+                  </p>
+                )}
+                {isPending && (
+                  <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={12} /> Pending review
+                  </p>
+                )}
+                {isRejected && (
+                  <p style={{ fontSize: typography.fontSize.xs, color: colors.status.error, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <XCircle size={12} /> Rejected — tap to resubmit
+                  </p>
+                )}
+              </div>
+
+              {/* Status */}
+              <div style={{ flexShrink: 0 }}>
+                {isApproved && <CheckCircle size={22} style={{ color: colors.status.success }} />}
+                {isPending && <Clock size={22} style={{ color: colors.gold.primary }} />}
+                {isRejected && <XCircle size={22} style={{ color: colors.status.error }} />}
+                {!response && (
+                  <span style={{
+                    fontSize: typography.fontSize.xs,
+                    color: colors.text.muted,
+                    padding: `${spacing.xs} ${spacing.sm}`,
+                    background: 'rgba(255,255,255,0.06)',
+                    borderRadius: borderRadius.sm,
+                  }}>
+                    <Upload size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                    Upload
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <VideoUploadModal
