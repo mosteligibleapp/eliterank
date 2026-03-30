@@ -6,6 +6,7 @@ import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
 import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
+import { useAuthStore } from '../../../../stores';
 import CustomBonusTaskModal from '../../../../components/modals/CustomBonusTaskModal';
 import VideoPromptModal from '../../../../components/modals/VideoPromptModal';
 import VideoPlayer from '../../../../components/VideoPlayer';
@@ -67,8 +68,9 @@ export default function SetupTab({
   onOpenPrizeModal,
 }) {
   const { isMobile } = useResponsive();
-  const { profile: currentUser, user: authUser } = useAuthContextSafe();
-  const reviewerId = currentUser?.id || authUser?.id;
+  const { profile: currentUser } = useAuthContextSafe();
+  const authStoreUser = useAuthStore(s => s.user);
+  const reviewerId = currentUser?.id || authStoreUser?.id;
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
 
   // Bonus votes state
