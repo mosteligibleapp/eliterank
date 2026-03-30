@@ -224,26 +224,20 @@ export default function ProfileView({ hostProfile, onEdit }) {
         />
 
         {/* About */}
-        <div style={dividerStyle} />
-        <div style={{ padding: sectionPadding }}>
-          <h3 style={{
-            fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-            fontWeight: typography.fontWeight.semibold,
-            marginBottom: spacing.lg,
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.md
-          }}>
-            <FileText size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> About
-          </h3>
-          <p style={{
-            color: colors.text.light,
-            fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
-            lineHeight: '1.7'
-          }}>
-            {hostProfile.bio || 'No bio added yet.'}
-          </p>
-        </div>
+        {hostProfile.bio && (
+          <>
+            <div style={dividerStyle} />
+            <div style={{ padding: sectionPadding }}>
+              <p style={{
+                color: colors.text.secondary,
+                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                lineHeight: '1.7',
+              }}>
+                {hostProfile.bio}
+              </p>
+            </div>
+          </>
+        )}
 
 
         {/* Photo Gallery */}
