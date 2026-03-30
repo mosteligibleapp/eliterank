@@ -255,46 +255,23 @@ export default function ProfileView({ hostProfile, onEdit }) {
               }}>
                 <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
               </h3>
-              {isMobile ? (
-                <div
-                  className="hide-scrollbar"
-                  style={{
-                    display: 'flex',
-                    overflowX: 'auto',
-                    scrollSnapType: 'x mandatory',
-                    gap: spacing.sm,
-                    WebkitOverflowScrolling: 'touch',
-                    scrollbarWidth: 'none',
-                    msOverflowStyle: 'none',
-                  }}
-                >
-                  {gallery.map((imageUrl, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        flex: '0 0 100%',
-                        scrollSnapAlign: 'start',
-                        aspectRatio: '4 / 3',
-                        background: `url(${imageUrl}) center/cover`,
-                        borderRadius: borderRadius.lg,
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md }}>
-                  {gallery.map((imageUrl, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        aspectRatio: '1',
-                        background: `url(${imageUrl}) center/cover`,
-                        borderRadius: borderRadius.lg,
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: spacing.sm }}>
+                {gallery.filter(Boolean).map((imageUrl, index) => (
+                  <a
+                    key={index}
+                    href={imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'block',
+                      aspectRatio: '4 / 5',
+                      background: `url(${imageUrl}) center/cover`,
+                      borderRadius: borderRadius.lg,
+                      cursor: 'pointer',
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </>
         )}
