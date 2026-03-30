@@ -76,16 +76,21 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
     setUploading(prev => ({ ...prev, avatar: false }));
   };
 
-  // Handle gallery image upload
+  // Handle gallery image upload — fills the first available slot
   const handleGalleryUpload = async (e, index) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(prev => ({ ...prev, gallery: index }));
+    const gallery = [...(hostProfile.gallery || [])];
+    // Find first empty slot
+    let targetIndex = gallery.findIndex((img, i) => !img);
+    if (targetIndex === -1) targetIndex = gallery.length;
+    if (targetIndex >= 6) return; // max 6 photos
+
+    setUploading(prev => ({ ...prev, gallery: targetIndex }));
     const url = await uploadImage(file, 'gallery');
     if (url) {
-      const gallery = [...(hostProfile.gallery || [])];
-      gallery[index] = url;
+      gallery[targetIndex] = url;
       handleFieldChange('gallery', gallery);
     }
     setUploading(prev => ({ ...prev, gallery: null }));
