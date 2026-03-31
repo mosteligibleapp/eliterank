@@ -64,6 +64,7 @@ export default function SetupTab({
   onDeletePrize,
   onOpenJudgeModal,
   onOpenSponsorModal,
+  onOpenCharityModal,
   onOpenEventModal,
   onOpenPrizeModal,
 }) {
@@ -500,6 +501,62 @@ export default function SetupTab({
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      </Panel>
+
+      {/* Charity Section */}
+      <Panel
+        title="Charity Partner"
+        icon={Gift}
+        action={
+          <Button size="sm" icon={competition?.charityName ? Edit2 : Plus} onClick={onOpenCharityModal}>
+            {competition?.charityName ? 'Edit' : 'Add Charity'}
+          </Button>
+        }
+        collapsible
+        defaultCollapsed
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          {!competition?.charityName ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+              <Gift size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p>No charity partner set</p>
+              <p style={{ fontSize: typography.fontSize.sm, marginTop: spacing.sm }}>
+                Highlight a charity that benefits from competition proceeds
+              </p>
+            </div>
+          ) : (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.lg,
+              padding: spacing.lg,
+              background: colors.background.secondary,
+              borderRadius: borderRadius.lg,
+              flexWrap: isMobile ? 'wrap' : 'nowrap',
+            }}>
+              {competition.charityLogoUrl ? (
+                <img src={competition.charityLogoUrl} alt={competition.charityName} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain' }} />
+              ) : (
+                <div style={{ width: 48, height: 48, background: 'rgba(236,72,153,0.15)', borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Gift size={24} style={{ color: '#ec4899' }} />
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: typography.fontWeight.medium }}>{competition.charityName}</p>
+                {competition.charityWebsiteUrl && (
+                  <a
+                    href={competition.charityWebsiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textDecoration: 'underline' }}
+                  >
+                    {competition.charityWebsiteUrl}
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </div>

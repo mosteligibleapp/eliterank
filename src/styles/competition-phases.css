@@ -85,6 +85,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  mix-blend-mode: lighten;
 }
 
 .org-logo svg {
@@ -527,6 +528,66 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
+}
+
+/* Charity Proceeds Highlight */
+.charity-highlight {
+  margin-top: var(--spacing-lg);
+}
+
+.charity-highlight-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s;
+}
+
+.charity-highlight-link:hover {
+  opacity: 0.85;
+}
+
+.charity-highlight-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.charity-highlight-label {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 500;
+}
+
+.charity-highlight-logo {
+  max-width: 140px;
+  max-height: 60px;
+  object-fit: contain;
+}
+
+.charity-highlight-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 768px) {
+  .charity-highlight-inner {
+    padding: var(--spacing-lg);
+  }
+
+  .charity-highlight-logo {
+    max-width: 110px;
+    max-height: 48px;
+  }
 }
 
 /* =====================

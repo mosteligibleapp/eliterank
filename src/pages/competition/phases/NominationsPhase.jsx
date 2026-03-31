@@ -11,6 +11,7 @@ import { HostCard } from '../components/HostCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CompetitionFooter } from '../components/CompetitionFooter';
+import { CharityHighlight } from '../components/CharityHighlight';
 
 /**
  * Nominations phase view
@@ -101,7 +102,10 @@ export function NominationsPhase() {
 
       {/* Timeline & Host + Rules */}
       <section className="phase-grid phase-grid-2">
-        <Timeline />
+        <div>
+          <Timeline />
+          <CharityHighlight />
+        </div>
         <div className="sidebar-stack">
           <HostCard />
           <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
