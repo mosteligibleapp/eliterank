@@ -1,11 +1,14 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Bell, Trophy, Users, Calendar } from 'lucide-react';
+import { Bell, Trophy, Users, ArrowRight } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
 import { PrizePool } from '../components/PrizePool';
 import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { formatNumber } from '../../../utils/formatters';
+import { supabase } from '../../../lib/supabase';
 
 /**
  * Results phase view
@@ -15,11 +18,40 @@ import { formatNumber } from '../../../utils/formatters';
 export function ResultsPhase() {
   const {
     competition,
+    organization,
     prizePool,
     leaderboardStats,
   } = usePublicCompetition();
+  const navigate = useNavigate();
 
   const isLegacy = competition?.is_legacy;
+
+  // Check if there's an active/upcoming competition for the same org
+  const [currentComp, setCurrentComp] = useState(null);
+  useEffect(() => {
+    if (!competition?.organization_id || !supabase) return;
+
+    supabase
+      .from('competitions')
+      .select('id, name, slug, status, organization_id')
+      .eq('organization_id', competition.organization_id)
+      .neq('id', competition.id)
+      .in('status', ['live', 'publish'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (data?.[0]) setCurrentComp(data[0]);
+      });
+  }, [competition?.organization_id, competition?.id]);
+
+  // Get org slug for navigation
+  const orgSlug = organization?.slug;
+
+  const handleNavigateToCurrentComp = () => {
+    if (currentComp && orgSlug) {
+      navigate(`/${orgSlug}/${currentComp.slug}`);
+    }
+  };
 
   return (
     <div className="phase-view phase-results">
@@ -66,18 +98,19 @@ export function ResultsPhase() {
         </section>
       )}
 
-      {/* Next Season CTA */}
-      <section className="phase-cta-next-season">
-        <div className="next-season-card">
-          <Calendar size={32} />
-          <h3>Think You Can Win?</h3>
-          <p>{competition?.name} {(parseInt(competition?.season) || 2026) + 1} nominations open soon.</p>
-          <button className="btn btn-primary">
-            <Bell size={16} />
-            Get Notified
-          </button>
-        </div>
-      </section>
+      {/* Next Season CTA - only show if there's an active competition */}
+      {currentComp && (
+        <section className="phase-cta-next-season">
+          <div className="next-season-card">
+            <h3>Think You Can Win?</h3>
+            <p>{currentComp.name} nominations are open now!</p>
+            <button className="btn btn-primary" onClick={handleNavigateToCurrentComp}>
+              <ArrowRight size={16} />
+              Enter Now
+            </button>
+          </div>
+        </section>
+      )}
 
       <hr className="phase-divider" />
 
