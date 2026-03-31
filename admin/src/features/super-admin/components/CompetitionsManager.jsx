@@ -385,7 +385,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
           has_events: false,
           number_of_winners: contestants.length || formData.number_of_winners,
           selection_criteria: 'votes',
-          minimum_prize_cents: 0,
+          minimum_prize_cents: 100000,
           eligibility_radius_miles: 100,
           min_contestants: 10,
           max_contestants: null,
