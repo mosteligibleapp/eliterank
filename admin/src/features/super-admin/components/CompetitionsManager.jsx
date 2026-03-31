@@ -387,7 +387,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
           selection_criteria: 'votes',
           minimum_prize_cents: 0,
           eligibility_radius_miles: 100,
-          min_contestants: 0,
+          min_contestants: 10,
           max_contestants: null,
           price_per_vote: 0,
         })
