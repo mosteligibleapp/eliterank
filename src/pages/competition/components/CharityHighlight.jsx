@@ -3,7 +3,7 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 
 /**
  * Charity proceeds highlight section
- * Shows charity logo (clickable to website) and message about proceeds
+ * Shows charity logo (clickable to website) centered with a label
  * Only renders if competition has charity_name set
  */
 export function CharityHighlight() {
@@ -17,6 +17,7 @@ export function CharityHighlight() {
 
   const content = (
     <div className="charity-highlight-inner">
+      <span className="charity-highlight-label">A Portion of Proceeds Benefits</span>
       {charityLogoUrl ? (
         <img
           src={charityLogoUrl}
@@ -24,20 +25,14 @@ export function CharityHighlight() {
           className="charity-highlight-logo"
         />
       ) : (
-        <div className="charity-highlight-icon-wrap">
-          <Heart size={22} className="charity-highlight-icon" />
-        </div>
-      )}
-      <div className="charity-highlight-info">
-        <span className="charity-highlight-label">A Portion of Proceeds Benefits</span>
         <span className="charity-highlight-name">{charityName}</span>
-      </div>
+      )}
     </div>
   );
 
   if (charityWebsiteUrl) {
     return (
-      <section className="charity-highlight">
+      <div className="charity-highlight">
         <a
           href={charityWebsiteUrl}
           target="_blank"
@@ -45,16 +40,15 @@ export function CharityHighlight() {
           className="charity-highlight-link"
         >
           {content}
-          <span className="charity-highlight-visit">Visit Website &rsaquo;</span>
         </a>
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="charity-highlight">
+    <div className="charity-highlight">
       {content}
-    </section>
+    </div>
   );
 }
 
