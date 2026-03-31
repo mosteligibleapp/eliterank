@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, MapPin, Star, Award, Calendar, ArrowRight, Clock, ChevronRight } from 'lucide-react';
+import { Trophy, Crown, MapPin, Star, Award, Calendar, ArrowRight, Clock, ChevronRight, Download, Loader } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
+import { generateAchievementCard } from '../../achievement-cards/generateAchievementCard';
 import { useResponsive } from '../../../hooks/useResponsive';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
@@ -77,13 +78,58 @@ function getVotingStartDate(competition) {
   return null;
 }
 
-function CompetitionCard({ entry, onAcceptClick, isMobile }) {
+function CompetitionCard({ entry, onAcceptClick, isMobile, profile }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [generatingCard, setGeneratingCard] = useState(null);
   const competition = entry.competition || {};
   const cityName = competition.city?.name || competition.city || '';
   const org = competition.organization;
   const votingDate = getVotingStartDate(competition);
   const url = entry.url;
+
+  const cardTypes = [];
+  if (entry.role === 'nominee' || entry.role === 'contestant' || entry.role === 'winner') {
+    cardTypes.push({ type: 'nominated', label: 'Nominated' });
+  }
+  if (entry.role === 'contestant' || entry.role === 'winner') {
+    cardTypes.push({ type: 'contestant', label: 'Competing' });
+  }
+  if (entry.role === 'winner') {
+    cardTypes.push({ type: 'winner', label: 'Winner' });
+  }
+
+  const handleDownloadCard = async (e, cardType) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setGeneratingCard(cardType);
+    try {
+      const blob = await generateAchievementCard({
+        achievementType: cardType,
+        name: profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : 'Contestant',
+        photoUrl: profile?.avatar_url,
+        competitionName: competition?.name,
+        cityName,
+        season: competition?.season?.toString(),
+        organizationName: org?.name || 'Most Eligible',
+        organizationLogoUrl: org?.logo_url,
+        accentColor: competition?.themePrimary || '#d4af37',
+        voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+        votingStartDate: competition?.votingStart,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cardType}-card.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Card generation failed:', err);
+    } finally {
+      setGeneratingCard(null);
+    }
+  };
 
   return (
     <a
@@ -168,6 +214,40 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
             </div>
           )}
         </div>
+
+        {/* Achievement Card Downloads */}
+        {cardTypes.length > 0 && (
+          <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+            {cardTypes.map(({ type, label }) => (
+              <button
+                key={type}
+                onClick={(e) => handleDownloadCard(e, type)}
+                disabled={generatingCard === type}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  background: 'rgba(212,175,55,0.08)',
+                  border: `1px solid rgba(212,175,55,0.2)`,
+                  borderRadius: borderRadius.pill,
+                  color: colors.gold.primary,
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.medium,
+                  cursor: generatingCard === type ? 'wait' : 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {generatingCard === type ? (
+                  <Loader size={10} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <Download size={10} />
+                )}
+                {label} Card
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Unclaimed CTA */}
         {entry.isUnclaimed && entry.nomination && (
@@ -339,6 +419,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
                 entry={entry}
                 onAcceptClick={handleOpenAcceptModal}
                 isMobile={isMobile}
+                profile={profile}
               />
             ))}
           </div>
