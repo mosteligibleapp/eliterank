@@ -65,16 +65,10 @@ function PrizeCarousel({ prizes, title, icon: Icon }) {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="rewards-header">
-        <h3 className="rewards-title">
-          {Icon && <Icon size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />}
+      <div className="rewards-header" style={{ justifyContent: 'center' }}>
+        <h3 className="rewards-title" style={{ textAlign: 'center' }}>
           {title}
         </h3>
-        {totalPrizes > 1 && (
-          <span className="rewards-counter">
-            {currentIndex + 1} / {totalPrizes}
-          </span>
-        )}
       </div>
 
       <div className="rewards-carousel-viewport">
