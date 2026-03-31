@@ -3,18 +3,18 @@ import { Crown, Award, Medal, Trophy } from 'lucide-react';
 
 /**
  * Winners podium for results phase
- * Large display of top 3 with prizes
- * Falls back to legacy_winners for past competitions hosted outside EliteRank
+ * Regular competitions: large display of top 3 with prizes
+ * Legacy competitions: grid display of up to 20 ranked contestants
  */
 export function WinnersPodium() {
-  const { competition, topThree, prizePool, openContestantProfile } = usePublicCompetition();
+  const { competition, contestants, topThree, prizePool, openContestantProfile } = usePublicCompetition();
 
-  const legacyWinners = competition?.legacy_winners || [];
-  const isLegacy = competition?.is_legacy && legacyWinners.length > 0;
+  const isLegacy = competition?.is_legacy;
 
-  // Use legacy winners if no real contestants
   if (isLegacy) {
-    return <LegacyWinnersPodium winners={legacyWinners} />;
+    const sorted = [...(contestants || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999)).slice(0, 20);
+    if (!sorted.length) return null;
+    return <LegacyContestantsGrid contestants={sorted} onSelect={openContestantProfile} />;
   }
 
   if (!topThree?.length) return null;
@@ -36,7 +36,6 @@ export function WinnersPodium() {
       </div>
 
       <div className="podium-display">
-        {/* Reorder for visual: 2nd, 1st, 3rd */}
         {[1, 0, 2].map(index => {
           const winner = topThree[index];
           if (!winner) return null;
@@ -78,48 +77,35 @@ export function WinnersPodium() {
 }
 
 /**
- * Simplified podium for legacy competitions
- * Displays all winners in a grid with rank badges
+ * Grid display for legacy competition contestants
+ * Shows up to 20 contestants with rank badges and avatars
  */
-function LegacyWinnersPodium({ winners }) {
-  const sorted = [...winners].sort((a, b) => (a.rank || 0) - (b.rank || 0));
-  const icons = [Crown, Award, Medal];
-  const labels = ['Champion', '2nd Place', '3rd Place', '4th Place', '5th Place'];
-
+function LegacyContestantsGrid({ contestants, onSelect }) {
   return (
     <div className="winners-podium">
       <div className="podium-header">
         <Trophy size={32} className="podium-trophy" />
-        <h2>Winners</h2>
+        <h2>Results</h2>
       </div>
 
-      <div className="podium-display legacy-podium-display">
-        {sorted.map((winner, index) => {
-          const Icon = icons[index] || Medal;
-          const isFirst = index === 0;
-
-          return (
-            <div
-              key={index}
-              className={`podium-winner podium-winner-${index + 1} ${isFirst ? 'first-place' : ''}`}
-            >
-              <div className="winner-place">
-                <Icon size={isFirst ? 32 : 24} />
-                <span>{labels[index] || `#${index + 1}`}</span>
-              </div>
-
-              <div className={`winner-avatar ${isFirst ? 'winner-avatar-large' : ''}`}>
-                {winner.imageUrl ? (
-                  <img src={winner.imageUrl} alt={winner.name} />
-                ) : (
-                  <span>{winner.name?.charAt(0)}</span>
-                )}
-              </div>
-
-              <div className="winner-name">{winner.name}</div>
+      <div className="legacy-contestants-grid">
+        {contestants.map((contestant, index) => (
+          <div
+            key={contestant.id}
+            className="legacy-contestant-card"
+            onClick={() => onSelect?.(contestant)}
+          >
+            <div className="legacy-contestant-rank">{index + 1}</div>
+            <div className="legacy-contestant-avatar">
+              {contestant.avatar_url ? (
+                <img src={contestant.avatar_url} alt={contestant.name} />
+              ) : (
+                <span>{contestant.name?.charAt(0)}</span>
+              )}
             </div>
-          );
-        })}
+            <div className="legacy-contestant-name">{contestant.name}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,20 +1,20 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Building2, ChevronLeft, Upload, X, Trophy, Plus,
+  Building2, ChevronLeft, X, Trophy, Plus, Search, User, Loader,
 } from 'lucide-react';
-import { Button } from '@shared/components/ui';
+import { Button, Avatar } from '@shared/components/ui';
 import { colors, spacing, borderRadius, typography, transitions } from '@shared/styles/theme';
 import { supabase } from '@shared/lib/supabase';
 import FormModal from '../../../components/FormModal';
 import {
   FormField, TextInput, SelectInput, FormGrid, FormSection,
 } from '../../../components/FormField';
-import { generateCompetitionSlug, getCompetitionUrl } from '@shared/utils/slugs';
+import { generateCompetitionSlug } from '@shared/utils/slugs';
 
 const WIZARD_STEPS = [
   { id: 1, name: 'Organization', description: 'Select organization' },
   { id: 2, name: 'Details', description: 'Name, city & season' },
-  { id: 3, name: 'Winners', description: 'Add past winners' },
+  { id: 3, name: 'Contestants', description: 'Add past contestants' },
   { id: 4, name: 'Review', description: 'Confirm & create' },
 ];
 
@@ -26,7 +26,6 @@ const INITIAL_FORM = {
   name: '',
   season: new Date().getFullYear(),
   number_of_winners: 5,
-  cover_image: '',
 };
 
 /**
@@ -45,11 +44,11 @@ export default function LegacyCompetitionWizard({
 }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(INITIAL_FORM);
-  const [winners, setWinners] = useState([]);
+  const [contestants, setContestants] = useState([]);
 
   const resetAndClose = () => {
     setFormData(INITIAL_FORM);
-    setWinners([]);
+    setContestants([]);
     setCurrentStep(1);
     onClose();
   };
@@ -104,8 +103,31 @@ export default function LegacyCompetitionWizard({
       setCurrentStep(prev => prev + 1);
     } else {
       if (!canCreate) return;
-      onCreate({ ...formData, winners });
+      onCreate({ ...formData, contestants });
     }
+  };
+
+  const addContestant = (profile) => {
+    // Don't add duplicates
+    if (contestants.some(c => c.profileId === profile.id)) return;
+    if (contestants.length >= 20) return;
+
+    setContestants(prev => [...prev, {
+      profileId: profile.id,
+      name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
+      email: profile.email,
+      avatarUrl: profile.avatar_url,
+      instagram: profile.instagram,
+      city: profile.city,
+      rank: prev.length + 1,
+    }]);
+  };
+
+  const removeContestant = (profileId) => {
+    setContestants(prev => {
+      const filtered = prev.filter(c => c.profileId !== profileId);
+      return filtered.map((c, i) => ({ ...c, rank: i + 1 }));
+    });
   };
 
   const submitLabel = currentStep < WIZARD_STEPS.length
@@ -235,13 +257,39 @@ export default function LegacyCompetitionWizard({
         </FormSection>
       )}
 
-      {/* Step 3: Winners */}
+      {/* Step 3: Contestants */}
       {currentStep === 3 && (
-        <FormSection title="Past Winners" divider={false}>
+        <FormSection title="Past Contestants" divider={false}>
           <p style={{ fontSize: typography.fontSize.sm, color: colors.text.tertiary, margin: `0 0 ${spacing.md}` }}>
-            Add the winners from this past competition. Photos can be uploaded or left blank.
+            Search and add up to 20 contestants in ranked order. The first added will be ranked #1.
           </p>
-          <WinnersEditor winners={winners} onChange={setWinners} />
+          <ProfileSearch
+            onSelect={addContestant}
+            excludeIds={contestants.map(c => c.profileId)}
+            disabled={contestants.length >= 20}
+          />
+          {contestants.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginTop: spacing.lg }}>
+              {contestants.map((c) => (
+                <div key={c.profileId} style={styles.contestantRow}>
+                  <div style={styles.rankBadge}>{c.rank}</div>
+                  <Avatar name={c.name} size={36} avatarUrl={c.avatarUrl} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: typography.fontWeight.medium, color: colors.text.primary, fontSize: typography.fontSize.sm }}>{c.name}</p>
+                    {c.instagram && (
+                      <p style={{ color: colors.text.tertiary, fontSize: typography.fontSize.xs }}>@{c.instagram.replace('@', '')}</p>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => removeContestant(c.profileId)} style={styles.removeBtn}>
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, textAlign: 'center', marginTop: spacing.xs }}>
+                {contestants.length}/20 contestants added
+              </p>
+            </div>
+          )}
         </FormSection>
       )}
 
@@ -249,7 +297,7 @@ export default function LegacyCompetitionWizard({
       {currentStep === 4 && (
         <LegacyReviewStep
           formData={formData}
-          winners={winners}
+          contestants={contestants}
           organizations={organizations}
           cities={cities}
           categories={categories}
@@ -276,146 +324,110 @@ export default function LegacyCompetitionWizard({
 
 
 /**
- * Inline winners editor for adding name + photo for each winner.
+ * Inline profile search component for the contestants step.
  */
-function WinnersEditor({ winners, onChange }) {
-  const addWinner = () => {
-    onChange([...winners, { name: '', imageUrl: '', rank: winners.length + 1 }]);
-  };
+function ProfileSearch({ onSelect, excludeIds = [], disabled }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
 
-  const updateWinner = (index, field, value) => {
-    const updated = [...winners];
-    updated[index] = { ...updated[index], [field]: value };
-    onChange(updated);
-  };
-
-  const removeWinner = (index) => {
-    const updated = winners.filter((_, i) => i !== index);
-    // Re-rank
-    onChange(updated.map((w, i) => ({ ...w, rank: i + 1 })));
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-      {winners.map((winner, index) => (
-        <WinnerRow
-          key={index}
-          winner={winner}
-          index={index}
-          onUpdate={(field, value) => updateWinner(index, field, value)}
-          onRemove={() => removeWinner(index)}
-        />
-      ))}
-      <button
-        type="button"
-        onClick={addWinner}
-        style={styles.addWinnerBtn}
-      >
-        <Plus size={16} />
-        <span>Add Winner</span>
-      </button>
-    </div>
-  );
-}
-
-
-function WinnerRow({ winner, index, onUpdate, onRemove }) {
-  const fileInputRef = useRef(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFileSelect = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 4.5 * 1024 * 1024) {
-      alert('Photo must be under 4.5MB');
+  const searchProfiles = useCallback(async (q) => {
+    if (!q.trim() || !supabase) {
+      setResults([]);
       return;
     }
-
-    setUploading(true);
+    setSearching(true);
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `legacy-winners/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
+      const searchTerm = q.toLowerCase().trim();
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name, avatar_url, instagram, city')
+        .limit(100);
 
-      const { error } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+      const filtered = (data || []).filter(p => {
+        if (excludeIds.includes(p.id)) return false;
+        const firstName = (p.first_name || '').toLowerCase();
+        const lastName = (p.last_name || '').toLowerCase();
+        const fullName = `${firstName} ${lastName}`.toLowerCase();
+        const email = (p.email || '').toLowerCase();
+        const ig = (p.instagram || '').toLowerCase();
+        return fullName.includes(searchTerm) || email.includes(searchTerm) || ig.includes(searchTerm);
+      }).slice(0, 8);
 
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      onUpdate('imageUrl', urlData.publicUrl);
+      setResults(filtered);
     } catch (err) {
-      console.error('Upload failed:', err);
-      alert('Upload failed. Please try again.');
+      console.error('Search error:', err);
     } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setSearching(false);
     }
-  };
+  }, [excludeIds]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => searchProfiles(query), 300);
+    return () => clearTimeout(timer);
+  }, [query, searchProfiles]);
+
+  const getName = (p) => `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email;
 
   return (
-    <div style={styles.winnerRow}>
-      <div style={styles.winnerRank}>{index + 1}</div>
-
-      {/* Photo */}
-      <div style={styles.winnerPhotoArea}>
-        {winner.imageUrl ? (
-          <div style={styles.winnerPhotoPreview}>
-            <img src={winner.imageUrl} alt={winner.name} style={styles.winnerPhotoImg} />
-            <button
-              type="button"
-              onClick={() => onUpdate('imageUrl', '')}
-              style={styles.winnerPhotoRemove}
-            >
-              <X size={12} />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            style={styles.winnerPhotoUpload}
-          >
-            {uploading ? (
-              <span style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary }}>...</span>
-            ) : (
-              <Upload size={16} style={{ color: colors.text.tertiary }} />
-            )}
-          </button>
-        )}
+    <div style={{ position: 'relative' }}>
+      <div style={styles.searchBox}>
+        <Search size={16} style={{ color: colors.text.muted, flexShrink: 0 }} />
         <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileSelect}
-          style={{ display: 'none' }}
+          type="text"
+          placeholder={disabled ? 'Maximum 20 contestants reached' : 'Search by name, email, or Instagram...'}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          disabled={disabled}
+          style={styles.searchInput}
         />
+        {searching && <Loader size={14} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />}
       </div>
 
-      {/* Name */}
-      <input
-        type="text"
-        value={winner.name}
-        onChange={(e) => onUpdate('name', e.target.value)}
-        placeholder={`Winner #${index + 1} name`}
-        style={styles.winnerNameInput}
-      />
+      {results.length > 0 && (
+        <div style={styles.dropdown}>
+          {results.map(profile => (
+            <button
+              key={profile.id}
+              type="button"
+              onClick={() => {
+                onSelect(profile);
+                setQuery('');
+                setResults([]);
+              }}
+              style={styles.dropdownItem}
+              onMouseEnter={(e) => e.currentTarget.style.background = colors.background.elevated}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <Avatar name={getName(profile)} size={32} avatarUrl={profile.avatar_url} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: typography.fontWeight.medium, color: colors.text.primary, fontSize: typography.fontSize.sm }}>
+                  {getName(profile)}
+                </p>
+                <p style={{ color: colors.text.tertiary, fontSize: typography.fontSize.xs }}>
+                  {profile.email}{profile.instagram && ` · @${profile.instagram.replace('@', '')}`}
+                </p>
+              </div>
+              <Plus size={14} style={{ color: colors.gold.primary }} />
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Remove */}
-      <button type="button" onClick={onRemove} style={styles.winnerRemoveBtn}>
-        <X size={14} />
-      </button>
+      {query.trim() && !searching && results.length === 0 && (
+        <div style={{ ...styles.dropdown, padding: spacing.lg, textAlign: 'center', color: colors.text.tertiary, fontSize: typography.fontSize.sm }}>
+          <User size={20} style={{ marginBottom: spacing.xs, opacity: 0.5 }} />
+          <p>No profiles found</p>
+        </div>
+      )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
 
 
-function LegacyReviewStep({ formData, winners, organizations, cities, categories, demographics }) {
+function LegacyReviewStep({ formData, contestants, organizations, cities, categories, demographics }) {
   const selectedOrg = organizations.find(o => o.id === formData.organization_id);
   const selectedCity = cities.find(c => c.id === formData.city_id);
   const selectedCategory = categories.find(c => c.id === formData.category_id);
@@ -437,7 +449,7 @@ function LegacyReviewStep({ formData, winners, organizations, cities, categories
     { label: 'Category', value: selectedCategory?.name || 'Not selected' },
     { label: 'Demographic', value: selectedDemographic?.label || 'Not selected' },
     { label: 'Season', value: formData.season },
-    { label: 'Winners', value: `${winners.filter(w => w.name).length} added` },
+    { label: 'Contestants', value: `${contestants.length} added` },
     { label: 'Status', value: 'Completed (Legacy)' },
   ];
 
@@ -452,22 +464,23 @@ function LegacyReviewStep({ formData, winners, organizations, cities, categories
         ))}
       </div>
 
-      {winners.length > 0 && (
+      {contestants.length > 0 && (
         <div style={{ marginTop: spacing.md }}>
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: spacing.sm }}>
-            Winners Preview
+            Contestants Preview
           </p>
-          <div style={{ display: 'flex', gap: spacing.md, flexWrap: 'wrap' }}>
-            {winners.filter(w => w.name).map((w, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, background: colors.background.tertiary, borderRadius: borderRadius.md }}>
-                {w.imageUrl ? (
-                  <img src={w.imageUrl} alt={w.name} style={{ width: 28, height: 28, borderRadius: borderRadius.full, objectFit: 'cover' }} />
+          <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+            {contestants.map((c) => (
+              <div key={c.profileId} style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: `${spacing.xs} ${spacing.sm}`, background: colors.background.tertiary, borderRadius: borderRadius.md }}>
+                <span style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>{c.rank}</span>
+                {c.avatarUrl ? (
+                  <img src={c.avatarUrl} alt={c.name} style={{ width: 24, height: 24, borderRadius: borderRadius.full, objectFit: 'cover' }} />
                 ) : (
-                  <div style={{ width: 28, height: 28, borderRadius: borderRadius.full, background: colors.background.elevated, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Trophy size={12} style={{ color: colors.text.tertiary }} />
+                  <div style={{ width: 24, height: 24, borderRadius: borderRadius.full, background: colors.background.elevated, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <User size={12} style={{ color: colors.text.tertiary }} />
                   </div>
                 )}
-                <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>{w.name}</span>
+                <span style={{ fontSize: typography.fontSize.xs, color: colors.text.primary }}>{c.name}</span>
               </div>
             ))}
           </div>
@@ -548,31 +561,62 @@ const styles = {
     justifyContent: 'center',
     flexShrink: 0,
   },
-  // Winners editor
-  addWinnerBtn: {
+  // Search
+  searchBox: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.sm,
-    padding: spacing.md,
-    background: 'transparent',
-    border: `2px dashed ${colors.border.secondary}`,
+    padding: `${spacing.sm} ${spacing.md}`,
+    background: colors.background.tertiary,
+    border: `1px solid ${colors.border.primary}`,
     borderRadius: borderRadius.md,
-    color: colors.text.secondary,
-    cursor: 'pointer',
+  },
+  searchInput: {
+    flex: 1,
+    background: 'none',
+    border: 'none',
+    outline: 'none',
+    color: colors.text.primary,
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.sans,
-    transition: transitions.colors,
   },
-  winnerRow: {
+  dropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    marginTop: spacing.xs,
+    background: colors.background.card,
+    border: `1px solid ${colors.border.primary}`,
+    borderRadius: borderRadius.md,
+    boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+    zIndex: 50,
+    maxHeight: 250,
+    overflow: 'auto',
+  },
+  dropdownItem: {
+    width: '100%',
     display: 'flex',
     alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
+    gap: spacing.sm,
+    padding: spacing.sm,
+    background: 'transparent',
+    border: 'none',
+    borderBottom: `1px solid ${colors.border.secondary}`,
+    cursor: 'pointer',
+    textAlign: 'left',
+    fontFamily: typography.fontFamily.sans,
+  },
+  // Contestant list
+  contestantRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: `${spacing.sm} ${spacing.md}`,
     background: colors.background.tertiary,
     borderRadius: borderRadius.md,
   },
-  winnerRank: {
+  rankBadge: {
     width: 24,
     height: 24,
     borderRadius: borderRadius.full,
@@ -585,61 +629,7 @@ const styles = {
     fontWeight: typography.fontWeight.bold,
     flexShrink: 0,
   },
-  winnerPhotoArea: {
-    flexShrink: 0,
-  },
-  winnerPhotoPreview: {
-    position: 'relative',
-    width: 44,
-    height: 44,
-  },
-  winnerPhotoImg: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.full,
-    objectFit: 'cover',
-  },
-  winnerPhotoRemove: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 18,
-    height: 18,
-    borderRadius: borderRadius.full,
-    background: colors.status.error,
-    border: 'none',
-    color: '#fff',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
-  },
-  winnerPhotoUpload: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.full,
-    background: colors.background.elevated,
-    border: `1px dashed ${colors.border.secondary}`,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
-  },
-  winnerNameInput: {
-    flex: 1,
-    height: 36,
-    padding: `0 ${spacing.md}`,
-    background: colors.background.secondary,
-    border: `1px solid ${colors.border.primary}`,
-    borderRadius: borderRadius.md,
-    color: colors.text.primary,
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.sans,
-    outline: 'none',
-  },
-  winnerRemoveBtn: {
+  removeBtn: {
     background: 'transparent',
     border: 'none',
     color: colors.text.tertiary,
