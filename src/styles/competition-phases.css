@@ -738,8 +738,8 @@
 .next-season-card {
   text-align: center;
   padding: var(--spacing-2xl);
-  background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(139, 92, 246, 0.1));
-  border: 1px solid rgba(244, 114, 182, 0.3);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
@@ -2781,6 +2781,97 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
+}
+
+/* Legacy Contestants Grid */
+.legacy-contestants-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--spacing-md);
+}
+
+.legacy-contestant-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  transition: background 0.2s;
+  position: relative;
+}
+
+.legacy-contestant-card:hover {
+  background: rgba(var(--color-primary-rgb), 0.08);
+}
+
+.legacy-contestant-rank {
+  position: absolute;
+  top: var(--spacing-xs);
+  left: 50%;
+  transform: translateX(18px);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-bg-primary);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.legacy-contestant-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(var(--color-primary-rgb), 0.3);
+}
+
+.legacy-contestant-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.legacy-contestant-avatar span {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.legacy-contestant-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  text-align: center;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .legacy-contestants-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-sm);
+  }
+
+  .legacy-contestant-avatar {
+    width: 60px;
+    height: 60px;
+  }
+
+  .legacy-contestant-name {
+    font-size: var(--font-size-xs);
+  }
 }
 
 /* About Section */

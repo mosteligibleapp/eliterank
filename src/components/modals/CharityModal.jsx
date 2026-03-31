@@ -86,7 +86,7 @@ export default function CharityModal({
             <Button
               variant="secondary"
               onClick={handleRemove}
-              style={{ width: 'auto', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}
+              style={{ width: 'auto', color: colors.status.error, borderColor: colors.status.errorMuted }}
             >
               Remove
             </Button>
@@ -142,9 +142,9 @@ export default function CharityModal({
               onClick={handleRemoveLogo}
               style={{
                 background: 'transparent',
-                border: '1px solid rgba(239,68,68,0.3)',
+                border: `1px solid ${colors.status.errorMuted}`,
                 borderRadius: borderRadius.md,
-                color: '#ef4444',
+                color: colors.status.error,
                 cursor: 'pointer',
                 padding: spacing.sm,
                 display: 'flex',

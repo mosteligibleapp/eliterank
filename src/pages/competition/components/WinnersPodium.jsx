@@ -3,10 +3,19 @@ import { Crown, Award, Medal, Trophy } from 'lucide-react';
 
 /**
  * Winners podium for results phase
- * Large display of top 3 with prizes
+ * Regular competitions: large display of top 3 with prizes
+ * Legacy competitions: grid display of up to 20 ranked contestants
  */
 export function WinnersPodium() {
-  const { topThree, prizePool, openContestantProfile } = usePublicCompetition();
+  const { competition, contestants, topThree, prizePool, openContestantProfile } = usePublicCompetition();
+
+  const isLegacy = competition?.is_legacy;
+
+  if (isLegacy) {
+    const sorted = [...(contestants || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999)).slice(0, 20);
+    if (!sorted.length) return null;
+    return <LegacyContestantsGrid contestants={sorted} onSelect={openContestantProfile} />;
+  }
 
   if (!topThree?.length) return null;
 
@@ -27,7 +36,6 @@ export function WinnersPodium() {
       </div>
 
       <div className="podium-display">
-        {/* Reorder for visual: 2nd, 1st, 3rd */}
         {[1, 0, 2].map(index => {
           const winner = topThree[index];
           if (!winner) return null;
@@ -63,6 +71,41 @@ export function WinnersPodium() {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Grid display for legacy competition contestants
+ * Shows up to 20 contestants with rank badges and avatars
+ */
+function LegacyContestantsGrid({ contestants, onSelect }) {
+  return (
+    <div className="winners-podium">
+      <div className="podium-header">
+        <Trophy size={32} className="podium-trophy" />
+        <h2>Results</h2>
+      </div>
+
+      <div className="legacy-contestants-grid">
+        {contestants.map((contestant, index) => (
+          <div
+            key={contestant.id}
+            className="legacy-contestant-card"
+            onClick={() => onSelect?.(contestant)}
+          >
+            <div className="legacy-contestant-rank">{index + 1}</div>
+            <div className="legacy-contestant-avatar">
+              {contestant.avatar_url ? (
+                <img src={contestant.avatar_url} alt={contestant.name} />
+              ) : (
+                <span>{contestant.name?.charAt(0)}</span>
+              )}
+            </div>
+            <div className="legacy-contestant-name">{contestant.name}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

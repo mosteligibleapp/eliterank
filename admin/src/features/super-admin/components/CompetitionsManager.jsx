@@ -16,6 +16,7 @@ import { generateCompetitionSlug } from '@shared/utils/slugs';
 
 import { DataTable, FilterBar, StatRow, FormModal, ActionMenu } from '../../../components';
 import CompetitionCreateWizard from './CompetitionCreateWizard';
+import LegacyCompetitionWizard from './LegacyCompetitionWizard';
 import CompetitionEditModal from './CompetitionEditModal';
 
 export default function CompetitionsManager({ onViewDashboard }) {
@@ -32,6 +33,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
 
   // ── Modal state ─────────────────────────────────────────
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showLegacyModal, setShowLegacyModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editDefaultTab, setEditDefaultTab] = useState('basic');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -346,6 +348,89 @@ export default function CompetitionsManager({ onViewDashboard }) {
     }
   };
 
+  // ── Create legacy (past) competition ─────────────────────
+  const handleCreateLegacy = async (formData) => {
+    if (!formData.organization_id || !formData.city_id || !formData.category_id || !formData.demographic_id) {
+      toast.error('Organization, city, category, and demographic are required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const selectedCity = cities.find(c => c.id === formData.city_id);
+      const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
+      const competitionSlug = generateCompetitionSlug({
+        name: formData.name || 'competition',
+        citySlug: selectedCity?.slug || selectedCity?.name || 'unknown',
+        season: formData.season,
+        demographicSlug: selectedDemographic?.slug,
+      });
+
+      const contestants = formData.contestants || [];
+
+      // Create the competition
+      const { data: comp, error } = await supabase
+        .from('competitions')
+        .insert({
+          organization_id: formData.organization_id,
+          city_id: formData.city_id,
+          category_id: formData.category_id,
+          demographic_id: formData.demographic_id,
+          name: formData.name || null,
+          slug: competitionSlug,
+          season: formData.season,
+          status: COMPETITION_STATUS.COMPLETED,
+          is_legacy: true,
+          entry_type: 'nominations',
+          has_events: false,
+          number_of_winners: contestants.length || formData.number_of_winners,
+          selection_criteria: 'votes',
+          minimum_prize_cents: 0,
+          eligibility_radius_miles: 100,
+          min_contestants: 10,
+          max_contestants: null,
+          price_per_vote: 0,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Insert contestants linked to their profiles, ranked by order added
+      if (contestants.length > 0) {
+        const contestantRows = contestants.map((c) => ({
+          competition_id: comp.id,
+          user_id: c.profileId,
+          name: c.name,
+          email: c.email || null,
+          avatar_url: c.avatarUrl || null,
+          instagram: c.instagram || null,
+          city: c.city || null,
+          status: 'active',
+          votes: 0,
+          rank: c.rank,
+        }));
+
+        const { error: contestantError } = await supabase
+          .from('contestants')
+          .insert(contestantRows);
+
+        if (contestantError) {
+          console.error('Error inserting contestants:', contestantError);
+          toast.warning('Competition created but some contestants could not be added');
+        }
+      }
+
+      toast.success('Legacy competition created successfully');
+      setShowLegacyModal(false);
+      fetchData();
+    } catch (err) {
+      toast.error(`Failed to create legacy competition: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // ── Edit competition ────────────────────────────────────
   const openEditModal = (comp, tab = 'basic') => {
     setSelectedCompetition(comp);
@@ -646,9 +731,14 @@ export default function CompetitionsManager({ onViewDashboard }) {
           <h2 style={styles.title}>Competitions</h2>
           <p style={styles.subtitle}>Create and manage competitions</p>
         </div>
-        <Button icon={Plus} onClick={() => setShowCreateModal(true)}>
-          New Competition
-        </Button>
+        <div style={{ display: 'flex', gap: spacing.sm }}>
+          <Button variant="secondary" icon={Trophy} onClick={() => setShowLegacyModal(true)}>
+            Add Past Competition
+          </Button>
+          <Button icon={Plus} onClick={() => setShowCreateModal(true)}>
+            New Competition
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -700,6 +790,18 @@ export default function CompetitionsManager({ onViewDashboard }) {
         demographics={demographics}
         hosts={hosts}
         getHostName={getHostName}
+      />
+
+      {/* ── Legacy Competition Wizard ────────────────── */}
+      <LegacyCompetitionWizard
+        isOpen={showLegacyModal}
+        onClose={() => setShowLegacyModal(false)}
+        onCreate={handleCreateLegacy}
+        loading={isSubmitting}
+        organizations={organizations}
+        cities={cities}
+        categories={categories}
+        demographics={demographics}
       />
 
       {/* ── Edit Modal ─────────────────────────────────── */}

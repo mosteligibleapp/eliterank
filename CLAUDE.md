@@ -14,6 +14,18 @@
 - Define a `styles` object at the top of the file and reference it in JSX via `style={styles.xxx}`
 - Follow existing patterns in `src/pages/NotificationsPage.jsx` or `src/pages/PrivacyPage.jsx`
 
+## Brand & Design Rules
+- **Vibe:** Dark + Gold luxury. Premium, exclusive feel. Gold accents on deep dark backgrounds. Minimal color variety.
+- **Colors:** Use ONLY colors from `src/styles/theme.js`. No hardcoded hex values in CSS or inline styles — reference theme tokens or CSS variables. Rare exceptions allowed only when noted in a comment.
+- **Primary accent:** Gold (`colors.gold.primary` / `--color-primary`). This is the ONLY accent color for CTAs, highlights, labels, and interactive elements.
+- **Status colors only for status:** Green/red/yellow/blue from `colors.status` are ONLY for success/error/warning/info states. Never use them decoratively.
+- **Accent colors (purple, pink, cyan):** Exist in the theme but should NOT be used for new UI. They are reserved for tier badges and data visualization only.
+- **New sections/cards:** Use the standard neutral card style (`--color-bg-secondary` background, `--color-border` border). Do NOT invent new gradient/color combos for each feature.
+- **Fonts:** System fonts only (`-apple-system` / SF Pro stack + monospace). Never add Google Fonts or custom display fonts.
+- **Typography:** Use existing `typography.fontSize` scale. Do not introduce new sizes or override with raw px/rem values.
+- **Spacing:** Use existing `spacing` tokens. Do not hardcode pixel values for padding/margins.
+- **When in doubt:** Match the nearest existing component. Look at Timeline, HostCard, or stat-card patterns before designing anything new.
+
 ## Project Structure
 - `src/pages/` — Page components (lazy-loaded)
 - `src/features/` — Feature modules (auth, entry, profile, settings, etc.)

@@ -499,7 +499,7 @@ export default function EliteRankCityModal({
         {[
           { id: 'active', label: 'Live', dot: true },
           { id: 'upcoming', label: 'Coming Soon' },
-          { id: 'complete', label: 'Completed' },
+          { id: 'complete', label: 'Complete' },
         ].map((filter) => (
           <button
             key={filter.id}
