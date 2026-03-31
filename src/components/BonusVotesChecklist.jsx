@@ -284,9 +284,9 @@ function BonusVotesChecklist({
 
   return (
     <div style={{
-      background: colors.background.card,
-      border: `1px solid ${allCompleted ? 'rgba(34, 197, 94, 0.3)' : 'rgba(212, 175, 55, 0.2)'}`,
-      borderRadius: borderRadius.xl,
+      background: 'rgba(255,255,255,0.03)',
+      border: `1px solid rgba(255,255,255,0.06)`,
+      borderRadius: borderRadius.lg,
       overflow: 'hidden',
     }}>
       {/* Header */}
@@ -295,9 +295,7 @@ function BonusVotesChecklist({
           style={{
             padding: `${spacing.lg} ${spacing.xl}`,
             borderBottom: (!collapsible || !collapsed) ? `1px solid ${colors.border.secondary}` : 'none',
-            background: allCompleted
-              ? 'rgba(34, 197, 94, 0.05)'
-              : 'rgba(212, 175, 55, 0.03)',
+            background: 'transparent',
             cursor: collapsible ? 'pointer' : 'default',
           }}
           onClick={collapsible ? () => setCollapsed(prev => !prev) : undefined}
