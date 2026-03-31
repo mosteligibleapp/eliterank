@@ -70,11 +70,6 @@ function PrizeCarousel({ prizes, title, icon: Icon }) {
           {Icon && <Icon size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />}
           {title}
         </h3>
-        {totalPrizes > 1 && (
-          <span className="rewards-counter">
-            {currentIndex + 1} / {totalPrizes}
-          </span>
-        )}
       </div>
 
       <div className="rewards-carousel-viewport">
