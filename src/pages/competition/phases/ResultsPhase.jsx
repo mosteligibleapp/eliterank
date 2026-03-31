@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Bell, Trophy, Users, ArrowRight } from 'lucide-react';
+import { Bell, Trophy, Users } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
 import { PrizePool } from '../components/PrizePool';
 import { AboutSection } from '../components/AboutSection';
@@ -110,7 +110,6 @@ export function ResultsPhase() {
             <h3>Think You Can Win?</h3>
             <p>{currentComp.name} nominations are open now!</p>
             <button className="btn btn-primary" onClick={handleNavigateToCurrentComp}>
-              <ArrowRight size={16} />
               Enter Now
             </button>
           </div>
