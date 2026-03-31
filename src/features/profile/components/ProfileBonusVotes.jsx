@@ -192,7 +192,6 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
           allCompleted={allCompleted}
           onTaskAction={handleTaskAction}
           collapsible
-          defaultCollapsed
         >
           <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
         </BonusVotesChecklist>
@@ -372,7 +371,6 @@ function NomineeBonusVotes({ competitionName, profile, userId, userEmail, onBonu
           allCompleted={allCompleted}
           onTaskAction={handleTaskAction}
           collapsible
-          defaultCollapsed
         >
           <VideoPromptsChecklist  />
         </BonusVotesChecklist>
