@@ -31,17 +31,22 @@ export function ResultsPhase() {
   useEffect(() => {
     if (!competition?.organization_id || !supabase) return;
 
-    supabase
+    let query = supabase
       .from('competitions')
       .select('id, name, slug, status, organization_id')
       .eq('organization_id', competition.organization_id)
       .neq('id', competition.id)
       .in('status', ['live', 'publish'])
       .order('created_at', { ascending: false })
-      .limit(1)
-      .then(({ data }) => {
-        if (data?.[0]) setCurrentComp(data[0]);
-      });
+      .limit(1);
+
+    // Prefer same city + category for a relevant next-season match
+    if (competition.city_id) query = query.eq('city_id', competition.city_id);
+    if (competition.category_id) query = query.eq('category_id', competition.category_id);
+
+    query.then(({ data }) => {
+      if (data?.[0]) setCurrentComp(data[0]);
+    });
   }, [competition?.organization_id, competition?.id]);
 
   // Get org slug for navigation
