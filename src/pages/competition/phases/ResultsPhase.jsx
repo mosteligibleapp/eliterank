@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Bell, Trophy, Users } from 'lucide-react';
+import { Trophy, Users } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
 import { PrizePool } from '../components/PrizePool';
 import { AboutSection } from '../components/AboutSection';
@@ -28,26 +28,39 @@ export function ResultsPhase() {
 
   // Check if there's an active/upcoming competition for the same org
   const [currentComp, setCurrentComp] = useState(null);
+  const orgId = competition?.organization_id;
+  const compId = competition?.id;
+  const cityId = competition?.city_id;
+  const categoryId = competition?.category_id;
+
   useEffect(() => {
-    if (!competition?.organization_id || !supabase) return;
+    if (!orgId || !supabase) return;
+
+    let cancelled = false;
 
     let query = supabase
       .from('competitions')
       .select('id, name, slug, status, organization_id')
-      .eq('organization_id', competition.organization_id)
-      .neq('id', competition.id)
+      .eq('organization_id', orgId)
+      .neq('id', compId)
       .in('status', ['live', 'publish'])
       .order('created_at', { ascending: false })
       .limit(1);
 
-    // Prefer same city + category for a relevant next-season match
-    if (competition.city_id) query = query.eq('city_id', competition.city_id);
-    if (competition.category_id) query = query.eq('category_id', competition.category_id);
+    if (cityId) query = query.eq('city_id', cityId);
+    if (categoryId) query = query.eq('category_id', categoryId);
 
-    query.then(({ data }) => {
+    query.then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error('Error fetching next competition:', error);
+        return;
+      }
       if (data?.[0]) setCurrentComp(data[0]);
     });
-  }, [competition?.organization_id, competition?.id]);
+
+    return () => { cancelled = true; };
+  }, [orgId, compId, cityId, categoryId]);
 
   // Get org slug for navigation
   const orgSlug = organization?.slug;
