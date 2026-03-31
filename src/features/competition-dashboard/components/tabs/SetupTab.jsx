@@ -489,8 +489,8 @@ export default function SetupTab({
               {competition.charityLogoUrl ? (
                 <img src={competition.charityLogoUrl} alt={competition.charityName} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain' }} />
               ) : (
-                <div style={{ width: 48, height: 48, background: 'rgba(236,72,153,0.15)', borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Gift size={24} style={{ color: '#ec4899' }} />
+                <div style={{ width: 48, height: 48, background: colors.gold.muted, borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Gift size={24} style={{ color: colors.gold.primary }} />
                 </div>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
