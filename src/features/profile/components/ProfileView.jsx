@@ -214,6 +214,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
           userId={hostProfile?.id}
           userEmail={hostProfile?.email}
           user={{ id: hostProfile?.id, email: hostProfile?.email }}
+          isOwnProfile={!!onEdit}
           profile={{
             first_name: hostProfile?.firstName,
             last_name: hostProfile?.lastName,
@@ -227,10 +228,10 @@ export default function ProfileView({ hostProfile, onEdit }) {
         {hostProfile.bio && (
           <>
             <div style={dividerStyle} />
-            <div style={{ padding: sectionPadding }}>
+            <div style={{ padding: `${sectionPadding} ${isMobile ? spacing.xxl : spacing.xxxl}` }}>
               <p style={{
                 color: colors.text.secondary,
-                fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
+                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 lineHeight: '1.7',
               }}>
                 {hostProfile.bio}

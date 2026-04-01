@@ -78,7 +78,7 @@ function getVotingStartDate(competition) {
   return null;
 }
 
-function CompetitionCard({ entry, onAcceptClick, isMobile, profile }) {
+function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile }) {
   const [isHovered, setIsHovered] = useState(false);
   const [generatingCard, setGeneratingCard] = useState(null);
   const competition = entry.competition || {};
@@ -215,8 +215,8 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile }) {
           )}
         </div>
 
-        {/* Achievement Card Downloads */}
-        {cardTypes.length > 0 && (
+        {/* Achievement Card Downloads - own profile only */}
+        {isOwnProfile && cardTypes.length > 0 && (
           <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
             {cardTypes.map(({ type, label }) => (
               <button
@@ -282,7 +282,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile }) {
   );
 }
 
-export default function ProfileCompetitions({ userId, userEmail, user, profile }) {
+export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false }) {
   const { isMobile, isSmall } = useResponsive();
   const [hostedCompetitions, setHostedCompetitions] = useState([]);
   const [contestantEntries, setContestantEntries] = useState([]);
@@ -420,6 +420,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
                 onAcceptClick={handleOpenAcceptModal}
                 isMobile={isMobile}
                 profile={profile}
+                isOwnProfile={isOwnProfile}
               />
             ))}
           </div>
