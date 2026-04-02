@@ -635,6 +635,40 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  const removeContestant = useCallback(async (contestantId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { data: contestant } = await supabase
+        .from('contestants')
+        .select('email, user_id')
+        .eq('id', contestantId)
+        .single();
+
+      const { error: deleteError } = await supabase
+        .from('contestants')
+        .delete()
+        .eq('id', contestantId);
+
+      if (deleteError) throw deleteError;
+
+      if (contestant?.email) {
+        await supabase
+          .from('nominees')
+          .update({ status: 'rejected', converted_to_contestant: false })
+          .eq('competition_id', competitionId)
+          .ilike('email', contestant.email)
+          .eq('status', 'approved');
+      }
+
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error removing contestant:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   /**
    * Resend invitation email to a nominee
    * Uses force_resend to bypass the already-sent check
@@ -1424,6 +1458,7 @@ export function useCompetitionDashboard(competitionId) {
     addNominee,
     approveNominee,
     rejectNominee,
+    removeContestant,
     restoreNominee,
     resendInvite,
     repairNomineeAccount,
