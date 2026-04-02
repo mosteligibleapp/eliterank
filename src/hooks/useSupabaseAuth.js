@@ -208,8 +208,7 @@ export default function useSupabaseAuth() {
     try {
       const { error: updateError } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
+        .upsert({ id: user.id, ...updates }, { onConflict: 'id' });
 
       if (updateError) throw updateError;
 
