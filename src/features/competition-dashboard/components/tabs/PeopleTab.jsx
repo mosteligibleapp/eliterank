@@ -29,6 +29,7 @@ export default function PeopleTab({
   onShowHostAssignment,
   onRemoveHost,
   onResendInvite,
+  onRemoveContestant,
   onRepairNomineeAccount,
   onRepairAllNomineeAccounts,
 }) {
@@ -921,6 +922,32 @@ export default function PeopleTab({
                   showVotes
                   cardType="contestant"
                   onNameClick={c.userId ? () => handleViewProfile(c.userId) : undefined}
+                  actions={
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm(`Remove ${c.name} from contestants? They will be moved to Declined.`)) return;
+                        addProcessing(c.id);
+                        try { await onRemoveContestant(c.id); } finally { removeProcessing(c.id); }
+                      }}
+                      disabled={processingIds.has(c.id)}
+                      title="Remove contestant"
+                      style={{
+                        padding: spacing.xs,
+                        background: 'rgba(239,68,68,0.1)',
+                        border: 'none',
+                        borderRadius: borderRadius.sm,
+                        cursor: 'pointer',
+                        color: '#ef4444',
+                        minWidth: '32px',
+                        minHeight: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <XCircle size={16} />
+                    </button>
+                  }
                 />
               ))}
             </div>
