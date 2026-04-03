@@ -111,14 +111,15 @@ export default function RewardsPage({ hostProfile }) {
 
       const assignmentResults = await Promise.all(assignmentQueries);
 
-      // Merge all individual assignments, deduplicating by id
+      // Merge all individual assignments, deduplicating by reward_id (same reward shouldn't show twice)
       const allAssignments = [];
-      const seenIds = new Set();
+      const seenRewardIds = new Set();
       for (const res of assignmentResults) {
         if (res.error) throw res.error;
         for (const a of (res.data || [])) {
-          if (!seenIds.has(a.id)) {
-            seenIds.add(a.id);
+          const rewardId = a.reward_id || a.reward?.id;
+          if (!seenRewardIds.has(rewardId)) {
+            seenRewardIds.add(rewardId);
             allAssignments.push(a);
           }
         }
