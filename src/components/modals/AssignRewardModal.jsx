@@ -123,7 +123,11 @@ export default function AssignRewardModal({
           alreadyAssigned: assignedNomineeIds.has(n.id),
         }));
 
-      const allPeople = [...contestantPeople, ...nomineePeople];
+      // Deduplicate: if someone is both contestant and nominee, only show contestant
+      const contestantEmails = new Set(contestantPeople.map(c => c.email?.toLowerCase()).filter(Boolean));
+      const dedupedNominees = nomineePeople.filter(n => !contestantEmails.has(n.email?.toLowerCase()));
+
+      const allPeople = [...contestantPeople, ...dedupedNominees];
       setPeople(allPeople);
 
       // Pre-select already-assigned people so they can be deselected to remove
