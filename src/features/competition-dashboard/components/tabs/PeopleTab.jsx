@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import {
   Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart
+  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart,
+  ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
@@ -48,6 +49,42 @@ export default function PeopleTab({
   const [votersLoaded, setVotersLoaded] = useState(false);
   const avatarFileRef = useRef(null);
   const avatarUploadTarget = useRef(null);
+  const [reordering, setReordering] = useState(false);
+
+  const isLegacy = competition?.is_legacy;
+  const isCompleted = competition?.status === 'completed';
+  const showReorder = isLegacy || isCompleted;
+
+  const handleMoveContestant = async (contestantId, direction) => {
+    if (!supabase || !competition?.id) return;
+    setReordering(true);
+
+    // Sort contestants by current rank
+    const sorted = [...contestants].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    const currentIndex = sorted.findIndex(c => c.id === contestantId);
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    if (swapIndex < 0 || swapIndex >= sorted.length) {
+      setReordering(false);
+      return;
+    }
+
+    const current = sorted[currentIndex];
+    const swap = sorted[swapIndex];
+
+    // Swap ranks in DB
+    try {
+      await Promise.all([
+        supabase.from('contestants').update({ rank: swap.rank || (swapIndex + 1) }).eq('id', current.id),
+        supabase.from('contestants').update({ rank: current.rank || (currentIndex + 1) }).eq('id', swap.id),
+      ]);
+      if (onRefresh) await onRefresh();
+    } catch (err) {
+      console.error('Error reordering contestants:', err);
+    } finally {
+      setReordering(false);
+    }
+  };
 
   const handleAvatarClick = (nominee) => {
     avatarUploadTarget.current = nominee;
@@ -913,9 +950,13 @@ export default function PeopleTab({
                 Add Contestant
               </Button>
             </div>
-          ) : (
+          ) : (() => {
+            const sortedContestants = showReorder
+              ? [...contestants].sort((a, b) => (a.rank || 999) - (b.rank || 999))
+              : contestants;
+            return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {contestants.map(c => (
+              {sortedContestants.map((c, idx) => (
                 <PersonRow
                   key={c.id}
                   person={c}
@@ -923,35 +964,78 @@ export default function PeopleTab({
                   cardType="contestant"
                   onNameClick={c.userId ? () => handleViewProfile(c.userId) : undefined}
                   actions={
-                    <button
-                      onClick={async () => {
-                        if (!window.confirm(`Remove ${c.name} from contestants? They will be moved to Declined.`)) return;
-                        addProcessing(c.id);
-                        try { await onRemoveContestant(c.id); } finally { removeProcessing(c.id); }
-                      }}
-                      disabled={processingIds.has(c.id)}
-                      title="Remove contestant"
-                      style={{
-                        padding: spacing.xs,
-                        background: 'rgba(239,68,68,0.1)',
-                        border: 'none',
-                        borderRadius: borderRadius.sm,
-                        cursor: 'pointer',
-                        color: '#ef4444',
-                        minWidth: '32px',
-                        minHeight: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <XCircle size={16} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                      {showReorder && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <button
+                            onClick={() => handleMoveContestant(c.id, 'up')}
+                            disabled={idx === 0 || reordering}
+                            title="Move up"
+                            style={{
+                              padding: '2px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: idx === 0 || reordering ? 'default' : 'pointer',
+                              color: idx === 0 ? colors.border.primary : colors.text.secondary,
+                              opacity: idx === 0 ? 0.3 : 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleMoveContestant(c.id, 'down')}
+                            disabled={idx === sortedContestants.length - 1 || reordering}
+                            title="Move down"
+                            style={{
+                              padding: '2px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: idx === sortedContestants.length - 1 || reordering ? 'default' : 'pointer',
+                              color: idx === sortedContestants.length - 1 ? colors.border.primary : colors.text.secondary,
+                              opacity: idx === sortedContestants.length - 1 ? 0.3 : 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                        </div>
+                      )}
+                      <button
+                        onClick={async () => {
+                          if (!window.confirm(`Remove ${c.name} from contestants? They will be moved to Declined.`)) return;
+                          addProcessing(c.id);
+                          try { await onRemoveContestant(c.id); } finally { removeProcessing(c.id); }
+                        }}
+                        disabled={processingIds.has(c.id)}
+                        title="Remove contestant"
+                        style={{
+                          padding: spacing.xs,
+                          background: 'rgba(239,68,68,0.1)',
+                          border: 'none',
+                          borderRadius: borderRadius.sm,
+                          cursor: 'pointer',
+                          color: '#ef4444',
+                          minWidth: '32px',
+                          minHeight: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <XCircle size={16} />
+                      </button>
+                    </div>
                   }
                 />
               ))}
             </div>
-          )}
+            );
+          })()}
         </div>
       </Panel>
 

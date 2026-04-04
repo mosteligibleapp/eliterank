@@ -2783,62 +2783,97 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   color: var(--color-primary);
 }
 
-/* Legacy Contestants Grid */
-.legacy-contestants-grid {
+/* Legacy Winners Grid — Premium Card Design */
+.legacy-winners-section {
+  text-align: center;
+  padding: var(--spacing-xl) 0;
+}
+
+.legacy-winners-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.legacy-winners-icon {
+  color: var(--color-primary);
+}
+
+.legacy-winners-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.legacy-winners-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: var(--spacing-md);
 }
 
-.legacy-contestant-card {
+.legacy-winner-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-sm);
   cursor: pointer;
-  border-radius: var(--radius-lg);
-  transition: background 0.2s;
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.25s ease;
   position: relative;
 }
 
-.legacy-contestant-card:hover {
-  background: rgba(var(--color-primary-rgb), 0.08);
+.legacy-winner-card:hover {
+  background: rgba(var(--color-primary-rgb), 0.06);
+  border-color: rgba(var(--color-primary-rgb), 0.2);
+  transform: translateY(-4px);
 }
 
-.legacy-contestant-rank {
-  position: absolute;
-  top: var(--spacing-xs);
-  left: 50%;
-  transform: translateX(18px);
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: var(--color-bg-primary);
-  font-size: 11px;
-  font-weight: var(--font-weight-bold);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
+.legacy-winner-card-first {
+  border-color: rgba(var(--color-primary-rgb), 0.25);
+  background: rgba(var(--color-primary-rgb), 0.04);
 }
 
-.legacy-contestant-avatar {
-  width: 72px;
-  height: 72px;
+.legacy-winner-card-first:hover {
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+}
+
+.legacy-winner-avatar-wrap {
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid rgba(var(--color-primary-rgb), 0.3);
+  border: 2px solid rgba(var(--color-primary-rgb), 0.25);
+  transition: border-color 0.25s ease;
+  flex-shrink: 0;
 }
 
-.legacy-contestant-avatar img {
+.legacy-winner-card:hover .legacy-winner-avatar-wrap {
+  border-color: rgba(var(--color-primary-rgb), 0.5);
+}
+
+.legacy-winner-avatar-wrap-first {
+  width: 96px;
+  height: 96px;
+  border-width: 3px;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 20px rgba(var(--color-primary-rgb), 0.15);
+}
+
+.legacy-winner-avatar-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
-.legacy-contestant-avatar span {
+.legacy-winner-avatar-fallback {
   width: 100%;
   height: 100%;
   display: flex;
@@ -2850,27 +2885,71 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   font-weight: var(--font-weight-bold);
 }
 
-.legacy-contestant-name {
+.legacy-winner-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.legacy-winner-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(var(--color-primary-rgb), 0.15);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  padding: 0 2px;
+}
+
+.legacy-winner-rank-first {
+  background: var(--color-primary);
+  color: var(--color-bg-primary);
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
+.legacy-winner-name {
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 @media (max-width: 768px) {
-  .legacy-contestants-grid {
+  .legacy-winners-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-sm);
   }
 
-  .legacy-contestant-avatar {
-    width: 60px;
-    height: 60px;
+  .legacy-winner-card {
+    padding: var(--spacing-md) var(--spacing-xs);
   }
 
-  .legacy-contestant-name {
+  .legacy-winner-avatar-wrap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .legacy-winner-avatar-wrap-first {
+    width: 72px;
+    height: 72px;
+  }
+
+  .legacy-winner-name {
     font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .legacy-winners-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
