@@ -89,8 +89,8 @@ export default function ViewPublicProfilePage() {
   }, [profileId]);
 
   const handleBack = useCallback(() => {
-    navigate(backUrl);
-  }, [navigate, backUrl]);
+    navigate(-1);
+  }, [navigate]);
 
   const displayName = profileData
     ? `${profileData.firstName} ${profileData.lastName}`.trim() || 'Profile'
