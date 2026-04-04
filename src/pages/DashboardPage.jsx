@@ -37,7 +37,9 @@ export default function DashboardPage() {
   
   // Use Zustand store for auth state
   const user = useAuthStore(s => s.user);
+  const profile = useAuthStore(s => s.profile);
   const signOut = useAuthStore(s => s.signOut);
+  const isSuperAdmin = profile?.is_super_admin === true;
   
   const [hostCompetition, setHostCompetition] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,8 @@ export default function DashboardPage() {
       }
 
       try {
-        const { data, error } = await supabase
+        // Try host's assigned competition first
+        let { data, error } = await supabase
           .from('competitions')
           .select(`
             *,
@@ -68,6 +71,21 @@ export default function DashboardPage() {
           setHostCompetition(null);
           setLoading(false);
           return;
+        }
+
+        // Super admin fallback: if no assigned competition, get the most recent one
+        if (!data?.[0] && isSuperAdmin) {
+          const fallback = await supabase
+            .from('competitions')
+            .select(`
+              *,
+              voting_rounds:voting_rounds(*),
+              nomination_periods:nomination_periods(*),
+              organization:organizations(slug, name)
+            `)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          data = fallback.data;
         }
 
         const competition = data?.[0];
