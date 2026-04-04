@@ -97,6 +97,9 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
 
   // Handle task actions (e.g., clicking "view how to win" or "share profile")
   const handleTaskAction = async (taskKey, task) => {
+    // Host-managed tasks cannot be actioned by contestants
+    if (task?.host_managed) return;
+
     // Custom approval-based tasks open the proof modal
     if (task?.requires_approval) {
       setProofTask(task);

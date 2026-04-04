@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, XCircle, ExternalLink, Check, X, Clock, Upload, Download } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, ExternalLink, Check, X, Clock, Upload, Download } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
-import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission } from '../../../../lib/bonusVotes';
+import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission, getHostManagedTaskContestants, awardHostManagedTask, revokeHostManagedTask } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
 import { useAuthStore } from '../../../../stores';
 import CustomBonusTaskModal from '../../../../components/modals/CustomBonusTaskModal';
@@ -90,6 +90,12 @@ export default function SetupTab({
   const [reviewingId, setReviewingId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Host-managed attendance state
+  const [attendanceTaskId, setAttendanceTaskId] = useState(null);
+  const [attendanceContestants, setAttendanceContestants] = useState([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [awardingAttendance, setAwardingAttendance] = useState(null);
 
   // Video prompts state
   const [videoPrompts, setVideoPrompts] = useState([]);
@@ -190,7 +196,9 @@ export default function SetupTab({
         label: data.label,
         description: data.description,
         votes_awarded: data.votesAwarded,
-        proof_label: data.proofLabel,
+        proof_label: data.hostManaged ? null : data.proofLabel,
+        host_managed: data.hostManaged || false,
+        requires_approval: !data.hostManaged,
       });
     } else {
       await createCustomBonusTask(competitionId, {
@@ -227,6 +235,35 @@ export default function SetupTab({
     setRejectingId(null);
     setRejectionReason('');
     await loadSubmissions();
+  };
+
+  // Host-managed attendance handlers
+  const handleOpenAttendance = async (task) => {
+    setAttendanceTaskId(task.id);
+    setAttendanceLoading(true);
+    const result = await getHostManagedTaskContestants(competitionId, task.id);
+    setAttendanceContestants(result.contestants);
+    setAttendanceLoading(false);
+  };
+
+  const handleCloseAttendance = () => {
+    setAttendanceTaskId(null);
+    setAttendanceContestants([]);
+  };
+
+  const handleToggleAttendance = async (contestant, task) => {
+    setAwardingAttendance(contestant.id);
+    if (contestant.completed) {
+      await revokeHostManagedTask(competitionId, contestant.id, task.id);
+    } else {
+      await awardHostManagedTask(competitionId, contestant.id, contestant.user_id, task.task_key);
+    }
+    // Refresh the list
+    const result = await getHostManagedTaskContestants(competitionId, task.id);
+    setAttendanceContestants(result.contestants);
+    setAwardingAttendance(null);
+    await loadBonusTasks();
+    if (onRefresh) onRefresh();
   };
 
   // View-only field component - stacked layout for better mobile display
@@ -965,7 +1002,7 @@ export default function SetupTab({
                         </p>
                         {task.is_custom && (
                           <Badge variant="gold" size="sm" style={{ fontSize: '10px' }}>
-                            Requires Approval
+                            {task.host_managed ? 'Host Managed' : 'Requires Approval'}
                           </Badge>
                         )}
                       </div>
@@ -1008,6 +1045,27 @@ export default function SetupTab({
                     {/* Edit / Delete for custom tasks */}
                     {task.is_custom && (
                       <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0 }}>
+                        {task.host_managed && (
+                          <button
+                            onClick={() => handleOpenAttendance(task)}
+                            style={{
+                              padding: `${spacing.xs} ${spacing.sm}`,
+                              background: 'rgba(212,175,55,0.1)',
+                              border: '1px solid rgba(212,175,55,0.3)',
+                              borderRadius: borderRadius.md,
+                              color: colors.gold.primary,
+                              cursor: 'pointer',
+                              fontSize: typography.fontSize.xs,
+                              fontWeight: typography.fontWeight.medium,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <Users size={12} /> Manage
+                          </button>
+                        )}
                         <button
                           onClick={() => { setEditingCustomTask(task); setShowCustomTaskModal(true); }}
                           style={{
@@ -1233,6 +1291,101 @@ export default function SetupTab({
                         </div>
                       ))}
                     </div>
+                  </div>
+                );
+              })()}
+
+              {/* Host-Managed Attendance Panel */}
+              {attendanceTaskId && (() => {
+                const task = bonusTasks.find(t => t.id === attendanceTaskId);
+                if (!task) return null;
+                const confirmedCount = attendanceContestants.filter(c => c.completed).length;
+                return (
+                  <div style={{ marginTop: spacing.xl }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: spacing.md,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                        <MapPin size={18} style={{ color: colors.gold.primary }} />
+                        <h4 style={{
+                          fontSize: typography.fontSize.base,
+                          fontWeight: typography.fontWeight.semibold,
+                          color: colors.text.primary,
+                        }}>
+                          {task.label}
+                        </h4>
+                        <Badge variant="gold" size="sm">{confirmedCount}/{attendanceContestants.length}</Badge>
+                      </div>
+                      <button
+                        onClick={handleCloseAttendance}
+                        style={{
+                          padding: spacing.xs,
+                          background: 'transparent',
+                          border: 'none',
+                          color: colors.text.muted,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    {attendanceLoading ? (
+                      <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>Loading contestants...</p>
+                    ) : attendanceContestants.length === 0 ? (
+                      <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted }}>No active contestants found.</p>
+                    ) : (
+                      <div style={{ display: 'grid', gap: spacing.xs }}>
+                        {attendanceContestants.map((c) => (
+                          <div key={c.id} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: spacing.md,
+                            padding: `${spacing.sm} ${spacing.md}`,
+                            background: c.completed ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)',
+                            borderRadius: borderRadius.md,
+                            border: `1px solid ${c.completed ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                          }}>
+                            <Avatar src={c.avatar_url} name={c.name} size={32} />
+                            <span style={{
+                              flex: 1,
+                              fontSize: typography.fontSize.sm,
+                              color: colors.text.primary,
+                              fontWeight: typography.fontWeight.medium,
+                            }}>
+                              {c.name}
+                            </span>
+                            <button
+                              onClick={() => handleToggleAttendance(c, task)}
+                              disabled={awardingAttendance === c.id}
+                              style={{
+                                padding: `${spacing.xs} ${spacing.sm}`,
+                                background: c.completed ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${c.completed ? 'rgba(34,197,94,0.3)' : colors.border.primary}`,
+                                borderRadius: borderRadius.sm,
+                                color: c.completed ? colors.status.success : colors.text.muted,
+                                cursor: 'pointer',
+                                fontSize: typography.fontSize.xs,
+                                fontWeight: typography.fontWeight.medium,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                opacity: awardingAttendance === c.id ? 0.5 : 1,
+                              }}
+                            >
+                              {c.completed ? (
+                                <><CheckCircle size={14} /> Confirmed</>
+                              ) : (
+                                <><Circle size={14} /> Confirm</>
+                              )}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })()}

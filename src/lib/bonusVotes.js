@@ -199,7 +199,7 @@ export async function getBonusVoteCompletionStats(competitionId) {
 /**
  * Create a custom bonus vote task for a competition
  */
-export async function createCustomBonusTask(competitionId, { label, description, votesAwarded, proofLabel, createdBy }) {
+export async function createCustomBonusTask(competitionId, { label, description, votesAwarded, proofLabel, createdBy, hostManaged }) {
   if (!supabase || !competitionId) {
     return { success: false, error: 'Missing required parameters' };
   }
@@ -223,9 +223,10 @@ export async function createCustomBonusTask(competitionId, { label, description,
         label,
         description: description || null,
         votes_awarded: votesAwarded || 5,
-        proof_label: proofLabel || 'Submit your content link',
+        proof_label: hostManaged ? null : (proofLabel || 'Submit your content link'),
         is_custom: true,
-        requires_approval: true,
+        requires_approval: !hostManaged,
+        host_managed: hostManaged || false,
         created_by: createdBy || null,
         sort_order: nextSortOrder,
         enabled: true,
@@ -553,4 +554,103 @@ export async function checkAndAwardProfileBonuses(competitionId, contestantId, u
   }
 
   return awarded;
+}
+
+// =============================================================================
+// Host-Managed Task Operations (Attendance)
+// =============================================================================
+
+/**
+ * Get contestants and their completion status for a host-managed bonus task
+ */
+export async function getHostManagedTaskContestants(competitionId, taskId) {
+  if (!supabase || !competitionId || !taskId) {
+    return { contestants: [], error: null };
+  }
+
+  try {
+    const { data: contestants, error: cErr } = await supabase
+      .from('contestants')
+      .select('id, name, avatar_url, user_id')
+      .eq('competition_id', competitionId)
+      .eq('status', 'active')
+      .order('name');
+
+    if (cErr) {
+      return { contestants: [], error: cErr.message };
+    }
+
+    const { data: completions, error: compErr } = await supabase
+      .from('bonus_vote_completions')
+      .select('contestant_id')
+      .eq('task_id', taskId);
+
+    if (compErr) {
+      return { contestants: [], error: compErr.message };
+    }
+
+    const completedSet = new Set((completions || []).map(c => c.contestant_id));
+
+    const result = (contestants || []).map(c => ({
+      ...c,
+      completed: completedSet.has(c.id),
+    }));
+
+    return { contestants: result, error: null };
+  } catch (err) {
+    console.error('Error fetching host-managed task contestants:', err);
+    return { contestants: [], error: 'Failed to fetch contestants' };
+  }
+}
+
+/**
+ * Award a host-managed bonus task to a specific contestant (no proof needed)
+ */
+export async function awardHostManagedTask(competitionId, contestantId, userId, taskKey) {
+  return awardBonusVotes(competitionId, contestantId, userId, taskKey);
+}
+
+/**
+ * Revoke a host-managed bonus task from a contestant
+ */
+export async function revokeHostManagedTask(competitionId, contestantId, taskId) {
+  if (!supabase || !competitionId || !contestantId || !taskId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { data: task, error: taskErr } = await supabase
+      .from('bonus_vote_tasks')
+      .select('votes_awarded')
+      .eq('id', taskId)
+      .single();
+
+    if (taskErr || !task) {
+      return { success: false, error: 'Task not found' };
+    }
+
+    const { error: delErr } = await supabase
+      .from('bonus_vote_completions')
+      .delete()
+      .eq('task_id', taskId)
+      .eq('contestant_id', contestantId);
+
+    if (delErr) {
+      return { success: false, error: delErr.message };
+    }
+
+    const { error: updateErr } = await supabase.rpc('increment_contestant_votes', {
+      p_contestant_id: contestantId,
+      p_count: -task.votes_awarded,
+    });
+
+    if (updateErr) {
+      console.error('Error decrementing votes:', updateErr);
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error revoking host-managed task:', err);
+    return { success: false, error: 'Failed to revoke task' };
+  }
 }
