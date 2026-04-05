@@ -24,7 +24,7 @@ const COMPETITION_SELECT = `
     current_round, created_at, updated_at
   ),
   sponsors (id, name, tier, amount, logo_url, website_url, sort_order),
-  judges (id, name, title, bio, avatar_url, user_id, sort_order),
+  judges (id, name, title, bio, avatar_url, user_id, instagram, sort_order),
   events (*),
   competition_prizes (id, title, description, image_url, value, sponsor_name, external_url, sort_order, prize_type),
   competition_rules (id, section_title, section_content, sort_order),
