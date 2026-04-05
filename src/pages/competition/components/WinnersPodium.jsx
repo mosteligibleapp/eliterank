@@ -14,7 +14,13 @@ export function WinnersPodium() {
   if (isLegacy) {
     const sorted = [...(contestants || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999)).slice(0, 20);
     if (!sorted.length) return null;
-    const year = competition?.created_at ? new Date(competition.created_at).getFullYear() : new Date().getFullYear();
+    // Extract year from competition name/slug (e.g. "chicago-2025"), or fall back to end date
+    const nameYearMatch = (competition?.name || competition?.slug || '').match(/20\d{2}/);
+    const year = nameYearMatch
+      ? nameYearMatch[0]
+      : competition?.nomination_end
+        ? new Date(competition.nomination_end).getFullYear()
+        : new Date(competition.created_at).getFullYear();
     return <LegacyContestantsGrid contestants={sorted} onSelect={openContestantProfile} year={year} />;
   }
 

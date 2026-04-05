@@ -39,6 +39,7 @@ export function PublicCompetitionProvider({
     about,
     theme,
     sponsors,
+    judges,
     events,
     prizes,
     rules,
@@ -138,6 +139,7 @@ export function PublicCompetitionProvider({
 
       // Related data
       sponsors,
+      judges,
       events,
       prizes,
       rules,
@@ -190,6 +192,7 @@ export function PublicCompetitionProvider({
       theme,
       countdown,
       sponsors,
+      judges,
       events,
       prizes,
       rules,

@@ -281,14 +281,15 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             value={hostProfile.city}
             onChange={(e) => handleFieldChange('city', e.target.value)}
           />
-          <Input
-            label="Headline"
-            value={hostProfile.headline}
-            onChange={(e) => handleFieldChange('headline', e.target.value)}
-            placeholder="e.g., DePaul graduate, accountant, Chicago native"
-            maxLength={100}
-            style={{ gridColumn: '1 / -1' }}
-          />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Input
+              label="Headline"
+              value={hostProfile.headline}
+              onChange={(e) => handleFieldChange('headline', e.target.value)}
+              placeholder="e.g., DePaul graduate, accountant, Chicago native"
+              maxLength={100}
+            />
+          </div>
         </FormGrid>
       </FormSection>
 
