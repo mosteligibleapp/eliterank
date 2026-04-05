@@ -53,6 +53,7 @@ export default function ViewPublicProfilePage() {
             id: profileResult.data.id,
             firstName: profileResult.data.first_name || '',
             lastName: profileResult.data.last_name || '',
+            headline: profileResult.data.headline || '',
             bio: profileResult.data.bio || '',
             city: profileResult.data.city || '',
             instagram: profileResult.data.instagram || '',

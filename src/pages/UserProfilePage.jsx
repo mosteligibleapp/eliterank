@@ -32,6 +32,7 @@ export default function UserProfilePage() {
       email: user?.email || '',
       firstName: profile.first_name || '',
       lastName: profile.last_name || '',
+      headline: profile.headline || '',
       bio: profile.bio || '',
       city: profile.city || '',
       instagram: profile.instagram || '',
@@ -61,6 +62,7 @@ export default function UserProfilePage() {
       const dbUpdates = {
         first_name: editingData.firstName,
         last_name: editingData.lastName,
+        headline: editingData.headline,
         bio: editingData.bio,
         city: editingData.city,
         instagram: editingData.instagram,
