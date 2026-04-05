@@ -2,7 +2,7 @@ import React, { memo, useMemo, useState } from 'react';
 import {
   Gift, CheckCircle, Circle, Camera,
   Share2, User, BookOpen, Link as LinkIcon, Trophy,
-  Clock, XCircle, Upload, ExternalLink, ChevronDown, ChevronUp, MapPin,
+  Clock, XCircle, Upload, ExternalLink, ChevronDown, ChevronUp, MapPin, FileText,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients, transitions } from '../styles/theme';
 import { Badge } from './ui';
@@ -11,6 +11,7 @@ import { Badge } from './ui';
 const TASK_ICONS = {
   complete_profile: User,
   add_photo: Camera,
+  add_bio: FileText,
   add_social: LinkIcon,
   view_how_to_win: BookOpen,
   share_profile: Share2,
