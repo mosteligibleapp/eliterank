@@ -5,6 +5,7 @@ import { Trophy, Users } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
 import { PrizePool } from '../components/PrizePool';
 import { HostSection } from '../components/HostSection';
+import { JudgesSection } from '../components/JudgesSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { formatNumber } from '../../../utils/formatters';
 import { supabase } from '../../../lib/supabase';
@@ -127,6 +128,11 @@ export function ResultsPhase() {
           </div>
         </section>
       )}
+
+      {/* Judges */}
+      <section className="phase-section">
+        <JudgesSection />
+      </section>
 
       <hr className="phase-divider" />
 

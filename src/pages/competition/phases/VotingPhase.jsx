@@ -7,6 +7,7 @@ import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { UpcomingEventCard } from '../components/UpcomingEventCard';
+import { JudgesSection } from '../components/JudgesSection';
 import ContestantBonusVotes from '../components/ContestantBonusVotes';
 
 /**
@@ -84,6 +85,11 @@ export function VotingPhase() {
 
           <Timeline />
         </aside>
+      </section>
+
+      {/* Judges */}
+      <section className="phase-section">
+        <JudgesSection />
       </section>
     </div>
   );

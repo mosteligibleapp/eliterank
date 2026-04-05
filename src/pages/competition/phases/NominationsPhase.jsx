@@ -12,6 +12,7 @@ import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CompetitionFooter } from '../components/CompetitionFooter';
 import { CharityHighlight } from '../components/CharityHighlight';
+import { JudgesSection } from '../components/JudgesSection';
 
 /**
  * Nominations phase view
@@ -96,6 +97,11 @@ export function NominationsPhase() {
       {/* Rewards */}
       <section className="phase-section">
         <Rewards />
+      </section>
+
+      {/* Judges */}
+      <section className="phase-section">
+        <JudgesSection />
       </section>
 
       <hr className="phase-divider" />
