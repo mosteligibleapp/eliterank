@@ -811,6 +811,7 @@ export function useCompetitionDashboard(competitionId) {
           bio: judgeData.bio,
           avatar_url: judgeData.avatarUrl,
           user_id: judgeData.userId,
+          instagram: judgeData.instagram || null,
           sort_order: maxSort + 1,
         });
 
@@ -834,6 +835,7 @@ export function useCompetitionDashboard(competitionId) {
           title: judgeData.title,
           bio: judgeData.bio,
           avatar_url: judgeData.avatarUrl,
+          instagram: judgeData.instagram || null,
         })
         .eq('id', judgeId);
 

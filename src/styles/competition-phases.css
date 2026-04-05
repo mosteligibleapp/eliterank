@@ -5184,6 +5184,21 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   line-height: 1.5;
 }
 
+.judge-instagram {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+  margin-top: 2px;
+}
+
+.judge-instagram:hover {
+  color: var(--color-primary);
+}
+
 @media (max-width: 768px) {
   .judges-grid,
   .judges-grid[data-count="3"],

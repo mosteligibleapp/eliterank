@@ -6,6 +6,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 export const BONUS_TASK_KEYS = {
   COMPLETE_PROFILE: 'complete_profile',
   ADD_PHOTO: 'add_photo',
+  ADD_BIO: 'add_bio',
   ADD_SOCIAL: 'add_social',
   VIEW_HOW_TO_WIN: 'view_how_to_win',
   SHARE_PROFILE: 'share_profile',
@@ -13,9 +14,8 @@ export const BONUS_TASK_KEYS = {
 
 /**
  * Deprecated task keys - filtered out on the frontend.
- * "add_bio" is redundant since "complete_profile" already requires a bio.
  */
-export const DEPRECATED_TASK_KEYS = new Set(['add_bio']);
+export const DEPRECATED_TASK_KEYS = new Set([]);
 
 /**
  * Setup default bonus vote tasks for a competition
@@ -537,6 +537,12 @@ export async function checkAndAwardProfileBonuses(competitionId, contestantId, u
 
   if (hasName && hasBio && hasCity) {
     const result = await awardBonusVotes(competitionId, contestantId, userId, BONUS_TASK_KEYS.COMPLETE_PROFILE);
+    if (result.success) awarded.push(result);
+  }
+
+  // Check add_bio: has bio
+  if (hasBio) {
+    const result = await awardBonusVotes(competitionId, contestantId, userId, BONUS_TASK_KEYS.ADD_BIO);
     if (result.success) awarded.push(result);
   }
 
