@@ -296,6 +296,7 @@ export function useCompetitionDashboard(competitionId) {
         title: j.title || 'Judge',
         bio: j.bio,
         avatarUrl: j.avatar_url,
+        instagram: j.instagram,
         sortOrder: j.sort_order,
       }));
 

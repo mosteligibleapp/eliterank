@@ -454,24 +454,44 @@ export default function SetupTab({
                     <p style={{ fontWeight: typography.fontWeight.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.name}</p>
                     <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.title}</p>
                   </div>
-                  <button
-                    onClick={() => onDeleteJudge(judge.id)}
-                    style={{
-                      padding: spacing.sm,
-                      background: 'transparent',
-                      border: `1px solid rgba(239,68,68,0.3)`,
-                      borderRadius: borderRadius.md,
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                      minWidth: '36px',
-                      minHeight: '36px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0 }}>
+                    <button
+                      onClick={() => onOpenJudgeModal(judge)}
+                      style={{
+                        padding: spacing.sm,
+                        background: 'transparent',
+                        border: `1px solid ${colors.border.primary}`,
+                        borderRadius: borderRadius.md,
+                        color: colors.text.secondary,
+                        cursor: 'pointer',
+                        minWidth: '36px',
+                        minHeight: '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => onDeleteJudge(judge.id)}
+                      style={{
+                        padding: spacing.sm,
+                        background: 'transparent',
+                        border: `1px solid rgba(239,68,68,0.3)`,
+                        borderRadius: borderRadius.md,
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        minWidth: '36px',
+                        minHeight: '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
