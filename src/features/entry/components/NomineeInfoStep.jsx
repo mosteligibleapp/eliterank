@@ -16,8 +16,8 @@ export default function NomineeInfoStep({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 4.5 * 1024 * 1024) {
-      alert('Photo must be under 4.5MB');
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Photo must be under 10MB');
       return;
     }
     if (!file.type.startsWith('image/')) {

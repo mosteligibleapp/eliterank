@@ -27,10 +27,10 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
   const uploadImage = async (file, folder) => {
     if (!file) return null;
 
-    // Validate file size (max 4.5MB for Vercel Blob free tier)
-    const maxSize = 4.5 * 1024 * 1024;
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('Image too large. Please choose an image under 4.5MB.');
+      alert('Image too large. Please choose an image under 10MB.');
       return null;
     }
 
@@ -280,6 +280,14 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             label="City"
             value={hostProfile.city}
             onChange={(e) => handleFieldChange('city', e.target.value)}
+          />
+          <Input
+            label="Headline"
+            value={hostProfile.headline}
+            onChange={(e) => handleFieldChange('headline', e.target.value)}
+            placeholder="e.g., DePaul graduate, accountant, Chicago native"
+            maxLength={100}
+            style={{ gridColumn: '1 / -1' }}
           />
         </FormGrid>
       </FormSection>

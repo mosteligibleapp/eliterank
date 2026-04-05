@@ -149,6 +149,17 @@ export default function ProfileView({ hostProfile, onEdit }) {
                   <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}{hostProfile.age ? `, ${hostProfile.age}` : ''}
                 </p>
               )}
+              {hostProfile.headline && (
+                <p style={{
+                  color: colors.text.muted,
+                  textAlign: 'center',
+                  marginTop: spacing.sm,
+                  fontSize: typography.fontSize.sm,
+                  fontStyle: 'italic',
+                }}>
+                  {hostProfile.headline}
+                </p>
+              )}
               {(() => {
                 // For contestants, totalVotes already includes bonus votes (DB-level).
                 // For nominees with 0 stats, use their client-side bonus votes earned.

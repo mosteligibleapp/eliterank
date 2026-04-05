@@ -2,7 +2,7 @@ import React, { memo, useMemo, useState } from 'react';
 import {
   Gift, CheckCircle, Circle, Camera,
   Share2, User, BookOpen, Link as LinkIcon, Trophy,
-  Clock, XCircle, Upload, ExternalLink, ChevronDown, ChevronUp,
+  Clock, XCircle, Upload, ExternalLink, ChevronDown, ChevronUp, MapPin,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients, transitions } from '../styles/theme';
 import { Badge } from './ui';
@@ -67,7 +67,8 @@ const ProgressBar = memo(function ProgressBar({ progress, earned, total }) {
  * Approval states: null (no submission), 'pending', 'approved', 'rejected'
  */
 const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
-  const Icon = task.is_custom ? Upload : (TASK_ICONS[task.task_key] || Gift);
+  const isHostManaged = task.host_managed;
+  const Icon = isHostManaged ? MapPin : (task.is_custom ? Upload : (TASK_ICONS[task.task_key] || Gift));
   const isCompleted = task.completed;
   const isCurrentlyAwarding = isAwarding === task.task_key;
   const isPending = task.requires_approval && task.submission_status === 'pending';
@@ -98,10 +99,10 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
       border: `1px solid ${getBorderColor()}`,
       opacity: isCurrentlyAwarding ? 0.7 : 1,
       transition: transitions.all,
-      cursor: !isCompleted && !isPending && onAction ? 'pointer' : 'default',
+      cursor: !isCompleted && !isPending && !isHostManaged && onAction ? 'pointer' : 'default',
     }}
       onClick={() => {
-        if (!isCompleted && !isPending && onAction) {
+        if (!isCompleted && !isPending && !isHostManaged && onAction) {
           onAction(task.task_key, task);
         }
       }}
@@ -179,6 +180,15 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
             marginTop: '4px',
           }}>
             Rejected{task.rejection_reason ? `: ${task.rejection_reason}` : ''} — tap to resubmit
+          </p>
+        )}
+        {isHostManaged && !isCompleted && (
+          <p style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.text.muted,
+            marginTop: '4px',
+          }}>
+            Confirmed by host after event
           </p>
         )}
       </div>

@@ -4,7 +4,7 @@ import { Crown, Award, Medal, Trophy } from 'lucide-react';
 /**
  * Winners podium for results phase
  * Regular competitions: large display of top 3 with prizes
- * Legacy competitions: grid display of up to 20 ranked contestants
+ * Legacy competitions: premium card grid of ranked winners
  */
 export function WinnersPodium() {
   const { competition, contestants, topThree, prizePool, openContestantProfile } = usePublicCompetition();
@@ -14,7 +14,8 @@ export function WinnersPodium() {
   if (isLegacy) {
     const sorted = [...(contestants || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999)).slice(0, 20);
     if (!sorted.length) return null;
-    return <LegacyContestantsGrid contestants={sorted} onSelect={openContestantProfile} />;
+    const year = competition?.created_at ? new Date(competition.created_at).getFullYear() : new Date().getFullYear();
+    return <LegacyContestantsGrid contestants={sorted} onSelect={openContestantProfile} year={year} />;
   }
 
   if (!topThree?.length) return null;
@@ -77,33 +78,39 @@ export function WinnersPodium() {
 }
 
 /**
- * Grid display for legacy competition contestants
- * Shows up to 20 contestants with rank badges and avatars
+ * Premium card grid for legacy competition winners
+ * Clean, elevated card design with gold accent and rank badges
  */
-function LegacyContestantsGrid({ contestants, onSelect }) {
+function LegacyContestantsGrid({ contestants, onSelect, year }) {
+  const isFirst = (index) => index === 0;
+
   return (
-    <div className="winners-podium">
-      <div className="podium-header">
-        <Trophy size={32} className="podium-trophy" />
-        <h2>Results</h2>
+    <div className="legacy-winners-section">
+      <div className="legacy-winners-header">
+        <Crown size={24} className="legacy-winners-icon" />
+        <h2 className="legacy-winners-title">{year} Winners</h2>
       </div>
 
-      <div className="legacy-contestants-grid">
+      <div className="legacy-winners-grid">
         {contestants.map((contestant, index) => (
           <div
             key={contestant.id}
-            className="legacy-contestant-card"
+            className={`legacy-winner-card ${isFirst(index) ? 'legacy-winner-card-first' : ''}`}
             onClick={() => onSelect?.(contestant)}
           >
-            <div className="legacy-contestant-rank">{index + 1}</div>
-            <div className="legacy-contestant-avatar">
+            <div className={`legacy-winner-avatar-wrap ${isFirst(index) ? 'legacy-winner-avatar-wrap-first' : ''}`}>
               {contestant.avatar_url ? (
-                <img src={contestant.avatar_url} alt={contestant.name} />
+                <img src={contestant.avatar_url} alt={contestant.name} className="legacy-winner-avatar-img" />
               ) : (
-                <span>{contestant.name?.charAt(0)}</span>
+                <span className="legacy-winner-avatar-fallback">{contestant.name?.charAt(0)}</span>
               )}
             </div>
-            <div className="legacy-contestant-name">{contestant.name}</div>
+            <div className="legacy-winner-info">
+              <span className={`legacy-winner-rank ${isFirst(index) ? 'legacy-winner-rank-first' : ''}`}>
+                {index + 1}
+              </span>
+              <span className="legacy-winner-name">{contestant.name}</span>
+            </div>
           </div>
         ))}
       </div>

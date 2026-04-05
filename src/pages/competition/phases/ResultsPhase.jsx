@@ -4,7 +4,6 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { Trophy, Users } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
 import { PrizePool } from '../components/PrizePool';
-import { AboutSection } from '../components/AboutSection';
 import { HostSection } from '../components/HostSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { formatNumber } from '../../../utils/formatters';
@@ -128,13 +127,6 @@ export function ResultsPhase() {
           </div>
         </section>
       )}
-
-      <hr className="phase-divider" />
-
-      {/* About */}
-      <section className="phase-section">
-        <AboutSection />
-      </section>
 
       <hr className="phase-divider" />
 

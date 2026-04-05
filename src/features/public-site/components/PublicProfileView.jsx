@@ -24,6 +24,7 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
   const fullName = profile.name || `${firstName} ${lastName}`.trim() || 'Unknown';
   const bio = profile.bio || profile.description || '';
   const city = profile.city || profile.location || '';
+  const headline = profile.headline || '';
   const occupation = profile.occupation || profile.title || '';
   const age = profile.age || '';
   const avatarUrl = profile.avatar_url || profile.avatarUrl || profile.avatar || profile.image || '';
@@ -195,6 +196,17 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
               <span>{age} years old</span>
             )}
           </div>
+
+          {headline && (
+            <p style={{
+              color: colors.text.muted,
+              fontSize: typography.fontSize.sm,
+              marginTop: spacing.sm,
+              fontStyle: 'italic',
+            }}>
+              {headline}
+            </p>
+          )}
         </div>
 
         {/* Bio */}
