@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabase';
+import { upload } from '@vercel/blob/client';
 
-const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
 
 /**
@@ -13,7 +14,7 @@ export async function uploadPhoto(file, folder = 'nominations') {
   if (!file) throw new Error('No file provided');
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error('Photo must be under 4.5MB');
+    throw new Error('Photo must be under 10MB');
   }
 
   if (!ALLOWED_TYPES.includes(file.type)) {
@@ -59,22 +60,16 @@ async function uploadToSupabase(file, folder) {
 }
 
 /**
- * Upload to Vercel Blob via existing /api/upload endpoint
+ * Upload to Vercel Blob via client-side upload (bypasses serverless body limit)
  */
 async function uploadToVercelBlob(file, folder) {
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-  const fileName = `${folder}/${Date.now()}.${ext}`;
+  const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
 
-  const response = await fetch(`/api/upload?filename=${encodeURIComponent(fileName)}`, {
-    method: 'POST',
-    body: file,
+  const blob = await upload(fileName, file, {
+    access: 'public',
+    handleUploadUrl: '/api/upload-client',
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Upload failed');
-  }
-
-  const blob = await response.json();
   return blob.url;
 }
