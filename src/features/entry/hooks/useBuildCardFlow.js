@@ -3,19 +3,6 @@ import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
 import { getCityName } from '../utils/eligibilityEngine';
 
-// Columns added by 20260213 migration — strip if migration hasn't run yet
-const NEW_COLUMNS = ['city', 'flow_stage'];
-
-function stripNewColumns(record) {
-  const clean = { ...record };
-  NEW_COLUMNS.forEach((col) => delete clean[col]);
-  return clean;
-}
-
-function isSchemaError(error) {
-  return error?.message?.includes('schema cache') || error?.code === 'PGRST204';
-}
-
 /** Race a promise against a timeout. Rejects if the promise doesn't settle in time. */
 function withTimeout(promise, ms) {
   let timer;
@@ -141,12 +128,20 @@ export function useBuildCardFlow({
   // users don't redo completed steps.  Runs once when nominee first loads.
   const resumedRef = useRef(false);
   useEffect(() => {
-    if (resumedRef.current || !nominee?.flow_stage || mode !== 'third-party') return;
+    if (resumedRef.current || !nominee?.flow_stage) return;
     resumedRef.current = true;
 
+    // Map each persisted stage → the step the user should resume AT.
+    // Third-party: accept → eligibility-confirm → photo → details → bio → password? → card
+    // Self-anon:   eligibility → photo → details → bio → password → card
+    // Self-auth:   eligibility → photo → details → bio → card
     const stageToResumeStep = {
-      accepted: 'eligibility-confirm',
-      details: 'bio',
+      accepted: 'eligibility-confirm',           // accepted the nomination, show eligibility next
+      eligibility: 'photo',                      // passed eligibility, show photo next
+      'eligibility-confirm': 'photo',            // confirmed eligibility (third-party), show photo next
+      photo: 'details',                          // uploaded photo, show details next
+      details: 'bio',                            // filled details, show bio next
+      bio: needsPassword ? 'password' : 'card',
       card: needsPassword ? 'password' : 'card',
     };
     const resumeStep = stageToResumeStep[nominee.flow_stage];
@@ -154,7 +149,7 @@ export function useBuildCardFlow({
       const idx = steps.indexOf(resumeStep);
       if (idx > 0) setCurrentStepIndex(idx);
     }
-  }, [nominee, steps, mode, needsPassword]);
+  }, [nominee, steps, needsPassword]);
 
   // When mode changes (e.g. self-anon → self-auth after password creation),
   // the steps array shrinks and currentStepIndex may be out of bounds.
@@ -168,11 +163,35 @@ export function useBuildCardFlow({
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === steps.length - 1;
 
+  // Lightweight persist — saves only flow_stage to the nominee record.
+  // Fire-and-forget so it doesn't block navigation.
+  const persistFlowStage = useCallback((stage) => {
+    const id = nomineeId || nominee?.id;
+    if (!id) return;
+    supabase
+      .from('nominees')
+      .update({ flow_stage: stage })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.warn('Failed to persist flow_stage:', error.message);
+      });
+  }, [nomineeId, nominee?.id]);
+
+  // Steps that already persist flow_stage in their own handler
+  const SELF_PERSISTING_STEPS = new Set(['accept', 'details', 'bio', 'card']);
+
   // Navigation
   const next = useCallback(() => {
     setSubmitError('');
-    setCurrentStepIndex((i) => Math.min(i + 1, steps.length - 1));
-  }, [steps.length]);
+    setCurrentStepIndex((prev) => {
+      const completedStep = steps[prev];
+      // Persist flow_stage for steps that don't handle it themselves
+      if (completedStep && !SELF_PERSISTING_STEPS.has(completedStep)) {
+        persistFlowStage(completedStep);
+      }
+      return Math.min(prev + 1, steps.length - 1);
+    });
+  }, [steps, persistFlowStage]);
 
   const back = useCallback(() => {
     setSubmitError('');
@@ -208,23 +227,13 @@ export function useBuildCardFlow({
       // not the nominee. user_id is set in createAccount after the nominee
       // has their own authenticated session.
 
-      let { error } = await withTimeout(
+      const { error } = await withTimeout(
         supabase
           .from('nominees')
           .update(updateData)
           .eq('id', nominee.id),
         15000
       );
-
-      if (error && isSchemaError(error)) {
-        ({ error } = await withTimeout(
-          supabase
-            .from('nominees')
-            .update(stripNewColumns(updateData))
-            .eq('id', nominee.id),
-          15000
-        ));
-      }
       if (error) throw error;
 
       // Don't notify nominator yet — wait until the nominee finishes the
@@ -322,23 +331,13 @@ export function useBuildCardFlow({
 
       if (nomineeId) {
         // Update existing nominee record
-        let { error } = await withTimeout(
+        const { error } = await withTimeout(
           supabase
             .from('nominees')
             .update(record)
             .eq('id', nomineeId),
           15000
         );
-
-        if (error && isSchemaError(error)) {
-          ({ error } = await withTimeout(
-            supabase
-              .from('nominees')
-              .update(stripNewColumns(record))
-              .eq('id', nomineeId),
-            15000
-          ));
-        }
         if (error) throw error;
       } else {
         // Insert new nominee record (self-entry early persist)
@@ -351,7 +350,7 @@ export function useBuildCardFlow({
           record.claimed_at = new Date().toISOString();
         }
 
-        let { data: inserted, error } = await withTimeout(
+        const { data: inserted, error } = await withTimeout(
           supabase
             .from('nominees')
             .insert(record)
@@ -359,17 +358,6 @@ export function useBuildCardFlow({
             .single(),
           15000
         );
-
-        if (error && isSchemaError(error)) {
-          ({ data: inserted, error } = await withTimeout(
-            supabase
-              .from('nominees')
-              .insert(stripNewColumns(record))
-              .select('id')
-              .single(),
-            15000
-          ));
-        }
 
         if (error) {
           if (error.code === '23505') {
@@ -428,16 +416,10 @@ export function useBuildCardFlow({
 
       if (nomineeId) {
         // Update existing
-        let { error } = await supabase
+        const { error } = await supabase
           .from('nominees')
           .update(record)
           .eq('id', nomineeId);
-        if (error && isSchemaError(error)) {
-          ({ error } = await supabase
-            .from('nominees')
-            .update(stripNewColumns(record))
-            .eq('id', nomineeId));
-        }
         if (error) throw error;
       } else {
         // Insert new (self-entry that skipped early persist)
@@ -450,19 +432,11 @@ export function useBuildCardFlow({
           record.claimed_at = new Date().toISOString();
         }
 
-        let { data: inserted, error } = await supabase
+        const { data: inserted, error } = await supabase
           .from('nominees')
           .insert(record)
           .select('id')
           .single();
-
-        if (error && isSchemaError(error)) {
-          ({ data: inserted, error } = await supabase
-            .from('nominees')
-            .insert(stripNewColumns(record))
-            .select('id')
-            .single());
-        }
 
         if (error) {
           if (error.code === '23505') {
