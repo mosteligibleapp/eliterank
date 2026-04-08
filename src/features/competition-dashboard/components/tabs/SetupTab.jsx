@@ -448,6 +448,8 @@ export default function SetupTab({
                   padding: spacing.lg,
                   background: colors.background.secondary,
                   borderRadius: borderRadius.lg,
+                  overflow: 'hidden',
+                  minWidth: 0,
                 }}>
                   <Avatar name={judge.name} size={isMobile ? 40 : 48} src={judge.avatarUrl} />
                   <div style={{ flex: 1, minWidth: 0 }}>
