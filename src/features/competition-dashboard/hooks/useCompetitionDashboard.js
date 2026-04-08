@@ -714,7 +714,7 @@ export function useCompetitionDashboard(competitionId) {
         .insert({
           competition_id: competitionId,
           name: nomineeData.name,
-          email: nomineeData.email || null,
+          email: nomineeData.email ? nomineeData.email.replace(/^.*<([^>]+)>$/, '$1').trim() : null,
           phone: nomineeData.phone || null,
           nominated_by: 'host',
           invite_token: crypto.randomUUID(),

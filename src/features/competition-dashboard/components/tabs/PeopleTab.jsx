@@ -524,6 +524,13 @@ export default function PeopleTab({
     );
   };
 
+  // Extract bare email from "Name <email>" format
+  const parseEmail = (email) => {
+    if (!email) return email;
+    const match = email.match(/<([^>]+)>/);
+    return match ? match[1] : email;
+  };
+
   // Person row component - shared between contestants and nominees
   const PersonRow = ({ person, actions, dimmed, showVotes, onNameClick, cardType, onAvatarUpload }) => (
     <div style={{
@@ -612,7 +619,7 @@ export default function PeopleTab({
           </p>
         )}
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-          {person.email}{showVotes && person.votes > 0 ? `${person.email ? ' · ' : ''}${person.votes} votes` : ''}
+          {parseEmail(person.email)}{showVotes && person.votes > 0 ? `${person.email ? ' · ' : ''}${person.votes} votes` : ''}
           {person.inviteSentAt && (
             <span style={{ color: colors.text.muted, opacity: 0.7 }}>
               {' · '}Invited {new Date(person.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
