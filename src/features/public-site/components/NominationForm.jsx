@@ -160,8 +160,8 @@ export default function NominationForm({ city, competitionId, onClose }) {
       setError('Valid email is required');
       return;
     }
-    if (!otherData.nominatorName.trim() || !otherData.nominatorEmail.trim()) {
-      setError('Your name and email are required');
+    if (!otherData.nominatorName.trim() || !otherData.nominatorEmail.trim() || !otherData.nominatorEmail.includes('@')) {
+      setError('Your name and a valid email are required');
       return;
     }
 

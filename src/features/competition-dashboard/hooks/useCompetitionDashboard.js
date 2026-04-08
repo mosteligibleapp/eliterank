@@ -495,6 +495,7 @@ export function useCompetitionDashboard(competitionId) {
 
       if (updateError) {
         console.error('Nominee status update failed after contestant insert:', updateError);
+        throw updateError;
       }
 
       // Migrate reward assignments from nominee → contestant so claimed
