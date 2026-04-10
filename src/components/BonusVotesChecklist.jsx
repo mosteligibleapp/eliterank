@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useState } from 'react';
 import {
-  Gift, CheckCircle, Circle, Camera,
+  Gift, CheckCircle, Circle, Camera, Heart,
   Share2, User, BookOpen, Link as LinkIcon, Trophy,
   Clock, XCircle, Upload, ExternalLink, ChevronDown, ChevronUp, MapPin, FileText,
 } from 'lucide-react';
@@ -282,7 +282,7 @@ function BonusVotesChecklist({
           gap: spacing.md,
           color: colors.text.secondary,
         }}>
-          <Gift size={20} style={{ opacity: 0.5 }} />
+          <Heart size={20} style={{ opacity: 0.5 }} />
           <span>Loading bonus tasks...</span>
         </div>
       </div>
@@ -325,7 +325,7 @@ function BonusVotesChecklist({
               {allCompleted ? (
                 <Trophy size={20} style={{ color: colors.status.success }} />
               ) : (
-                <Gift size={20} style={{ color: colors.gold.primary }} />
+                <Heart size={20} style={{ color: colors.gold.primary, fill: colors.gold.primary }} />
               )}
               <h3 style={{
                 fontSize: typography.fontSize.lg,
