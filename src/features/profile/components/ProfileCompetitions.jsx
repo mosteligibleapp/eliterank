@@ -375,7 +375,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
       role: isConverted ? 'contestant' : 'nominee',
       status: competition?.status,
       competition: competition,
-      isUnclaimed: !isConverted && !nom.claimed_at,
+      isUnclaimed: !isConverted && !nom.claimed_at && nom.status !== 'approved',
       nomination: isConverted ? null : nom,
       nominatorName: !nom.nominator_anonymous ? nom.nominator_name : null,
     });
