@@ -131,7 +131,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
         .insert({
           competition_id: competitionId,
           name: `${selfData.firstName} ${selfData.lastName}`.trim(),
-          email: selfData.email.trim(),
+          email: selfData.email.trim().toLowerCase(),
           instagram: selfData.instagram.trim() || null,
           nominated_by: 'self',
           status: 'pending',
@@ -183,12 +183,12 @@ export default function NominationForm({ city, competitionId, onClose }) {
         .insert({
           competition_id: competitionId,
           name: otherData.nomineeName.trim(),
-          email: otherData.nomineeEmail.trim(),
+          email: otherData.nomineeEmail.trim().toLowerCase(),
           instagram: otherData.instagram.trim() || null,
           nominated_by: 'third_party',
           nomination_reason: otherData.reason.trim() || null,
           nominator_name: otherData.isAnonymous ? null : otherData.nominatorName.trim(),
-          nominator_email: otherData.nominatorEmail.trim(),
+          nominator_email: otherData.nominatorEmail.trim().toLowerCase(),
           nominator_anonymous: otherData.isAnonymous,
           nominator_notify: otherData.notifyMe,
           status: 'pending',
