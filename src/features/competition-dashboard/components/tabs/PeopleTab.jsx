@@ -189,7 +189,11 @@ export default function PeopleTab({
   const handleBulkResendInvites = async (nomineeList, label) => {
     const withEmail = nomineeList.filter(n => n.email);
     if (!withEmail.length || !onResendInvite) return;
-    if (!confirm(`Send invite/reminder to all ${withEmail.length} ${label} nominees?`)) return;
+    const skipped = nomineeList.length - withEmail.length;
+    const msg = skipped
+      ? `Send invite/reminder to ${withEmail.length} of ${nomineeList.length} ${label} nominees? (${skipped} without email will be skipped)`
+      : `Send invite/reminder to all ${withEmail.length} ${label} nominees?`;
+    if (!confirm(msg)) return;
     addProcessing('bulk-send');
     let sent = 0;
     let failed = 0;
