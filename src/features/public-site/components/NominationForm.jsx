@@ -118,6 +118,14 @@ export default function NominationForm({ city, competitionId, onClose }) {
     setError('');
 
     try {
+      // Check if a profile already exists for this email so we can link user_id
+      const emailLower = selfData.email.trim().toLowerCase();
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('email', emailLower)
+        .maybeSingle();
+
       const { error: dbError } = await supabase
         .from('nominees')
         .insert({
@@ -127,6 +135,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
           instagram: selfData.instagram.trim() || null,
           nominated_by: 'self',
           status: 'pending',
+          user_id: existingProfile?.id || null,
           eligibility_answers: {
             lives_in_city: selfData.livesInCity,
             is_single: selfData.isSingle,
