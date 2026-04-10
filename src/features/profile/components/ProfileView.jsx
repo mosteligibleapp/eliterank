@@ -7,8 +7,6 @@ import { generateAchievementCard } from '../../achievement-cards/generateAchieve
 import { useResponsive } from '../../../hooks/useResponsive';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
-import ProfileRewardsCard from './ProfileRewardsCard';
-import BonusVotesEarnedBadge from './BonusVotesEarnedBadge';
 
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
