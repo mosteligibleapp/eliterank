@@ -710,7 +710,7 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
-      const { error: insertError } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from('nominees')
         .insert({
           competition_id: competitionId,
@@ -720,9 +720,21 @@ export function useCompetitionDashboard(competitionId) {
           nominated_by: 'admin',
           invite_token: crypto.randomUUID(),
           status: 'pending',
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
+
+      // Auto-send invite email after adding nominee
+      if (inserted?.id) {
+        supabase.functions.invoke('send-nomination-invite', {
+          body: { nominee_id: inserted.id },
+        }).catch((inviteErr) => {
+          console.warn('Failed to auto-send nomination invite:', inviteErr);
+        });
+      }
+
       await fetchDashboardData();
       return { success: true };
     } catch (err) {
