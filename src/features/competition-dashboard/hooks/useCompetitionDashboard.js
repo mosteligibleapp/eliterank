@@ -717,7 +717,7 @@ export function useCompetitionDashboard(competitionId) {
           name: nomineeData.name,
           email: nomineeData.email ? nomineeData.email.replace(/^.*<([^>]+)>$/, '$1').trim() : null,
           phone: nomineeData.phone || null,
-          nominated_by: 'host',
+          nominated_by: 'admin',
           invite_token: crypto.randomUUID(),
           status: 'pending',
         });
