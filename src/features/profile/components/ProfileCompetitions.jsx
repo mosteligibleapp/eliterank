@@ -178,7 +178,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile
           {competition.name || entry.name}
         </h4>
 
-        {/* Row 3: Season + City */}
+        {/* Row 3: Season + City + View */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             {competition.season && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
@@ -198,6 +198,10 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile
                 <span>Voting starts {votingDate}</span>
               </div>
             )}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px', color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>
+              <span>View</span>
+              <ChevronRight size={14} />
+            </div>
         </div>
 
         {/* Unclaimed CTA */}
@@ -230,20 +234,6 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile
         )}
       </div>
 
-      {/* View Competition - outside card, centered */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '4px',
-        padding: `${spacing.sm} 0`,
-        color: colors.text.primary,
-        fontSize: typography.fontSize.sm,
-        fontWeight: typography.fontWeight.medium,
-      }}>
-        <span>View Competition</span>
-        <ChevronRight size={14} />
-      </div>
     </a>
   );
 }
