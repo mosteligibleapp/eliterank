@@ -186,6 +186,26 @@ export default function PeopleTab({
     }
   };
 
+  const handleBulkResendInvites = async (nomineeList, label) => {
+    const withEmail = nomineeList.filter(n => n.email);
+    if (!withEmail.length || !onResendInvite) return;
+    if (!confirm(`Send invite/reminder to all ${withEmail.length} ${label} nominees?`)) return;
+    addProcessing('bulk-send');
+    let sent = 0;
+    let failed = 0;
+    for (const n of withEmail) {
+      try {
+        const result = await onResendInvite(n.id);
+        if (result?.success) sent++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+    }
+    removeProcessing('bulk-send');
+    alert(`Done! Sent: ${sent}${failed ? `, Failed: ${failed}` : ''}`);
+  };
+
   // Categorize nominees
   const activeNominees = nominees.filter(n => {
     if (n.status !== 'pending' && n.status !== 'profile_complete' && n.status !== 'awaiting_profile') return false;
@@ -1090,9 +1110,20 @@ export default function PeopleTab({
         defaultCollapsed
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {externalNominees.length > 0 && onRepairAllNomineeAccounts && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.md }}>
-              <Button
+          {externalNominees.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: spacing.sm, marginBottom: spacing.md }}>
+              {onResendInvite && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={processingIds.has('bulk-send')}
+                  onClick={() => handleBulkResendInvites(externalNominees, 'awaiting')}
+                >
+                  <Send size={14} style={{ marginRight: spacing.xs }} />
+                  {processingIds.has('bulk-send') ? 'Sending...' : 'Send All Invites'}
+                </Button>
+              )}
+              {onRepairAllNomineeAccounts && <Button
                 variant="secondary"
                 size="sm"
                 disabled={processingIds.has('repair-all')}
@@ -1113,7 +1144,7 @@ export default function PeopleTab({
               >
                 <Wrench size={14} style={{ marginRight: spacing.xs }} />
                 {processingIds.has('repair-all') ? 'Repairing...' : 'Repair All Accounts'}
-              </Button>
+              </Button>}
             </div>
           )}
           {externalNominees.length === 0 ? (
@@ -1151,9 +1182,22 @@ export default function PeopleTab({
           defaultCollapsed
         >
           <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
-              These people started entering but haven't finished their profile. Send a reminder to nudge them to complete.
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, margin: 0 }}>
+                These people started entering but haven't finished their profile.
+              </p>
+              {onResendInvite && incompleteNominees.length > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={processingIds.has('bulk-send')}
+                  onClick={() => handleBulkResendInvites(incompleteNominees, 'incomplete')}
+                >
+                  <Send size={14} style={{ marginRight: spacing.xs }} />
+                  {processingIds.has('bulk-send') ? 'Sending...' : 'Send All Reminders'}
+                </Button>
+              )}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {incompleteNominees.map(n => (
                 <PersonRow

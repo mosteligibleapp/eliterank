@@ -600,19 +600,6 @@ export function useBuildCardFlow({
           userId = signInData.user?.id;
         }
 
-        // If we still don't have a session, sign in explicitly
-        if (!userId) {
-          const { data: signInData, error: signInError } =
-            await supabase.auth.signInWithPassword({ email, password });
-          if (signInError) {
-            throw new Error(
-              'Account created but sign-in failed. Please try logging in with your email and password.'
-            );
-          }
-          setCurrentUser(signInData.user);
-          userId = signInData.user?.id;
-        }
-
         // Link user to nominee and mark claimed
         if (userId && nomineeId) {
           await supabase
