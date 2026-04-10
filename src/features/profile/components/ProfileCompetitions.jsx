@@ -178,7 +178,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile
           {competition.name || entry.name}
         </h4>
 
-        {/* Row 3: Season + City + View */}
+        {/* Row 3: Season + City + Download button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             {competition.season && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
@@ -192,62 +192,45 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile
                 <span>{cityName}</span>
               </div>
             )}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px', color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>
-              <span>View</span>
-              <ChevronRight size={14} />
-            </div>
+            {votingDate && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                <Clock size={13} />
+                <span>Voting starts {votingDate}</span>
+              </div>
+            )}
+            {/* Card download button - bottom right */}
+            {isOwnProfile && cardTypes.length > 0 && (
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: spacing.xs }}>
+                {cardTypes.map(({ type }) => (
+                  <button
+                    key={type}
+                    onClick={(e) => handleDownloadCard(e, type)}
+                    disabled={generatingCard === type}
+                    title={`Download card`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '32px',
+                      height: '32px',
+                      background: 'rgba(212,175,55,0.08)',
+                      border: `1px solid rgba(212,175,55,0.2)`,
+                      borderRadius: borderRadius.md,
+                      color: colors.gold.primary,
+                      cursor: generatingCard === type ? 'wait' : 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {generatingCard === type ? (
+                      <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                    ) : (
+                      <Download size={14} />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
         </div>
-
-
-        {/* Row 3: Voting start + navigate link */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.md,
-          color: colors.text.secondary,
-          fontSize: typography.fontSize.sm,
-        }}>
-          {votingDate && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Clock size={13} />
-              <span>Voting starts {votingDate}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Achievement Card Downloads - own profile only */}
-        {isOwnProfile && cardTypes.length > 0 && (
-          <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
-            {cardTypes.map(({ type, label }) => (
-              <button
-                key={type}
-                onClick={(e) => handleDownloadCard(e, type)}
-                disabled={generatingCard === type}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: `${spacing.xs} ${spacing.sm}`,
-                  background: 'rgba(212,175,55,0.08)',
-                  border: `1px solid rgba(212,175,55,0.2)`,
-                  borderRadius: borderRadius.pill,
-                  color: colors.gold.primary,
-                  fontSize: typography.fontSize.xs,
-                  fontWeight: typography.fontWeight.medium,
-                  cursor: generatingCard === type ? 'wait' : 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                {generatingCard === type ? (
-                  <Loader size={10} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : (
-                  <Download size={10} />
-                )}
-                {label} Card
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Unclaimed CTA */}
         {entry.isUnclaimed && entry.nomination && (
@@ -277,6 +260,21 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile
             <ArrowRight size={13} />
           </div>
         )}
+      </div>
+
+      {/* View Competition - outside card, centered */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '4px',
+        padding: `${spacing.sm} 0`,
+        color: colors.text.primary,
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.medium,
+      }}>
+        <span>View Competition</span>
+        <ChevronRight size={14} />
       </div>
     </a>
   );
