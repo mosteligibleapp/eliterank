@@ -914,6 +914,28 @@ export default function NominationForm({ city, competitionId, onClose }) {
           {otherData.notifyMe && " You'll be notified when they enter!"}
         </p>
 
+        {/* Primary actions - Nominate Another + Done */}
+        <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
+          <Button onClick={() => {
+            setStep('other');
+            setOtherData({
+              nomineeName: '',
+              nomineeEmail: '',
+              instagram: '',
+              reason: '',
+              nominatorName: otherData.nominatorName,
+              nominatorEmail: otherData.nominatorEmail,
+              isAnonymous: otherData.isAnonymous,
+              notifyMe: otherData.notifyMe,
+            });
+          }} variant="secondary" style={{ flex: 1 }}>
+            Nominate Another
+          </Button>
+          <Button onClick={onClose} style={{ flex: 1 }}>
+            Done
+          </Button>
+        </div>
+
         {/* Share with Nominee button */}
         <button
           onClick={handleShareWithNominee}
@@ -1030,26 +1052,6 @@ export default function NominationForm({ city, competitionId, onClose }) {
           {copied ? 'Link Copied!' : 'Copy nomination link to share'}
         </button>
 
-        <div style={{ display: 'flex', gap: spacing.md }}>
-          <Button onClick={() => {
-            setStep('other');
-            setOtherData({
-              nomineeName: '',
-              nomineeEmail: '',
-              instagram: '',
-              reason: '',
-              nominatorName: otherData.nominatorName,
-              nominatorEmail: otherData.nominatorEmail,
-              isAnonymous: otherData.isAnonymous,
-              notifyMe: otherData.notifyMe,
-            });
-          }} variant="secondary" style={{ flex: 1 }}>
-            Nominate Another
-          </Button>
-          <Button onClick={onClose} style={{ flex: 1 }}>
-            Done
-          </Button>
-        </div>
       </div>
     );
   }
