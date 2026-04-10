@@ -694,13 +694,19 @@ export function useCompetitionDashboard(competitionId) {
         throw error;
       }
 
-      await fetchDashboardData();
+      // Update invite_sent_at locally instead of refetching all dashboard data
+      setData(prev => ({
+        ...prev,
+        nominees: prev.nominees.map(n =>
+          n.id === nomineeId ? { ...n, inviteSentAt: new Date().toISOString() } : n
+        ),
+      }));
       return { success: true, data };
     } catch (err) {
       console.error('Error resending invite:', err);
       return { success: false, error: err.message || 'Failed to send reminder' };
     }
-  }, [fetchDashboardData]);
+  }, []);
 
   /**
    * Manually add a nominee (by admin/host)
