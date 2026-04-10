@@ -421,9 +421,8 @@ export async function getAllBonusVotesEarnedStatus(userId) {
  * Load nominee bonus action completions from the profiles table.
  * Falls back to localStorage if DB is unavailable.
  */
-export async function loadNomineeBonusActions(userId) {
+export async function loadNomineeBonusActions(userId, competitionId) {
   if (!supabase || !userId) {
-    // Fallback to localStorage
     try {
       return JSON.parse(localStorage.getItem(`nominee_bonus_tasks_${userId}`) || '{}');
     } catch {
@@ -438,8 +437,8 @@ export async function loadNomineeBonusActions(userId) {
       .eq('id', userId)
       .single();
 
-    if (error || !data?.bonus_actions) {
-      // Fallback to localStorage
+    const allActions = data?.bonus_actions;
+    if (error || !allActions) {
       try {
         return JSON.parse(localStorage.getItem(`nominee_bonus_tasks_${userId}`) || '{}');
       } catch {
@@ -447,7 +446,20 @@ export async function loadNomineeBonusActions(userId) {
       }
     }
 
-    return data.bonus_actions;
+    // Per-competition: actions stored under competitionId key
+    if (competitionId && allActions[competitionId] && typeof allActions[competitionId] === 'object') {
+      return allActions[competitionId];
+    }
+
+    // Backward compat: flat keys like { share_profile: true } (legacy global format)
+    // Only return these if no competition-scoped data exists yet
+    if (competitionId) {
+      const hasCompKeys = Object.keys(allActions).some(k => typeof allActions[k] === 'object');
+      if (!hasCompKeys) return allActions; // legacy format, treat as current competition
+      return {}; // other competitions have scoped data, this one doesn't
+    }
+
+    return allActions;
   } catch {
     try {
       return JSON.parse(localStorage.getItem(`nominee_bonus_tasks_${userId}`) || '{}');
@@ -459,18 +471,19 @@ export async function loadNomineeBonusActions(userId) {
 
 /**
  * Save a nominee bonus action completion to the profiles table and localStorage.
- * Merges the new task key into the existing bonus_actions JSONB.
+ * Merges the new task key into the existing bonus_actions JSONB, scoped by competition.
  */
-export async function saveNomineeBonusAction(userId, taskKey) {
+export async function saveNomineeBonusAction(userId, taskKey, competitionId) {
   // Always save to localStorage as a fast cache
   const storageKey = userId ? `nominee_bonus_tasks_${userId}` : null;
-  let current = {};
   if (storageKey) {
     try {
-      current = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    } catch { /* ignore */ }
-    current[taskKey] = true;
-    try {
+      const current = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      if (competitionId) {
+        current[competitionId] = { ...(current[competitionId] || {}), [taskKey]: true };
+      } else {
+        current[taskKey] = true;
+      }
       localStorage.setItem(storageKey, JSON.stringify(current));
     } catch { /* ignore */ }
   }
@@ -479,18 +492,22 @@ export async function saveNomineeBonusAction(userId, taskKey) {
   if (!supabase || !userId) return;
 
   try {
-    // Read current bonus_actions then merge
     const { data } = await supabase
       .from('profiles')
       .select('bonus_actions')
       .eq('id', userId)
       .single();
 
-    const merged = { ...(data?.bonus_actions || {}), [taskKey]: true };
+    const allActions = { ...(data?.bonus_actions || {}) };
+    if (competitionId) {
+      allActions[competitionId] = { ...(allActions[competitionId] || {}), [taskKey]: true };
+    } else {
+      allActions[taskKey] = true;
+    }
 
     await supabase
       .from('profiles')
-      .update({ bonus_actions: merged })
+      .update({ bonus_actions: allActions })
       .eq('id', userId);
   } catch (err) {
     console.error('Error saving nominee bonus action:', err);

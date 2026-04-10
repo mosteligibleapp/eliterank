@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
@@ -28,6 +29,7 @@ const DEFAULT_BONUS_TASKS = [
  * Renders the bonus votes checklist for a contestant (DB-backed).
  */
 function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail, competitionName, onBonusVotesLoaded }) {
+  const navigate = useNavigate();
   const { profile } = useAuthContextSafe();
   const toast = useToast();
   const hasCheckedProfile = useRef(false);
@@ -119,7 +121,10 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
       return;
     }
 
-    if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
+    if (taskKey === BONUS_TASK_KEYS.COMPLETE_PROFILE || taskKey === BONUS_TASK_KEYS.ADD_SOCIAL) {
+      navigate('/profile?edit=true');
+      return;
+    } else if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
       setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
       const shareUrl = `${window.location.origin}/profile/${userId}`;
@@ -221,7 +226,8 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
  * Tasks are evaluated based on profile data — no contestant_id needed.
  * When converted to contestant, the real system auto-awards earned votes.
  */
-function NomineeBonusVotes({ competitionName, profile, userId, userEmail, onBonusVotesLoaded }) {
+function NomineeBonusVotes({ competitionId, competitionName, profile, userId, userEmail, onBonusVotesLoaded }) {
+  const navigate = useNavigate();
   const toast = useToast();
   const [showGuide, setShowGuide] = useState(false);
   const dismissKey = userId ? `bonus_dismissed_nominee_${userId}` : null;
@@ -237,15 +243,15 @@ function NomineeBonusVotes({ competitionName, profile, userId, userEmail, onBonu
   useEffect(() => {
     if (!userId || hasLoadedActions.current) return;
     hasLoadedActions.current = true;
-    loadNomineeBonusActions(userId).then(actions => {
+    loadNomineeBonusActions(userId, competitionId).then(actions => {
       setActionCompleted(actions || {});
     });
-  }, [userId]);
+  }, [userId, competitionId]);
 
   const markActionCompleted = (taskKey) => {
     setActionCompleted(prev => ({ ...prev, [taskKey]: true }));
     if (userId) {
-      saveNomineeBonusAction(userId, taskKey);
+      saveNomineeBonusAction(userId, taskKey, competitionId);
     }
   };
 
@@ -309,7 +315,11 @@ function NomineeBonusVotes({ competitionName, profile, userId, userEmail, onBonu
   };
 
   const handleTaskAction = async (taskKey) => {
-    if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
+    if (taskKey === BONUS_TASK_KEYS.COMPLETE_PROFILE || taskKey === BONUS_TASK_KEYS.ADD_SOCIAL) {
+      // Navigate to edit profile so user can fill in missing fields
+      navigate('/profile?edit=true');
+      return;
+    } else if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
       setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
       const shareUrl = userId ? `${window.location.origin}/profile/${userId}` : window.location.href;
@@ -447,6 +457,7 @@ export default function ProfileBonusVotes({ userId, userEmail, profile, onBonusV
       {nomineeEntries.map(nom => (
         <NomineeBonusVotes
           key={nom.id}
+          competitionId={nom.competition?.id}
           competitionName={totalEntries > 1 ? nom.competition?.name : null}
           profile={profile}
           userId={userId}
