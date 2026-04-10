@@ -152,15 +152,6 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
             {task.label}
           </span>
         </div>
-        {task.description && (
-          <p style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
-            marginTop: '2px',
-          }}>
-            {task.description}
-          </p>
-        )}
         {/* Approval status messages */}
         {isPending && (
           <p style={{
