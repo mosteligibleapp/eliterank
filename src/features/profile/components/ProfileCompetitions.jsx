@@ -200,39 +200,6 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile
             )}
         </div>
 
-        {/* Card download button - centered */}
-        {isOwnProfile && cardTypes.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.xs }}>
-            {cardTypes.map(({ type }) => (
-              <button
-                key={type}
-                onClick={(e) => handleDownloadCard(e, type)}
-                disabled={generatingCard === type}
-                title={`Download card`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
-                  background: 'rgba(212,175,55,0.08)',
-                  border: `1px solid rgba(212,175,55,0.2)`,
-                  borderRadius: borderRadius.md,
-                  color: colors.gold.primary,
-                  cursor: generatingCard === type ? 'wait' : 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                {generatingCard === type ? (
-                  <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : (
-                  <Download size={14} />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Unclaimed CTA */}
         {entry.isUnclaimed && entry.nomination && (
           <div
