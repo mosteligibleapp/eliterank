@@ -1,24 +1,49 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
-import { getCompetitionStats } from '../../../lib/competition-history';
+import { getCompetitionStats, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
+import { generateAchievementCard } from '../../achievement-cards/generateAchievementCard';
 import { useResponsive } from '../../../hooks/useResponsive';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
-import ProfileRewardsCard from './ProfileRewardsCard';
-import BonusVotesEarnedBadge from './BonusVotesEarnedBadge';
 
 export default function ProfileView({ hostProfile, onEdit }) {
   const { isMobile, isSmall } = useResponsive();
   const [competitionStats, setCompetitionStats] = useState(null);
   const [bonusVotes, setBonusVotes] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [cardInfo, setCardInfo] = useState(null);
+  const [generatingCard, setGeneratingCard] = useState(false);
 
   useEffect(() => {
     if (!hostProfile?.id) return;
     getCompetitionStats(hostProfile.id).then(setCompetitionStats).catch(console.error);
-  }, [hostProfile?.id]);
+
+    // Fetch competition data for card generation
+    Promise.all([
+      getContestantCompetitions(hostProfile.id),
+      getNominationsForUser(hostProfile.id, hostProfile.email),
+    ]).then(([contestants, nominations]) => {
+      // Prefer contestant entry, then nomination
+      const entry = contestants[0] || nominations[0];
+      if (!entry) return;
+      const comp = entry.competition || entry;
+      const org = comp?.organization;
+      const city = comp?.city?.name || comp?.city || '';
+      const role = contestants.length > 0 ? 'contestant' : 'nominee';
+      const cardType = entry.status === 'winner' ? 'winner' : (role === 'contestant' ? 'contestant' : 'nominated');
+      setCardInfo({
+        type: cardType,
+        competitionName: comp?.name,
+        cityName: city,
+        season: comp?.season?.toString(),
+        orgName: org?.name || 'Most Eligible',
+        orgLogoUrl: org?.logo_url,
+        slug: comp?.slug,
+      });
+    }).catch(console.error);
+  }, [hostProfile?.id, hostProfile?.email]);
 
   const handleBonusVotesLoaded = useCallback((data) => {
     setBonusVotes(data);
@@ -42,6 +67,36 @@ export default function ProfileView({ hostProfile, onEdit }) {
       document.body.removeChild(input);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleDownloadCard = async () => {
+    if (!cardInfo || generatingCard) return;
+    setGeneratingCard(true);
+    try {
+      const blob = await generateAchievementCard({
+        achievementType: cardInfo.type,
+        name: `${hostProfile.firstName || ''} ${hostProfile.lastName || ''}`.trim() || 'Contestant',
+        photoUrl: hostProfile.avatarUrl,
+        competitionName: cardInfo.competitionName,
+        cityName: cardInfo.cityName,
+        season: cardInfo.season,
+        organizationName: cardInfo.orgName,
+        organizationLogoUrl: cardInfo.orgLogoUrl,
+        voteUrl: cardInfo.slug ? `mosteligible.co/${cardInfo.slug}` : 'mosteligible.co',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cardInfo.type}-card.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Card generation failed:', err);
+    } finally {
+      setGeneratingCard(false);
     }
   };
 
@@ -71,7 +126,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
       <Panel style={{ marginBottom: spacing.xl }}>
         {/* Hero Section */}
         <div style={{ position: 'relative', padding: isMobile ? spacing.sm : spacing.lg, paddingBottom: 0 }}>
-          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, left: isMobile ? spacing.sm : spacing.lg, zIndex: 2 }}>
+          <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, left: isMobile ? spacing.sm : spacing.lg, zIndex: 2, display: 'flex', gap: spacing.sm }}>
             <Button
               onClick={handleShare}
               icon={copied ? Check : Share2}
@@ -86,6 +141,22 @@ export default function ProfileView({ hostProfile, onEdit }) {
             >
               {copied ? 'Copied!' : 'Share'}
             </Button>
+            {cardInfo && (
+              <Button
+                onClick={handleDownloadCard}
+                icon={generatingCard ? Loader : Download}
+                size={isMobile ? 'sm' : 'md'}
+                disabled={generatingCard}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  backdropFilter: 'blur(8px)',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {generatingCard ? '' : 'Card'}
+              </Button>
+            )}
           </div>
           {onEdit && (
             <div style={{ position: 'absolute', top: isMobile ? spacing.sm : spacing.lg, right: isMobile ? spacing.sm : spacing.lg, zIndex: 2 }}>
@@ -161,13 +232,10 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 </p>
               )}
               {(() => {
-                // For contestants, totalVotes already includes bonus votes (DB-level).
-                // For nominees with 0 stats, use their client-side bonus votes earned.
                 const statsVotes = competitionStats?.totalVotes || 0;
                 const nomineeBonusVotes = (!statsVotes && bonusVotes?.totalEarned) ? bonusVotes.totalEarned : 0;
                 const displayVotes = statsVotes + nomineeBonusVotes;
                 const wins = competitionStats?.wins || 0;
-
                 if (displayVotes <= 0 && wins <= 0) return null;
 
                 return (
@@ -288,10 +356,9 @@ export default function ProfileView({ hostProfile, onEdit }) {
           </>
         )}
 
-        {/* Rewards + Bonus Votes + Video Prompts - only for own profile */}
+        {/* Bonus Votes + Video Prompts - only for own profile */}
         {onEdit && hostProfile?.id && (
           <div style={{ padding: `0 ${sectionPadding} ${spacing.md}` }}>
-            <ProfileRewardsCard userId={hostProfile.id} />
             <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} onBonusVotesLoaded={handleBonusVotesLoaded} />
           </div>
         )}

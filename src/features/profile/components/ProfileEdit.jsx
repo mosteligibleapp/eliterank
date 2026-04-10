@@ -132,23 +132,21 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-          {isMobile && (
-            <button
-              onClick={onCancel}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: colors.text.primary,
-                cursor: 'pointer',
-                padding: spacing.xs,
-                marginLeft: `-${spacing.xs}`,
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <ChevronLeft size={24} />
-            </button>
-          )}
+          <button
+            onClick={onCancel}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: colors.text.primary,
+              cursor: 'pointer',
+              padding: spacing.xs,
+              marginLeft: `-${spacing.xs}`,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <ChevronLeft size={24} />
+          </button>
           <Edit size={isMobile ? 20 : 24} style={{ color: colors.gold.primary }} />
           <div>
             <h2 style={{
@@ -157,18 +155,8 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             }}>
               Edit Profile
             </h2>
-            {!isMobile && (
-              <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary }}>
-                Update your public profile
-              </p>
-            )}
           </div>
         </div>
-        {!isMobile && (
-          <Button variant="secondary" onClick={onCancel} size="md">
-            Cancel
-          </Button>
-        )}
       </div>
 
       {/* Cover & Avatar */}
@@ -266,16 +254,18 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
       {/* Personal Info Form */}
       <FormSection title="Personal Information" icon={User}>
         <FormGrid>
-          <Input
-            label="First Name"
-            value={hostProfile.firstName}
-            onChange={(e) => handleFieldChange('firstName', e.target.value)}
-          />
-          <Input
-            label="Last Name"
-            value={hostProfile.lastName}
-            onChange={(e) => handleFieldChange('lastName', e.target.value)}
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md, gridColumn: '1 / -1' }}>
+            <Input
+              label="First Name"
+              value={hostProfile.firstName}
+              onChange={(e) => handleFieldChange('firstName', e.target.value)}
+            />
+            <Input
+              label="Last Name"
+              value={hostProfile.lastName}
+              onChange={(e) => handleFieldChange('lastName', e.target.value)}
+            />
+          </div>
           <Input
             label="City"
             value={hostProfile.city}
@@ -341,7 +331,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
           color: colors.text.secondary,
           marginBottom: spacing.md
         }}>
-          Upload up to 6 photos to showcase your hosting experience
+          Upload up to 6 photos to showcase your personality
         </p>
         <div style={{
           display: 'grid',
@@ -419,7 +409,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         </div>
       </FormSection>
 
-      {/* Bottom Save Button */}
+      {/* Bottom Save + Cancel */}
       <Button
         onClick={onSave}
         icon={Save}
@@ -428,11 +418,26 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         style={{
           padding: isMobile ? spacing.md : spacing.lg,
           fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
-          marginBottom: isMobile ? spacing.xxl : 0,
         }}
       >
         Save Changes
       </Button>
+      <button
+        onClick={onCancel}
+        style={{
+          width: '100%',
+          padding: spacing.md,
+          background: 'none',
+          border: 'none',
+          color: colors.text.secondary,
+          fontSize: typography.fontSize.md,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          marginBottom: isMobile ? spacing.xxl : 0,
+        }}
+      >
+        Cancel Changes
+      </button>
 
       {/* Spin animation */}
       <style>{`

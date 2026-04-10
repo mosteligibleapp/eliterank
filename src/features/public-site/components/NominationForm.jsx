@@ -118,15 +118,24 @@ export default function NominationForm({ city, competitionId, onClose }) {
     setError('');
 
     try {
+      // Check if a profile already exists for this email so we can link user_id
+      const emailLower = selfData.email.trim().toLowerCase();
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('email', emailLower)
+        .maybeSingle();
+
       const { error: dbError } = await supabase
         .from('nominees')
         .insert({
           competition_id: competitionId,
           name: `${selfData.firstName} ${selfData.lastName}`.trim(),
-          email: selfData.email.trim(),
+          email: selfData.email.trim().toLowerCase(),
           instagram: selfData.instagram.trim() || null,
           nominated_by: 'self',
           status: 'pending',
+          user_id: existingProfile?.id || null,
           eligibility_answers: {
             lives_in_city: selfData.livesInCity,
             is_single: selfData.isSingle,
@@ -174,12 +183,12 @@ export default function NominationForm({ city, competitionId, onClose }) {
         .insert({
           competition_id: competitionId,
           name: otherData.nomineeName.trim(),
-          email: otherData.nomineeEmail.trim(),
+          email: otherData.nomineeEmail.trim().toLowerCase(),
           instagram: otherData.instagram.trim() || null,
           nominated_by: 'third_party',
           nomination_reason: otherData.reason.trim() || null,
           nominator_name: otherData.isAnonymous ? null : otherData.nominatorName.trim(),
-          nominator_email: otherData.nominatorEmail.trim(),
+          nominator_email: otherData.nominatorEmail.trim().toLowerCase(),
           nominator_anonymous: otherData.isAnonymous,
           nominator_notify: otherData.notifyMe,
           status: 'pending',
@@ -905,6 +914,28 @@ export default function NominationForm({ city, competitionId, onClose }) {
           {otherData.notifyMe && " You'll be notified when they enter!"}
         </p>
 
+        {/* Primary actions - Nominate Another + Done */}
+        <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
+          <Button onClick={() => {
+            setStep('other');
+            setOtherData({
+              nomineeName: '',
+              nomineeEmail: '',
+              instagram: '',
+              reason: '',
+              nominatorName: otherData.nominatorName,
+              nominatorEmail: otherData.nominatorEmail,
+              isAnonymous: otherData.isAnonymous,
+              notifyMe: otherData.notifyMe,
+            });
+          }} variant="secondary" style={{ flex: 1 }}>
+            Nominate Another
+          </Button>
+          <Button onClick={onClose} style={{ flex: 1 }}>
+            Done
+          </Button>
+        </div>
+
         {/* Share with Nominee button */}
         <button
           onClick={handleShareWithNominee}
@@ -1021,26 +1052,6 @@ export default function NominationForm({ city, competitionId, onClose }) {
           {copied ? 'Link Copied!' : 'Copy nomination link to share'}
         </button>
 
-        <div style={{ display: 'flex', gap: spacing.md }}>
-          <Button onClick={() => {
-            setStep('other');
-            setOtherData({
-              nomineeName: '',
-              nomineeEmail: '',
-              instagram: '',
-              reason: '',
-              nominatorName: otherData.nominatorName,
-              nominatorEmail: otherData.nominatorEmail,
-              isAnonymous: otherData.isAnonymous,
-              notifyMe: otherData.notifyMe,
-            });
-          }} variant="secondary" style={{ flex: 1 }}>
-            Nominate Another
-          </Button>
-          <Button onClick={onClose} style={{ flex: 1 }}>
-            Done
-          </Button>
-        </div>
       </div>
     );
   }

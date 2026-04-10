@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, Suspense, lazy } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
@@ -13,6 +14,7 @@ const ContestantGuide = lazy(() => import('../../../features/contestant-guide/Co
  * Automatically checks profile completeness on mount and awards applicable bonuses.
  */
 export default function ContestantBonusVotes({ competitionId, contestantId, userId }) {
+  const navigate = useNavigate();
   const { profile } = useAuthContextSafe();
   const toast = useToast();
   const hasCheckedProfile = useRef(false);
@@ -106,7 +108,10 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
       return;
     }
 
-    if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
+    if (taskKey === BONUS_TASK_KEYS.COMPLETE_PROFILE || taskKey === BONUS_TASK_KEYS.ADD_SOCIAL) {
+      navigate('/profile?edit=true');
+      return;
+    } else if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
       setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
       // Attempt to use Web Share API or copy link

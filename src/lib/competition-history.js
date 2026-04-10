@@ -42,7 +42,7 @@ export async function getNominationsForUser(userId, userEmail) {
       queries.push(
         supabase.from('nominees').select(selectStr)
           .eq('user_id', userId)
-          .not('status', 'in', '("rejected","declined")')
+          .not('status', 'in', '("rejected","declined","expired")')
           .order('created_at', { ascending: false })
       );
     }
@@ -50,7 +50,7 @@ export async function getNominationsForUser(userId, userEmail) {
       queries.push(
         supabase.from('nominees').select(selectStr)
           .eq('email', userEmail)
-          .not('status', 'in', '("rejected","declined")')
+          .not('status', 'in', '("rejected","declined","expired")')
           .order('created_at', { ascending: false })
       );
     }

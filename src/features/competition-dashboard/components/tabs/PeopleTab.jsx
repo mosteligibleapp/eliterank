@@ -248,7 +248,7 @@ export default function PeopleTab({
         </span>
       );
     }
-    if (nominee.claimedAt && nominee.userId) {
+    if (nominee.hasProfile || (nominee.claimedAt && nominee.userId)) {
       return (
         <span style={{
           fontSize: typography.fontSize.xs,
