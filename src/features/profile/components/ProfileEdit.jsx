@@ -266,16 +266,18 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
       {/* Personal Info Form */}
       <FormSection title="Personal Information" icon={User}>
         <FormGrid>
-          <Input
-            label="First Name"
-            value={hostProfile.firstName}
-            onChange={(e) => handleFieldChange('firstName', e.target.value)}
-          />
-          <Input
-            label="Last Name"
-            value={hostProfile.lastName}
-            onChange={(e) => handleFieldChange('lastName', e.target.value)}
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md, gridColumn: '1 / -1' }}>
+            <Input
+              label="First Name"
+              value={hostProfile.firstName}
+              onChange={(e) => handleFieldChange('firstName', e.target.value)}
+            />
+            <Input
+              label="Last Name"
+              value={hostProfile.lastName}
+              onChange={(e) => handleFieldChange('lastName', e.target.value)}
+            />
+          </div>
           <Input
             label="City"
             value={hostProfile.city}
@@ -341,7 +343,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
           color: colors.text.secondary,
           marginBottom: spacing.md
         }}>
-          Upload up to 6 photos to showcase your hosting experience
+          Upload up to 6 photos to showcase your personality
         </p>
         <div style={{
           display: 'grid',
