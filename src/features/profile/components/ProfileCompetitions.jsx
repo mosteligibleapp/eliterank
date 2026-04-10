@@ -178,7 +178,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile
           {competition.name || entry.name}
         </h4>
 
-        {/* Row 3: Season + City + Download button */}
+        {/* Row 3: Season + City */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             {competition.season && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
@@ -198,39 +198,40 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, profile, isOwnProfile
                 <span>Voting starts {votingDate}</span>
               </div>
             )}
-            {/* Card download button - bottom right */}
-            {isOwnProfile && cardTypes.length > 0 && (
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: spacing.xs }}>
-                {cardTypes.map(({ type }) => (
-                  <button
-                    key={type}
-                    onClick={(e) => handleDownloadCard(e, type)}
-                    disabled={generatingCard === type}
-                    title={`Download card`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '32px',
-                      height: '32px',
-                      background: 'rgba(212,175,55,0.08)',
-                      border: `1px solid rgba(212,175,55,0.2)`,
-                      borderRadius: borderRadius.md,
-                      color: colors.gold.primary,
-                      cursor: generatingCard === type ? 'wait' : 'pointer',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    {generatingCard === type ? (
-                      <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                    ) : (
-                      <Download size={14} />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
         </div>
+
+        {/* Card download button - centered */}
+        {isOwnProfile && cardTypes.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.xs }}>
+            {cardTypes.map(({ type }) => (
+              <button
+                key={type}
+                onClick={(e) => handleDownloadCard(e, type)}
+                disabled={generatingCard === type}
+                title={`Download card`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  background: 'rgba(212,175,55,0.08)',
+                  border: `1px solid rgba(212,175,55,0.2)`,
+                  borderRadius: borderRadius.md,
+                  color: colors.gold.primary,
+                  cursor: generatingCard === type ? 'wait' : 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {generatingCard === type ? (
+                  <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <Download size={14} />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Unclaimed CTA */}
         {entry.isUnclaimed && entry.nomination && (
