@@ -132,23 +132,21 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-          {isMobile && (
-            <button
-              onClick={onCancel}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: colors.text.primary,
-                cursor: 'pointer',
-                padding: spacing.xs,
-                marginLeft: `-${spacing.xs}`,
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <ChevronLeft size={24} />
-            </button>
-          )}
+          <button
+            onClick={onCancel}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: colors.text.primary,
+              cursor: 'pointer',
+              padding: spacing.xs,
+              marginLeft: `-${spacing.xs}`,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <ChevronLeft size={24} />
+          </button>
           <Edit size={isMobile ? 20 : 24} style={{ color: colors.gold.primary }} />
           <div>
             <h2 style={{
@@ -157,18 +155,8 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             }}>
               Edit Profile
             </h2>
-            {!isMobile && (
-              <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary }}>
-                Update your public profile
-              </p>
-            )}
           </div>
         </div>
-        {!isMobile && (
-          <Button variant="secondary" onClick={onCancel} size="md">
-            Cancel
-          </Button>
-        )}
       </div>
 
       {/* Cover & Avatar */}
@@ -421,7 +409,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         </div>
       </FormSection>
 
-      {/* Bottom Save Button */}
+      {/* Bottom Save + Cancel */}
       <Button
         onClick={onSave}
         icon={Save}
@@ -430,11 +418,26 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         style={{
           padding: isMobile ? spacing.md : spacing.lg,
           fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
-          marginBottom: isMobile ? spacing.xxl : 0,
         }}
       >
         Save Changes
       </Button>
+      <button
+        onClick={onCancel}
+        style={{
+          width: '100%',
+          padding: spacing.md,
+          background: 'none',
+          border: 'none',
+          color: colors.text.secondary,
+          fontSize: typography.fontSize.md,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          marginBottom: isMobile ? spacing.xxl : 0,
+        }}
+      >
+        Cancel Changes
+      </button>
 
       {/* Spin animation */}
       <style>{`
