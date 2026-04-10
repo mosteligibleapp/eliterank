@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
-import { supabase } from '../../../lib/supabase';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import ProfileRewardsCard from './ProfileRewardsCard';
@@ -15,33 +14,10 @@ export default function ProfileView({ hostProfile, onEdit }) {
   const [competitionStats, setCompetitionStats] = useState(null);
   const [bonusVotes, setBonusVotes] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [achievementCard, setAchievementCard] = useState(null);
 
   useEffect(() => {
     if (!hostProfile?.id) return;
     getCompetitionStats(hostProfile.id).then(setCompetitionStats).catch(console.error);
-
-    // Fetch the user's best achievement card (winner > finalist > contestant > nominated)
-    const fetchCard = async () => {
-      if (!supabase) return;
-      const [contestantsRes, nomineesRes] = await Promise.all([
-        supabase.from('contestants').select('id').eq('user_id', hostProfile.id),
-        supabase.from('nominees').select('id').eq('user_id', hostProfile.id),
-      ]);
-      const ids = [
-        ...(contestantsRes.data || []).map(c => c.id),
-        ...(nomineesRes.data || []).map(n => n.id),
-      ];
-      if (ids.length === 0) return;
-      const { data } = await supabase
-        .from('contestant_cards')
-        .select('image_url, achievement_type')
-        .in('contestant_id', ids)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      if (data?.[0]?.image_url) setAchievementCard(data[0]);
-    };
-    fetchCard().catch(console.error);
   }, [hostProfile?.id]);
 
   const handleBonusVotesLoaded = useCallback((data) => {
@@ -189,9 +165,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
                 const nomineeBonusVotes = (!statsVotes && bonusVotes?.totalEarned) ? bonusVotes.totalEarned : 0;
                 const displayVotes = statsVotes + nomineeBonusVotes;
                 const wins = competitionStats?.wins || 0;
-                const hasCard = !!achievementCard?.image_url;
-
-                if (displayVotes <= 0 && wins <= 0 && !hasCard) return null;
+                if (displayVotes <= 0 && wins <= 0) return null;
 
                 return (
                   <div style={{
@@ -235,39 +209,6 @@ export default function ProfileView({ hostProfile, onEdit }) {
                         <TrendingUp size={isMobile ? 14 : 16} />
                         {wins} {wins === 1 ? 'win' : 'wins'}
                       </span>
-                    )}
-                    {hasCard && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(achievementCard.image_url);
-                            const blob = await res.blob();
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `${achievementCard.achievement_type || 'achievement'}-card.png`;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          } catch { window.open(achievementCard.image_url, '_blank'); }
-                        }}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: spacing.xs,
-                          padding: `${spacing.xs} ${spacing.md}`,
-                          background: 'rgba(212,175,55,0.1)',
-                          border: '1px solid rgba(212,175,55,0.2)',
-                          borderRadius: borderRadius.pill,
-                          fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                          fontWeight: typography.fontWeight.semibold,
-                          color: colors.gold.primary,
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        <Download size={isMobile ? 14 : 16} />
-                        Card
-                      </button>
                     )}
                   </div>
                 );
