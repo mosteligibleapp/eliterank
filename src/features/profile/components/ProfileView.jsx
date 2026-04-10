@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats } from '../../../lib/competition-history';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { supabase } from '../../../lib/supabase';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import ProfileRewardsCard from './ProfileRewardsCard';
@@ -14,10 +15,33 @@ export default function ProfileView({ hostProfile, onEdit }) {
   const [competitionStats, setCompetitionStats] = useState(null);
   const [bonusVotes, setBonusVotes] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [achievementCard, setAchievementCard] = useState(null);
 
   useEffect(() => {
     if (!hostProfile?.id) return;
     getCompetitionStats(hostProfile.id).then(setCompetitionStats).catch(console.error);
+
+    // Fetch the user's best achievement card (winner > finalist > contestant > nominated)
+    const fetchCard = async () => {
+      if (!supabase) return;
+      const [contestantsRes, nomineesRes] = await Promise.all([
+        supabase.from('contestants').select('id').eq('user_id', hostProfile.id),
+        supabase.from('nominees').select('id').eq('user_id', hostProfile.id),
+      ]);
+      const ids = [
+        ...(contestantsRes.data || []).map(c => c.id),
+        ...(nomineesRes.data || []).map(n => n.id),
+      ];
+      if (ids.length === 0) return;
+      const { data } = await supabase
+        .from('contestant_cards')
+        .select('image_url, achievement_type')
+        .in('contestant_id', ids)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (data?.[0]?.image_url) setAchievementCard(data[0]);
+    };
+    fetchCard().catch(console.error);
   }, [hostProfile?.id]);
 
   const handleBonusVotesLoaded = useCallback((data) => {
@@ -107,62 +131,116 @@ export default function ProfileView({ hostProfile, onEdit }) {
         </div>
         <div style={{ padding: isMobile ? `${spacing.xxl} ${spacing.lg} ${spacing.lg}` : `${spacing.xxxl} ${spacing.xxxl} ${spacing.xxxl}` }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md }}>
-            <div
-              style={{
-                width: isMobile ? '140px' : '150px',
-                height: isMobile ? '140px' : '150px',
-                borderRadius: borderRadius.xxl,
-                background: hostProfile.avatarUrl
-                  ? `url(${hostProfile.avatarUrl}) center/cover`
-                  : 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
-                border: `3px solid rgba(212,175,55,0.3)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: isMobile ? '42px' : '48px',
-                fontWeight: typography.fontWeight.semibold,
-                color: colors.gold.primary,
-                flexShrink: 0,
-              }}
-            >
-              {!hostProfile.avatarUrl && initials}
-            </div>
-            <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-              <h1 style={{
-                fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.xxl,
-                fontWeight: typography.fontWeight.bold,
-                color: '#fff',
-                wordBreak: 'break-word',
-              }}>
-                {hostProfile.firstName} {hostProfile.lastName}
-              </h1>
-              {hostProfile.city && (
-                <p style={{
-                  color: colors.text.secondary,
+            {/* Achievement card as hero, or fallback to avatar */}
+            {achievementCard?.image_url ? (
+              <div style={{ position: 'relative', width: '100%', maxWidth: isMobile ? '260px' : '300px' }}>
+                <img
+                  src={achievementCard.image_url}
+                  alt="Achievement Card"
+                  style={{
+                    width: '100%',
+                    borderRadius: borderRadius.xl,
+                    border: `2px solid rgba(212,175,55,0.3)`,
+                    display: 'block',
+                  }}
+                />
+                {/* Download overlay button */}
+                <button
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    try {
+                      const res = await fetch(achievementCard.image_url);
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${achievementCard.achievement_type || 'achievement'}-card.png`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    } catch { /* fallback: open in new tab */ window.open(achievementCard.image_url, '_blank'); }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    bottom: spacing.sm,
+                    right: spacing.sm,
+                    width: '36px',
+                    height: '36px',
+                    background: 'rgba(0,0,0,0.6)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: borderRadius.md,
+                    color: '#fff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Download card"
+                >
+                  <Download size={16} />
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: isMobile ? '140px' : '150px',
+                  height: isMobile ? '140px' : '150px',
+                  borderRadius: borderRadius.xxl,
+                  background: hostProfile.avatarUrl
+                    ? `url(${hostProfile.avatarUrl}) center/cover`
+                    : 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
+                  border: `3px solid rgba(212,175,55,0.3)`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: spacing.sm,
-                  marginTop: spacing.sm,
-                  fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg
-                }}>
-                  <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}{hostProfile.age ? `, ${hostProfile.age}` : ''}
-                </p>
-              )}
-              {hostProfile.headline && (
-                <p style={{
-                  color: colors.text.muted,
-                  textAlign: 'center',
-                  marginTop: spacing.sm,
-                  fontSize: typography.fontSize.sm,
-                  fontStyle: 'italic',
-                }}>
-                  {hostProfile.headline}
-                </p>
+                  fontSize: isMobile ? '42px' : '48px',
+                  fontWeight: typography.fontWeight.semibold,
+                  color: colors.gold.primary,
+                  flexShrink: 0,
+                }}
+              >
+                {!hostProfile.avatarUrl && initials}
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+              {/* Only show name/city/headline when NOT showing the card (card already has this info) */}
+              {!achievementCard?.image_url && (
+                <>
+                  <h1 style={{
+                    fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.xxl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: '#fff',
+                    wordBreak: 'break-word',
+                  }}>
+                    {hostProfile.firstName} {hostProfile.lastName}
+                  </h1>
+                  {hostProfile.city && (
+                    <p style={{
+                      color: colors.text.secondary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: spacing.sm,
+                      marginTop: spacing.sm,
+                      fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg
+                    }}>
+                      <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}{hostProfile.age ? `, ${hostProfile.age}` : ''}
+                    </p>
+                  )}
+                  {hostProfile.headline && (
+                    <p style={{
+                      color: colors.text.muted,
+                      textAlign: 'center',
+                      marginTop: spacing.sm,
+                      fontSize: typography.fontSize.sm,
+                      fontStyle: 'italic',
+                    }}>
+                      {hostProfile.headline}
+                    </p>
+                  )}
+                </>
               )}
               {(() => {
-                // For contestants, totalVotes already includes bonus votes (DB-level).
-                // For nominees with 0 stats, use their client-side bonus votes earned.
                 const statsVotes = competitionStats?.totalVotes || 0;
                 const nomineeBonusVotes = (!statsVotes && bonusVotes?.totalEarned) ? bonusVotes.totalEarned : 0;
                 const displayVotes = statsVotes + nomineeBonusVotes;
