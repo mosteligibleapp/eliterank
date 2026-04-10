@@ -1,19 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Gift, Package, ChevronRight, AlertCircle, Loader } from 'lucide-react';
+import { Gift, Package, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
 import { Panel } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { supabase } from '../../../lib/supabase';
+import ClaimRewardModal from '../../../components/modals/ClaimRewardModal';
 
 /**
  * ProfileRewardsCard - Compact rewards summary for the profile sidebar.
- * Shows pending/active reward counts with a link to the full rewards page.
+ * Shows pending/active reward counts with direct claim functionality.
  * Only renders when the user has rewards to show.
  */
 export default function ProfileRewardsCard({ userId }) {
   const { isMobile } = useResponsive();
   const [rewards, setRewards] = useState({ pending: [], active: [], total: 0 });
   const [loading, setLoading] = useState(true);
+  const [claimModal, setClaimModal] = useState({ isOpen: false, assignment: null });
 
   const fetchRewards = useCallback(async () => {
     if (!userId || !supabase) {
@@ -36,13 +38,14 @@ export default function ProfileRewardsCard({ userId }) {
         return;
       }
 
-      // Fetch reward assignments
+      // Fetch reward assignments with full reward data for claim modal
+      const rewardSelect = 'id, status, discount_code, tracking_link, reward:rewards(id, name, image_url, brand_name, cash_value, is_affiliate, terms, commission_rate, requires_promotion, description)';
       const queries = [];
       if (contestantIds.length > 0) {
         queries.push(
           supabase
             .from('reward_assignments')
-            .select('id, status, reward:rewards(name, image_url, brand_name, cash_value)')
+            .select(rewardSelect)
             .in('contestant_id', contestantIds)
         );
       }
@@ -50,7 +53,7 @@ export default function ProfileRewardsCard({ userId }) {
         queries.push(
           supabase
             .from('reward_assignments')
-            .select('id, status, reward:rewards(name, image_url, brand_name, cash_value)')
+            .select(rewardSelect)
             .in('nominee_id', nomineeIds)
         );
       }
@@ -90,192 +93,203 @@ export default function ProfileRewardsCard({ userId }) {
   const hasPending = rewards.pending.length > 0;
   const hasActive = rewards.active.length > 0;
 
-  // Show the first reward's image as a preview
-  const previewReward = (rewards.pending[0] || rewards.active[0])?.reward;
+  const rewardThumb = (assignment) => (
+    <div style={{
+      width: isMobile ? '36px' : '44px',
+      height: isMobile ? '36px' : '44px',
+      borderRadius: borderRadius.md,
+      background: assignment.reward?.image_url
+        ? `url(${assignment.reward.image_url}) center/cover no-repeat`
+        : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(139,92,246,0.1))',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    }}>
+      {!assignment.reward?.image_url && (
+        <Package size={isMobile ? 16 : 20} style={{ color: 'rgba(212,175,55,0.5)' }} />
+      )}
+    </div>
+  );
 
   return (
-    <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl, overflow: 'hidden' }}>
-      {/* Header with gold accent border */}
-      <div style={{
-        borderTop: hasPending ? '2px solid #eab308' : `2px solid ${colors.gold.primary}`,
-      }}>
-        <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
-          {/* Title row */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: spacing.lg,
-          }}>
-            <h3 style={{
-              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
-              fontWeight: typography.fontWeight.semibold,
+    <>
+      <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl, overflow: 'hidden' }}>
+        {/* Header with gold accent border */}
+        <div style={{
+          borderTop: hasPending ? '2px solid #eab308' : `2px solid ${colors.gold.primary}`,
+        }}>
+          <div style={{ padding: isMobile ? spacing.lg : spacing.xxl }}>
+            {/* Title row */}
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: spacing.md,
+              justifyContent: 'space-between',
+              marginBottom: spacing.lg,
             }}>
-              <Gift size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} />
-              Rewards
-            </h3>
-            {hasPending && (
-              <span style={{
-                background: '#eab308',
-                color: '#000',
-                fontSize: isMobile ? '10px' : typography.fontSize.xs,
-                fontWeight: typography.fontWeight.bold,
-                padding: `2px ${spacing.sm}`,
-                borderRadius: borderRadius.pill,
+              <h3 style={{
+                fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+                fontWeight: typography.fontWeight.semibold,
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.md,
               }}>
-                {rewards.pending.length} pending
-              </span>
-            )}
-          </div>
-
-          {/* Reward preview cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-            {/* Pending rewards */}
-            {hasPending && rewards.pending.slice(0, 2).map((assignment) => (
-              <div
-                key={assignment.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md,
-                  padding: isMobile ? spacing.sm : spacing.md,
-                  background: 'rgba(234,179,8,0.08)',
-                  border: '1px solid rgba(234,179,8,0.15)',
-                  borderRadius: borderRadius.lg,
-                }}
-              >
-                <div style={{
-                  width: isMobile ? '36px' : '44px',
-                  height: isMobile ? '36px' : '44px',
-                  borderRadius: borderRadius.md,
-                  background: assignment.reward?.image_url
-                    ? `url(${assignment.reward.image_url}) center/cover no-repeat`
-                    : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(139,92,246,0.1))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                <Gift size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} />
+                Rewards
+              </h3>
+              {hasPending && (
+                <span style={{
+                  background: '#eab308',
+                  color: '#000',
+                  fontSize: isMobile ? '10px' : typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.bold,
+                  padding: `2px ${spacing.sm}`,
+                  borderRadius: borderRadius.pill,
                 }}>
-                  {!assignment.reward?.image_url && (
-                    <Package size={isMobile ? 16 : 20} style={{ color: 'rgba(212,175,55,0.5)' }} />
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{
-                    fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                    fontWeight: typography.fontWeight.medium,
-                    color: colors.text.primary,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {assignment.reward?.name || 'Reward'}
-                  </p>
-                  <p style={{
-                    fontSize: isMobile ? '10px' : typography.fontSize.xs,
-                    color: '#eab308',
-                    fontWeight: typography.fontWeight.medium,
+                  {rewards.pending.length} pending
+                </span>
+              )}
+            </div>
+
+            {/* Reward cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {/* Pending rewards — clickable to claim */}
+              {hasPending && rewards.pending.map((assignment) => (
+                <button
+                  key={assignment.id}
+                  onClick={() => setClaimModal({ isOpen: true, assignment })}
+                  style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                  }}>
-                    <AlertCircle size={isMobile ? 10 : 12} /> Claim now
-                  </p>
-                </div>
-                {assignment.reward?.cash_value && (
-                  <span style={{
-                    fontSize: isMobile ? '10px' : typography.fontSize.xs,
-                    fontWeight: typography.fontWeight.bold,
-                    color: '#22c55e',
-                    flexShrink: 0,
-                  }}>
-                    ${assignment.reward.cash_value}
-                  </span>
-                )}
-              </div>
-            ))}
-
-            {/* Active rewards */}
-            {hasActive && rewards.active.slice(0, hasPending ? 1 : 2).map((assignment) => (
-              <div
-                key={assignment.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md,
-                  padding: isMobile ? spacing.sm : spacing.md,
-                  background: 'rgba(255,255,255,0.03)',
-                  borderRadius: borderRadius.lg,
-                }}
-              >
-                <div style={{
-                  width: isMobile ? '36px' : '44px',
-                  height: isMobile ? '36px' : '44px',
-                  borderRadius: borderRadius.md,
-                  background: assignment.reward?.image_url
-                    ? `url(${assignment.reward.image_url}) center/cover no-repeat`
-                    : 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(139,92,246,0.1))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  {!assignment.reward?.image_url && (
-                    <Package size={isMobile ? 16 : 20} style={{ color: 'rgba(212,175,55,0.5)' }} />
+                    gap: spacing.md,
+                    padding: isMobile ? spacing.sm : spacing.md,
+                    background: 'rgba(234,179,8,0.08)',
+                    border: '1px solid rgba(234,179,8,0.15)',
+                    borderRadius: borderRadius.lg,
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
+                >
+                  {rewardThumb(assignment)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                      fontWeight: typography.fontWeight.medium,
+                      color: colors.text.primary,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {assignment.reward?.name || 'Reward'}
+                    </p>
+                    <p style={{
+                      fontSize: isMobile ? '10px' : typography.fontSize.xs,
+                      color: '#eab308',
+                      fontWeight: typography.fontWeight.medium,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}>
+                      <AlertCircle size={isMobile ? 10 : 12} /> Tap to claim
+                    </p>
+                  </div>
+                  {assignment.reward?.cash_value && (
+                    <span style={{
+                      fontSize: isMobile ? '10px' : typography.fontSize.xs,
+                      fontWeight: typography.fontWeight.bold,
+                      color: '#22c55e',
+                      flexShrink: 0,
+                    }}>
+                      ${assignment.reward.cash_value}
+                    </span>
                   )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{
-                    fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                    fontWeight: typography.fontWeight.medium,
-                    color: colors.text.primary,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {assignment.reward?.name || 'Reward'}
-                  </p>
-                  {assignment.reward?.brand_name && (
+                </button>
+              ))}
+
+              {/* Active/claimed rewards */}
+              {hasActive && rewards.active.map((assignment) => (
+                <div
+                  key={assignment.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    padding: isMobile ? spacing.sm : spacing.md,
+                    background: 'rgba(255,255,255,0.03)',
+                    borderRadius: borderRadius.lg,
+                  }}
+                >
+                  {rewardThumb(assignment)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                      fontWeight: typography.fontWeight.medium,
+                      color: colors.text.primary,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {assignment.reward?.name || 'Reward'}
+                    </p>
                     <p style={{
                       fontSize: isMobile ? '10px' : typography.fontSize.xs,
                       color: colors.text.secondary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}>
+                      <CheckCircle size={isMobile ? 10 : 12} style={{ color: '#22c55e' }} />
+                      {assignment.discount_code ? `Code: ${assignment.discount_code}` : 'Claimed'}
+                    </p>
+                  </div>
+                  {assignment.reward?.brand_name && (
+                    <span style={{
+                      fontSize: isMobile ? '10px' : typography.fontSize.xs,
+                      color: colors.text.muted,
+                      flexShrink: 0,
                     }}>
                       {assignment.reward.brand_name}
-                    </p>
+                    </span>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {/* View all link */}
-          <a
-            href="/rewards"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: spacing.xs,
-              marginTop: spacing.lg,
-              padding: isMobile ? spacing.sm : spacing.md,
-              background: 'rgba(212,175,55,0.08)',
-              border: `1px solid rgba(212,175,55,0.15)`,
-              borderRadius: borderRadius.lg,
-              color: colors.gold.primary,
-              fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-              fontWeight: typography.fontWeight.medium,
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            View all rewards
-            <ChevronRight size={isMobile ? 14 : 16} />
-          </a>
+            {/* View all link */}
+            <a
+              href="/rewards"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.xs,
+                marginTop: spacing.lg,
+                padding: isMobile ? spacing.sm : spacing.md,
+                background: 'rgba(212,175,55,0.08)',
+                border: `1px solid rgba(212,175,55,0.15)`,
+                borderRadius: borderRadius.lg,
+                color: colors.gold.primary,
+                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                fontWeight: typography.fontWeight.medium,
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              View all rewards
+              <ChevronRight size={isMobile ? 14 : 16} />
+            </a>
+          </div>
         </div>
-      </div>
-    </Panel>
+      </Panel>
+
+      <ClaimRewardModal
+        isOpen={claimModal.isOpen}
+        onClose={() => setClaimModal({ isOpen: false, assignment: null })}
+        assignment={claimModal.assignment}
+        userId={userId}
+        onClaimed={fetchRewards}
+      />
+    </>
   );
 }
