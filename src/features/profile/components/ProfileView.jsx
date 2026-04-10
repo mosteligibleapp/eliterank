@@ -131,122 +131,67 @@ export default function ProfileView({ hostProfile, onEdit }) {
         </div>
         <div style={{ padding: isMobile ? `${spacing.xxl} ${spacing.lg} ${spacing.lg}` : `${spacing.xxxl} ${spacing.xxxl} ${spacing.xxxl}` }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md }}>
-            {/* Achievement card as hero, or fallback to avatar */}
-            {achievementCard?.image_url ? (
-              <div style={{ position: 'relative', width: '100%', maxWidth: isMobile ? '260px' : '300px' }}>
-                <img
-                  src={achievementCard.image_url}
-                  alt="Achievement Card"
-                  style={{
-                    width: '100%',
-                    borderRadius: borderRadius.xl,
-                    border: `2px solid rgba(212,175,55,0.3)`,
-                    display: 'block',
-                  }}
-                />
-                {/* Download overlay button */}
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    try {
-                      const res = await fetch(achievementCard.image_url);
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${achievementCard.achievement_type || 'achievement'}-card.png`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    } catch { /* fallback: open in new tab */ window.open(achievementCard.image_url, '_blank'); }
-                  }}
-                  style={{
-                    position: 'absolute',
-                    bottom: spacing.sm,
-                    right: spacing.sm,
-                    width: '36px',
-                    height: '36px',
-                    background: 'rgba(0,0,0,0.6)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: borderRadius.md,
-                    color: '#fff',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                  title="Download card"
-                >
-                  <Download size={16} />
-                </button>
-              </div>
-            ) : (
-              <div
-                style={{
-                  width: isMobile ? '140px' : '150px',
-                  height: isMobile ? '140px' : '150px',
-                  borderRadius: borderRadius.xxl,
-                  background: hostProfile.avatarUrl
-                    ? `url(${hostProfile.avatarUrl}) center/cover`
-                    : 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
-                  border: `3px solid rgba(212,175,55,0.3)`,
+            <div
+              style={{
+                width: isMobile ? '140px' : '150px',
+                height: isMobile ? '140px' : '150px',
+                borderRadius: borderRadius.xxl,
+                background: hostProfile.avatarUrl
+                  ? `url(${hostProfile.avatarUrl}) center/cover`
+                  : 'linear-gradient(135deg, rgba(212,175,55,0.4), rgba(212,175,55,0.1))',
+                border: `3px solid rgba(212,175,55,0.3)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isMobile ? '42px' : '48px',
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.gold.primary,
+                flexShrink: 0,
+              }}
+            >
+              {!hostProfile.avatarUrl && initials}
+            </div>
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+              <h1 style={{
+                fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.xxl,
+                fontWeight: typography.fontWeight.bold,
+                color: '#fff',
+                wordBreak: 'break-word',
+              }}>
+                {hostProfile.firstName} {hostProfile.lastName}
+              </h1>
+              {hostProfile.city && (
+                <p style={{
+                  color: colors.text.secondary,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: isMobile ? '42px' : '48px',
-                  fontWeight: typography.fontWeight.semibold,
-                  color: colors.gold.primary,
-                  flexShrink: 0,
-                }}
-              >
-                {!hostProfile.avatarUrl && initials}
-              </div>
-            )}
-            <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-              {/* Only show name/city/headline when NOT showing the card (card already has this info) */}
-              {!achievementCard?.image_url && (
-                <>
-                  <h1 style={{
-                    fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.xxl,
-                    fontWeight: typography.fontWeight.bold,
-                    color: '#fff',
-                    wordBreak: 'break-word',
-                  }}>
-                    {hostProfile.firstName} {hostProfile.lastName}
-                  </h1>
-                  {hostProfile.city && (
-                    <p style={{
-                      color: colors.text.secondary,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: spacing.sm,
-                      marginTop: spacing.sm,
-                      fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg
-                    }}>
-                      <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}{hostProfile.age ? `, ${hostProfile.age}` : ''}
-                    </p>
-                  )}
-                  {hostProfile.headline && (
-                    <p style={{
-                      color: colors.text.muted,
-                      textAlign: 'center',
-                      marginTop: spacing.sm,
-                      fontSize: typography.fontSize.sm,
-                      fontStyle: 'italic',
-                    }}>
-                      {hostProfile.headline}
-                    </p>
-                  )}
-                </>
+                  gap: spacing.sm,
+                  marginTop: spacing.sm,
+                  fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg
+                }}>
+                  <MapPin size={isMobile ? 16 : 18} /> {hostProfile.city}{hostProfile.age ? `, ${hostProfile.age}` : ''}
+                </p>
+              )}
+              {hostProfile.headline && (
+                <p style={{
+                  color: colors.text.muted,
+                  textAlign: 'center',
+                  marginTop: spacing.sm,
+                  fontSize: typography.fontSize.sm,
+                  fontStyle: 'italic',
+                }}>
+                  {hostProfile.headline}
+                </p>
               )}
               {(() => {
                 const statsVotes = competitionStats?.totalVotes || 0;
                 const nomineeBonusVotes = (!statsVotes && bonusVotes?.totalEarned) ? bonusVotes.totalEarned : 0;
                 const displayVotes = statsVotes + nomineeBonusVotes;
                 const wins = competitionStats?.wins || 0;
+                const hasCard = !!achievementCard?.image_url;
 
-                if (displayVotes <= 0 && wins <= 0) return null;
+                if (displayVotes <= 0 && wins <= 0 && !hasCard) return null;
 
                 return (
                   <div style={{
@@ -290,6 +235,39 @@ export default function ProfileView({ hostProfile, onEdit }) {
                         <TrendingUp size={isMobile ? 14 : 16} />
                         {wins} {wins === 1 ? 'win' : 'wins'}
                       </span>
+                    )}
+                    {hasCard && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(achievementCard.image_url);
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${achievementCard.achievement_type || 'achievement'}-card.png`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } catch { window.open(achievementCard.image_url, '_blank'); }
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: spacing.xs,
+                          padding: `${spacing.xs} ${spacing.md}`,
+                          background: 'rgba(212,175,55,0.1)',
+                          border: '1px solid rgba(212,175,55,0.2)',
+                          borderRadius: borderRadius.pill,
+                          fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                          fontWeight: typography.fontWeight.semibold,
+                          color: colors.gold.primary,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <Download size={isMobile ? 14 : 16} />
+                        Card
+                      </button>
                     )}
                   </div>
                 );
