@@ -1175,16 +1175,16 @@ function CompetitionPrizeCard({ prize, isMobile }) {
             pointerEvents: 'none',
           }} />
 
-          {/* Sponsor badge - top left */}
+          {/* Brand name badge - bottom left */}
           {prize.sponsor_name && (
             <div style={{
               position: 'absolute',
-              top: isMobile ? spacing.sm : spacing.md,
+              bottom: isMobile ? spacing.sm : spacing.md,
               left: isMobile ? spacing.sm : spacing.md,
               background: 'rgba(0,0,0,0.65)',
               backdropFilter: 'blur(8px)',
               borderRadius: '20px',
-              padding: isMobile ? `2px ${spacing.xs}` : `4px ${spacing.sm}`,
+              padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
               fontSize: isMobile ? '10px' : typography.fontSize.xs,
               color: colors.gold.primary,
               fontWeight: typography.fontWeight.medium,
@@ -1215,25 +1215,6 @@ function CompetitionPrizeCard({ prize, isMobile }) {
               ${Number(prize.value).toLocaleString()}
             </div>
           )}
-
-          {/* Prize type badge - bottom left */}
-          <div style={{
-            position: 'absolute',
-            bottom: isMobile ? spacing.sm : spacing.md,
-            left: isMobile ? spacing.sm : spacing.md,
-            background: (prize.prize_type || 'winner') === 'winner'
-              ? 'rgba(212, 175, 55, 0.9)'
-              : 'rgba(107, 114, 128, 0.85)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: '20px',
-            padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
-            fontSize: isMobile ? '10px' : typography.fontSize.xs,
-            fontWeight: typography.fontWeight.semibold,
-            color: (prize.prize_type || 'winner') === 'winner' ? '#000' : '#fff',
-            letterSpacing: '0.3px',
-          }}>
-            {(prize.prize_type || 'winner') === 'winner' ? 'Winner Prize' : 'All Contestants'}
-          </div>
         </div>
 
         {/* Card Info */}
