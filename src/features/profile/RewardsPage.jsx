@@ -434,7 +434,7 @@ export default function RewardsPage({ hostProfile }) {
             gap: spacing.sm,
           }}>
             <Trophy size={18} style={{ color: colors.gold.primary }} />
-            Competition Prizes
+            Competition Winner&apos;s Prize Package
           </h3>
           <p style={{
             fontSize: typography.fontSize.sm,
@@ -444,36 +444,9 @@ export default function RewardsPage({ hostProfile }) {
             Prizes and rewards up for grabs in your competition
           </p>
 
-          {/* Winner's Prize Package */}
-          {winnerPrizes.length > 0 && (
-            <div style={{ marginBottom: contestantRewards.length > 0 ? spacing.xl : 0 }}>
-              <h4 style={{
-                fontSize: typography.fontSize.md,
-                fontWeight: typography.fontWeight.semibold,
-                color: colors.gold.primary,
-                marginBottom: spacing.md,
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.xs,
-              }}>
-                <Crown size={16} />
-                Winner&apos;s Prize Package
-              </h4>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: isMobile ? spacing.md : spacing.xl,
-              }}>
-                {winnerPrizes.map(prize => (
-                  <CompetitionPrizeCard key={prize.id} prize={prize} isMobile={isMobile} />
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Contestant Rewards */}
           {contestantRewards.length > 0 && (
-            <div>
+            <div style={{ marginBottom: winnerPrizes.length > 0 ? spacing.xl : 0 }}>
               <h4 style={{
                 fontSize: typography.fontSize.md,
                 fontWeight: typography.fontWeight.semibold,
@@ -492,6 +465,33 @@ export default function RewardsPage({ hostProfile }) {
                 gap: isMobile ? spacing.md : spacing.xl,
               }}>
                 {contestantRewards.map(prize => (
+                  <CompetitionPrizeCard key={prize.id} prize={prize} isMobile={isMobile} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Winner's Prize Package */}
+          {winnerPrizes.length > 0 && (
+            <div>
+              <h4 style={{
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.gold.primary,
+                marginBottom: spacing.md,
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+              }}>
+                <Crown size={16} />
+                Winner&apos;s Prize Package
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: isMobile ? spacing.md : spacing.xl,
+              }}>
+                {winnerPrizes.map(prize => (
                   <CompetitionPrizeCard key={prize.id} prize={prize} isMobile={isMobile} />
                 ))}
               </div>
