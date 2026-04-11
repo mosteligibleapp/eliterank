@@ -262,12 +262,16 @@ export default function RewardsPage({ hostProfile }) {
   const activeRewards = claimableRewards.filter(a => ['claimed', 'shipped', 'active'].includes(a.status));
   const completedRewards = claimableRewards.filter(a => ['completed', 'expired'].includes(a.status));
 
-  // Filter out competition prizes that already appear in rewards sections (by matching title to reward name)
-  const existingRewardNames = new Set([
-    ...claimableRewards.map(a => a.reward?.name?.toLowerCase()).filter(Boolean),
-    ...visibleRewards.map(a => a.reward?.name?.toLowerCase()).filter(Boolean),
-  ]);
-  const dedupedPrizes = competitionPrizes.filter(p => !existingRewardNames.has(p.title?.toLowerCase()));
+  // Filter out competition prizes that already appear in rewards sections
+  const existingRewardNames = new Set();
+  for (const a of [...claimableRewards, ...visibleRewards]) {
+    const r = a.reward;
+    const name = Array.isArray(r) ? r[0]?.name : r?.name;
+    if (name) existingRewardNames.add(name.trim().toLowerCase());
+  }
+  const dedupedPrizes = competitionPrizes.filter(p =>
+    !p.title || !existingRewardNames.has(p.title.trim().toLowerCase())
+  );
 
   // Split competition prizes by type
   const winnerPrizes = dedupedPrizes.filter(p => (p.prize_type || 'winner') === 'winner');
