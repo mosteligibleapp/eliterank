@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, AlertCircle, Pencil, Trash2 } from 'lucide-react';
+import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, AlertCircle, Pencil, Trash2, Trophy, Crown } from 'lucide-react';
 import { Panel, Button } from '../../components/ui';
 import ClaimRewardModal from '../../components/modals/ClaimRewardModal';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -26,6 +26,7 @@ export default function RewardsPage({ hostProfile }) {
   const { user } = useSupabaseAuth();
   const [claimableRewards, setClaimableRewards] = useState([]); // Individual assignments (can claim)
   const [visibleRewards, setVisibleRewards] = useState([]); // Competition assignments (visible only)
+  const [competitionPrizes, setCompetitionPrizes] = useState([]); // Prizes from competition_prizes table
   const [loading, setLoading] = useState(true);
   const [claimingAssignment, setClaimingAssignment] = useState(null); // Assignment being claimed (opens modal)
   const [addingLinkId, setAddingLinkId] = useState(null);
@@ -36,6 +37,7 @@ export default function RewardsPage({ hostProfile }) {
     if (!user?.id || !supabase) {
       setClaimableRewards([]);
       setVisibleRewards([]);
+      setCompetitionPrizes([]);
       setLoading(false);
       return;
     }
@@ -71,6 +73,7 @@ export default function RewardsPage({ hostProfile }) {
       if (contestantIds.length === 0 && nomineeIds.length === 0) {
         setClaimableRewards([]);
         setVisibleRewards([]);
+        setCompetitionPrizes([]);
         setLoading(false);
         return;
       }
@@ -142,10 +145,28 @@ export default function RewardsPage({ hostProfile }) {
         visibleOnly = (compAssignments || []).filter(ca => !claimableRewardIds.has(ca.reward_id));
       }
       setVisibleRewards(visibleOnly);
+
+      // Fetch competition prizes (from competition page)
+      if (competitionIds.length > 0) {
+        const { data: prizesData, error: prizesError } = await supabase
+          .from('competition_prizes')
+          .select(`
+            id, title, description, image_url, value, sponsor_name,
+            external_url, sort_order, prize_type,
+            competition:competitions(id, name, season, city:cities(name))
+          `)
+          .in('competition_id', competitionIds)
+          .order('sort_order', { ascending: true });
+
+        if (!prizesError) {
+          setCompetitionPrizes(prizesData || []);
+        }
+      }
     } catch (err) {
       console.error('Error fetching rewards:', err);
       setClaimableRewards([]);
       setVisibleRewards([]);
+      setCompetitionPrizes([]);
     } finally {
       setLoading(false);
     }
@@ -241,8 +262,12 @@ export default function RewardsPage({ hostProfile }) {
   const activeRewards = claimableRewards.filter(a => ['claimed', 'shipped', 'active'].includes(a.status));
   const completedRewards = claimableRewards.filter(a => ['completed', 'expired'].includes(a.status));
 
-  // Check if there are any rewards at all (claimable or visible)
-  const hasAnyRewards = claimableRewards.length > 0 || visibleRewards.length > 0;
+  // Split competition prizes by type
+  const winnerPrizes = competitionPrizes.filter(p => (p.prize_type || 'winner') === 'winner');
+  const contestantRewards = competitionPrizes.filter(p => p.prize_type === 'contestant');
+
+  // Check if there are any rewards at all (claimable, visible, or competition prizes)
+  const hasAnyRewards = claimableRewards.length > 0 || visibleRewards.length > 0 || competitionPrizes.length > 0;
 
   return (
     <div>
@@ -393,6 +418,85 @@ export default function RewardsPage({ hostProfile }) {
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Competition Prizes */}
+      {!loading && competitionPrizes.length > 0 && (
+        <div style={{ marginBottom: spacing.xxxl }}>
+          <h3 style={{
+            fontSize: typography.fontSize.lg,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            marginBottom: spacing.sm,
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.sm,
+          }}>
+            <Trophy size={18} style={{ color: colors.gold.primary }} />
+            Competition Prizes
+          </h3>
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.secondary,
+            marginBottom: spacing.lg,
+          }}>
+            Prizes and rewards up for grabs in your competition
+          </p>
+
+          {/* Winner's Prize Package */}
+          {winnerPrizes.length > 0 && (
+            <div style={{ marginBottom: contestantRewards.length > 0 ? spacing.xl : 0 }}>
+              <h4 style={{
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.gold.primary,
+                marginBottom: spacing.md,
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+              }}>
+                <Crown size={16} />
+                Winner&apos;s Prize Package
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: isMobile ? spacing.md : spacing.xl,
+              }}>
+                {winnerPrizes.map(prize => (
+                  <CompetitionPrizeCard key={prize.id} prize={prize} isMobile={isMobile} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Contestant Rewards */}
+          {contestantRewards.length > 0 && (
+            <div>
+              <h4 style={{
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.text.primary,
+                marginBottom: spacing.md,
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+              }}>
+                <Gift size={16} style={{ color: colors.gold.primary }} />
+                Contestant Rewards
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: isMobile ? spacing.md : spacing.xl,
+              }}>
+                {contestantRewards.map(prize => (
+                  <CompetitionPrizeCard key={prize.id} prize={prize} isMobile={isMobile} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1025,5 +1129,162 @@ function VisibleRewardCard({ assignment, isMobile }) {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * CompetitionPrizeCard - Displays a competition prize from the competition page
+ * Matches the card pattern used by VisibleRewardCard
+ */
+function CompetitionPrizeCard({ prize, isMobile }) {
+  const Wrapper = prize.external_url ? 'a' : 'div';
+  const wrapperProps = prize.external_url
+    ? { href: prize.external_url, target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none', color: 'inherit' } }
+    : {};
+
+  return (
+    <Wrapper
+      {...wrapperProps}
+    >
+      <div
+        style={{
+          display: 'block',
+          overflow: 'hidden',
+          minWidth: 0,
+          transition: 'transform 0.2s ease',
+          cursor: prize.external_url ? 'pointer' : 'default',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+      >
+        {/* Cover Image */}
+        <div style={{
+          width: '100%',
+          aspectRatio: '3 / 2',
+          borderRadius: isMobile ? borderRadius.lg : borderRadius.xl,
+          overflow: 'hidden',
+          position: 'relative',
+          background: prize.image_url
+            ? `url(${prize.image_url}) center/cover no-repeat`
+            : `linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(212,175,55,0.05) 100%)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          {!prize.image_url && <Trophy size={isMobile ? 32 : 56} style={{ color: 'rgba(212,175,55,0.35)' }} />}
+
+          {/* Bottom gradient fade */}
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '50%',
+            background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%)',
+            pointerEvents: 'none',
+          }} />
+
+          {/* Sponsor badge - top left */}
+          {prize.sponsor_name && (
+            <div style={{
+              position: 'absolute',
+              top: isMobile ? spacing.sm : spacing.md,
+              left: isMobile ? spacing.sm : spacing.md,
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: '20px',
+              padding: isMobile ? `2px ${spacing.xs}` : `4px ${spacing.sm}`,
+              fontSize: isMobile ? '10px' : typography.fontSize.xs,
+              color: colors.gold.primary,
+              fontWeight: typography.fontWeight.medium,
+              letterSpacing: '0.3px',
+              maxWidth: isMobile ? '80%' : 'none',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {prize.sponsor_name}
+            </div>
+          )}
+
+          {/* Value badge - bottom right */}
+          {prize.value && (
+            <div style={{
+              position: 'absolute',
+              bottom: isMobile ? spacing.sm : spacing.md,
+              right: isMobile ? spacing.sm : spacing.md,
+              background: 'rgba(34, 197, 94, 0.9)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: '20px',
+              padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
+              fontSize: isMobile ? '10px' : typography.fontSize.xs,
+              fontWeight: typography.fontWeight.bold,
+              color: '#fff',
+            }}>
+              ${Number(prize.value).toLocaleString()}
+            </div>
+          )}
+
+          {/* Prize type badge - bottom left */}
+          <div style={{
+            position: 'absolute',
+            bottom: isMobile ? spacing.sm : spacing.md,
+            left: isMobile ? spacing.sm : spacing.md,
+            background: (prize.prize_type || 'winner') === 'winner'
+              ? 'rgba(212, 175, 55, 0.9)'
+              : 'rgba(107, 114, 128, 0.85)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: '20px',
+            padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
+            fontSize: isMobile ? '10px' : typography.fontSize.xs,
+            fontWeight: typography.fontWeight.semibold,
+            color: (prize.prize_type || 'winner') === 'winner' ? '#000' : '#fff',
+            letterSpacing: '0.3px',
+          }}>
+            {(prize.prize_type || 'winner') === 'winner' ? 'Winner Prize' : 'All Contestants'}
+          </div>
+        </div>
+
+        {/* Card Info */}
+        <div style={{ padding: `${isMobile ? spacing.sm : spacing.md} 2px 0` }}>
+          <h3 style={{
+            fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+            fontWeight: typography.fontWeight.bold,
+            color: colors.text.primary,
+            marginBottom: '2px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {prize.title}
+          </h3>
+
+          {prize.description && !isMobile && (
+            <p style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.tertiary,
+              marginBottom: spacing.xs,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              lineHeight: 1.4,
+            }}>
+              {prize.description}
+            </p>
+          )}
+
+          <p style={{
+            fontSize: isMobile ? '10px' : typography.fontSize.xs,
+            color: colors.text.muted,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {prize.competition?.name || prize.competition?.city?.name || ''}
+          </p>
+        </div>
+      </div>
+    </Wrapper>
   );
 }
