@@ -433,7 +433,7 @@ export default function RewardsPage({ hostProfile }) {
       )}
 
       {/* Competition Prizes */}
-      {!loading && competitionPrizes.length > 0 && (
+      {!loading && dedupedPrizes.length > 0 && (
         <div style={{ marginBottom: spacing.xxxl }}>
           {/* Contestant Rewards */}
           {contestantRewards.length > 0 && (
