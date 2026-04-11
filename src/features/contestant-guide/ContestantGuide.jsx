@@ -261,13 +261,22 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
   const isVotingPhase = phase?.isVoting;
   const isNominationPhase = phase?.phase === 'nominations';
 
-  // Find the judging round and final voting round
   const sorted = [...rounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
-  const judgingRound = sorted.find(r => r.round_type === 'judging');
-  const judgingIdx = judgingRound ? sorted.indexOf(judgingRound) : -1;
-  const preJudgeRounds = sorted.filter((r, i) => r.round_type === 'voting' && (judgingIdx < 0 || i < judgingIdx));
-  const finalVotingRound = judgingIdx >= 0 ? sorted.find((r, i) => i > judgingIdx && r.round_type === 'voting') : null;
-  const judgingAdvance = judgingRound?.contestants_advance || numWinners;
+
+  // Detect judge scoring between second-to-last and last round
+  const preFinalists = sorted.length >= 2 ? sorted[sorted.length - 2]?.contestants_advance : null;
+  const finalists = sorted.length >= 1 ? (sorted[sorted.length - 1]?.contestants_advance || numWinners) : numWinners;
+  const hasJudgeStep = preFinalists && preFinalists > finalists;
+
+  const howItWorksPoints = [
+    `The competition runs across ${sorted.length} voting rounds`,
+    'A set number of contestants advances each round based on vote count, and votes reset at the start of every round',
+  ];
+  if (hasJudgeStep) {
+    howItWorksPoints.push(`After the Top ${preFinalists} are determined, a panel of judges will score the finalists — judge scores determine who advances to the Top ${finalists}`);
+    howItWorksPoints.push(`From there, the Top ${finalists} compete in a final voting round — votes reset one last time, and the final vote count determines the winners' rankings (1st–${numWinners}th)`);
+  }
+  howItWorksPoints.push(`${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
 
   const sections = [
     // Section 1: How It Works
@@ -275,17 +284,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
       icon: <Trophy size={48} className="guide-icon guide-icon--gold" />,
       title: 'How It Works',
       subtitle: `Here's how ${competitionName} works`,
-      points: [
-        `The competition runs across ${sorted.length} rounds`,
-        'A set number of contestants advances each round based on vote count, and votes reset at the start of every round',
-        judgingRound
-          ? `After Round ${judgingIdx}, a panel of judges will score the Top ${sorted[judgingIdx - 1]?.contestants_advance || 10} finalists — judge scores determine who advances to the Top ${judgingAdvance}`
-          : `Top contestants advance each round based on votes`,
-        finalVotingRound
-          ? `From there, the Top ${judgingAdvance} compete in a final voting round — votes reset one last time, and the final vote count determines the winners' rankings (1st–${numWinners}th)`
-          : `Top ${numWinners} with the most votes win`,
-        `${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`,
-      ],
+      points: howItWorksPoints,
       tip: 'The more votes you get, the higher you rank!',
     },
 

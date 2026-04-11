@@ -166,38 +166,41 @@ function generateVotingContent({ competition }) {
  * Generate rounds & advancement content
  */
 function generateRoundsContent({ competition, votingRounds, numRounds }) {
-  const totalRounds = votingRounds.length;
   const numWinners = competition?.number_of_winners || 5;
   const sorted = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
-  const judgingRound = sorted.find(r => r.round_type === 'judging');
-  const judgingIndex = sorted.indexOf(judgingRound);
-  const finalVotingRound = judgingRound ? sorted.find((r, i) => i > judgingIndex && r.round_type !== 'judging') : null;
+  const cityName = competition?.city?.name || competition?.city || '';
 
   const content = [
-    `• The competition runs across ${totalRounds} rounds`,
+    `• The competition runs across ${sorted.length} voting rounds`,
     '• A set number of contestants advances each round based on vote count',
     '• Votes reset to zero at the start of every round',
   ];
 
-  // Add round-specific info
+  // List each round with its advancement
   sorted.forEach((round, index) => {
-    const roundNum = index + 1;
-    const isJudging = round.round_type === 'judging';
+    const isLast = index === sorted.length - 1;
+    const title = round.title || `Round ${index + 1}`;
 
-    if (isJudging) {
-      const advanceTo = round.contestants_advance || numWinners;
-      content.push(`• Round ${roundNum}: A panel of judges scores the finalists — judge scores determine who advances to the Top ${advanceTo}`);
-    } else if (finalVotingRound && round === finalVotingRound) {
-      content.push(`• Round ${roundNum}: Final voting round — votes reset one last time, and the final vote count determines the winners' rankings (1st–${numWinners}th)`);
+    if (isLast) {
+      content.push(`• ${title} — the final vote count determines the winners' rankings (1st–${numWinners}th)`);
     } else {
       const advanceInfo = round.contestants_advance
         ? ` — Top ${round.contestants_advance} advance`
         : '';
-      content.push(`• Round ${roundNum}: ${round.title || `Voting Round ${roundNum}`}${advanceInfo}`);
+      content.push(`• ${title}${advanceInfo}`);
     }
   });
 
-  content.push(`• ${numWinners} contestants will be crowned Most Eligible ${competition?.city?.name || competition?.city || ''} and hold the title for one year`);
+  // Add judge scoring note between second-to-last and last round
+  if (sorted.length >= 2) {
+    const preFinalists = sorted[sorted.length - 2]?.contestants_advance;
+    const finalists = sorted[sorted.length - 1]?.contestants_advance || numWinners;
+    if (preFinalists && preFinalists > finalists) {
+      content.push(`• After the Top ${preFinalists} are determined, a panel of judges will score the finalists — judge scores determine who advances to the Top ${finalists}`);
+    }
+  }
+
+  content.push(`• ${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
   content.push('• Fans can vote once daily for free, or purchase additional votes');
   content.push('• Keep an eye out for surprise Double Vote Days — when they hit, every vote counts twice');
 
