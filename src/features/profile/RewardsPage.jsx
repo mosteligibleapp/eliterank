@@ -424,26 +424,6 @@ export default function RewardsPage({ hostProfile }) {
       {/* Competition Prizes */}
       {!loading && competitionPrizes.length > 0 && (
         <div style={{ marginBottom: spacing.xxxl }}>
-          <h3 style={{
-            fontSize: typography.fontSize.lg,
-            fontWeight: typography.fontWeight.semibold,
-            color: colors.text.primary,
-            marginBottom: spacing.sm,
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.sm,
-          }}>
-            <Trophy size={18} style={{ color: colors.gold.primary }} />
-            Competition Winner&apos;s Prize Package
-          </h3>
-          <p style={{
-            fontSize: typography.fontSize.sm,
-            color: colors.text.secondary,
-            marginBottom: spacing.lg,
-          }}>
-            Prizes and rewards up for grabs in your competition
-          </p>
-
           {/* Contestant Rewards */}
           {contestantRewards.length > 0 && (
             <div style={{ marginBottom: winnerPrizes.length > 0 ? spacing.xl : 0 }}>
