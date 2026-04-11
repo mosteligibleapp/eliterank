@@ -261,46 +261,46 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
   const isVotingPhase = phase?.isVoting;
   const isNominationPhase = phase?.phase === 'nominations';
 
-  // Build round advancement details from actual data
-  const roundDetails = rounds
-    .filter(r => r.round_type !== 'judging')
-    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
-    .map((r, i, arr) => {
-      const label = r.title || `Round ${i + 1}`;
-      const isFinal = i === arr.length - 1;
-      if (isFinal && r.contestants_advance) {
-        return `${label} — Top ${r.contestants_advance} advance to Final Round — Rank Order of Top ${r.contestants_advance} (1st-${r.contestants_advance}th)`;
-      }
-      const advance = r.contestants_advance ? ` — Top ${r.contestants_advance} advance` : '';
-      return `${label}${advance}`;
-    });
+  // Find the judging round and final voting round
+  const sorted = [...rounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+  const judgingRound = sorted.find(r => r.round_type === 'judging');
+  const judgingIdx = judgingRound ? sorted.indexOf(judgingRound) : -1;
+  const preJudgeRounds = sorted.filter((r, i) => r.round_type === 'voting' && (judgingIdx < 0 || i < judgingIdx));
+  const finalVotingRound = judgingIdx >= 0 ? sorted.find((r, i) => i > judgingIdx && r.round_type === 'voting') : null;
+  const judgingAdvance = judgingRound?.contestants_advance || numWinners;
 
   const sections = [
-    // Section 1: Welcome / How It Works
+    // Section 1: How It Works
     {
       icon: <Trophy size={48} className="guide-icon guide-icon--gold" />,
-      title: 'Welcome to the Competition!',
-      subtitle: `You will be notified via email if you are accepted as an official contestant.`,
+      title: 'How It Works',
+      subtitle: `Here's how ${competitionName} works`,
       points: [
-        `Compete against other contestants from ${cityName}`,
-        'Multiple voting rounds with eliminations each round',
-        `Top ${numWinners} finishers win prizes — 1st place takes home cash`,
-        hasResurrection ? 'Resurrection round gives eliminated contestants a second chance!' : 'Every vote counts toward your ranking',
-      ].filter(Boolean),
-      tip: `How ${competitionName} works: The more votes you get, the higher you rank!`,
+        `The competition runs across ${sorted.length} rounds`,
+        'A set number of contestants advances each round based on vote count, and votes reset at the start of every round',
+        judgingRound
+          ? `After Round ${judgingIdx}, a panel of judges will score the Top ${sorted[judgingIdx - 1]?.contestants_advance || 10} finalists — judge scores determine who advances to the Top ${judgingAdvance}`
+          : `Top contestants advance each round based on votes`,
+        finalVotingRound
+          ? `From there, the Top ${judgingAdvance} compete in a final voting round — votes reset one last time, and the final vote count determines the winners' rankings (1st–${numWinners}th)`
+          : `Top ${numWinners} with the most votes win`,
+        `${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`,
+      ],
+      tip: 'The more votes you get, the higher you rank!',
     },
 
-    // Section 2: How Voting Works
+    // Section 2: Voting
     {
       icon: <Vote size={48} className="guide-icon guide-icon--pink" />,
-      title: 'How Voting Works',
+      title: 'Voting',
       subtitle: 'Understanding votes is key to winning',
       points: [
-        'Anyone can vote for you — once per day for FREE',
+        'Fans can vote once daily for free, or purchase additional votes',
         'Free votes reset at midnight (local time)',
-        `Supporters can buy extra votes ($${pricePerVote.toFixed(2)} each)`,
+        `Additional votes can be purchased ($${pricePerVote.toFixed(2)} each)`,
         'Paid votes count immediately and never expire',
-        'Vote totals reset to zero at the start of each new round',
+        'Vote counts reset to zero at the start of each new round',
+        'Keep an eye out for surprise Double Vote Days — when they hit, every vote counts twice',
       ],
       tip: 'Remind your supporters to vote daily — those free votes add up fast!',
     },
@@ -341,14 +341,13 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
       title: 'Prize Pool',
       subtitle: 'Real prizes. Real bragging rights.',
       points: [
-        `Top ${numWinners} contestants with the most votes earn the year long title`,
+        `${numWinners} winners earn the year-long title of Most Eligible ${cityName}`,
         `The ${numWinners} winners receive a prize package from competition sponsors`,
         {
           text: `1st place receives a cash prize (min $${prizeMinimum.toLocaleString()})`,
           subpoints: [
             'Cash prize grows from every paid vote purchased',
             'Winner may keep the prize or donate to a verified 501(c)(3) of their choice',
-            'Contestants donating to charity are encouraged to promote their cause throughout the competition',
           ],
         },
       ],
