@@ -5179,7 +5179,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 .judge-bio {
   font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1.5;
 }
