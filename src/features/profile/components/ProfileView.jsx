@@ -141,7 +141,7 @@ export default function ProfileView({ hostProfile, onEdit }) {
             >
               {copied ? 'Copied!' : 'Share'}
             </Button>
-            {cardInfo && (
+            {onEdit && cardInfo && (
               <Button
                 onClick={handleDownloadCard}
                 icon={generatingCard ? Loader : Download}
