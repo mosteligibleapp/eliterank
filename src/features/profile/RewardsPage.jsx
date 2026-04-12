@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, AlertCircle, Pencil, Trash2, Trophy, Crown } from 'lucide-react';
+import { Gift, Package, ExternalLink, Clock, Check, Link2, Plus, AlertCircle, Pencil, Trash2, Trophy } from 'lucide-react';
 import { Panel, Button } from '../../components/ui';
+import { CrownIcon } from '../../components/ui/icons';
 import ClaimRewardModal from '../../components/modals/ClaimRewardModal';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -468,13 +469,13 @@ export default function RewardsPage({ hostProfile }) {
               <h4 style={{
                 fontSize: typography.fontSize.md,
                 fontWeight: typography.fontWeight.semibold,
-                color: colors.gold.primary,
+                color: colors.text.primary,
                 marginBottom: spacing.md,
                 display: 'flex',
                 alignItems: 'center',
                 gap: spacing.xs,
               }}>
-                <Crown size={16} />
+                <CrownIcon size={16} color={colors.gold.primary} />
                 Winner&apos;s Prize Package
               </h4>
               <div style={{
