@@ -475,7 +475,7 @@ export default function RewardsPage({ hostProfile }) {
                 alignItems: 'center',
                 gap: spacing.xs,
               }}>
-                <CrownIcon size={16} color={colors.gold.primary} />
+                <CrownIcon size={20} color={colors.gold.primary} />
                 Winner&apos;s Prize Package
               </h4>
               <div style={{
