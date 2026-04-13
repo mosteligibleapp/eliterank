@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown, AlertTriangle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
+import CrownIcon from '../../../components/ui/icons/CrownIcon';
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -120,7 +120,7 @@ export function PortraitCard({ contestant, rank, numberOfWinners = 1, onVote }) 
             className="portrait-rank portrait-rank-winner"
             aria-label={`Winner rank ${rank}`}
           >
-            <EliteRankCrown size={14} />
+            <CrownIcon size={14} color="#0a0a0f" />
           </span>
         ) : (
           <span className="portrait-rank">#{rank}</span>
