@@ -3963,6 +3963,22 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   padding-top: 0; /* Header handles top spacing */
 }
 
+/* Full leaderboard reuses the .portrait-grid card style from the
+   compact sidebar leaderboard. Override the grid sizing so cards
+   render larger on the full page than in the narrow sidebar. */
+.leaderboard-full .portrait-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-lg);
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .leaderboard-full .portrait-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+}
+
 .contestant-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

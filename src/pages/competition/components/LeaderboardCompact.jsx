@@ -78,7 +78,7 @@ export function LeaderboardCompact() {
   );
 }
 
-function PortraitCard({ contestant, rank, onVote }) {
+export function PortraitCard({ contestant, rank, onVote }) {
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleError = useCallback(() => setImgFailed(true), []);

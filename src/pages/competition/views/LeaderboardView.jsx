@@ -1,9 +1,10 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Crown } from 'lucide-react';
+import { PortraitCard } from '../components/LeaderboardCompact';
 
 /**
- * Full leaderboard page - clean grid of contestant cards
- * Tap any card to vote directly
+ * Full leaderboard page - reuses the same portrait-card grid as the
+ * compact sidebar leaderboard so the two surfaces stay visually consistent.
+ * On the full page the grid has more room, so the cards render larger.
  */
 export function LeaderboardView() {
   const {
@@ -13,45 +14,14 @@ export function LeaderboardView() {
 
   return (
     <div className="leaderboard-full">
-      {/* Grid of contestants */}
-      <div className="contestant-grid">
-        {contestants?.map((contestant) => (
-          <div
+      <div className="portrait-grid">
+        {contestants?.map((contestant, index) => (
+          <PortraitCard
             key={contestant.id}
-            className={`contestant-card ${contestant.displayRank === 1 ? 'is-leader' : ''}`}
-            onClick={() => openVoteModal(contestant)}
-          >
-            {/* Rank badge */}
-            <div className={`contestant-rank ${contestant.displayRank <= 3 ? 'top-three' : ''}`}>
-              {contestant.displayRank === 1 ? (
-                <Crown size={12} />
-              ) : (
-                `#${contestant.displayRank}`
-              )}
-            </div>
-
-            {/* Photo - prominent */}
-            <div className="contestant-photo">
-              {contestant.avatar_url ? (
-                <img
-                  src={contestant.avatar_url}
-                  alt={contestant.name}
-                />
-              ) : (
-                <div className="contestant-photo-placeholder">
-                  {contestant.name?.charAt(0)}
-                </div>
-              )}
-            </div>
-
-            {/* Info */}
-            <div className="contestant-info">
-              <span className="contestant-name">{contestant.name?.split(' ')[0]}</span>
-              <span className="contestant-votes">
-                {(contestant.votes || 0).toLocaleString()}
-              </span>
-            </div>
-          </div>
+            contestant={contestant}
+            rank={contestant.displayRank || index + 1}
+            onVote={openVoteModal}
+          />
         ))}
       </div>
 
