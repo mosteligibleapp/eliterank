@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown, AlertTriangle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -10,10 +11,16 @@ import { useNavigate, useLocation } from 'react-router-dom';
 export function LeaderboardCompact() {
   const {
     contestants,
+    competition,
     dangerZone,
     openContestantProfile,
     openVoteModal,
   } = usePublicCompetition();
+
+  // Top N contestants are "winners" and get the EliteRank crown badge
+  // instead of a rank number. Driven by the competition's configured
+  // number_of_winners so every competition behaves correctly.
+  const numberOfWinners = competition?.number_of_winners || 1;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,6 +61,7 @@ export function LeaderboardCompact() {
             key={contestant.id}
             contestant={contestant}
             rank={index + 1}
+            numberOfWinners={numberOfWinners}
             onVote={openVoteModal}
           />
         ))}
@@ -78,14 +86,14 @@ export function LeaderboardCompact() {
   );
 }
 
-export function PortraitCard({ contestant, rank, onVote }) {
+export function PortraitCard({ contestant, rank, numberOfWinners = 1, onVote }) {
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleError = useCallback(() => setImgFailed(true), []);
   const handleLoad = useCallback(() => setImgLoaded(true), []);
 
   const isDanger = contestant.zone === 'danger';
-  const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+  const isWinner = rank <= numberOfWinners;
   const showImg = contestant.avatar_url && !imgFailed;
 
   return (
@@ -107,10 +115,16 @@ export function PortraitCard({ contestant, rank, onVote }) {
             onError={handleError}
           />
         )}
-        <span className={`portrait-rank ${rankClass}`}>
-          {rank === 1 && <Crown size={10} />}
-          #{rank}
-        </span>
+        {isWinner ? (
+          <span
+            className="portrait-rank portrait-rank-winner"
+            aria-label={`Winner rank ${rank}`}
+          >
+            <EliteRankCrown size={14} />
+          </span>
+        ) : (
+          <span className="portrait-rank">#{rank}</span>
+        )}
         {isDanger && (
           <span className="portrait-danger">
             <AlertTriangle size={12} />

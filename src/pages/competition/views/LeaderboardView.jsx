@@ -9,8 +9,13 @@ import { PortraitCard } from '../components/LeaderboardCompact';
 export function LeaderboardView() {
   const {
     contestants,
+    competition,
     openVoteModal,
   } = usePublicCompetition();
+
+  // Top N contestants render the EliteRank crown badge instead of a rank
+  // number — where N is the competition's configured winner count.
+  const numberOfWinners = competition?.number_of_winners || 1;
 
   return (
     <div className="leaderboard-full">
@@ -20,6 +25,7 @@ export function LeaderboardView() {
             key={contestant.id}
             contestant={contestant}
             rank={contestant.displayRank || index + 1}
+            numberOfWinners={numberOfWinners}
             onVote={openVoteModal}
           />
         ))}

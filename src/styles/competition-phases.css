@@ -1798,6 +1798,15 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   color: #000;
 }
 
+/* Winner badge — crown-only, same gold treatment as #1 used to have.
+   Used for the top N contestants where N = competition.number_of_winners. */
+.portrait-rank.portrait-rank-winner {
+  padding: 4px 6px;
+  background: rgba(212, 175, 55, 0.95);
+  color: #000;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
+}
+
 /* Danger indicator */
 .portrait-danger {
   position: absolute;
