@@ -173,14 +173,6 @@ export function ActivityView() {
                 <span>1st</span>
                 <span>{prizePool?.formatted?.firstPrize}</span>
               </div>
-              <div className="prize-tier">
-                <span>2nd</span>
-                <span>{prizePool?.formatted?.secondPrize}</span>
-              </div>
-              <div className="prize-tier">
-                <span>3rd</span>
-                <span>{prizePool?.formatted?.thirdPrize}</span>
-              </div>
             </div>
           </section>
         </aside>

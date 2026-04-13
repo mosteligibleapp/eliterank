@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Trophy, Crown, Award, Medal, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trophy, Crown, ChevronDown, ChevronUp } from 'lucide-react';
 
 /**
  * Prize Pool display component
@@ -26,7 +26,7 @@ export function PrizePool({ compact = false, collapsible = false, showLiveBadge 
     ? 'Final prize pool'
     : 'Growing with every vote';
 
-  // Breakdown component - reusable
+  // Breakdown component - winner takes all
   const PrizeBreakdown = () => (
     <div className="prize-pool-breakdown">
       <div className="prize-tier prize-tier-first">
@@ -35,22 +35,6 @@ export function PrizePool({ compact = false, collapsible = false, showLiveBadge 
           <span>1st Place</span>
         </div>
         <div className="prize-tier-amount prize-gold">{prizePool.formatted.firstPrize}</div>
-      </div>
-
-      <div className="prize-tier prize-tier-second">
-        <div className="prize-tier-label">
-          <Award size={16} className="prize-icon prize-silver" />
-          <span>2nd Place</span>
-        </div>
-        <div className="prize-tier-amount">{prizePool.formatted.secondPrize}</div>
-      </div>
-
-      <div className="prize-tier prize-tier-third">
-        <div className="prize-tier-label">
-          <Medal size={16} className="prize-icon prize-bronze" />
-          <span>3rd Place</span>
-        </div>
-        <div className="prize-tier-amount">{prizePool.formatted.thirdPrize}</div>
       </div>
     </div>
   );

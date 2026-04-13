@@ -1,5 +1,5 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Crown, Award, Medal, Trophy } from 'lucide-react';
+import { Crown, Trophy } from 'lucide-react';
 
 /**
  * Winners podium for results phase
@@ -26,58 +26,43 @@ export function WinnersPodium() {
 
   if (!topThree?.length) return null;
 
-  const prizes = [
-    prizePool?.formatted?.firstPrize,
-    prizePool?.formatted?.secondPrize,
-    prizePool?.formatted?.thirdPrize,
-  ];
-
-  const icons = [Crown, Award, Medal];
-  const labels = ['Champion', '2nd Place', '3rd Place'];
+  // Winner takes all — show only 1st place
+  const winner = topThree[0];
+  if (!winner) return null;
 
   return (
     <div className="winners-podium">
       <div className="podium-header">
         <Trophy size={32} className="podium-trophy" />
-        <h2>Winners</h2>
+        <h2>Winner</h2>
       </div>
 
       <div className="podium-display">
-        {[1, 0, 2].map(index => {
-          const winner = topThree[index];
-          if (!winner) return null;
+        <div
+          key={winner.id}
+          className="podium-winner podium-winner-1 first-place"
+          onClick={() => openContestantProfile(winner)}
+        >
+          <div className="winner-place">
+            <Crown size={32} />
+            <span>Champion</span>
+          </div>
 
-          const Icon = icons[index];
-          const isFirst = index === 0;
+          <div className="winner-avatar winner-avatar-large">
+            {winner.avatar_url ? (
+              <img src={winner.avatar_url} alt={winner.name} />
+            ) : (
+              <span>{winner.name?.charAt(0)}</span>
+            )}
+          </div>
 
-          return (
-            <div
-              key={winner.id}
-              className={`podium-winner podium-winner-${index + 1} ${isFirst ? 'first-place' : ''}`}
-              onClick={() => openContestantProfile(winner)}
-            >
-              <div className="winner-place">
-                <Icon size={isFirst ? 32 : 24} />
-                <span>{labels[index]}</span>
-              </div>
+          <div className="winner-name">{winner.name}</div>
 
-              <div className={`winner-avatar ${isFirst ? 'winner-avatar-large' : ''}`}>
-                {winner.avatar_url ? (
-                  <img src={winner.avatar_url} alt={winner.name} />
-                ) : (
-                  <span>{winner.name?.charAt(0)}</span>
-                )}
-              </div>
-
-              <div className="winner-name">{winner.name}</div>
-
-              <div className="winner-stats">
-                <span className="winner-votes">{winner.votes?.toLocaleString()} votes</span>
-                <span className="winner-prize">{prizes[index]}</span>
-              </div>
-            </div>
-          );
-        })}
+          <div className="winner-stats">
+            <span className="winner-votes">{winner.votes?.toLocaleString()} votes</span>
+            <span className="winner-prize">{prizePool?.formatted?.firstPrize}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
