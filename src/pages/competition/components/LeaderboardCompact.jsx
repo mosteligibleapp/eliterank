@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown, AlertTriangle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -13,16 +13,17 @@ export function LeaderboardCompact() {
     dangerZone,
     openContestantProfile,
     openVoteModal,
-    orgSlug,
-    citySlug,
-    year,
   } = usePublicCompetition();
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const basePath = year
-    ? `/c/${orgSlug}/${citySlug}/${year}`
-    : `/c/${orgSlug}/${citySlug}`;
+  // Build the leaderboard URL from the current path so it works across all
+  // URL formats (slug, ID, legacy) and preserves query params like
+  // ?preview=voting when a host is previewing the voting page.
+  const stripTrailing = (p) => p.replace(/\/(leaderboard|activity|enter)\/?$/, '').replace(/\/$/, '');
+  const basePath = stripTrailing(location.pathname);
+  const leaderboardPath = `${basePath}/leaderboard${location.search || ''}`;
 
   // All contestants in rank order (up to 9 for compact view)
   const allContestants = contestants?.slice(0, 9) || [];
@@ -69,7 +70,7 @@ export function LeaderboardCompact() {
       {/* View All Link */}
       <button
         className="leaderboard-view-all"
-        onClick={() => navigate(`${basePath}/leaderboard`)}
+        onClick={() => navigate(leaderboardPath)}
       >
         View All {contestants?.length || 0} Contestants
       </button>

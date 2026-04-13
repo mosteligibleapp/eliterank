@@ -347,15 +347,20 @@ function PhaseContent({ phase }) {
  * View Navigation - tabs for main/leaderboard
  */
 function ViewNavigation({ currentView }) {
-  const { orgSlug, competitionSlug } = usePublicCompetition();
+  const location = useLocation();
 
-  // Build base path using competition slug directly
-  const basePath = `/${orgSlug}/${competitionSlug}`;
+  // Derive base path from current URL so the tabs work across all URL formats
+  // (slug `/:orgSlug/:slug`, ID `/:orgSlug/id/:competitionId`, legacy `/c/...`)
+  // and preserve query params like ?preview=voting for host previews.
+  const basePath = location.pathname
+    .replace(/\/(leaderboard|activity|enter)\/?$/, '')
+    .replace(/\/$/, '');
+  const search = location.search || '';
 
   const views = [
-    { id: 'main', label: 'Competition', path: basePath },
-    { id: 'leaderboard', label: 'Leaderboard', path: `${basePath}/leaderboard` },
-    { id: 'activity', label: 'Activity', path: `${basePath}/activity` },
+    { id: 'main', label: 'Competition', path: `${basePath}${search}` },
+    { id: 'leaderboard', label: 'Leaderboard', path: `${basePath}/leaderboard${search}` },
+    { id: 'activity', label: 'Activity', path: `${basePath}/activity${search}` },
   ];
 
   return (
