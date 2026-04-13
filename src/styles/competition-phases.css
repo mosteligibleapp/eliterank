@@ -643,6 +643,10 @@
   display: grid;
   grid-template-columns: 1fr 300px;
   gap: var(--spacing-lg);
+  /* Space between the leaderboard column and the following section
+     (e.g. Meet the Judges). Matches the bottom spacing of .phase-section
+     so the gap between sections stays consistent. */
+  margin-bottom: var(--spacing-2xl);
 }
 
 @media (max-width: 900px) {
@@ -5198,7 +5202,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 .judge-title {
   font-size: var(--font-size-sm);
-  color: var(--color-primary);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
