@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart,
+  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
   ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,49 @@ import { generateAchievementCard } from '../../../achievement-cards/generateAchi
 import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
 import WinnersManager from '../WinnersManager';
+
+// Normalize an instagram handle that may be a bare username, "@name", or full URL
+const parseInstagram = (raw) => {
+  if (!raw) return null;
+  const clean = String(raw)
+    .trim()
+    .replace(/^@/, '')
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+    .replace(/\/+$/, '')
+    .split(/[/?#]/)[0];
+  if (!clean) return null;
+  return { url: `https://instagram.com/${clean}`, handle: clean };
+};
+
+const InstagramLink = ({ instagram, iconOnly = false }) => {
+  const ig = parseInstagram(instagram);
+  if (!ig) return null;
+  return (
+    <a
+      href={ig.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      title={`@${ig.handle} on Instagram`}
+      aria-label={`Open @${ig.handle} on Instagram`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '4px',
+        color: colors.gold.primary,
+        textDecoration: 'none',
+        fontSize: typography.fontSize.xs,
+        fontWeight: typography.fontWeight.medium,
+        borderRadius: borderRadius.sm,
+        lineHeight: 1,
+      }}
+    >
+      <Instagram size={14} />
+      {!iconOnly && <span>@{ig.handle}</span>}
+    </a>
+  );
+};
 
 /**
  * PeopleTab - Manages winners, nominees, contestants, and host profile
@@ -642,14 +685,17 @@ export default function PeopleTab({
             {person.name}
           </p>
         )}
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-          {parseEmail(person.email)}{showVotes && person.votes > 0 ? `${person.email ? ' · ' : ''}${person.votes} votes` : ''}
-          {person.inviteSentAt && (
-            <span style={{ color: colors.text.muted, opacity: 0.7 }}>
-              {' · '}Invited {new Date(person.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </span>
-          )}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+            {parseEmail(person.email)}{showVotes && person.votes > 0 ? `${person.email ? ' · ' : ''}${person.votes} votes` : ''}
+            {person.inviteSentAt && (
+              <span style={{ color: colors.text.muted, opacity: 0.7 }}>
+                {' · '}Invited {new Date(person.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            )}
+          </span>
+          {person.instagram && <InstagramLink instagram={person.instagram} />}
+        </div>
       </div>
       {cardType && <CardDownloadButton person={person} type={cardType} />}
       {actions}
