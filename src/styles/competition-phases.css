@@ -233,6 +233,22 @@
   margin-bottom: var(--spacing-2xl);
 }
 
+/* Two-column row used to place Upcoming Event + Host side-by-side
+   beneath the leaderboard. Collapses to a single column on narrow
+   screens so each card still has breathing room. */
+.event-host-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--spacing-xl);
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .event-host-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .phase-divider {
   border: none;
   border-top: 1px solid var(--color-border);

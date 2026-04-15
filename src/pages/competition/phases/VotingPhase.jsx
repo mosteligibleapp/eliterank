@@ -5,6 +5,7 @@ import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { UpcomingEventCard } from '../components/UpcomingEventCard';
+import { HostCard } from '../components/HostCard';
 import { JudgesSection } from '../components/JudgesSection';
 import ContestantBonusVotes from '../components/ContestantBonusVotes';
 
@@ -79,9 +80,12 @@ export function VotingPhase() {
         </aside>
       </section>
 
-      {/* Upcoming Event - placed beneath the leaderboard as its own row */}
+      {/* Upcoming Event + Host side-by-side beneath the leaderboard */}
       <section className="phase-section">
-        <UpcomingEventCard />
+        <div className="event-host-row">
+          <UpcomingEventCard />
+          <HostCard />
+        </div>
       </section>
 
       {/* Judges */}
