@@ -12,6 +12,7 @@ export function LeaderboardCompact() {
   const {
     contestants,
     competition,
+    phase,
     dangerZone,
     openContestantProfile,
     openVoteModal,
@@ -21,6 +22,11 @@ export function LeaderboardCompact() {
   // instead of a rank number. Driven by the competition's configured
   // number_of_winners so every competition behaves correctly.
   const numberOfWinners = competition?.number_of_winners || 1;
+
+  // During the interim between-rounds phase we hide rank badges and vote
+  // counts — no active voting is happening, so showing ranks/votes would
+  // be misleading.
+  const isBetweenRounds = phase?.phase === 'between-rounds';
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,6 +68,8 @@ export function LeaderboardCompact() {
             contestant={contestant}
             rank={index + 1}
             numberOfWinners={numberOfWinners}
+            hideRank={isBetweenRounds}
+            hideVotes={isBetweenRounds}
             onVote={openVoteModal}
           />
         ))}
@@ -86,7 +94,14 @@ export function LeaderboardCompact() {
   );
 }
 
-export function PortraitCard({ contestant, rank, numberOfWinners = 1, onVote }) {
+export function PortraitCard({
+  contestant,
+  rank,
+  numberOfWinners = 1,
+  hideRank = false,
+  hideVotes = false,
+  onVote,
+}) {
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleError = useCallback(() => setImgFailed(true), []);
@@ -115,7 +130,7 @@ export function PortraitCard({ contestant, rank, numberOfWinners = 1, onVote }) 
             onError={handleError}
           />
         )}
-        {isWinner ? (
+        {!hideRank && (isWinner ? (
           <span
             className="portrait-rank portrait-rank-winner"
             aria-label={`Winner rank ${rank}`}
@@ -124,7 +139,7 @@ export function PortraitCard({ contestant, rank, numberOfWinners = 1, onVote }) 
           </span>
         ) : (
           <span className="portrait-rank">#{rank}</span>
-        )}
+        ))}
         {isDanger && (
           <span className="portrait-danger">
             <AlertTriangle size={12} />
@@ -134,7 +149,9 @@ export function PortraitCard({ contestant, rank, numberOfWinners = 1, onVote }) 
       </div>
       <div className="portrait-info">
         <span className="portrait-name">{contestant.name?.split(' ')[0]}</span>
-        <span className="portrait-votes">{contestant.votes ? contestant.votes.toLocaleString() : '0'}</span>
+        {!hideVotes && (
+          <span className="portrait-votes">{contestant.votes ? contestant.votes.toLocaleString() : '0'}</span>
+        )}
       </div>
     </div>
   );
