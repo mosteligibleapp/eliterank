@@ -17,16 +17,19 @@ const PublicCompetitionContext = createContext(null);
  * Provider component for public competition pages
  * Wraps hooks and provides unified data access
  *
- * When `previewMode` is true, the provider forces the page into a synthetic
- * voting phase so hosts can preview what the live voting page will look like
- * before voting opens. Real voting actions are disabled by setting the
- * synthetic round's `isActive` to false.
+ * When `previewMode` is set, the provider forces the page into a synthetic
+ * phase so hosts can preview what each phase will look like before it goes
+ * live. Supported modes:
+ *   - 'voting'         → synthetic round-1 voting phase
+ *   - 'between-rounds' → post-nomination / pre-voting interim phase
+ * Real voting actions are disabled in either mode by setting the synthetic
+ * round's `isActive` to false.
  */
 export function PublicCompetitionProvider({
   orgSlug,
   competitionSlug,
   competitionId,
-  previewMode = false,
+  previewMode = null,
   children,
 }) {
   // Modal states (lifted here so any component can trigger them)
@@ -57,8 +60,8 @@ export function PublicCompetitionProvider({
     refetch: refetchCompetition,
   } = competitionData;
 
-  // In preview mode, synthesize a voting phase so the voting view renders
-  // even when the competition is in draft/coming-soon/between-rounds state.
+  // In preview mode, synthesize a phase so the selected view renders even
+  // when the competition is in draft/coming-soon/nominations state.
   const phase = useMemo(() => {
     if (!previewMode || !realPhase) return realPhase;
 
@@ -72,6 +75,20 @@ export function PublicCompetitionProvider({
       round_type: 'voting',
     };
 
+    if (previewMode === 'between-rounds') {
+      return {
+        ...realPhase,
+        phase: 'between-rounds',
+        label: 'Between Rounds',
+        isPublic: true,
+        isVoting: false,
+        canNominate: false,
+        nextRound: previewRound,
+        startsAt: previewRound.start_date || null,
+      };
+    }
+
+    // Default: voting preview
     return {
       ...realPhase,
       phase: 'round1',
@@ -197,8 +214,9 @@ export function PublicCompetitionProvider({
       hasMoreActivities: activityData.hasMore,
       loadMoreActivities: activityData.loadMore,
 
-      // Preview mode (host previewing voting page before it goes live)
-      isPreview: previewMode,
+      // Preview mode (host previewing a phase before it goes live)
+      isPreview: Boolean(previewMode),
+      previewMode,
 
       // Modal state
       selectedContestant,

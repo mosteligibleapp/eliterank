@@ -48,6 +48,7 @@ function CompetitionLayoutInner() {
     contestants,
     organization,
     isPreview,
+    previewMode,
   } = usePublicCompetition();
   const location = useLocation();
   const navigate = useNavigate();
@@ -166,8 +167,8 @@ function CompetitionLayoutInner() {
 
   return (
     <div className="competition-layout">
-      {/* Preview banner - shown to hosts previewing the voting page */}
-      {isPreview && <PreviewBanner />}
+      {/* Preview banner - shown to hosts previewing a phase */}
+      {isPreview && <PreviewBanner mode={previewMode} />}
 
       {/* Floating Back Button - hidden when modal open */}
       {!isModalOpen && (
@@ -260,11 +261,17 @@ function CompetitionLayoutInner() {
 /**
  * PreviewBanner - shown across the top in preview mode
  *
- * Lets hosts know they're previewing the voting page (not the live page) and
- * gives them a way to exit back to the dashboard.
+ * Lets hosts know they're previewing a phase (not the live page) and gives
+ * them a way to exit back to the dashboard. Label reflects which phase is
+ * being previewed.
  */
-function PreviewBanner() {
+function PreviewBanner({ mode }) {
   const navigate = useNavigate();
+
+  const label =
+    mode === 'between-rounds'
+      ? 'Between Rounds Preview — actions are disabled'
+      : 'Voting Page Preview — actions are disabled';
 
   return (
     <div
@@ -288,7 +295,7 @@ function PreviewBanner() {
     >
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: spacing.xs }}>
         <Eye size={16} />
-        Voting Page Preview — actions are disabled
+        {label}
       </span>
       <button
         type="button"
@@ -530,10 +537,13 @@ export function CompetitionLayout() {
     competitionSlug = params.slug?.split('/')[0] || params.slug;
   }
 
-  // Preview mode: ?preview=voting lets hosts see what the voting page will
-  // look like before the competition is live. Provider gates the actual
-  // bypass + synthetic voting phase.
-  const previewMode = searchParams.get('preview') === 'voting';
+  // Preview mode: ?preview=voting or ?preview=between-rounds lets hosts
+  // see what each phase will look like before it goes live. Provider gates
+  // the actual bypass + synthetic phase per mode.
+  const previewParam = searchParams.get('preview');
+  const previewMode = ['voting', 'between-rounds'].includes(previewParam)
+    ? previewParam
+    : null;
 
   return (
     <PublicCompetitionProvider
