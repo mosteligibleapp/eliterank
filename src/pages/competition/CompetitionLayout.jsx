@@ -20,6 +20,7 @@ const ResultsPhase = lazy(() => import('./phases/ResultsPhase'));
 // View components for different pages (lazy-loaded)
 const LeaderboardView = lazy(() => import('./views/LeaderboardView'));
 const ActivityView = lazy(() => import('./views/ActivityView'));
+const ContestantView = lazy(() => import('./views/ContestantView'));
 
 // Shared components
 import { CompetitionHeader } from './components/CompetitionHeader';
@@ -233,7 +234,9 @@ function CompetitionLayoutInner() {
           />
         )}
         <Suspense fallback={null}>
-          {hasStandingsViews && isLeaderboardView ? (
+          {isContestantView ? (
+            <ContestantView />
+          ) : hasStandingsViews && isLeaderboardView ? (
             <LeaderboardView />
           ) : hasStandingsViews && isActivityView ? (
             <ActivityView />
