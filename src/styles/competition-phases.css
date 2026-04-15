@@ -3562,7 +3562,10 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 .event-image-wrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  /* Short cinematic strip so the event banner doesn't dominate the card,
+     especially in narrow sidebar slots. */
+  aspect-ratio: 21 / 9;
+  max-height: 140px;
   border-radius: var(--radius-md);
   overflow: hidden;
 }
