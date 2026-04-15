@@ -277,7 +277,7 @@ export function useCompetitionDashboard(competitionId) {
           matchedProfileId,
           hasProfile,
           avatarUrl: matchedProfile?.avatar_url || n.avatar_url || null,
-          instagram: matchedProfile?.instagram || null,
+          instagram: n.instagram || matchedProfile?.instagram || null,
           status: n.status,
           inviteToken: n.invite_token,
           inviteSentAt: n.invite_sent_at,
