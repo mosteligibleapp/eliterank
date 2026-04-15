@@ -3562,10 +3562,9 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 .event-image-wrapper {
   position: relative;
   width: 100%;
-  /* Short cinematic strip so the event banner doesn't dominate the card,
-     especially in narrow sidebar slots. */
-  aspect-ratio: 21 / 9;
-  max-height: 140px;
+  /* Match the events page card: 3:2 cover, showing the full flyer
+     art with center-cover crop. */
+  aspect-ratio: 3 / 2;
   border-radius: var(--radius-md);
   overflow: hidden;
 }
