@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 
 /**
@@ -9,12 +9,10 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 export function ContestantView() {
   const { contestantSlug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     getContestantBySlug,
     openContestantProfile,
-    orgSlug,
-    citySlug,
-    year,
     loading,
   } = usePublicCompetition();
 
@@ -26,11 +24,12 @@ export function ContestantView() {
     if (contestant) {
       openContestantProfile(contestant);
     } else {
-      // Contestant not found - redirect to main
-      const basePath = year
-        ? `/c/${orgSlug}/${citySlug}/${year}`
-        : `/c/${orgSlug}/${citySlug}`;
-      navigate(basePath, { replace: true });
+      // Contestant not found — strip the trailing /e/:contestantSlug off
+      // the current URL to go back to the competition page. Derived from
+      // location.pathname so it works for all URL formats (slug, ID,
+      // legacy /c/...) and we preserve query params like ?preview=voting.
+      const basePath = location.pathname.replace(/\/e\/[^/]+\/?$/, '') || '/';
+      navigate(`${basePath}${location.search || ''}`, { replace: true });
     }
   }, [
     contestantSlug,
@@ -38,9 +37,8 @@ export function ContestantView() {
     getContestantBySlug,
     openContestantProfile,
     navigate,
-    orgSlug,
-    citySlug,
-    year,
+    location.pathname,
+    location.search,
   ]);
 
   // Return null - modal is rendered at layout level
