@@ -90,7 +90,7 @@ export function LeaderboardCompact() {
         className="leaderboard-view-all"
         onClick={() => navigate(leaderboardPath)}
       >
-        View All {contestants?.length || 0} Contestants
+        View All Contestants
       </button>
     </div>
   );
