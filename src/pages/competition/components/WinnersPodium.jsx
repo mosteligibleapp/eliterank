@@ -1,5 +1,6 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Crown, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
+import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 
 /**
  * Winners podium for results phase
@@ -14,13 +15,18 @@ export function WinnersPodium() {
   if (isLegacy) {
     const sorted = [...(contestants || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999)).slice(0, 20);
     if (!sorted.length) return null;
-    // Extract year from competition name/slug (e.g. "chicago-2025"), or fall back to end date
+    // Prefer the competition's configured season; fall back to slug/name
+    // parsing only if it isn't set. Avoids the "SEASON 2025" + "2026
+    // Winners" mismatch when the slug happens to contain a different year.
     const nameYearMatch = (competition?.name || competition?.slug || '').match(/20\d{2}/);
-    const year = nameYearMatch
-      ? nameYearMatch[0]
-      : competition?.nomination_end
-        ? new Date(competition.nomination_end).getFullYear()
-        : new Date(competition.created_at).getFullYear();
+    const year = competition?.season
+      ?? (nameYearMatch
+        ? nameYearMatch[0]
+        : competition?.nomination_end
+          ? new Date(competition.nomination_end).getFullYear()
+          : competition?.created_at
+            ? new Date(competition.created_at).getFullYear()
+            : null);
     return <LegacyContestantsGrid contestants={sorted} onSelect={openContestantProfile} year={year} />;
   }
 
@@ -44,7 +50,7 @@ export function WinnersPodium() {
           onClick={() => openContestantProfile(winner)}
         >
           <div className="winner-place">
-            <Crown size={32} />
+            <EliteRankCrown size={32} />
             <span>Champion</span>
           </div>
 
@@ -78,7 +84,7 @@ function LegacyContestantsGrid({ contestants, onSelect, year }) {
   return (
     <div className="legacy-winners-section">
       <div className="legacy-winners-header">
-        <Crown size={24} className="legacy-winners-icon" />
+        <EliteRankCrown size={24} className="legacy-winners-icon" />
         <h2 className="legacy-winners-title">{year} Winners</h2>
       </div>
 
