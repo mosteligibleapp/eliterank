@@ -81,10 +81,13 @@ export function VotingPhase() {
 
           <ActivityFeedCompact limit={5} />
 
-          <UpcomingEventCard />
-
           <Timeline />
         </aside>
+      </section>
+
+      {/* Upcoming Event - placed beneath the leaderboard as its own row */}
+      <section className="phase-section">
+        <UpcomingEventCard />
       </section>
 
       {/* Judges */}

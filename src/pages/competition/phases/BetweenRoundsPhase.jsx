@@ -42,9 +42,13 @@ export function BetweenRoundsPhase() {
         </div>
         <div className="sidebar-stack">
           <PrizePool />
-          <UpcomingEventCard />
           <Timeline />
         </div>
+      </section>
+
+      {/* Upcoming Event - placed beneath the leaderboard as its own row */}
+      <section className="phase-section">
+        <UpcomingEventCard />
       </section>
     </div>
   );
