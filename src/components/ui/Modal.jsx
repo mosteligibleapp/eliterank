@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { colors, shadows, borderRadius } from '../../styles/theme';
 
 export default function Modal({
   isOpen,
@@ -11,11 +12,25 @@ export default function Modal({
   headerClassName = '',
   centered = false,
   hideCloseButton = false,
+  variant = 'default',
 }) {
   if (!isOpen) return null;
 
   // If no title, show minimal header with just close button
   const showFullHeader = title && title.trim() !== '';
+
+  // Gold variant mirrors the login card: gold border + gold glow shadow.
+  // Applied inline so it overrides the Tailwind defaults without needing
+  // new utility classes.
+  const goldCardStyle = variant === 'gold'
+    ? {
+        maxWidth,
+        background: colors.background.card,
+        border: `1px solid ${colors.border.gold}`,
+        borderRadius: borderRadius.xxl,
+        boxShadow: `${shadows.gold}, ${shadows.goldGlow}`,
+      }
+    : { maxWidth };
 
   return (
     <div
@@ -24,7 +39,7 @@ export default function Modal({
     >
       <div
         className={`relative bg-bg-card border border-border-primary rounded-3xl w-full overflow-hidden ${centered ? 'my-auto' : 'mt-2 mb-8'}`}
-        style={{ maxWidth }}
+        style={goldCardStyle}
         onClick={(e) => e.stopPropagation()}
       >
         {showFullHeader ? (
