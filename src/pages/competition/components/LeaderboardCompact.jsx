@@ -28,6 +28,11 @@ export function LeaderboardCompact() {
   // be misleading.
   const isBetweenRounds = phase?.phase === 'between-rounds';
 
+  // Between rounds, clicking a contestant opens their profile (the vote
+  // modal is meaningless with voting paused). During active voting the
+  // card click takes you straight into the vote flow.
+  const handleCardClick = isBetweenRounds ? openContestantProfile : openVoteModal;
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,7 +76,7 @@ export function LeaderboardCompact() {
             hideRank={isBetweenRounds}
             hideVotes={isBetweenRounds}
             hideDanger={isBetweenRounds}
-            onVote={openVoteModal}
+            onVote={handleCardClick}
           />
         ))}
       </div>

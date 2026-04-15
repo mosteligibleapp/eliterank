@@ -12,6 +12,7 @@ export function LeaderboardView() {
     competition,
     phase,
     openVoteModal,
+    openContestantProfile,
   } = usePublicCompetition();
 
   // Top N contestants render the EliteRank crown badge instead of a rank
@@ -20,6 +21,10 @@ export function LeaderboardView() {
 
   // Between rounds: hide rank badges + vote counts (no active voting).
   const isBetweenRounds = phase?.phase === 'between-rounds';
+
+  // Between rounds, clicking a contestant opens their profile (vote modal
+  // is meaningless with voting paused). Active voting → straight to vote.
+  const handleCardClick = isBetweenRounds ? openContestantProfile : openVoteModal;
 
   return (
     <div className="leaderboard-full">
@@ -33,7 +38,7 @@ export function LeaderboardView() {
             hideRank={isBetweenRounds}
             hideVotes={isBetweenRounds}
             hideDanger={isBetweenRounds}
-            onVote={openVoteModal}
+            onVote={handleCardClick}
           />
         ))}
       </div>
