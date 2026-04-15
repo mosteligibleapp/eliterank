@@ -1,10 +1,11 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Calendar, Crown, ChevronRight } from 'lucide-react';
-import { formatEventTime } from '../../../utils/formatters';
+import { Calendar, ChevronRight } from 'lucide-react';
+import EventCard from '../../../features/public-site/components/EventCard';
 
 /**
- * Upcoming Event Card - Shows the next upcoming event for the competition
- * Displays above the Rules accordion in the sidebar
+ * Upcoming Event Card - Shows the next upcoming event for the competition.
+ * Reuses the shared EventCard so this widget is visually identical to a
+ * card on the Events page.
  */
 export function UpcomingEventCard({ onViewAllEvents }) {
   const { events } = usePublicCompetition();
@@ -32,24 +33,6 @@ export function UpcomingEventCard({ onViewAllEvents }) {
   const nextEvent = upcomingEvents[0] || null;
   const totalEvents = events?.length || 0;
 
-  const formatDateBadge = (dateStr, timeStr) => {
-    if (!dateStr) return 'Date TBD';
-    const eventDate = new Date(dateStr + 'T00:00:00');
-    const isToday = eventDate.getTime() === today.getTime();
-    const datePart = isToday
-      ? 'TODAY'
-      : eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
-    if (timeStr) {
-      return `${datePart}  •  ${formatEventTime(timeStr)}`;
-    }
-    return datePart;
-  };
-
-  const CardTag = nextEvent?.ticket_url ? 'a' : 'div';
-  const cardProps = nextEvent?.ticket_url
-    ? { href: nextEvent.ticket_url, target: '_blank', rel: 'noopener noreferrer' }
-    : {};
-
   return (
     <div className="upcoming-event-card">
       <div className="upcoming-event-header">
@@ -66,34 +49,10 @@ export function UpcomingEventCard({ onViewAllEvents }) {
       </div>
 
       {nextEvent ? (
-        <div className="upcoming-event-content">
-          <CardTag className="upcoming-event-link" {...cardProps}>
-            {/* Image with date badge */}
-            <div className="event-image-wrapper">
-              {nextEvent.image_url ? (
-                <div
-                  className="event-image"
-                  style={{ backgroundImage: `url(${nextEvent.image_url})` }}
-                />
-              ) : (
-                <div className="event-image event-image-placeholder">
-                  <Crown size={28} />
-                </div>
-              )}
-              <div className="event-image-gradient" />
-              <div className="event-date-badge">
-                {formatDateBadge(nextEvent.date, nextEvent.time)}
-              </div>
-            </div>
-
-            {/* Event info below image */}
-            <div className="event-details">
-              <h5 className="event-name">{nextEvent.name}</h5>
-              {nextEvent.location && (
-                <p className="event-location">{nextEvent.location}</p>
-              )}
-            </div>
-          </CardTag>
+        // Cap width so the 3:2 cover stays the same size as an events-page
+        // card even when this widget drops into a wide sidebar slot.
+        <div style={{ maxWidth: '320px' }}>
+          <EventCard event={nextEvent} />
         </div>
       ) : (
         <div className="upcoming-event-empty">
