@@ -70,13 +70,15 @@ export function LeaderboardCompact() {
             numberOfWinners={numberOfWinners}
             hideRank={isBetweenRounds}
             hideVotes={isBetweenRounds}
+            hideDanger={isBetweenRounds}
             onVote={openVoteModal}
           />
         ))}
       </div>
 
-      {/* Danger Zone Summary */}
-      {dangerZone?.length > 0 && (
+      {/* Danger Zone Summary — hidden between rounds, since nothing is
+          actively being voted on */}
+      {!isBetweenRounds && dangerZone?.length > 0 && (
         <div className="danger-zone-summary">
           <AlertTriangle size={12} />
           <span>{dangerZone.length} contestants at risk of elimination</span>
@@ -100,6 +102,7 @@ export function PortraitCard({
   numberOfWinners = 1,
   hideRank = false,
   hideVotes = false,
+  hideDanger = false,
   onVote,
 }) {
   const [imgFailed, setImgFailed] = useState(false);
@@ -107,7 +110,7 @@ export function PortraitCard({
   const handleError = useCallback(() => setImgFailed(true), []);
   const handleLoad = useCallback(() => setImgLoaded(true), []);
 
-  const isDanger = contestant.zone === 'danger';
+  const isDanger = !hideDanger && contestant.zone === 'danger';
   const isWinner = rank <= numberOfWinners;
   const showImg = contestant.avatar_url && !imgFailed;
 

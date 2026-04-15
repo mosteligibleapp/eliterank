@@ -32,6 +32,7 @@ export function LeaderboardView() {
             numberOfWinners={numberOfWinners}
             hideRank={isBetweenRounds}
             hideVotes={isBetweenRounds}
+            hideDanger={isBetweenRounds}
             onVote={openVoteModal}
           />
         ))}
