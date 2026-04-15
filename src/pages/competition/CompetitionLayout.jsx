@@ -223,10 +223,12 @@ function CompetitionLayoutInner() {
 
       {/* Page content - render appropriate view based on URL */}
       <main className="competition-main">
-        {/* Persistent Competition Header - shown on all standings views */}
+        {/* Persistent Competition Header - shown on all standings views.
+            Suppress the phase badge during between-rounds so the generic
+            "Between Rounds" tag doesn't show up on leaderboard/activity. */}
         {hasStandingsViews && !isContestantView && (isLeaderboardView || isActivityView) && (
           <CompetitionHeader
-            badge={phase?.label}
+            badge={phase?.phase === 'between-rounds' ? null : phase?.label}
             badgeVariant="live"
           />
         )}

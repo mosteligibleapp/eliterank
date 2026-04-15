@@ -1,5 +1,5 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Clock, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
@@ -17,11 +17,7 @@ export function BetweenRoundsPhase() {
   return (
     <div className="phase-view phase-between-rounds">
       {/* Competition Header - Consistent across all phases */}
-      <CompetitionHeader
-        badge="Between Rounds"
-        badgeIcon={Clock}
-        badgeVariant="default"
-      />
+      <CompetitionHeader />
 
       {/* Next Round Countdown */}
       <section className="phase-section between-rounds-countdown">
