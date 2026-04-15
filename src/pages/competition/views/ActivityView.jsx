@@ -1,5 +1,7 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { RulesAccordion } from '../components/RulesAccordion';
+import { PrizePool } from '../components/PrizePool';
+import { Timeline } from '../components/Timeline';
 import {
   TrendingUp,
   TrendingDown,
@@ -38,7 +40,6 @@ export function ActivityView() {
     loadMoreActivities,
     announcements,
     events,
-    prizePool,
     contestants,
     competition,
     votingRounds,
@@ -162,18 +163,14 @@ export function ActivityView() {
             </div>
           </section>
 
-          {/* Prize Pool Quick Stat */}
-          <section className="activity-section prize-pool-widget">
-            <h3>Current Prize Pool</h3>
-            <div className="prize-pool-amount">
-              {prizePool?.formatted?.totalPrizePool}
-            </div>
-            <div className="prize-pool-breakdown">
-              <div className="prize-tier">
-                <span>1st</span>
-                <span>{prizePool?.formatted?.firstPrize}</span>
-              </div>
-            </div>
+          {/* Prize Pool — moved from competition page sidebar */}
+          <section className="activity-section">
+            <PrizePool />
+          </section>
+
+          {/* Timeline — moved from competition page sidebar */}
+          <section className="activity-section">
+            <Timeline />
           </section>
         </aside>
       </div>
