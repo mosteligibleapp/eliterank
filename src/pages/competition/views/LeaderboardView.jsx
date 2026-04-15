@@ -10,12 +10,16 @@ export function LeaderboardView() {
   const {
     contestants,
     competition,
+    phase,
     openVoteModal,
   } = usePublicCompetition();
 
   // Top N contestants render the EliteRank crown badge instead of a rank
   // number — where N is the competition's configured winner count.
   const numberOfWinners = competition?.number_of_winners || 1;
+
+  // Between rounds: hide rank badges + vote counts (no active voting).
+  const isBetweenRounds = phase?.phase === 'between-rounds';
 
   return (
     <div className="leaderboard-full">
@@ -26,6 +30,9 @@ export function LeaderboardView() {
             contestant={contestant}
             rank={contestant.displayRank || index + 1}
             numberOfWinners={numberOfWinners}
+            hideRank={isBetweenRounds}
+            hideVotes={isBetweenRounds}
+            hideDanger={isBetweenRounds}
             onVote={openVoteModal}
           />
         ))}

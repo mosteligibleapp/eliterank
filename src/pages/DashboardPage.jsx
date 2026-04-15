@@ -121,6 +121,18 @@ export default function DashboardPage() {
     window.open(path, '_blank');
   }, [hostCompetition]);
 
+  // Preview the interim page between end of nominations and start of voting
+  // (the "between rounds" state). Same mechanism as the voting preview, just
+  // ?preview=between-rounds which the layout interprets as a synthetic
+  // between-rounds phase.
+  const handlePreviewBetweenRounds = useCallback(() => {
+    if (!hostCompetition) return;
+
+    const orgSlug = hostCompetition?.organization?.slug || 'most-eligible';
+    const path = `/${orgSlug}/id/${hostCompetition.id}?preview=between-rounds`;
+    window.open(path, '_blank');
+  }, [hostCompetition]);
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -202,6 +214,7 @@ export default function DashboardPage() {
       currentUserId={user?.id}
       onViewPublicSite={handleViewPublicSite}
       onPreviewVotingPage={handlePreviewVotingPage}
+      onPreviewBetweenRounds={handlePreviewBetweenRounds}
     />
   );
 }
