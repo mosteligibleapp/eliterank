@@ -1,15 +1,12 @@
 /**
- * Calculate prize pool distribution based on host minimum and vote revenue
+ * Calculate prize pool — winner takes all.
  *
  * Revenue split:
- * - 50% of vote purchases → Prize pool
+ * - 50% of vote purchases → Prize pool (entirely awarded to 1st place)
  * - 30% of vote purchases → Host
  * - 20% of vote purchases → Platform
  *
- * Prize distribution (from the 50% prize portion + host minimum):
- * - 1st place: 25% of vote revenue + 50% of host minimum
- * - 2nd place: 15% of vote revenue + 30% of host minimum
- * - 3rd place: 10% of vote revenue + 20% of host minimum
+ * 1st place receives the full prize pool: host minimum + 50% of vote revenue.
  *
  * @param {number} prizePoolMinimum - Host's guaranteed minimum contribution
  * @param {number} voteRevenue - Total revenue from vote purchases (the 50% that goes to prizes)
@@ -19,25 +16,23 @@ export function calculatePrizePool(prizePoolMinimum = 1000, voteRevenue = 0) {
   const hostMinimum = Number(prizePoolMinimum) || 1000;
   const revenue = Number(voteRevenue) || 0;
 
-  const firstPrize = revenue * 0.25 + hostMinimum * 0.5;
-  const secondPrize = revenue * 0.15 + hostMinimum * 0.3;
-  const thirdPrize = revenue * 0.1 + hostMinimum * 0.2;
-  const totalPrizePool = firstPrize + secondPrize + thirdPrize;
+  // Preserves the historical total: 100% of host minimum + 50% of the
+  // already-halved vote-revenue portion. Keeping the same total means the
+  // change to winner-takes-all doesn't silently move the dollar amount
+  // shown on live competitions.
+  const totalPrizePool = hostMinimum + revenue * 0.5;
+  const firstPrize = totalPrizePool;
 
   return {
     hostMinimum,
     voteRevenue: revenue,
     firstPrize,
-    secondPrize,
-    thirdPrize,
     totalPrizePool,
     // Formatted versions for display
     formatted: {
       hostMinimum: formatPrizeCurrency(hostMinimum),
       voteRevenue: formatPrizeCurrency(revenue),
       firstPrize: formatPrizeCurrency(firstPrize),
-      secondPrize: formatPrizeCurrency(secondPrize),
-      thirdPrize: formatPrizeCurrency(thirdPrize),
       totalPrizePool: formatPrizeCurrency(totalPrizePool),
     },
   };
@@ -65,42 +60,22 @@ export function calculateVoteRevenue(votes) {
 }
 
 /**
- * Get prize position info for a contestant rank
- * Uses CSS class names for styling - no emojis
+ * Get prize position info for a contestant rank (winner-takes-all).
  *
  * @param {number} rank - Contestant's current rank
  * @param {object} prizePool - Prize pool object from calculatePrizePool
- * @returns {object|null} Prize info or null if not in prize position
+ * @returns {object|null} Prize info for 1st place, null otherwise
  */
 export function getPrizePosition(rank, prizePool) {
-  const positions = {
-    1: {
-      position: '1st',
-      label: '1st Place',
-      amount: prizePool.firstPrize,
-      formatted: prizePool.formatted.firstPrize,
-      colorClass: 'prize-gold', // Maps to CSS variable
-      iconName: 'crown', // Lucide icon name
-    },
-    2: {
-      position: '2nd',
-      label: '2nd Place',
-      amount: prizePool.secondPrize,
-      formatted: prizePool.formatted.secondPrize,
-      colorClass: 'prize-silver',
-      iconName: 'award',
-    },
-    3: {
-      position: '3rd',
-      label: '3rd Place',
-      amount: prizePool.thirdPrize,
-      formatted: prizePool.formatted.thirdPrize,
-      colorClass: 'prize-bronze',
-      iconName: 'medal',
-    },
+  if (rank !== 1) return null;
+  return {
+    position: '1st',
+    label: '1st Place',
+    amount: prizePool.firstPrize,
+    formatted: prizePool.formatted.firstPrize,
+    colorClass: 'prize-gold',
+    iconName: 'crown',
   };
-
-  return positions[rank] || null;
 }
 
 /**

@@ -16,11 +16,17 @@ const PublicCompetitionContext = createContext(null);
 /**
  * Provider component for public competition pages
  * Wraps hooks and provides unified data access
+ *
+ * When `previewMode` is true, the provider forces the page into a synthetic
+ * voting phase so hosts can preview what the live voting page will look like
+ * before voting opens. Real voting actions are disabled by setting the
+ * synthetic round's `isActive` to false.
  */
 export function PublicCompetitionProvider({
   orgSlug,
   competitionSlug,
   competitionId,
+  previewMode = false,
   children,
 }) {
   // Modal states (lifted here so any component can trigger them)
@@ -34,7 +40,7 @@ export function PublicCompetitionProvider({
   const {
     competition,
     organization,
-    phase,
+    phase: realPhase,
     prizePool,
     about,
     theme,
@@ -50,6 +56,34 @@ export function PublicCompetitionProvider({
     error: competitionError,
     refetch: refetchCompetition,
   } = competitionData;
+
+  // In preview mode, synthesize a voting phase so the voting view renders
+  // even when the competition is in draft/coming-soon/between-rounds state.
+  const phase = useMemo(() => {
+    if (!previewMode || !realPhase) return realPhase;
+
+    // Pick the first voting round (or a placeholder) so countdowns/labels work
+    const previewRound = (votingRounds && votingRounds[0]) || {
+      id: 'preview-round',
+      title: 'Round 1',
+      round_order: 1,
+      start_date: null,
+      end_date: null,
+      round_type: 'voting',
+    };
+
+    return {
+      ...realPhase,
+      phase: 'round1',
+      label: previewRound.title || 'Voting Preview',
+      isPublic: true,
+      isVoting: true,
+      canNominate: false,
+      currentRound: previewRound,
+      roundNumber: previewRound.round_order || 1,
+      endsAt: previewRound.end_date || null,
+    };
+  }, [previewMode, realPhase, votingRounds]);
 
   // Leaderboard data (only fetch if we have a competition)
   const leaderboardData = useLeaderboard(competition?.id, {
@@ -163,6 +197,9 @@ export function PublicCompetitionProvider({
       hasMoreActivities: activityData.hasMore,
       loadMoreActivities: activityData.loadMore,
 
+      // Preview mode (host previewing voting page before it goes live)
+      isPreview: previewMode,
+
       // Modal state
       selectedContestant,
       showVoteModal,
@@ -201,6 +238,7 @@ export function PublicCompetitionProvider({
       nominationPeriods,
       leaderboardData,
       activityData,
+      previewMode,
       selectedContestant,
       showVoteModal,
       showProfileModal,

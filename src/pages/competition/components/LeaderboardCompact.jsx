@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown, AlertTriangle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import CrownIcon from '../../../components/ui/icons/CrownIcon';
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -10,19 +11,26 @@ import { useNavigate } from 'react-router-dom';
 export function LeaderboardCompact() {
   const {
     contestants,
+    competition,
     dangerZone,
     openContestantProfile,
     openVoteModal,
-    orgSlug,
-    citySlug,
-    year,
   } = usePublicCompetition();
 
-  const navigate = useNavigate();
+  // Top N contestants are "winners" and get the EliteRank crown badge
+  // instead of a rank number. Driven by the competition's configured
+  // number_of_winners so every competition behaves correctly.
+  const numberOfWinners = competition?.number_of_winners || 1;
 
-  const basePath = year
-    ? `/c/${orgSlug}/${citySlug}/${year}`
-    : `/c/${orgSlug}/${citySlug}`;
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Build the leaderboard URL from the current path so it works across all
+  // URL formats (slug, ID, legacy) and preserves query params like
+  // ?preview=voting when a host is previewing the voting page.
+  const stripTrailing = (p) => p.replace(/\/(leaderboard|activity|enter)\/?$/, '').replace(/\/$/, '');
+  const basePath = stripTrailing(location.pathname);
+  const leaderboardPath = `${basePath}/leaderboard${location.search || ''}`;
 
   // All contestants in rank order (up to 9 for compact view)
   const allContestants = contestants?.slice(0, 9) || [];
@@ -53,6 +61,7 @@ export function LeaderboardCompact() {
             key={contestant.id}
             contestant={contestant}
             rank={index + 1}
+            numberOfWinners={numberOfWinners}
             onVote={openVoteModal}
           />
         ))}
@@ -69,7 +78,7 @@ export function LeaderboardCompact() {
       {/* View All Link */}
       <button
         className="leaderboard-view-all"
-        onClick={() => navigate(`${basePath}/leaderboard`)}
+        onClick={() => navigate(leaderboardPath)}
       >
         View All {contestants?.length || 0} Contestants
       </button>
@@ -77,14 +86,14 @@ export function LeaderboardCompact() {
   );
 }
 
-function PortraitCard({ contestant, rank, onVote }) {
+export function PortraitCard({ contestant, rank, numberOfWinners = 1, onVote }) {
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleError = useCallback(() => setImgFailed(true), []);
   const handleLoad = useCallback(() => setImgLoaded(true), []);
 
   const isDanger = contestant.zone === 'danger';
-  const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+  const isWinner = rank <= numberOfWinners;
   const showImg = contestant.avatar_url && !imgFailed;
 
   return (
@@ -106,10 +115,16 @@ function PortraitCard({ contestant, rank, onVote }) {
             onError={handleError}
           />
         )}
-        <span className={`portrait-rank ${rankClass}`}>
-          {rank === 1 && <Crown size={10} />}
-          #{rank}
-        </span>
+        {isWinner ? (
+          <span
+            className="portrait-rank portrait-rank-winner"
+            aria-label={`Winner rank ${rank}`}
+          >
+            <CrownIcon size={14} color="#0a0a0f" />
+          </span>
+        ) : (
+          <span className="portrait-rank">#{rank}</span>
+        )}
         {isDanger && (
           <span className="portrait-danger">
             <AlertTriangle size={12} />

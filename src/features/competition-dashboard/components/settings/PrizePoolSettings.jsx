@@ -290,21 +290,13 @@ export function PrizePoolSettings({ competition, onSave }) {
               <span style={placeStyle}>1st Place</span>
               <span style={amountStyle(true)}>{prizePreview.formatted.firstPrize}</span>
             </div>
-            <div style={breakdownItemStyle(false)}>
-              <span style={placeStyle}>2nd Place</span>
-              <span style={amountStyle(false)}>{prizePreview.formatted.secondPrize}</span>
-            </div>
-            <div style={breakdownItemStyle(false)}>
-              <span style={placeStyle}>3rd Place</span>
-              <span style={amountStyle(false)}>{prizePreview.formatted.thirdPrize}</span>
-            </div>
           </div>
           <div style={totalStyle}>
             <span style={{ color: colors.text.secondary }}>Starting Prize Pool</span>
             <span style={totalAmountStyle}>{prizePreview.formatted.totalPrizePool}</span>
           </div>
           <p style={growthNoteStyle}>
-            Prize pool grows as votes are purchased. 50% of vote revenue is added to prizes.
+            Winner takes all — 1st place receives the full prize pool. The pool grows as votes are purchased (50% of vote revenue is added).
           </p>
         </div>
       </Panel>
@@ -362,17 +354,7 @@ export function PrizePoolSettings({ competition, onSave }) {
             <div style={breakdownItemStyle(true)}>
               <span style={placeStyle}>1st Place</span>
               <span style={amountStyle(true)}>{prizePreview.formatted.firstPrize}</span>
-              <span style={formulaStyle}>50% of minimum</span>
-            </div>
-            <div style={breakdownItemStyle(false)}>
-              <span style={placeStyle}>2nd Place</span>
-              <span style={amountStyle(false)}>{prizePreview.formatted.secondPrize}</span>
-              <span style={formulaStyle}>30% of minimum</span>
-            </div>
-            <div style={breakdownItemStyle(false)}>
-              <span style={placeStyle}>3rd Place</span>
-              <span style={amountStyle(false)}>{prizePreview.formatted.thirdPrize}</span>
-              <span style={formulaStyle}>20% of minimum</span>
+              <span style={formulaStyle}>100% of pool</span>
             </div>
           </div>
 
@@ -382,7 +364,7 @@ export function PrizePoolSettings({ competition, onSave }) {
           </div>
 
           <p style={growthNoteStyle}>
-            Prize pool grows as votes are purchased. 50% of vote revenue is added to prizes.
+            Winner takes all — 1st place receives the full prize pool. The pool grows as votes are purchased (50% of vote revenue is added).
           </p>
         </div>
 

@@ -643,6 +643,10 @@
   display: grid;
   grid-template-columns: 1fr 300px;
   gap: var(--spacing-lg);
+  /* Space between the leaderboard column and the following section
+     (e.g. Meet the Judges). Matches the bottom spacing of .phase-section
+     so the gap between sections stays consistent. */
+  margin-bottom: var(--spacing-2xl);
 }
 
 @media (max-width: 900px) {
@@ -1796,6 +1800,15 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 .portrait-rank.bronze {
   background: rgba(205, 127, 50, 0.95);
   color: #000;
+}
+
+/* Winner badge — crown-only, same gold treatment as #1 used to have.
+   Used for the top N contestants where N = competition.number_of_winners. */
+.portrait-rank.portrait-rank-winner {
+  padding: 4px 6px;
+  background: rgba(212, 175, 55, 0.95);
+  color: #000;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
 }
 
 /* Danger indicator */
@@ -3963,6 +3976,22 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   padding-top: 0; /* Header handles top spacing */
 }
 
+/* Full leaderboard reuses the .portrait-grid card style from the
+   compact sidebar leaderboard. Override the grid sizing so cards
+   render larger on the full page than in the narrow sidebar. */
+.leaderboard-full .portrait-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-lg);
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .leaderboard-full .portrait-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+}
+
 .contestant-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -5173,7 +5202,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 .judge-title {
   font-size: var(--font-size-sm);
-  color: var(--color-primary);
+  color: var(--color-text-primary);
   margin: 0;
 }
 

@@ -4,10 +4,11 @@ import {
   PublicCompetitionProvider,
   usePublicCompetition,
 } from '../../contexts/PublicCompetitionContext';
-import { AlertCircle, Loader, X, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Eye, Loader, X, ArrowLeft } from 'lucide-react';
 import CompetitionSkeleton from '../../components/skeletons/CompetitionSkeleton';
 import { useAuthStore } from '../../stores';
 import { ProfileIcon, NotificationBell } from '../../components/ui';
+import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
 // Phase view components (lazy-loaded — only the active phase is needed)
 const ComingSoonPhase = lazy(() => import('./phases/ComingSoonPhase'));
@@ -34,18 +35,19 @@ const ContestantGuide = lazy(() => import('../../features/contestant-guide/Conte
  * Inner layout component (has access to context)
  */
 function CompetitionLayoutInner() {
-  const { 
-    loading, 
-    error, 
-    competition, 
-    phase, 
-    showVoteModal, 
+  const {
+    loading,
+    error,
+    competition,
+    phase,
+    showVoteModal,
     showProfileModal,
     votingRounds,
     prizePool,
     about,
     contestants,
     organization,
+    isPreview,
   } = usePublicCompetition();
   const location = useLocation();
   const navigate = useNavigate();
@@ -124,8 +126,8 @@ function CompetitionLayoutInner() {
     );
   }
 
-  // Not public (draft/cancelled)
-  if (phase && !phase.isPublic) {
+  // Not public (draft/cancelled) — bypassed in preview mode so hosts can see it
+  if (phase && !phase.isPublic && !isPreview) {
     return (
       <div className="competition-layout">
         <div className="competition-error">
@@ -164,6 +166,9 @@ function CompetitionLayoutInner() {
 
   return (
     <div className="competition-layout">
+      {/* Preview banner - shown to hosts previewing the voting page */}
+      {isPreview && <PreviewBanner />}
+
       {/* Floating Back Button - hidden when modal open */}
       {!isModalOpen && (
         <button
@@ -253,6 +258,59 @@ function CompetitionLayoutInner() {
 }
 
 /**
+ * PreviewBanner - shown across the top in preview mode
+ *
+ * Lets hosts know they're previewing the voting page (not the live page) and
+ * gives them a way to exit back to the dashboard.
+ */
+function PreviewBanner() {
+  const navigate = useNavigate();
+
+  return (
+    <div
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        background: 'linear-gradient(135deg, rgba(212,175,55,0.95), rgba(244,208,63,0.95))',
+        color: '#0a0a0f',
+        padding: `${spacing.sm} ${spacing.md}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.md,
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.semibold,
+        boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+        flexWrap: 'wrap',
+        textAlign: 'center',
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: spacing.xs }}>
+        <Eye size={16} />
+        Voting Page Preview — actions are disabled
+      </span>
+      <button
+        type="button"
+        onClick={() => navigate('/dashboard')}
+        style={{
+          padding: `${spacing.xs} ${spacing.md}`,
+          background: '#0a0a0f',
+          color: colors.gold.primary,
+          border: `1px solid #0a0a0f`,
+          borderRadius: borderRadius.sm,
+          fontSize: typography.fontSize.xs,
+          fontWeight: typography.fontWeight.semibold,
+          cursor: 'pointer',
+        }}
+      >
+        Exit Preview
+      </button>
+    </div>
+  );
+}
+
+/**
  * Phase Content - renders the appropriate phase view
  */
 function PhaseContent({ phase }) {
@@ -289,15 +347,20 @@ function PhaseContent({ phase }) {
  * View Navigation - tabs for main/leaderboard
  */
 function ViewNavigation({ currentView }) {
-  const { orgSlug, competitionSlug } = usePublicCompetition();
+  const location = useLocation();
 
-  // Build base path using competition slug directly
-  const basePath = `/${orgSlug}/${competitionSlug}`;
+  // Derive base path from current URL so the tabs work across all URL formats
+  // (slug `/:orgSlug/:slug`, ID `/:orgSlug/id/:competitionId`, legacy `/c/...`)
+  // and preserve query params like ?preview=voting for host previews.
+  const basePath = location.pathname
+    .replace(/\/(leaderboard|activity|enter)\/?$/, '')
+    .replace(/\/$/, '');
+  const search = location.search || '';
 
   const views = [
-    { id: 'main', label: 'Competition', path: basePath },
-    { id: 'leaderboard', label: 'Leaderboard', path: `${basePath}/leaderboard` },
-    { id: 'activity', label: 'Activity', path: `${basePath}/activity` },
+    { id: 'main', label: 'Competition', path: `${basePath}${search}` },
+    { id: 'leaderboard', label: 'Leaderboard', path: `${basePath}/leaderboard${search}` },
+    { id: 'activity', label: 'Activity', path: `${basePath}/activity${search}` },
   ];
 
   return (
@@ -331,6 +394,7 @@ function ContestantModals() {
     phase,
     openVoteModal,
     getContestant,
+    isPreview,
   } = usePublicCompetition();
 
   const navigate = useNavigate();
@@ -341,9 +405,11 @@ function ContestantModals() {
   const [voteCount, setVoteCount] = useState(1);
 
   // Build current round info for VoteModal
+  // In preview mode, force isActive=false so the modal disables vote actions
+  // (it already shows a "voting not active" state for that case).
   const currentRound = phase?.currentRound
-    ? { ...phase.currentRound, isActive: phase.isVoting }
-    : { isActive: phase?.isVoting ?? false };
+    ? { ...phase.currentRound, isActive: isPreview ? false : phase.isVoting }
+    : { isActive: isPreview ? false : (phase?.isVoting ?? false) };
 
   // Auto-open vote modal for contestant if voteFor param is present
   useEffect(() => {
@@ -440,6 +506,7 @@ function ContestantModals() {
 export function CompetitionLayout() {
   const params = useParams();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   // Determine format based on URL
   const isLegacyFormat = location.pathname.startsWith('/c/');
@@ -463,11 +530,17 @@ export function CompetitionLayout() {
     competitionSlug = params.slug?.split('/')[0] || params.slug;
   }
 
+  // Preview mode: ?preview=voting lets hosts see what the voting page will
+  // look like before the competition is live. Provider gates the actual
+  // bypass + synthetic voting phase.
+  const previewMode = searchParams.get('preview') === 'voting';
+
   return (
     <PublicCompetitionProvider
       orgSlug={orgSlug}
       competitionSlug={competitionSlug}
       competitionId={competitionId}
+      previewMode={previewMode}
     >
       <CompetitionLayoutInner />
     </PublicCompetitionProvider>

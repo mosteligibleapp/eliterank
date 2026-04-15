@@ -86,7 +86,7 @@ export function usePrizePool(
     return getPrizePosition(rank, prizePool);
   };
 
-  // Prize tiers for display
+  // Prize tiers for display (winner takes all)
   const prizeTiers = useMemo(() => {
     return [
       {
@@ -96,22 +96,6 @@ export function usePrizePool(
         formatted: prizePool.formatted.firstPrize,
         colorClass: 'prize-gold',
         iconName: 'crown',
-      },
-      {
-        rank: 2,
-        label: '2nd Place',
-        amount: prizePool.secondPrize,
-        formatted: prizePool.formatted.secondPrize,
-        colorClass: 'prize-silver',
-        iconName: 'award',
-      },
-      {
-        rank: 3,
-        label: '3rd Place',
-        amount: prizePool.thirdPrize,
-        formatted: prizePool.formatted.thirdPrize,
-        colorClass: 'prize-bronze',
-        iconName: 'medal',
       },
     ];
   }, [prizePool]);

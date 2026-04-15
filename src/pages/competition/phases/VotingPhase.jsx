@@ -77,7 +77,7 @@ export function VotingPhase() {
             />
           )}
 
-          <PrizePool compact collapsible />
+          <PrizePool compact />
 
           <ActivityFeedCompact limit={5} />
 
