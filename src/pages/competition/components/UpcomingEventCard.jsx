@@ -34,7 +34,10 @@ export function UpcomingEventCard({ onViewAllEvents }) {
   const totalEvents = events?.length || 0;
 
   return (
-    <div className="upcoming-event-card">
+    // Cap the whole widget to the EventCard's natural width so the
+    // "Upcoming Event" label sits directly above the card rather than
+    // stretching across a wide empty row beside it.
+    <div className="upcoming-event-card" style={{ maxWidth: '320px' }}>
       <div className="upcoming-event-header">
         <h4 className="section-label">
           <Calendar size={14} />
@@ -49,11 +52,7 @@ export function UpcomingEventCard({ onViewAllEvents }) {
       </div>
 
       {nextEvent ? (
-        // Cap width so the 3:2 cover stays the same size as an events-page
-        // card even when this widget drops into a wide sidebar slot.
-        <div style={{ maxWidth: '320px' }}>
-          <EventCard event={nextEvent} />
-        </div>
+        <EventCard event={nextEvent} />
       ) : (
         <div className="upcoming-event-empty">
           <Calendar size={24} />
