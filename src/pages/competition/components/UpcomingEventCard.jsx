@@ -36,8 +36,13 @@ export function UpcomingEventCard({ onViewAllEvents }) {
   return (
     // Cap the whole widget to the EventCard's natural width so the
     // "Upcoming Event" label sits directly above the card rather than
-    // stretching across a wide empty row beside it.
-    <div className="upcoming-event-card" style={{ maxWidth: '320px' }}>
+    // stretching across a wide empty row beside it. Auto horizontal
+    // margins center the card when it's in a full-width container
+    // (e.g. when .event-host-row collapses to a single column on mobile).
+    <div
+      className="upcoming-event-card"
+      style={{ maxWidth: '320px', marginLeft: 'auto', marginRight: 'auto' }}
+    >
       <div className="upcoming-event-header">
         <h4 className="section-label">
           <Calendar size={14} />
