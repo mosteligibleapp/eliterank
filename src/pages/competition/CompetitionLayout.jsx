@@ -149,6 +149,11 @@ function CompetitionLayoutInner() {
   const isActivityView = location.pathname.endsWith('/activity');
   const isContestantView = location.pathname.includes('/e/');
 
+  // Leaderboard/Activity sub-views are reachable any time the leaderboard
+  // has meaningful ranked data — during voting AND during the interim
+  // between-rounds phase.
+  const hasStandingsViews = phase?.isVoting || phase?.phase === 'between-rounds';
+
   const handleBack = () => {
     navigate('/');
   };
@@ -203,8 +208,8 @@ function CompetitionLayoutInner() {
         </div>
       )}
 
-      {/* View Navigation - only during voting phases */}
-      {phase?.isVoting && !isContestantView && (
+      {/* View Navigation - during voting phases and between rounds */}
+      {hasStandingsViews && !isContestantView && (
         <ViewNavigation
           currentView={
             isLeaderboardView
@@ -218,17 +223,17 @@ function CompetitionLayoutInner() {
 
       {/* Page content - render appropriate view based on URL */}
       <main className="competition-main">
-        {/* Persistent Competition Header - shown on all voting views */}
-        {phase?.isVoting && !isContestantView && (isLeaderboardView || isActivityView) && (
+        {/* Persistent Competition Header - shown on all standings views */}
+        {hasStandingsViews && !isContestantView && (isLeaderboardView || isActivityView) && (
           <CompetitionHeader
             badge={phase?.label}
             badgeVariant="live"
           />
         )}
         <Suspense fallback={null}>
-          {phase?.isVoting && isLeaderboardView ? (
+          {hasStandingsViews && isLeaderboardView ? (
             <LeaderboardView />
-          ) : phase?.isVoting && isActivityView ? (
+          ) : hasStandingsViews && isActivityView ? (
             <ActivityView />
           ) : (
             <PhaseContent phase={phase} />
