@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSupabaseAuth } from '../hooks';
+import { supabase } from '../lib/supabase';
 import { DEFAULT_HOST_PROFILE } from '../constants';
 import { ROLE, getUserRole } from '../routes/ProtectedRoute';
 import { PageHeader } from '../components/ui';
@@ -24,6 +25,22 @@ export default function UserProfilePage() {
   // Profile editing state
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState(null);
+
+  // Fetch contestant ID for fan display
+  const [contestantId, setContestantId] = useState(null);
+  useEffect(() => {
+    if (!user?.id || !supabase) return;
+    supabase
+      .from('contestants')
+      .select('id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.id) setContestantId(data.id);
+      });
+  }, [user?.id]);
 
   // Convert database profile to UI format
   const hostProfile = useMemo(() => {
@@ -129,6 +146,7 @@ export default function UserProfilePage() {
             hostCompetition={null}
             userRole={userRole}
             isHost={userRole === ROLE.HOST}
+            contestantId={contestantId}
           />
         </Suspense>
       </div>

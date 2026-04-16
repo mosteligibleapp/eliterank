@@ -8,6 +8,7 @@ import { useResponsive } from '../../../hooks/useResponsive';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import FanButton from '../../../components/ui/FanButton';
+import ProfileFans from './ProfileFans';
 
 export default function ProfileView({ hostProfile, onEdit, contestantId }) {
   const { isMobile, isSmall } = useResponsive();
@@ -312,6 +313,11 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
             city: hostProfile?.city,
           }}
         />
+
+        {/* Fans — only on own profile for contestants */}
+        {onEdit && contestantId && (
+          <ProfileFans contestantId={contestantId} />
+        )}
 
         {/* About */}
         {hostProfile.bio && (
