@@ -68,8 +68,8 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             onLogin={() => navigate('/login')}
             onLogout={handleLogout}
             onProfile={handleProfile}
-            onRewards={handleRewards}
-            onAchievements={handleAchievements}
+            onRewards={profile?.is_nominee_or_contestant ? handleRewards : undefined}
+            onAchievements={profile?.is_nominee_or_contestant ? handleAchievements : undefined}
             onAccountSettings={handleAccountSettings}
             onHowToCompete={handleHowToCompete}
             onDashboard={hasDashboardAccess ? handleDashboard : null}

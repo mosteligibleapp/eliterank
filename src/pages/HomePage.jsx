@@ -99,8 +99,8 @@ export default function HomePage({
         onLogin={onShowLogin}
         onDashboard={isAuthenticated && hasDashboardAccess ? handleGoToDashboard : null}
         onProfile={isAuthenticated ? onShowProfile : null}
-        onRewards={isAuthenticated ? onShowRewards : null}
-        onAchievements={isAuthenticated ? onShowAchievements : null}
+        onRewards={isAuthenticated && profile?.is_nominee_or_contestant ? onShowRewards : null}
+        onAchievements={isAuthenticated && profile?.is_nominee_or_contestant ? onShowAchievements : null}
         onAccountSettings={isAuthenticated ? handleAccountSettings : null}
         onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
         isAuthenticated={isAuthenticated}
