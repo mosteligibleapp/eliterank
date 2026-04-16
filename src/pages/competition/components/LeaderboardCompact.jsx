@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Crown, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CrownIcon from '../../../components/ui/icons/CrownIcon';
+import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -60,7 +61,7 @@ export function LeaderboardCompact() {
     <div className="leaderboard-prominent">
       <div className="leaderboard-header">
         <h3>
-          <Crown size={18} />
+          <EliteRankCrown size={18} />
           Leaderboard
         </h3>
         <span className="live-indicator">
