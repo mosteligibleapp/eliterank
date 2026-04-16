@@ -3055,6 +3055,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  height: 100%;
 }
 
 .host-card {
@@ -3062,6 +3063,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
+  flex: 1;
 }
 
 .host-info {
