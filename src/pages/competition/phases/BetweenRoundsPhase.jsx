@@ -22,7 +22,7 @@ export function BetweenRoundsPhase() {
         <div className="next-round-card">
           <h3>
             <Trophy size={20} />
-            {phase?.nextRound?.title || 'Next Round'} Starts Soon
+            Voting Opens Soon
           </h3>
           <CountdownDisplay label="" large />
         </div>
