@@ -135,7 +135,7 @@ export function LeaderboardCompact() {
       </div>
 
       {/* All Contestants - Unified Portrait Grid */}
-      <div className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}>
+      <div className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''} ${nextEvent ? 'portrait-grid-with-event' : ''}`}>
         {displayContestants.slice(0, 6).map((contestant, index) => (
           <PortraitCard
             key={contestant.id}
@@ -149,7 +149,7 @@ export function LeaderboardCompact() {
           />
         ))}
 
-        {/* Bottom-left slot: upcoming event card (if available) */}
+        {/* Bottom-left slot: event card spans 2 rows (portraits + footer) */}
         {nextEvent && <EventPortraitCard event={nextEvent} />}
 
         {displayContestants.slice(6).map((contestant, index) => (
@@ -164,6 +164,18 @@ export function LeaderboardCompact() {
             onVote={handleCardClick}
           />
         ))}
+
+        {/* When event card is present, "View All" sits inside the grid
+            spanning only columns 2-3 so the event card fills the full
+            bottom-left corner. */}
+        {nextEvent && (
+          <button
+            className="leaderboard-view-all leaderboard-view-all-inset"
+            onClick={() => navigate(leaderboardPath)}
+          >
+            View All Contestants
+          </button>
+        )}
       </div>
 
       {/* Danger Zone Summary — hidden between rounds, since nothing is
@@ -175,13 +187,15 @@ export function LeaderboardCompact() {
         </div>
       )}
 
-      {/* View All Link */}
-      <button
-        className="leaderboard-view-all"
-        onClick={() => navigate(leaderboardPath)}
-      >
-        View All Contestants
-      </button>
+      {/* View All Link — full-width when no event card */}
+      {!nextEvent && (
+        <button
+          className="leaderboard-view-all"
+          onClick={() => navigate(leaderboardPath)}
+        >
+          View All Contestants
+        </button>
+      )}
     </div>
   );
 }

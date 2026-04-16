@@ -2087,10 +2087,20 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   color: #fff;
 }
 
-/* Event card inside portrait grid — dark branded card */
+/* Event card inside portrait grid — dark branded card that spans
+   the last portrait row + the "View All" footer row. */
 .portrait-card-event {
   text-decoration: none;
   color: inherit;
+}
+
+.portrait-grid-with-event .portrait-card-event {
+  grid-row: span 2;
+}
+
+/* "View All" button inside the grid spans the remaining 2 columns */
+.leaderboard-view-all-inset {
+  grid-column: span 2;
 }
 
 .portrait-event-body {
