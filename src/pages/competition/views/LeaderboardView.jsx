@@ -1,7 +1,8 @@
-import { useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { PortraitCard } from '../components/LeaderboardCompact';
+import { Search, X } from 'lucide-react';
 
 /**
  * Full leaderboard page - reuses the same portrait-card grid as the
@@ -16,6 +17,7 @@ export function LeaderboardView() {
     openVoteModal,
   } = usePublicCompetition();
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
 
   // Clicking a contestant card navigates to their shareable public profile
   const handleContestantClick = useCallback((contestant) => {
@@ -33,10 +35,42 @@ export function LeaderboardView() {
   // Between rounds: hide rank badges + vote counts (no active voting).
   const isBetweenRounds = phase?.phase === 'between-rounds';
 
+  // Filter contestants by search query
+  const filtered = useMemo(() => {
+    if (!contestants) return [];
+    if (!search.trim()) return contestants;
+    const q = search.trim().toLowerCase();
+    return contestants.filter(c =>
+      c.name?.toLowerCase().includes(q) ||
+      c.city?.toLowerCase().includes(q)
+    );
+  }, [contestants, search]);
+
   return (
     <div className="leaderboard-full">
+      {/* Search bar */}
+      <div className="leaderboard-search">
+        <Search size={18} className="leaderboard-search-icon" />
+        <input
+          type="text"
+          placeholder="Search contestants..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="leaderboard-search-input"
+        />
+        {search && (
+          <button
+            className="leaderboard-search-clear"
+            onClick={() => setSearch('')}
+            aria-label="Clear search"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
       <div className="portrait-grid">
-        {contestants?.map((contestant, index) => (
+        {filtered.map((contestant, index) => (
           <PortraitCard
             key={contestant.id}
             contestant={contestant}
@@ -51,9 +85,9 @@ export function LeaderboardView() {
       </div>
 
       {/* Empty state */}
-      {(!contestants || contestants.length === 0) && (
+      {filtered.length === 0 && (
         <div className="leaderboard-empty">
-          <p>No contestants yet</p>
+          <p>{search ? 'No contestants match your search' : 'No contestants yet'}</p>
         </div>
       )}
     </div>

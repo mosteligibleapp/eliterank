@@ -3996,6 +3996,61 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   padding-top: 0; /* Header handles top spacing */
 }
 
+/* Search bar */
+.leaderboard-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.leaderboard-search-icon {
+  position: absolute;
+  left: var(--spacing-md);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.leaderboard-search-input {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) 42px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.leaderboard-search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.leaderboard-search-input:focus {
+  border-color: var(--color-primary);
+}
+
+.leaderboard-search-clear {
+  position: absolute;
+  right: var(--spacing-sm);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.2s;
+}
+
+.leaderboard-search-clear:hover {
+  color: var(--color-text-primary);
+}
+
 /* Full leaderboard reuses the .portrait-grid card style from the
    compact sidebar leaderboard. Override the grid sizing so cards
    render larger on the full page than in the narrow sidebar. */
