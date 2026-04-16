@@ -1694,6 +1694,11 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
+  transition: opacity 0.4s ease;
+}
+
+.portrait-grid-fading {
+  opacity: 0;
 }
 
 @media (max-width: 768px) {

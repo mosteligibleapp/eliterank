@@ -1,9 +1,21 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { AlertTriangle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CrownIcon from '../../../components/ui/icons/CrownIcon';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
+
+/**
+ * Fisher-Yates shuffle — returns a new array in random order.
+ */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -51,6 +63,40 @@ export function LeaderboardCompact() {
   // All contestants in rank order (up to 9 for compact view)
   const allContestants = contestants?.slice(0, 9) || [];
 
+  // Between rounds: rotate (shuffle) the grid every 4 seconds with a
+  // fade transition so the page feels alive while no voting is happening.
+  const [shuffled, setShuffled] = useState(allContestants);
+  const [fading, setFading] = useState(false);
+  const sourceRef = useRef(allContestants);
+
+  // Keep source in sync when contestants data changes
+  useEffect(() => {
+    sourceRef.current = allContestants;
+    if (!isBetweenRounds) {
+      setShuffled(allContestants);
+    }
+  }, [allContestants, isBetweenRounds]);
+
+  // Shuffle interval during between-rounds
+  useEffect(() => {
+    if (!isBetweenRounds || sourceRef.current.length < 2) return;
+
+    // Initial shuffle so it doesn't start in rank order
+    setShuffled(shuffle(sourceRef.current));
+
+    const interval = setInterval(() => {
+      setFading(true);
+      setTimeout(() => {
+        setShuffled(shuffle(sourceRef.current));
+        setFading(false);
+      }, 400); // fade-out duration
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isBetweenRounds]);
+
+  const displayContestants = isBetweenRounds ? shuffled : allContestants;
+
   // Format number with commas
   const formatVotes = (num) => {
     if (!num) return '0';
@@ -71,8 +117,8 @@ export function LeaderboardCompact() {
       </div>
 
       {/* All Contestants - Unified Portrait Grid */}
-      <div className="portrait-grid">
-        {allContestants.map((contestant, index) => (
+      <div className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}>
+        {displayContestants.map((contestant, index) => (
           <PortraitCard
             key={contestant.id}
             contestant={contestant}
