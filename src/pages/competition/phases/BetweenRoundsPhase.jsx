@@ -36,9 +36,13 @@ export function BetweenRoundsPhase() {
         <LeaderboardCompact />
       </section>
 
-      {/* Charity partner + Host beneath the leaderboard */}
+      {/* Charity partner */}
       <section className="phase-section">
         <CharityHighlight />
+      </section>
+
+      {/* Host */}
+      <section className="phase-section">
         <HostCard />
       </section>
 
