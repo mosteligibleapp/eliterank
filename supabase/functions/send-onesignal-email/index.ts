@@ -39,6 +39,28 @@ interface EmailRequest {
   reset_password_url?: string
   contestant_name?: string
   profile_url?: string
+  fan_id?: string
+  unsubscribe_url?: string
+}
+
+/**
+ * HMAC-SHA256 signed token for one-click unsubscribe links.
+ * Format: `<fan_id>.<hex_signature>`. The matching verifier lives in the
+ * fan-unsubscribe edge function — both must use FAN_UNSUBSCRIBE_SECRET.
+ */
+async function signFanToken(fanId: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(fanId))
+  const sigHex = Array.from(new Uint8Array(sig))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  return `${fanId}.${sigHex}`
 }
 
 // HTML email templates
@@ -266,6 +288,14 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
         ? `<p style="color:#ccc;font-size:15px;margin-top:8px;">in <strong>${req.competition_name}</strong></p>`
         : ''
       const ctaUrl = req.profile_url || req.competition_url
+      const unsubLine = req.unsubscribe_url
+        ? `<p style="color:#666;font-size:12px;margin-top:16px;">
+             Not interested in weekly updates for ${contestantName}?
+             <a href="${req.unsubscribe_url}" style="color:#999;text-decoration:underline;">Unsubscribe</a>.
+           </p>`
+        : `<p style="color:#666;font-size:12px;margin-top:16px;">
+             You can turn off weekly updates any time from your notification settings.
+           </p>`
       return {
         subject: `You're now a fan of ${contestantName}`,
         body: wrapper(`
@@ -277,9 +307,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
               We'll send you a <strong>weekly competition update</strong> so you can follow how ${contestantName} is doing — round standings, milestones, and when it's time to vote again.
             </p>
             ${ctaUrl ? goldButton(`View ${contestantName}'s Profile`, ctaUrl) : ''}
-            <p style="color:#666;font-size:12px;margin-top:16px;">
-              You can turn off weekly updates any time from your notification settings.
-            </p>
+            ${unsubLine}
           </div>
         `),
       }
@@ -420,6 +448,21 @@ serve(async (req) => {
         JSON.stringify({ error: 'to_email and type are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // For fan_confirmation, generate the signed one-click unsubscribe link
+    // server-side so the secret never leaves the edge. Caller passes fan_id
+    // (the contestant_fans row id); the fan-unsubscribe function verifies
+    // the matching signature.
+    if (body.type === 'fan_confirmation' && body.fan_id) {
+      const unsubSecret = Deno.env.get('FAN_UNSUBSCRIBE_SECRET')
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      if (unsubSecret && supabaseUrl) {
+        const token = await signFanToken(body.fan_id, unsubSecret)
+        body.unsubscribe_url = `${supabaseUrl}/functions/v1/fan-unsubscribe?token=${encodeURIComponent(token)}`
+      } else {
+        console.warn('fan_confirmation: missing FAN_UNSUBSCRIBE_SECRET or SUPABASE_URL — unsubscribe link will not be included')
+      }
     }
 
     const { subject, body: htmlBody } = getEmailContent(body)

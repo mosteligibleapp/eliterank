@@ -9,8 +9,8 @@ import { colors, spacing, borderRadius, typography } from '../../styles/theme';
  * email. Kept at module scope so it can be triggered as fire-and-forget
  * without tying into the component render cycle.
  */
-async function sendFanConfirmationEmail({ email, contestantId }) {
-  if (!supabase || !email || !contestantId) return;
+async function sendFanConfirmationEmail({ email, contestantId, fanId }) {
+  if (!supabase || !email || !contestantId || !fanId) return;
 
   const { data: contestant } = await supabase
     .from('contestants')
@@ -39,6 +39,7 @@ async function sendFanConfirmationEmail({ email, contestantId }) {
       competition_name: contestant.competition?.name,
       competition_url: competitionUrl,
       profile_url: profileUrl,
+      fan_id: fanId,
     },
   });
 }
@@ -107,19 +108,22 @@ export default function FanButton({ contestantId, onLoginRequired }) {
         setIsFan(false);
         setFanCount(prev => Math.max(0, prev - 1));
       } else {
-        await supabase
+        const { data: inserted } = await supabase
           .from('contestant_fans')
-          .insert({ contestant_id: contestantId, user_id: user.id });
+          .insert({ contestant_id: contestantId, user_id: user.id })
+          .select('id')
+          .single();
         setIsFan(true);
         setFanCount(prev => prev + 1);
 
         // Fire-and-forget: send a confirmation email letting the fan know
         // they'll receive weekly competition updates. Non-blocking — if the
         // email fails, the fan relationship is still recorded.
-        if (user.email) {
+        if (user.email && inserted?.id) {
           sendFanConfirmationEmail({
             email: user.email,
             contestantId,
+            fanId: inserted.id,
           }).catch(err => console.warn('Fan confirmation email failed:', err));
         }
       }
