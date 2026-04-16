@@ -36,17 +36,13 @@ export function BetweenRoundsPhase() {
         <LeaderboardCompact />
       </section>
 
-      {/* Upcoming Event + Charity Partner */}
+      {/* Upcoming Event + Charity Partner + Host */}
       <section className="phase-section">
-        <div className="event-host-row">
+        <div className="between-rounds-cards">
           <UpcomingEventCard />
           <CharityHighlight />
+          <HostSection />
         </div>
-      </section>
-
-      {/* Host */}
-      <section className="phase-section">
-        <HostSection />
       </section>
 
       {/* Judges Panel */}

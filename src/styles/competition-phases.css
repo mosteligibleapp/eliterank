@@ -397,17 +397,49 @@
   align-items: stretch;
 }
 
-.event-host-row .charity-highlight {
+@media (max-width: 768px) {
+  .event-host-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Three-column equal-weight row for between-rounds info cards */
+.between-rounds-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-lg);
+  align-items: stretch;
+}
+
+.between-rounds-cards .charity-highlight {
   margin-top: 0;
 }
 
-.event-host-row .charity-highlight-inner {
+.between-rounds-cards .charity-highlight,
+.between-rounds-cards .charity-highlight-link {
+  height: 100%;
+}
+
+.between-rounds-cards .charity-highlight-inner {
   height: 100%;
   justify-content: center;
 }
 
-@media (max-width: 768px) {
-  .event-host-row {
+/* HostSection inside the row: strip outer wrapper spacing, let the
+   host-card fill the grid cell. */
+.between-rounds-cards .host-section {
+  gap: 0;
+}
+
+.between-rounds-cards .host-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .between-rounds-cards {
     grid-template-columns: 1fr;
   }
 }
