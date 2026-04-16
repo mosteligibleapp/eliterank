@@ -198,8 +198,8 @@ function CompetitionLayoutInner() {
             onLogin={handleLogin}
             onLogout={handleLogout}
             onProfile={handleProfile}
-            onRewards={handleRewards}
-            onAchievements={handleAchievements}
+            onRewards={profile?.is_nominee_or_contestant ? handleRewards : undefined}
+            onAchievements={profile?.is_nominee_or_contestant ? handleAchievements : undefined}
             onAccountSettings={handleAccountSettings}
             onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
