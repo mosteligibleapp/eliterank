@@ -403,7 +403,9 @@
   }
 }
 
-/* Three-column equal-weight row for between-rounds info cards */
+/* Three-column equal-weight row for between-rounds info cards.
+   Every child stretches to the tallest card's height so all three
+   feel the same visual weight. */
 .between-rounds-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -411,15 +413,36 @@
   align-items: stretch;
 }
 
+/* ---- Event card ------------------------------------------------ */
 .between-rounds-cards .upcoming-event-card {
   max-width: none;
+  display: flex;
+  flex-direction: column;
 }
 
+/* EventCard wrapper (a or div) should grow to fill */
+.between-rounds-cards .upcoming-event-card > a,
+.between-rounds-cards .upcoming-event-card > div:not(.upcoming-event-header):not(.upcoming-event-empty) {
+  flex: 1;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Override the inline aspect-ratio on the cover image so it fills
+   the available height instead of locking to 3:2 */
+.between-rounds-cards .upcoming-event-card > a > div:first-child,
+.between-rounds-cards .upcoming-event-card > div:not(.upcoming-event-header):not(.upcoming-event-empty) > div:first-child {
+  aspect-ratio: unset !important;
+  flex: 1;
+  min-height: 200px;
+}
+
+/* ---- Charity card ---------------------------------------------- */
 .between-rounds-cards .charity-highlight {
   margin-top: 0;
+  height: 100%;
 }
 
-.between-rounds-cards .charity-highlight,
 .between-rounds-cards .charity-highlight-link {
   height: 100%;
 }
@@ -429,8 +452,12 @@
   justify-content: center;
 }
 
-/* HostSection inside the row: strip outer wrapper spacing, let the
-   host-card fill the grid cell. */
+.between-rounds-cards .charity-highlight-logo {
+  max-width: 200px;
+  max-height: 80px;
+}
+
+/* ---- Host card ------------------------------------------------- */
 .between-rounds-cards .host-section {
   gap: 0;
 }
@@ -445,6 +472,14 @@
 @media (max-width: 900px) {
   .between-rounds-cards {
     grid-template-columns: 1fr;
+  }
+
+  /* Restore fixed aspect-ratio on mobile so the image doesn't
+     grow unreasonably tall in the single-column layout */
+  .between-rounds-cards .upcoming-event-card > a > div:first-child,
+  .between-rounds-cards .upcoming-event-card > div:not(.upcoming-event-header):not(.upcoming-event-empty) > div:first-child {
+    aspect-ratio: 3 / 2 !important;
+    flex: none;
   }
 }
 
