@@ -46,6 +46,12 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
 
   // Check auth state on mount
   useEffect(() => {
+    // Hard cap on the auth check so the page can't get stuck on the
+    // "Loading your nomination..." spinner if Supabase's magic-link hash
+    // processing hangs. The nominee can still accept without a session —
+    // the accept action goes through the edge function.
+    const authTimeout = setTimeout(() => setAuthLoading(false), 4000);
+
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -62,6 +68,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
       } catch (err) {
         console.error('Auth check error:', err);
       } finally {
+        clearTimeout(authTimeout);
         setAuthLoading(false);
       }
     };
@@ -97,25 +104,47 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
       }
 
       try {
-        const { data: nomineeData, error: nomineeError } = await supabase
+        // Race the query against a timeout so a stuck Supabase client (e.g.
+        // after a failed magic-link hash exchange) can't leave the page
+        // frozen on the loading spinner. If it times out, fall back to a
+        // direct REST call with the anon key — nominees are public-readable.
+        const selectCols = `*,competition:competitions(id,name,city:cities(name),season,status,nomination_start,nomination_end,organization:organizations(name,logo_url,slug),demographic:demographics(*),category:categories(*))`;
+
+        const queryPromise = supabase
           .from('nominees')
-          .select(`
-            *,
-            competition:competitions(
-              id,
-              name,
-              city:cities(name),
-              season,
-              status,
-              nomination_start,
-              nomination_end,
-              organization:organizations(name, logo_url, slug),
-              demographic:demographics(*),
-              category:categories(*)
-            )
-          `)
+          .select(selectCols)
           .eq('invite_token', token)
           .single();
+
+        let nomineeData = null;
+        let nomineeError = null;
+        try {
+          const result = await Promise.race([
+            queryPromise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Supabase client timed out')), 8000)
+            ),
+          ]);
+          nomineeData = result.data;
+          nomineeError = result.error;
+        } catch (clientErr) {
+          console.warn('Supabase client query failed, falling back to REST:', clientErr.message);
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+          const restUrl = `${supabaseUrl}/rest/v1/nominees?invite_token=eq.${encodeURIComponent(token)}&select=${encodeURIComponent(selectCols)}`;
+          const restResp = await fetch(restUrl, {
+            headers: {
+              apikey: supabaseAnonKey,
+              Authorization: `Bearer ${supabaseAnonKey}`,
+              Accept: 'application/vnd.pgrst.object+json',
+            },
+          });
+          if (restResp.ok) {
+            nomineeData = await restResp.json();
+          } else {
+            nomineeError = { message: `REST fallback failed (${restResp.status})` };
+          }
+        }
 
         if (nomineeError || !nomineeData) {
           setError('Nomination not found. This link may be invalid or expired.');
