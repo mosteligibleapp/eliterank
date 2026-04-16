@@ -1,6 +1,17 @@
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { PortraitCard } from '../components/LeaderboardCompact';
+import { Search, X } from 'lucide-react';
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 /**
  * Full leaderboard page - reuses the same portrait-card grid as the
@@ -14,9 +25,9 @@ export function LeaderboardView() {
     phase,
     openVoteModal,
   } = usePublicCompetition();
-
   const navigate = useNavigate();
   const location = useLocation();
+  const [search, setSearch] = useState('');
 
   // Top N contestants render the EliteRank crown badge instead of a rank
   // number — where N is the competition's configured winner count.
@@ -40,10 +51,68 @@ export function LeaderboardView() {
   };
   const handleCardClick = isBetweenRounds ? openContestantPage : openVoteModal;
 
+  // Filter contestants by search query
+  const filtered = useMemo(() => {
+    if (!contestants) return [];
+    if (!search.trim()) return contestants;
+    const q = search.trim().toLowerCase();
+    return contestants.filter(c =>
+      c.name?.toLowerCase().includes(q) ||
+      c.city?.toLowerCase().includes(q)
+    );
+  }, [contestants, search]);
+
+  // Between rounds: rotate the grid every 4s (paused while searching)
+  const [shuffled, setShuffled] = useState([]);
+  const [fading, setFading] = useState(false);
+  const sourceRef = useRef(filtered);
+  const isRotating = isBetweenRounds && !search.trim();
+
+  useEffect(() => {
+    sourceRef.current = filtered;
+    if (!isRotating) setShuffled(filtered);
+  }, [filtered, isRotating]);
+
+  useEffect(() => {
+    if (!isRotating || sourceRef.current.length < 2) return;
+    setShuffled(shuffle(sourceRef.current));
+    const interval = setInterval(() => {
+      setFading(true);
+      setTimeout(() => {
+        setShuffled(shuffle(sourceRef.current));
+        setFading(false);
+      }, 400);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isRotating]);
+
+  const displayContestants = isRotating ? shuffled : filtered;
+
   return (
     <div className="leaderboard-full">
-      <div className="portrait-grid">
-        {contestants?.map((contestant, index) => (
+      {/* Search bar */}
+      <div className="leaderboard-search">
+        <Search size={18} className="leaderboard-search-icon" />
+        <input
+          type="text"
+          placeholder="Search contestants..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="leaderboard-search-input"
+        />
+        {search && (
+          <button
+            className="leaderboard-search-clear"
+            onClick={() => setSearch('')}
+            aria-label="Clear search"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
+      <div className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}>
+        {displayContestants.map((contestant, index) => (
           <PortraitCard
             key={contestant.id}
             contestant={contestant}
@@ -58,9 +127,9 @@ export function LeaderboardView() {
       </div>
 
       {/* Empty state */}
-      {(!contestants || contestants.length === 0) && (
+      {filtered.length === 0 && (
         <div className="leaderboard-empty">
-          <p>No contestants yet</p>
+          <p>{search ? 'No contestants match your search' : 'No contestants yet'}</p>
         </div>
       )}
     </div>

@@ -394,12 +394,101 @@
   display: grid;
   grid-template-columns: auto 1fr;
   gap: var(--spacing-xl);
-  align-items: start;
+  align-items: stretch;
 }
 
 @media (max-width: 768px) {
   .event-host-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Three-column equal-weight row for between-rounds info cards.
+   Every child stretches to the tallest card's height so all three
+   feel the same visual weight. Breaks out of the 900px phase-view
+   cap so the cards have room to breathe. */
+.between-rounds-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-lg);
+  align-items: stretch;
+  width: calc(100vw - var(--spacing-lg) * 2);
+  max-width: 1200px;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.between-rounds-cards-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* ---- Event card ------------------------------------------------ */
+.between-rounds-cards .upcoming-event-card {
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* EventCard wrapper (a or div) should grow to fill */
+.between-rounds-cards .upcoming-event-card > a,
+.between-rounds-cards .upcoming-event-card > div:not(.upcoming-event-header):not(.upcoming-event-empty) {
+  flex: 1;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Override the inline aspect-ratio on the cover image so it fills
+   the available height instead of locking to 3:2 */
+.between-rounds-cards .upcoming-event-card > a > div:first-child,
+.between-rounds-cards .upcoming-event-card > div:not(.upcoming-event-header):not(.upcoming-event-empty) > div:first-child {
+  aspect-ratio: unset !important;
+  flex: 1;
+  min-height: 200px;
+}
+
+/* ---- Charity card ---------------------------------------------- */
+.between-rounds-cards .charity-highlight {
+  margin-top: 0;
+  height: 100%;
+}
+
+.between-rounds-cards .charity-highlight-link {
+  height: 100%;
+}
+
+.between-rounds-cards .charity-highlight-inner {
+  height: 100%;
+  justify-content: center;
+}
+
+.between-rounds-cards .charity-highlight-logo {
+  max-width: 200px;
+  max-height: 80px;
+}
+
+/* ---- Host card ------------------------------------------------- */
+.between-rounds-cards .host-section {
+  gap: 0;
+}
+
+.between-rounds-cards .host-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .between-rounds-cards {
+    grid-template-columns: 1fr;
+  }
+
+  /* Restore fixed aspect-ratio on mobile so the image doesn't
+     grow unreasonably tall in the single-column layout */
+  .between-rounds-cards .upcoming-event-card > a > div:first-child,
+  .between-rounds-cards .upcoming-event-card > div:not(.upcoming-event-header):not(.upcoming-event-empty) > div:first-child {
+    aspect-ratio: 3 / 2 !important;
+    flex: none;
   }
 }
 
@@ -1864,6 +1953,11 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
+  transition: opacity 0.4s ease;
+}
+
+.portrait-grid-fading {
+  opacity: 0;
 }
 
 @media (max-width: 768px) {
@@ -1996,6 +2090,72 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   font-weight: var(--font-weight-semibold);
   color: #fff;
 }
+
+/* Event card inside portrait grid — uses event flyer image */
+.portrait-card-event {
+  text-decoration: none;
+  color: inherit;
+}
+
+.portrait-event-date-badge {
+  position: absolute;
+  bottom: var(--spacing-sm);
+  left: var(--spacing-sm);
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: 0.3px;
+}
+
+.portrait-event-info {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.portrait-event-venue {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Bottom row: event card left, contestants + view-all right */
+.leaderboard-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.leaderboard-bottom-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Mini 2-column grid for the last 2 contestants */
+.portrait-grid-mini {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Event card stretches to fill the full height of the right side */
+.leaderboard-bottom-row .portrait-card-event {
+  height: 100%;
+}
+
+.leaderboard-bottom-row .portrait-card-event .portrait-image-wrap {
+  flex: 1;
+}
+
+@media (max-width: 480px) {
+  .leaderboard-bottom-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 /* Vote Button - Appears on hover */
 .portrait-vote-btn {
@@ -2360,6 +2520,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   gap: var(--spacing-sm);
   margin: 0;
   font-size: var(--font-size-base);
+  color: var(--color-primary);
 }
 
 .live-indicator {
@@ -3225,33 +3386,44 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  height: 100%;
 }
 
 .host-card {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .host-info {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: var(--spacing-md);
+  text-align: center;
 }
 
 .host-avatar {
-  width: 56px;
-  height: 56px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   object-fit: cover;
+  border: 3px solid var(--color-primary);
+  box-shadow: 0 0 24px rgba(var(--color-primary-rgb), 0.15);
 }
 
 .host-avatar-placeholder {
-  width: 56px;
-  height: 56px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   background: var(--color-bg-tertiary);
+  border: 3px solid var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3261,15 +3433,21 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 .host-details {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 .host-name {
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
 }
 
 .host-title {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  line-height: 1.5;
+  max-width: 280px;
 }
 
 .host-location {
@@ -3278,6 +3456,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   gap: var(--spacing-xs);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+  margin-top: 2px;
 }
 
 .sponsors-card {
@@ -3679,7 +3858,11 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 /* Upcoming Event Card */
 .upcoming-event-card {
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
   background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -4146,6 +4329,61 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   margin: 0 auto;
   padding: var(--spacing-xl) var(--spacing-lg);
   padding-top: 0; /* Header handles top spacing */
+}
+
+/* Search bar */
+.leaderboard-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.leaderboard-search-icon {
+  position: absolute;
+  left: var(--spacing-md);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.leaderboard-search-input {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) 42px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.leaderboard-search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.leaderboard-search-input:focus {
+  border-color: var(--color-primary);
+}
+
+.leaderboard-search-clear {
+  position: absolute;
+  right: var(--spacing-sm);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.2s;
+}
+
+.leaderboard-search-clear:hover {
+  color: var(--color-text-primary);
 }
 
 /* Full leaderboard reuses the .portrait-grid card style from the
@@ -4645,14 +4883,16 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   width: 100%;
   background: none;
   border: none;
+  padding: 0;
   color: inherit;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: transform 0.2s, opacity 0.2s;
 }
 
 .host-info-clickable:hover {
-  opacity: 0.8;
+  transform: scale(1.02);
+  opacity: 0.9;
 }
 
 /* Link Button */
@@ -5410,5 +5650,210 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   .judge-avatar {
     width: 64px;
     height: 64px;
+  }
+}
+
+/* =====================
+   CONTESTANT VIEW (inline profile page for /e/:slug)
+   ===================== */
+
+.contestant-view-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  min-height: 60vh;
+}
+
+.contestant-view-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  padding: var(--spacing-sm) 0;
+  margin-bottom: var(--spacing-lg);
+  align-self: flex-start;
+  transition: color 0.2s;
+}
+
+.contestant-view-back:hover {
+  color: var(--color-primary);
+}
+
+.contestant-view-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+.contestant-view-avatar {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--color-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.contestant-view-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-tertiary);
+  color: var(--color-primary);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.contestant-view-name {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.contestant-view-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.contestant-view-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.contestant-view-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contestant-view-stat-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.contestant-view-stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.contestant-view-stat-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--color-border);
+}
+
+.contestant-view-bio {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-lg) 0;
+  max-width: 360px;
+}
+
+.contestant-view-instagram {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  margin-bottom: var(--spacing-xl);
+  transition: color 0.2s;
+}
+
+.contestant-view-instagram:hover {
+  color: var(--color-primary);
+}
+
+.contestant-view-vote-btn {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: linear-gradient(135deg, var(--color-primary), #f4d03f);
+  color: #0a0a0f;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.contestant-view-vote-btn:hover {
+  opacity: 0.9;
+}
+
+.contestant-view-vote-btn:active {
+  transform: scale(0.98);
+}
+
+/* Loading skeleton */
+.contestant-view-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-2xl);
+}
+
+.contestant-view-avatar-placeholder {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: var(--color-bg-tertiary);
+}
+
+.contestant-view-text-placeholder {
+  border-radius: var(--radius-md);
+  background: var(--color-bg-tertiary);
+}
+
+.contestant-view-pulse {
+  animation: contestant-view-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes contestant-view-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@media (max-width: 480px) {
+  .contestant-view-container {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .contestant-view-card {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+
+  .contestant-view-avatar {
+    width: 120px;
+    height: 120px;
+  }
+
+  .contestant-view-name {
+    font-size: var(--font-size-2xl);
   }
 }

@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Trophy } from 'lucide-react';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
@@ -9,6 +11,16 @@ import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
  */
 export function WinnersPodium() {
   const { competition, contestants, topThree, prizePool, openContestantProfile } = usePublicCompetition();
+  const navigate = useNavigate();
+
+  // Clicking a contestant card navigates to their shareable public profile
+  const handleContestantClick = useCallback((contestant) => {
+    if (contestant.user_id) {
+      navigate(`/profile/${contestant.user_id}`);
+    } else {
+      openContestantProfile(contestant);
+    }
+  }, [openContestantProfile, navigate]);
 
   const isLegacy = competition?.is_legacy;
 
@@ -27,7 +39,7 @@ export function WinnersPodium() {
           : competition?.created_at
             ? new Date(competition.created_at).getFullYear()
             : null);
-    return <LegacyContestantsGrid contestants={sorted} onSelect={openContestantProfile} year={year} />;
+    return <LegacyContestantsGrid contestants={sorted} onSelect={handleContestantClick} year={year} />;
   }
 
   if (!topThree?.length) return null;
@@ -47,7 +59,7 @@ export function WinnersPodium() {
         <div
           key={winner.id}
           className="podium-winner podium-winner-1 first-place"
-          onClick={() => openContestantProfile(winner)}
+          onClick={() => handleContestantClick(winner)}
         >
           <div className="winner-place">
             <EliteRankCrown size={32} />

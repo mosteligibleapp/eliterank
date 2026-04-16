@@ -129,24 +129,25 @@ export default function PeopleTab({
     }
   };
 
-  const handleAvatarClick = (nominee) => {
-    avatarUploadTarget.current = nominee;
+  const handleAvatarClick = (person, type = 'nominee') => {
+    avatarUploadTarget.current = { ...person, _table: type };
     avatarFileRef.current?.click();
   };
 
   const handleAvatarFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !avatarUploadTarget.current) return;
-    const nominee = avatarUploadTarget.current;
+    const target = avatarUploadTarget.current;
+    const table = target._table === 'contestant' ? 'contestants' : 'nominees';
     e.target.value = '';
 
-    setUploadingAvatarId(nominee.id);
+    setUploadingAvatarId(target.id);
     try {
       const url = await uploadPhoto(file, 'host-uploads');
       await supabase
-        .from('nominees')
+        .from(table)
         .update({ avatar_url: url })
-        .eq('id', nominee.id);
+        .eq('id', target.id);
       onRefresh?.();
     } catch (err) {
       console.error('Avatar upload failed:', err);
@@ -1039,6 +1040,7 @@ export default function PeopleTab({
                   person={c}
                   showVotes
                   cardType="contestant"
+                  onAvatarUpload={(person) => handleAvatarClick(person, 'contestant')}
                   onNameClick={c.userId ? () => handleViewProfile(c.userId) : undefined}
                   actions={
                     <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>

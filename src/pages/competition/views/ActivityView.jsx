@@ -2,6 +2,8 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { RulesAccordion } from '../components/RulesAccordion';
 import { PrizePool } from '../components/PrizePool';
 import { Timeline } from '../components/Timeline';
+import { UpcomingEventCard } from '../components/UpcomingEventCard';
+import { HostSection } from '../components/HostSection';
 import {
   TrendingUp,
   TrendingDown,
@@ -53,6 +55,12 @@ export function ActivityView() {
 
   return (
     <div className="activity-view">
+      {/* Upcoming Event + Host Profile side by side */}
+      <section className="phase-section phase-grid phase-grid-2">
+        <UpcomingEventCard />
+        <HostSection />
+      </section>
+
       <div className="activity-view-grid">
         {/* Main Column */}
         <div className="activity-main">

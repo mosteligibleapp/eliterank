@@ -229,7 +229,7 @@ function CompetitionLayoutInner() {
             "Between Rounds" tag doesn't show up on leaderboard/activity. */}
         {hasStandingsViews && !isContestantView && (isLeaderboardView || isActivityView) && (
           <CompetitionHeader
-            badge={phase?.phase === 'between-rounds' ? null : phase?.label}
+            badge={phase?.isVoting ? phase?.label : undefined}
             badgeVariant="live"
           />
         )}
