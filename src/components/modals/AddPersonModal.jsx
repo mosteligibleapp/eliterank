@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, User, Check, Loader } from 'lucide-react';
+import { Search, User, Check, Loader, UserPlus } from 'lucide-react';
 import { Modal, Button, Avatar, Badge } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 
 /**
- * Modal for adding nominees or contestants by selecting an existing user profile
- * Reuses the same search pattern as WinnersManager
+ * Modal for adding nominees or contestants.
+ *
+ * Two modes:
+ *  - "search" — pick an existing platform user by searching profiles.
+ *  - "manual" — enter a name + email for someone who isn't on the app yet.
+ *    Used by hosts who need to nominate known people directly; the invite
+ *    email still goes out via the same send-nomination-invite pipeline.
  */
 export default function AddPersonModal({
   isOpen,
@@ -14,11 +19,16 @@ export default function AddPersonModal({
   onAdd,
   type = 'nominee', // 'nominee' or 'contestant'
 }) {
+  const [mode, setMode] = useState('search'); // 'search' | 'manual'
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
+  const [manualInstagram, setManualInstagram] = useState('');
+  const [manualError, setManualError] = useState('');
 
   const isContestant = type === 'contestant';
   const title = isContestant ? 'Add Contestant' : 'Add Nominee';
@@ -26,9 +36,14 @@ export default function AddPersonModal({
   // Reset state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
+      setMode('search');
       setSearchQuery('');
       setSearchResults([]);
       setSelectedProfile(null);
+      setManualName('');
+      setManualEmail('');
+      setManualInstagram('');
+      setManualError('');
     }
   }, [isOpen]);
 
@@ -93,22 +108,72 @@ export default function AddPersonModal({
     return name || profile.email || 'Unknown';
   };
 
-  const handleSubmit = async () => {
-    if (!selectedProfile || !onAdd) return;
+  // Normalize instagram input to a bare handle (strip @, URL prefix)
+  const normalizeInstagram = (raw) => {
+    if (!raw) return '';
+    return String(raw)
+      .trim()
+      .replace(/^@/, '')
+      .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+      .replace(/\/+$/, '')
+      .split(/[/?#]/)[0];
+  };
 
+  // Very loose email shape check — real validation happens on the server.
+  const isEmailish = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+
+  const manualValid =
+    manualName.trim().length > 0 && isEmailish(manualEmail);
+
+  const canSubmit =
+    !submitting &&
+    ((mode === 'search' && !!selectedProfile) ||
+      (mode === 'manual' && manualValid));
+
+  const handleSubmit = async () => {
+    if (!onAdd) return;
+
+    if (mode === 'search') {
+      if (!selectedProfile) return;
+      setSubmitting(true);
+      try {
+        await onAdd({
+          name: getProfileName(selectedProfile),
+          email: selectedProfile.email,
+          instagram: selectedProfile.instagram,
+          city: selectedProfile.city,
+          userId: selectedProfile.id,
+          avatarUrl: selectedProfile.avatar_url,
+        });
+        onClose();
+      } catch (err) {
+        console.error(`Error adding ${type}:`, err);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Manual mode
+    setManualError('');
+    if (!manualValid) {
+      setManualError('Name and a valid email are required.');
+      return;
+    }
     setSubmitting(true);
     try {
       await onAdd({
-        name: getProfileName(selectedProfile),
-        email: selectedProfile.email,
-        instagram: selectedProfile.instagram,
-        city: selectedProfile.city,
-        userId: selectedProfile.id,
-        avatarUrl: selectedProfile.avatar_url,
+        name: manualName.trim(),
+        email: manualEmail.trim(),
+        instagram: normalizeInstagram(manualInstagram) || null,
+        city: null,
+        userId: null,
+        avatarUrl: null,
       });
       onClose();
     } catch (err) {
       console.error(`Error adding ${type}:`, err);
+      setManualError(err?.message || `Failed to add ${type}.`);
     } finally {
       setSubmitting(false);
     }
@@ -127,7 +192,7 @@ export default function AddPersonModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!selectedProfile || submitting}
+            disabled={!canSubmit}
             icon={submitting ? Loader : Check}
           >
             {submitting ? 'Adding...' : `Add ${isContestant ? 'Contestant' : 'Nominee'}`}
@@ -135,6 +200,95 @@ export default function AddPersonModal({
         </>
       }
     >
+      {/* Mode tabs — switch between searching existing users and entering a
+          new person manually. Manual is the escape hatch for hosts who need
+          to nominate someone not yet on the platform. */}
+      <div style={{
+        display: 'flex',
+        gap: spacing.xs,
+        padding: spacing.xs,
+        marginBottom: spacing.lg,
+        background: colors.background.secondary,
+        border: `1px solid ${colors.border.light}`,
+        borderRadius: borderRadius.lg,
+      }}>
+        {[
+          { id: 'search', label: 'Search existing', icon: Search },
+          { id: 'manual', label: 'Enter manually', icon: UserPlus },
+        ].map(tab => {
+          const TabIcon = tab.icon;
+          const active = mode === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setMode(tab.id)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.xs,
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: active ? colors.background.card : 'transparent',
+                border: 'none',
+                borderRadius: borderRadius.md,
+                color: active ? colors.gold.primary : colors.text.secondary,
+                fontSize: typography.fontSize.sm,
+                fontWeight: typography.fontWeight.medium,
+                cursor: 'pointer',
+              }}
+            >
+              <TabIcon size={14} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {mode === 'manual' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+          <ManualField
+            label="Full name"
+            value={manualName}
+            onChange={setManualName}
+            placeholder="Jane Doe"
+            required
+          />
+          <ManualField
+            label="Email"
+            value={manualEmail}
+            onChange={setManualEmail}
+            placeholder="jane@example.com"
+            type="email"
+            required
+          />
+          <ManualField
+            label="Instagram (optional)"
+            value={manualInstagram}
+            onChange={setManualInstagram}
+            placeholder="@janedoe"
+          />
+          {manualError && (
+            <p style={{
+              color: colors.status.error,
+              fontSize: typography.fontSize.sm,
+              margin: 0,
+            }}>
+              {manualError}
+            </p>
+          )}
+          <p style={{
+            color: colors.text.muted,
+            fontSize: typography.fontSize.xs,
+            margin: 0,
+          }}>
+            An invitation email will be sent automatically so they can claim their spot.
+          </p>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        </div>
+      ) : (<>
+
       {/* Search Input */}
       <div style={{ position: 'relative', marginBottom: spacing.lg }}>
         <div style={{
@@ -282,6 +436,37 @@ export default function AddPersonModal({
       )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </>)}
     </Modal>
+  );
+}
+
+// Small controlled input used by the "Enter manually" form.
+function ManualField({ label, value, onChange, placeholder, type = 'text', required }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
+      <span style={{
+        fontSize: typography.fontSize.xs,
+        fontWeight: typography.fontWeight.medium,
+        color: colors.text.secondary,
+      }}>
+        {label}{required && <span style={{ color: colors.status.error }}> *</span>}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          padding: spacing.md,
+          background: colors.background.secondary,
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.lg,
+          color: colors.text.primary,
+          fontSize: typography.fontSize.md,
+          outline: 'none',
+        }}
+      />
+    </label>
   );
 }
