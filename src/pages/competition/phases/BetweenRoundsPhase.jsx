@@ -4,7 +4,7 @@ import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CharityHighlight } from '../components/CharityHighlight';
-import { HostCard } from '../components/HostCard';
+import { HostSection } from '../components/HostSection';
 import { JudgesSection } from '../components/JudgesSection';
 
 /**
@@ -24,15 +24,14 @@ export function BetweenRoundsPhase() {
         <div className="next-round-card">
           <h3>
             <Trophy size={20} />
-            Voting Opens In
+            Voting Opens Soon
           </h3>
           <CountdownDisplay label="" large />
         </div>
       </section>
 
-      {/* Current Standings */}
+      {/* Leaderboard */}
       <section className="phase-section">
-        <h3 className="section-label">Current Standings</h3>
         <LeaderboardCompact />
       </section>
 
@@ -43,10 +42,10 @@ export function BetweenRoundsPhase() {
 
       {/* Host */}
       <section className="phase-section">
-        <HostCard />
+        <HostSection />
       </section>
 
-      {/* Judges */}
+      {/* Judges Panel */}
       <section className="phase-section">
         <JudgesSection />
       </section>

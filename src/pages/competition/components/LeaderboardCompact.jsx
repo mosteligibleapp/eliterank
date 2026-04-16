@@ -1,11 +1,22 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Crown, AlertTriangle, Calendar } from 'lucide-react';
+import { AlertTriangle, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CrownIcon from '../../../components/ui/icons/CrownIcon';
+import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 import { formatEventTime } from '../../../utils/formatters';
 
-const ROTATE_INTERVAL = 5000; // Rotate displayed contestants every 5 seconds
+/**
+ * Fisher-Yates shuffle — returns a new array in random order.
+ */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -46,69 +57,64 @@ export function LeaderboardCompact() {
     navigate(`/profile/${contestant.user_id}`);
   };
 
-  // Next upcoming event to display in the grid
-  const nextEvent = (() => {
+  // Find the next upcoming event (if any)
+  const nextEvent = useMemo(() => {
     if (!events?.length) return null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
     const sorted = [...events].sort((a, b) => {
       if (!a.date) return 1;
       if (!b.date) return -1;
       return new Date(a.date) - new Date(b.date);
     });
-    return sorted.find(e => {
-      if (!e.date) return true;
-      return e.date.split('T')[0] >= today.toISOString().split('T')[0];
-    }) || null;
-  })();
+    return sorted.find(e => !e.date || e.date.split('T')[0] >= todayStr) || null;
+  }, [events]);
 
   // When an event card is included the grid has (contestants + 1) items.
   // Desktop is 3 columns, mobile is 2 columns. Pick a contestant count
   // so total items fill complete rows on both layouts (divisible by 6).
   // 11 + 1 = 12 (4×3, 6×2). Without event, 9 works for 3-col (3×3).
-  const maxWithEvent = 11;
-  const maxWithoutEvent = 9;
-  const maxContestants = nextEvent ? maxWithEvent : maxWithoutEvent;
-  const displayCount = Math.min(contestants?.length || 0, maxContestants);
+  const maxContestants = nextEvent ? 11 : 9;
+  const allContestants = contestants?.slice(0, maxContestants) || [];
 
-  // Rotate which contestants are visible every few seconds so all
-  // contestants get exposure on the compact grid.
-  const [rotationOffset, setRotationOffset] = useState(0);
+  // Rotate (shuffle) the grid every 4 seconds with a fade transition
+  // so the page feels alive and all contestants get visibility.
+  const [shuffled, setShuffled] = useState(allContestants);
+  const [fading, setFading] = useState(false);
+  const sourceRef = useRef(allContestants);
   const isPaused = useRef(false);
-  const totalContestants = contestants?.length || 0;
-  const shouldRotate = totalContestants > displayCount;
+  const shouldRotate = allContestants.length > 1;
 
+  // Keep source in sync when contestants data changes
+  useEffect(() => {
+    sourceRef.current = allContestants;
+    setShuffled(allContestants);
+  }, [contestants, maxContestants]);
+
+  // Shuffle interval — always active when there are contestants
   useEffect(() => {
     if (!shouldRotate) return;
-    const timer = setInterval(() => {
-      if (!isPaused.current) {
-        setRotationOffset(prev => (prev + displayCount) % totalContestants);
-      }
-    }, ROTATE_INTERVAL);
-    return () => clearInterval(timer);
-  }, [shouldRotate, displayCount, totalContestants]);
 
-  // Reset offset when contestant list changes
-  useEffect(() => {
-    setRotationOffset(0);
-  }, [totalContestants]);
+    const interval = setInterval(() => {
+      if (isPaused.current) return;
+      setFading(true);
+      setTimeout(() => {
+        setShuffled(shuffle(sourceRef.current));
+        setFading(false);
+      }, 400); // fade-out duration
+    }, 5000);
 
-  // Build the visible slice, wrapping around when offset + count exceeds total
-  const allContestants = (() => {
-    if (!contestants?.length) return [];
-    if (!shouldRotate) return contestants.slice(0, displayCount);
-    const result = [];
-    for (let i = 0; i < displayCount; i++) {
-      result.push(contestants[(rotationOffset + i) % totalContestants]);
-    }
-    return result;
-  })();
+    return () => clearInterval(interval);
+  }, [shouldRotate]);
+
+  const displayContestants = shuffled;
 
   return (
     <div className="leaderboard-prominent">
       <div className="leaderboard-header">
         <h3>
-          <Crown size={18} />
+          <EliteRankCrown size={18} />
           Leaderboard
         </h3>
         <span className="live-indicator">
@@ -117,37 +123,30 @@ export function LeaderboardCompact() {
         </span>
       </div>
 
-      {/* All Contestants - Unified Portrait Grid */}
+      {/* Portrait Grid */}
       <div
-        className="portrait-grid"
+        className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}
         onMouseEnter={() => { isPaused.current = true; }}
         onMouseLeave={() => { isPaused.current = false; }}
       >
-        {allContestants.map((contestant, index) => {
-          // Use the contestant's actual position in the full ranked list
-          const actualRank = shouldRotate
-            ? (rotationOffset + index) % totalContestants + 1
-            : index + 1;
-          return (
-            <PortraitCard
-              key={contestant.id}
-              contestant={contestant}
-              rank={actualRank}
-              numberOfWinners={numberOfWinners}
-              hideRank={isBetweenRounds}
-              hideVotes={isBetweenRounds}
-              hideDanger={isBetweenRounds}
-              onVote={handleCardClick}
-            />
-          );
-        })}
+        {displayContestants.map((contestant, index) => (
+          <PortraitCard
+            key={contestant.id}
+            contestant={contestant}
+            rank={index + 1}
+            numberOfWinners={numberOfWinners}
+            hideRank={isBetweenRounds}
+            hideVotes={isBetweenRounds}
+            hideDanger={isBetweenRounds}
+            onVote={handleCardClick}
+          />
+        ))}
         {nextEvent && (
-          <EventGridCard event={nextEvent} />
+          <EventPortraitCard event={nextEvent} />
         )}
       </div>
 
-      {/* Danger Zone Summary — hidden between rounds, since nothing is
-          actively being voted on */}
+      {/* Danger Zone Summary — hidden between rounds */}
       {!isBetweenRounds && dangerZone?.length > 0 && (
         <div className="danger-zone-summary">
           <AlertTriangle size={12} />
@@ -163,6 +162,58 @@ export function LeaderboardCompact() {
         View All Contestants
       </button>
     </div>
+  );
+}
+
+/**
+ * Compact event card that fits inside the portrait grid.
+ * Shows the event flyer image with a date badge overlay,
+ * event name + venue below — mirrors the EventCard style.
+ */
+function EventPortraitCard({ event }) {
+  const imageUrl = event.imageUrl || event.image_url;
+  const ticketUrl = event.ticketUrl || event.ticket_url;
+  const venue = event.location || event.venue;
+
+  const formatDateBadge = (dateStr, timeStr) => {
+    if (!dateStr) return 'Date TBD';
+    const eventDate = new Date(dateStr + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isToday = eventDate.getTime() === today.getTime();
+    const datePart = isToday
+      ? 'TODAY'
+      : eventDate
+          .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+          .toUpperCase();
+    if (timeStr) return `${datePart}  \u2022  ${formatEventTime(timeStr)}`;
+    return datePart;
+  };
+
+  const Wrapper = ticketUrl ? 'a' : 'div';
+  const wrapperProps = ticketUrl
+    ? { href: ticketUrl, target: '_blank', rel: 'noopener noreferrer' }
+    : {};
+
+  return (
+    <Wrapper {...wrapperProps} className="portrait-card portrait-card-event">
+      <div className="portrait-image-wrap">
+        {imageUrl ? (
+          <img src={imageUrl} alt={event.name} className="portrait-image" style={{ objectFit: 'cover' }} />
+        ) : (
+          <div className="portrait-placeholder">
+            <Calendar size={28} />
+          </div>
+        )}
+        <span className="portrait-event-date-badge">
+          {formatDateBadge(event.date, event.time)}
+        </span>
+      </div>
+      <div className="portrait-info portrait-event-info">
+        <span className="portrait-name">{event.name}</span>
+        {venue && <span className="portrait-event-venue">{venue}</span>}
+      </div>
+    </Wrapper>
   );
 }
 
@@ -228,70 +279,6 @@ export function PortraitCard({
       </div>
     </div>
   );
-}
-
-/**
- * EventGridCard — event flyer rendered as a portrait-card so it fits
- * seamlessly into the contestant grid at the same size.
- */
-function EventGridCard({ event }) {
-  const imageUrl = event.imageUrl || event.image_url;
-  const ticketUrl = event.ticketUrl || event.ticket_url;
-  const eventLocation = event.location || event.venue;
-
-  const formatDate = (dateStr, timeStr) => {
-    if (!dateStr) return 'Date TBD';
-    const eventDate = new Date(dateStr + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const isToday = eventDate.getTime() === today.getTime();
-    const datePart = isToday
-      ? 'TODAY'
-      : eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
-    if (timeStr) return `${datePart} \u2022 ${formatEventTime(timeStr)}`;
-    return datePart;
-  };
-
-  const card = (
-    <div className="portrait-card">
-      <div className="portrait-image-wrap">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={event.name}
-            className="portrait-image"
-            style={{ opacity: 1 }}
-          />
-        ) : (
-          <div className="portrait-placeholder">
-            <Calendar size={24} />
-          </div>
-        )}
-        {/* Date badge — positioned like the rank badge */}
-        <span
-          className="portrait-rank"
-          style={{ fontSize: '10px', padding: '2px 8px', letterSpacing: '0.3px' }}
-        >
-          {formatDate(event.date, event.time)}
-        </span>
-      </div>
-      <div className="portrait-info">
-        <span className="portrait-name">{event.name}</span>
-        {eventLocation && (
-          <span className="portrait-votes">{eventLocation}</span>
-        )}
-      </div>
-    </div>
-  );
-
-  if (ticketUrl) {
-    return (
-      <a href={ticketUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
-        {card}
-      </a>
-    );
-  }
-  return card;
 }
 
 export default LeaderboardCompact;

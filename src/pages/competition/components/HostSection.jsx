@@ -32,12 +32,12 @@ export function HostSection() {
               <img src={host.avatar_url} alt={hostName} className="host-avatar" />
             ) : (
               <div className="host-avatar-placeholder">
-                <User size={24} />
+                <User size={48} />
               </div>
             )}
             <div className="host-details">
               <span className="host-name">{hostName || 'Competition Host'}</span>
-              {host.bio && <span className="host-title">{host.bio.substring(0, 50)}...</span>}
+              {host.bio && <span className="host-title">{host.bio.length > 100 ? host.bio.substring(0, 100) + '...' : host.bio}</span>}
               {host.city && (
                 <span className="host-location">
                   <MapPin size={12} />
