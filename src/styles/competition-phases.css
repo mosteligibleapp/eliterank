@@ -405,12 +405,17 @@
 
 /* Three-column equal-weight row for between-rounds info cards.
    Every child stretches to the tallest card's height so all three
-   feel the same visual weight. */
+   feel the same visual weight. Breaks out of the 900px phase-view
+   cap so the cards have room to breathe. */
 .between-rounds-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-lg);
   align-items: stretch;
+  width: calc(100vw - var(--spacing-lg) * 2);
+  max-width: 1200px;
+  margin-left: 50%;
+  transform: translateX(-50%);
 }
 
 /* ---- Event card ------------------------------------------------ */
