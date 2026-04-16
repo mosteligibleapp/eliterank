@@ -25,10 +25,10 @@ export function LeaderboardView() {
   // Between rounds: hide rank badges + vote counts (no active voting).
   const isBetweenRounds = phase?.phase === 'between-rounds';
 
-  // Base competition URL = current path minus any /leaderboard|/activity|/enter
+  // Base competition URL = current path minus any /leaderboard|/prizes|/activity|/enter
   // tail. Preserves query params like ?preview=between-rounds.
   const basePath = location.pathname
-    .replace(/\/(leaderboard|activity|enter)\/?$/, '')
+    .replace(/\/(leaderboard|prizes|activity|enter)\/?$/, '')
     .replace(/\/$/, '');
 
   // Between rounds, clicking a contestant navigates to their public
