@@ -3,7 +3,6 @@ import { Trophy } from 'lucide-react';
 import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
-import { UpcomingEventCard } from '../components/UpcomingEventCard';
 import { CharityHighlight } from '../components/CharityHighlight';
 import { HostSection } from '../components/HostSection';
 import { JudgesSection } from '../components/JudgesSection';
@@ -36,10 +35,9 @@ export function BetweenRoundsPhase() {
         <LeaderboardCompact />
       </section>
 
-      {/* Upcoming Event + Charity Partner + Host */}
+      {/* Charity Partner + Host */}
       <section className="phase-section">
-        <div className="between-rounds-cards">
-          <UpcomingEventCard />
+        <div className="between-rounds-cards between-rounds-cards-2">
           <CharityHighlight />
           <HostSection />
         </div>

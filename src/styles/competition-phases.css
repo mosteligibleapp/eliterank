@@ -418,6 +418,10 @@
   transform: translateX(-50%);
 }
 
+.between-rounds-cards-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 /* ---- Event card ------------------------------------------------ */
 .between-rounds-cards .upcoming-event-card {
   max-width: none;
