@@ -1,9 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown, AlertTriangle, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CrownIcon from '../../../components/ui/icons/CrownIcon';
 import { formatEventTime } from '../../../utils/formatters';
+
+const ROTATE_INTERVAL = 5000; // Rotate displayed contestants every 5 seconds
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -68,7 +70,39 @@ export function LeaderboardCompact() {
   if (nextEvent && displayCount % 2 === 0 && displayCount > 1) {
     displayCount -= 1;
   }
-  const allContestants = contestants?.slice(0, displayCount) || [];
+
+  // Rotate which contestants are visible every few seconds so all
+  // contestants get exposure on the compact grid.
+  const [rotationOffset, setRotationOffset] = useState(0);
+  const isPaused = useRef(false);
+  const totalContestants = contestants?.length || 0;
+  const shouldRotate = totalContestants > displayCount;
+
+  useEffect(() => {
+    if (!shouldRotate) return;
+    const timer = setInterval(() => {
+      if (!isPaused.current) {
+        setRotationOffset(prev => (prev + displayCount) % totalContestants);
+      }
+    }, ROTATE_INTERVAL);
+    return () => clearInterval(timer);
+  }, [shouldRotate, displayCount, totalContestants]);
+
+  // Reset offset when contestant list changes
+  useEffect(() => {
+    setRotationOffset(0);
+  }, [totalContestants]);
+
+  // Build the visible slice, wrapping around when offset + count exceeds total
+  const allContestants = (() => {
+    if (!contestants?.length) return [];
+    if (!shouldRotate) return contestants.slice(0, displayCount);
+    const result = [];
+    for (let i = 0; i < displayCount; i++) {
+      result.push(contestants[(rotationOffset + i) % totalContestants]);
+    }
+    return result;
+  })();
 
   return (
     <div className="leaderboard-prominent">
@@ -84,19 +118,29 @@ export function LeaderboardCompact() {
       </div>
 
       {/* All Contestants - Unified Portrait Grid */}
-      <div className="portrait-grid">
-        {allContestants.map((contestant, index) => (
-          <PortraitCard
-            key={contestant.id}
-            contestant={contestant}
-            rank={index + 1}
-            numberOfWinners={numberOfWinners}
-            hideRank={isBetweenRounds}
-            hideVotes={isBetweenRounds}
-            hideDanger={isBetweenRounds}
-            onVote={handleCardClick}
-          />
-        ))}
+      <div
+        className="portrait-grid"
+        onMouseEnter={() => { isPaused.current = true; }}
+        onMouseLeave={() => { isPaused.current = false; }}
+      >
+        {allContestants.map((contestant, index) => {
+          // Use the contestant's actual position in the full ranked list
+          const actualRank = shouldRotate
+            ? (rotationOffset + index) % totalContestants + 1
+            : index + 1;
+          return (
+            <PortraitCard
+              key={contestant.id}
+              contestant={contestant}
+              rank={actualRank}
+              numberOfWinners={numberOfWinners}
+              hideRank={isBetweenRounds}
+              hideVotes={isBetweenRounds}
+              hideDanger={isBetweenRounds}
+              onVote={handleCardClick}
+            />
+          );
+        })}
         {nextEvent && (
           <EventGridCard event={nextEvent} />
         )}
