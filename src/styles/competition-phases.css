@@ -138,6 +138,48 @@
   margin-top: var(--spacing-sm);
 }
 
+/* Compact variant — used on Leaderboard and Prizes views so the primary
+   content (contestant grid, prize cards) stays above the fold. */
+.competition-header-compact {
+  margin-bottom: var(--spacing-md);
+}
+
+.competition-header-compact .org-branding {
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
+  gap: 2px;
+}
+
+.competition-header-compact .org-presented-by {
+  display: none;
+}
+
+.competition-header-compact .org-logo {
+  width: 100px;
+}
+
+.competition-header-compact .org-logo svg {
+  width: 40px;
+  height: 40px;
+}
+
+.competition-header-compact .competition-season {
+  margin-bottom: 2px;
+}
+
+.competition-header-compact .competition-name {
+  font-size: var(--font-size-xl);
+}
+
+.competition-header-compact .competition-city {
+  font-size: var(--font-size-md);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.competition-header-compact .phase-badge {
+  margin-top: var(--spacing-xs);
+}
+
 /* =====================
    PHASE VIEW BASE
    ===================== */

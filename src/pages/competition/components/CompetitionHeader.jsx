@@ -4,8 +4,11 @@ import { Crown } from 'lucide-react';
 /**
  * Consistent competition header across all phases
  * Shows organization branding, season, name, and description
+ *
+ * Pass `compact` for secondary views (leaderboard, prizes) where the header
+ * should take less vertical space so the primary content is above the fold.
  */
-export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 'default' }) {
+export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 'default', compact = false }) {
   const { competition, organization, about } = usePublicCompetition();
 
   // Determine badge variant class
@@ -26,7 +29,7 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
   );
 
   return (
-    <section className="competition-header">
+    <section className={`competition-header${compact ? ' competition-header-compact' : ''}`}>
       {/* Organization Branding */}
       <div className="org-branding">
         <span className="org-presented-by">Presented by</span>
@@ -54,8 +57,8 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
         <h2 className="competition-city">{competition.city}</h2>
       )}
 
-      {/* Description */}
-      {about?.description && (
+      {/* Description — hidden in compact header to save vertical space */}
+      {about?.description && !compact && (
         <p className="competition-description">{about.description}</p>
       )}
 
