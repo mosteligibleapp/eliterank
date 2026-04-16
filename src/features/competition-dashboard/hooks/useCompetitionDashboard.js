@@ -720,9 +720,13 @@ export function useCompetitionDashboard(competitionId) {
         .from('nominees')
         .insert({
           competition_id: competitionId,
+          user_id: nomineeData.userId || null,
           name: nomineeData.name,
           email: nomineeData.email ? nomineeData.email.replace(/^.*<([^>]+)>$/, '$1').trim() : null,
           phone: nomineeData.phone || null,
+          instagram: nomineeData.instagram || null,
+          city: nomineeData.city || null,
+          avatar_url: nomineeData.avatarUrl || null,
           nominated_by: 'admin',
           invite_token: crypto.randomUUID(),
           status: 'pending',
