@@ -2087,20 +2087,44 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   color: #fff;
 }
 
-/* Event card inside portrait grid — dark branded card that spans
-   the last portrait row + the "View All" footer row. */
+/* Event card inside portrait grid — dark branded card */
 .portrait-card-event {
   text-decoration: none;
   color: inherit;
 }
 
-.portrait-grid-with-event .portrait-card-event {
-  grid-row: span 2;
+/* Bottom row: event card left, contestants + view-all right */
+.leaderboard-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
 }
 
-/* "View All" button inside the grid spans the remaining 2 columns */
-.leaderboard-view-all-inset {
-  grid-column: span 2;
+.leaderboard-bottom-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Mini 2-column grid for the last 2 contestants */
+.portrait-grid-mini {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Event card stretches to fill the full height of the right side */
+.leaderboard-bottom-row .portrait-card-event {
+  height: 100%;
+}
+
+.leaderboard-bottom-row .portrait-card-event .portrait-event-body {
+  flex: 1;
+}
+
+@media (max-width: 480px) {
+  .leaderboard-bottom-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .portrait-event-body {

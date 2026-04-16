@@ -77,8 +77,8 @@ export function LeaderboardCompact() {
   }, [events]);
 
   // Reserve the bottom-left grid slot for the event card when available.
-  // 3-column grid → bottom-left is position 7 (index 6) in a 9-cell grid.
   const maxContestants = nextEvent ? 8 : 9;
+  const topContestants = nextEvent ? 6 : 9;
   const allContestants = contestants?.slice(0, maxContestants) || [];
 
   // Between rounds: rotate (shuffle) the grid every 4 seconds with a
@@ -134,9 +134,9 @@ export function LeaderboardCompact() {
         </span>
       </div>
 
-      {/* All Contestants - Unified Portrait Grid */}
-      <div className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''} ${nextEvent ? 'portrait-grid-with-event' : ''}`}>
-        {displayContestants.slice(0, 6).map((contestant, index) => (
+      {/* Main portrait grid — self-contained leaderboard */}
+      <div className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}>
+        {displayContestants.slice(0, topContestants).map((contestant, index) => (
           <PortraitCard
             key={contestant.id}
             contestant={contestant}
@@ -148,38 +148,9 @@ export function LeaderboardCompact() {
             onVote={handleCardClick}
           />
         ))}
-
-        {/* Bottom-left slot: event card spans 2 rows (portraits + footer) */}
-        {nextEvent && <EventPortraitCard event={nextEvent} />}
-
-        {displayContestants.slice(6).map((contestant, index) => (
-          <PortraitCard
-            key={contestant.id}
-            contestant={contestant}
-            rank={index + 7}
-            numberOfWinners={numberOfWinners}
-            hideRank={isBetweenRounds}
-            hideVotes={isBetweenRounds}
-            hideDanger={isBetweenRounds}
-            onVote={handleCardClick}
-          />
-        ))}
-
-        {/* When event card is present, "View All" sits inside the grid
-            spanning only columns 2-3 so the event card fills the full
-            bottom-left corner. */}
-        {nextEvent && (
-          <button
-            className="leaderboard-view-all leaderboard-view-all-inset"
-            onClick={() => navigate(leaderboardPath)}
-          >
-            View All Contestants
-          </button>
-        )}
       </div>
 
-      {/* Danger Zone Summary — hidden between rounds, since nothing is
-          actively being voted on */}
+      {/* Danger Zone Summary — hidden between rounds */}
       {!isBetweenRounds && dangerZone?.length > 0 && (
         <div className="danger-zone-summary">
           <AlertTriangle size={12} />
@@ -187,8 +158,35 @@ export function LeaderboardCompact() {
         </div>
       )}
 
-      {/* View All Link — full-width when no event card */}
-      {!nextEvent && (
+      {/* When there's an upcoming event: event card on the left,
+          remaining contestants + View All stacked on the right. */}
+      {nextEvent ? (
+        <div className="leaderboard-bottom-row">
+          <EventPortraitCard event={nextEvent} />
+          <div className="leaderboard-bottom-right">
+            <div className="portrait-grid portrait-grid-mini">
+              {displayContestants.slice(6).map((contestant, index) => (
+                <PortraitCard
+                  key={contestant.id}
+                  contestant={contestant}
+                  rank={index + 7}
+                  numberOfWinners={numberOfWinners}
+                  hideRank={isBetweenRounds}
+                  hideVotes={isBetweenRounds}
+                  hideDanger={isBetweenRounds}
+                  onVote={handleCardClick}
+                />
+              ))}
+            </div>
+            <button
+              className="leaderboard-view-all"
+              onClick={() => navigate(leaderboardPath)}
+            >
+              View All Contestants
+            </button>
+          </div>
+        </div>
+      ) : (
         <button
           className="leaderboard-view-all"
           onClick={() => navigate(leaderboardPath)}
