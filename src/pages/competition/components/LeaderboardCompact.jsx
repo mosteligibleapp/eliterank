@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { useAuthStore } from '../../../stores';
 import { Crown, AlertTriangle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CrownIcon from '../../../components/ui/icons/CrownIcon';
@@ -29,18 +28,17 @@ export function LeaderboardCompact() {
   // be misleading.
   const isBetweenRounds = phase?.phase === 'between-rounds';
 
-  const user = useAuthStore(s => s.user);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // If the logged-in user clicks their own card, go to their public profile
+  // Clicking a contestant card navigates to their shareable public profile
   const handleContestantClick = useCallback((contestant) => {
-    if (user && contestant.user_id === user.id) {
-      navigate(`/profile/${user.id}`);
+    if (contestant.user_id) {
+      navigate(`/profile/${contestant.user_id}`);
     } else {
       openVoteModal(contestant);
     }
-  }, [user, openVoteModal, navigate]);
+  }, [openVoteModal, navigate]);
 
   // Build the leaderboard URL from the current path so it works across all
   // URL formats (slug, ID, legacy) and preserves query params like

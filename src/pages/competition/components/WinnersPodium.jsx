@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { useAuthStore } from '../../../stores';
 import { Trophy } from 'lucide-react';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 
@@ -12,17 +11,16 @@ import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
  */
 export function WinnersPodium() {
   const { competition, contestants, topThree, prizePool, openContestantProfile } = usePublicCompetition();
-  const user = useAuthStore(s => s.user);
   const navigate = useNavigate();
 
-  // If the logged-in user clicks their own card, go to their public profile
+  // Clicking a contestant card navigates to their shareable public profile
   const handleContestantClick = useCallback((contestant) => {
-    if (user && contestant.user_id === user.id) {
-      navigate(`/profile/${user.id}`);
+    if (contestant.user_id) {
+      navigate(`/profile/${contestant.user_id}`);
     } else {
       openContestantProfile(contestant);
     }
-  }, [user, openContestantProfile, navigate]);
+  }, [openContestantProfile, navigate]);
 
   const isLegacy = competition?.is_legacy;
 
