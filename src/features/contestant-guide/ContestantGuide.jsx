@@ -282,7 +282,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     // Section 1: How It Works
     {
       icon: <Trophy size={48} className="guide-icon guide-icon--gold" />,
-      title: 'How It Works',
+      title: `How ${competitionName} Works:`,
       subtitle: `Here's how ${competitionName} works`,
       points: howItWorksPoints,
       tip: 'The more votes you get, the higher you rank!',

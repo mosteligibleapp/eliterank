@@ -63,7 +63,7 @@ export default function ContestantsTab({
     contestants: true,
     withProfile: true,
     external: true,
-    archived: false,
+    rejected: false,
   });
   const [processingId, setProcessingId] = useState(null);
 
@@ -83,7 +83,7 @@ export default function ContestantsTab({
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
-  const declinedNominees = nominees.filter(n => n.status === 'declined' || n.status === 'rejected' || n.status === 'archived');
+  const rejectedNominees = nominees.filter(n => n.status === 'rejected' || n.status === 'declined' || n.status === 'archived');
 
   // Stats
   const stats = [
@@ -92,7 +92,7 @@ export default function ContestantsTab({
     { label: 'External', value: externalNominees.length, color: '#f59e0b' },
     { label: 'Incomplete', value: incompleteNominees.length, color: '#fbbf24' },
     { label: 'Approved', value: contestants.length, color: '#22c55e' },
-    { label: 'Declined', value: declinedNominees.length, color: '#ef4444' },
+    { label: 'Rejected', value: rejectedNominees.length, color: '#ef4444' },
   ];
 
   const SectionHeader = ({ title, count, icon: Icon, iconColor, sectionKey, badge }) => (
@@ -121,7 +121,7 @@ export default function ContestantsTab({
     </button>
   );
 
-  const NomineeRow = ({ nominee, showActions = true, isDeclined = false }) => (
+  const NomineeRow = ({ nominee, showActions = true, isRejected = false }) => (
     <div style={{
       display: 'flex',
       alignItems: 'center',
@@ -130,7 +130,7 @@ export default function ContestantsTab({
       background: colors.background.secondary,
       borderRadius: borderRadius.lg,
       marginBottom: spacing.sm,
-      opacity: isDeclined ? 0.7 : 1,
+      opacity: isRejected ? 0.7 : 1,
     }}>
       <Avatar name={nominee.name} size={48} />
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -159,7 +159,7 @@ export default function ContestantsTab({
       <Badge variant={nominee.nominatedBy === 'self' ? 'gold' : 'secondary'} size="sm">
         {nominee.nominatedBy === 'self' ? 'Self' : 'Third Party'}
       </Badge>
-      {showActions && !isDeclined && (
+      {showActions && !isRejected && (
         <div style={{ display: 'flex', gap: spacing.sm }}>
           <Button
             variant="approve"
@@ -179,7 +179,7 @@ export default function ContestantsTab({
           </Button>
         </div>
       )}
-      {isDeclined && (
+      {isRejected && (
         <Button
           variant="secondary"
           size="sm"
@@ -363,22 +363,22 @@ export default function ContestantsTab({
         </div>
       )}
 
-      {/* Declined / Rejected */}
+      {/* Rejected / Declined */}
       <div style={{
         background: colors.background.card,
-        border: `1px solid ${colors.border.light}`,
+        border: `1px solid rgba(239,68,68,0.3)`,
         borderRadius: borderRadius.xl,
         overflow: 'hidden',
       }}>
-        <SectionHeader title="Declined" count={declinedNominees.length} icon={XCircle} iconColor="#ef4444" sectionKey="archived" />
-        {expandedSections.archived && (
+        <SectionHeader title="Rejected / Declined" count={rejectedNominees.length} icon={XCircle} iconColor="#ef4444" sectionKey="rejected" />
+        {expandedSections.rejected && (
           <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
-            {declinedNominees.length === 0 ? (
+            {rejectedNominees.length === 0 ? (
               <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
                 <XCircle size={32} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-                <p>No declined nominees</p>
+                <p>No rejected or declined nominees</p>
               </div>
-            ) : declinedNominees.map(n => <NomineeRow key={n.id} nominee={n} showActions={false} isDeclined />)}
+            ) : rejectedNominees.map(n => <NomineeRow key={n.id} nominee={n} showActions={false} isRejected />)}
           </div>
         )}
       </div>

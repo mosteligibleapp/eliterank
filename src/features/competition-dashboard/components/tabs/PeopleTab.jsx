@@ -267,7 +267,7 @@ export default function PeopleTab({
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
-  const declinedNominees = nominees.filter(n => n.status === 'declined' || n.status === 'rejected' || n.status === 'archived');
+  const rejectedNominees = nominees.filter(n => n.status === 'rejected' || n.status === 'declined' || n.status === 'archived');
 
   // Whether a nominee can be approved (must have accepted and have a profile)
   const canApprove = (nominee) => {
@@ -972,7 +972,7 @@ export default function PeopleTab({
           { label: 'Ready', value: nomineesWithProfile.length, color: '#3b82f6' },
           { label: 'Awaiting', value: externalNominees.length, color: '#f59e0b' },
           { label: 'Approved', value: contestants.length, color: '#22c55e' },
-          { label: 'Declined', value: declinedNominees.length, color: '#ef4444' },
+          { label: 'Rejected', value: rejectedNominees.length, color: '#ef4444' },
         ].map((stat, i, arr) => (
           <div
             key={stat.label}
@@ -1339,10 +1339,10 @@ export default function PeopleTab({
         </Panel>
       )}
 
-      {/* Declined / Rejected */}
-      {declinedNominees.length > 0 && (
+      {/* Rejected / Declined */}
+      {rejectedNominees.length > 0 && (
         <Panel
-          title={`Declined (${declinedNominees.length})`}
+          title={`Rejected / Declined (${rejectedNominees.length})`}
           icon={XCircle}
           style={{ marginBottom: 0 }}
           collapsible
@@ -1350,7 +1350,7 @@ export default function PeopleTab({
         >
           <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {declinedNominees.map(n => (
+              {rejectedNominees.map(n => (
                 <PersonRow
                   key={n.id}
                   person={n}
