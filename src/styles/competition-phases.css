@@ -2087,6 +2087,44 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   color: #fff;
 }
 
+/* Event card inside portrait grid */
+.portrait-card-event {
+  text-decoration: none;
+  color: inherit;
+}
+
+.portrait-event-badge {
+  position: absolute;
+  top: var(--spacing-xs);
+  left: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-md);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.portrait-event-date {
+  position: absolute;
+  bottom: var(--spacing-xs);
+  left: var(--spacing-xs);
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-md);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: 0.3px;
+}
+
 /* Vote Button - Appears on hover */
 .portrait-vote-btn {
   position: absolute;
