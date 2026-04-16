@@ -3,8 +3,6 @@ import { Trophy } from 'lucide-react';
 import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
-import { UpcomingEventCard } from '../components/UpcomingEventCard';
-import { HostSection } from '../components/HostSection';
 import { JudgesSection } from '../components/JudgesSection';
 
 /**
@@ -34,12 +32,6 @@ export function BetweenRoundsPhase() {
       <section className="phase-section">
         <h3 className="section-label">Current Standings</h3>
         <LeaderboardCompact />
-      </section>
-
-      {/* Upcoming Event + Host Profile side by side */}
-      <section className="phase-section phase-grid phase-grid-2">
-        <UpcomingEventCard />
-        <HostSection />
       </section>
 
       {/* Judges Panel */}
