@@ -1,8 +1,17 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { PortraitCard } from '../components/LeaderboardCompact';
 import { Search, X } from 'lucide-react';
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 /**
  * Full leaderboard page - reuses the same portrait-card grid as the
@@ -46,6 +55,32 @@ export function LeaderboardView() {
     );
   }, [contestants, search]);
 
+  // Between rounds: rotate the grid every 4s (paused while searching)
+  const [shuffled, setShuffled] = useState([]);
+  const [fading, setFading] = useState(false);
+  const sourceRef = useRef(filtered);
+  const isRotating = isBetweenRounds && !search.trim();
+
+  useEffect(() => {
+    sourceRef.current = filtered;
+    if (!isRotating) setShuffled(filtered);
+  }, [filtered, isRotating]);
+
+  useEffect(() => {
+    if (!isRotating || sourceRef.current.length < 2) return;
+    setShuffled(shuffle(sourceRef.current));
+    const interval = setInterval(() => {
+      setFading(true);
+      setTimeout(() => {
+        setShuffled(shuffle(sourceRef.current));
+        setFading(false);
+      }, 400);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isRotating]);
+
+  const displayContestants = isRotating ? shuffled : filtered;
+
   return (
     <div className="leaderboard-full">
       {/* Search bar */}
@@ -69,8 +104,8 @@ export function LeaderboardView() {
         )}
       </div>
 
-      <div className="portrait-grid">
-        {filtered.map((contestant, index) => (
+      <div className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}>
+        {displayContestants.map((contestant, index) => (
           <PortraitCard
             key={contestant.id}
             contestant={contestant}
