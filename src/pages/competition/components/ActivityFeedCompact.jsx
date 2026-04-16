@@ -1,5 +1,4 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { useNavigate, useLocation } from 'react-router-dom';
 import {
   CheckCircle,
   TrendingUp,
@@ -58,16 +57,6 @@ export function ActivityFeedCompact({ limit = 5 }) {
     contestants,
   } = usePublicCompetition();
 
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Derive base path from current URL so it works across all URL formats
-  // (slug, ID, legacy) and preserves query params like ?preview=voting.
-  const basePath = location.pathname
-    .replace(/\/(leaderboard|activity|enter)\/?$/, '')
-    .replace(/\/$/, '');
-  const activityPath = `${basePath}/activity${location.search || ''}`;
-
   const displayActivities = activities?.slice(0, limit) || [];
 
   // Find contestant by ID for avatar
@@ -117,12 +106,6 @@ export function ActivityFeedCompact({ limit = 5 }) {
         )}
       </div>
 
-      <button
-        className="activity-view-all"
-        onClick={() => navigate(activityPath)}
-      >
-        View All Activity
-      </button>
     </div>
   );
 }

@@ -29,7 +29,6 @@ export function LeaderboardCompact() {
     phase,
     dangerZone,
     events,
-    openVoteModal,
   } = usePublicCompetition();
 
   // Top N contestants are "winners" and get the EliteRank crown badge
@@ -48,19 +47,15 @@ export function LeaderboardCompact() {
   // Build the leaderboard URL from the current path so it works across all
   // URL formats (slug, ID, legacy) and preserves query params like
   // ?preview=voting when a host is previewing the voting page.
-  const stripTrailing = (p) => p.replace(/\/(leaderboard|activity|enter)\/?$/, '').replace(/\/$/, '');
+  const stripTrailing = (p) => p.replace(/\/(leaderboard|prizes|activity|enter)\/?$/, '').replace(/\/$/, '');
   const basePath = stripTrailing(location.pathname);
   const leaderboardPath = `${basePath}/leaderboard${location.search || ''}`;
 
-  // Between rounds, clicking a contestant navigates to their public
-  // profile page (the same URL a contestant would share) — vote modal
-  // is meaningless with voting paused. During active voting the card
-  // click takes you straight into the vote flow.
-  const openContestantPage = (contestant) => {
-    if (!contestant?.slug) return;
-    navigate(`${basePath}/e/${contestant.slug}${location.search || ''}`);
+  // Clicking a contestant navigates to their public profile page.
+  const handleCardClick = (contestant) => {
+    if (!contestant?.user_id) return;
+    navigate(`/profile/${contestant.user_id}`);
   };
-  const handleCardClick = isBetweenRounds ? openContestantPage : openVoteModal;
 
   // Find the next upcoming event (if any)
   const nextEvent = useMemo(() => {
@@ -76,50 +71,44 @@ export function LeaderboardCompact() {
     return sorted.find(e => !e.date || e.date.split('T')[0] >= todayStr) || null;
   }, [events]);
 
-  // Reserve the bottom-left grid slot for the event card when available.
-  const maxContestants = nextEvent ? 8 : 9;
-  const topContestants = nextEvent ? 6 : 9;
+  // When an event card is included the grid has (contestants + 1) items.
+  // Desktop is 3 columns, mobile is 2 columns. Pick a contestant count
+  // so total items fill complete rows on both layouts (divisible by 6).
+  // 11 + 1 = 12 (4×3, 6×2). Without event, 9 works for 3-col (3×3).
+  const maxContestants = nextEvent ? 11 : 9;
   const allContestants = contestants?.slice(0, maxContestants) || [];
 
-  // Between rounds: rotate (shuffle) the grid every 4 seconds with a
-  // fade transition so the page feels alive while no voting is happening.
+  // Rotate (shuffle) the grid every 4 seconds with a fade transition
+  // so the page feels alive and all contestants get visibility.
   const [shuffled, setShuffled] = useState(allContestants);
   const [fading, setFading] = useState(false);
   const sourceRef = useRef(allContestants);
+  const isPaused = useRef(false);
+  const shouldRotate = allContestants.length > 1;
 
   // Keep source in sync when contestants data changes
   useEffect(() => {
     sourceRef.current = allContestants;
-    if (!isBetweenRounds) {
-      setShuffled(allContestants);
-    }
-  }, [allContestants, isBetweenRounds]);
+    setShuffled(allContestants);
+  }, [contestants, maxContestants]);
 
-  // Shuffle interval during between-rounds
+  // Shuffle interval — always active when there are contestants
   useEffect(() => {
-    if (!isBetweenRounds || sourceRef.current.length < 2) return;
-
-    // Initial shuffle so it doesn't start in rank order
-    setShuffled(shuffle(sourceRef.current));
+    if (!shouldRotate) return;
 
     const interval = setInterval(() => {
+      if (isPaused.current) return;
       setFading(true);
       setTimeout(() => {
         setShuffled(shuffle(sourceRef.current));
         setFading(false);
       }, 400); // fade-out duration
-    }, 4000);
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [isBetweenRounds]);
+  }, [shouldRotate]);
 
-  const displayContestants = isBetweenRounds ? shuffled : allContestants;
-
-  // Format number with commas
-  const formatVotes = (num) => {
-    if (!num) return '0';
-    return num.toLocaleString();
-  };
+  const displayContestants = shuffled;
 
   return (
     <div className="leaderboard-prominent">
@@ -134,9 +123,13 @@ export function LeaderboardCompact() {
         </span>
       </div>
 
-      {/* Main portrait grid — self-contained leaderboard */}
-      <div className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}>
-        {displayContestants.slice(0, topContestants).map((contestant, index) => (
+      {/* Portrait Grid */}
+      <div
+        className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}
+        onMouseEnter={() => { isPaused.current = true; }}
+        onMouseLeave={() => { isPaused.current = false; }}
+      >
+        {displayContestants.map((contestant, index) => (
           <PortraitCard
             key={contestant.id}
             contestant={contestant}
@@ -148,6 +141,9 @@ export function LeaderboardCompact() {
             onVote={handleCardClick}
           />
         ))}
+        {nextEvent && (
+          <EventPortraitCard event={nextEvent} />
+        )}
       </div>
 
       {/* Danger Zone Summary — hidden between rounds */}
@@ -158,42 +154,13 @@ export function LeaderboardCompact() {
         </div>
       )}
 
-      {/* When there's an upcoming event: event card on the left,
-          remaining contestants + View All stacked on the right. */}
-      {nextEvent ? (
-        <div className="leaderboard-bottom-row">
-          <EventPortraitCard event={nextEvent} />
-          <div className="leaderboard-bottom-right">
-            <div className="portrait-grid portrait-grid-mini">
-              {displayContestants.slice(6).map((contestant, index) => (
-                <PortraitCard
-                  key={contestant.id}
-                  contestant={contestant}
-                  rank={index + 7}
-                  numberOfWinners={numberOfWinners}
-                  hideRank={isBetweenRounds}
-                  hideVotes={isBetweenRounds}
-                  hideDanger={isBetweenRounds}
-                  onVote={handleCardClick}
-                />
-              ))}
-            </div>
-            <button
-              className="leaderboard-view-all"
-              onClick={() => navigate(leaderboardPath)}
-            >
-              View All Contestants
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          className="leaderboard-view-all"
-          onClick={() => navigate(leaderboardPath)}
-        >
-          View All Contestants
-        </button>
-      )}
+      {/* View All Link */}
+      <button
+        className="leaderboard-view-all"
+        onClick={() => navigate(leaderboardPath)}
+      >
+        View All Contestants
+      </button>
     </div>
   );
 }
@@ -219,7 +186,7 @@ function EventPortraitCard({ event }) {
       : eventDate
           .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
           .toUpperCase();
-    if (timeStr) return `${datePart}  •  ${formatEventTime(timeStr)}`;
+    if (timeStr) return `${datePart}  \u2022  ${formatEventTime(timeStr)}`;
     return datePart;
   };
 

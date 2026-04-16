@@ -35,12 +35,14 @@ export function BetweenRoundsPhase() {
         <LeaderboardCompact />
       </section>
 
-      {/* Charity Partner + Host */}
+      {/* Charity partner */}
       <section className="phase-section">
-        <div className="between-rounds-cards between-rounds-cards-2">
-          <CharityHighlight />
-          <HostSection />
-        </div>
+        <CharityHighlight />
+      </section>
+
+      {/* Host */}
+      <section className="phase-section">
+        <HostSection />
       </section>
 
       {/* Judges Panel */}

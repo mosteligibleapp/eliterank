@@ -4,8 +4,8 @@ import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
-import { UpcomingEventCard } from '../components/UpcomingEventCard';
 import { HostCard } from '../components/HostCard';
+import { CharityHighlight } from '../components/CharityHighlight';
 import { JudgesSection } from '../components/JudgesSection';
 import ContestantBonusVotes from '../components/ContestantBonusVotes';
 
@@ -80,12 +80,14 @@ export function VotingPhase() {
         </aside>
       </section>
 
-      {/* Upcoming Event + Host side-by-side beneath the leaderboard */}
+      {/* Charity partner */}
       <section className="phase-section">
-        <div className="event-host-row">
-          <UpcomingEventCard />
-          <HostCard />
-        </div>
+        <CharityHighlight />
+      </section>
+
+      {/* Host */}
+      <section className="phase-section">
+        <HostCard />
       </section>
 
       {/* Judges */}

@@ -19,7 +19,7 @@ const ResultsPhase = lazy(() => import('./phases/ResultsPhase'));
 
 // View components for different pages (lazy-loaded)
 const LeaderboardView = lazy(() => import('./views/LeaderboardView'));
-const ActivityView = lazy(() => import('./views/ActivityView'));
+const PrizesView = lazy(() => import('./views/PrizesView'));
 const ContestantView = lazy(() => import('./views/ContestantView'));
 
 // Shared components
@@ -147,7 +147,7 @@ function CompetitionLayoutInner() {
   // Determine current view from URL
   const isEntryView = location.pathname.endsWith('/enter');
   const isLeaderboardView = location.pathname.endsWith('/leaderboard');
-  const isActivityView = location.pathname.endsWith('/activity');
+  const isPrizesView = location.pathname.endsWith('/prizes');
   const isContestantView = location.pathname.includes('/e/');
 
   // Leaderboard/Activity sub-views are reachable any time the leaderboard
@@ -215,8 +215,8 @@ function CompetitionLayoutInner() {
           currentView={
             isLeaderboardView
               ? 'leaderboard'
-              : isActivityView
-                ? 'activity'
+              : isPrizesView
+                ? 'prizes'
                 : 'main'
           }
         />
@@ -226,8 +226,8 @@ function CompetitionLayoutInner() {
       <main className="competition-main">
         {/* Persistent Competition Header - shown on all standings views.
             Suppress the phase badge during between-rounds so the generic
-            "Between Rounds" tag doesn't show up on leaderboard/activity. */}
-        {hasStandingsViews && !isContestantView && (isLeaderboardView || isActivityView) && (
+            "Between Rounds" tag doesn't show up on leaderboard/prizes. */}
+        {hasStandingsViews && !isContestantView && (isLeaderboardView || isPrizesView) && (
           <CompetitionHeader
             badge={phase?.isVoting ? phase?.label : undefined}
             badgeVariant="live"
@@ -238,8 +238,8 @@ function CompetitionLayoutInner() {
             <ContestantView />
           ) : hasStandingsViews && isLeaderboardView ? (
             <LeaderboardView />
-          ) : hasStandingsViews && isActivityView ? (
-            <ActivityView />
+          ) : hasStandingsViews && isPrizesView ? (
+            <PrizesView />
           ) : (
             <PhaseContent phase={phase} />
           )}
@@ -370,14 +370,14 @@ function ViewNavigation({ currentView }) {
   // (slug `/:orgSlug/:slug`, ID `/:orgSlug/id/:competitionId`, legacy `/c/...`)
   // and preserve query params like ?preview=voting for host previews.
   const basePath = location.pathname
-    .replace(/\/(leaderboard|activity|enter)\/?$/, '')
+    .replace(/\/(leaderboard|prizes|activity|enter)\/?$/, '')
     .replace(/\/$/, '');
   const search = location.search || '';
 
   const views = [
     { id: 'main', label: 'Competition', path: `${basePath}${search}` },
     { id: 'leaderboard', label: 'Leaderboard', path: `${basePath}/leaderboard${search}` },
-    { id: 'activity', label: 'Activity', path: `${basePath}/activity${search}` },
+    { id: 'prizes', label: 'Prizes', path: `${basePath}/prizes${search}` },
   ];
 
   return (
