@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { PortraitCard } from '../components/LeaderboardCompact';
 import { Search, X } from 'lucide-react';
@@ -26,16 +26,8 @@ export function LeaderboardView() {
     openVoteModal,
   } = usePublicCompetition();
   const navigate = useNavigate();
+  const location = useLocation();
   const [search, setSearch] = useState('');
-
-  // Clicking a contestant card navigates to their shareable public profile
-  const handleContestantClick = useCallback((contestant) => {
-    if (contestant.user_id) {
-      navigate(`/profile/${contestant.user_id}`);
-    } else {
-      openVoteModal(contestant);
-    }
-  }, [openVoteModal, navigate]);
 
   // Top N contestants render the EliteRank crown badge instead of a rank
   // number — where N is the competition's configured winner count.
@@ -43,6 +35,21 @@ export function LeaderboardView() {
 
   // Between rounds: hide rank badges + vote counts (no active voting).
   const isBetweenRounds = phase?.phase === 'between-rounds';
+
+  // Base competition URL = current path minus any /leaderboard|/activity|/enter
+  // tail. Preserves query params like ?preview=between-rounds.
+  const basePath = location.pathname
+    .replace(/\/(leaderboard|activity|enter)\/?$/, '')
+    .replace(/\/$/, '');
+
+  // Between rounds, clicking a contestant navigates to their public
+  // profile page (the same URL a contestant would share). Active voting
+  // → straight to vote modal.
+  const openContestantPage = (contestant) => {
+    if (!contestant?.slug) return;
+    navigate(`${basePath}/e/${contestant.slug}${location.search || ''}`);
+  };
+  const handleCardClick = isBetweenRounds ? openContestantPage : openVoteModal;
 
   // Filter contestants by search query
   const filtered = useMemo(() => {
@@ -114,7 +121,7 @@ export function LeaderboardView() {
             hideRank={isBetweenRounds}
             hideVotes={isBetweenRounds}
             hideDanger={isBetweenRounds}
-            onVote={handleContestantClick}
+            onVote={handleCardClick}
           />
         ))}
       </div>

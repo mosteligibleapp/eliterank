@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { ArrowLeft, Instagram, Trophy, Heart } from 'lucide-react';
@@ -19,10 +19,12 @@ export function ContestantView() {
     phase,
   } = usePublicCompetition();
 
-  // Extract the slug from the pathname — the surrounding route uses a wildcard
-  // so useParams doesn't give us a named :contestantSlug param.
-  const slugMatch = location.pathname.match(/\/e\/([^/]+)\/?$/);
-  const contestantSlug = slugMatch ? slugMatch[1] : null;
+  // Extract the contestant slug from the URL — the competition route uses
+  // a wildcard `/*` so react-router doesn't give us the slug via useParams.
+  const contestantSlug = useMemo(() => {
+    const match = location.pathname.match(/\/e\/([^/?#]+)\/?$/);
+    return match ? match[1] : null;
+  }, [location.pathname]);
 
   const contestant = contestantSlug && !loading
     ? getContestantBySlug(contestantSlug)
@@ -31,13 +33,6 @@ export function ContestantView() {
   // Build the base competition path (strip /e/:slug) for the back button
   const basePath = location.pathname.replace(/\/e\/[^/]+\/?$/, '') || '/';
   const backUrl = `${basePath}${location.search || ''}`;
-
-  // If loading is done and contestant not found, redirect back
-  useEffect(() => {
-    if (!loading && contestantSlug && !contestant) {
-      navigate(backUrl, { replace: true });
-    }
-  }, [loading, contestantSlug, contestant, navigate, backUrl]);
 
   const handleBack = () => {
     navigate(backUrl);
