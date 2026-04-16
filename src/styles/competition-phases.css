@@ -2091,10 +2091,35 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   color: #fff;
 }
 
-/* Event card inside portrait grid — dark branded card */
+/* Event card inside portrait grid — uses event flyer image */
 .portrait-card-event {
   text-decoration: none;
   color: inherit;
+}
+
+.portrait-event-date-badge {
+  position: absolute;
+  bottom: var(--spacing-sm);
+  left: var(--spacing-sm);
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: 0.3px;
+}
+
+.portrait-event-info {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.portrait-event-venue {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 /* Bottom row: event card left, contestants + view-all right */
@@ -2121,7 +2146,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   height: 100%;
 }
 
-.leaderboard-bottom-row .portrait-card-event .portrait-event-body {
+.leaderboard-bottom-row .portrait-card-event .portrait-image-wrap {
   flex: 1;
 }
 
@@ -2131,73 +2156,6 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   }
 }
 
-.portrait-event-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  background: var(--color-bg-secondary);
-}
-
-.portrait-event-brand {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-primary);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-}
-
-.portrait-event-heart {
-  color: var(--color-primary);
-  font-size: 14px;
-}
-
-.portrait-event-divider {
-  width: 28px;
-  height: 1px;
-  background: var(--color-border);
-}
-
-.portrait-event-name {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  text-align: center;
-  line-height: 1.3;
-}
-
-.portrait-event-info {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-.portrait-event-date {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-primary);
-  letter-spacing: 0.3px;
-}
-
-.portrait-event-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.portrait-event-venue {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
 
 /* Vote Button - Appears on hover */
 .portrait-vote-btn {
