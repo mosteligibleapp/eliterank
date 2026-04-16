@@ -188,27 +188,33 @@ export function LeaderboardCompact() {
 
 /**
  * Compact event card that fits inside the portrait grid.
- * Mirrors the portrait-card dimensions so it blends with contestant cards.
+ * Dark branded card: gold "MOST ELIGIBLE" header, event name centered,
+ * date/time + venue in the info row below.
  */
 function EventPortraitCard({ event }) {
-  const imageUrl = event.imageUrl || event.image_url;
   const ticketUrl = event.ticketUrl || event.ticket_url;
-  const location = event.location || event.venue;
+  const venue = event.location || event.venue;
 
-  const formatDateBadge = (dateStr, timeStr) => {
+  const formatDateLine = (dateStr, timeStr) => {
     if (!dateStr) return 'Date TBD';
     const eventDate = new Date(dateStr + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const isToday = eventDate.getTime() === today.getTime();
-    const datePart = isToday
-      ? 'TODAY'
-      : eventDate
-          .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-          .toUpperCase();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    let datePart;
+    if (eventDate.getTime() === today.getTime()) datePart = 'TONIGHT';
+    else if (eventDate.getTime() === tomorrow.getTime()) datePart = 'TOMORROW';
+    else datePart = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
     if (timeStr) return `${datePart} · ${formatEventTime(timeStr)}`;
     return datePart;
   };
+
+  // Split event name into lines at natural break points for centered display
+  const nameParts = (event.name || '').split(/\s+/);
+  const mid = Math.ceil(nameParts.length / 2);
+  const line1 = nameParts.slice(0, mid).join(' ');
+  const line2 = nameParts.slice(mid).join(' ');
 
   const Wrapper = ticketUrl ? 'a' : 'div';
   const wrapperProps = ticketUrl
@@ -217,25 +223,24 @@ function EventPortraitCard({ event }) {
 
   return (
     <Wrapper {...wrapperProps} className="portrait-card portrait-card-event">
-      <div className="portrait-image-wrap">
-        {imageUrl ? (
-          <img src={imageUrl} alt={event.name} className="portrait-image" />
-        ) : (
-          <div className="portrait-placeholder">
-            <Calendar size={28} />
-          </div>
-        )}
-        <span className="portrait-event-badge">
-          <Calendar size={10} />
-          Event
+      <div className="portrait-image-wrap portrait-event-body">
+        <span className="portrait-event-brand">
+          <span className="portrait-event-heart">&#x2764;</span>
+          Most Eligible
         </span>
-        <span className="portrait-event-date">
-          {formatDateBadge(event.date, event.time)}
+        <span className="portrait-event-divider" />
+        <span className="portrait-event-name">
+          {line1}
+          {line2 && <br />}
+          {line2}
         </span>
       </div>
-      <div className="portrait-info">
-        <span className="portrait-name">{event.name}</span>
-        {location && <span className="portrait-votes">{location}</span>}
+      <div className="portrait-info portrait-event-info">
+        <span className="portrait-event-date">
+          <span className="portrait-event-dot" />
+          {formatDateLine(event.date, event.time)}
+        </span>
+        {venue && <span className="portrait-event-venue">{venue}</span>}
       </div>
     </Wrapper>
   );
