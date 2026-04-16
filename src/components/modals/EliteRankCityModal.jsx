@@ -163,7 +163,8 @@ export default function EliteRankCityModal({
         setNominationPeriodsMap(npMap);
         // Events & announcements are fetched lazily when their tabs are selected
       } catch {
-        // Silent fail — leaves rawCompetitions at null, renders skeleton
+        // Silent fail — drop to empty state rather than an endless skeleton
+        if (!cancelled) setRawCompetitions([]);
       }
     };
 
