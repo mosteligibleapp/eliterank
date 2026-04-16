@@ -1,7 +1,6 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { PrizePool } from '../components/PrizePool';
 import { CrownIcon } from '../../../components/ui/icons';
-import { Gift, Trophy, Package } from 'lucide-react';
+import { Gift, Trophy } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 
 const styles = {
@@ -9,9 +8,6 @@ const styles = {
     maxWidth: '1100px',
     margin: '0 auto',
     padding: `${spacing.xl} ${spacing.lg}`,
-  },
-  prizePoolWrap: {
-    marginBottom: spacing.xxxl,
   },
   sectionHeader: {
     fontSize: typography.fontSize.lg,
@@ -60,7 +56,7 @@ const styles = {
  * Mirrors the "Competition Prizes" section from the contestant rewards page.
  */
 export function PrizesView() {
-  const { prizes, prizePool } = usePublicCompetition();
+  const { prizes } = usePublicCompetition();
 
   const hasPrizes = prizes && prizes.length > 0;
 
@@ -77,13 +73,6 @@ export function PrizesView() {
 
   return (
     <div style={styles.container}>
-      {/* Prize Pool */}
-      {prizePool && (
-        <div style={styles.prizePoolWrap}>
-          <PrizePool />
-        </div>
-      )}
-
       {/* Contestant Rewards */}
       {contestantRewards.length > 0 && (
         <div style={styles.sectionSpacing}>
