@@ -394,7 +394,16 @@
   display: grid;
   grid-template-columns: auto 1fr;
   gap: var(--spacing-xl);
-  align-items: start;
+  align-items: stretch;
+}
+
+.event-host-row .charity-highlight {
+  margin-top: 0;
+}
+
+.event-host-row .charity-highlight-inner {
+  height: 100%;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
