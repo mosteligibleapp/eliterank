@@ -2,12 +2,22 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { CrownIcon } from '../../../components/ui/icons';
 import { Gift, Trophy } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { useResponsive } from '../../../hooks/useResponsive';
 
 const styles = {
   container: {
     maxWidth: '1100px',
     margin: '0 auto',
     padding: `${spacing.xl} ${spacing.lg}`,
+    boxSizing: 'border-box',
+    width: '100%',
+  },
+  containerMobile: {
+    maxWidth: '1100px',
+    margin: '0 auto',
+    padding: `${spacing.lg} ${spacing.md}`,
+    boxSizing: 'border-box',
+    width: '100%',
   },
   sectionHeader: {
     fontSize: typography.fontSize.lg,
@@ -17,16 +27,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing.sm,
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: spacing.xl,
-  },
-  gridMobile: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: spacing.md,
   },
   sectionSpacing: {
     marginBottom: spacing.xxxl,
@@ -51,16 +51,41 @@ const styles = {
   },
 };
 
+function getGridStyle(breakpoint) {
+  // xs (<480): 1 column so cards have room to breathe
+  // sm/md (<1024): 2 columns
+  // lg+: auto-fill with minmax for flexible 2-3 column layout
+  if (breakpoint === 'xs') {
+    return {
+      display: 'grid',
+      gridTemplateColumns: '1fr',
+      gap: spacing.md,
+    };
+  }
+  if (breakpoint === 'sm' || breakpoint === 'md') {
+    return {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      gap: spacing.md,
+    };
+  }
+  return {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+    gap: spacing.xl,
+  };
+}
+
 /**
  * Prizes page — public view of competition prizes.
  * Mirrors the "Competition Prizes" section from the contestant rewards page.
  */
 export function PrizesView() {
   const { prizes } = usePublicCompetition();
+  const { isMobile, breakpoint } = useResponsive();
 
   const hasPrizes = prizes && prizes.length > 0;
 
-  // Split prizes by type (same logic as internal RewardsPage)
   const winnerPrizes = hasPrizes
     ? prizes.filter(p => (p.prize_type || 'winner') === 'winner')
     : [];
@@ -68,11 +93,10 @@ export function PrizesView() {
     ? prizes.filter(p => p.prize_type === 'contestant')
     : [];
 
-  // Detect mobile via window width (matches useResponsive pattern)
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const gridStyle = getGridStyle(breakpoint);
 
   return (
-    <div style={styles.container}>
+    <div style={isMobile ? styles.containerMobile : styles.container}>
       {/* Contestant Rewards */}
       {contestantRewards.length > 0 && (
         <div style={styles.sectionSpacing}>
@@ -80,7 +104,7 @@ export function PrizesView() {
             <Gift size={18} style={{ color: colors.gold.primary }} />
             Contestant Rewards
           </h3>
-          <div style={isMobile ? styles.gridMobile : styles.grid}>
+          <div style={gridStyle}>
             {contestantRewards.map(prize => (
               <PrizeCard key={prize.id} prize={prize} isMobile={isMobile} />
             ))}
@@ -95,7 +119,7 @@ export function PrizesView() {
             <CrownIcon size={20} color={colors.gold.primary} />
             Winner&apos;s Prize Package
           </h3>
-          <div style={isMobile ? styles.gridMobile : styles.grid}>
+          <div style={gridStyle}>
             {winnerPrizes.map(prize => (
               <PrizeCard key={prize.id} prize={prize} isMobile={isMobile} />
             ))}
@@ -124,15 +148,16 @@ export function PrizesView() {
 function PrizeCard({ prize, isMobile }) {
   const Wrapper = prize.external_url ? 'a' : 'div';
   const wrapperProps = prize.external_url
-    ? { href: prize.external_url, target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none', color: 'inherit' } }
-    : {};
+    ? { href: prize.external_url, target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' } }
+    : { style: { display: 'block', height: '100%' } };
 
   return (
     <Wrapper {...wrapperProps}>
       <div
         style={{
-          display: 'block',
-          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
           minWidth: 0,
           transition: 'transform 0.2s ease',
           cursor: prize.external_url ? 'pointer' : 'default',
@@ -153,6 +178,7 @@ function PrizeCard({ prize, isMobile }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          flexShrink: 0,
         }}>
           {!prize.image_url && (
             <Trophy size={isMobile ? 32 : 56} style={{ color: 'rgba(212,175,55,0.35)' }} />
@@ -183,7 +209,7 @@ function PrizeCard({ prize, isMobile }) {
               color: colors.gold.primary,
               fontWeight: typography.fontWeight.medium,
               letterSpacing: '0.3px',
-              maxWidth: isMobile ? '80%' : 'none',
+              maxWidth: isMobile ? '70%' : 'none',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -212,15 +238,22 @@ function PrizeCard({ prize, isMobile }) {
         </div>
 
         {/* Card Info */}
-        <div style={{ padding: `${isMobile ? spacing.sm : spacing.md} 2px 0` }}>
+        <div style={{
+          padding: `${isMobile ? spacing.sm : spacing.md} 2px 0`,
+          minWidth: 0,
+        }}>
           <h3 style={{
             fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
             fontWeight: typography.fontWeight.bold,
             color: colors.text.primary,
+            margin: 0,
             marginBottom: '2px',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            lineHeight: 1.3,
+            wordBreak: 'break-word',
           }}>
             {prize.title}
           </h3>
