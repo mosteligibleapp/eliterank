@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Heart } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -98,13 +97,6 @@ export default function FanButton({ contestantId, onLoginRequired }) {
         transition: 'all 0.2s ease',
       }}
     >
-      <Heart
-        size={14}
-        style={{
-          fill: isFan ? colors.gold.primary : 'none',
-          transition: 'fill 0.2s ease',
-        }}
-      />
       {isFan ? 'Fan' : 'Become a Fan'}
       {fanCount > 0 && (
         <span style={{
