@@ -20,7 +20,7 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(2, 1fr)',
     gap: spacing.xl,
   },
   gridMobile: {
