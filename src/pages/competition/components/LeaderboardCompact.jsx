@@ -86,11 +86,13 @@ export function LeaderboardCompact() {
   const isPaused = useRef(false);
   const shouldRotate = allContestants.length > 1;
 
-  // Keep source in sync when contestants data changes
+  // Keep source in sync when contestants data changes.
+  // Use allContestants.length as dependency so the effect fires even if
+  // the array reference stays the same (e.g. navigating back to a cached page).
   useEffect(() => {
     sourceRef.current = allContestants;
     setShuffled(allContestants);
-  }, [contestants, maxContestants]);
+  }, [allContestants.length, maxContestants]);
 
   // Shuffle interval — always active when there are contestants
   useEffect(() => {
@@ -108,7 +110,9 @@ export function LeaderboardCompact() {
     return () => clearInterval(interval);
   }, [shouldRotate]);
 
-  const displayContestants = shuffled;
+  // Fall back to allContestants if shuffled is empty but data is available
+  // (handles the brief gap on remount before the sync effect fires).
+  const displayContestants = shuffled.length > 0 ? shuffled : allContestants;
 
   return (
     <div className="leaderboard-prominent">
