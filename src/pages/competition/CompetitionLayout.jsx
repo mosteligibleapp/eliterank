@@ -227,7 +227,7 @@ function CompetitionLayoutInner() {
         {/* Persistent Competition Header - shown on all standings views */}
         {hasStandingsViews && !isContestantView && (isLeaderboardView || isActivityView) && (
           <CompetitionHeader
-            badge={phase?.label}
+            badge={phase?.isVoting ? phase?.label : undefined}
             badgeVariant="live"
           />
         )}
