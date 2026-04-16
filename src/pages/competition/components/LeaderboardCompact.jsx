@@ -62,14 +62,14 @@ export function LeaderboardCompact() {
     }) || null;
   })();
 
-  // On mobile the grid is 2 columns. When an event card is included, show
-  // an odd number of contestants so total items (contestants + event) is
-  // even → every row is full.
-  const maxContestants = 9;
-  let displayCount = Math.min(contestants?.length || 0, maxContestants);
-  if (nextEvent && displayCount % 2 === 0 && displayCount > 1) {
-    displayCount -= 1;
-  }
+  // When an event card is included the grid has (contestants + 1) items.
+  // Desktop is 3 columns, mobile is 2 columns. Pick a contestant count
+  // so total items fill complete rows on both layouts (divisible by 6).
+  // 11 + 1 = 12 (4×3, 6×2). Without event, 9 works for 3-col (3×3).
+  const maxWithEvent = 11;
+  const maxWithoutEvent = 9;
+  const maxContestants = nextEvent ? maxWithEvent : maxWithoutEvent;
+  const displayCount = Math.min(contestants?.length || 0, maxContestants);
 
   // Rotate which contestants are visible every few seconds so all
   // contestants get exposure on the compact grid.
