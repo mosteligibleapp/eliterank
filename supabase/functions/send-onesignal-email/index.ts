@@ -14,6 +14,7 @@ const corsHeaders = {
  *   - nominator_confirm:    "Your nomination was submitted" confirmation to the nominator
  *   - nominee_accepted:     "Your nominee accepted!" notification to the nominator
  *   - nominee_declined:     "Your nominee declined" notification to the nominator
+ *   - fan_confirmation:     "You're now a fan of X" — sent when a user becomes a fan
  *
  * Required Supabase secrets:
  *   ONESIGNAL_APP_ID     — OneSignal App ID
@@ -22,7 +23,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -36,6 +37,8 @@ interface EmailRequest {
   nomination_end?: string | null
   nominee_email?: string
   reset_password_url?: string
+  contestant_name?: string
+  profile_url?: string
 }
 
 // HTML email templates
@@ -251,6 +254,31 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${goldButton('Set Your Password', resetUrl)}
             <p style="color:#999;font-size:13px;margin-top:16px;">
               This link expires in 24 hours. If it expires, you can always use "Forgot Password" on the login page.
+            </p>
+          </div>
+        `),
+      }
+    }
+
+    case 'fan_confirmation': {
+      const contestantName = req.contestant_name || 'your contestant'
+      const competitionLine = req.competition_name
+        ? `<p style="color:#ccc;font-size:15px;margin-top:8px;">in <strong>${req.competition_name}</strong></p>`
+        : ''
+      const ctaUrl = req.profile_url || req.competition_url
+      return {
+        subject: `You're now a fan of ${contestantName}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You're a Fan!</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${contestantName}</p>
+            ${competitionLine}
+            <p style="color:#ccc;font-size:15px;margin-top:16px;">
+              We'll send you a <strong>weekly competition update</strong> so you can follow how ${contestantName} is doing — round standings, milestones, and when it's time to vote again.
+            </p>
+            ${ctaUrl ? goldButton(`View ${contestantName}'s Profile`, ctaUrl) : ''}
+            <p style="color:#666;font-size:12px;margin-top:16px;">
+              You can turn off weekly updates any time from your notification settings.
             </p>
           </div>
         `),

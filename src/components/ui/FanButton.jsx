@@ -1,11 +1,55 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks';
+import { getCompetitionUrl, getCompetitionUrlById } from '../../utils/slugs';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
+
+/**
+ * Look up contestant + competition details and fire the fan confirmation
+ * email. Kept at module scope so it can be triggered as fire-and-forget
+ * without tying into the component render cycle.
+ */
+async function sendFanConfirmationEmail({ email, contestantId }) {
+  if (!supabase || !email || !contestantId) return;
+
+  const { data: contestant } = await supabase
+    .from('contestants')
+    .select('name, user_id, competition:competitions(name, slug, organization:organizations(slug))')
+    .eq('id', contestantId)
+    .maybeSingle();
+
+  if (!contestant) return;
+
+  const orgSlug = contestant.competition?.organization?.slug || 'most-eligible';
+  const competitionSlug = contestant.competition?.slug;
+  const competitionUrl = competitionSlug
+    ? `${window.location.origin}${getCompetitionUrl(orgSlug, competitionSlug)}`
+    : contestant.competition?.id
+      ? `${window.location.origin}${getCompetitionUrlById(orgSlug, contestant.competition.id)}`
+      : undefined;
+  const profileUrl = contestant.user_id
+    ? `${window.location.origin}/profile/${contestant.user_id}`
+    : undefined;
+
+  await supabase.functions.invoke('send-onesignal-email', {
+    body: {
+      type: 'fan_confirmation',
+      to_email: email,
+      contestant_name: contestant.name,
+      competition_name: contestant.competition?.name,
+      competition_url: competitionUrl,
+      profile_url: profileUrl,
+    },
+  });
+}
 
 /**
  * FanButton — "Become a Fan" toggle for contestant profiles.
  * Shows fan count and lets authenticated users fan/unfan.
+ *
+ * Becoming a fan subscribes the user to a weekly competition update email
+ * (the digest itself ships in a follow-up; for now we confirm the sub with
+ * a one-time email).
  *
  * @param {string} contestantId - The contestant to fan
  * @param {function} onLoginRequired - Called when unauthenticated user clicks
@@ -68,18 +112,34 @@ export default function FanButton({ contestantId, onLoginRequired }) {
           .insert({ contestant_id: contestantId, user_id: user.id });
         setIsFan(true);
         setFanCount(prev => prev + 1);
+
+        // Fire-and-forget: send a confirmation email letting the fan know
+        // they'll receive weekly competition updates. Non-blocking — if the
+        // email fails, the fan relationship is still recorded.
+        if (user.email) {
+          sendFanConfirmationEmail({
+            email: user.email,
+            contestantId,
+          }).catch(err => console.warn('Fan confirmation email failed:', err));
+        }
       }
     } catch (err) {
       console.error('Fan toggle failed:', err);
     } finally {
       setLoading(false);
     }
-  }, [user?.id, contestantId, isFan, loading, onLoginRequired]);
+  }, [user?.id, user?.email, contestantId, isFan, loading, onLoginRequired]);
+
+  const tooltip = isFan
+    ? "You'll receive weekly competition updates for this contestant"
+    : 'Become a fan to get weekly competition updates for this contestant';
 
   return (
     <button
       onClick={handleToggle}
       disabled={loading}
+      title={tooltip}
+      aria-label={tooltip}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
