@@ -483,9 +483,10 @@ export function getPhaseDisplayConfig(phase) {
       pulse: true,
     },
     [TIMELINE_PHASES.BETWEEN_ROUNDS]: {
-      variant: 'secondary',
-      label: 'BETWEEN ROUNDS',
-      icon: 'Clock',
+      variant: 'success',
+      label: 'LIVE',
+      icon: 'Activity',
+      pulse: true,
     },
     [TIMELINE_PHASES.COMPLETED]: {
       variant: 'gold',
