@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCompetitionUrl, getCompetitionUrlById } from '../utils/slugs';
 import { PageHeader } from '../components/ui';
@@ -16,6 +16,7 @@ const ProfilePage = lazy(() => import('../features/profile/ProfilePage'));
 export default function ViewPublicProfilePage() {
   const { profileId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -103,15 +104,15 @@ export default function ViewPublicProfilePage() {
   }, [profileId]);
 
   const handleBack = useCallback(() => {
-    // If we arrived from within the app (e.g. competition page), go back in
-    // history so the user returns exactly where they were. Fall back to the
-    // competition URL built from the contestant's data, or home.
-    if (window.history.length > 1) {
+    // location.key is 'default' when this is the first entry in the React
+    // Router session (direct link, shared URL, notification). In that case,
+    // navigate(-1) would exit the app, so route to the competition instead.
+    if (location.key !== 'default') {
       navigate(-1);
     } else {
       navigate(backUrl);
     }
-  }, [navigate, backUrl]);
+  }, [navigate, backUrl, location.key]);
 
   const displayName = profileData
     ? `${profileData.firstName} ${profileData.lastName}`.trim() || 'Profile'
