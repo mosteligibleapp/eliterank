@@ -4,6 +4,8 @@ import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { UpcomingEventCard } from '../components/UpcomingEventCard';
+import { HostSection } from '../components/HostSection';
+import { JudgesSection } from '../components/JudgesSection';
 
 /**
  * Between rounds phase view
@@ -34,9 +36,15 @@ export function BetweenRoundsPhase() {
         <LeaderboardCompact />
       </section>
 
-      {/* Upcoming Event - placed beneath the leaderboard as its own row */}
-      <section className="phase-section">
+      {/* Upcoming Event + Host Profile side by side */}
+      <section className="phase-section phase-grid phase-grid-2">
         <UpcomingEventCard />
+        <HostSection />
+      </section>
+
+      {/* Judges Panel */}
+      <section className="phase-section">
+        <JudgesSection />
       </section>
     </div>
   );
