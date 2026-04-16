@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Crown, AlertTriangle } from 'lucide-react';
+import { Crown, AlertTriangle, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CrownIcon from '../../../components/ui/icons/CrownIcon';
+import { formatEventTime } from '../../../utils/formatters';
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -15,6 +16,7 @@ export function LeaderboardCompact() {
     phase,
     dangerZone,
     openVoteModal,
+    events,
   } = usePublicCompetition();
 
   // Top N contestants are "winners" and get the EliteRank crown badge
@@ -33,7 +35,7 @@ export function LeaderboardCompact() {
   // Build the leaderboard URL from the current path so it works across all
   // URL formats (slug, ID, legacy) and preserves query params like
   // ?preview=voting when a host is previewing the voting page.
-  const stripTrailing = (p) => p.replace(/\/(leaderboard|activity|enter)\/?$/, '').replace(/\/$/, '');
+  const stripTrailing = (p) => p.replace(/\/(leaderboard|prizes|activity|enter)\/?$/, '').replace(/\/$/, '');
   const basePath = stripTrailing(location.pathname);
   const leaderboardPath = `${basePath}/leaderboard${location.search || ''}`;
 
@@ -47,14 +49,31 @@ export function LeaderboardCompact() {
   };
   const handleCardClick = isBetweenRounds ? openContestantPage : openVoteModal;
 
-  // All contestants in rank order (up to 9 for compact view)
-  const allContestants = contestants?.slice(0, 9) || [];
+  // Next upcoming event to display in the grid
+  const nextEvent = (() => {
+    if (!events?.length) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sorted = [...events].sort((a, b) => {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(a.date) - new Date(b.date);
+    });
+    return sorted.find(e => {
+      if (!e.date) return true;
+      return e.date.split('T')[0] >= today.toISOString().split('T')[0];
+    }) || null;
+  })();
 
-  // Format number with commas
-  const formatVotes = (num) => {
-    if (!num) return '0';
-    return num.toLocaleString();
-  };
+  // On mobile the grid is 2 columns. When an event card is included, show
+  // an odd number of contestants so total items (contestants + event) is
+  // even → every row is full.
+  const maxContestants = 9;
+  let displayCount = Math.min(contestants?.length || 0, maxContestants);
+  if (nextEvent && displayCount % 2 === 0 && displayCount > 1) {
+    displayCount -= 1;
+  }
+  const allContestants = contestants?.slice(0, displayCount) || [];
 
   return (
     <div className="leaderboard-prominent">
@@ -83,6 +102,9 @@ export function LeaderboardCompact() {
             onVote={handleCardClick}
           />
         ))}
+        {nextEvent && (
+          <EventGridCard event={nextEvent} />
+        )}
       </div>
 
       {/* Danger Zone Summary — hidden between rounds, since nothing is
@@ -167,6 +189,70 @@ export function PortraitCard({
       </div>
     </div>
   );
+}
+
+/**
+ * EventGridCard — event flyer rendered as a portrait-card so it fits
+ * seamlessly into the contestant grid at the same size.
+ */
+function EventGridCard({ event }) {
+  const imageUrl = event.imageUrl || event.image_url;
+  const ticketUrl = event.ticketUrl || event.ticket_url;
+  const eventLocation = event.location || event.venue;
+
+  const formatDate = (dateStr, timeStr) => {
+    if (!dateStr) return 'Date TBD';
+    const eventDate = new Date(dateStr + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isToday = eventDate.getTime() === today.getTime();
+    const datePart = isToday
+      ? 'TODAY'
+      : eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+    if (timeStr) return `${datePart} \u2022 ${formatEventTime(timeStr)}`;
+    return datePart;
+  };
+
+  const card = (
+    <div className="portrait-card">
+      <div className="portrait-image-wrap">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={event.name}
+            className="portrait-image"
+            style={{ opacity: 1 }}
+          />
+        ) : (
+          <div className="portrait-placeholder">
+            <Calendar size={24} />
+          </div>
+        )}
+        {/* Date badge — positioned like the rank badge */}
+        <span
+          className="portrait-rank"
+          style={{ fontSize: '10px', padding: '2px 8px', letterSpacing: '0.3px' }}
+        >
+          {formatDate(event.date, event.time)}
+        </span>
+      </div>
+      <div className="portrait-info">
+        <span className="portrait-name">{event.name}</span>
+        {eventLocation && (
+          <span className="portrait-votes">{eventLocation}</span>
+        )}
+      </div>
+    </div>
+  );
+
+  if (ticketUrl) {
+    return (
+      <a href={ticketUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+        {card}
+      </a>
+    );
+  }
+  return card;
 }
 
 export default LeaderboardCompact;
