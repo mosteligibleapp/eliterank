@@ -20,6 +20,7 @@ export default function ViewPublicProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [backUrl, setBackUrl] = useState('/');
+  const [contestantId, setContestantId] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -39,7 +40,7 @@ export default function ViewPublicProfilePage() {
             .maybeSingle(),
           supabase
             .from('contestants')
-            .select('competition_id, competition:competitions(id, slug, organization:organizations(slug))')
+            .select('id, competition_id, competition:competitions(id, slug, organization:organizations(slug))')
             .eq('user_id', profileId)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -73,6 +74,11 @@ export default function ViewPublicProfilePage() {
             gallery: Array.isArray(profileResult.data.gallery) ? profileResult.data.gallery : [],
             email: profileResult.data.email || '',
           });
+
+          // Store contestant ID for fan button
+          if (contestantResult?.data?.id) {
+            setContestantId(contestantResult.data.id);
+          }
 
           // Build back URL from their competition (prefer contestant, fallback to nominee)
           const comp = contestantResult?.data?.competition || nomineeResult?.data?.competition;
@@ -179,6 +185,7 @@ export default function ViewPublicProfilePage() {
           <ProfilePage
             hostProfile={profileData}
             isEditing={false}
+            contestantId={contestantId}
           />
         </Suspense>
       </div>

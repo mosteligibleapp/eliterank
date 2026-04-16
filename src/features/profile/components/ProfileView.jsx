@@ -7,8 +7,9 @@ import { generateAchievementCard } from '../../achievement-cards/generateAchieve
 import { useResponsive } from '../../../hooks/useResponsive';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
+import FanButton from '../../../components/ui/FanButton';
 
-export default function ProfileView({ hostProfile, onEdit }) {
+export default function ProfileView({ hostProfile, onEdit, contestantId }) {
   const { isMobile, isSmall } = useResponsive();
   const [competitionStats, setCompetitionStats] = useState(null);
   const [bonusVotes, setBonusVotes] = useState(null);
@@ -284,6 +285,15 @@ export default function ProfileView({ hostProfile, onEdit }) {
                   </div>
                 );
               })()}
+              {/* Become a Fan button — only on other people's profiles */}
+              {contestantId && !onEdit && (
+                <div style={{ marginTop: spacing.md }}>
+                  <FanButton
+                    contestantId={contestantId}
+                    onLoginRequired={() => window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname)}`}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

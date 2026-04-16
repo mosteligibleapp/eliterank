@@ -12,6 +12,7 @@ export default function ProfilePage({
   hostCompetition,
   userRole = 'fan',
   isHost = false,
+  contestantId,
 }) {
   if (isEditing) {
     return (
@@ -31,6 +32,7 @@ export default function ProfilePage({
       hostCompetition={hostCompetition}
       userRole={userRole}
       isHost={isHost}
+      contestantId={contestantId}
     />
   );
 }
