@@ -72,10 +72,14 @@ export default function EliteRankCityModal({
   const [activeTab, setActiveTab] = useState('competitions');
   const [showCrownAnimation, setShowCrownAnimation] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
-  const [competitions, setCompetitions] = useState([]);
+  // Raw competition rows + related lookup maps. Mapping to display shape is
+  // done in a useMemo below so it reacts to static-data (cities/orgs/profiles)
+  // arriving without needing to re-fetch competitions.
+  const [rawCompetitions, setRawCompetitions] = useState(null);
+  const [votingRoundsMap, setVotingRoundsMap] = useState({});
+  const [nominationPeriodsMap, setNominationPeriodsMap] = useState({});
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('active'); // Default to Live competitions
   const [cityFilter, setCityFilter] = useState('all');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -98,43 +102,42 @@ export default function EliteRankCityModal({
     return cities.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
   }, [cities]);
 
-  // Fetch dynamic data (competitions, settings, voting rounds, events, announcements)
+  // Fetch competitions + voting rounds + nomination periods.
+  // Fires immediately when the modal opens — in parallel with the static
+  // cities/orgs/profiles hooks — instead of waiting for them. The mapping
+  // that actually *needs* the static data happens in a useMemo below, so
+  // cards enrich as each source resolves without a second fetch.
   useEffect(() => {
-    const fetchData = async () => {
-      if (!supabase || citiesLoading || orgsLoading || profilesLoading) {
-        return;
-      }
+    if (!isOpen || !supabase) return;
+    let cancelled = false;
 
+    const fetchData = async () => {
       try {
-        // Fetch only essential data on initial load — events & announcements
-        // are deferred until their tabs are selected (see useEffect below).
         const [compsResult, votingRoundsResult, nominationPeriodsResult] = await Promise.all([
           supabase.from('competitions').select('*').order('created_at', { ascending: false }),
           supabase.from('voting_rounds').select('*').order('round_order'),
           supabase.from('nomination_periods').select('*').order('period_order'),
         ]);
+        if (cancelled) return;
 
-        // Group voting rounds by competition_id
-        const votingRoundsMap = (votingRoundsResult.data || []).reduce((acc, r) => {
+        const vrMap = (votingRoundsResult.data || []).reduce((acc, r) => {
           if (!acc[r.competition_id]) acc[r.competition_id] = [];
           acc[r.competition_id].push(r);
           return acc;
         }, {});
-
-        // Group nomination periods by competition_id
-        const nominationPeriodsMap = (nominationPeriodsResult.data || []).reduce((acc, p) => {
+        const npMap = (nominationPeriodsResult.data || []).reduce((acc, p) => {
           if (!acc[p.competition_id]) acc[p.competition_id] = [];
           acc[p.competition_id].push(p);
           return acc;
         }, {});
 
-        // Auto-transitions (settings are now directly on competition)
-        // Must attach nomination_periods before checking transitions
+        // Auto-transitions (settings are now directly on competition).
+        // Only needs the competition + its nomination periods, not static data.
         const toTransition = [];
         for (const comp of (compsResult.data || [])) {
           const compWithPeriods = {
             ...comp,
-            nomination_periods: nominationPeriodsMap[comp.id] || [],
+            nomination_periods: npMap[comp.id] || [],
           };
           if (shouldAutoTransitionToLive(compWithPeriods, comp)) {
             toTransition.push({ id: comp.id, newStatus: 'live' });
@@ -147,73 +150,84 @@ export default function EliteRankCityModal({
           for (const { id, newStatus } of toTransition) {
             await supabase.from('competitions').update({ status: newStatus }).eq('id', id);
           }
-          const { data: updated } = await supabase.from('competitions').select('*').order('created_at', { ascending: false });
+          const { data: updated } = await supabase
+            .from('competitions')
+            .select('*')
+            .order('created_at', { ascending: false });
+          if (cancelled) return;
           if (updated) compsResult.data = updated;
         }
 
-        if (compsResult.data) {
-          setCompetitions(compsResult.data.map(comp => {
-            // Settings are now directly on the competition object
-            const compWithSettings = {
-              ...comp,
-              voting_rounds: votingRoundsMap[comp.id] || [],
-              nomination_periods: nominationPeriodsMap[comp.id] || [],
-            };
-            const computedPhase = computeCompetitionPhase(compWithSettings);
-            const visible = isCompetitionVisible(comp.status);
-            const accessible = isCompetitionAccessible(comp.status);
-            const cityFromLookup = citiesMap[comp.city_id];
-            // Prioritize city lookup by city_id over potentially stale comp.city string
-            const cityName = cityFromLookup?.name || comp.city || 'Unknown City';
-            const hostProfile = comp.host_id ? profilesMap[comp.host_id] : null;
-            // Include organization data directly to avoid lookup issues later
-            const org = organizations.find(o => o.id === comp.organization_id);
-
-            return {
-              id: comp.id,
-              name: comp.name || `Most Eligible ${cityName}`,
-              slug: comp.slug, // Database slug - source of truth for navigation
-              city: cityName,
-              cityState: cityFromLookup?.state || '',
-              citySlug: cityFromLookup?.slug || cityName.toLowerCase().replace(/\s+/g, '-'),
-              cityId: comp.city_id,
-              season: comp.season || new Date().getFullYear(),
-              status: (comp.status || COMPETITION_STATUSES.DRAFT).toLowerCase(),
-              phase: computedPhase,
-              visible,
-              accessible,
-              organizationId: comp.organization_id,
-              // Include org slug directly for reliable navigation
-              orgSlug: org?.slug,
-              organization: org ? { id: org.id, name: org.name, logo_url: org.logo_url || org.logo, slug: org.slug } : null,
-              host_id: comp.host_id,
-              host: hostProfile ? {
-                id: hostProfile.id,
-                name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || hostProfile.email,
-                avatar: hostProfile.avatar_url,
-              } : null,
-              winners: comp.winners || [],
-              nomination_start: compWithSettings.nomination_start,
-              nomination_end: compWithSettings.nomination_end,
-              voting_start: compWithSettings.voting_start,
-              voting_end: compWithSettings.voting_end,
-              finals_date: compWithSettings.finals_date,
-              voting_rounds: compWithSettings.voting_rounds,
-              nomination_periods: compWithSettings.nomination_periods,
-            };
-          }));
-        }
-
+        setRawCompetitions(compsResult.data || []);
+        setVotingRoundsMap(vrMap);
+        setNominationPeriodsMap(npMap);
         // Events & announcements are fetched lazily when their tabs are selected
       } catch {
-        // Silent fail
-      } finally {
-        setLoading(false);
+        // Silent fail — drop to empty state rather than an endless skeleton
+        if (!cancelled) setRawCompetitions([]);
       }
     };
 
-    if (isOpen && !citiesLoading && !orgsLoading && !profilesLoading) fetchData();
-  }, [isOpen, citiesLoading, orgsLoading, profilesLoading, citiesMap, profilesMap]);
+    fetchData();
+    return () => { cancelled = true; };
+  }, [isOpen]);
+
+  // Map raw competitions → display shape. Re-runs when raw data or any of the
+  // static lookup sources update, so host/city/org info fills in as it loads.
+  const competitions = useMemo(() => {
+    if (!rawCompetitions) return [];
+    return rawCompetitions.map(comp => {
+      const compWithSettings = {
+        ...comp,
+        voting_rounds: votingRoundsMap[comp.id] || [],
+        nomination_periods: nominationPeriodsMap[comp.id] || [],
+      };
+      const computedPhase = computeCompetitionPhase(compWithSettings);
+      const visible = isCompetitionVisible(comp.status);
+      const accessible = isCompetitionAccessible(comp.status);
+      const cityFromLookup = citiesMap[comp.city_id];
+      // Prioritize city lookup by city_id over potentially stale comp.city string
+      const cityName = cityFromLookup?.name || comp.city || 'Unknown City';
+      const hostProfile = comp.host_id ? profilesMap[comp.host_id] : null;
+      const org = organizations.find(o => o.id === comp.organization_id);
+
+      return {
+        id: comp.id,
+        name: comp.name || `Most Eligible ${cityName}`,
+        slug: comp.slug,
+        city: cityName,
+        cityState: cityFromLookup?.state || '',
+        citySlug: cityFromLookup?.slug || cityName.toLowerCase().replace(/\s+/g, '-'),
+        cityId: comp.city_id,
+        season: comp.season || new Date().getFullYear(),
+        status: (comp.status || COMPETITION_STATUSES.DRAFT).toLowerCase(),
+        phase: computedPhase,
+        visible,
+        accessible,
+        organizationId: comp.organization_id,
+        orgSlug: org?.slug,
+        organization: org ? { id: org.id, name: org.name, logo_url: org.logo_url || org.logo, slug: org.slug } : null,
+        host_id: comp.host_id,
+        host: hostProfile ? {
+          id: hostProfile.id,
+          name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || hostProfile.email,
+          avatar: hostProfile.avatar_url,
+        } : null,
+        winners: comp.winners || [],
+        nomination_start: compWithSettings.nomination_start,
+        nomination_end: compWithSettings.nomination_end,
+        voting_start: compWithSettings.voting_start,
+        voting_end: compWithSettings.voting_end,
+        finals_date: compWithSettings.finals_date,
+        voting_rounds: compWithSettings.voting_rounds,
+        nomination_periods: compWithSettings.nomination_periods,
+      };
+    });
+  }, [rawCompetitions, votingRoundsMap, nominationPeriodsMap, citiesMap, profilesMap, organizations]);
+
+  // Skeleton while competitions are in flight OR any static source is still
+  // loading — otherwise cards would flash "Unknown City" then correct city.
+  const loading = rawCompetitions === null || citiesLoading || orgsLoading || profilesLoading;
 
   // Lazy-fetch events and announcements when their tabs are first selected
   const [eventsFetched, setEventsFetched] = useState(false);

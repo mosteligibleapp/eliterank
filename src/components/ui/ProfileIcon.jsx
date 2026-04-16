@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Trophy, Settings } from 'lucide-react';
 import { colors, borderRadius, spacing, typography, shadows, transitions } from '../../styles/theme';
 import Avatar from './Avatar';
+import { SkeletonPulse } from '../common/Skeleton';
 
 /**
  * ProfileIcon - A reusable profile icon component with dropdown menu
@@ -57,10 +58,13 @@ function ProfileIcon({
     if (action) action();
   }, []);
 
-  // Get display name
+  // Get display name — falls back to empty string when the user record
+  // hasn't hydrated yet (persisted isAuthenticated can be true before the
+  // Supabase session resolves). The dropdown header renders a skeleton in
+  // that window instead of a literal "User" placeholder.
   const displayName = profile?.first_name
     ? `${profile.first_name} ${profile.last_name || ''}`.trim()
-    : user?.email?.split('@')[0] || 'User';
+    : user?.email?.split('@')[0] || '';
 
   const containerStyle = {
     position: 'relative',
@@ -174,8 +178,17 @@ function ProfileIcon({
         <div style={dropdownStyle}>
           {/* User info header */}
           <div style={headerStyle}>
-            <div style={nameStyle}>{displayName}</div>
-            {user?.email && <div style={emailStyle}>{user.email}</div>}
+            {user ? (
+              <>
+                {displayName && <div style={nameStyle}>{displayName}</div>}
+                {user.email && <div style={emailStyle}>{user.email}</div>}
+              </>
+            ) : (
+              <>
+                <SkeletonPulse width="120px" height="14px" style={{ marginBottom: spacing.xs }} />
+                <SkeletonPulse width="160px" height="12px" />
+              </>
+            )}
           </div>
 
           {/* Menu items */}
