@@ -5,6 +5,7 @@ import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { HostCard } from '../components/HostCard';
+import { CharityHighlight } from '../components/CharityHighlight';
 import { JudgesSection } from '../components/JudgesSection';
 import ContestantBonusVotes from '../components/ContestantBonusVotes';
 
@@ -79,8 +80,9 @@ export function VotingPhase() {
         </aside>
       </section>
 
-      {/* Host card beneath the leaderboard */}
+      {/* Charity partner + Host beneath the leaderboard */}
       <section className="phase-section">
+        <CharityHighlight />
         <HostCard />
       </section>
 
