@@ -1,4 +1,7 @@
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
+import { useAuthStore } from '../../../stores';
 import { PortraitCard } from '../components/LeaderboardCompact';
 
 /**
@@ -13,6 +16,17 @@ export function LeaderboardView() {
     phase,
     openVoteModal,
   } = usePublicCompetition();
+  const user = useAuthStore(s => s.user);
+  const navigate = useNavigate();
+
+  // If the logged-in user clicks their own card, go to their public profile
+  const handleContestantClick = useCallback((contestant) => {
+    if (user && contestant.user_id === user.id) {
+      navigate(`/profile/${user.id}`);
+    } else {
+      openVoteModal(contestant);
+    }
+  }, [user, openVoteModal, navigate]);
 
   // Top N contestants render the EliteRank crown badge instead of a rank
   // number — where N is the competition's configured winner count.
@@ -33,7 +47,7 @@ export function LeaderboardView() {
             hideRank={isBetweenRounds}
             hideVotes={isBetweenRounds}
             hideDanger={isBetweenRounds}
-            onVote={openVoteModal}
+            onVote={handleContestantClick}
           />
         ))}
       </div>
