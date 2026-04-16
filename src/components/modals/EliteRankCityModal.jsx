@@ -257,7 +257,7 @@ export default function EliteRankCityModal({
       if (!c.visible) return false;
       if (cityFilter !== 'all' && c.cityId !== cityFilter) return false;
       if (statusFilter === 'active') {
-        return isLive(c.status) && ['nomination', 'voting', 'judging'].includes(c.phase);
+        return isLive(c.status) && ['nomination', 'voting', 'judging', 'between'].includes(c.phase);
       }
       if (statusFilter === 'upcoming') return isPublished(c.status);
       if (statusFilter === 'complete') return isCompleted(c.status) || c.phase === 'completed';
@@ -268,7 +268,7 @@ export default function EliteRankCityModal({
   // Competition counts for header stats
   const competitionStats = useMemo(() => {
     const visible = competitions.filter(c => c.visible);
-    const active = visible.filter(c => isLive(c.status) && ['nomination', 'voting', 'judging'].includes(c.phase)).length;
+    const active = visible.filter(c => isLive(c.status) && ['nomination', 'voting', 'judging', 'between'].includes(c.phase)).length;
     const openingSoon = visible.filter(c => isPublished(c.status)).length;
     return { active, openingSoon };
   }, [competitions]);
