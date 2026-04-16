@@ -14,7 +14,6 @@ export function LeaderboardCompact() {
     competition,
     phase,
     dangerZone,
-    openContestantProfile,
     openVoteModal,
   } = usePublicCompetition();
 
@@ -37,6 +36,16 @@ export function LeaderboardCompact() {
   const stripTrailing = (p) => p.replace(/\/(leaderboard|activity|enter)\/?$/, '').replace(/\/$/, '');
   const basePath = stripTrailing(location.pathname);
   const leaderboardPath = `${basePath}/leaderboard${location.search || ''}`;
+
+  // Between rounds, clicking a contestant navigates to their public
+  // profile page (the same URL a contestant would share) — vote modal
+  // is meaningless with voting paused. During active voting the card
+  // click takes you straight into the vote flow.
+  const openContestantPage = (contestant) => {
+    if (!contestant?.slug) return;
+    navigate(`${basePath}/e/${contestant.slug}${location.search || ''}`);
+  };
+  const handleCardClick = isBetweenRounds ? openContestantPage : openVoteModal;
 
   // All contestants in rank order (up to 9 for compact view)
   const allContestants = contestants?.slice(0, 9) || [];
@@ -71,7 +80,7 @@ export function LeaderboardCompact() {
             hideRank={isBetweenRounds}
             hideVotes={isBetweenRounds}
             hideDanger={isBetweenRounds}
-            onVote={openVoteModal}
+            onVote={handleCardClick}
           />
         ))}
       </div>
