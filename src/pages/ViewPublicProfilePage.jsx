@@ -97,7 +97,14 @@ export default function ViewPublicProfilePage() {
   }, [profileId]);
 
   const handleBack = useCallback(() => {
-    navigate(backUrl);
+    // If we arrived from within the app (e.g. competition page), go back in
+    // history so the user returns exactly where they were. Fall back to the
+    // competition URL built from the contestant's data, or home.
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(backUrl);
+    }
   }, [navigate, backUrl]);
 
   const displayName = profileData
