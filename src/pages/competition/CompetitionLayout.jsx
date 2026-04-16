@@ -231,6 +231,7 @@ function CompetitionLayoutInner() {
           <CompetitionHeader
             badge={phase?.isVoting ? phase?.label : undefined}
             badgeVariant="live"
+            compact
           />
         )}
         <Suspense fallback={null}>
