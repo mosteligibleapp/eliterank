@@ -28,9 +28,8 @@ export function BetweenRoundsPhase() {
         </div>
       </section>
 
-      {/* Current Standings */}
+      {/* Leaderboard */}
       <section className="phase-section">
-        <h3 className="section-label">Current Standings</h3>
         <LeaderboardCompact />
       </section>
 
