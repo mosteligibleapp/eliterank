@@ -216,24 +216,6 @@ function ProfileIcon({
               </button>
             )}
 
-            {onAchievements && (
-              <button
-                onClick={() => handleMenuClick(onAchievements)}
-                style={menuItemStyle}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = colors.interactive.hover;
-                  e.currentTarget.style.color = colors.text.primary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = colors.text.secondary;
-                }}
-              >
-                <Trophy size={16} />
-                Achievements
-              </button>
-            )}
-
             {onAccountSettings && (
               <button
                 onClick={() => handleMenuClick(onAccountSettings)}
