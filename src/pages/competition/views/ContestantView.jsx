@@ -1,48 +1,162 @@
 import { useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
+import { ArrowLeft, Instagram, Trophy, Heart } from 'lucide-react';
+import { colors, spacing, typography, borderRadius } from '../../../styles/theme';
 
 /**
- * Contestant profile page (direct URL access)
- * Opens the contestant profile modal automatically
+ * Contestant profile page — rendered inline when the URL contains /e/:slug.
+ * Shows avatar, name, city/age, bio, Instagram, rank + votes, and a vote CTA
+ * (only during active voting phases).
  */
 export function ContestantView() {
-  const { contestantSlug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const {
     getContestantBySlug,
-    openContestantProfile,
+    openVoteModal,
     loading,
+    phase,
   } = usePublicCompetition();
 
+  // Extract the slug from the pathname — the surrounding route uses a wildcard
+  // so useParams doesn't give us a named :contestantSlug param.
+  const slugMatch = location.pathname.match(/\/e\/([^/]+)\/?$/);
+  const contestantSlug = slugMatch ? slugMatch[1] : null;
+
+  const contestant = contestantSlug && !loading
+    ? getContestantBySlug(contestantSlug)
+    : null;
+
+  // Build the base competition path (strip /e/:slug) for the back button
+  const basePath = location.pathname.replace(/\/e\/[^/]+\/?$/, '') || '/';
+  const backUrl = `${basePath}${location.search || ''}`;
+
+  // If loading is done and contestant not found, redirect back
   useEffect(() => {
-    if (loading) return;
-
-    const contestant = getContestantBySlug(contestantSlug);
-
-    if (contestant) {
-      openContestantProfile(contestant);
-    } else {
-      // Contestant not found — strip the trailing /e/:contestantSlug off
-      // the current URL to go back to the competition page. Derived from
-      // location.pathname so it works for all URL formats (slug, ID,
-      // legacy /c/...) and we preserve query params like ?preview=voting.
-      const basePath = location.pathname.replace(/\/e\/[^/]+\/?$/, '') || '/';
-      navigate(`${basePath}${location.search || ''}`, { replace: true });
+    if (!loading && contestantSlug && !contestant) {
+      navigate(backUrl, { replace: true });
     }
-  }, [
-    contestantSlug,
-    loading,
-    getContestantBySlug,
-    openContestantProfile,
-    navigate,
-    location.pathname,
-    location.search,
-  ]);
+  }, [loading, contestantSlug, contestant, navigate, backUrl]);
 
-  // Return null - modal is rendered at layout level
-  return null;
+  const handleBack = () => {
+    navigate(backUrl);
+  };
+
+  const handleVote = () => {
+    if (contestant) {
+      openVoteModal(contestant);
+    }
+  };
+
+  // Loading state
+  if (loading || !contestant) {
+    return (
+      <div className="contestant-view-container">
+        <div className="contestant-view-loading">
+          <div className="contestant-view-avatar-placeholder contestant-view-pulse" />
+          <div className="contestant-view-text-placeholder contestant-view-pulse" style={{ width: '60%', height: 24 }} />
+          <div className="contestant-view-text-placeholder contestant-view-pulse" style={{ width: '40%', height: 16 }} />
+        </div>
+      </div>
+    );
+  }
+
+  const isVoting = phase?.isVoting;
+  const firstName = contestant.name?.split(' ')[0] || 'them';
+
+  // Build subtitle parts: city, age
+  const subtitleParts = [];
+  if (contestant.city) subtitleParts.push(contestant.city);
+  if (contestant.age) subtitleParts.push(`Age ${contestant.age}`);
+  const subtitle = subtitleParts.join(' · ');
+
+  return (
+    <div className="contestant-view-container">
+      {/* Back button */}
+      <button
+        className="contestant-view-back"
+        onClick={handleBack}
+        aria-label="Back to competition"
+      >
+        <ArrowLeft size={18} />
+        <span>Back</span>
+      </button>
+
+      {/* Profile card */}
+      <div className="contestant-view-card">
+        {/* Avatar */}
+        {contestant.avatar_url ? (
+          <img
+            src={contestant.avatar_url}
+            alt={contestant.name}
+            className="contestant-view-avatar"
+          />
+        ) : (
+          <div className="contestant-view-avatar contestant-view-avatar-fallback">
+            {contestant.name?.charAt(0)}
+          </div>
+        )}
+
+        {/* Name */}
+        <h1 className="contestant-view-name">{contestant.name}</h1>
+
+        {/* City / Age subtitle */}
+        {subtitle && (
+          <p className="contestant-view-subtitle">{subtitle}</p>
+        )}
+
+        {/* Rank + Votes — only during voting */}
+        {isVoting && (
+          <div className="contestant-view-stats">
+            <div className="contestant-view-stat">
+              <Trophy size={16} color={colors.gold.primary} />
+              <span className="contestant-view-stat-value">
+                #{contestant.rank || contestant.displayRank || '—'}
+              </span>
+              <span className="contestant-view-stat-label">Rank</span>
+            </div>
+            <div className="contestant-view-stat-divider" />
+            <div className="contestant-view-stat">
+              <Heart size={16} color={colors.gold.primary} />
+              <span className="contestant-view-stat-value">
+                {(contestant.votes || 0).toLocaleString()}
+              </span>
+              <span className="contestant-view-stat-label">Votes</span>
+            </div>
+          </div>
+        )}
+
+        {/* Bio */}
+        {contestant.bio && (
+          <p className="contestant-view-bio">{contestant.bio}</p>
+        )}
+
+        {/* Instagram */}
+        {contestant.instagram && (
+          <a
+            href={`https://instagram.com/${contestant.instagram.replace(/^@/, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="contestant-view-instagram"
+          >
+            <Instagram size={16} />
+            <span>@{contestant.instagram.replace(/^@/, '')}</span>
+          </a>
+        )}
+
+        {/* Vote CTA — only during active voting */}
+        {isVoting && (
+          <button
+            className="contestant-view-vote-btn"
+            onClick={handleVote}
+          >
+            Vote for {firstName}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default ContestantView;
