@@ -31,7 +31,7 @@ export default function ViewPublicProfilePage() {
 
       try {
         // Fetch profile and their most recent competition entry in parallel
-        const [profileResult, contestantResult] = await Promise.all([
+        const [profileResult, contestantResult, nomineeResult] = await Promise.all([
           supabase
             .from('profiles')
             .select('*')
@@ -39,6 +39,13 @@ export default function ViewPublicProfilePage() {
             .maybeSingle(),
           supabase
             .from('contestants')
+            .select('competition_id, competition:competitions(id, slug, organization:organizations(slug))')
+            .eq('user_id', profileId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from('nominees')
             .select('competition_id, competition:competitions(id, slug, organization:organizations(slug))')
             .eq('user_id', profileId)
             .order('created_at', { ascending: false })
@@ -53,6 +60,7 @@ export default function ViewPublicProfilePage() {
             id: profileResult.data.id,
             firstName: profileResult.data.first_name || '',
             lastName: profileResult.data.last_name || '',
+            headline: profileResult.data.headline || '',
             bio: profileResult.data.bio || '',
             city: profileResult.data.city || '',
             instagram: profileResult.data.instagram || '',
@@ -66,8 +74,8 @@ export default function ViewPublicProfilePage() {
             email: profileResult.data.email || '',
           });
 
-          // Build back URL from their competition
-          const comp = contestantResult?.data?.competition;
+          // Build back URL from their competition (prefer contestant, fallback to nominee)
+          const comp = contestantResult?.data?.competition || nomineeResult?.data?.competition;
           if (comp) {
             const orgSlug = comp.organization?.slug || 'most-eligible';
             if (comp.slug) {
@@ -158,7 +166,7 @@ export default function ViewPublicProfilePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', overflow: 'auto' }}>
-      <PageHeader title={displayName} onBack={handleBack} />
+      <PageHeader title="View Competition" onBack={handleBack} />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
         <Suspense fallback={<ProfileSkeleton />}>
           <ProfilePage

@@ -1,7 +1,8 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import {
-  Gift, CheckCircle, Circle, Camera,
+  Gift, CheckCircle, Circle, Camera, Heart,
   Share2, User, BookOpen, Link as LinkIcon, Trophy,
+  Clock, XCircle, Upload, ExternalLink, ChevronDown, ChevronUp, MapPin, FileText,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients, transitions } from '../styles/theme';
 import { Badge } from './ui';
@@ -10,6 +11,7 @@ import { Badge } from './ui';
 const TASK_ICONS = {
   complete_profile: User,
   add_photo: Camera,
+  add_bio: FileText,
   add_social: LinkIcon,
   view_how_to_win: BookOpen,
   share_profile: Share2,
@@ -62,12 +64,30 @@ const ProgressBar = memo(function ProgressBar({ progress, earned, total }) {
 });
 
 /**
- * Single task row
+ * Single task row — supports standard auto-award tasks and approval-based custom tasks.
+ * Approval states: null (no submission), 'pending', 'approved', 'rejected'
  */
 const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
-  const Icon = TASK_ICONS[task.task_key] || Gift;
+  const isHostManaged = task.host_managed;
+  const Icon = isHostManaged ? MapPin : (task.is_custom ? Upload : (TASK_ICONS[task.task_key] || Gift));
   const isCompleted = task.completed;
   const isCurrentlyAwarding = isAwarding === task.task_key;
+  const isPending = task.requires_approval && task.submission_status === 'pending';
+  const isRejected = task.requires_approval && task.submission_status === 'rejected';
+
+  const getBorderColor = () => {
+    if (isCompleted) return 'rgba(34, 197, 94, 0.2)';
+    if (isPending) return 'rgba(212, 175, 55, 0.25)';
+    if (isRejected) return 'rgba(239, 68, 68, 0.2)';
+    return 'rgba(255, 255, 255, 0.06)';
+  };
+
+  const getBackground = () => {
+    if (isCompleted) return 'rgba(34, 197, 94, 0.08)';
+    if (isPending) return 'rgba(212, 175, 55, 0.05)';
+    if (isRejected) return 'rgba(239, 68, 68, 0.04)';
+    return 'rgba(255, 255, 255, 0.03)';
+  };
 
   return (
     <div style={{
@@ -76,17 +96,15 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
       gap: spacing.md,
       padding: `${spacing.md} ${spacing.lg}`,
       borderRadius: borderRadius.lg,
-      background: isCompleted
-        ? 'rgba(34, 197, 94, 0.08)'
-        : 'rgba(255, 255, 255, 0.03)',
-      border: `1px solid ${isCompleted ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.06)'}`,
+      background: getBackground(),
+      border: `1px solid ${getBorderColor()}`,
       opacity: isCurrentlyAwarding ? 0.7 : 1,
       transition: transitions.all,
-      cursor: !isCompleted && onAction ? 'pointer' : 'default',
+      cursor: !isCompleted && !isPending && !isHostManaged && onAction ? 'pointer' : 'default',
     }}
       onClick={() => {
-        if (!isCompleted && onAction) {
-          onAction(task.task_key);
+        if (!isCompleted && !isPending && !isHostManaged && onAction) {
+          onAction(task.task_key, task);
         }
       }}
     >
@@ -100,11 +118,21 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
         justifyContent: 'center',
         background: isCompleted
           ? 'rgba(34, 197, 94, 0.15)'
-          : 'rgba(212, 175, 55, 0.1)',
+          : isPending
+            ? 'rgba(212, 175, 55, 0.12)'
+            : isRejected
+              ? 'rgba(239, 68, 68, 0.1)'
+              : 'rgba(212, 175, 55, 0.1)',
         flexShrink: 0,
       }}>
         <Icon size={18} style={{
-          color: isCompleted ? colors.status.success : colors.gold.primary,
+          color: isCompleted
+            ? colors.status.success
+            : isPending
+              ? colors.gold.primary
+              : isRejected
+                ? colors.status.error
+                : colors.gold.primary,
         }} />
       </div>
 
@@ -124,18 +152,40 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
             {task.label}
           </span>
         </div>
-        {task.description && (
+        {/* Approval status messages */}
+        {isPending && (
+          <p style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.gold.primary,
+            marginTop: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}>
+            <Clock size={12} /> Pending review
+          </p>
+        )}
+        {isRejected && (
+          <p style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.status.error,
+            marginTop: '4px',
+          }}>
+            Rejected{task.rejection_reason ? `: ${task.rejection_reason}` : ''} — tap to resubmit
+          </p>
+        )}
+        {isHostManaged && !isCompleted && (
           <p style={{
             fontSize: typography.fontSize.xs,
             color: colors.text.muted,
-            marginTop: '2px',
+            marginTop: '4px',
           }}>
-            {task.description}
+            Confirmed by host after event
           </p>
         )}
       </div>
 
-      {/* Votes badge */}
+      {/* Votes badge / status */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -144,6 +194,29 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
       }}>
         {isCompleted ? (
           <CheckCircle size={20} style={{ color: colors.status.success }} />
+        ) : isPending ? (
+          <Badge
+            variant="gold"
+            size="sm"
+            style={{
+              fontSize: typography.fontSize.xs,
+              fontWeight: typography.fontWeight.semibold,
+              opacity: 0.8,
+            }}
+          >
+            +{task.votes_awarded}
+          </Badge>
+        ) : isRejected ? (
+          <Badge
+            variant="gold"
+            size="sm"
+            style={{
+              fontSize: typography.fontSize.xs,
+              fontWeight: typography.fontWeight.semibold,
+            }}
+          >
+            +{task.votes_awarded}
+          </Badge>
         ) : (
           <Badge
             variant="gold"
@@ -181,7 +254,11 @@ function BonusVotesChecklist({
   onTaskAction,
   compact = false,
   showHeader = true,
+  collapsible = false,
+  defaultCollapsed = false,
+  children,
 }) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   if (loading) {
     return (
       <div style={{
@@ -196,7 +273,7 @@ function BonusVotesChecklist({
           gap: spacing.md,
           color: colors.text.secondary,
         }}>
-          <Gift size={20} style={{ opacity: 0.5 }} />
+          <Heart size={20} style={{ opacity: 0.5 }} />
           <span>Loading bonus tasks...</span>
         </div>
       </div>
@@ -209,25 +286,27 @@ function BonusVotesChecklist({
 
   return (
     <div style={{
-      background: colors.background.card,
-      border: `1px solid ${allCompleted ? 'rgba(34, 197, 94, 0.3)' : 'rgba(212, 175, 55, 0.2)'}`,
-      borderRadius: borderRadius.xl,
+      background: 'rgba(255,255,255,0.03)',
+      border: `1px solid rgba(255,255,255,0.06)`,
+      borderRadius: borderRadius.lg,
       overflow: 'hidden',
     }}>
       {/* Header */}
       {showHeader && (
-        <div style={{
-          padding: `${spacing.lg} ${spacing.xl}`,
-          borderBottom: `1px solid ${colors.border.secondary}`,
-          background: allCompleted
-            ? 'rgba(34, 197, 94, 0.05)'
-            : 'rgba(212, 175, 55, 0.03)',
-        }}>
+        <div
+          style={{
+            padding: `${spacing.lg} ${spacing.xl}`,
+            borderBottom: (!collapsible || !collapsed) ? `1px solid ${colors.border.secondary}` : 'none',
+            background: 'transparent',
+            cursor: collapsible ? 'pointer' : 'default',
+          }}
+          onClick={collapsible ? () => setCollapsed(prev => !prev) : undefined}
+        >
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: spacing.md,
+            marginBottom: (!collapsible || !collapsed) ? spacing.md : 0,
           }}>
             <div style={{
               display: 'flex',
@@ -237,7 +316,7 @@ function BonusVotesChecklist({
               {allCompleted ? (
                 <Trophy size={20} style={{ color: colors.status.success }} />
               ) : (
-                <Gift size={20} style={{ color: colors.gold.primary }} />
+                <Heart size={20} style={{ color: colors.gold.primary, fill: colors.gold.primary }} />
               )}
               <h3 style={{
                 fontSize: typography.fontSize.lg,
@@ -247,47 +326,61 @@ function BonusVotesChecklist({
                 {allCompleted ? 'All Bonus Votes Earned!' : 'Earn Bonus Votes'}
               </h3>
             </div>
-            <Badge
-              variant={allCompleted ? 'success' : 'gold'}
-              size="sm"
-            >
-              {completedCount}/{totalCount}
-            </Badge>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+              <Badge
+                variant={allCompleted ? 'success' : 'gold'}
+                size="sm"
+              >
+                {completedCount}/{totalCount}
+              </Badge>
+              {collapsible && (
+                collapsed
+                  ? <ChevronDown size={18} style={{ color: colors.text.secondary }} />
+                  : <ChevronUp size={18} style={{ color: colors.text.secondary }} />
+              )}
+            </div>
           </div>
 
-          <ProgressBar
-            progress={progress}
-            earned={totalBonusVotesEarned}
-            total={totalBonusVotesAvailable}
-          />
+          {(!collapsible || !collapsed) && (
+            <>
+              <ProgressBar
+                progress={progress}
+                earned={totalBonusVotesEarned}
+                total={totalBonusVotesAvailable}
+              />
 
-          {!allCompleted && (
-            <p style={{
-              fontSize: typography.fontSize.sm,
-              color: colors.text.secondary,
-            }}>
-              Complete tasks below to earn free bonus votes for your campaign.
-            </p>
+              {!allCompleted && (
+                <p style={{
+                  fontSize: typography.fontSize.sm,
+                  color: colors.text.secondary,
+                }}>
+                  Complete tasks below to earn free bonus votes for your campaign.
+                </p>
+              )}
+            </>
           )}
         </div>
       )}
 
       {/* Tasks list */}
-      <div style={{
-        padding: compact ? spacing.md : spacing.lg,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: spacing.sm,
-      }}>
-        {tasks.map((task) => (
-          <TaskRow
-            key={task.id || task.task_key}
-            task={task}
-            onAction={onTaskAction}
-            isAwarding={awarding}
-          />
-        ))}
-      </div>
+      {(!collapsible || !collapsed) && (
+        <div style={{
+          padding: compact ? spacing.md : spacing.lg,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spacing.sm,
+        }}>
+          {tasks.map((task) => (
+            <TaskRow
+              key={task.id || task.task_key}
+              task={task}
+              onAction={onTaskAction}
+              isAwarding={awarding}
+            />
+          ))}
+          {children}
+        </div>
+      )}
     </div>
   );
 }

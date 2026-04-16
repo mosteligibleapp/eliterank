@@ -90,7 +90,7 @@ export default function OverviewTab({
     (n.status === 'pending' || n.status === 'awaiting_profile')
   ).length;
   const pendingNominees = completedNominees.filter(n => n.status === 'pending').length;
-  const totalNominees = completedNominees.length;
+  const totalNominees = (nominees || []).length;
 
   const upcomingEvents = useMemo(() => {
     // Use string comparison to avoid timezone issues
@@ -132,6 +132,7 @@ export default function OverviewTab({
       display: 'grid',
       gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
       gap: isMobile ? spacing.lg : spacing.xl,
+      alignItems: 'start',
     }}>
       {/* Left Column */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
@@ -180,6 +181,7 @@ export default function OverviewTab({
         <Panel
           title="Upcoming Events"
           icon={Calendar}
+          style={{ marginBottom: 0 }}
           action={<Button size="sm" icon={Plus} onClick={() => onOpenEventModal?.(null)}>Add Event</Button>}
           collapsible
         >
@@ -212,13 +214,15 @@ export default function OverviewTab({
                         display: 'flex',
                         alignItems: 'center',
                         gap: spacing.md,
+                        border: '1px solid rgba(255,255,255,0.04)',
+                        transition: 'background 0.15s ease',
                       }}
                     >
                       <div style={{
                         width: '44px',
                         height: '44px',
-                        borderRadius: borderRadius.md,
-                        background: 'rgba(139,92,246,0.15)',
+                        borderRadius: borderRadius.lg,
+                        background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.08))',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -258,29 +262,55 @@ export default function OverviewTab({
         <div style={{
           padding: isMobile ? spacing.md : spacing.xl,
           borderRadius: borderRadius.xl,
-          background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))',
-          border: '1px solid rgba(34,197,94,0.3)',
+          background: 'linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.04) 60%, rgba(6,182,212,0.06) 100%)',
+          border: '1px solid rgba(34,197,94,0.25)',
+          boxShadow: totalRevenue > 0 ? '0 4px 24px rgba(34,197,94,0.12)' : 'none',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-            <DollarSign size={18} style={{ color: '#4ade80' }} />
-            <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textTransform: 'uppercase' }}>
+          {/* Decorative glow */}
+          <div style={{
+            position: 'absolute',
+            top: '-40px',
+            right: '-40px',
+            width: '120px',
+            height: '120px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(34,197,94,0.12) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md, position: 'relative' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: borderRadius.md,
+              background: 'rgba(34,197,94,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <DollarSign size={16} style={{ color: '#4ade80' }} />
+            </div>
+            <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Total Revenue
             </span>
           </div>
           <p style={{
-            fontSize: isMobile ? typography.fontSize.xxl : typography.fontSize.hero,
+            fontSize: isMobile ? typography.fontSize['3xl'] : typography.fontSize['5xl'],
             fontWeight: typography.fontWeight.bold,
             color: '#fff',
             marginBottom: spacing.md,
+            letterSpacing: '-0.02em',
+            position: 'relative',
           }}>
             {formatCurrency(totalRevenue)}
           </p>
           {totalRevenue > 0 ? (
-            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, position: 'relative' }}>
               Sponsors {formatCurrency(sponsorRevenue)}
             </p>
           ) : (
-            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, position: 'relative' }}>
               Revenue from votes, sponsors, and events will appear here
             </p>
           )}
@@ -290,6 +320,7 @@ export default function OverviewTab({
         <Panel
           title="Top Contestants"
           icon={Crown}
+          style={{ marginBottom: 0 }}
           action={
             <button
               onClick={() => onNavigateToTab?.('people')}
@@ -315,29 +346,41 @@ export default function OverviewTab({
                 </p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-                {topContestants.map((contestant, index) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
+                {topContestants.map((contestant, index) => {
+                  const rankColors = [
+                    { bg: 'rgba(212,175,55,0.12)', border: 'rgba(212,175,55,0.25)', text: colors.gold.primary, rowBg: 'rgba(212,175,55,0.06)' },
+                    { bg: 'rgba(192,192,210,0.12)', border: 'rgba(192,192,210,0.25)', text: '#c0c0d2', rowBg: 'rgba(192,192,210,0.04)' },
+                    { bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.25)', text: '#cd7f32', rowBg: 'rgba(205,127,50,0.04)' },
+                  ];
+                  const rankStyle = index < 3 ? rankColors[index] : null;
+                  return (
                   <div
                     key={contestant.id}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: spacing.md,
-                      padding: spacing.sm,
-                      background: index < 3 ? 'rgba(212,175,55,0.05)' : 'transparent',
-                      borderRadius: borderRadius.md,
+                      padding: `${spacing.sm} ${spacing.md}`,
+                      background: rankStyle ? rankStyle.rowBg : 'transparent',
+                      borderRadius: borderRadius.lg,
+                      transition: 'background 0.15s ease',
                     }}
                   >
                     <div style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '30px',
+                      height: '30px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: typography.fontWeight.semibold,
-                      color: index === 0 ? colors.gold.primary : colors.text.secondary,
+                      fontWeight: typography.fontWeight.bold,
+                      fontSize: typography.fontSize.sm,
+                      color: rankStyle ? rankStyle.text : colors.text.muted,
+                      background: rankStyle ? rankStyle.bg : 'transparent',
+                      border: rankStyle ? `1px solid ${rankStyle.border}` : 'none',
+                      borderRadius: borderRadius.md,
                     }}>
-                      {index === 0 ? <Crown size={16} style={{ color: colors.gold.primary }} /> : index + 1}
+                      {index === 0 ? <Crown size={14} style={{ color: colors.gold.primary }} /> : index + 1}
                     </div>
                     <Avatar name={contestant.name} size={36} src={contestant.avatarUrl} />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -405,7 +448,8 @@ export default function OverviewTab({
                       )}
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -415,6 +459,7 @@ export default function OverviewTab({
         <Panel
           title="Announcements"
           icon={FileText}
+          style={{ marginBottom: 0 }}
           action={<Button size="sm" icon={Plus} onClick={() => setShowAnnouncementForm(true)}>New Post</Button>}
           collapsible
         >
@@ -602,13 +647,15 @@ export default function OverviewTab({
               justifyContent: 'center',
               gap: spacing.sm,
               padding: spacing.lg,
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.1))',
-              border: `1px solid ${colors.gold.primary}`,
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(212,175,55,0.08) 100%)',
+              border: `1px solid rgba(212,175,55,0.35)`,
               borderRadius: borderRadius.xl,
               color: colors.gold.primary,
               fontSize: typography.fontSize.md,
               fontWeight: typography.fontWeight.semibold,
               cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 12px rgba(212,175,55,0.1)',
             }}
           >
             <Eye size={18} />

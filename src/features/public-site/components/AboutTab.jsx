@@ -2,8 +2,10 @@ import React from 'react';
 import { Award, Trophy, Building, Crown, Star, Instagram, Linkedin, Twitter, UserPlus, Vote, Clock } from 'lucide-react';
 import { Avatar, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
+import { useResponsive } from '../../../hooks/useResponsive';
 
 export default function AboutTab({ judges, sponsors, host, city = 'New York', competition, onViewProfile }) {
+  const { isMobile } = useResponsive();
   const platinumSponsor = sponsors.find((s) => s.tier === 'Platinum');
   const otherSponsors = sponsors.filter((s) => s.tier !== 'Platinum');
 
@@ -403,7 +405,13 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
           </div>
           <h2 style={{ fontSize: typography.fontSize.xxxl, fontWeight: typography.fontWeight.bold }}>Meet the Judges</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.xxl }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: judges.length <= 3
+            ? `repeat(${judges.length}, 1fr)`
+            : isMobile ? 'repeat(2, 1fr)' : `repeat(${Math.min(judges.length, 4)}, 1fr)`,
+          gap: spacing.xxl,
+        }}>
           {judges.map((judge) => (
             <div
               key={judge.id}

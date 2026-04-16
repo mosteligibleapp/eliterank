@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle
+  Eye, PlayCircle, Clock, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
-import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, PrizeModal, AddPersonModal } from '../../components/modals';
+import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
@@ -28,6 +28,8 @@ export default function CompetitionDashboard({
   onBack,
   onLogout,
   onViewPublicSite,
+  onPreviewVotingPage,
+  onPreviewBetweenRounds,
   currentUserId,
 }) {
   const toast = useToast();
@@ -46,12 +48,15 @@ export default function CompetitionDashboard({
     addNominee,
     approveNominee,
     rejectNominee,
+    removeContestant,
     restoreNominee,
     resendInvite,
     addContestant,
     addJudge,
     updateJudge,
     deleteJudge,
+    updateCharity,
+    removeCharity,
     addSponsor,
     updateSponsor,
     deleteSponsor,
@@ -117,6 +122,7 @@ export default function CompetitionDashboard({
   const [sponsorModal, setSponsorModal] = useState({ isOpen: false, sponsor: null });
   const [eventModal, setEventModal] = useState({ isOpen: false, event: null });
   const [prizeModal, setPrizeModal] = useState({ isOpen: false, prize: null, prizeType: 'winner' });
+  const [charityModal, setCharityModal] = useState(false);
 
   // ============================================================================
   // HEADER
@@ -232,6 +238,50 @@ export default function CompetitionDashboard({
           flexShrink: 0,
         }}>
           <NotificationBell size={isMobile ? 32 : 36} />
+          {onPreviewVotingPage && (
+            <button
+              onClick={onPreviewVotingPage}
+              title="Preview what the public voting page will look like"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+                padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
+                background: 'transparent',
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.md,
+                color: colors.text.secondary,
+                fontSize: isMobile ? '11px' : typography.fontSize.sm,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <PlayCircle size={isMobile ? 12 : 14} />
+              {isMobile ? 'Voting' : 'Preview Voting'}
+            </button>
+          )}
+          {onPreviewBetweenRounds && (
+            <button
+              onClick={onPreviewBetweenRounds}
+              title="Preview the interim page between end of nominations and start of voting"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.xs,
+                padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
+                background: 'transparent',
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.md,
+                color: colors.text.secondary,
+                fontSize: isMobile ? '11px' : typography.fontSize.sm,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Clock size={isMobile ? 12 : 14} />
+              {isMobile ? 'Between' : 'Preview Between Rounds'}
+            </button>
+          )}
           {onViewPublicSite && (
             <button
               onClick={onViewPublicSite}
@@ -419,6 +469,7 @@ export default function CompetitionDashboard({
             onRefresh={refresh}
             onApproveNominee={approveNominee}
             onRejectNominee={rejectNominee}
+            onRemoveContestant={removeContestant}
             onRestoreNominee={restoreNominee}
             onOpenAddPersonModal={openAddPersonModal}
             onShowHostAssignment={() => setShowHostAssignment(true)}
@@ -440,6 +491,9 @@ export default function CompetitionDashboard({
             onUpdateAnnouncement={updateAnnouncement}
             onDeleteAnnouncement={deleteAnnouncement}
             onTogglePin={toggleAnnouncementPin}
+            organizationId={competition?.organizationId}
+            organizationHeaderLogoUrl={competition?.organizationHeaderLogoUrl}
+            organizationWebsiteUrl={competition?.organizationWebsiteUrl}
           />
         );
       case 'setup':
@@ -460,6 +514,7 @@ export default function CompetitionDashboard({
             onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
             onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
+            onOpenCharityModal={() => setCharityModal(true)}
           />
         );
       default:
@@ -513,6 +568,23 @@ export default function CompetitionDashboard({
             await addSponsor(sponsorData);
           }
           setSponsorModal({ isOpen: false, sponsor: null });
+        }}
+      />
+      <CharityModal
+        isOpen={charityModal}
+        onClose={() => setCharityModal(false)}
+        charity={competition?.charityName ? {
+          name: competition.charityName,
+          logoUrl: competition.charityLogoUrl,
+          websiteUrl: competition.charityWebsiteUrl,
+        } : null}
+        onSave={async (charityData) => {
+          await updateCharity(charityData);
+          setCharityModal(false);
+        }}
+        onRemove={async () => {
+          await removeCharity();
+          setCharityModal(false);
         }}
       />
       <EventModal

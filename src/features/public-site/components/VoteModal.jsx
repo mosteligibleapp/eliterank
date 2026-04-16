@@ -241,7 +241,7 @@ export default function VoteModal({
     const stripePromise = getStripe();
 
     return (
-      <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="360px" centered hideCloseButton>
+      <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="360px" centered hideCloseButton variant="gold">
         <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
           {/* Sticky header with avatar, info, total, and X close button */}
           <div
@@ -367,7 +367,7 @@ export default function VoteModal({
   // Success confirmation screen
   if (showSuccess) {
     return (
-      <Modal isOpen={isOpen} onClose={handleCloseSuccess} title="" maxWidth="380px" centered>
+      <Modal isOpen={isOpen} onClose={handleCloseSuccess} title="" maxWidth="380px" centered variant="gold">
         <div style={{ textAlign: 'center', padding: `${spacing.xl} ${spacing.lg} ${spacing.xxl}` }}>
           {/* Contestant image with success badge */}
           <div style={{ position: 'relative', display: 'inline-block', marginBottom: spacing.lg }}>
@@ -549,7 +549,7 @@ export default function VoteModal({
   const alreadyVotedForThis = votedContestantId === contestant.id;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Cast Your Vote" maxWidth="360px" centered>
+    <Modal isOpen={isOpen} onClose={onClose} title="Cast Your Vote" maxWidth="360px" centered variant="gold">
       {/* Double Vote Day Banner - Compact */}
       {forceDoubleVoteDay && (
         <div

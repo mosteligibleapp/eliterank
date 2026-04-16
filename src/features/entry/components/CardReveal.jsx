@@ -56,7 +56,10 @@ export default function CardReveal({
     setIsGenerating(true);
     try {
       const blob = await generateAchievementCard(cardParams);
-      await shareOrDownload(blob, `eliterank-${submittedData.name?.toLowerCase().replace(/\s+/g, '-')}.png`);
+      const shareText = isThirdParty
+        ? "You've been nominated on EliteRank!"
+        : "I've been nominated on EliteRank!";
+      await shareOrDownload(blob, `eliterank-${submittedData.name?.toLowerCase().replace(/\s+/g, '-')}.png`, { text: shareText });
     } catch (err) {
       console.error('Share failed:', err);
     } finally {

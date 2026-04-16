@@ -266,7 +266,6 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
       border: `1px solid rgba(212,175,55,0.3)`,
       borderRadius: borderRadius.xl,
       padding: spacing.xl,
-      marginBottom: spacing.xl,
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg }}>

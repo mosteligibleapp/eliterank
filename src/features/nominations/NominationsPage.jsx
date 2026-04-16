@@ -112,7 +112,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
     const nominees = data.nominees || [];
     const contestants = data.contestants || [];
 
-    // Active nominees (pending status, not archived)
+    // Active nominees (pending status, not declined/rejected)
     // Incomplete self-nominations (started but not finished) go in a separate bucket
     const activeNominees = nominees.filter(n => {
       if (n.status !== 'pending' && n.status !== 'profile_complete' && n.status !== 'awaiting_profile') return false;
@@ -131,7 +131,7 @@ export default function NominationsPage({ competitionId, competitionName }) {
     const external = activeNominees.filter(n => !n.hasProfile);
 
     // Rejected + declined nominees
-    const rejected = nominees.filter(n => n.status === 'rejected' || n.status === 'declined');
+    const rejected = nominees.filter(n => n.status === 'rejected' || n.status === 'declined' || n.status === 'archived');
 
     return {
       contestants,
@@ -360,10 +360,10 @@ export default function NominationsPage({ competitionId, competitionName }) {
                                 {item.nominatedBy === 'self' ? 'Self-nominated' : 'Third-party'}
                               </Badge>
                             )}
-                            {/* Declined badge */}
-                            {item.status === 'declined' && (
+                            {/* Declined/Rejected badge */}
+                            {(item.status === 'declined' || item.status === 'rejected') && (
                               <Badge variant="error" size="sm">
-                                Declined
+                                {item.status === 'declined' ? 'Declined' : 'Rejected'}
                               </Badge>
                             )}
                             {/* Profile linked badge */}

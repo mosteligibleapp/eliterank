@@ -12,6 +12,11 @@ interface NomineeData {
   email?: string
   phone?: string
   invite_token: string
+  invite_sent_at?: string
+  claimed_at?: string
+  user_id?: string
+  nominated_by?: string
+  flow_stage?: string
   nomination_reason?: string
   nominator_name?: string
   nominator_email?: string
@@ -94,18 +99,19 @@ serve(async (req) => {
       )
     }
 
-    console.log('Found nominee:', JSON.stringify({ id: nominee.id, name: (nominee as any).name, email: (nominee as any).email }))
+    const nomineeData = nominee as unknown as NomineeData
+
+    console.log('Found nominee:', JSON.stringify({ id: nomineeData.id, name: nomineeData.name, email: nomineeData.email }))
 
     // Build URLs for the nomination flow
-    const nomineeDataPrelim = nominee as unknown as NomineeData
-    const claimUrl = `${appUrl}/claim/${nomineeDataPrelim.invite_token}`
+    const claimUrl = `${appUrl}/claim/${nomineeData.invite_token}`
     // Redirect directly to the claim page after auth so the nominee
     // lands on accept/decline immediately. Requires adding
     // https://eliterank.co/claim/** to Supabase's redirect allowlist.
     const authRedirectUrl = claimUrl
 
     // Check if already sent (unless force_resend is true)
-    if (nominee.invite_sent_at && !force_resend) {
+    if (nomineeData.invite_sent_at && !force_resend) {
       return new Response(
         JSON.stringify({
           message: 'Invite already sent',
@@ -115,8 +121,6 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    const nomineeData = nominee as unknown as NomineeData
 
     // Resolve the nominee's email: use the email on the nominee record,
     // or fall back to looking up their profile by phone/instagram when the
@@ -326,23 +330,33 @@ serve(async (req) => {
     }
 
     // Determine if this is a reminder vs fresh invite
-    const nomineeRaw = nominee as any
     let isReminder = false
     let isSelfNomineeReminder = false
 
     // Incomplete self-nominee: started entry flow but didn't finish (no claimed_at)
-    if (nomineeRaw.nominated_by === 'self' && !nomineeRaw.claimed_at && nomineeRaw.flow_stage) {
+    if (nomineeData.nominated_by === 'self' && !nomineeData.claimed_at) {
       isReminder = true
       isSelfNomineeReminder = true
     }
-    // Third-party nominee who accepted but hasn't completed onboarding
-    else if (nomineeRaw.claimed_at && nomineeRaw.user_id) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('onboarded_at')
-        .eq('id', nomineeRaw.user_id)
-        .maybeSingle()
-      if (!profile?.onboarded_at) {
+    // Third-party nominee who started the claim flow but didn't finish
+    // (flow_stage is set beyond initial state, but no claimed_at yet)
+    else if (!nomineeData.claimed_at && nomineeData.flow_stage &&
+             ['accepted', 'details', 'bio', 'password', 'card'].includes(nomineeData.flow_stage)) {
+      isReminder = true
+    }
+    // Nominee who accepted and has claimed_at but hasn't completed onboarding
+    else if (nomineeData.claimed_at) {
+      if (nomineeData.user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarded_at')
+          .eq('id', nomineeData.user_id)
+          .maybeSingle()
+        if (!profile?.onboarded_at) {
+          isReminder = true
+        }
+      } else {
+        // Accepted but no auth user created yet (dropped off before setting password)
         isReminder = true
       }
     }
@@ -390,7 +404,8 @@ serve(async (req) => {
     }
 
     // 2) Confirmation email to the nominator (fire-and-forget, non-critical)
-    if (nomineeData.nominator_email) {
+    // Only send on initial invite — not on reminders or force_resend
+    if (nomineeData.nominator_email && !isReminder && !force_resend) {
       const orgSlug = competition.organization?.slug
       const competitionUrl = orgSlug
         ? `${appUrl}/${orgSlug}/${competition.slug || `id/${competition.id}`}`

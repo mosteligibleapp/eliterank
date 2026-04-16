@@ -127,7 +127,7 @@ export function useCompetitionDashboard(competitionId) {
             category:categories(id, name, slug),
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
-            organization:organizations(id, name, slug, logo_url),
+            organization:organizations(id, name, slug, logo_url, header_logo_url, website_url),
             voting_rounds(id, start_date, round_type)
           `)
           .eq('id', competitionId)
@@ -235,13 +235,11 @@ export function useCompetitionDashboard(competitionId) {
         if (n.user_id) {
           matchedProfileId = n.user_id;
           matchedProfile = nomineeProfilesById.get(n.user_id) || profilesById.get(n.user_id) || null;
-          // Count as "has profile" if the user has completed onboarding
-          // (set a password). Pre-created profiles from admin.createUser() have
-          // onboarded_at = null and should not be treated as real users yet.
-          // Claimed nominations always count — they completed the accept flow.
-          // Self-nominees only count if they actually completed the entry flow
-          // (have onboarded_at, an avatar, or a claimed_at timestamp).
-          if (!!n.claimed_at || !!matchedProfile?.onboarded_at) {
+          // Count as "has profile" if the user has completed onboarding or
+          // has a real profile (matched profile with onboarded_at, or avatar).
+          // claimed_at alone is NOT sufficient — it can be set when the nominee
+          // clicks "Accept" before finishing the flow.
+          if (!!matchedProfile?.onboarded_at || (!!n.claimed_at && !!matchedProfile)) {
             hasProfile = true;
           } else if (n.nominated_by === 'self') {
             hasProfile = !!n.avatar_url || !!matchedProfile?.avatar_url;
@@ -259,10 +257,10 @@ export function useCompetitionDashboard(competitionId) {
         }
 
         // Self-nominees who completed the flow but whose user_id wasn't linked
-        // (RLS blocked the client-side update). Only count them if we found a
-        // matching profile by email (meaning they created an account).
+        // (RLS blocked the client-side update). Only count them if they have a
+        // matching profile with onboarding evidence (not just a pre-created shell).
         if (!hasProfile && n.nominated_by === 'self' && matchedProfile) {
-          hasProfile = true;
+          hasProfile = !!matchedProfile.onboarded_at || !!matchedProfile.avatar_url;
         }
 
         return {
@@ -279,7 +277,7 @@ export function useCompetitionDashboard(competitionId) {
           matchedProfileId,
           hasProfile,
           avatarUrl: matchedProfile?.avatar_url || n.avatar_url || null,
-          instagram: matchedProfile?.instagram || null,
+          instagram: n.instagram || matchedProfile?.instagram || null,
           status: n.status,
           inviteToken: n.invite_token,
           inviteSentAt: n.invite_sent_at,
@@ -298,6 +296,7 @@ export function useCompetitionDashboard(competitionId) {
         title: j.title || 'Judge',
         bio: j.bio,
         avatarUrl: j.avatar_url,
+        instagram: j.instagram,
         sortOrder: j.sort_order,
       }));
 
@@ -378,7 +377,8 @@ export function useCompetitionDashboard(competitionId) {
           season: competition.season,
           hostId: competition.host_id,
           organizationId: competition.organization_id,
-          city: competition.city,
+          city: competition.city?.name || null,
+          cityData: competition.city,
           cityId: competition.city_id,
           nominationStart: competition.nomination_start,
           nominationEnd: competition.nomination_end,
@@ -415,7 +415,13 @@ export function useCompetitionDashboard(competitionId) {
           slug: competition.slug || null,
           organizationName: competition.organization?.name || null,
           organizationLogoUrl: competition.organization?.logo_url || null,
+          organizationHeaderLogoUrl: competition.organization?.header_logo_url || null,
+          organizationWebsiteUrl: competition.organization?.website_url || null,
           themePrimary: competition.theme_primary || null,
+          // Charity fields
+          charityName: competition.charity_name || null,
+          charityLogoUrl: competition.charity_logo_url || null,
+          charityWebsiteUrl: competition.charity_website_url || null,
         } : null,
       });
     } catch (err) {
@@ -489,6 +495,7 @@ export function useCompetitionDashboard(competitionId) {
 
       if (updateError) {
         console.error('Nominee status update failed after contestant insert:', updateError);
+        throw updateError;
       }
 
       // Migrate reward assignments from nominee → contestant so claimed
@@ -602,9 +609,23 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
+      // Determine the appropriate status to restore to based on the nominee's flow state
+      const { data: nominee } = await supabase
+        .from('nominees')
+        .select('flow_stage, claimed_at')
+        .eq('id', nomineeId)
+        .single();
+
+      let restoreStatus = 'pending';
+      if (nominee?.flow_stage === 'complete' || nominee?.flow_stage === 'profile_complete') {
+        restoreStatus = 'profile_complete';
+      } else if (nominee?.claimed_at) {
+        restoreStatus = 'awaiting_profile';
+      }
+
       const { error: updateError } = await supabase
         .from('nominees')
-        .update({ status: 'pending' })
+        .update({ status: restoreStatus })
         .eq('id', nomineeId);
 
       if (updateError) throw updateError;
@@ -612,6 +633,40 @@ export function useCompetitionDashboard(competitionId) {
       return { success: true };
     } catch (err) {
       console.error('Error restoring nominee:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  const removeContestant = useCallback(async (contestantId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { data: contestant } = await supabase
+        .from('contestants')
+        .select('email, user_id')
+        .eq('id', contestantId)
+        .single();
+
+      const { error: deleteError } = await supabase
+        .from('contestants')
+        .delete()
+        .eq('id', contestantId);
+
+      if (deleteError) throw deleteError;
+
+      if (contestant?.email) {
+        await supabase
+          .from('nominees')
+          .update({ status: 'rejected', converted_to_contestant: false })
+          .eq('competition_id', competitionId)
+          .ilike('email', contestant.email)
+          .eq('status', 'approved');
+      }
+
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error removing contestant:', err);
       return { success: false, error: err.message };
     }
   }, [competitionId, fetchDashboardData]);
@@ -624,19 +679,34 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase) return { success: false, error: 'Missing configuration' };
 
     try {
+      // Refresh session before calling edge function to avoid 401
+      await supabase.auth.getSession();
+
       const { data, error } = await supabase.functions.invoke('send-nomination-invite', {
         body: { nominee_id: nomineeId, force_resend: true },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check for auth errors
+        if (error.message?.includes('401') || error.message?.includes('unauthorized') || error.message?.includes('JWT')) {
+          return { success: false, error: 'Your session has expired. Please refresh the page and try again.' };
+        }
+        throw error;
+      }
 
-      await fetchDashboardData();
+      // Update invite_sent_at locally instead of refetching all dashboard data
+      setData(prev => ({
+        ...prev,
+        nominees: prev.nominees.map(n =>
+          n.id === nomineeId ? { ...n, inviteSentAt: new Date().toISOString() } : n
+        ),
+      }));
       return { success: true, data };
     } catch (err) {
       console.error('Error resending invite:', err);
-      return { success: false, error: err.message };
+      return { success: false, error: err.message || 'Failed to send reminder' };
     }
-  }, [fetchDashboardData]);
+  }, []);
 
   /**
    * Manually add a nominee (by admin/host)
@@ -646,18 +716,31 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
-      const { error: insertError } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from('nominees')
         .insert({
           competition_id: competitionId,
           name: nomineeData.name,
-          email: nomineeData.email || null,
+          email: nomineeData.email ? nomineeData.email.replace(/^.*<([^>]+)>$/, '$1').trim() : null,
           phone: nomineeData.phone || null,
-          nominated_by: 'self',
+          nominated_by: 'admin',
+          invite_token: crypto.randomUUID(),
           status: 'pending',
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
+
+      // Auto-send invite email after adding nominee
+      if (inserted?.id) {
+        supabase.functions.invoke('send-nomination-invite', {
+          body: { nominee_id: inserted.id },
+        }).catch((inviteErr) => {
+          console.warn('Failed to auto-send nomination invite:', inviteErr);
+        });
+      }
+
       await fetchDashboardData();
       return { success: true };
     } catch (err) {
@@ -748,6 +831,7 @@ export function useCompetitionDashboard(competitionId) {
           bio: judgeData.bio,
           avatar_url: judgeData.avatarUrl,
           user_id: judgeData.userId,
+          instagram: judgeData.instagram || null,
           sort_order: maxSort + 1,
         });
 
@@ -771,6 +855,7 @@ export function useCompetitionDashboard(competitionId) {
           title: judgeData.title,
           bio: judgeData.bio,
           avatar_url: judgeData.avatarUrl,
+          instagram: judgeData.instagram || null,
         })
         .eq('id', judgeId);
 
@@ -800,6 +885,54 @@ export function useCompetitionDashboard(competitionId) {
       return { success: false, error: err.message };
     }
   }, [fetchDashboardData]);
+
+  // ============================================================================
+  // CHARITY OPERATIONS
+  // ============================================================================
+
+  const updateCharity = useCallback(async (charityData) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({
+          charity_name: charityData.name || null,
+          charity_logo_url: charityData.logoUrl || null,
+          charity_website_url: charityData.websiteUrl || null,
+        })
+        .eq('id', competitionId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating charity:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  const removeCharity = useCallback(async () => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({
+          charity_name: null,
+          charity_logo_url: null,
+          charity_website_url: null,
+        })
+        .eq('id', competitionId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error removing charity:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
 
   // ============================================================================
   // SPONSOR OPERATIONS
@@ -1347,6 +1480,7 @@ export function useCompetitionDashboard(competitionId) {
     addNominee,
     approveNominee,
     rejectNominee,
+    removeContestant,
     restoreNominee,
     resendInvite,
     repairNomineeAccount,
@@ -1357,6 +1491,9 @@ export function useCompetitionDashboard(competitionId) {
     addJudge,
     updateJudge,
     deleteJudge,
+    // Charity operations
+    updateCharity,
+    removeCharity,
     // Sponsor operations
     addSponsor,
     updateSponsor,

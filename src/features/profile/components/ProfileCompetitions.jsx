@@ -3,6 +3,7 @@ import { Trophy, Crown, MapPin, Star, Award, Calendar, ArrowRight, Clock, Chevro
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
+
 import { useResponsive } from '../../../hooks/useResponsive';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
@@ -52,7 +53,7 @@ function RoleBadge({ role, size = 'sm' }) {
     case 'contestant':
       return (
         <Badge variant="success" size={size} pill>
-          <Star size={10} style={{ marginRight: '4px' }} />
+          <Crown size={10} style={{ marginRight: '4px' }} />
           Contestant
         </Badge>
       );
@@ -105,9 +106,8 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           gap: spacing.sm,
         }}
       >
-        {/* Row 1: Org logo + org name + role badge ... View > */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+        {/* Row 1: Org logo + org name + role badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
             {org?.logo_url && <OrganizationLogo logo={org.logo_url} size={32} />}
             {org?.name && (
               <span style={{
@@ -121,66 +121,43 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
               </span>
             )}
             <RoleBadge role={entry.role} />
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '3px',
-            color: colors.gold.primary,
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.medium,
-          }}>
-            <span>View</span>
-            <ChevronRight size={14} />
-          </div>
         </div>
 
-        {/* Row 2: Competition name + season + location */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
-          <h4 style={{
-            fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
-            fontWeight: typography.fontWeight.semibold,
-            color: colors.text.primary,
-            lineHeight: 1.3,
-          }}>
-            {competition.name || entry.name}
-          </h4>
-          {competition.season && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              <Calendar size={13} />
-              <span>Season {competition.season}</span>
-            </div>
-          )}
-          {cityName && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              <MapPin size={13} />
-              <span>{cityName}</span>
-            </div>
-          )}
-        </div>
-
-
-        {/* Row 3: Voting start + navigate link */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.md,
-          color: colors.text.secondary,
-          fontSize: typography.fontSize.sm,
+        {/* Row 2: Competition name */}
+        <h4 style={{
+          fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
+          fontWeight: typography.fontWeight.semibold,
+          color: colors.text.primary,
+          lineHeight: 1.3,
         }}>
-          {votingDate && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Clock size={13} />
-              <span>Voting starts {votingDate}</span>
-            </div>
-          )}
-        </div>
+          {competition.name || entry.name}
+        </h4>
 
-        {entry.votes > 0 && (
-          <Badge variant="gold" size="sm" pill style={{ alignSelf: 'flex-start' }}>
-            {entry.votes.toLocaleString()} votes
-          </Badge>
-        )}
+        {/* Row 3: Season + City + View */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+            {competition.season && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                <Calendar size={13} />
+                <span>Season {competition.season}</span>
+              </div>
+            )}
+            {cityName && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                <MapPin size={13} />
+                <span>{cityName}</span>
+              </div>
+            )}
+            {votingDate && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                <Clock size={13} />
+                <span>Voting starts {votingDate}</span>
+              </div>
+            )}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px', color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>
+              <span>View</span>
+              <ChevronRight size={14} />
+            </div>
+        </div>
 
         {/* Unclaimed CTA */}
         {entry.isUnclaimed && entry.nomination && (
@@ -211,11 +188,12 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
           </div>
         )}
       </div>
+
     </a>
   );
 }
 
-export default function ProfileCompetitions({ userId, userEmail, user, profile }) {
+export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false }) {
   const { isMobile, isSmall } = useResponsive();
   const [hostedCompetitions, setHostedCompetitions] = useState([]);
   const [contestantEntries, setContestantEntries] = useState([]);
@@ -274,14 +252,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
   }
 
   if (!hasHosted && !hasContestant && !hasNominations) {
-    return (
-      <Panel style={{ marginBottom: spacing.xl }}>
-        <div style={{ padding: spacing.xl, textAlign: 'center', color: colors.text.muted }}>
-          <Trophy size={32} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-          <p style={{ fontSize: typography.fontSize.sm }}>No competitions yet</p>
-        </div>
-      </Panel>
-    );
+    return null;
   }
 
   // Build unified list of all competition entries
@@ -303,9 +274,10 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
       return; // Already shown as contestant
     }
 
-    // If converted but no contestant entry found (user_id was null),
-    // show as contestant role using the nomination data.
-    const isConverted = nom.converted_to_contestant;
+    // Only treat as converted if the nominee flag is set AND a matching
+    // contestant record actually exists. This handles cases where the
+    // contestant row was removed but the nominee flag wasn't cleared.
+    const isConverted = nom.converted_to_contestant && competitionId && contestantCompetitionIds.has(competitionId);
 
     entries.push({
       id: `nom-${nom.id}`,
@@ -314,7 +286,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
       role: isConverted ? 'contestant' : 'nominee',
       status: competition?.status,
       competition: competition,
-      isUnclaimed: !isConverted && !nom.claimed_at,
+      isUnclaimed: !isConverted && !nom.claimed_at && nom.status !== 'approved',
       nomination: isConverted ? null : nom,
       nominatorName: !nom.nominator_anonymous ? nom.nominator_name : null,
     });
@@ -349,18 +321,8 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
 
   return (
     <>
-      <Panel style={{ marginBottom: spacing.xl }}>
-        <div style={{ padding: isSmall ? spacing.lg : spacing.xl }}>
-          <h3 style={{
-            fontSize: isSmall ? typography.fontSize.lg : typography.fontSize.xl,
-            fontWeight: typography.fontWeight.semibold,
-            marginBottom: spacing.lg,
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.md,
-          }}>
-            <EliteRankCrown size={isSmall ? 18 : 22} /> Competitions
-          </h3>
+      <div style={{ borderTop: `1px solid ${colors.border.secondary}` }} />
+      <div style={{ padding: isSmall ? spacing.lg : spacing.xxl }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
             {entries.map(entry => (
               <CompetitionCard
@@ -371,8 +333,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile }
               />
             ))}
           </div>
-        </div>
-      </Panel>
+      </div>
 
       {/* Accept Nomination Modal */}
       {selectedNomination && (

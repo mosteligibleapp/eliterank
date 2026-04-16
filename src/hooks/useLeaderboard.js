@@ -55,7 +55,8 @@ export function useLeaderboard(competitionId, options = {}) {
           advancement_status,
           current_round,
           created_at,
-          updated_at
+          updated_at,
+          profile:profiles!user_id(avatar_url)
         `
         )
         .eq('competition_id', competitionId)
@@ -64,7 +65,14 @@ export function useLeaderboard(competitionId, options = {}) {
 
       if (fetchError) throw fetchError;
 
-      setContestants(data || []);
+      // Fall back to the linked profile's avatar when the contestant row
+      // doesn't have its own uploaded photo.
+      const merged = (data || []).map((c) => ({
+        ...c,
+        avatar_url: c.avatar_url || c.profile?.avatar_url || null,
+      }));
+
+      setContestants(merged);
     } catch (err) {
       console.error('Error fetching leaderboard:', err);
       setError(err);
@@ -98,10 +106,18 @@ export function useLeaderboard(competitionId, options = {}) {
               setContestants((prev) => [...prev, payload.new]);
             }
           } else if (payload.eventType === 'UPDATE') {
+            // Realtime payloads don't include the joined profile row, so
+            // preserve the previously-resolved avatar_url when the update
+            // doesn't carry a new one.
             setContestants((prev) =>
-              prev.map((c) =>
-                c.id === payload.new.id ? { ...c, ...payload.new } : c
-              )
+              prev.map((c) => {
+                if (c.id !== payload.new.id) return c;
+                return {
+                  ...c,
+                  ...payload.new,
+                  avatar_url: payload.new.avatar_url || c.avatar_url,
+                };
+              })
             );
           } else if (payload.eventType === 'DELETE') {
             setContestants((prev) =>

@@ -1,12 +1,52 @@
 import React, { useState } from 'react';
 import {
-  Crown, RotateCcw, ExternalLink,
+  Crown, RotateCcw, ExternalLink, Instagram,
   UserCheck, Users, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Clock
 } from 'lucide-react';
 import { Button, Badge, Avatar } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import WinnersManager from '../WinnersManager';
+
+// Normalize an instagram handle that may be a bare username, "@name", or full URL
+const parseInstagram = (raw) => {
+  if (!raw) return null;
+  const clean = String(raw)
+    .trim()
+    .replace(/^@/, '')
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+    .replace(/\/+$/, '')
+    .split(/[/?#]/)[0];
+  if (!clean) return null;
+  return { url: `https://instagram.com/${clean}`, handle: clean };
+};
+
+const InstagramLink = ({ instagram, iconOnly = false }) => {
+  const ig = parseInstagram(instagram);
+  if (!ig) return null;
+  return (
+    <a
+      href={ig.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      title={`@${ig.handle} on Instagram`}
+      aria-label={`Open @${ig.handle} on Instagram`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: spacing.xs,
+        color: colors.gold.primary,
+        textDecoration: 'none',
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.medium,
+      }}
+    >
+      <Instagram size={14} />
+      {!iconOnly && <span>@{ig.handle}</span>}
+    </a>
+  );
+};
 
 export default function ContestantsTab({
   competition,
@@ -43,7 +83,7 @@ export default function ContestantsTab({
   );
   const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
   const externalNominees = activeNominees.filter(n => !n.hasProfile);
-  const rejectedNominees = nominees.filter(n => n.status === 'rejected' || n.status === 'declined');
+  const rejectedNominees = nominees.filter(n => n.status === 'rejected' || n.status === 'declined' || n.status === 'archived');
 
   // Stats
   const stats = [
@@ -108,6 +148,7 @@ export default function ContestantsTab({
               </span>
             </Badge>
           )}
+          {nominee.instagram && <InstagramLink instagram={nominee.instagram} />}
         </div>
         <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
           {nominee.nominatedBy === 'self' ? 'Self-nominated' :
@@ -173,9 +214,11 @@ export default function ContestantsTab({
           )}
           <Badge variant="success" size="sm">Competing</Badge>
         </div>
-        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-          {contestant.instagram && `@${contestant.instagram.replace('@', '')}`}
-        </p>
+        {contestant.instagram && (
+          <div style={{ marginTop: '2px' }}>
+            <InstagramLink instagram={contestant.instagram} />
+          </div>
+        )}
       </div>
       <div style={{ textAlign: 'right' }}>
         <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold }}>

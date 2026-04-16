@@ -16,11 +16,20 @@ const PublicCompetitionContext = createContext(null);
 /**
  * Provider component for public competition pages
  * Wraps hooks and provides unified data access
+ *
+ * When `previewMode` is set, the provider forces the page into a synthetic
+ * phase so hosts can preview what each phase will look like before it goes
+ * live. Supported modes:
+ *   - 'voting'         → synthetic round-1 voting phase
+ *   - 'between-rounds' → post-nomination / pre-voting interim phase
+ * Real voting actions are disabled in either mode by setting the synthetic
+ * round's `isActive` to false.
  */
 export function PublicCompetitionProvider({
   orgSlug,
   competitionSlug,
   competitionId,
+  previewMode = null,
   children,
 }) {
   // Modal states (lifted here so any component can trigger them)
@@ -34,11 +43,12 @@ export function PublicCompetitionProvider({
   const {
     competition,
     organization,
-    phase,
+    phase: realPhase,
     prizePool,
     about,
     theme,
     sponsors,
+    judges,
     events,
     prizes,
     rules,
@@ -49,6 +59,48 @@ export function PublicCompetitionProvider({
     error: competitionError,
     refetch: refetchCompetition,
   } = competitionData;
+
+  // In preview mode, synthesize a phase so the selected view renders even
+  // when the competition is in draft/coming-soon/nominations state.
+  const phase = useMemo(() => {
+    if (!previewMode || !realPhase) return realPhase;
+
+    // Pick the first voting round (or a placeholder) so countdowns/labels work
+    const previewRound = (votingRounds && votingRounds[0]) || {
+      id: 'preview-round',
+      title: 'Round 1',
+      round_order: 1,
+      start_date: null,
+      end_date: null,
+      round_type: 'voting',
+    };
+
+    if (previewMode === 'between-rounds') {
+      return {
+        ...realPhase,
+        phase: 'between-rounds',
+        label: 'Between Rounds',
+        isPublic: true,
+        isVoting: false,
+        canNominate: false,
+        nextRound: previewRound,
+        startsAt: previewRound.start_date || null,
+      };
+    }
+
+    // Default: voting preview
+    return {
+      ...realPhase,
+      phase: 'round1',
+      label: previewRound.title || 'Voting Preview',
+      isPublic: true,
+      isVoting: true,
+      canNominate: false,
+      currentRound: previewRound,
+      roundNumber: previewRound.round_order || 1,
+      endsAt: previewRound.end_date || null,
+    };
+  }, [previewMode, realPhase, votingRounds]);
 
   // Leaderboard data (only fetch if we have a competition)
   const leaderboardData = useLeaderboard(competition?.id, {
@@ -138,6 +190,7 @@ export function PublicCompetitionProvider({
 
       // Related data
       sponsors,
+      judges,
       events,
       prizes,
       rules,
@@ -160,6 +213,10 @@ export function PublicCompetitionProvider({
       activitiesLoading: activityData.loading,
       hasMoreActivities: activityData.hasMore,
       loadMoreActivities: activityData.loadMore,
+
+      // Preview mode (host previewing a phase before it goes live)
+      isPreview: Boolean(previewMode),
+      previewMode,
 
       // Modal state
       selectedContestant,
@@ -190,6 +247,7 @@ export function PublicCompetitionProvider({
       theme,
       countdown,
       sponsors,
+      judges,
       events,
       prizes,
       rules,
@@ -198,6 +256,7 @@ export function PublicCompetitionProvider({
       nominationPeriods,
       leaderboardData,
       activityData,
+      previewMode,
       selectedContestant,
       showVoteModal,
       showProfileModal,

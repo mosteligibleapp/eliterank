@@ -27,10 +27,10 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
   const uploadImage = async (file, folder) => {
     if (!file) return null;
 
-    // Validate file size (max 4.5MB for Vercel Blob free tier)
-    const maxSize = 4.5 * 1024 * 1024;
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('Image too large. Please choose an image under 4.5MB.');
+      alert('Image too large. Please choose an image under 10MB.');
       return null;
     }
 
@@ -76,16 +76,21 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
     setUploading(prev => ({ ...prev, avatar: false }));
   };
 
-  // Handle gallery image upload
+  // Handle gallery image upload — fills the first available slot
   const handleGalleryUpload = async (e, index) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(prev => ({ ...prev, gallery: index }));
+    const gallery = [...(hostProfile.gallery || [])];
+    // Find first empty slot
+    let targetIndex = gallery.findIndex((img, i) => !img);
+    if (targetIndex === -1) targetIndex = gallery.length;
+    if (targetIndex >= 6) return; // max 6 photos
+
+    setUploading(prev => ({ ...prev, gallery: targetIndex }));
     const url = await uploadImage(file, 'gallery');
     if (url) {
-      const gallery = [...(hostProfile.gallery || [])];
-      gallery[index] = url;
+      gallery[targetIndex] = url;
       handleFieldChange('gallery', gallery);
     }
     setUploading(prev => ({ ...prev, gallery: null }));
@@ -127,23 +132,21 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-          {isMobile && (
-            <button
-              onClick={onCancel}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: colors.text.primary,
-                cursor: 'pointer',
-                padding: spacing.xs,
-                marginLeft: `-${spacing.xs}`,
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <ChevronLeft size={24} />
-            </button>
-          )}
+          <button
+            onClick={onCancel}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: colors.text.primary,
+              cursor: 'pointer',
+              padding: spacing.xs,
+              marginLeft: `-${spacing.xs}`,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <ChevronLeft size={24} />
+          </button>
           <Edit size={isMobile ? 20 : 24} style={{ color: colors.gold.primary }} />
           <div>
             <h2 style={{
@@ -152,18 +155,8 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             }}>
               Edit Profile
             </h2>
-            {!isMobile && (
-              <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary }}>
-                Update your public profile
-              </p>
-            )}
           </div>
         </div>
-        {!isMobile && (
-          <Button variant="secondary" onClick={onCancel} size="md">
-            Cancel
-          </Button>
-        )}
       </div>
 
       {/* Cover & Avatar */}
@@ -261,21 +254,32 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
       {/* Personal Info Form */}
       <FormSection title="Personal Information" icon={User}>
         <FormGrid>
-          <Input
-            label="First Name"
-            value={hostProfile.firstName}
-            onChange={(e) => handleFieldChange('firstName', e.target.value)}
-          />
-          <Input
-            label="Last Name"
-            value={hostProfile.lastName}
-            onChange={(e) => handleFieldChange('lastName', e.target.value)}
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md, gridColumn: '1 / -1' }}>
+            <Input
+              label="First Name"
+              value={hostProfile.firstName}
+              onChange={(e) => handleFieldChange('firstName', e.target.value)}
+            />
+            <Input
+              label="Last Name"
+              value={hostProfile.lastName}
+              onChange={(e) => handleFieldChange('lastName', e.target.value)}
+            />
+          </div>
           <Input
             label="City"
             value={hostProfile.city}
             onChange={(e) => handleFieldChange('city', e.target.value)}
           />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Input
+              label="Headline"
+              value={hostProfile.headline}
+              onChange={(e) => handleFieldChange('headline', e.target.value)}
+              placeholder="e.g., DePaul graduate, accountant, Chicago native"
+              maxLength={100}
+            />
+          </div>
         </FormGrid>
       </FormSection>
 
@@ -290,8 +294,8 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         />
       </FormSection>
 
-      {/* Social Media Form */}
-      <FormSection title="Social Media" icon={Globe}>
+      {/* Connect */}
+      <FormSection title="Connect" icon={Globe}>
         <FormGrid>
           <Input
             label="Instagram"
@@ -300,9 +304,9 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             placeholder="@username"
           />
           <Input
-            label="Twitter / X"
-            value={hostProfile.twitter}
-            onChange={(e) => handleFieldChange('twitter', e.target.value)}
+            label="TikTok"
+            value={hostProfile.tiktok}
+            onChange={(e) => handleFieldChange('tiktok', e.target.value)}
             placeholder="@username"
           />
           <Input
@@ -312,22 +316,12 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             placeholder="username"
           />
           <Input
-            label="TikTok"
-            value={hostProfile.tiktok}
-            onChange={(e) => handleFieldChange('tiktok', e.target.value)}
-            placeholder="@username"
+            label="Link"
+            value={hostProfile.website}
+            onChange={(e) => handleFieldChange('website', e.target.value)}
+            placeholder="https://yourwebsite.com"
           />
         </FormGrid>
-      </FormSection>
-
-      {/* Hobbies Selection */}
-      <FormSection title="Hobbies & Interests" icon={Heart}>
-        <HobbySelector
-          hobbies={ALL_HOBBIES}
-          selected={hostProfile.hobbies}
-          onChange={handleHobbiesChange}
-          max={MAX_HOBBIES}
-        />
       </FormSection>
 
       {/* Photo Gallery Upload */}
@@ -337,7 +331,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
           color: colors.text.secondary,
           marginBottom: spacing.md
         }}>
-          Upload up to 6 photos to showcase your hosting experience
+          Upload up to 6 photos to showcase your personality
         </p>
         <div style={{
           display: 'grid',
@@ -415,7 +409,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         </div>
       </FormSection>
 
-      {/* Bottom Save Button */}
+      {/* Bottom Save + Cancel */}
       <Button
         onClick={onSave}
         icon={Save}
@@ -424,11 +418,26 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         style={{
           padding: isMobile ? spacing.md : spacing.lg,
           fontSize: isMobile ? typography.fontSize.md : typography.fontSize.lg,
-          marginBottom: isMobile ? spacing.xxl : 0,
         }}
       >
         Save Changes
       </Button>
+      <button
+        onClick={onCancel}
+        style={{
+          width: '100%',
+          padding: spacing.md,
+          background: 'none',
+          border: 'none',
+          color: colors.text.secondary,
+          fontSize: typography.fontSize.md,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          marginBottom: isMobile ? spacing.xxl : 0,
+        }}
+      >
+        Cancel Changes
+      </button>
 
       {/* Spin animation */}
       <style>{`

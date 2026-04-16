@@ -1,12 +1,12 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
-import { PrizePool } from '../components/PrizePool';
 import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
-import { Timeline } from '../components/Timeline';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { UpcomingEventCard } from '../components/UpcomingEventCard';
+import { HostCard } from '../components/HostCard';
+import { JudgesSection } from '../components/JudgesSection';
 import ContestantBonusVotes from '../components/ContestantBonusVotes';
 
 /**
@@ -76,14 +76,21 @@ export function VotingPhase() {
             />
           )}
 
-          <PrizePool compact collapsible />
-
           <ActivityFeedCompact limit={5} />
-
-          <UpcomingEventCard />
-
-          <Timeline />
         </aside>
+      </section>
+
+      {/* Upcoming Event + Host side-by-side beneath the leaderboard */}
+      <section className="phase-section">
+        <div className="event-host-row">
+          <UpcomingEventCard />
+          <HostCard />
+        </div>
+      </section>
+
+      {/* Judges */}
+      <section className="phase-section">
+        <JudgesSection />
       </section>
     </div>
   );

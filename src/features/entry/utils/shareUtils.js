@@ -531,7 +531,7 @@ export async function generateOGCard({
   });
 }
 
-export async function shareOrDownload(blob, fileName = 'eliterank-nomination.png') {
+export async function shareOrDownload(blob, fileName = 'eliterank-nomination.png', { text } = {}) {
   const file = new File([blob], fileName, { type: 'image/png' });
 
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -539,7 +539,7 @@ export async function shareOrDownload(blob, fileName = 'eliterank-nomination.png
       await navigator.share({
         files: [file],
         title: 'EliteRank',
-        text: "I've been nominated on EliteRank!",
+        text: text || "I've been nominated on EliteRank!",
       });
       return 'shared';
     } catch (err) {

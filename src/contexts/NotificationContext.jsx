@@ -15,6 +15,8 @@ const NOTIFICATION_ICONS = {
   vote_received: { emoji: '\u{1F5F3}\uFE0F', label: 'Votes' },
   event_posted: { emoji: '\u{1F4E2}', label: 'Event' },
   system_announcement: { emoji: '\u{1F4E3}', label: 'System' },
+  video_prompt: { emoji: '\u{1F3AC}', label: 'Video' },
+  video_response: { emoji: '\u{1F4F9}', label: 'Video' },
 };
 
 export function getNotificationMeta(type) {

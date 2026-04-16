@@ -1,10 +1,11 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Calendar, Crown, ChevronRight } from 'lucide-react';
-import { formatEventTime } from '../../../utils/formatters';
+import { Calendar, ChevronRight } from 'lucide-react';
+import EventCard from '../../../features/public-site/components/EventCard';
 
 /**
- * Upcoming Event Card - Shows the next upcoming event for the competition
- * Displays above the Rules accordion in the sidebar
+ * Upcoming Event Card - Shows the next upcoming event for the competition.
+ * Reuses the shared EventCard so this widget is visually identical to a
+ * card on the Events page.
  */
 export function UpcomingEventCard({ onViewAllEvents }) {
   const { events } = usePublicCompetition();
@@ -32,26 +33,16 @@ export function UpcomingEventCard({ onViewAllEvents }) {
   const nextEvent = upcomingEvents[0] || null;
   const totalEvents = events?.length || 0;
 
-  const formatDateBadge = (dateStr, timeStr) => {
-    if (!dateStr) return 'Date TBD';
-    const eventDate = new Date(dateStr + 'T00:00:00');
-    const isToday = eventDate.getTime() === today.getTime();
-    const datePart = isToday
-      ? 'TODAY'
-      : eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
-    if (timeStr) {
-      return `${datePart}  •  ${formatEventTime(timeStr)}`;
-    }
-    return datePart;
-  };
-
-  const CardTag = nextEvent?.ticket_url ? 'a' : 'div';
-  const cardProps = nextEvent?.ticket_url
-    ? { href: nextEvent.ticket_url, target: '_blank', rel: 'noopener noreferrer' }
-    : {};
-
   return (
-    <div className="upcoming-event-card">
+    // Cap the whole widget to the EventCard's natural width so the
+    // "Upcoming Event" label sits directly above the card rather than
+    // stretching across a wide empty row beside it. Auto horizontal
+    // margins center the card when it's in a full-width container
+    // (e.g. when .event-host-row collapses to a single column on mobile).
+    <div
+      className="upcoming-event-card"
+      style={{ maxWidth: '320px', marginLeft: 'auto', marginRight: 'auto' }}
+    >
       <div className="upcoming-event-header">
         <h4 className="section-label">
           <Calendar size={14} />
@@ -66,35 +57,7 @@ export function UpcomingEventCard({ onViewAllEvents }) {
       </div>
 
       {nextEvent ? (
-        <div className="upcoming-event-content">
-          <CardTag className="upcoming-event-link" {...cardProps}>
-            {/* Image with date badge */}
-            <div className="event-image-wrapper">
-              {nextEvent.image_url ? (
-                <div
-                  className="event-image"
-                  style={{ backgroundImage: `url(${nextEvent.image_url})` }}
-                />
-              ) : (
-                <div className="event-image event-image-placeholder">
-                  <Crown size={28} />
-                </div>
-              )}
-              <div className="event-image-gradient" />
-              <div className="event-date-badge">
-                {formatDateBadge(nextEvent.date, nextEvent.time)}
-              </div>
-            </div>
-
-            {/* Event info below image */}
-            <div className="event-details">
-              <h5 className="event-name">{nextEvent.name}</h5>
-              {nextEvent.location && (
-                <p className="event-location">{nextEvent.location}</p>
-              )}
-            </div>
-          </CardTag>
-        </div>
+        <EventCard event={nextEvent} />
       ) : (
         <div className="upcoming-event-empty">
           <Calendar size={24} />

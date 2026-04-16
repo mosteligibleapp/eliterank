@@ -42,7 +42,7 @@ export async function getNominationsForUser(userId, userEmail) {
       queries.push(
         supabase.from('nominees').select(selectStr)
           .eq('user_id', userId)
-          .not('status', 'in', '("rejected","declined")')
+          .not('status', 'in', '("rejected","declined","expired")')
           .order('created_at', { ascending: false })
       );
     }
@@ -50,7 +50,7 @@ export async function getNominationsForUser(userId, userEmail) {
       queries.push(
         supabase.from('nominees').select(selectStr)
           .eq('email', userEmail)
-          .not('status', 'in', '("rejected","declined")')
+          .not('status', 'in', '("rejected","declined","expired")')
           .order('created_at', { ascending: false })
       );
     }
@@ -112,6 +112,7 @@ export async function getContestantCompetitions(userId) {
       .from('contestants')
       .select('*')
       .eq('user_id', userId)
+      .neq('status', 'eliminated')
       .order('created_at', { ascending: false });
 
     if (contestantsError || !contestants?.length) {
@@ -164,7 +165,8 @@ export async function getCompetitionStats(userId) {
       supabase
         .from('contestants')
         .select('votes, rank, status')
-        .eq('user_id', userId),
+        .eq('user_id', userId)
+        .neq('status', 'eliminated'),
     ]);
 
     const profile = profileResult.data;
@@ -184,7 +186,7 @@ export async function getCompetitionStats(userId) {
 
     return {
       totalCompetitions: Math.max(profileComps, contestants.length),
-      totalVotes: Math.max(profileVotes, contestantVotes),
+      totalVotes: contestantVotes || profileVotes,
       wins: Math.max(profileWins, contestantWins),
       bestPlacement: profile?.best_placement || bestRank,
     };

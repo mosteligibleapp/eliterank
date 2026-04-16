@@ -24,6 +24,7 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
   const fullName = profile.name || `${firstName} ${lastName}`.trim() || 'Unknown';
   const bio = profile.bio || profile.description || '';
   const city = profile.city || profile.location || '';
+  const headline = profile.headline || '';
   const occupation = profile.occupation || profile.title || '';
   const age = profile.age || '';
   const avatarUrl = profile.avatar_url || profile.avatarUrl || profile.avatar || profile.image || '';
@@ -52,13 +53,13 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
       gradient: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCAF45)',
     });
   }
-  if (profile.twitter) {
+  if (profile.tiktok) {
     socialLinks.push({
-      platform: 'Twitter / X',
-      handle: profile.twitter.startsWith('@') ? profile.twitter : `@${profile.twitter}`,
-      icon: Twitter,
-      url: `https://twitter.com/${profile.twitter.replace('@', '')}`,
-      background: '#000',
+      platform: 'TikTok',
+      handle: profile.tiktok.startsWith('@') ? profile.tiktok : `@${profile.tiktok}`,
+      icon: Globe,
+      url: `https://tiktok.com/@${profile.tiktok.replace('@', '')}`,
+      gradient: 'linear-gradient(135deg, #00f2ea, #ff0050)',
     });
   }
   if (profile.linkedin) {
@@ -68,6 +69,15 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
       icon: Linkedin,
       url: `https://linkedin.com/in/${profile.linkedin}`,
       background: '#0A66C2',
+    });
+  }
+  if (profile.website) {
+    socialLinks.push({
+      platform: 'Link',
+      handle: profile.website.replace(/^https?:\/\//, ''),
+      icon: Globe,
+      url: profile.website.startsWith('http') ? profile.website : `https://${profile.website}`,
+      background: '#52525b',
     });
   }
 
@@ -186,6 +196,17 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
               <span>{age} years old</span>
             )}
           </div>
+
+          {headline && (
+            <p style={{
+              color: colors.text.muted,
+              fontSize: typography.fontSize.sm,
+              marginTop: spacing.sm,
+              fontStyle: 'italic',
+            }}>
+              {headline}
+            </p>
+          )}
         </div>
 
         {/* Bio */}
@@ -219,45 +240,6 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
           </div>
         )}
 
-        {/* Interests */}
-        {hobbies && hobbies.length > 0 && (
-          <div style={{
-            background: colors.background.card,
-            borderRadius: borderRadius.xl,
-            padding: isMobile ? spacing.lg : spacing.xl,
-            marginBottom: spacing.lg,
-            border: `1px solid ${colors.border.primary}`,
-          }}>
-            <h3 style={{
-              ...styleHelpers.flexStart,
-              gap: spacing.sm,
-              fontSize: typography.fontSize.md,
-              fontWeight: typography.fontWeight.semibold,
-              color: colors.text.primary,
-              marginBottom: spacing.md,
-            }}>
-              <Heart size={18} style={{ color: roleConfig.color }} />
-              Interests
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-              {hobbies.map((hobby, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    padding: `${spacing.xs} ${spacing.md}`,
-                    background: `${roleConfig.color}15`,
-                    border: `1px solid ${roleConfig.color}30`,
-                    borderRadius: borderRadius.pill,
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  {hobby}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Social Links */}
         {socialLinks.length > 0 && (

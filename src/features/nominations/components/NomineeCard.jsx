@@ -224,36 +224,6 @@ export default function NomineeCard({
             </p>
           )}
 
-          {nominee.interests && nominee.interests.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: spacing.xs,
-                marginBottom: spacing.sm,
-              }}
-            >
-              {nominee.interests.slice(0, 3).map((interest) => (
-                <InterestTag key={interest} size="sm">
-                  {interest}
-                </InterestTag>
-              ))}
-              {nominee.interests.length > 3 && (
-                <span
-                  style={{
-                    padding: `3px ${spacing.sm}`,
-                    background: 'rgba(255,255,255,0.05)',
-                    color: colors.text.secondary,
-                    borderRadius: borderRadius.md,
-                    fontSize: typography.fontSize.xs,
-                  }}
-                >
-                  +{nominee.interests.length - 3}
-                </span>
-              )}
-            </div>
-          )}
-
           {nominee.nominatedBy === 'Third Party' && nominee.nominatorName && (
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
               Nominated by {nominee.nominatorName}

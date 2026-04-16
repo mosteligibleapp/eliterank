@@ -63,10 +63,10 @@ export default function NomineeProfileCompletionPage({
   const uploadImage = async (file) => {
     if (!file) return null;
 
-    // Validate file size (max 4.5MB)
-    const maxSize = 4.5 * 1024 * 1024;
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error('Image too large. Please choose an image under 4.5MB.');
+      toast.error('Image too large. Please choose an image under 10MB.');
       return null;
     }
 

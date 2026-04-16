@@ -5,7 +5,8 @@
  * Can also display public profiles when viewing other users.
  */
 
-import React, { useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSupabaseAuth } from '../hooks';
 import { DEFAULT_HOST_PROFILE } from '../constants';
 import { ROLE, getUserRole } from '../routes/ProtectedRoute';
@@ -16,7 +17,8 @@ const ProfilePage = lazy(() => import('../features/profile/ProfilePage'));
 
 export default function UserProfilePage() {
   const { user, profile, updateProfile } = useSupabaseAuth();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const userRole = useMemo(() => getUserRole(profile), [profile]);
 
   // Profile editing state
@@ -32,12 +34,14 @@ export default function UserProfilePage() {
       email: user?.email || '',
       firstName: profile.first_name || '',
       lastName: profile.last_name || '',
+      headline: profile.headline || '',
       bio: profile.bio || '',
       city: profile.city || '',
       instagram: profile.instagram || '',
       twitter: profile.twitter || '',
       linkedin: profile.linkedin || '',
       tiktok: profile.tiktok || '',
+      website: profile.website || '',
       hobbies: Array.isArray(profile.interests) ? profile.interests : [],
       avatarUrl: profile.avatar_url || '',
       coverImage: profile.cover_image || '',
@@ -60,12 +64,14 @@ export default function UserProfilePage() {
       const dbUpdates = {
         first_name: editingData.firstName,
         last_name: editingData.lastName,
+        headline: editingData.headline,
         bio: editingData.bio,
         city: editingData.city,
         instagram: editingData.instagram,
         twitter: editingData.twitter,
         linkedin: editingData.linkedin,
         tiktok: editingData.tiktok,
+        website: editingData.website,
         interests: editingData.hobbies,
         avatar_url: editingData.avatarUrl,
         cover_image: editingData.coverImage,
@@ -100,9 +106,17 @@ export default function UserProfilePage() {
     setEditingData(updates);
   }, []);
 
+  // Auto-enter edit mode when ?edit=true is in the URL
+  useEffect(() => {
+    if (searchParams.get('edit') === 'true' && profile && !isEditing) {
+      handleEdit();
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, profile, isEditing, handleEdit, setSearchParams]);
+
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', overflow: 'auto' }}>
-      <PageHeader title="My Profile" />
+      <PageHeader title="" />
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px' }}>
         <Suspense fallback={<ProfileSkeleton />}>
           <ProfilePage

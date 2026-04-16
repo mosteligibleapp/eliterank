@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
-import { Heart, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
+import VideoPromptsChecklist from '../../../components/VideoPromptsChecklist';
+import SubmitProofModal from '../../../components/modals/SubmitProofModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS, loadNomineeBonusActions, saveNomineeBonusAction, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
 import { spacing, typography, colors, borderRadius } from '../../../styles/theme';
@@ -21,88 +23,18 @@ const DEFAULT_BONUS_TASKS = [
   { task_key: 'share_profile', label: 'Share your profile', description: 'Share your contestant profile link externally', votes_awarded: 5, sort_order: 5 },
 ];
 
-/**
- * Compact confirmation shown when all bonus votes are earned.
- * Displays a summary and a dismiss button.
- */
-function AllCompleteConfirmation({ totalBonusVotesEarned, onDismiss }) {
-  return (
-    <div style={{
-      background: 'rgba(34, 197, 94, 0.06)',
-      border: '1px solid rgba(34, 197, 94, 0.25)',
-      borderRadius: borderRadius.xl,
-      padding: spacing.lg,
-      display: 'flex',
-      alignItems: 'center',
-      gap: spacing.md,
-    }}>
-      <div style={{
-        width: '40px',
-        height: '40px',
-        borderRadius: borderRadius.lg,
-        background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.08))',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <Heart size={20} style={{ color: '#22c55e', fill: '#22c55e' }} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{
-          fontSize: typography.fontSize.md,
-          fontWeight: typography.fontWeight.semibold,
-          color: colors.text.primary,
-        }}>
-          All Bonus Votes Earned!
-        </span>
-        <p style={{
-          fontSize: typography.fontSize.xs,
-          color: colors.text.secondary,
-          marginTop: '2px',
-        }}>
-          +{totalBonusVotesEarned} votes added to your total
-        </p>
-        <p style={{
-          fontSize: typography.fontSize.xs,
-          color: colors.text.muted,
-          marginTop: '2px',
-          fontStyle: 'italic',
-        }}>
-          Stay tuned for more bonus vote opportunities
-        </p>
-      </div>
-      {onDismiss && (
-        <button
-          onClick={onDismiss}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: spacing.xs,
-            cursor: 'pointer',
-            color: colors.text.muted,
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          aria-label="Dismiss"
-        >
-          <X size={16} />
-        </button>
-      )}
-    </div>
-  );
-}
+
 
 /**
  * Renders the bonus votes checklist for a contestant (DB-backed).
  */
-function CompetitionBonusVotes({ competitionId, contestantId, userId, competitionName, onBonusVotesLoaded }) {
+function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail, competitionName, onBonusVotesLoaded }) {
+  const navigate = useNavigate();
   const { profile } = useAuthContextSafe();
   const toast = useToast();
   const hasCheckedProfile = useRef(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [proofTask, setProofTask] = useState(null);
   const dismissKey = `bonus_dismissed_${contestantId}`;
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem(dismissKey) === 'true'; } catch { return false; }
@@ -113,7 +45,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     completedCount, totalCount,
     totalBonusVotesEarned, totalBonusVotesAvailable,
     progress, allCompleted,
-    checkProfile, awardTask, markHowToWinViewed, markProfileShared,
+    checkProfile, awardTask, submitProof, markHowToWinViewed, markProfileShared,
   } = useBonusVotes(competitionId, contestantId, userId);
 
   // Report bonus votes to parent
@@ -176,8 +108,23 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     }
   };
 
-  const handleTaskAction = async (taskKey) => {
-    if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
+  const handleSubmitProof = async (taskId, proofUrl) => {
+    const result = await submitProof(taskId, proofUrl);
+    if (result?.success) {
+      toast?.success?.('Proof submitted! Waiting for host approval.');
+    }
+  };
+
+  const handleTaskAction = async (taskKey, task) => {
+    if (task?.requires_approval) {
+      setProofTask(task);
+      return;
+    }
+
+    if (taskKey === BONUS_TASK_KEYS.COMPLETE_PROFILE || taskKey === BONUS_TASK_KEYS.ADD_SOCIAL) {
+      navigate('/profile?edit=true');
+      return;
+    } else if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
       setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
       const shareUrl = `${window.location.origin}/profile/${userId}`;
@@ -207,17 +154,20 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
     }
   };
 
-  if (loading || tasks.length === 0) return null;
-
-  // All tasks complete - show compact confirmation or nothing if dismissed
-  if (allCompleted) {
-    if (dismissed) return null;
+  if (loading || tasks.length === 0) {
+    // Still show video prompts even when no bonus tasks
     return (
       <div style={{ marginBottom: spacing.xl }}>
-        <AllCompleteConfirmation
-          totalBonusVotesEarned={totalBonusVotesEarned}
-          onDismiss={handleDismiss}
-        />
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
+      </div>
+    );
+  }
+
+  // All tasks complete - just show video prompts
+  if (allCompleted) {
+    return (
+      <div style={{ marginBottom: spacing.xl }}>
+        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
       </div>
     );
   }
@@ -246,7 +196,10 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
           progress={progress}
           allCompleted={allCompleted}
           onTaskAction={handleTaskAction}
-        />
+          collapsible
+        >
+          <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
+        </BonusVotesChecklist>
       </div>
       {showGuide && (
         <Suspense fallback={null}>
@@ -258,6 +211,12 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
           />
         </Suspense>
       )}
+      <SubmitProofModal
+        isOpen={!!proofTask}
+        onClose={() => setProofTask(null)}
+        task={proofTask}
+        onSubmit={handleSubmitProof}
+      />
     </>
   );
 }
@@ -267,7 +226,8 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, competitio
  * Tasks are evaluated based on profile data — no contestant_id needed.
  * When converted to contestant, the real system auto-awards earned votes.
  */
-function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoaded }) {
+function NomineeBonusVotes({ competitionId, competitionName, profile, userId, userEmail, onBonusVotesLoaded }) {
+  const navigate = useNavigate();
   const toast = useToast();
   const [showGuide, setShowGuide] = useState(false);
   const dismissKey = userId ? `bonus_dismissed_nominee_${userId}` : null;
@@ -283,15 +243,15 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
   useEffect(() => {
     if (!userId || hasLoadedActions.current) return;
     hasLoadedActions.current = true;
-    loadNomineeBonusActions(userId).then(actions => {
+    loadNomineeBonusActions(userId, competitionId).then(actions => {
       setActionCompleted(actions || {});
     });
-  }, [userId]);
+  }, [userId, competitionId]);
 
   const markActionCompleted = (taskKey) => {
     setActionCompleted(prev => ({ ...prev, [taskKey]: true }));
     if (userId) {
-      saveNomineeBonusAction(userId, taskKey);
+      saveNomineeBonusAction(userId, taskKey, competitionId);
     }
   };
 
@@ -355,7 +315,11 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
   };
 
   const handleTaskAction = async (taskKey) => {
-    if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
+    if (taskKey === BONUS_TASK_KEYS.COMPLETE_PROFILE || taskKey === BONUS_TASK_KEYS.ADD_SOCIAL) {
+      // Navigate to edit profile so user can fill in missing fields
+      navigate('/profile?edit=true');
+      return;
+    } else if (taskKey === BONUS_TASK_KEYS.VIEW_HOW_TO_WIN) {
       setShowGuide(true);
     } else if (taskKey === BONUS_TASK_KEYS.SHARE_PROFILE) {
       const shareUrl = userId ? `${window.location.origin}/profile/${userId}` : window.location.href;
@@ -385,15 +349,11 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
     }
   };
 
-  // All tasks complete - show compact confirmation or nothing if dismissed
+  // All tasks complete - just show video prompts
   if (allCompleted) {
-    if (dismissed) return null;
     return (
       <div style={{ marginBottom: spacing.xl }}>
-        <AllCompleteConfirmation
-          totalBonusVotesEarned={totalBonusVotesEarned}
-          onDismiss={handleDismiss}
-        />
+        <VideoPromptsChecklist  />
       </div>
     );
   }
@@ -420,7 +380,10 @@ function NomineeBonusVotes({ competitionName, profile, userId, onBonusVotesLoade
           progress={progress}
           allCompleted={allCompleted}
           onTaskAction={handleTaskAction}
-        />
+          collapsible
+        >
+          <VideoPromptsChecklist  />
+        </BonusVotesChecklist>
       </div>
       {showGuide && (
         <Suspense fallback={null}>
@@ -486,6 +449,7 @@ export default function ProfileBonusVotes({ userId, userEmail, profile, onBonusV
           competitionId={entry.competition_id}
           contestantId={entry.id}
           userId={userId}
+          userEmail={userEmail}
           competitionName={totalEntries > 1 ? entry.competition?.name : null}
           onBonusVotesLoaded={onBonusVotesLoaded}
         />
@@ -493,9 +457,11 @@ export default function ProfileBonusVotes({ userId, userEmail, profile, onBonusV
       {nomineeEntries.map(nom => (
         <NomineeBonusVotes
           key={nom.id}
+          competitionId={nom.competition?.id}
           competitionName={totalEntries > 1 ? nom.competition?.name : null}
           profile={profile}
           userId={userId}
+          userEmail={userEmail}
           onBonusVotesLoaded={onBonusVotesLoaded}
         />
       ))}

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Search, User, Check, X, Loader } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, User, Check, X, Loader, Camera, Instagram } from 'lucide-react';
 import { Modal, Button, Input, Textarea, Avatar, Badge } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
+import { uploadPhoto } from '../../features/entry/utils/uploadPhoto';
 
 export default function JudgeModal({
   isOpen,
@@ -13,7 +14,7 @@ export default function JudgeModal({
   const isEditing = !!judge;
 
   // Form state
-  const [form, setForm] = useState({ name: '', title: '', bio: '', userId: null, avatarUrl: '' });
+  const [form, setForm] = useState({ name: '', title: '', bio: '', userId: null, avatarUrl: '', instagram: '' });
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,6 +23,10 @@ export default function JudgeModal({
   const [loading, setLoading] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showSearch, setShowSearch] = useState(true);
+
+  // Photo upload state
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -33,11 +38,12 @@ export default function JudgeModal({
           bio: judge.bio || '',
           userId: judge.userId || null,
           avatarUrl: judge.avatarUrl || '',
+          instagram: judge.instagram || '',
         });
         setShowSearch(false);
         setSelectedProfile(null);
       } else {
-        setForm({ name: '', title: '', bio: '', userId: null, avatarUrl: '' });
+        setForm({ name: '', title: '', bio: '', userId: null, avatarUrl: '', instagram: '' });
         setShowSearch(true);
         setSelectedProfile(null);
       }
@@ -54,7 +60,7 @@ export default function JudgeModal({
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, email, first_name, last_name, avatar_url, bio')
+          .select('id, email, first_name, last_name, avatar_url, bio, instagram')
           .order('first_name')
           .limit(100);
 
@@ -100,14 +106,31 @@ export default function JudgeModal({
       bio: profile.bio || '',
       userId: profile.id,
       avatarUrl: profile.avatar_url || '',
+      instagram: profile.instagram || '',
     });
     setShowSearch(false);
   };
 
   const handleClearSelection = () => {
     setSelectedProfile(null);
-    setForm({ name: '', title: '', bio: '', userId: null, avatarUrl: '' });
+    setForm({ name: '', title: '', bio: '', userId: null, avatarUrl: '', instagram: '' });
     setShowSearch(true);
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setUploading(true);
+    try {
+      const url = await uploadPhoto(file, 'judges');
+      updateField('avatarUrl', url);
+    } catch (err) {
+      alert(err.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = () => {
@@ -117,6 +140,7 @@ export default function JudgeModal({
       bio: form.bio,
       userId: form.userId,
       avatarUrl: form.avatarUrl,
+      instagram: form.instagram,
     });
   };
 
@@ -287,6 +311,96 @@ export default function JudgeModal({
         </>
       )}
 
+      {/* Photo Upload */}
+      <div style={{ marginBottom: spacing.lg }}>
+        <label style={{
+          display: 'block',
+          fontSize: typography.fontSize.sm,
+          fontWeight: typography.fontWeight.medium,
+          color: colors.text.secondary,
+          marginBottom: spacing.sm,
+        }}>
+          Photo
+        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              border: `2px dashed ${form.avatarUrl ? 'rgba(212,175,55,0.4)' : colors.border.primary}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              background: form.avatarUrl ? 'transparent' : 'rgba(255,255,255,0.03)',
+              flexShrink: 0,
+              position: 'relative',
+            }}
+          >
+            {form.avatarUrl ? (
+              <img src={form.avatarUrl} alt="Judge" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <Camera size={20} style={{ color: colors.text.muted }} />
+            )}
+            {uploading && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(0,0,0,0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Loader size={18} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+              </div>
+            )}
+          </div>
+          <div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              style={{
+                padding: `${spacing.xs} ${spacing.md}`,
+                background: 'rgba(255,255,255,0.05)',
+                border: `1px solid ${colors.border.primary}`,
+                borderRadius: borderRadius.md,
+                color: colors.text.secondary,
+                fontSize: typography.fontSize.sm,
+                cursor: 'pointer',
+              }}
+            >
+              {uploading ? 'Uploading...' : form.avatarUrl ? 'Change Photo' : 'Upload Photo'}
+            </button>
+            {form.avatarUrl && (
+              <button
+                onClick={() => updateField('avatarUrl', '')}
+                style={{
+                  marginLeft: spacing.sm,
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  background: 'transparent',
+                  border: 'none',
+                  color: colors.text.muted,
+                  fontSize: typography.fontSize.xs,
+                  cursor: 'pointer',
+                }}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handlePhotoUpload}
+            style={{ display: 'none' }}
+          />
+        </div>
+      </div>
+
       {/* Form Fields */}
       <Input
         label="Full Name"
@@ -299,6 +413,12 @@ export default function JudgeModal({
         value={form.title}
         onChange={(e) => updateField('title', e.target.value)}
         placeholder="e.g., Fashion Editor, Vogue"
+      />
+      <Input
+        label="Instagram"
+        value={form.instagram}
+        onChange={(e) => updateField('instagram', e.target.value)}
+        placeholder="@username"
       />
       <Textarea
         label="Bio (Optional)"

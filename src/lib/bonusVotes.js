@@ -13,7 +13,6 @@ export const BONUS_TASK_KEYS = {
 
 /**
  * Deprecated task keys - filtered out on the frontend.
- * "add_bio" is redundant since "complete_profile" already requires a bio.
  */
 export const DEPRECATED_TASK_KEYS = new Set(['add_bio']);
 
@@ -192,6 +191,183 @@ export async function getBonusVoteCompletionStats(competitionId) {
   }
 }
 
+// =============================================================================
+// Custom Bonus Task CRUD (Host)
+// =============================================================================
+
+/**
+ * Create a custom bonus vote task for a competition
+ */
+export async function createCustomBonusTask(competitionId, { label, description, votesAwarded, proofLabel, createdBy, hostManaged }) {
+  if (!supabase || !competitionId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const taskKey = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const { data: existingTasks } = await supabase
+      .from('bonus_vote_tasks')
+      .select('sort_order')
+      .eq('competition_id', competitionId)
+      .order('sort_order', { ascending: false })
+      .limit(1);
+
+    const nextSortOrder = (existingTasks?.[0]?.sort_order || 10) + 1;
+
+    const { data, error } = await supabase
+      .from('bonus_vote_tasks')
+      .insert({
+        competition_id: competitionId,
+        task_key: taskKey,
+        label,
+        description: description || null,
+        votes_awarded: votesAwarded || 5,
+        proof_label: hostManaged ? null : (proofLabel || 'Submit your content link'),
+        is_custom: true,
+        requires_approval: !hostManaged,
+        host_managed: hostManaged || false,
+        created_by: createdBy || null,
+        sort_order: nextSortOrder,
+        enabled: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating custom bonus task:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, task: data };
+  } catch (err) {
+    console.error('Error creating custom bonus task:', err);
+    return { success: false, error: 'Failed to create custom task' };
+  }
+}
+
+/**
+ * Delete a custom bonus vote task
+ */
+export async function deleteCustomBonusTask(taskId) {
+  if (!supabase || !taskId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('bonus_vote_tasks')
+      .delete()
+      .eq('id', taskId)
+      .eq('is_custom', true);
+
+    if (error) {
+      console.error('Error deleting custom bonus task:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error deleting custom bonus task:', err);
+    return { success: false, error: 'Failed to delete custom task' };
+  }
+}
+
+// =============================================================================
+// Proof Submission (Contestant)
+// =============================================================================
+
+/**
+ * Submit proof for an approval-based bonus task
+ */
+export async function submitBonusProof(competitionId, contestantId, userId, taskId, proofUrl) {
+  if (!supabase || !competitionId || !contestantId || !taskId || !proofUrl) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('submit_bonus_proof', {
+      p_competition_id: competitionId,
+      p_contestant_id: contestantId,
+      p_user_id: userId || null,
+      p_task_id: taskId,
+      p_proof_url: proofUrl,
+    });
+
+    if (error) {
+      console.error('Error submitting bonus proof:', error);
+      return { success: false, error: error.message };
+    }
+
+    return data || { success: false, error: 'No response' };
+  } catch (err) {
+    console.error('Error submitting bonus proof:', err);
+    return { success: false, error: 'Failed to submit proof' };
+  }
+}
+
+// =============================================================================
+// Submission Review (Host)
+// =============================================================================
+
+/**
+ * Get pending submissions for a competition (host view)
+ */
+export async function getPendingSubmissions(competitionId) {
+  if (!supabase || !competitionId) {
+    return { submissions: [], error: null };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('bonus_vote_submissions')
+      .select(`
+        *,
+        task:bonus_vote_tasks(label, votes_awarded, proof_label),
+        contestant:contestants(name, avatar_url, user_id)
+      `)
+      .eq('competition_id', competitionId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching submissions:', error);
+      return { submissions: [], error: error.message };
+    }
+
+    return { submissions: data || [], error: null };
+  } catch (err) {
+    console.error('Error fetching submissions:', err);
+    return { submissions: [], error: 'Failed to fetch submissions' };
+  }
+}
+
+/**
+ * Approve or reject a bonus vote submission
+ */
+export async function reviewBonusSubmission(submissionId, reviewerId, action, rejectionReason) {
+  if (!supabase || !submissionId || !reviewerId || !action) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('review_bonus_submission', {
+      p_submission_id: submissionId,
+      p_reviewer_id: reviewerId,
+      p_action: action,
+      p_rejection_reason: rejectionReason || null,
+    });
+
+    if (error) {
+      console.error('Error reviewing submission:', error);
+      return { success: false, error: error.message };
+    }
+
+    return data || { success: false, error: 'No response' };
+  } catch (err) {
+    console.error('Error reviewing submission:', err);
+    return { success: false, error: 'Failed to review submission' };
+  }
+}
+
 /**
  * Check if a user has earned all bonus votes in any active competition.
  * Used to display the "All Bonus Votes Earned" badge on profiles.
@@ -245,9 +421,8 @@ export async function getAllBonusVotesEarnedStatus(userId) {
  * Load nominee bonus action completions from the profiles table.
  * Falls back to localStorage if DB is unavailable.
  */
-export async function loadNomineeBonusActions(userId) {
+export async function loadNomineeBonusActions(userId, competitionId) {
   if (!supabase || !userId) {
-    // Fallback to localStorage
     try {
       return JSON.parse(localStorage.getItem(`nominee_bonus_tasks_${userId}`) || '{}');
     } catch {
@@ -262,8 +437,8 @@ export async function loadNomineeBonusActions(userId) {
       .eq('id', userId)
       .single();
 
-    if (error || !data?.bonus_actions) {
-      // Fallback to localStorage
+    const allActions = data?.bonus_actions;
+    if (error || !allActions) {
       try {
         return JSON.parse(localStorage.getItem(`nominee_bonus_tasks_${userId}`) || '{}');
       } catch {
@@ -271,7 +446,20 @@ export async function loadNomineeBonusActions(userId) {
       }
     }
 
-    return data.bonus_actions;
+    // Per-competition: actions stored under competitionId key
+    if (competitionId && allActions[competitionId] && typeof allActions[competitionId] === 'object') {
+      return allActions[competitionId];
+    }
+
+    // Backward compat: flat keys like { share_profile: true } (legacy global format)
+    // Only return these if no competition-scoped data exists yet
+    if (competitionId) {
+      const hasCompKeys = Object.keys(allActions).some(k => typeof allActions[k] === 'object');
+      if (!hasCompKeys) return allActions; // legacy format, treat as current competition
+      return {}; // other competitions have scoped data, this one doesn't
+    }
+
+    return allActions;
   } catch {
     try {
       return JSON.parse(localStorage.getItem(`nominee_bonus_tasks_${userId}`) || '{}');
@@ -283,18 +471,19 @@ export async function loadNomineeBonusActions(userId) {
 
 /**
  * Save a nominee bonus action completion to the profiles table and localStorage.
- * Merges the new task key into the existing bonus_actions JSONB.
+ * Merges the new task key into the existing bonus_actions JSONB, scoped by competition.
  */
-export async function saveNomineeBonusAction(userId, taskKey) {
+export async function saveNomineeBonusAction(userId, taskKey, competitionId) {
   // Always save to localStorage as a fast cache
   const storageKey = userId ? `nominee_bonus_tasks_${userId}` : null;
-  let current = {};
   if (storageKey) {
     try {
-      current = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    } catch { /* ignore */ }
-    current[taskKey] = true;
-    try {
+      const current = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      if (competitionId) {
+        current[competitionId] = { ...(current[competitionId] || {}), [taskKey]: true };
+      } else {
+        current[taskKey] = true;
+      }
       localStorage.setItem(storageKey, JSON.stringify(current));
     } catch { /* ignore */ }
   }
@@ -303,18 +492,22 @@ export async function saveNomineeBonusAction(userId, taskKey) {
   if (!supabase || !userId) return;
 
   try {
-    // Read current bonus_actions then merge
     const { data } = await supabase
       .from('profiles')
       .select('bonus_actions')
       .eq('id', userId)
       .single();
 
-    const merged = { ...(data?.bonus_actions || {}), [taskKey]: true };
+    const allActions = { ...(data?.bonus_actions || {}) };
+    if (competitionId) {
+      allActions[competitionId] = { ...(allActions[competitionId] || {}), [taskKey]: true };
+    } else {
+      allActions[taskKey] = true;
+    }
 
     await supabase
       .from('profiles')
-      .update({ bonus_actions: merged })
+      .update({ bonus_actions: allActions })
       .eq('id', userId);
   } catch (err) {
     console.error('Error saving nominee bonus action:', err);
@@ -377,4 +570,103 @@ export async function checkAndAwardProfileBonuses(competitionId, contestantId, u
   }
 
   return awarded;
+}
+
+// =============================================================================
+// Host-Managed Task Operations (Attendance)
+// =============================================================================
+
+/**
+ * Get contestants and their completion status for a host-managed bonus task
+ */
+export async function getHostManagedTaskContestants(competitionId, taskId) {
+  if (!supabase || !competitionId || !taskId) {
+    return { contestants: [], error: null };
+  }
+
+  try {
+    const { data: contestants, error: cErr } = await supabase
+      .from('contestants')
+      .select('id, name, avatar_url, user_id')
+      .eq('competition_id', competitionId)
+      .eq('status', 'active')
+      .order('name');
+
+    if (cErr) {
+      return { contestants: [], error: cErr.message };
+    }
+
+    const { data: completions, error: compErr } = await supabase
+      .from('bonus_vote_completions')
+      .select('contestant_id')
+      .eq('task_id', taskId);
+
+    if (compErr) {
+      return { contestants: [], error: compErr.message };
+    }
+
+    const completedSet = new Set((completions || []).map(c => c.contestant_id));
+
+    const result = (contestants || []).map(c => ({
+      ...c,
+      completed: completedSet.has(c.id),
+    }));
+
+    return { contestants: result, error: null };
+  } catch (err) {
+    console.error('Error fetching host-managed task contestants:', err);
+    return { contestants: [], error: 'Failed to fetch contestants' };
+  }
+}
+
+/**
+ * Award a host-managed bonus task to a specific contestant (no proof needed)
+ */
+export async function awardHostManagedTask(competitionId, contestantId, userId, taskKey) {
+  return awardBonusVotes(competitionId, contestantId, userId, taskKey);
+}
+
+/**
+ * Revoke a host-managed bonus task from a contestant
+ */
+export async function revokeHostManagedTask(competitionId, contestantId, taskId) {
+  if (!supabase || !competitionId || !contestantId || !taskId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { data: task, error: taskErr } = await supabase
+      .from('bonus_vote_tasks')
+      .select('votes_awarded')
+      .eq('id', taskId)
+      .single();
+
+    if (taskErr || !task) {
+      return { success: false, error: 'Task not found' };
+    }
+
+    const { error: delErr } = await supabase
+      .from('bonus_vote_completions')
+      .delete()
+      .eq('task_id', taskId)
+      .eq('contestant_id', contestantId);
+
+    if (delErr) {
+      return { success: false, error: delErr.message };
+    }
+
+    const { error: updateErr } = await supabase.rpc('increment_contestant_votes', {
+      p_contestant_id: contestantId,
+      p_count: -task.votes_awarded,
+    });
+
+    if (updateErr) {
+      console.error('Error decrementing votes:', updateErr);
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error revoking host-managed task:', err);
+    return { success: false, error: 'Failed to revoke task' };
+  }
 }
