@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { PortraitCard } from '../components/LeaderboardCompact';
 
@@ -12,11 +12,9 @@ export function LeaderboardView() {
     contestants,
     competition,
     phase,
-    openVoteModal,
   } = usePublicCompetition();
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Top N contestants render the EliteRank crown badge instead of a rank
   // number — where N is the competition's configured winner count.
@@ -25,20 +23,11 @@ export function LeaderboardView() {
   // Between rounds: hide rank badges + vote counts (no active voting).
   const isBetweenRounds = phase?.phase === 'between-rounds';
 
-  // Base competition URL = current path minus any /leaderboard|/prizes|/activity|/enter
-  // tail. Preserves query params like ?preview=between-rounds.
-  const basePath = location.pathname
-    .replace(/\/(leaderboard|prizes|activity|enter)\/?$/, '')
-    .replace(/\/$/, '');
-
-  // Between rounds, clicking a contestant navigates to their public
-  // profile page (the same URL a contestant would share). Active voting
-  // → straight to vote modal.
-  const openContestantPage = (contestant) => {
-    if (!contestant?.slug) return;
-    navigate(`${basePath}/e/${contestant.slug}${location.search || ''}`);
+  // Clicking a contestant navigates to their public profile page.
+  const handleCardClick = (contestant) => {
+    if (!contestant?.user_id) return;
+    navigate(`/profile/${contestant.user_id}`);
   };
-  const handleCardClick = isBetweenRounds ? openContestantPage : openVoteModal;
 
   return (
     <div className="leaderboard-full">

@@ -15,7 +15,6 @@ export function LeaderboardCompact() {
     competition,
     phase,
     dangerZone,
-    openVoteModal,
     events,
   } = usePublicCompetition();
 
@@ -39,15 +38,11 @@ export function LeaderboardCompact() {
   const basePath = stripTrailing(location.pathname);
   const leaderboardPath = `${basePath}/leaderboard${location.search || ''}`;
 
-  // Between rounds, clicking a contestant navigates to their public
-  // profile page (the same URL a contestant would share) — vote modal
-  // is meaningless with voting paused. During active voting the card
-  // click takes you straight into the vote flow.
-  const openContestantPage = (contestant) => {
-    if (!contestant?.slug) return;
-    navigate(`${basePath}/e/${contestant.slug}${location.search || ''}`);
+  // Clicking a contestant navigates to their public profile page.
+  const handleCardClick = (contestant) => {
+    if (!contestant?.user_id) return;
+    navigate(`/profile/${contestant.user_id}`);
   };
-  const handleCardClick = isBetweenRounds ? openContestantPage : openVoteModal;
 
   // Next upcoming event to display in the grid
   const nextEvent = (() => {
