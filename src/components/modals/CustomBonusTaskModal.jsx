@@ -38,7 +38,7 @@ export default function CustomBonusTaskModal({
       label: data.label.trim(),
       description: data.description.trim(),
       votesAwarded: parseInt(data.votesAwarded, 10) || 5,
-      proofLabel: data.hostManaged ? '' : (data.proofLabel.trim() || 'Submit your content link'),
+      proofLabel: data.hostManaged ? '' : (data.proofLabel.trim() || 'Upload a screenshot as proof'),
       hostManaged: data.hostManaged,
     });
   };
@@ -133,10 +133,10 @@ export default function CustomBonusTaskModal({
         {/* Only show proof label for proof-based tasks */}
         {!form.hostManaged && (
           <Input
-            label="Proof Label"
+            label="Screenshot Instructions"
             value={form.proofLabel}
             onChange={(e) => updateField('proofLabel', e.target.value)}
-            placeholder="e.g., Paste your Instagram post link"
+            placeholder="e.g., Screenshot of your bio showing the link"
           />
         )}
 
@@ -190,7 +190,7 @@ export default function CustomBonusTaskModal({
           }}>
             {form.hostManaged
               ? 'This task will appear on contestants\u2019 checklists but they won\u2019t need to submit anything. You\u2019ll manually confirm who completed it from the dashboard.'
-              : 'Contestants will submit a content link as proof. You\u2019ll review and approve each submission before votes are awarded.'
+              : 'Contestants will upload a screenshot as proof. You\u2019ll review and approve each submission before votes are awarded.'
             }
           </p>
         </div>

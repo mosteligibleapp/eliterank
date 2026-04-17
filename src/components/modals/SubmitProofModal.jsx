@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Send, ExternalLink } from 'lucide-react';
-import { Modal, Button, Input } from '../ui';
+import React, { useState, useRef } from 'react';
+import { Send, Upload, RefreshCw } from 'lucide-react';
+import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
+import { uploadPhoto } from '../../features/entry/utils/uploadPhoto';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function SubmitProofModal({
   isOpen,
@@ -9,37 +11,50 @@ export default function SubmitProofModal({
   task,
   onSubmit,
 }) {
-  const [proofUrl, setProofUrl] = useState('');
+  const [file, setFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [uploadError, setUploadError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
+  const toast = useToast();
 
-  // Reset state when modal opens
   React.useEffect(() => {
     if (isOpen) {
-      setProofUrl(task?.proof_url || '');
+      setFile(null);
+      setPreviewUrl('');
+      setUploadError('');
       setSubmitting(false);
     }
-  }, [isOpen, task?.proof_url]);
+  }, [isOpen]);
 
-  const isValidUrl = (url) => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
+  const handleFileChange = (e) => {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    setFile(selected);
+    setPreviewUrl(URL.createObjectURL(selected));
+    setUploadError('');
   };
 
   const handleSubmit = async () => {
-    const trimmed = proofUrl.trim();
-    if (!trimmed || !isValidUrl(trimmed)) return;
-
+    if (!file) return;
     setSubmitting(true);
-    await onSubmit(task.id, trimmed);
-    setSubmitting(false);
-    onClose();
+    setUploadError('');
+    try {
+      const url = await uploadPhoto(file, 'bonus-proofs');
+      await onSubmit(task.id, url);
+      onClose();
+    } catch (err) {
+      const msg = err?.message || 'Failed to upload screenshot';
+      setUploadError(msg);
+      toast?.error?.(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!task) return null;
+
+  const instruction = task.proof_label || 'Upload a screenshot as proof';
 
   return (
     <Modal
@@ -55,7 +70,7 @@ export default function SubmitProofModal({
           <Button
             onClick={handleSubmit}
             icon={Send}
-            disabled={!proofUrl.trim() || !isValidUrl(proofUrl.trim()) || submitting}
+            disabled={!file || submitting}
           >
             {submitting ? 'Submitting...' : 'Submit for Review'}
           </Button>
@@ -96,22 +111,111 @@ export default function SubmitProofModal({
           </p>
         </div>
 
-        {/* URL input */}
+        {/* Image upload */}
         <div>
-          <Input
-            label={task.proof_label || 'Content Link *'}
-            value={proofUrl}
-            onChange={(e) => setProofUrl(e.target.value)}
-            placeholder="https://www.instagram.com/p/..."
-            type="url"
+          <label style={{
+            display: 'block',
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.medium,
+            color: colors.text.secondary,
+            marginBottom: spacing.sm,
+          }}>
+            {instruction}
+          </label>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
           />
-          {proofUrl.trim() && !isValidUrl(proofUrl.trim()) && (
+
+          {previewUrl ? (
+            <div style={{
+              position: 'relative',
+              borderRadius: borderRadius.md,
+              border: `1px solid ${colors.border.primary}`,
+              overflow: 'hidden',
+              background: colors.background.secondary,
+            }}>
+              <img
+                src={previewUrl}
+                alt="Proof preview"
+                style={{
+                  width: '100%',
+                  maxHeight: '320px',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={submitting}
+                style={{
+                  position: 'absolute',
+                  top: spacing.sm,
+                  right: spacing.sm,
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  background: 'rgba(0,0,0,0.7)',
+                  border: `1px solid ${colors.border.primary}`,
+                  borderRadius: borderRadius.sm,
+                  color: colors.text.primary,
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.medium,
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <RefreshCw size={12} /> Replace
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={submitting}
+              style={{
+                width: '100%',
+                padding: spacing.xl,
+                background: 'rgba(255,255,255,0.03)',
+                border: `1px dashed ${colors.border.primary}`,
+                borderRadius: borderRadius.md,
+                color: colors.text.secondary,
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: spacing.sm,
+              }}
+            >
+              <Upload size={24} style={{ color: colors.gold.primary }} />
+              <span style={{
+                fontSize: typography.fontSize.sm,
+                fontWeight: typography.fontWeight.medium,
+                color: colors.text.primary,
+              }}>
+                Choose screenshot
+              </span>
+              <span style={{
+                fontSize: typography.fontSize.xs,
+                color: colors.text.muted,
+              }}>
+                JPG, PNG, or WebP — max 10MB
+              </span>
+            </button>
+          )}
+
+          {uploadError && (
             <p style={{
               fontSize: typography.fontSize.xs,
               color: colors.status.error,
               marginTop: spacing.xs,
             }}>
-              Please enter a valid URL
+              {uploadError}
             </p>
           )}
         </div>
@@ -146,7 +250,7 @@ export default function SubmitProofModal({
           color: colors.text.muted,
           lineHeight: 1.5,
         }}>
-          Your submission will be reviewed by the competition host. Votes will be awarded once approved.
+          Your screenshot will be reviewed by the competition host. Votes will be awarded once approved.
         </p>
       </div>
     </Modal>
