@@ -29,29 +29,25 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   const toast = useToast();
   const navigate = useNavigate();
 
-  // Auth state
+  // Auth state — not gating on this. The flow starts at the 'accept' step
+  // which doesn't need auth; by the time the nominee reaches the password
+  // step, onAuthStateChange will have caught up.
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
 
   // Data state
   const [loading, setLoading] = useState(true);
   const [nominee, setNominee] = useState(null);
   const [competition, setCompetition] = useState(null);
   const [error, setError] = useState(null);
-  const [needsPassword, setNeedsPassword] = useState(false);
-  const [ready, setReady] = useState(false);
 
   const flowRef = useRef(null);
 
-  // Check auth state on mount
+  // Check auth state on mount. Runs in the background — the claim page no
+  // longer blocks on auth, so a stuck Supabase session never holds the
+  // spinner hostage. The `await`s here can hang after a magic-link redirect
+  // and that's OK; the flow still proceeds using the nominee record.
   useEffect(() => {
-    // Hard cap on the auth check so the page can't get stuck on the
-    // "Loading your nomination..." spinner if Supabase's magic-link hash
-    // processing hangs. The nominee can still accept without a session —
-    // the accept action goes through the edge function.
-    const authTimeout = setTimeout(() => setAuthLoading(false), 4000);
-
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -67,9 +63,6 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         }
       } catch (err) {
         console.error('Auth check error:', err);
-      } finally {
-        clearTimeout(authTimeout);
-        setAuthLoading(false);
       }
     };
 
@@ -84,7 +77,6 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
           .eq('id', session.user.id)
           .single();
         setProfile(profileData);
-        setAuthLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
@@ -190,20 +182,6 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     fetchNomination();
   }, [token]);
 
-  // Determine password needs after auth check.
-  useEffect(() => {
-    if (loading || authLoading || !nominee) return;
-
-    const isSelfNominee = nominee?.nominated_by === 'self';
-    // Check if the logged-in user IS the nominee (email match)
-    const loggedInAsNominee = user?.email && nominee?.email &&
-      user.email.toLowerCase() === nominee.email.toLowerCase();
-
-    // Skip password step if already logged in as this nominee
-    setNeedsPassword(isSelfNominee ? !user : !loggedInAsNominee);
-    setReady(true);
-  }, [loading, authLoading, nominee, user]);
-
   // Only treat the logged-in user as the nominee if their email matches.
   // Without this guard, a logged-in nominator opening the claim link would
   // have their identity confused with the nominee's.
@@ -211,6 +189,11 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     user.email.toLowerCase() === nominee.email.toLowerCase();
   const effectiveUser = isNomineeUser ? user : null;
   const effectiveProfile = isNomineeUser ? profile : null;
+
+  // Derive needsPassword inline rather than syncing via state — prevents the
+  // page from getting stuck on the spinner if the auth check hangs.
+  const isSelfNominee = nominee?.nominated_by === 'self';
+  const needsPassword = isSelfNominee ? !effectiveUser : !isNomineeUser;
 
   // Initialize the Build Your Card flow
   // Self-nominees resuming via claim link use the self flow (no accept/decline step)
@@ -277,19 +260,10 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     }
   }, [alreadyCompleted, navigate]);
 
-  // ---- Loading ----
-  if (loading || authLoading || !ready || alreadyCompleted) {
-    return (
-      <div className="entry-flow">
-        <div className="entry-loading">
-          <div className="entry-spinner" />
-          <p>Loading your nomination...</p>
-        </div>
-      </div>
-    );
-  }
-
   // ---- Error ----
+  // Must come before the loading check — otherwise an early-return in
+  // fetchNomination (not found, rejected, past deadline, REST fallback
+  // failure) leaves `nominee` null and the page shows the spinner forever.
   if (error) {
     return (
       <div className="entry-flow">
@@ -300,6 +274,21 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
           <Button variant="secondary" onClick={onClose}>
             Go Home
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Loading ----
+  // Only gate on the nominee fetch + the already-completed redirect. Auth is
+  // checked in the background so a stuck Supabase session can't deadlock
+  // the spinner.
+  if (loading || !nominee || alreadyCompleted) {
+    return (
+      <div className="entry-flow">
+        <div className="entry-loading">
+          <div className="entry-spinner" />
+          <p>Loading your nomination...</p>
         </div>
       </div>
     );
