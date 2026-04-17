@@ -9,31 +9,64 @@
 --
 -- This migration:
 --   1. Backfills a profile row for every existing orphan auth.users row
---      using whatever metadata we have.
+--      using whatever metadata we have, skipping any rows whose email
+--      is already held by a different profile (rare data-corruption
+--      case — left for manual resolution rather than destructive auto-
+--      cleanup in a migration).
 --   2. Splits handle_new_user into two isolated blocks so the profile
 --      insert (Step A) cannot be taken down by a failure in the nominee
 --      sync (Step B). Step A also has a last-resort bare-minimum insert
 --      so a profile row is always created, even if the full insert hits
 --      an unexpected error.
+--
+-- Idempotent: re-running is a no-op. The backfill uses LEFT JOIN +
+-- ON CONFLICT (id) DO NOTHING, and the trigger replacement is CREATE
+-- OR REPLACE.
 -- =============================================================================
 
 -- 1. Backfill missing profiles for existing orphan auth.users rows.
-INSERT INTO profiles (id, email, first_name, last_name, onboarded_at)
-SELECT
-  u.id,
-  u.email,
-  u.raw_user_meta_data->>'first_name',
-  u.raw_user_meta_data->>'last_name',
-  CASE
-    WHEN u.encrypted_password IS NOT NULL AND u.encrypted_password != ''
-      THEN u.created_at
-    ELSE NULL
-  END
-FROM auth.users u
-LEFT JOIN profiles p ON p.id = u.id
-WHERE p.id IS NULL
-  AND u.email IS NOT NULL
-ON CONFLICT (id) DO NOTHING;
+DO $$
+DECLARE
+  v_inserted INT;
+  v_email_conflict INT;
+BEGIN
+  WITH ins AS (
+    INSERT INTO profiles (id, email, first_name, last_name, onboarded_at)
+    SELECT
+      u.id,
+      u.email,
+      u.raw_user_meta_data->>'first_name',
+      u.raw_user_meta_data->>'last_name',
+      CASE
+        WHEN u.encrypted_password IS NOT NULL AND u.encrypted_password != ''
+          THEN u.created_at
+        ELSE NULL
+      END
+    FROM auth.users u
+    LEFT JOIN profiles p ON p.id = u.id
+    WHERE p.id IS NULL
+      AND u.email IS NOT NULL
+      -- Skip rows whose email is already held by a different profile.
+      -- Those are a separate data-integrity issue and should be fixed
+      -- by hand, not by a destructive delete in a migration.
+      AND NOT EXISTS (
+        SELECT 1 FROM profiles p2 WHERE p2.email = u.email
+      )
+    ON CONFLICT (id) DO NOTHING
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_inserted FROM ins;
+
+  SELECT COUNT(*) INTO v_email_conflict
+  FROM auth.users u
+  LEFT JOIN profiles p ON p.id = u.id
+  WHERE p.id IS NULL
+    AND u.email IS NOT NULL
+    AND EXISTS (SELECT 1 FROM profiles p2 WHERE p2.email = u.email);
+
+  RAISE NOTICE 'Migration 040: backfilled % orphan profile(s); skipped % row(s) due to email collision.',
+    v_inserted, v_email_conflict;
+END $$;
 
 -- 2. Rewrite handle_new_user so the profile insert is isolated from the
 --    nominee sync. Both blocks swallow errors so auth.users creation is
