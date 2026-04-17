@@ -11,8 +11,10 @@ import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import FanButton from '../../../components/ui/FanButton';
 import ProfileFans from './ProfileFans';
+import ProfileFanOf from './ProfileFanOf';
 
 const FANS_SECTION_ID = 'profile-fans-section';
+const FAN_OF_SECTION_ID = 'profile-fan-of-section';
 
 export default function ProfileView({ hostProfile, onEdit, contestantId }) {
   const { isMobile, isSmall } = useResponsive();
@@ -28,6 +30,9 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
   // Fan" for "View My Fans" and show the fan list on the page.
   const isOwnContestant = !!(user?.id && hostProfile?.id && user.id === hostProfile.id && contestantId);
   const showFansSection = isOwnContestant || (onEdit && contestantId);
+  // Any logged-in user viewing their own profile (contestant or not) can
+  // see who they're a fan of.
+  const isViewingOwnProfile = !!(user?.id && hostProfile?.id && user.id === hostProfile.id);
 
   useEffect(() => {
     if (!hostProfile?.id) return;
@@ -313,9 +318,19 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
                   />
                 </div>
               )}
-              {contestantId && isOwnContestant && (
-                <div style={{ marginTop: spacing.md }}>
-                  <ViewMyFansButton contestantId={contestantId} />
+              {(isOwnContestant || isViewingOwnProfile) && (
+                <div style={{
+                  marginTop: spacing.md,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: spacing.sm,
+                }}>
+                  {contestantId && isOwnContestant && (
+                    <ViewMyFansButton contestantId={contestantId} />
+                  )}
+                  {isViewingOwnProfile && (
+                    <ViewFanOfButton userId={hostProfile.id} />
+                  )}
                 </div>
               )}
             </div>
@@ -341,6 +356,13 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
         {showFansSection && (
           <div id={FANS_SECTION_ID}>
             <ProfileFans contestantId={contestantId} showEmpty={isOwnContestant} />
+          </div>
+        )}
+
+        {/* Fan of — any logged-in user viewing their own profile */}
+        {isViewingOwnProfile && (
+          <div id={FAN_OF_SECTION_ID}>
+            <ProfileFanOf userId={hostProfile.id} canMute showEmpty />
           </div>
         )}
 
@@ -494,6 +516,66 @@ function ViewMyFansButton({ contestantId }) {
     >
       <Users size={14} />
       View My Fans
+      <span style={{
+        marginLeft: '2px',
+        fontSize: typography.fontSize.xs,
+        opacity: 0.7,
+      }}>
+        {count.toLocaleString()}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * "Fan of" button — rendered on any logged-in user's own profile.
+ * Shows the count of contestants they're a fan of and scrolls to the list.
+ */
+function ViewFanOfButton({ userId }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!userId || !supabase) return;
+    let cancelled = false;
+    const fetchCount = async () => {
+      const { count: c } = await supabase
+        .from('contestant_fans')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      if (cancelled) return;
+      setCount(c || 0);
+    };
+    fetchCount();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const handleClick = () => {
+    document.getElementById(FAN_OF_SECTION_ID)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: spacing.xs,
+        padding: `${spacing.xs} ${spacing.md}`,
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: borderRadius.pill,
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.text.secondary,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      }}
+    >
+      <Heart size={14} />
+      Fan of
       <span style={{
         marginLeft: '2px',
         fontSize: typography.fontSize.xs,
