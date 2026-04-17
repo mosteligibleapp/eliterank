@@ -13,7 +13,7 @@ export default async function handler(request, response) {
       onBeforeGenerateToken: async () => {
         return {
           allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/heic'],
-          maximumSizeInBytes: 10 * 1024 * 1024, // 10MB
+          maximumSizeInBytes: 20 * 1024 * 1024, // 20MB
         };
       },
       onUploadCompleted: async () => {},

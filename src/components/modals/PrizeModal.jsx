@@ -41,9 +41,9 @@ export default function PrizeModal({
   const uploadImage = async (file) => {
     if (!file) return null;
 
-    const maxSize = 10 * 1024 * 1024;
+    const maxSize = 20 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('Image too large. Please choose an image under 10MB.');
+      alert('Image too large. Please choose an image under 20MB.');
       return null;
     }
 

@@ -204,7 +204,7 @@ export default function SubmitProofModal({
                 fontSize: typography.fontSize.xs,
                 color: colors.text.muted,
               }}>
-                JPG, PNG, or WebP — max 10MB
+                JPG, PNG, or WebP — max 20MB
               </span>
             </button>
           )}
