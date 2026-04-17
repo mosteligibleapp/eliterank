@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks';
+import { useToast } from '../../contexts/ToastContext';
 import { getCompetitionUrl, getCompetitionUrlById } from '../../utils/slugs';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
@@ -57,6 +58,7 @@ async function sendFanConfirmationEmail({ email, contestantId, fanId }) {
  */
 export default function FanButton({ contestantId, onLoginRequired }) {
   const { user } = useSupabaseAuth();
+  const toast = useToast();
   const [isFan, setIsFan] = useState(false);
   const [fanCount, setFanCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -116,6 +118,11 @@ export default function FanButton({ contestantId, onLoginRequired }) {
         setIsFan(true);
         setFanCount(prev => prev + 1);
 
+        toast.success(
+          "You're a fan! We'll email you weekly competition updates for this contestant.",
+          5000,
+        );
+
         // Fire-and-forget: send a confirmation email letting the fan know
         // they'll receive weekly competition updates. Non-blocking — if the
         // email fails, the fan relationship is still recorded.
@@ -132,7 +139,7 @@ export default function FanButton({ contestantId, onLoginRequired }) {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, user?.email, contestantId, isFan, loading, onLoginRequired]);
+  }, [user?.id, user?.email, contestantId, isFan, loading, onLoginRequired, toast]);
 
   const tooltip = isFan
     ? "You'll receive weekly competition updates for this contestant"
