@@ -63,7 +63,7 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
   const [isFan, setIsFan] = useState(false);
   const [fanCount, setFanCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [dialogMode, setDialogMode] = useState(null); // null | 'opt-in' | 'login'
 
   const displayName = contestantName?.trim() || 'this contestant';
 
@@ -96,17 +96,17 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
 
   const handleClick = useCallback(() => {
     if (!user?.id) {
-      onLoginRequired?.();
+      // Show a login prompt that discloses what they're signing up for,
+      // instead of bouncing them straight to the login page.
+      setDialogMode('login');
       return;
     }
     if (loading || !supabase) return;
 
     if (isFan) {
-      // Already opted in — one-click unfan
       unfan();
     } else {
-      // Not a fan yet — open opt-in dialog
-      setShowConfirm(true);
+      setDialogMode('opt-in');
     }
   }, [user?.id, isFan, loading, onLoginRequired]);
 
@@ -139,7 +139,7 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
         .single();
       setIsFan(true);
       setFanCount(prev => prev + 1);
-      setShowConfirm(false);
+      setDialogMode(null);
 
       toast.success(
         `You're a fan of ${displayName}! Check your inbox for a confirmation.`,
@@ -201,12 +201,27 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
         )}
       </button>
 
-      {showConfirm && (
-        <FanOptInDialog
-          contestantName={displayName}
+      {dialogMode === 'opt-in' && (
+        <FanDialog
+          title={`Become a Fan of ${displayName}?`}
+          body={<>You'll receive a <strong style={{ color: colors.text.primary }}>weekly email</strong> with competition performance updates — round standings, milestones, and when it's time to vote again. You can unsubscribe any time with one tap from the email.</>}
+          primaryLabel={loading ? 'Confirming…' : 'Become a Fan'}
+          onPrimary={confirmBecomeFan}
+          onCancel={() => setDialogMode(null)}
           loading={loading}
-          onCancel={() => setShowConfirm(false)}
-          onConfirm={confirmBecomeFan}
+        />
+      )}
+
+      {dialogMode === 'login' && (
+        <FanDialog
+          title={`Log in to become a fan of ${displayName}`}
+          body={<>Fans receive a <strong style={{ color: colors.text.primary }}>weekly email</strong> with competition performance updates for their favorite contestants. Create a free account or log in to continue.</>}
+          primaryLabel="Log in or Sign up"
+          onPrimary={() => {
+            setDialogMode(null);
+            onLoginRequired?.();
+          }}
+          onCancel={() => setDialogMode(null)}
         />
       )}
     </>
@@ -214,10 +229,10 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
 }
 
 /**
- * Opt-in confirmation dialog. Discloses the weekly email subscription before
- * the fan relationship and email are created.
+ * Shared dialog used by both the opt-in flow and the unauthenticated login
+ * prompt. Discloses what the user is signing up for before they commit.
  */
-function FanOptInDialog({ contestantName, loading, onCancel, onConfirm }) {
+function FanDialog({ title, body, primaryLabel, onPrimary, onCancel, loading = false }) {
   return (
     <div
       style={{
@@ -243,7 +258,7 @@ function FanOptInDialog({ contestantName, loading, onCancel, onConfirm }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ padding: spacing.xl }}>
+        <div style={{ padding: spacing.xl, textAlign: 'center' }}>
           <div style={{
             width: '44px',
             height: '44px',
@@ -252,7 +267,7 @@ function FanOptInDialog({ contestantName, loading, onCancel, onConfirm }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: spacing.md,
+            margin: `0 auto ${spacing.md}`,
           }}>
             <Mail size={20} style={{ color: colors.gold.primary }} />
           </div>
@@ -264,7 +279,7 @@ function FanOptInDialog({ contestantName, loading, onCancel, onConfirm }) {
             margin: 0,
             marginBottom: spacing.sm,
           }}>
-            Become a Fan of {contestantName}?
+            {title}
           </h2>
 
           <p style={{
@@ -273,8 +288,9 @@ function FanOptInDialog({ contestantName, loading, onCancel, onConfirm }) {
             lineHeight: 1.6,
             margin: 0,
             marginBottom: spacing.xl,
+            textAlign: 'left',
           }}>
-            You'll receive a <strong style={{ color: colors.text.primary }}>weekly email</strong> with competition performance updates — round standings, milestones, and when it's time to vote again. You can unsubscribe any time with one tap from the email.
+            {body}
           </p>
 
           <div style={{ display: 'flex', gap: spacing.md }}>
@@ -297,7 +313,7 @@ function FanOptInDialog({ contestantName, loading, onCancel, onConfirm }) {
               Cancel
             </button>
             <button
-              onClick={onConfirm}
+              onClick={onPrimary}
               disabled={loading}
               style={{
                 flex: 1,
@@ -313,7 +329,7 @@ function FanOptInDialog({ contestantName, loading, onCancel, onConfirm }) {
                 opacity: loading ? 0.7 : 1,
               }}
             >
-              {loading ? 'Confirming…' : 'Become a Fan'}
+              {primaryLabel}
             </button>
           </div>
         </div>
