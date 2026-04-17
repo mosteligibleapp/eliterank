@@ -88,6 +88,20 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
 
   // Fetch nominee data
   useEffect(() => {
+    let cancelled = false;
+
+    // Absolute safety timeout — the page must never spin forever. If the
+    // network (Supabase client + REST fallback) hasn't resolved in 15 s,
+    // surface an error so the user can at least retry.
+    const safetyTimer = setTimeout(() => {
+      if (cancelled) return;
+      setLoading((prev) => {
+        if (!prev) return prev;
+        setError('Still loading... something is slow. Please refresh or try again.');
+        return false;
+      });
+    }, 15000);
+
     const fetchNomination = async () => {
       if (!token) {
         setError('Invalid nomination link');
@@ -114,7 +128,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
           const result = await Promise.race([
             queryPromise,
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Supabase client timed out')), 8000)
+              setTimeout(() => reject(new Error('Supabase client timed out')), 6000)
             ),
           ]);
           nomineeData = result.data;
@@ -124,19 +138,29 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
           const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
           const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
           const restUrl = `${supabaseUrl}/rest/v1/nominees?invite_token=eq.${encodeURIComponent(token)}&select=${encodeURIComponent(selectCols)}`;
-          const restResp = await fetch(restUrl, {
-            headers: {
-              apikey: supabaseAnonKey,
-              Authorization: `Bearer ${supabaseAnonKey}`,
-              Accept: 'application/vnd.pgrst.object+json',
-            },
-          });
-          if (restResp.ok) {
-            nomineeData = await restResp.json();
-          } else {
-            nomineeError = { message: `REST fallback failed (${restResp.status})` };
+          try {
+            const restController = new AbortController();
+            const restTimer = setTimeout(() => restController.abort(), 6000);
+            const restResp = await fetch(restUrl, {
+              headers: {
+                apikey: supabaseAnonKey,
+                Authorization: `Bearer ${supabaseAnonKey}`,
+                Accept: 'application/vnd.pgrst.object+json',
+              },
+              signal: restController.signal,
+            });
+            clearTimeout(restTimer);
+            if (restResp.ok) {
+              nomineeData = await restResp.json();
+            } else {
+              nomineeError = { message: `REST fallback failed (${restResp.status})` };
+            }
+          } catch (restErr) {
+            nomineeError = { message: `REST fallback error: ${restErr.message}` };
           }
         }
+
+        if (cancelled) return;
 
         if (nomineeError || !nomineeData) {
           setError('Nomination not found. This link may be invalid or expired.');
@@ -175,13 +199,19 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         setCompetition(comp);
         setLoading(false);
       } catch (err) {
+        if (cancelled) return;
         console.error('Error fetching nomination:', err);
         setError('Something went wrong. Please try again.');
         setLoading(false);
       }
     };
 
-    fetchNomination();
+    fetchNomination().finally(() => clearTimeout(safetyTimer));
+
+    return () => {
+      cancelled = true;
+      clearTimeout(safetyTimer);
+    };
   }, [token]);
 
   // Only treat the logged-in user as the nominee if their email matches.
@@ -254,7 +284,10 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   };
 
   // ---- Already completed: redirect to profile ----
-  // If nominee already claimed and the logged-in user matches, send them to their profile
+  // If nominee already claimed and the logged-in user matches, send them to
+  // their profile. We still render the flow in the meantime — that way if
+  // navigate fails for any reason (route issue, etc.) the user isn't stuck
+  // on an empty spinner.
   const alreadyCompleted = nominee?.claimed_at && effectiveUser && effectiveProfile?.onboarded_at;
   useEffect(() => {
     if (alreadyCompleted) {
@@ -282,10 +315,9 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
   }
 
   // ---- Loading ----
-  // Only gate on the nominee fetch + the already-completed redirect. Auth is
-  // checked in the background so a stuck Supabase session can't deadlock
-  // the spinner.
-  if (loading || !nominee || alreadyCompleted) {
+  // Only gate on the nominee fetch. Auth is checked in the background so a
+  // stuck Supabase session can't deadlock the spinner.
+  if (loading || !nominee) {
     return (
       <div className="entry-flow">
         <div className="entry-loading">
