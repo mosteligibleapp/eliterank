@@ -14,6 +14,7 @@ const corsHeaders = {
  *   - nominator_confirm:    "Your nomination was submitted" confirmation to the nominator
  *   - nominee_accepted:     "Your nominee accepted!" notification to the nominator
  *   - nominee_declined:     "Your nominee declined" notification to the nominator
+ *   - fan_confirmation:     "You're now a fan of X" — sent when a user becomes a fan
  *
  * Required Supabase secrets:
  *   ONESIGNAL_APP_ID     — OneSignal App ID
@@ -22,7 +23,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -36,6 +37,30 @@ interface EmailRequest {
   nomination_end?: string | null
   nominee_email?: string
   reset_password_url?: string
+  contestant_name?: string
+  profile_url?: string
+  fan_id?: string
+  unsubscribe_url?: string
+}
+
+/**
+ * HMAC-SHA256 signed token for one-click unsubscribe links.
+ * Format: `<fan_id>.<hex_signature>`. The matching verifier lives in the
+ * fan-unsubscribe edge function — both must use FAN_UNSUBSCRIBE_SECRET.
+ */
+async function signFanToken(fanId: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(fanId))
+  const sigHex = Array.from(new Uint8Array(sig))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  return `${fanId}.${sigHex}`
 }
 
 // HTML email templates
@@ -257,6 +282,37 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
     }
 
+    case 'fan_confirmation': {
+      const contestantName = req.contestant_name || 'your contestant'
+      const competitionLine = req.competition_name
+        ? `<p style="color:#ccc;font-size:15px;margin-top:8px;">in <strong>${req.competition_name}</strong></p>`
+        : ''
+      const ctaUrl = req.profile_url || req.competition_url
+      const unsubLine = req.unsubscribe_url
+        ? `<p style="color:#666;font-size:12px;margin-top:16px;">
+             Not interested in weekly updates for ${contestantName}?
+             <a href="${req.unsubscribe_url}" style="color:#999;text-decoration:underline;">Unsubscribe</a>.
+           </p>`
+        : `<p style="color:#666;font-size:12px;margin-top:16px;">
+             You can turn off weekly updates any time from your notification settings.
+           </p>`
+      return {
+        subject: `You're now a fan of ${contestantName}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You're a Fan!</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${contestantName}</p>
+            ${competitionLine}
+            <p style="color:#ccc;font-size:15px;margin-top:16px;">
+              We'll send you a <strong>weekly competition update</strong> so you can follow how ${contestantName} is doing — round standings, milestones, and when it's time to vote again.
+            </p>
+            ${ctaUrl ? goldButton(`View ${contestantName}'s Profile`, ctaUrl) : ''}
+            ${unsubLine}
+          </div>
+        `),
+      }
+    }
+
     default:
       return {
         subject: 'EliteRank Notification',
@@ -392,6 +448,21 @@ serve(async (req) => {
         JSON.stringify({ error: 'to_email and type are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // For fan_confirmation, generate the signed one-click unsubscribe link
+    // server-side so the secret never leaves the edge. Caller passes fan_id
+    // (the contestant_fans row id); the fan-unsubscribe function verifies
+    // the matching signature.
+    if (body.type === 'fan_confirmation' && body.fan_id) {
+      const unsubSecret = Deno.env.get('FAN_UNSUBSCRIBE_SECRET')
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      if (unsubSecret && supabaseUrl) {
+        const token = await signFanToken(body.fan_id, unsubSecret)
+        body.unsubscribe_url = `${supabaseUrl}/functions/v1/fan-unsubscribe?token=${encodeURIComponent(token)}`
+      } else {
+        console.warn('fan_confirmation: missing FAN_UNSUBSCRIBE_SECRET or SUPABASE_URL — unsubscribe link will not be included')
+      }
     }
 
     const { subject, body: htmlBody } = getEmailContent(body)
