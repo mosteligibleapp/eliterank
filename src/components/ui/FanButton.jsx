@@ -328,7 +328,6 @@ function FanDialog({ title, body, primaryLabel, onPrimary, onCancel, loading = f
             lineHeight: 1.6,
             margin: 0,
             marginBottom: spacing.xl,
-            textAlign: 'left',
           }}>
             {body}
           </p>
