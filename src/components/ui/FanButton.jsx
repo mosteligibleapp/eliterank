@@ -118,7 +118,7 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
     if (loading || !supabase) return;
 
     if (isFan) {
-      unfan();
+      setDialogMode('unfan');
     } else {
       setDialogMode('opt-in');
     }
@@ -149,12 +149,18 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
         .eq('user_id', user.id);
       setIsFan(false);
       setFanCount(prev => Math.max(0, prev - 1));
+      setDialogMode(null);
+      toast.success(
+        `You're no longer a fan of ${displayName}. You can fan them again any time.`,
+        5000,
+      );
     } catch (err) {
       console.error('Fan toggle failed:', err);
+      toast.error('Could not update your fan status. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [contestantId, user?.id]);
+  }, [contestantId, user?.id, toast, displayName]);
 
   const confirmBecomeFan = useCallback(async () => {
     if (!user?.id || loading) return;
@@ -238,6 +244,17 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
           body={<>You'll receive a <strong style={{ color: colors.text.primary }}>weekly email</strong> with competition performance updates — round standings, milestones, and when it's time to vote again. You can unsubscribe any time with one tap from the email.</>}
           primaryLabel={loading ? 'Confirming…' : 'Become a Fan'}
           onPrimary={confirmBecomeFan}
+          onCancel={() => setDialogMode(null)}
+          loading={loading}
+        />
+      )}
+
+      {dialogMode === 'unfan' && (
+        <FanDialog
+          title={`Unfan ${displayName}?`}
+          body={<>You'll stop receiving <strong style={{ color: colors.text.primary }}>weekly performance updates</strong> about {displayName} — round standings, milestones, and voting reminders. You can fan them again any time.</>}
+          primaryLabel={loading ? 'Unfanning…' : 'Unfan'}
+          onPrimary={unfan}
           onCancel={() => setDialogMode(null)}
           loading={loading}
         />
