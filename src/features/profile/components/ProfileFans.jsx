@@ -6,11 +6,13 @@ import { useResponsive } from '../../../hooks/useResponsive';
 
 /**
  * ProfileFans — shows a contestant's fans with avatars and names.
- * Only rendered on the contestant's own profile (when they have fans).
  *
  * @param {string} contestantId - The contestant's ID to fetch fans for
+ * @param {boolean} [showEmpty=false] - When true, renders an empty state
+ *   instead of hiding the section when there are no fans. Use on the
+ *   contestant's own profile so the fans-list target always exists.
  */
-export default function ProfileFans({ contestantId }) {
+export default function ProfileFans({ contestantId, showEmpty = false }) {
   const { isMobile } = useResponsive();
   const [fans, setFans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,8 @@ export default function ProfileFans({ contestantId }) {
     fetchFans();
   }, [contestantId]);
 
-  if (loading || fans.length === 0) return null;
+  if (loading) return null;
+  if (fans.length === 0 && !showEmpty) return null;
 
   return (
     <div style={{ padding: `0 ${isMobile ? spacing.lg : spacing.xxl}` }}>
@@ -56,6 +59,15 @@ export default function ProfileFans({ contestantId }) {
           Your Fans ({fans.length})
         </h3>
 
+        {fans.length === 0 ? (
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.tertiary,
+            margin: 0,
+          }}>
+            No fans yet. Your fans will appear here once people start supporting you.
+          </p>
+        ) : (
         <div style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -126,6 +138,7 @@ export default function ProfileFans({ contestantId }) {
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );

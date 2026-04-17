@@ -1,22 +1,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { generateAchievementCard } from '../../achievement-cards/generateAchievementCard';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { useSupabaseAuth } from '../../../hooks';
+import { supabase } from '../../../lib/supabase';
 import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import FanButton from '../../../components/ui/FanButton';
 import ProfileFans from './ProfileFans';
 
+const FANS_SECTION_ID = 'profile-fans-section';
+
 export default function ProfileView({ hostProfile, onEdit, contestantId }) {
   const { isMobile, isSmall } = useResponsive();
+  const { user } = useSupabaseAuth();
   const [competitionStats, setCompetitionStats] = useState(null);
   const [bonusVotes, setBonusVotes] = useState(null);
   const [copied, setCopied] = useState(false);
   const [cardInfo, setCardInfo] = useState(null);
   const [generatingCard, setGeneratingCard] = useState(false);
+
+  // When a logged-in user views their own contestant profile (either the
+  // /profile edit view or the public /profile/:id route), swap "Become a
+  // Fan" for "View My Fans" and show the fan list on the page.
+  const isOwnContestant = !!(user?.id && hostProfile?.id && user.id === hostProfile.id && contestantId);
+  const showFansSection = isOwnContestant || (onEdit && contestantId);
 
   useEffect(() => {
     if (!hostProfile?.id) return;
@@ -286,13 +297,25 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
                   </div>
                 );
               })()}
-              {/* Become a Fan button — only on other people's profiles */}
-              {contestantId && !onEdit && (
+              {/* Fan affordance below the name.
+                  - On someone else's profile: "Become a Fan" (FanButton)
+                  - On your own profile (viewing /profile/:yourId or /profile):
+                    "View My Fans" button that scrolls to the fan list */}
+              {contestantId && !onEdit && !isOwnContestant && (
                 <div style={{ marginTop: spacing.md }}>
                   <FanButton
                     contestantId={contestantId}
-                    onLoginRequired={() => window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname)}`}
+                    contestantName={`${hostProfile?.firstName || ''} ${hostProfile?.lastName || ''}`.trim()}
+                    onLoginRequired={(returnTo) => {
+                      const target = returnTo || window.location.pathname;
+                      window.location.href = `/login?returnTo=${encodeURIComponent(target)}`;
+                    }}
                   />
+                </div>
+              )}
+              {contestantId && isOwnContestant && (
+                <div style={{ marginTop: spacing.md }}>
+                  <ViewMyFansButton contestantId={contestantId} />
                 </div>
               )}
             </div>
@@ -314,9 +337,11 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
           }}
         />
 
-        {/* Fans — only on own profile for contestants */}
-        {onEdit && contestantId && (
-          <ProfileFans contestantId={contestantId} />
+        {/* Fans — contestant viewing own profile (public or edit) */}
+        {showFansSection && (
+          <div id={FANS_SECTION_ID}>
+            <ProfileFans contestantId={contestantId} showEmpty={isOwnContestant} />
+          </div>
         )}
 
         {/* About */}
@@ -417,5 +442,65 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
 
       </Panel>
     </div>
+  );
+}
+
+/**
+ * "View My Fans" button — only rendered on a contestant's own profile.
+ * Shows the current fan count and scrolls to the fan list on click.
+ */
+function ViewMyFansButton({ contestantId }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!contestantId || !supabase) return;
+    let cancelled = false;
+    const fetchCount = async () => {
+      const { count: c } = await supabase
+        .from('contestant_fans')
+        .select('*', { count: 'exact', head: true })
+        .eq('contestant_id', contestantId);
+      if (cancelled) return;
+      setCount(c || 0);
+    };
+    fetchCount();
+    return () => { cancelled = true; };
+  }, [contestantId]);
+
+  const handleClick = () => {
+    document.getElementById(FANS_SECTION_ID)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: spacing.xs,
+        padding: `${spacing.xs} ${spacing.md}`,
+        background: 'rgba(212,175,55,0.15)',
+        border: '1px solid rgba(212,175,55,0.3)',
+        borderRadius: borderRadius.pill,
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.gold.primary,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      }}
+    >
+      <Users size={14} />
+      View My Fans
+      <span style={{
+        marginLeft: '2px',
+        fontSize: typography.fontSize.xs,
+        opacity: 0.7,
+      }}>
+        {count.toLocaleString()}
+      </span>
+    </button>
   );
 }

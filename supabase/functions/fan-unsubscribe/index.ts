@@ -60,14 +60,19 @@ async function verifyToken(token: string | null, secret: string): Promise<string
 }
 
 function htmlResponse(body: string, status = 200): Response {
-  return new Response(body, {
-    status,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-store',
-    },
+  // Encode the body explicitly as UTF-8 bytes so the response has a
+  // deterministic Content-Length and the browser has no reason to sniff
+  // as anything other than the declared text/html; charset=utf-8.
+  const bytes = new TextEncoder().encode(body)
+  const headers = new Headers({
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Length': String(bytes.byteLength),
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
   })
+  for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v)
+  headers.set('Content-Type', 'text/html; charset=utf-8')
+  return new Response(bytes, { status, headers })
 }
 
 function renderPage(args: {
@@ -89,7 +94,7 @@ function renderPage(args: {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${title} — EliteRank</title>
+  <title>${title} &mdash; EliteRank</title>
 </head>
 <body style="margin:0;padding:0;background:#0a0a0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:480px;margin:0 auto;padding:16px;">
@@ -203,7 +208,7 @@ serve(async (req) => {
     appUrl,
     title: 'Unsubscribed',
     heading: "You've been unsubscribed",
-    message: `You will no longer receive weekly competition updates for <strong style="color:#fff;">${contestantName}</strong>. You're still a fan — this only turned off the email digest. Changed your mind?`,
+    message: `You will no longer receive weekly competition updates for <strong style="color:#fff;">${contestantName}</strong>. You&rsquo;re still a fan &mdash; this only turned off the email digest. Changed your mind?`,
     ctaLabel: 'Resubscribe',
     ctaUrl: `${functionUrl}&action=resubscribe`,
   }))
