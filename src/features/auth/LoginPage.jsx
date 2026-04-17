@@ -48,16 +48,26 @@ export default function LoginPage({ onLogin, onBack }) {
     setIsLoading(true);
 
     try {
-      // Check if user has an existing account by looking up their profile
-      // (Previously used signInWithOtp which sent an unwanted email every time)
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .ilike('email', email)
-        .limit(1)
-        .maybeSingle();
+      // Authoritative existence check — auth.users is the source of truth.
+      // A profiles row can be missing (orphaned signup, unclaimed nominee
+      // who later signed up, partial flows), which used to let registered
+      // emails slip through to the signup step and error on submit.
+      const { data: authExists, error: authRpcError } = await supabase
+        .rpc('email_is_registered', { email_input: email });
 
-      const userExists = !!existingProfile;
+      // If the RPC is unavailable (old deploy), fall back to the profiles
+      // lookup so the flow keeps working instead of hard-erroring.
+      let userExists = authExists === true;
+      if (authRpcError) {
+        console.warn('email_is_registered rpc failed, falling back to profiles lookup:', authRpcError);
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .ilike('email', email)
+          .limit(1)
+          .maybeSingle();
+        userExists = !!existingProfile;
+      }
 
       if (userExists) {
         // User has an existing account - let them log in with password
