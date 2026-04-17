@@ -90,18 +90,13 @@ serve(async (req) => {
       )
     }
 
-    // Nominees can accept any time before voting opens. If voting_start isn't
-    // scheduled, fall back to nomination_end so there's still a hard deadline.
-    const acceptanceDeadline = nominee.competition?.voting_start || nominee.competition?.nomination_end
-    if (acceptanceDeadline) {
-      const deadlineDate = new Date(acceptanceDeadline)
-      if (new Date() > deadlineDate) {
+    // Nominees can accept up until voting opens. If voting_start isn't set,
+    // voting hasn't been scheduled — acceptance stays open.
+    if (nominee.competition?.voting_start) {
+      const votingStart = new Date(nominee.competition.voting_start)
+      if (new Date() > votingStart) {
         return new Response(
-          JSON.stringify({
-            error: nominee.competition?.voting_start
-              ? 'Sorry, voting has already started for this competition.'
-              : 'Sorry, the nomination period for this competition has ended.',
-          }),
+          JSON.stringify({ error: 'Sorry, voting has already started for this competition.' }),
           { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }

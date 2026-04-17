@@ -144,13 +144,15 @@ export default function AcceptDeclineStep({
         </button>
       </div>
 
-      {/* Deadline — acceptance is open until voting starts. If the original
-          nomination period has already closed, show the voting start date so
-          the "Respond by" text isn't a date in the past. */}
+      {/* Deadline — acceptance is open until voting opens. Show voting_start
+          once the original nomination period has already closed, so the
+          "Respond by" text isn't a date in the past. Hide the deadline
+          entirely when voting hasn't been scheduled yet. */}
       {(() => {
+        const now = new Date();
         const nomEnd = competition?.nomination_end ? new Date(competition.nomination_end) : null;
         const voteStart = competition?.voting_start ? new Date(competition.voting_start) : null;
-        const deadline = nomEnd && nomEnd > new Date() ? nomEnd : voteStart || nomEnd;
+        const deadline = nomEnd && nomEnd > now ? nomEnd : voteStart;
         if (!deadline) return null;
         return (
           <div className="entry-accept-deadline">

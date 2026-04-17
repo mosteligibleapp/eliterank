@@ -157,19 +157,12 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         }
 
         const comp = nomineeData.competition;
-        // Nominees can accept any time before voting opens — not just before
-        // the nomination period closes. This lets pending invites be accepted
-        // during the between-rounds phase. If no voting_start is scheduled,
-        // fall back to nomination_end so we still have a hard deadline.
-        const deadline = comp?.voting_start || comp?.nomination_end;
-        if (deadline) {
-          const deadlineDate = new Date(deadline);
-          if (new Date() > deadlineDate) {
-            setError(
-              comp?.voting_start
-                ? 'Sorry, voting has already started for this competition.'
-                : 'Sorry, the nomination period for this competition has ended.'
-            );
+        // Nominees can accept up until voting opens. If voting_start isn't
+        // set yet, voting hasn't been scheduled — keep acceptance open.
+        if (comp?.voting_start) {
+          const votingStart = new Date(comp.voting_start);
+          if (new Date() > votingStart) {
+            setError('Sorry, voting has already started for this competition.');
             setLoading(false);
             return;
           }
