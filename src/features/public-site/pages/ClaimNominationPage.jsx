@@ -100,7 +100,7 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         // after a failed magic-link hash exchange) can't leave the page
         // frozen on the loading spinner. If it times out, fall back to a
         // direct REST call with the anon key — nominees are public-readable.
-        const selectCols = `*,competition:competitions(id,name,city:cities(name),season,status,nomination_start,nomination_end,organization:organizations(name,logo_url,slug),demographic:demographics(*),category:categories(*))`;
+        const selectCols = `*,competition:competitions(id,name,city:cities(name),season,status,nomination_start,nomination_end,voting_start,organization:organizations(name,logo_url,slug),demographic:demographics(*),category:categories(*))`;
 
         const queryPromise = supabase
           .from('nominees')
@@ -157,10 +157,19 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         }
 
         const comp = nomineeData.competition;
-        if (comp?.nomination_end) {
-          const endDate = new Date(comp.nomination_end);
-          if (new Date() > endDate) {
-            setError('Sorry, the nomination period for this competition has ended.');
+        // Nominees can accept any time before voting opens — not just before
+        // the nomination period closes. This lets pending invites be accepted
+        // during the between-rounds phase. If no voting_start is scheduled,
+        // fall back to nomination_end so we still have a hard deadline.
+        const deadline = comp?.voting_start || comp?.nomination_end;
+        if (deadline) {
+          const deadlineDate = new Date(deadline);
+          if (new Date() > deadlineDate) {
+            setError(
+              comp?.voting_start
+                ? 'Sorry, voting has already started for this competition.'
+                : 'Sorry, the nomination period for this competition has ended.'
+            );
             setLoading(false);
             return;
           }

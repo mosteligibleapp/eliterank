@@ -144,20 +144,28 @@ export default function AcceptDeclineStep({
         </button>
       </div>
 
-      {/* Deadline */}
-      {competition?.nomination_end && (
-        <div className="entry-accept-deadline">
-          <Clock size={14} />
-          <span>
-            Respond by{' '}
-            {new Date(competition.nomination_end).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </span>
-        </div>
-      )}
+      {/* Deadline — acceptance is open until voting starts. If the original
+          nomination period has already closed, show the voting start date so
+          the "Respond by" text isn't a date in the past. */}
+      {(() => {
+        const nomEnd = competition?.nomination_end ? new Date(competition.nomination_end) : null;
+        const voteStart = competition?.voting_start ? new Date(competition.voting_start) : null;
+        const deadline = nomEnd && nomEnd > new Date() ? nomEnd : voteStart || nomEnd;
+        if (!deadline) return null;
+        return (
+          <div className="entry-accept-deadline">
+            <Clock size={14} />
+            <span>
+              Respond by{' '}
+              {deadline.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 }

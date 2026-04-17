@@ -48,13 +48,13 @@ serve(async (req) => {
       claimed_at: string | null
       flow_stage: string | null
       converted_to_contestant: boolean | null
-      competition: { nomination_end: string | null } | null
+      competition: { nomination_end: string | null; voting_start: string | null } | null
     } | null = null
 
     if (invite_token) {
       const { data } = await supabase
         .from('nominees')
-        .select('id, status, claimed_at, flow_stage, converted_to_contestant, competition:competitions(nomination_end)')
+        .select('id, status, claimed_at, flow_stage, converted_to_contestant, competition:competitions(nomination_end, voting_start)')
         .eq('invite_token', invite_token)
         .maybeSingle()
       nominee = data as typeof nominee
@@ -63,7 +63,7 @@ serve(async (req) => {
     if (!nominee && nominee_id) {
       const { data } = await supabase
         .from('nominees')
-        .select('id, status, claimed_at, flow_stage, converted_to_contestant, competition:competitions(nomination_end)')
+        .select('id, status, claimed_at, flow_stage, converted_to_contestant, competition:competitions(nomination_end, voting_start)')
         .eq('id', nominee_id)
         .maybeSingle()
       nominee = data as typeof nominee
@@ -90,11 +90,18 @@ serve(async (req) => {
       )
     }
 
-    if (nominee.competition?.nomination_end) {
-      const endDate = new Date(nominee.competition.nomination_end)
-      if (new Date() > endDate) {
+    // Nominees can accept any time before voting opens. If voting_start isn't
+    // scheduled, fall back to nomination_end so there's still a hard deadline.
+    const acceptanceDeadline = nominee.competition?.voting_start || nominee.competition?.nomination_end
+    if (acceptanceDeadline) {
+      const deadlineDate = new Date(acceptanceDeadline)
+      if (new Date() > deadlineDate) {
         return new Response(
-          JSON.stringify({ error: 'Sorry, the nomination period for this competition has ended.' }),
+          JSON.stringify({
+            error: nominee.competition?.voting_start
+              ? 'Sorry, voting has already started for this competition.'
+              : 'Sorry, the nomination period for this competition has ended.',
+          }),
           { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
