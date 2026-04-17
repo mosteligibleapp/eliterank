@@ -67,7 +67,10 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
 
   const displayName = contestantName?.trim() || 'this contestant';
 
-  // Fetch fan status and count
+  // Fetch fan status and count. After the lookup resolves, check for the
+  // ?pendingFan=1 query param set by the login-prompt redirect — if the
+  // user just logged in and isn't already a fan, auto-open the opt-in
+  // dialog so the original click is completed without another tap.
   useEffect(() => {
     if (!contestantId || !supabase) return;
 
@@ -79,6 +82,7 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
 
       setFanCount(count || 0);
 
+      let userIsFan = false;
       if (user?.id) {
         const { data } = await supabase
           .from('contestant_fans')
@@ -87,7 +91,17 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
           .eq('user_id', user.id)
           .maybeSingle();
 
-        setIsFan(!!data);
+        userIsFan = !!data;
+        setIsFan(userIsFan);
+      }
+
+      if (user?.id && !userIsFan) {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('pendingFan') === '1') {
+          setDialogMode('opt-in');
+          url.searchParams.delete('pendingFan');
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        }
       }
     };
 
@@ -109,6 +123,21 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
       setDialogMode('opt-in');
     }
   }, [user?.id, isFan, loading, onLoginRequired]);
+
+  // Build the returnTo URL that carries a pendingFan flag, so after login
+  // the user lands back here and the opt-in dialog auto-opens instead of
+  // requiring them to hunt down the Fan button again.
+  const goToLogin = useCallback(() => {
+    setDialogMode(null);
+    const url = new URL(window.location.href);
+    url.searchParams.set('pendingFan', '1');
+    const returnTo = url.pathname + url.search + url.hash;
+    if (onLoginRequired) {
+      onLoginRequired(returnTo);
+    } else {
+      window.location.href = `/login?returnTo=${encodeURIComponent(returnTo)}`;
+    }
+  }, [onLoginRequired]);
 
   const unfan = useCallback(async () => {
     setLoading(true);
@@ -141,8 +170,10 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
       setFanCount(prev => prev + 1);
       setDialogMode(null);
 
+      // Toast copy avoids promising an email that might silently fail —
+      // the confirmation send is fire-and-forget.
       toast.success(
-        `You're a fan of ${displayName}! Check your inbox for a confirmation.`,
+        `You're a fan of ${displayName}! We'll email you weekly competition updates.`,
         5000,
       );
 
@@ -215,12 +246,9 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
       {dialogMode === 'login' && (
         <FanDialog
           title={`Log in to become a fan of ${displayName}`}
-          body={<>Fans receive a <strong style={{ color: colors.text.primary }}>weekly email</strong> with competition performance updates for their favorite contestants. Create a free account or log in to continue.</>}
+          body={<>Fans receive a <strong style={{ color: colors.text.primary }}>weekly email</strong> with competition performance updates for their favorite contestants. Create a free account or log in to continue — we'll bring you right back here.</>}
           primaryLabel="Log in or Sign up"
-          onPrimary={() => {
-            setDialogMode(null);
-            onLoginRequired?.();
-          }}
+          onPrimary={goToLogin}
           onCancel={() => setDialogMode(null)}
         />
       )}
@@ -233,8 +261,20 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
  * prompt. Discloses what the user is signing up for before they commit.
  */
 function FanDialog({ title, body, primaryLabel, onPrimary, onCancel, loading = false }) {
+  // Close on Escape key — matches standard modal accessibility behavior.
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape' && !loading) onCancel();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onCancel, loading]);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
       style={{
         position: 'fixed',
         inset: 0,
