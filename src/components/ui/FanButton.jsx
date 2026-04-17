@@ -226,7 +226,7 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
           transition: 'all 0.2s ease',
         }}
       >
-        {isFan ? 'Fan' : 'Become a Fan'}
+        {isFan ? 'Fans' : 'Become a Fan'}
         {fanCount > 0 && (
           <span style={{
             marginLeft: '2px',
