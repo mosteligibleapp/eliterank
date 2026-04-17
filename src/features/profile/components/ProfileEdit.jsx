@@ -27,10 +27,10 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
   const uploadImage = async (file, folder) => {
     if (!file) return null;
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024;
+    // Validate file size (max 20MB)
+    const maxSize = 20 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('Image too large. Please choose an image under 10MB.');
+      alert('Image too large. Please choose an image under 20MB.');
       return null;
     }
 

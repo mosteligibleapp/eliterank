@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, ExternalLink, Check, X, Clock, Upload, Download } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -1196,28 +1196,32 @@ export default function SetupTab({
                               </p>
                             </div>
 
-                            {/* Proof link */}
+                            {/* Proof preview */}
                             <a
                               href={sub.proof_url}
                               target="_blank"
                               rel="noopener noreferrer"
+                              title="Click to view full size"
                               style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontSize: typography.fontSize.xs,
-                                color: colors.gold.primary,
-                                textDecoration: 'none',
-                                maxWidth: '200px',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
+                                display: 'block',
                                 flexShrink: 0,
+                                borderRadius: borderRadius.sm,
+                                overflow: 'hidden',
+                                border: `1px solid ${colors.border.primary}`,
+                                lineHeight: 0,
                               }}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <ExternalLink size={12} />
-                              View proof
+                              <img
+                                src={sub.proof_url}
+                                alt="Proof"
+                                style={{
+                                  width: '80px',
+                                  height: '80px',
+                                  objectFit: 'cover',
+                                  display: 'block',
+                                }}
+                              />
                             </a>
 
                             {/* Action buttons */}

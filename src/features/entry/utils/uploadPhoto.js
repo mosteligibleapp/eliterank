@@ -1,7 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 import { upload } from '@vercel/blob/client';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
 
 /**
@@ -14,7 +14,7 @@ export async function uploadPhoto(file, folder = 'nominations') {
   if (!file) throw new Error('No file provided');
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error('Photo must be under 10MB');
+    throw new Error('Photo must be under 20MB');
   }
 
   if (!ALLOWED_TYPES.includes(file.type)) {
