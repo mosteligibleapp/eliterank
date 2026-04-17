@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
@@ -47,28 +48,30 @@ async function sendFanConfirmationEmail({ email, contestantId, fanId }) {
 
 /**
  * FanButton — "Become a Fan" toggle for contestant profiles.
- * Shows fan count and lets authenticated users fan/unfan.
  *
- * Becoming a fan subscribes the user to a weekly competition update email
- * (the digest itself ships in a follow-up; for now we confirm the sub with
- * a one-time email).
+ * Clicking "Become a Fan" opens an opt-in confirmation modal that discloses
+ * the weekly email subscription. The DB insert + email only happens after
+ * the user confirms. Unfanning is a single click (they already opted in).
  *
  * @param {string} contestantId - The contestant to fan
+ * @param {string} [contestantName] - Optional name for the opt-in copy
  * @param {function} onLoginRequired - Called when unauthenticated user clicks
  */
-export default function FanButton({ contestantId, onLoginRequired }) {
+export default function FanButton({ contestantId, contestantName, onLoginRequired }) {
   const { user } = useSupabaseAuth();
   const toast = useToast();
   const [isFan, setIsFan] = useState(false);
   const [fanCount, setFanCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const displayName = contestantName?.trim() || 'this contestant';
 
   // Fetch fan status and count
   useEffect(() => {
     if (!contestantId || !supabase) return;
 
     const fetchFanData = async () => {
-      // Get count
       const { count } = await supabase
         .from('contestant_fans')
         .select('*', { count: 'exact', head: true })
@@ -76,7 +79,6 @@ export default function FanButton({ contestantId, onLoginRequired }) {
 
       setFanCount(count || 0);
 
-      // Check if current user is a fan
       if (user?.id) {
         const { data } = await supabase
           .from('contestant_fans')
@@ -92,92 +94,230 @@ export default function FanButton({ contestantId, onLoginRequired }) {
     fetchFanData();
   }, [contestantId, user?.id]);
 
-  const handleToggle = useCallback(async () => {
+  const handleClick = useCallback(() => {
     if (!user?.id) {
       onLoginRequired?.();
       return;
     }
     if (loading || !supabase) return;
 
+    if (isFan) {
+      // Already opted in — one-click unfan
+      unfan();
+    } else {
+      // Not a fan yet — open opt-in dialog
+      setShowConfirm(true);
+    }
+  }, [user?.id, isFan, loading, onLoginRequired]);
+
+  const unfan = useCallback(async () => {
     setLoading(true);
     try {
-      if (isFan) {
-        await supabase
-          .from('contestant_fans')
-          .delete()
-          .eq('contestant_id', contestantId)
-          .eq('user_id', user.id);
-        setIsFan(false);
-        setFanCount(prev => Math.max(0, prev - 1));
-      } else {
-        const { data: inserted } = await supabase
-          .from('contestant_fans')
-          .insert({ contestant_id: contestantId, user_id: user.id })
-          .select('id')
-          .single();
-        setIsFan(true);
-        setFanCount(prev => prev + 1);
-
-        toast.success(
-          "You're a fan! We'll email you weekly competition updates for this contestant.",
-          5000,
-        );
-
-        // Fire-and-forget: send a confirmation email letting the fan know
-        // they'll receive weekly competition updates. Non-blocking — if the
-        // email fails, the fan relationship is still recorded.
-        if (user.email && inserted?.id) {
-          sendFanConfirmationEmail({
-            email: user.email,
-            contestantId,
-            fanId: inserted.id,
-          }).catch(err => console.warn('Fan confirmation email failed:', err));
-        }
-      }
+      await supabase
+        .from('contestant_fans')
+        .delete()
+        .eq('contestant_id', contestantId)
+        .eq('user_id', user.id);
+      setIsFan(false);
+      setFanCount(prev => Math.max(0, prev - 1));
     } catch (err) {
       console.error('Fan toggle failed:', err);
     } finally {
       setLoading(false);
     }
-  }, [user?.id, user?.email, contestantId, isFan, loading, onLoginRequired, toast]);
+  }, [contestantId, user?.id]);
+
+  const confirmBecomeFan = useCallback(async () => {
+    if (!user?.id || loading) return;
+
+    setLoading(true);
+    try {
+      const { data: inserted } = await supabase
+        .from('contestant_fans')
+        .insert({ contestant_id: contestantId, user_id: user.id })
+        .select('id')
+        .single();
+      setIsFan(true);
+      setFanCount(prev => prev + 1);
+      setShowConfirm(false);
+
+      toast.success(
+        `You're a fan of ${displayName}! Check your inbox for a confirmation.`,
+        5000,
+      );
+
+      if (user.email && inserted?.id) {
+        sendFanConfirmationEmail({
+          email: user.email,
+          contestantId,
+          fanId: inserted.id,
+        }).catch(err => console.warn('Fan confirmation email failed:', err));
+      }
+    } catch (err) {
+      console.error('Fan opt-in failed:', err);
+      toast.error('Could not save your fan status. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, user?.email, contestantId, loading, toast, displayName]);
 
   const tooltip = isFan
     ? "You'll receive weekly competition updates for this contestant"
     : 'Become a fan to get weekly competition updates for this contestant';
 
   return (
-    <button
-      onClick={handleToggle}
-      disabled={loading}
-      title={tooltip}
-      aria-label={tooltip}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: spacing.xs,
-        padding: `${spacing.xs} ${spacing.md}`,
-        background: isFan
-          ? 'rgba(212,175,55,0.15)'
-          : 'rgba(255,255,255,0.06)',
-        border: `1px solid ${isFan ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.1)'}`,
-        borderRadius: borderRadius.pill,
-        fontSize: typography.fontSize.sm,
-        fontWeight: typography.fontWeight.semibold,
-        color: isFan ? colors.gold.primary : colors.text.secondary,
-        cursor: loading ? 'wait' : 'pointer',
-        transition: 'all 0.2s ease',
-      }}
-    >
-      {isFan ? 'Fan' : 'Become a Fan'}
-      {fanCount > 0 && (
-        <span style={{
-          marginLeft: '2px',
-          fontSize: typography.fontSize.xs,
-          opacity: 0.7,
-        }}>
-          {fanCount.toLocaleString()}
-        </span>
+    <>
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        title={tooltip}
+        aria-label={tooltip}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: spacing.xs,
+          padding: `${spacing.xs} ${spacing.md}`,
+          background: isFan
+            ? 'rgba(212,175,55,0.15)'
+            : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${isFan ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: borderRadius.pill,
+          fontSize: typography.fontSize.sm,
+          fontWeight: typography.fontWeight.semibold,
+          color: isFan ? colors.gold.primary : colors.text.secondary,
+          cursor: loading ? 'wait' : 'pointer',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        {isFan ? 'Fan' : 'Become a Fan'}
+        {fanCount > 0 && (
+          <span style={{
+            marginLeft: '2px',
+            fontSize: typography.fontSize.xs,
+            opacity: 0.7,
+          }}>
+            {fanCount.toLocaleString()}
+          </span>
+        )}
+      </button>
+
+      {showConfirm && (
+        <FanOptInDialog
+          contestantName={displayName}
+          loading={loading}
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={confirmBecomeFan}
+        />
       )}
-    </button>
+    </>
+  );
+}
+
+/**
+ * Opt-in confirmation dialog. Discloses the weekly email subscription before
+ * the fan relationship and email are created.
+ */
+function FanOptInDialog({ contestantName, loading, onCancel, onConfirm }) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: spacing.xl,
+      }}
+      onClick={onCancel}
+    >
+      <div
+        style={{
+          background: colors.background.primary,
+          borderRadius: borderRadius.xl,
+          border: `1px solid ${colors.border.gold || 'rgba(212,175,55,0.3)'}`,
+          maxWidth: '440px',
+          width: '100%',
+          overflow: 'hidden',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ padding: spacing.xl }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            background: 'rgba(212,175,55,0.15)',
+            borderRadius: borderRadius.lg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: spacing.md,
+          }}>
+            <Mail size={20} style={{ color: colors.gold.primary }} />
+          </div>
+
+          <h2 style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            margin: 0,
+            marginBottom: spacing.sm,
+          }}>
+            Become a Fan of {contestantName}?
+          </h2>
+
+          <p style={{
+            color: colors.text.secondary,
+            fontSize: typography.fontSize.md,
+            lineHeight: 1.6,
+            margin: 0,
+            marginBottom: spacing.xl,
+          }}>
+            You'll receive a <strong style={{ color: colors.text.primary }}>weekly email</strong> with competition performance updates — round standings, milestones, and when it's time to vote again. You can unsubscribe any time with one tap from the email.
+          </p>
+
+          <div style={{ display: 'flex', gap: spacing.md }}>
+            <button
+              onClick={onCancel}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: 'transparent',
+                border: `1px solid ${colors.border.primary || 'rgba(255,255,255,0.1)'}`,
+                borderRadius: borderRadius.lg,
+                color: colors.text.secondary,
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.semibold,
+                cursor: loading ? 'wait' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
+                border: 'none',
+                borderRadius: borderRadius.lg,
+                color: '#000',
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.bold,
+                cursor: loading ? 'wait' : 'pointer',
+                transition: 'all 0.2s ease',
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              {loading ? 'Confirming…' : 'Become a Fan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

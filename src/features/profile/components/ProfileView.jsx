@@ -291,6 +291,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
                 <div style={{ marginTop: spacing.md }}>
                   <FanButton
                     contestantId={contestantId}
+                    contestantName={`${hostProfile?.firstName || ''} ${hostProfile?.lastName || ''}`.trim()}
                     onLoginRequired={() => window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname)}`}
                   />
                 </div>
