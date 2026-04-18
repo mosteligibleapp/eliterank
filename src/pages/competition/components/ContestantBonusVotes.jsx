@@ -4,6 +4,7 @@ import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
 import SubmitProofModal from '../../../components/modals/SubmitProofModal';
+import SubmitVideoProofModal from '../../../components/modals/SubmitVideoProofModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
 
@@ -21,6 +22,7 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
   const [showGuide, setShowGuide] = useState(false);
 
   const [proofTask, setProofTask] = useState(null);
+  const [videoTask, setVideoTask] = useState(null);
   const bonusVotes = useBonusVotes(competitionId, contestantId, userId);
 
   const {
@@ -102,7 +104,13 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
     // Host-managed tasks cannot be actioned by contestants
     if (task?.host_managed) return;
 
-    // Custom approval-based tasks open the proof modal
+    // Intro video task uses the video-specific modal
+    if (task?.task_key === BONUS_TASK_KEYS.INTRO_VIDEO) {
+      setVideoTask(task);
+      return;
+    }
+
+    // Other approval-based tasks open the image proof modal
     if (task?.requires_approval) {
       setProofTask(task);
       return;
@@ -177,6 +185,12 @@ export default function ContestantBonusVotes({ competitionId, contestantId, user
         isOpen={!!proofTask}
         onClose={() => setProofTask(null)}
         task={proofTask}
+        onSubmit={handleSubmitProof}
+      />
+      <SubmitVideoProofModal
+        isOpen={!!videoTask}
+        onClose={() => setVideoTask(null)}
+        task={videoTask}
         onSubmit={handleSubmitProof}
       />
     </>

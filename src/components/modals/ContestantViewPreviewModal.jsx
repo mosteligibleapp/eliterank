@@ -4,8 +4,9 @@ import { Modal } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import BonusVotesChecklist from '../BonusVotesChecklist';
 import SubmitProofModal from './SubmitProofModal';
+import SubmitVideoProofModal from './SubmitVideoProofModal';
 import { useToast } from '../../contexts/ToastContext';
-import { DEPRECATED_TASK_KEYS } from '../../lib/bonusVotes';
+import { BONUS_TASK_KEYS, DEPRECATED_TASK_KEYS } from '../../lib/bonusVotes';
 
 /**
  * ContestantViewPreviewModal — lets hosts preview and interact with the
@@ -22,12 +23,14 @@ export default function ContestantViewPreviewModal({
   const toast = useToast();
   const [localCompletions, setLocalCompletions] = useState({});
   const [proofTask, setProofTask] = useState(null);
+  const [videoTask, setVideoTask] = useState(null);
 
   // Reset local preview state whenever the modal opens
   React.useEffect(() => {
     if (isOpen) {
       setLocalCompletions({});
       setProofTask(null);
+      setVideoTask(null);
     }
   }, [isOpen]);
 
@@ -53,6 +56,11 @@ export default function ContestantViewPreviewModal({
 
   const handleTaskAction = (taskKey, task) => {
     if (task.host_managed) return;
+
+    if (task.task_key === BONUS_TASK_KEYS.INTRO_VIDEO) {
+      setVideoTask(task);
+      return;
+    }
 
     if (task.requires_approval) {
       setProofTask(task);
@@ -117,6 +125,12 @@ export default function ContestantViewPreviewModal({
         isOpen={!!proofTask}
         onClose={() => setProofTask(null)}
         task={proofTask}
+        onSubmit={handleSubmitProof}
+      />
+      <SubmitVideoProofModal
+        isOpen={!!videoTask}
+        onClose={() => setVideoTask(null)}
+        task={videoTask}
         onSubmit={handleSubmitProof}
       />
     </>

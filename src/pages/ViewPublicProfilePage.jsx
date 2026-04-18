@@ -73,6 +73,7 @@ export default function ViewPublicProfilePage() {
             avatarUrl: profileResult.data.avatar_url || '',
             coverImage: profileResult.data.cover_image || '',
             gallery: Array.isArray(profileResult.data.gallery) ? profileResult.data.gallery : [],
+            introVideoUrl: profileResult.data.intro_video_url || '',
             email: profileResult.data.email || '',
           });
 

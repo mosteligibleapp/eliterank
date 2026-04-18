@@ -63,6 +63,7 @@ export default function UserProfilePage() {
       avatarUrl: profile.avatar_url || '',
       coverImage: profile.cover_image || '',
       gallery: Array.isArray(profile.gallery) ? profile.gallery : [],
+      introVideoUrl: profile.intro_video_url || '',
       wins: profile.wins || 0,
       total_competitions: profile.total_competitions || 0,
     };
