@@ -370,7 +370,7 @@ function BonusVotesChecklist({
           flexDirection: 'column',
           gap: spacing.sm,
         }}>
-          {tasks.map((task) => (
+          {tasks.filter(t => !t.completed).map((task) => (
             <TaskRow
               key={task.id || task.task_key}
               task={task}
