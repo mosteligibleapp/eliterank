@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -8,6 +8,7 @@ import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonu
 import { isSupabaseConfigured } from '../../../../lib/supabase';
 import { useAuthStore } from '../../../../stores';
 import CustomBonusTaskModal from '../../../../components/modals/CustomBonusTaskModal';
+import ContestantViewPreviewModal from '../../../../components/modals/ContestantViewPreviewModal';
 import VideoPromptModal from '../../../../components/modals/VideoPromptModal';
 import VideoPlayer from '../../../../components/VideoPlayer';
 import { getVideoPrompts, getVideoResponses, createVideoPrompt, deleteVideoPrompt, reviewVideoResponse, notifyContestantsOfPrompt } from '../../../../lib/videoPrompts';
@@ -83,6 +84,9 @@ export default function SetupTab({
   // Custom task modal state
   const [showCustomTaskModal, setShowCustomTaskModal] = useState(false);
   const [editingCustomTask, setEditingCustomTask] = useState(null);
+
+  // Contestant view preview modal
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Submission review state
   const [submissions, setSubmissions] = useState([]);
@@ -1130,8 +1134,8 @@ export default function SetupTab({
                 ))}
               </div>
 
-              {/* Add Custom Task button */}
-              <div style={{ marginTop: spacing.lg }}>
+              {/* Add Custom Task / Preview contestant view */}
+              <div style={{ marginTop: spacing.lg, display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
                 <Button
                   onClick={() => { setEditingCustomTask(null); setShowCustomTaskModal(true); }}
                   variant="secondary"
@@ -1139,6 +1143,14 @@ export default function SetupTab({
                   size="sm"
                 >
                   Add Custom Task
+                </Button>
+                <Button
+                  onClick={() => setShowPreviewModal(true)}
+                  variant="secondary"
+                  icon={Eye}
+                  size="sm"
+                >
+                  Preview contestant view
                 </Button>
               </div>
 
@@ -1426,6 +1438,13 @@ export default function SetupTab({
         onClose={() => { setShowCustomTaskModal(false); setEditingCustomTask(null); }}
         task={editingCustomTask}
         onSave={handleSaveCustomTask}
+      />
+
+      {/* Contestant View Preview Modal */}
+      <ContestantViewPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        tasks={bonusTasks}
       />
 
       {/* Video Prompts Section */}
