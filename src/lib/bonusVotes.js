@@ -9,6 +9,7 @@ export const BONUS_TASK_KEYS = {
   ADD_SOCIAL: 'add_social',
   VIEW_HOW_TO_WIN: 'view_how_to_win',
   SHARE_PROFILE: 'share_profile',
+  INTRO_VIDEO: 'intro_video',
 };
 
 /**

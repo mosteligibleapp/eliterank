@@ -6,6 +6,7 @@ import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
 import VideoPromptsChecklist from '../../../components/VideoPromptsChecklist';
 import SubmitProofModal from '../../../components/modals/SubmitProofModal';
+import SubmitVideoProofModal from '../../../components/modals/SubmitVideoProofModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { BONUS_TASK_KEYS, loadNomineeBonusActions, saveNomineeBonusAction, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
 import { spacing, typography, colors, borderRadius } from '../../../styles/theme';
@@ -35,6 +36,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
   const hasCheckedProfile = useRef(false);
   const [showGuide, setShowGuide] = useState(false);
   const [proofTask, setProofTask] = useState(null);
+  const [videoTask, setVideoTask] = useState(null);
   const dismissKey = `bonus_dismissed_${contestantId}`;
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem(dismissKey) === 'true'; } catch { return false; }
@@ -116,6 +118,11 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
   };
 
   const handleTaskAction = async (taskKey, task) => {
+    if (task?.task_key === BONUS_TASK_KEYS.INTRO_VIDEO) {
+      setVideoTask(task);
+      return;
+    }
+
     if (task?.requires_approval) {
       setProofTask(task);
       return;
@@ -215,6 +222,12 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
         isOpen={!!proofTask}
         onClose={() => setProofTask(null)}
         task={proofTask}
+        onSubmit={handleSubmitProof}
+      />
+      <SubmitVideoProofModal
+        isOpen={!!videoTask}
+        onClose={() => setVideoTask(null)}
+        task={videoTask}
         onSubmit={handleSubmitProof}
       />
     </>

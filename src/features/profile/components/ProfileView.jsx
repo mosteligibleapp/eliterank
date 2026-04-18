@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users, Play } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -11,6 +11,7 @@ import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import FanButton from '../../../components/ui/FanButton';
 import ProfileFans from './ProfileFans';
+import IntroVideoModal from '../../../components/modals/IntroVideoModal';
 
 const FANS_SECTION_ID = 'profile-fans-section';
 
@@ -22,6 +23,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
   const [copied, setCopied] = useState(false);
   const [cardInfo, setCardInfo] = useState(null);
   const [generatingCard, setGeneratingCard] = useState(false);
+  const [introVideoOpen, setIntroVideoOpen] = useState(false);
 
   // When a logged-in user views their own contestant profile (either the
   // /profile edit view or the public /profile/:id route), swap "Become a
@@ -193,6 +195,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md }}>
             <div
               style={{
+                position: 'relative',
                 width: isMobile ? '140px' : '150px',
                 height: isMobile ? '140px' : '150px',
                 borderRadius: borderRadius.xxl,
@@ -210,6 +213,32 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
               }}
             >
               {!hostProfile.avatarUrl && initials}
+              {hostProfile.introVideoUrl && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setIntroVideoOpen(true); }}
+                  aria-label="Play intro video"
+                  title="Play intro video"
+                  style={{
+                    position: 'absolute',
+                    bottom: '-4px',
+                    right: '-4px',
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: borderRadius.full,
+                    background: gradients.gold,
+                    border: `3px solid ${colors.background.primary}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    padding: 0,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+                  }}
+                >
+                  <Play size={18} style={{ color: '#0a0a0c', fill: '#0a0a0c', marginLeft: '2px' }} />
+                </button>
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
               <h1 style={{
@@ -441,6 +470,13 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
         )}
 
       </Panel>
+
+      <IntroVideoModal
+        isOpen={introVideoOpen}
+        onClose={() => setIntroVideoOpen(false)}
+        videoUrl={hostProfile.introVideoUrl}
+        posterUrl={hostProfile.avatarUrl}
+      />
     </div>
   );
 }
