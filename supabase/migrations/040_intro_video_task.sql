@@ -47,8 +47,7 @@ BEGIN
     (p_competition_id, 'add_photo', 'Add a profile photo', 'Upload a profile photo so voters can see you', 5, 3, FALSE, NULL),
     (p_competition_id, 'add_social', 'Link a social account', 'Connect your Instagram, Twitter, or TikTok', 5, 4, FALSE, NULL),
     (p_competition_id, 'view_how_to_win', 'Review How to Win info', 'Read through the competition rules and tips', 5, 5, FALSE, NULL),
-    (p_competition_id, 'share_profile', 'Share your profile', 'Share your contestant profile link externally', 5, 6, FALSE, NULL),
-    (p_competition_id, 'bio_link', 'Add link in bio', 'Add your contestant link and ''@mosteligiblechi 2026 contestant'' to your social media bio', 10, 7, TRUE, 'Link to your social profile (Instagram, TikTok, etc.)')
+    (p_competition_id, 'share_profile', 'Share your profile', 'Share your contestant profile link externally', 5, 6, FALSE, NULL)
   ON CONFLICT (competition_id, task_key) DO NOTHING;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

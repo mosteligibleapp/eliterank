@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Loader, AlertCircle, Clock, Video } from 'lucide-react';
+import { Loader, AlertCircle, Clock, Video } from 'lucide-react';
 import { Modal } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { uploadVideo } from '../../lib/uploadVideo';
