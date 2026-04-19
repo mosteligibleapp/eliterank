@@ -3,6 +3,7 @@ import { Check, Loader, Image as ImageIcon } from 'lucide-react';
 import { Modal, Button, Input, FormGrid } from '../ui';
 import { useModalForm } from '../../hooks';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
+import { uploadPhoto } from '../../features/entry/utils/uploadPhoto';
 
 const INITIAL_STATE = {
   name: '',
@@ -32,24 +33,11 @@ export default function EventModal({
 
   const handleImageUpload = async (file) => {
     if (!file) return;
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) return;
 
     setUploading(true);
     try {
-      const timestamp = Date.now();
-      const ext = file.name.split('.').pop();
-      const filename = `event-images/${timestamp}.${ext}`;
-
-      const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
-        method: 'POST',
-        body: file,
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Upload failed');
-
-      updateField('imageUrl', data.url);
+      const url = await uploadPhoto(file, 'event-images');
+      updateField('imageUrl', url);
     } catch (err) {
       console.error('Error uploading event image:', err);
     } finally {

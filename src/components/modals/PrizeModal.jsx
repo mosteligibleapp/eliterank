@@ -3,6 +3,7 @@ import { Check, Camera, Loader, X } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useModalForm } from '../../hooks';
+import { uploadPhoto } from '../../features/entry/utils/uploadPhoto';
 
 const INITIAL_STATE = {
   title: '',
@@ -40,35 +41,8 @@ export default function PrizeModal({
 
   const uploadImage = async (file) => {
     if (!file) return null;
-
-    const maxSize = 20 * 1024 * 1024;
-    if (file.size > maxSize) {
-      alert('Image too large. Please choose an image under 20MB.');
-      return null;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file.');
-      return null;
-    }
-
     try {
-      const timestamp = Date.now();
-      const ext = file.name.split('.').pop();
-      const filename = `prizes/${timestamp}.${ext}`;
-
-      const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
-        method: 'POST',
-        body: file,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-
-      return data.url;
+      return await uploadPhoto(file, 'prizes');
     } catch (error) {
       alert(`Upload failed: ${error.message}. Please try again.`);
       return null;

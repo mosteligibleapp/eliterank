@@ -3,6 +3,7 @@ import { Check, Upload, Camera, Loader, X, Trophy, Users, Link2 } from 'lucide-r
 import { Modal, Button, Input } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { useModalForm } from '../../hooks';
+import { uploadPhoto } from '../../features/entry/utils/uploadPhoto';
 
 const INITIAL_STATE = {
   name: '',
@@ -65,40 +66,10 @@ export default function RewardModal({
   const { form, updateField, getFormData } = useModalForm(INITIAL_STATE, rewardData, isOpen);
   const isEditing = !!reward;
 
-  // Upload image to Vercel Blob
   const uploadImage = async (file) => {
     if (!file) return null;
-
-    // Validate file size (max 20MB)
-    const maxSize = 20 * 1024 * 1024;
-    if (file.size > maxSize) {
-      alert('Image too large. Please choose an image under 20MB.');
-      return null;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file.');
-      return null;
-    }
-
     try {
-      const timestamp = Date.now();
-      const ext = file.name.split('.').pop();
-      const filename = `rewards/${timestamp}.${ext}`;
-
-      const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
-        method: 'POST',
-        body: file,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-
-      return data.url;
+      return await uploadPhoto(file, 'rewards');
     } catch (error) {
       alert(`Upload failed: ${error.message}. Please try again.`);
       return null;
