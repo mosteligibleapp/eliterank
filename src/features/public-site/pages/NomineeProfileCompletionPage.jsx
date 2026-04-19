@@ -4,6 +4,7 @@ import { Button, Input, Textarea } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../../contexts/ToastContext';
+import { uploadPhoto } from '../../entry/utils/uploadPhoto';
 
 /**
  * NomineeProfileCompletionPage
@@ -59,40 +60,10 @@ export default function NomineeProfileCompletionPage({
     }
   };
 
-  // Upload image to Vercel Blob
   const uploadImage = async (file) => {
     if (!file) return null;
-
-    // Validate file size (max 20MB)
-    const maxSize = 20 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error('Image too large. Please choose an image under 20MB.');
-      return null;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file.');
-      return null;
-    }
-
     try {
-      const timestamp = Date.now();
-      const ext = file.name.split('.').pop();
-      const filename = `avatars/${timestamp}.${ext}`;
-
-      const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
-        method: 'POST',
-        body: file,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-
-      return data.url;
+      return await uploadPhoto(file, 'avatars');
     } catch (error) {
       toast.error(`Upload failed: ${error.message}`);
       return null;

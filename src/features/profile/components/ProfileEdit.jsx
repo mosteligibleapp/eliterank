@@ -4,6 +4,7 @@ import { Button, Input, Textarea, FormSection, FormGrid, HobbySelector } from '.
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { ALL_HOBBIES, MAX_HOBBIES } from '../../../constants';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { uploadPhoto } from '../../entry/utils/uploadPhoto';
 
 export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, userId }) {
   const { isMobile, isSmall } = useResponsive();
@@ -23,40 +24,10 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
     onChange({ ...hostProfile, hobbies });
   };
 
-  // Upload image to Vercel Blob
   const uploadImage = async (file, folder) => {
     if (!file) return null;
-
-    // Validate file size (max 20MB)
-    const maxSize = 20 * 1024 * 1024;
-    if (file.size > maxSize) {
-      alert('Image too large. Please choose an image under 20MB.');
-      return null;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file.');
-      return null;
-    }
-
     try {
-      const timestamp = Date.now();
-      const ext = file.name.split('.').pop();
-      const filename = `${folder}/${timestamp}.${ext}`;
-
-      const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
-        method: 'POST',
-        body: file,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-
-      return data.url;
+      return await uploadPhoto(file, folder);
     } catch (error) {
       alert(`Upload failed: ${error.message}. Please try again.`);
       return null;
