@@ -176,6 +176,7 @@ export function useCompetitionDashboard(competitionId) {
         id: c.id,
         name: c.name,
         age: c.age,
+        email: c.email || c.profile?.email || null,
         votes: c.votes || 0,
         status: c.status,
         trend: c.trend || 'same',
