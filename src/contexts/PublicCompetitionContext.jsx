@@ -328,4 +328,16 @@ export function usePublicCompetition() {
   return context;
 }
 
+/**
+ * Safe hook that returns whether the current render tree is inside a
+ * competition preview (host previewing a phase). Returns false when the
+ * component is rendered outside of a PublicCompetitionProvider, so it's safe
+ * to call from shared leaf components (e.g., FanButton) used both in preview
+ * contexts and non-preview pages.
+ */
+export function useIsPreview() {
+  const context = useContext(PublicCompetitionContext);
+  return Boolean(context?.isPreview);
+}
+
 export default PublicCompetitionContext;

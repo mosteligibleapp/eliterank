@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Eye, ExternalLink, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Eye, ExternalLink, ChevronDown, ChevronUp, User, RefreshCw, Loader } from 'lucide-react';
 import { Panel, Button, Badge } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { computeCompetitionPhase } from '../../../../utils/competitionPhase';
+import { useResponsive } from '../../../../hooks/useResponsive';
 
 /**
  * Pairs a preview card's phase (the query param value) with a label the host
@@ -40,6 +41,16 @@ const PREVIEW_PHASES = [
 
 export default function PreviewTab({ competition, contestants = [] }) {
   const [expanded, setExpanded] = useState({});
+  // Iframe key — bumping forces a reload without collapsing the card.
+  const [refreshNonce, setRefreshNonce] = useState({});
+  // Loading state per preview key so we can show a spinner while the iframe
+  // mounts and fetches its initial document.
+  const [loadingState, setLoadingState] = useState({});
+  const { isMobile } = useResponsive();
+
+  // Responsive iframe height — uses viewport height on mobile so phones
+  // don't get a cramped 600px frame that scrolls awkwardly.
+  const iframeHeight = isMobile ? '70vh' : '600px';
 
   const orgSlug = competition?.organization?.slug || 'most-eligible';
   const competitionId = competition?.id;
@@ -54,8 +65,26 @@ export default function PreviewTab({ competition, contestants = [] }) {
       ? `/${orgSlug}/id/${competitionId}?preview=${phaseKey}`
       : null;
 
-  const toggleExpanded = (key) =>
-    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleExpanded = (key) => {
+    setExpanded((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      if (next[key]) {
+        // Opening for the first time (or re-opening) — show spinner until the
+        // iframe fires onLoad.
+        setLoadingState((s) => ({ ...s, [key]: true }));
+      }
+      return next;
+    });
+  };
+
+  const refreshPreview = (key) => {
+    setRefreshNonce((prev) => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
+    setLoadingState((s) => ({ ...s, [key]: true }));
+  };
+
+  const handleIframeLoad = (key) => {
+    setLoadingState((s) => ({ ...s, [key]: false }));
+  };
 
   const openInNewTab = (url) => {
     if (!url) return;
@@ -163,7 +192,18 @@ export default function PreviewTab({ competition, contestants = [] }) {
                       {p.description}
                     </p>
                   </div>
-                  <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0, flexWrap: 'wrap' }}>
+                    {isExpanded && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={RefreshCw}
+                        onClick={() => refreshPreview(p.key)}
+                        aria-label={`Refresh ${p.label} preview`}
+                      >
+                        Refresh
+                      </Button>
+                    )}
                     <Button
                       variant="secondary"
                       size="sm"
@@ -185,13 +225,30 @@ export default function PreviewTab({ competition, contestants = [] }) {
 
                 {isExpanded && url && (
                   <div style={{
+                    position: 'relative',
                     borderTop: `1px solid ${colors.border.secondary}`,
                     background: '#000',
-                    height: '600px',
+                    height: iframeHeight,
                   }}>
+                    {loadingState[p.key] && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: colors.gold.primary,
+                        zIndex: 1,
+                        pointerEvents: 'none',
+                      }}>
+                        <Loader size={24} style={{ animation: 'spin 1s linear infinite' }} />
+                      </div>
+                    )}
                     <iframe
+                      key={refreshNonce[p.key] || 0}
                       src={url}
                       title={`${p.label} preview`}
+                      onLoad={() => handleIframeLoad(p.key)}
                       style={{
                         width: '100%',
                         height: '100%',
@@ -231,7 +288,18 @@ export default function PreviewTab({ competition, contestants = [] }) {
                     What voters see when they click a contestant. Using the first contestant as a sample.
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0, flexWrap: 'wrap' }}>
+                  {expanded.profile && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={RefreshCw}
+                      onClick={() => refreshPreview('profile')}
+                      aria-label="Refresh contestant profile preview"
+                    >
+                      Refresh
+                    </Button>
+                  )}
                   <Button
                     variant="secondary"
                     size="sm"
@@ -253,15 +321,32 @@ export default function PreviewTab({ competition, contestants = [] }) {
 
               {expanded.profile && contestantProfileUrl && (
                 <div style={{
+                  position: 'relative',
                   background: '#000',
-                  height: '600px',
+                  height: iframeHeight,
                   borderRadius: borderRadius.lg,
                   border: `1px solid ${colors.border.secondary}`,
                   overflow: 'hidden',
                 }}>
+                  {loadingState.profile && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: colors.gold.primary,
+                      zIndex: 1,
+                      pointerEvents: 'none',
+                    }}>
+                      <Loader size={24} style={{ animation: 'spin 1s linear infinite' }} />
+                    </div>
+                  )}
                   <iframe
+                    key={refreshNonce.profile || 0}
                     src={contestantProfileUrl}
                     title="Contestant profile preview"
+                    onLoad={() => handleIframeLoad('profile')}
                     style={{
                       width: '100%',
                       height: '100%',

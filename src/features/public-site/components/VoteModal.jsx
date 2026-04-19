@@ -7,6 +7,7 @@ import { formatNumber, formatCurrency } from '../../../utils/formatters';
 import { VOTE_PRESETS } from '../../../constants';
 import { hasUsedFreeVoteToday, submitFreeVote, getTodaysVote, getTimeUntilReset, createVotePaymentIntent, recordPaidVote } from '../../../lib/votes';
 import { useToast } from '../../../contexts/ToastContext';
+import { useIsPreview } from '../../../contexts/PublicCompetitionContext';
 import { getStripe, isStripeConfigured } from '../../../lib/stripe';
 
 export default function VoteModal({
@@ -25,7 +26,8 @@ export default function VoteModal({
 }) {
   const userId = user?.id;
   const toast = useToast();
-  const hasActiveRound = currentRound?.isActive;
+  const isPreview = useIsPreview();
+  const hasActiveRound = currentRound?.isActive && !isPreview;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [freeVoteUsed, setFreeVoteUsed] = useState(false);
   const [votedContestantId, setVotedContestantId] = useState(null);

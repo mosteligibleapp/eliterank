@@ -3,6 +3,7 @@ import { Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
+import { useIsPreview } from '../../contexts/PublicCompetitionContext';
 import { getCompetitionUrl, getCompetitionUrlById } from '../../utils/slugs';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
@@ -60,6 +61,7 @@ async function sendFanConfirmationEmail({ email, contestantId, fanId }) {
 export default function FanButton({ contestantId, contestantName, onLoginRequired }) {
   const { user } = useSupabaseAuth();
   const toast = useToast();
+  const isPreview = useIsPreview();
   const [isFan, setIsFan] = useState(false);
   const [fanCount, setFanCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -140,6 +142,11 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
   }, [onLoginRequired]);
 
   const unfan = useCallback(async () => {
+    if (isPreview) {
+      setDialogMode(null);
+      toast.info?.('Preview mode — no changes saved.');
+      return;
+    }
     setLoading(true);
     try {
       await supabase
@@ -160,10 +167,15 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
     } finally {
       setLoading(false);
     }
-  }, [contestantId, user?.id, toast, displayName]);
+  }, [contestantId, user?.id, toast, displayName, isPreview]);
 
   const confirmBecomeFan = useCallback(async () => {
     if (!user?.id || loading) return;
+    if (isPreview) {
+      setDialogMode(null);
+      toast.info?.('Preview mode — no changes saved.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -196,7 +208,7 @@ export default function FanButton({ contestantId, contestantName, onLoginRequire
     } finally {
       setLoading(false);
     }
-  }, [user?.id, user?.email, contestantId, loading, toast, displayName]);
+  }, [user?.id, user?.email, contestantId, loading, toast, displayName, isPreview]);
 
   const tooltip = isFan
     ? "You'll receive weekly competition updates for this contestant"
