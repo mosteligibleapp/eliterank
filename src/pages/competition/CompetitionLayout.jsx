@@ -279,10 +279,16 @@ function CompetitionLayoutInner() {
 function PreviewBanner({ mode }) {
   const navigate = useNavigate();
 
-  const label =
-    mode === 'between-rounds'
-      ? 'Between Rounds Preview — actions are disabled'
-      : 'Voting Page Preview — actions are disabled';
+  const labelMap = {
+    'between-rounds': 'Between Rounds Preview — actions are disabled',
+    'voting': 'Voting Page Preview — actions are disabled',
+    'nominations': 'Nominations Preview — actions are disabled',
+    'coming-soon': 'Coming Soon Preview — actions are disabled',
+    'results': 'Results Preview — actions are disabled',
+    'winners': 'Results Preview — actions are disabled',
+    'completed': 'Results Preview — actions are disabled',
+  };
+  const label = labelMap[mode] || 'Preview — actions are disabled';
 
   return (
     <div
@@ -552,7 +558,7 @@ export function CompetitionLayout() {
   // see what each phase will look like before it goes live. Provider gates
   // the actual bypass + synthetic phase per mode.
   const previewParam = searchParams.get('preview');
-  const previewMode = ['voting', 'between-rounds'].includes(previewParam)
+  const previewMode = ['voting', 'between-rounds', 'nominations', 'coming-soon', 'results', 'winners', 'completed'].includes(previewParam)
     ? previewParam
     : null;
 

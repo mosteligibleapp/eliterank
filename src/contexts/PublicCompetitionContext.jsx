@@ -88,6 +88,41 @@ export function PublicCompetitionProvider({
       };
     }
 
+    if (previewMode === 'nominations') {
+      return {
+        ...realPhase,
+        phase: 'nominations',
+        label: 'Nominations Open',
+        isPublic: true,
+        isVoting: false,
+        canNominate: true,
+        endsAt: (nominationPeriods?.[0]?.end_date) || null,
+      };
+    }
+
+    if (previewMode === 'coming-soon') {
+      return {
+        ...realPhase,
+        phase: 'coming-soon',
+        label: 'Coming Soon',
+        isPublic: true,
+        isVoting: false,
+        canNominate: false,
+        startsAt: (nominationPeriods?.[0]?.start_date) || null,
+      };
+    }
+
+    if (previewMode === 'results' || previewMode === 'winners' || previewMode === 'completed') {
+      return {
+        ...realPhase,
+        phase: 'results',
+        label: 'Results',
+        isPublic: true,
+        isVoting: false,
+        canNominate: false,
+      };
+    }
+
     // Default: voting preview
     return {
       ...realPhase,
@@ -100,7 +135,7 @@ export function PublicCompetitionProvider({
       roundNumber: previewRound.round_order || 1,
       endsAt: previewRound.end_date || null,
     };
-  }, [previewMode, realPhase, votingRounds]);
+  }, [previewMode, realPhase, votingRounds, nominationPeriods]);
 
   // Leaderboard data (only fetch if we have a competition)
   const leaderboardData = useLeaderboard(competition?.id, {

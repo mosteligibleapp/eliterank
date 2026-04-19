@@ -12,14 +12,15 @@ import { useCompetitionDashboard } from './hooks/useCompetitionDashboard';
 import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
-import { OverviewTab, PeopleTab, ContentTab, SetupTab } from './components/tabs';
+import { OverviewTab, PeopleTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
 
-// Consolidated 4-tab navigation
+// Consolidated tab navigation
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
   { id: 'content', label: 'Content', shortLabel: 'Content', icon: FileText },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
+  { id: 'preview', label: 'Preview', shortLabel: 'Preview', icon: Eye },
 ];
 
 export default function CompetitionDashboard({
@@ -515,6 +516,13 @@ export default function CompetitionDashboard({
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
             onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
             onOpenCharityModal={() => setCharityModal(true)}
+          />
+        );
+      case 'preview':
+        return (
+          <PreviewTab
+            competition={competition}
+            contestants={data.contestants}
           />
         );
       default:
