@@ -64,7 +64,11 @@ export function LeaderboardCompact() {
   // so total items fill complete rows on both layouts (divisible by 6).
   // 11 + 1 = 12 (4×3, 6×2). Without event, 9 works for 3-col (3×3).
   const maxContestants = nextEvent ? 11 : 9;
-  const displayContestants = contestants?.slice(0, maxContestants) || [];
+  const displayContestants = useMemo(() => {
+    const list = contestants ? [...contestants] : [];
+    list.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    return list.slice(0, maxContestants);
+  }, [contestants, maxContestants]);
 
   return (
     <div className="leaderboard-prominent">

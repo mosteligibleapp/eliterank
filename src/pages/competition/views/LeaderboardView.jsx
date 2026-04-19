@@ -32,12 +32,13 @@ export function LeaderboardView() {
     navigate(`/profile/${contestant.user_id}`);
   };
 
-  // Filter contestants by search query
+  // Filter contestants by search query, then sort by votes (highest first)
   const filtered = useMemo(() => {
     if (!contestants) return [];
-    if (!search.trim()) return contestants;
+    const base = [...contestants].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    if (!search.trim()) return base;
     const q = search.trim().toLowerCase();
-    return contestants.filter(c =>
+    return base.filter(c =>
       c.name?.toLowerCase().includes(q) ||
       c.city?.toLowerCase().includes(q)
     );
