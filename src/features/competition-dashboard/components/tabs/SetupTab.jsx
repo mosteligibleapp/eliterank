@@ -13,6 +13,7 @@ import VideoPromptModal from '../../../../components/modals/VideoPromptModal';
 import VideoPlayer from '../../../../components/VideoPlayer';
 import { getVideoPrompts, getVideoResponses, createVideoPrompt, deleteVideoPrompt, reviewVideoResponse, notifyContestantsOfPrompt } from '../../../../lib/videoPrompts';
 import { useAuthContextSafe } from '../../../../contexts/AuthContext';
+import { useToast } from '../../../../contexts/ToastContext';
 
 // Helper to format currency from cents
 const formatCurrency = (cents) => {
@@ -71,6 +72,7 @@ export default function SetupTab({
 }) {
   const { isMobile } = useResponsive();
   const { profile: currentUser } = useAuthContextSafe();
+  const toast = useToast();
   const authStoreUser = useAuthStore(s => s.user);
   const reviewerId = currentUser?.id || authStoreUser?.id;
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
@@ -223,21 +225,37 @@ export default function SetupTab({
   };
 
   const handleApproveSubmission = async (submissionId) => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      toast?.error?.('You must be signed in to review submissions.');
+      return;
+    }
     setReviewingId(submissionId);
-    await reviewBonusSubmission(submissionId, currentUser.id, 'approve');
+    const result = await reviewBonusSubmission(submissionId, currentUser.id, 'approve');
     setReviewingId(null);
+    if (!result?.success) {
+      toast?.error?.(result?.error || 'Failed to approve submission.');
+      return;
+    }
+    toast?.success?.(`Approved — +${result.votes_awarded || ''} bonus votes awarded`);
     await Promise.all([loadSubmissions(), loadBonusTasks()]);
     if (onRefresh) onRefresh();
   };
 
   const handleRejectSubmission = async (submissionId) => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      toast?.error?.('You must be signed in to review submissions.');
+      return;
+    }
     setReviewingId(submissionId);
-    await reviewBonusSubmission(submissionId, currentUser.id, 'reject', rejectionReason);
+    const result = await reviewBonusSubmission(submissionId, currentUser.id, 'reject', rejectionReason);
     setReviewingId(null);
     setRejectingId(null);
     setRejectionReason('');
+    if (!result?.success) {
+      toast?.error?.(result?.error || 'Failed to reject submission.');
+      return;
+    }
+    toast?.info?.('Submission rejected');
     await loadSubmissions();
   };
 
