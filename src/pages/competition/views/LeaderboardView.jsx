@@ -1,17 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { PortraitCard } from '../components/LeaderboardCompact';
 import { Search, X } from 'lucide-react';
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 /**
  * Full leaderboard page - reuses the same portrait-card grid as the
@@ -52,31 +43,7 @@ export function LeaderboardView() {
     );
   }, [contestants, search]);
 
-  // Between rounds: rotate the grid every 4s (paused while searching)
-  const [shuffled, setShuffled] = useState([]);
-  const [fading, setFading] = useState(false);
-  const sourceRef = useRef(filtered);
-  const isRotating = isBetweenRounds && !search.trim();
-
-  useEffect(() => {
-    sourceRef.current = filtered;
-    if (!isRotating) setShuffled(filtered);
-  }, [filtered, isRotating]);
-
-  useEffect(() => {
-    if (!isRotating || sourceRef.current.length < 2) return;
-    setShuffled(shuffle(sourceRef.current));
-    const interval = setInterval(() => {
-      setFading(true);
-      setTimeout(() => {
-        setShuffled(shuffle(sourceRef.current));
-        setFading(false);
-      }, 400);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [isRotating]);
-
-  const displayContestants = isRotating ? shuffled : filtered;
+  const displayContestants = filtered;
 
   return (
     <div className="leaderboard-full">
@@ -101,7 +68,7 @@ export function LeaderboardView() {
         )}
       </div>
 
-      <div className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}>
+      <div className="portrait-grid">
         {displayContestants.map((contestant, index) => (
           <PortraitCard
             key={contestant.id}

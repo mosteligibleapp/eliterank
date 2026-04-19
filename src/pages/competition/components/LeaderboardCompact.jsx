@@ -1,22 +1,10 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { AlertTriangle, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CrownIcon from '../../../components/ui/icons/CrownIcon';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 import { formatEventTime } from '../../../utils/formatters';
-
-/**
- * Fisher-Yates shuffle — returns a new array in random order.
- */
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -76,43 +64,7 @@ export function LeaderboardCompact() {
   // so total items fill complete rows on both layouts (divisible by 6).
   // 11 + 1 = 12 (4×3, 6×2). Without event, 9 works for 3-col (3×3).
   const maxContestants = nextEvent ? 11 : 9;
-  const allContestants = contestants?.slice(0, maxContestants) || [];
-
-  // Rotate (shuffle) the grid every 4 seconds with a fade transition
-  // so the page feels alive and all contestants get visibility.
-  const [shuffled, setShuffled] = useState(allContestants);
-  const [fading, setFading] = useState(false);
-  const sourceRef = useRef(allContestants);
-  const isPaused = useRef(false);
-  const shouldRotate = allContestants.length > 1;
-
-  // Keep source in sync when contestants data changes.
-  // Use allContestants.length as dependency so the effect fires even if
-  // the array reference stays the same (e.g. navigating back to a cached page).
-  useEffect(() => {
-    sourceRef.current = allContestants;
-    setShuffled(allContestants);
-  }, [allContestants.length, maxContestants]);
-
-  // Shuffle interval — always active when there are contestants
-  useEffect(() => {
-    if (!shouldRotate) return;
-
-    const interval = setInterval(() => {
-      if (isPaused.current) return;
-      setFading(true);
-      setTimeout(() => {
-        setShuffled(shuffle(sourceRef.current));
-        setFading(false);
-      }, 400); // fade-out duration
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [shouldRotate]);
-
-  // Fall back to allContestants if shuffled is empty but data is available
-  // (handles the brief gap on remount before the sync effect fires).
-  const displayContestants = shuffled.length > 0 ? shuffled : allContestants;
+  const displayContestants = contestants?.slice(0, maxContestants) || [];
 
   return (
     <div className="leaderboard-prominent">
@@ -128,11 +80,7 @@ export function LeaderboardCompact() {
       </div>
 
       {/* Portrait Grid */}
-      <div
-        className={`portrait-grid ${fading ? 'portrait-grid-fading' : ''}`}
-        onMouseEnter={() => { isPaused.current = true; }}
-        onMouseLeave={() => { isPaused.current = false; }}
-      >
+      <div className="portrait-grid">
         {displayContestants.map((contestant, index) => (
           <PortraitCard
             key={contestant.id}
