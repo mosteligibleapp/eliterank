@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, PlayCircle, Clock, AlertCircle
+  Eye, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -12,14 +12,15 @@ import { useCompetitionDashboard } from './hooks/useCompetitionDashboard';
 import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
-import { OverviewTab, PeopleTab, ContentTab, SetupTab } from './components/tabs';
+import { OverviewTab, PeopleTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
 
-// Consolidated 4-tab navigation
+// Consolidated tab navigation
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
   { id: 'content', label: 'Content', shortLabel: 'Content', icon: FileText },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
+  { id: 'preview', label: 'Preview', shortLabel: 'Preview', icon: Eye },
 ];
 
 export default function CompetitionDashboard({
@@ -28,8 +29,6 @@ export default function CompetitionDashboard({
   onBack,
   onLogout,
   onViewPublicSite,
-  onPreviewVotingPage,
-  onPreviewBetweenRounds,
   currentUserId,
 }) {
   const toast = useToast();
@@ -238,50 +237,6 @@ export default function CompetitionDashboard({
           flexShrink: 0,
         }}>
           <NotificationBell size={isMobile ? 32 : 36} />
-          {onPreviewVotingPage && (
-            <button
-              onClick={onPreviewVotingPage}
-              title="Preview what the public voting page will look like"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.xs,
-                padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
-                background: 'transparent',
-                border: `1px solid ${colors.border.light}`,
-                borderRadius: borderRadius.md,
-                color: colors.text.secondary,
-                fontSize: isMobile ? '11px' : typography.fontSize.sm,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <PlayCircle size={isMobile ? 12 : 14} />
-              {isMobile ? 'Voting' : 'Preview Voting'}
-            </button>
-          )}
-          {onPreviewBetweenRounds && (
-            <button
-              onClick={onPreviewBetweenRounds}
-              title="Preview the interim page between end of nominations and start of voting"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.xs,
-                padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
-                background: 'transparent',
-                border: `1px solid ${colors.border.light}`,
-                borderRadius: borderRadius.md,
-                color: colors.text.secondary,
-                fontSize: isMobile ? '11px' : typography.fontSize.sm,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <Clock size={isMobile ? 12 : 14} />
-              {isMobile ? 'Between' : 'Preview Between Rounds'}
-            </button>
-          )}
           {onViewPublicSite && (
             <button
               onClick={onViewPublicSite}
@@ -515,6 +470,13 @@ export default function CompetitionDashboard({
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
             onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
             onOpenCharityModal={() => setCharityModal(true)}
+          />
+        );
+      case 'preview':
+        return (
+          <PreviewTab
+            competition={competition}
+            contestants={data.contestants}
           />
         );
       default:

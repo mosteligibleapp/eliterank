@@ -88,6 +88,41 @@ export function PublicCompetitionProvider({
       };
     }
 
+    if (previewMode === 'nominations') {
+      return {
+        ...realPhase,
+        phase: 'nominations',
+        label: 'Nominations Open',
+        isPublic: true,
+        isVoting: false,
+        canNominate: true,
+        endsAt: (nominationPeriods?.[0]?.end_date) || null,
+      };
+    }
+
+    if (previewMode === 'coming-soon') {
+      return {
+        ...realPhase,
+        phase: 'coming-soon',
+        label: 'Coming Soon',
+        isPublic: true,
+        isVoting: false,
+        canNominate: false,
+        startsAt: (nominationPeriods?.[0]?.start_date) || null,
+      };
+    }
+
+    if (previewMode === 'results' || previewMode === 'winners' || previewMode === 'completed') {
+      return {
+        ...realPhase,
+        phase: 'results',
+        label: 'Results',
+        isPublic: true,
+        isVoting: false,
+        canNominate: false,
+      };
+    }
+
     // Default: voting preview
     return {
       ...realPhase,
@@ -100,7 +135,7 @@ export function PublicCompetitionProvider({
       roundNumber: previewRound.round_order || 1,
       endsAt: previewRound.end_date || null,
     };
-  }, [previewMode, realPhase, votingRounds]);
+  }, [previewMode, realPhase, votingRounds, nominationPeriods]);
 
   // Leaderboard data (only fetch if we have a competition)
   const leaderboardData = useLeaderboard(competition?.id, {
@@ -291,6 +326,18 @@ export function usePublicCompetition() {
   }
 
   return context;
+}
+
+/**
+ * Safe hook that returns whether the current render tree is inside a
+ * competition preview (host previewing a phase). Returns false when the
+ * component is rendered outside of a PublicCompetitionProvider, so it's safe
+ * to call from shared leaf components (e.g., FanButton) used both in preview
+ * contexts and non-preview pages.
+ */
+export function useIsPreview() {
+  const context = useContext(PublicCompetitionContext);
+  return Boolean(context?.isPreview);
 }
 
 export default PublicCompetitionContext;

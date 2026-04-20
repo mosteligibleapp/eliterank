@@ -2,6 +2,7 @@ export { default as OverviewTab } from './OverviewTab';
 export { default as PeopleTab } from './PeopleTab';
 export { default as ContentTab } from './ContentTab';
 export { default as SetupTab } from './SetupTab';
+export { default as PreviewTab } from './PreviewTab';
 
 // Legacy exports (kept for backwards compatibility if needed)
 export { default as ContestantsTab } from './ContestantsTab';

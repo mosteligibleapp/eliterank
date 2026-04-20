@@ -25,23 +25,28 @@ import { JudgesSection } from '../components/JudgesSection';
  * - ?apply=true  - Auto-redirects to entry flow
  */
 export function NominationsPhase() {
-  const { competition, orgSlug, competitionSlug, votingRounds, about, events } = usePublicCompetition();
+  const { competition, orgSlug, competitionSlug, votingRounds, about, events, isPreview } = usePublicCompetition();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const entryPath = `/${orgSlug}/${competitionSlug}/enter`;
 
-  // Auto-redirect if ?apply param is present
+  // Auto-redirect if ?apply param is present (skipped in preview so hosts
+  // don't get kicked out of the preview by a stray query param).
   useEffect(() => {
+    if (isPreview) return;
     const applyParam = searchParams.get('apply');
     if (applyParam) {
       searchParams.delete('apply');
       setSearchParams(searchParams, { replace: true });
       navigate(entryPath);
     }
-  }, [searchParams, setSearchParams, navigate, entryPath]);
+  }, [searchParams, setSearchParams, navigate, entryPath, isPreview]);
 
   const handleEnter = () => {
+    // In preview the "Enter" CTA is disabled at the UI level, but no-op here
+    // as a belt-and-suspenders guard in case a child component calls it.
+    if (isPreview) return;
     navigate(entryPath);
   };
 
