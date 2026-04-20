@@ -10,7 +10,8 @@
  * Bot protection is layered:
  *   1. Honeypot field (`company`) — bots fill hidden fields
  *   2. Min-submit-time check — bots submit in <1s
- *   3. Per-IP rate limit — max 10 distinct emails per 24h
+ *   3. Per-IP rate limit — max 10 distinct emails per 24h (Supabase-backed
+ *      so the limit holds across serverless instances)
  *   4. Vercel BotID — invisible bot detection (optional, enabled when
  *      @vercel/botid is installed and BOTID_ENABLED=true)
  *
@@ -27,12 +28,6 @@ import { createClient } from '@supabase/supabase-js';
 const MIN_SUBMIT_MS = 1500;
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_IP_LIMIT = 10;
-
-// In-memory per-instance rate limit tracker. Vercel functions have multiple
-// cold instances so this is best-effort — sufficient for MVP traffic but
-// swap for Vercel KV or a Supabase table if abuse becomes a problem.
-// Map<ipHash, Array<{ email, ts }>>
-const ipBuckets = new Map();
 
 function getClientIp(request) {
   const fwd = request.headers['x-forwarded-for'] || request.headers['x-real-ip'];
@@ -51,19 +46,37 @@ async function hashIp(ip) {
     .join('');
 }
 
-function checkIpRateLimit(ipHash, email, limit) {
-  const now = Date.now();
-  const cutoff = now - RATE_LIMIT_WINDOW_MS;
-  const entries = (ipBuckets.get(ipHash) || []).filter(e => e.ts >= cutoff);
+async function checkIpRateLimit(supabase, ipHash, email, limit) {
+  const cutoffIso = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
 
-  const distinctEmails = new Set(entries.map(e => e.email));
+  const { data, error } = await supabase
+    .from('anonymous_vote_rate_limits')
+    .select('email')
+    .eq('ip_hash', ipHash)
+    .gte('created_at', cutoffIso);
+
+  if (error) {
+    // Fail-open on lookup errors so a DB hiccup doesn't block all anonymous
+    // voting, but log loudly so it's visible in monitoring.
+    console.error('Rate limit lookup failed (allowing vote):', error);
+    return { allowed: true, skipped: true };
+  }
+
+  const distinctEmails = new Set((data || []).map((r) => r.email));
   if (distinctEmails.size >= limit && !distinctEmails.has(email)) {
     return { allowed: false, reason: 'Too many distinct voters from this network. Please try again later.' };
   }
-
-  entries.push({ email, ts: now });
-  ipBuckets.set(ipHash, entries);
   return { allowed: true };
+}
+
+async function recordIpRateLimit(supabase, ipHash, email) {
+  const { error } = await supabase
+    .from('anonymous_vote_rate_limits')
+    .insert({ ip_hash: ipHash, email });
+  if (error) {
+    // Non-fatal — the vote already succeeded.
+    console.warn('Rate limit insert failed (non-fatal):', error);
+  }
 }
 
 function isValidEmail(email) {
@@ -152,17 +165,17 @@ export default async function handler(request, response) {
     return response.status(400).json({ error: 'Missing competition or contestant.' });
   }
 
-  // ─── IP rate limit ─────────────────────────────────────────────────────
-  const ip = getClientIp(request);
-  const ipHash = await hashIp(ip);
-  const rateCheck = checkIpRateLimit(ipHash, normalizedEmail, ipLimit);
-  if (!rateCheck.allowed) {
-    return response.status(429).json({ error: rateCheck.reason });
-  }
-
   const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+
+  // ─── IP rate limit ─────────────────────────────────────────────────────
+  const ip = getClientIp(request);
+  const ipHash = await hashIp(ip);
+  const rateCheck = await checkIpRateLimit(supabase, ipHash, normalizedEmail, ipLimit);
+  if (!rateCheck.allowed) {
+    return response.status(429).json({ error: rateCheck.reason });
+  }
 
   try {
     // ─── Verify active voting round ─────────────────────────────────────
@@ -251,6 +264,10 @@ export default async function handler(request, response) {
       }
       return response.status(500).json({ error: 'Could not record your vote.' });
     }
+
+    // Record rate-limit entry only after a successful vote so failed
+    // attempts don't count against the IP.
+    await recordIpRateLimit(supabase, ipHash, normalizedEmail);
 
     // ─── Fire claim email (fire-and-forget) ──────────────────────────────
     // Magic link so the voter can log in later and claim their profile.
