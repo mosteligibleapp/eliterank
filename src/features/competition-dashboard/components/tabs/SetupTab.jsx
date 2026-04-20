@@ -209,7 +209,7 @@ export default function SetupTab({
     } else {
       await createCustomBonusTask(competitionId, {
         ...data,
-        createdBy: currentUser?.id || null,
+        createdBy: reviewerId || null,
       });
     }
     setShowCustomTaskModal(false);
@@ -225,12 +225,12 @@ export default function SetupTab({
   };
 
   const handleApproveSubmission = async (submissionId) => {
-    if (!currentUser?.id) {
+    if (!reviewerId) {
       toast?.error?.('You must be signed in to review submissions.');
       return;
     }
     setReviewingId(submissionId);
-    const result = await reviewBonusSubmission(submissionId, currentUser.id, 'approve');
+    const result = await reviewBonusSubmission(submissionId, reviewerId, 'approve');
     setReviewingId(null);
     if (!result?.success) {
       toast?.error?.(result?.error || 'Failed to approve submission.');
@@ -242,12 +242,12 @@ export default function SetupTab({
   };
 
   const handleRejectSubmission = async (submissionId) => {
-    if (!currentUser?.id) {
+    if (!reviewerId) {
       toast?.error?.('You must be signed in to review submissions.');
       return;
     }
     setReviewingId(submissionId);
-    const result = await reviewBonusSubmission(submissionId, currentUser.id, 'reject', rejectionReason);
+    const result = await reviewBonusSubmission(submissionId, reviewerId, 'reject', rejectionReason);
     setReviewingId(null);
     setRejectingId(null);
     setRejectionReason('');
