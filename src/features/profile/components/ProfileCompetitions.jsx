@@ -140,24 +140,36 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
   const activeRound = realRound || previewRound;
   const showInlineVoting = !!activeRound && !!entry.contestant?.id;
 
-  return (
-    <a
-      href={url}
-      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+  // When the voting panel is visible, the outer <a> causes button clicks
+  // to bubble and trigger navigation. Split the card into a clickable
+  // "link area" (top of card) and a non-link "voting area" (bottom) that
+  // are siblings — so button clicks in the voting panel never reach the
+  // link. When there's no voting panel, the old anchor-wrapped layout is
+  // fine and keeps full-card-click behavior.
+  const CardBody = (
+    <div
+      style={{
+        padding: isMobile ? spacing.md : spacing.lg,
+        borderRadius: borderRadius.lg,
+        background: isHovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${isHovered ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.06)'}`,
+        transition: 'all 0.2s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: spacing.sm,
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div
+      <a
+        href={url}
         style={{
-          padding: isMobile ? spacing.md : spacing.lg,
-          borderRadius: borderRadius.lg,
-          background: isHovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-          border: `1px solid ${isHovered ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.06)'}`,
-          transition: 'all 0.2s ease',
-          cursor: 'pointer',
+          textDecoration: 'none',
+          color: 'inherit',
           display: 'flex',
           flexDirection: 'column',
           gap: spacing.sm,
+          cursor: 'pointer',
         }}
       >
         {/* Row 1: Org logo + org name + role badge */}
@@ -212,49 +224,51 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
               <ChevronRight size={14} />
             </div>
         </div>
+      </a>
 
-        {/* Inline voting panel — active voting rounds only */}
-        {showInlineVoting && (
-          <CompetitionCardVoting
-            contestant={entry.contestant}
-            competition={competition}
-            currentRound={activeRound}
-            isPreview={isPreview}
-          />
-        )}
+      {/* Inline voting panel — sibling to the link, not inside it, so
+          button clicks never bubble into the <a>'s navigation. */}
+      {showInlineVoting && (
+        <CompetitionCardVoting
+          contestant={entry.contestant}
+          competition={competition}
+          currentRound={activeRound}
+          isPreview={isPreview}
+        />
+      )}
 
-        {/* Unclaimed CTA */}
-        {entry.isUnclaimed && entry.nomination && (
-          <div
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onAcceptClick(entry.nomination);
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              padding: `${spacing.xs} ${spacing.md}`,
-              background: 'rgba(212, 175, 55, 0.15)',
-              border: `1px solid ${colors.gold.primary}`,
-              borderRadius: borderRadius.md,
-              color: colors.gold.primary,
-              fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.semibold,
-              cursor: 'pointer',
-              marginTop: spacing.xs,
-              alignSelf: 'flex-start',
-            }}
-          >
-            Accept or Decline
-            <ArrowRight size={13} />
-          </div>
-        )}
-      </div>
-
-    </a>
+      {/* Unclaimed CTA */}
+      {entry.isUnclaimed && entry.nomination && (
+        <div
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onAcceptClick(entry.nomination);
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: spacing.sm,
+            padding: `${spacing.xs} ${spacing.md}`,
+            background: 'rgba(212, 175, 55, 0.15)',
+            border: `1px solid ${colors.gold.primary}`,
+            borderRadius: borderRadius.md,
+            color: colors.gold.primary,
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.semibold,
+            cursor: 'pointer',
+            marginTop: spacing.xs,
+            alignSelf: 'flex-start',
+          }}
+        >
+          Accept or Decline
+          <ArrowRight size={13} />
+        </div>
+      )}
+    </div>
   );
+
+  return CardBody;
 }
 
 export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false, isPreview = false }) {
