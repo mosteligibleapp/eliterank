@@ -424,6 +424,10 @@ export function useCompetitionDashboard(competitionId) {
           charityName: competition.charity_name || null,
           charityLogoUrl: competition.charity_logo_url || null,
           charityWebsiteUrl: competition.charity_website_url || null,
+          // Timeline arrays — pass through so computeCompetitionPhase can
+          // detect between-rounds vs. nominations correctly.
+          nomination_periods: competition.nomination_periods || [],
+          voting_rounds: competition.voting_rounds || [],
         } : null,
       });
     } catch (err) {
