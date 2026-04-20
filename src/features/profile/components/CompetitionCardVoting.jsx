@@ -196,7 +196,7 @@ export default function CompetitionCardVoting({
           </div>
         ) : (
           <>
-            {/* Primary: paid votes — preset chips + big purchase CTA */}
+            {/* Primary: paid votes — preset chips + custom input + purchase CTA */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               <div style={{
                 display: 'flex',
@@ -232,10 +232,72 @@ export default function CompetitionCardVoting({
                 })}
               </div>
 
+              {/* Custom amount — bulk buyers can type any number. Presets
+                  above just prefill this same field. */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.sm,
+                padding: `${spacing.xs} ${spacing.sm}`,
+                background: 'rgba(0,0,0,0.25)',
+                border: `1px solid ${colors.border.primary}`,
+                borderRadius: borderRadius.md,
+              }}>
+                <span style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.muted,
+                  whiteSpace: 'nowrap',
+                }}>
+                  or enter amount
+                </span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  max="100000"
+                  value={selectedCount}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === '') {
+                      setSelectedCount('');
+                      return;
+                    }
+                    const n = Math.max(1, Math.min(100000, parseInt(raw, 10) || 0));
+                    setSelectedCount(n);
+                  }}
+                  onBlur={(e) => {
+                    // Snap empty / invalid back to 1 so the CTA stays valid.
+                    if (!e.target.value || Number(e.target.value) < 1) {
+                      setSelectedCount(1);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    padding: `${spacing.xs} 0`,
+                    background: 'transparent',
+                    border: 'none',
+                    color: colors.text.primary,
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.semibold,
+                    textAlign: 'right',
+                    outline: 'none',
+                    MozAppearance: 'textfield',
+                  }}
+                />
+                <span style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.muted,
+                }}>
+                  votes
+                </span>
+              </div>
+
               <button
                 type="button"
                 onClick={openBuyVotes}
-                disabled={busy}
+                disabled={busy || !selectedCount || selectedCount < 1}
                 style={{
                   padding: `${spacing.md} ${spacing.md}`,
                   background: gradients.gold,
@@ -244,7 +306,7 @@ export default function CompetitionCardVoting({
                   borderRadius: borderRadius.md,
                   fontSize: typography.fontSize.base,
                   fontWeight: typography.fontWeight.semibold,
-                  cursor: busy ? 'not-allowed' : 'pointer',
+                  cursor: busy || !selectedCount ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -252,7 +314,7 @@ export default function CompetitionCardVoting({
                 }}
               >
                 <CreditCard size={16} />
-                Purchase {selectedCount} {selectedCount === 1 ? 'Vote' : 'Votes'} — ${total}
+                Purchase {selectedCount || 0} {selectedCount === 1 ? 'Vote' : 'Votes'} — ${total.toLocaleString()}
               </button>
             </div>
 
@@ -373,7 +435,7 @@ export default function CompetitionCardVoting({
             toast?.success?.('Votes purchased!');
           }}
           currentRound={roundForModal}
-          initialVoteCount={selectedCount}
+          initialVoteCount={Number(selectedCount) || 1}
         />
       )}
     </>
