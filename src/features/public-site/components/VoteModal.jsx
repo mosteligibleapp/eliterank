@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle, CreditCard, X } from 'lucide-react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Modal, Button, Avatar } from '../../../components/ui';
@@ -24,6 +24,7 @@ export default function VoteModal({
   onVoteSuccess,
   currentRound,
   initialVoteCount = 10,
+  autoCheckout = false,
 }) {
   const userId = user?.id;
   const toast = useToast();
@@ -87,6 +88,20 @@ export default function VoteModal({
 
     checkVoteStatus();
   }, [isOpen, userId, competitionId]);
+
+  // Auto-initiate the Stripe purchase flow when the modal opens in
+  // autoCheckout mode (invoked from the inline card's "Purchase" CTA).
+  // Only for authenticated voters — logged-out still see the login prompt
+  // in the buy section since we don't support anonymous paid votes yet.
+  const autoCheckoutTriggered = useRef(false);
+  useEffect(() => {
+    if (!isOpen) { autoCheckoutTriggered.current = false; return; }
+    if (!autoCheckout || autoCheckoutTriggered.current) return;
+    if (!userId || !hasActiveRound || !stripeConfigured) return;
+    autoCheckoutTriggered.current = true;
+    handleInitiatePurchase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, autoCheckout, userId, hasActiveRound, stripeConfigured]);
 
   // Handle free vote submission
   const handleFreeVote = async () => {
@@ -614,7 +629,10 @@ export default function VoteModal({
         </p>
       </div>
 
-      {/* Free Vote Section - Compact */}
+      {/* Free Vote Section - Compact (hidden when autoCheckout so the
+          modal feels like a dedicated purchase flow when opened from the
+          inline card's "Purchase" CTA). */}
+      {!autoCheckout && (
       <div style={{ marginBottom: spacing.md }}>
         {!isAuthenticated ? (
           <>
@@ -705,13 +723,16 @@ export default function VoteModal({
           </>
         )}
       </div>
+      )}
 
-      {/* Divider */}
+      {/* Divider (hidden in autoCheckout since free-vote section is gone) */}
+      {!autoCheckout && (
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
         <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
         <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>or buy votes</span>
         <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
       </div>
+      )}
 
       {/* Vote Count Selector - Compact */}
       <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.md }}>

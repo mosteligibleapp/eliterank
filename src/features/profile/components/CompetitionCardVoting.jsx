@@ -436,6 +436,7 @@ export default function CompetitionCardVoting({
           }}
           currentRound={roundForModal}
           initialVoteCount={Number(selectedCount) || 1}
+          autoCheckout
         />
       )}
     </>
