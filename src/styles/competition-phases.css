@@ -155,7 +155,10 @@
 }
 
 .competition-header-compact .org-logo {
-  width: 100px;
+  /* Square icon (logo_url) in compact mode — a wordmark fallback still
+     fits because .org-logo img uses object-fit: contain. */
+  width: 56px;
+  height: 56px;
 }
 
 .competition-header-compact .org-logo svg {

@@ -19,7 +19,12 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
     complete: 'phase-badge-complete',
   }[badgeVariant] || '';
 
-  const headerLogo = organization?.header_logo_url || organization?.logo_url;
+  // In compact mode (leaderboard / prizes) prefer the square icon logo over
+  // the wide wordmark so the header takes less vertical space and the
+  // primary content sits above the fold.
+  const headerLogo = compact
+    ? (organization?.logo_url || organization?.header_logo_url)
+    : (organization?.header_logo_url || organization?.logo_url);
   const websiteUrl = organization?.website_url;
 
   const logoContent = headerLogo ? (
