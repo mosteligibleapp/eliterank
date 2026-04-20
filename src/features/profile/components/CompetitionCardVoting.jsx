@@ -74,6 +74,10 @@ export default function CompetitionCardVoting({
   const openBuyVotes = (e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
+    if (isPreview) {
+      toast?.info?.('Preview mode — no payment was initiated.');
+      return;
+    }
     setShowVoteModal(true);
   };
 

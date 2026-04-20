@@ -88,6 +88,28 @@ serve(async (req) => {
           )
         }
 
+        // For anonymous paid votes the client doesn't collect an email — the
+        // buyer enters it in the Stripe PaymentElement instead. Fall back to
+        // the charge's billing_details.email so the vote can still be
+        // attributed (and later claimed via magic link).
+        let resolvedVoterEmail = voter_email || ''
+        if (!resolvedVoterEmail && paymentIntent.latest_charge) {
+          try {
+            const chargeId = typeof paymentIntent.latest_charge === 'string'
+              ? paymentIntent.latest_charge
+              : paymentIntent.latest_charge.id
+            const charge = await stripe.charges.retrieve(chargeId)
+            resolvedVoterEmail = charge.billing_details?.email || ''
+          } catch (err) {
+            console.warn('Could not retrieve charge for billing email:', err)
+          }
+        }
+        // Syntax validation — reject anything obviously malformed.
+        if (resolvedVoterEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(resolvedVoterEmail)) {
+          console.warn('Discarding malformed voter email:', resolvedVoterEmail)
+          resolvedVoterEmail = ''
+        }
+
         const voteCount = parseInt(vote_count, 10)
         const amountPaid = paymentIntent.amount / 100 // Convert from cents to dollars
 
@@ -112,7 +134,7 @@ serve(async (req) => {
           .insert({
             competition_id,
             contestant_id,
-            voter_email: voter_email || null,
+            voter_email: resolvedVoterEmail || null,
             vote_count: voteCount,
             amount_paid: amountPaid,
             payment_intent_id: paymentIntent.id,

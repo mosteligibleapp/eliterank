@@ -91,17 +91,17 @@ export default function VoteModal({
 
   // Auto-initiate the Stripe purchase flow when the modal opens in
   // autoCheckout mode (invoked from the inline card's "Purchase" CTA).
-  // Only for authenticated voters — logged-out still see the login prompt
-  // in the buy section since we don't support anonymous paid votes yet.
+  // Works for both authenticated and anonymous voters — Stripe collects
+  // the billing email during checkout for the anonymous path.
   const autoCheckoutTriggered = useRef(false);
   useEffect(() => {
     if (!isOpen) { autoCheckoutTriggered.current = false; return; }
     if (!autoCheckout || autoCheckoutTriggered.current) return;
-    if (!userId || !hasActiveRound || !stripeConfigured) return;
+    if (!hasActiveRound || !stripeConfigured) return;
     autoCheckoutTriggered.current = true;
     handleInitiatePurchase();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, autoCheckout, userId, hasActiveRound, stripeConfigured]);
+  }, [isOpen, autoCheckout, hasActiveRound, stripeConfigured]);
 
   // Handle free vote submission
   const handleFreeVote = async () => {
@@ -186,15 +186,20 @@ export default function VoteModal({
 
   // Handle successful payment
   const handlePaymentSuccess = async () => {
-    // Record the vote (webhook will also record it, but this gives immediate feedback)
-    await recordPaidVote({
-      paymentIntentId,
-      competitionId,
-      contestantId: contestant.id,
-      voteCount: selectedVoteCount,
-      amountPaid: selectedVoteCount, // $1 per vote
-      voterEmail: user?.email,
-    });
+    // For authenticated voters we record the vote client-side for immediate
+    // feedback; the webhook will dedup on payment_intent_id. For anonymous
+    // voters we let the webhook be the source of truth so voter_email is
+    // populated from Stripe's billing details instead of left null.
+    if (userId) {
+      await recordPaidVote({
+        paymentIntentId,
+        competitionId,
+        contestantId: contestant.id,
+        voteCount: selectedVoteCount,
+        amountPaid: selectedVoteCount, // $1 per vote
+        voterEmail: user?.email,
+      });
+    }
 
     setVotesAdded(selectedVoteCount);
     setShowPaymentForm(false);
@@ -378,6 +383,7 @@ export default function VoteModal({
                   onCancel={handleBackFromPayment}
                   amount={selectedVoteCount}
                   contestantName={contestant.name}
+                  collectEmail={!isAuthenticated}
                 />
               </Elements>
             )}
@@ -831,7 +837,7 @@ export default function VoteModal({
 /**
  * Payment checkout form using Stripe Elements
  */
-function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName }) {
+function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, collectEmail = false }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -879,6 +885,10 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName }) {
       <PaymentElement
         options={{
           layout: 'tabs',
+          // For anonymous buyers, force email collection so the webhook
+          // can attribute the paid vote without us prompting for it
+          // separately on the card.
+          fields: collectEmail ? { billingDetails: { email: 'always' } } : undefined,
         }}
       />
 
