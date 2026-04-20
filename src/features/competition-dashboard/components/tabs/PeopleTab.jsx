@@ -969,10 +969,10 @@ export default function PeopleTab({
         gap: spacing.sm,
       }}>
         {[
-          { label: 'Nominees', value: activeNominees.length, color: colors.gold.primary },
-          { label: 'Ready', value: nomineesWithProfile.length, color: '#3b82f6' },
-          { label: 'Awaiting', value: externalNominees.length, color: '#f59e0b' },
-          { label: 'Approved', value: contestants.length, color: '#22c55e' },
+          { label: 'Nominees', value: nominees.length + contestants.length, color: colors.gold.primary },
+          { label: 'Ready to Approve', value: nomineesWithProfile.length, color: '#3b82f6' },
+          { label: 'Awaiting Response', value: externalNominees.length, color: '#f59e0b' },
+          { label: 'Contestants', value: contestants.length, color: '#22c55e' },
           { label: 'Declined', value: declinedNominees.length, color: '#ef4444' },
         ].map((stat, i, arr) => (
           <div
