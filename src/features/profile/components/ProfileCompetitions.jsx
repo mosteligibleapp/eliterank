@@ -172,32 +172,29 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           cursor: 'pointer',
         }}
       >
-        {/* Row 1: Org logo + org name + role badge */}
+        {/* Row 1: Org logo (branding) + competition name + role badge.
+            Org name is intentionally omitted — the logo carries the brand
+            and the competition name often contains the org name already. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-            {org?.logo_url && <OrganizationLogo logo={org.logo_url} size={32} />}
-            {org?.name && (
-              <span style={{
-                fontSize: typography.fontSize.sm,
-                color: colors.gold.primary,
-                fontWeight: typography.fontWeight.medium,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}>
-                {org.name}
-              </span>
+            {org?.logo_url && (
+              <OrganizationLogo
+                logo={org.logo_url}
+                size={28}
+                alt={org?.name || 'Organization'}
+              />
             )}
+            <h4 style={{
+              fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.primary,
+              lineHeight: 1.3,
+              flex: 1,
+              minWidth: 0,
+            }}>
+              {competition.name || entry.name}
+            </h4>
             <RoleBadge role={entry.role} />
         </div>
-
-        {/* Row 2: Competition name */}
-        <h4 style={{
-          fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
-          fontWeight: typography.fontWeight.semibold,
-          color: colors.text.primary,
-          lineHeight: 1.3,
-        }}>
-          {competition.name || entry.name}
-        </h4>
 
         {/* Row 3: Season + City + View */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>

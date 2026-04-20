@@ -412,22 +412,10 @@ export default function EliteRankCityModal({
             )}
           </div>
 
-          {/* Bottom Content */}
+          {/* Bottom Content — the competition name carries the brand;
+              the logo is already shown in the card corner, so we don't
+              need the uppercase org label repeating the name. */}
           <div style={{ marginTop: 'auto' }}>
-            {org && (
-              <p style={{
-                fontSize: typography.fontSize.xs,
-                color: colors.gold.primary,
-                fontWeight: typography.fontWeight.medium,
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                marginBottom: spacing.xs,
-                opacity: 0.9,
-              }}>
-                {org.name}
-              </p>
-            )}
-
             <h3 style={{
               fontSize: isMobile ? typography.fontSize.xl : typography.fontSize['2xl'],
               fontWeight: typography.fontWeight.bold,
