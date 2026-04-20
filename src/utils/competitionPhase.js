@@ -199,33 +199,6 @@ export function computeTimelinePhase(competition) {
     }
   }
 
-  // Pre-voting: nominations have ended but the first voting round hasn't
-  // started yet. Handle both data shapes (new nomination_periods array and
-  // legacy flat fields) up front so neither path can fall through to the
-  // default NOMINATION return below.
-  {
-    let nominationEndTime = null;
-    if (nominationPeriods.length > 0) {
-      const sortedPeriods = [...nominationPeriods].sort(
-        (a, b) => (a.period_order || 0) - (b.period_order || 0)
-      );
-      const lastPeriod = sortedPeriods[sortedPeriods.length - 1];
-      nominationEndTime = lastPeriod?.end_date ? new Date(lastPeriod.end_date) : null;
-    } else {
-      nominationEndTime = getDate('nomination_end');
-    }
-    const firstRound = sortedRounds[0];
-    const firstRoundStart = firstRound?.start_date ? new Date(firstRound.start_date) : null;
-    if (
-      nominationEndTime &&
-      now >= nominationEndTime &&
-      firstRoundStart &&
-      now < firstRoundStart
-    ) {
-      return TIMELINE_PHASES.BETWEEN_ROUNDS;
-    }
-  }
-
   // Check if currently in any nomination/prospecting period (new system)
   if (nominationPeriods.length > 0) {
     const sortedPeriods = [...nominationPeriods].sort((a, b) => (a.period_order || 0) - (b.period_order || 0));
@@ -268,6 +241,14 @@ export function computeTimelinePhase(competition) {
       }
       if (now < nominationStart) {
         return TIMELINE_PHASES.NOMINATION; // Upcoming
+      }
+      // After nominations, before first voting round — mirrors the periods
+      // branch above so legacy flat-field competitions don't fall through
+      // to the default NOMINATION return.
+      const firstRound = sortedRounds[0];
+      const firstRoundStart = firstRound?.start_date ? new Date(firstRound.start_date) : null;
+      if (firstRoundStart && now < firstRoundStart) {
+        return TIMELINE_PHASES.BETWEEN_ROUNDS;
       }
     }
   }
