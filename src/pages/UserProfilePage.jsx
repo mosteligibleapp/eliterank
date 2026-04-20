@@ -108,6 +108,7 @@ export default function UserProfilePage() {
         return;
       }
 
+      window.dispatchEvent(new Event('profile-updated'));
       setIsEditing(false);
       setEditingData(null);
     } catch {
