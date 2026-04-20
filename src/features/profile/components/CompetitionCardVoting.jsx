@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Heart, Loader, Check, Plus, Mail } from 'lucide-react';
+import { Heart, Loader, Check, CreditCard, Mail, ChevronDown, ChevronUp } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { useSupabaseAuth } from '../../../hooks';
 import { useToast } from '../../../contexts/ToastContext';
@@ -10,15 +10,23 @@ import {
 } from '../../../lib/votes';
 import VoteModal from '../../public-site/components/VoteModal';
 
+const VOTE_PRESETS = [1, 10, 25, 50, 100];
+
 /**
  * CompetitionCardVoting
  *
- * Inline voting panel rendered inside the contestant's CompetitionCard on
- * their public profile page during an active voting round. Supports:
- *   - Logged-in voters: one-tap free daily vote
- *   - Logged-out voters: email + first/last name form, casts a free vote
- *     through /api/cast-anonymous-vote (bot + rate-limit protected)
- *   - Both: "Buy more votes" button that opens the existing VoteModal
+ * Inline voting panel rendered on the contestant's public profile card
+ * during an active voting round. Paid votes are the primary CTA (preset
+ * chips + "Purchase X Votes"), free daily vote sits below as a secondary
+ * action.
+ *
+ * - Logged-in free vote: one-tap, uses submitFreeVote directly.
+ * - Logged-out free vote: expands an inline email + first/last form,
+ *   routed through /api/cast-anonymous-vote (bot + rate-limit protected).
+ * - Any paid vote click opens the existing VoteModal preloaded with the
+ *   selected preset count.
+ * - In preview mode (host previewing voting phase), mutations are
+ *   short-circuited with a "no vote was cast" toast.
  */
 export default function CompetitionCardVoting({
   contestant,
@@ -30,10 +38,13 @@ export default function CompetitionCardVoting({
   const toast = useToast();
   const competitionId = competition?.id;
   const contestantId = contestant?.id;
+  const pricePerVote = Number(competition?.price_per_vote) || 1;
 
+  const [selectedCount, setSelectedCount] = useState(10);
   const [busy, setBusy] = useState(false);
   const [castSuccess, setCastSuccess] = useState(false);
   const [alreadyVoted, setAlreadyVoted] = useState(false);
+  const [showFreeForm, setShowFreeForm] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
 
   // Logged-out form state
@@ -44,7 +55,6 @@ export default function CompetitionCardVoting({
   const [error, setError] = useState('');
   const mountedAtRef = useRef(Date.now());
 
-  // Track whether an authenticated voter already used their free vote today.
   useEffect(() => {
     if (!user?.id || !competitionId) return;
     let cancelled = false;
@@ -56,15 +66,28 @@ export default function CompetitionCardVoting({
 
   const roundForModal = useMemo(() => {
     if (!currentRound) return null;
-    return {
-      ...currentRound,
-      isActive: true,
-    };
+    return { ...currentRound, isActive: true };
   }, [currentRound]);
 
-  const handleAuthenticatedVote = async (e) => {
+  const stopPropagation = (e) => { e.stopPropagation(); };
+
+  const openBuyVotes = (e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
+    setShowVoteModal(true);
+  };
+
+  const handleFreeClick = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    if (user?.id) {
+      handleAuthenticatedVote();
+    } else {
+      setShowFreeForm((prev) => !prev);
+    }
+  };
+
+  const handleAuthenticatedVote = async () => {
     if (busy || alreadyVoted || !contestantId || !competitionId) return;
 
     if (isPreview) {
@@ -119,24 +142,13 @@ export default function CompetitionCardVoting({
 
     if (result?.success) {
       setCastSuccess(true);
-      toast?.success?.(`Vote cast! Check your email for a link to log in.`);
+      toast?.success?.('Vote cast! Check your email for a link to log in.');
     } else {
       setError(result?.error || 'Could not cast your vote.');
     }
   };
 
-  const openBuyVotes = (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
-    setShowVoteModal(true);
-  };
-
-  const stopPropagation = (e) => {
-    // The card is wrapped in an <a> — any interactive children need to not
-    // bubble click events up, otherwise the voter gets navigated to the
-    // competition page mid-form.
-    e.stopPropagation();
-  };
+  const total = selectedCount * pricePerVote;
 
   return (
     <>
@@ -176,29 +188,161 @@ export default function CompetitionCardVoting({
             fontSize: typography.fontSize.sm,
           }}>
             <Check size={16} />
-            <span>Vote cast! {user?.id ? 'Come back tomorrow for another free vote.' : 'Check your email for a magic-link to log in.'}</span>
+            <span>
+              Vote cast! {user?.id
+                ? 'Come back tomorrow for another free vote.'
+                : 'Check your email for a magic-link to log in.'}
+            </span>
           </div>
-        ) : user?.id ? (
-          <AuthedCta
-            busy={busy}
-            alreadyVoted={alreadyVoted}
-            onVote={handleAuthenticatedVote}
-            onBuy={openBuyVotes}
-          />
         ) : (
-          <AnonForm
-            email={email}
-            setEmail={setEmail}
-            firstName={firstName}
-            setFirstName={setFirstName}
-            lastName={lastName}
-            setLastName={setLastName}
-            company={company}
-            setCompany={setCompany}
-            busy={busy}
-            onVote={handleAnonymousVote}
-            onBuy={openBuyVotes}
-          />
+          <>
+            {/* Primary: paid votes — preset chips + big purchase CTA */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              <div style={{
+                display: 'flex',
+                gap: spacing.xs,
+                flexWrap: 'wrap',
+              }}>
+                {VOTE_PRESETS.map((count) => {
+                  const active = selectedCount === count;
+                  return (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCount(count);
+                      }}
+                      style={{
+                        flex: 1,
+                        minWidth: '52px',
+                        padding: `${spacing.sm} 0`,
+                        background: active ? colors.gold.primary : 'rgba(255,255,255,0.04)',
+                        color: active ? '#0a0a0f' : colors.text.secondary,
+                        border: `1px solid ${active ? colors.gold.primary : colors.border.primary}`,
+                        borderRadius: borderRadius.md,
+                        fontSize: typography.fontSize.sm,
+                        fontWeight: typography.fontWeight.semibold,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {count}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={openBuyVotes}
+                disabled={busy}
+                style={{
+                  padding: `${spacing.md} ${spacing.md}`,
+                  background: gradients.gold,
+                  color: '#0a0a0f',
+                  border: 'none',
+                  borderRadius: borderRadius.md,
+                  fontSize: typography.fontSize.base,
+                  fontWeight: typography.fontWeight.semibold,
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: spacing.xs,
+                }}
+              >
+                <CreditCard size={16} />
+                Purchase {selectedCount} {selectedCount === 1 ? 'Vote' : 'Votes'} — ${total}
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              color: colors.text.muted,
+              fontSize: typography.fontSize.xs,
+            }}>
+              <div style={{ flex: 1, height: '1px', background: colors.border.secondary }} />
+              <span>or cast your free daily vote</span>
+              <div style={{ flex: 1, height: '1px', background: colors.border.secondary }} />
+            </div>
+
+            {/* Secondary: free vote */}
+            {user?.id ? (
+              <button
+                type="button"
+                onClick={handleFreeClick}
+                disabled={busy || alreadyVoted}
+                style={{
+                  padding: `${spacing.sm} ${spacing.md}`,
+                  background: 'transparent',
+                  color: alreadyVoted ? colors.text.muted : colors.gold.primary,
+                  border: `1px solid ${alreadyVoted ? colors.border.primary : 'rgba(212,175,55,0.4)'}`,
+                  borderRadius: borderRadius.md,
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: typography.fontWeight.medium,
+                  cursor: busy || alreadyVoted ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: spacing.xs,
+                }}
+              >
+                {busy ? (
+                  <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : alreadyVoted ? (
+                  <>
+                    <Check size={14} /> Free vote used today
+                  </>
+                ) : (
+                  <>
+                    <Heart size={14} /> Cast free vote
+                  </>
+                )}
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleFreeClick}
+                  style={{
+                    padding: `${spacing.sm} ${spacing.md}`,
+                    background: 'transparent',
+                    color: colors.gold.primary,
+                    border: `1px solid rgba(212,175,55,0.4)`,
+                    borderRadius: borderRadius.md,
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.medium,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: spacing.xs,
+                  }}
+                >
+                  <Heart size={14} /> Cast free vote
+                  {showFreeForm ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+
+                {showFreeForm && (
+                  <AnonForm
+                    email={email}
+                    setEmail={setEmail}
+                    firstName={firstName}
+                    setFirstName={setFirstName}
+                    lastName={lastName}
+                    setLastName={setLastName}
+                    company={company}
+                    setCompany={setCompany}
+                    busy={busy}
+                    onSubmit={handleAnonymousVote}
+                  />
+                )}
+              </>
+            )}
+          </>
         )}
 
         {error && (
@@ -211,8 +355,6 @@ export default function CompetitionCardVoting({
         )}
       </div>
 
-      {/* Paid votes flow — reuse the existing modal. The modal handles its
-          own login prompt for logged-out voters who click Buy. */}
       {roundForModal && (
         <VoteModal
           isOpen={showVoteModal}
@@ -231,69 +373,10 @@ export default function CompetitionCardVoting({
             toast?.success?.('Votes purchased!');
           }}
           currentRound={roundForModal}
+          initialVoteCount={selectedCount}
         />
       )}
     </>
-  );
-}
-
-function AuthedCta({ busy, alreadyVoted, onVote, onBuy }) {
-  return (
-    <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
-      <button
-        type="button"
-        onClick={onVote}
-        disabled={busy || alreadyVoted}
-        style={{
-          flex: 1,
-          minWidth: '140px',
-          padding: `${spacing.sm} ${spacing.md}`,
-          background: alreadyVoted ? 'rgba(255,255,255,0.05)' : gradients.gold,
-          color: alreadyVoted ? colors.text.muted : '#0a0a0f',
-          border: 'none',
-          borderRadius: borderRadius.md,
-          fontSize: typography.fontSize.sm,
-          fontWeight: typography.fontWeight.semibold,
-          cursor: busy || alreadyVoted ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: spacing.xs,
-        }}
-      >
-        {busy ? (
-          <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-        ) : alreadyVoted ? (
-          <>
-            <Check size={14} /> Voted today
-          </>
-        ) : (
-          <>
-            <Heart size={14} /> Cast free vote
-          </>
-        )}
-      </button>
-      <button
-        type="button"
-        onClick={onBuy}
-        disabled={busy}
-        style={{
-          padding: `${spacing.sm} ${spacing.md}`,
-          background: 'rgba(255,255,255,0.04)',
-          color: colors.text.primary,
-          border: `1px solid ${colors.border.primary}`,
-          borderRadius: borderRadius.md,
-          fontSize: typography.fontSize.sm,
-          fontWeight: typography.fontWeight.medium,
-          cursor: busy ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.xs,
-        }}
-      >
-        <Plus size={14} /> Buy votes
-      </button>
-    </div>
   );
 }
 
@@ -303,8 +386,7 @@ function AnonForm({
   lastName, setLastName,
   company, setCompany,
   busy,
-  onVote,
-  onBuy,
+  onSubmit,
 }) {
   const inputStyle = {
     flex: 1,
@@ -325,10 +407,10 @@ function AnonForm({
 
   return (
     <form
-      onSubmit={onVote}
+      onSubmit={onSubmit}
       style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}
     >
-      {/* Honeypot — hidden from sighted users, bots fill it */}
+      {/* Honeypot */}
       <input
         type="text"
         name="company"
@@ -336,13 +418,7 @@ function AnonForm({
         autoComplete="off"
         value={company}
         onChange={(e) => setCompany(e.target.value)}
-        style={{
-          position: 'absolute',
-          left: '-10000px',
-          width: '1px',
-          height: '1px',
-          opacity: 0,
-        }}
+        style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', opacity: 0 }}
         aria-hidden="true"
       />
 
@@ -385,56 +461,32 @@ function AnonForm({
         />
       </div>
 
-      <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          style={{
-            flex: 1,
-            minWidth: '140px',
-            padding: `${spacing.sm} ${spacing.md}`,
-            background: canSubmit ? gradients.gold : 'rgba(255,255,255,0.05)',
-            color: canSubmit ? '#0a0a0f' : colors.text.muted,
-            border: 'none',
-            borderRadius: borderRadius.md,
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.semibold,
-            cursor: canSubmit ? 'pointer' : 'not-allowed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: spacing.xs,
-          }}
-        >
-          {busy ? (
-            <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-          ) : (
-            <>
-              <Heart size={14} /> Cast free vote
-            </>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={onBuy}
-          disabled={busy}
-          style={{
-            padding: `${spacing.sm} ${spacing.md}`,
-            background: 'rgba(255,255,255,0.04)',
-            color: colors.text.primary,
-            border: `1px solid ${colors.border.primary}`,
-            borderRadius: borderRadius.md,
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.medium,
-            cursor: busy ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.xs,
-          }}
-        >
-          <Plus size={14} /> Buy votes
-        </button>
-      </div>
+      <button
+        type="submit"
+        disabled={!canSubmit}
+        style={{
+          padding: `${spacing.sm} ${spacing.md}`,
+          background: canSubmit ? gradients.gold : 'rgba(255,255,255,0.05)',
+          color: canSubmit ? '#0a0a0f' : colors.text.muted,
+          border: 'none',
+          borderRadius: borderRadius.md,
+          fontSize: typography.fontSize.sm,
+          fontWeight: typography.fontWeight.semibold,
+          cursor: canSubmit ? 'pointer' : 'not-allowed',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: spacing.xs,
+        }}
+      >
+        {busy ? (
+          <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+        ) : (
+          <>
+            <Heart size={14} /> Submit free vote
+          </>
+        )}
+      </button>
 
       <p style={{
         fontSize: typography.fontSize.xs,

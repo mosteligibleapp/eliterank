@@ -23,6 +23,7 @@ export default function VoteModal({
   user,
   onVoteSuccess,
   currentRound,
+  initialVoteCount = 10,
 }) {
   const userId = user?.id;
   const toast = useToast();
@@ -41,7 +42,12 @@ export default function VoteModal({
   const [clientSecret, setClientSecret] = useState(null);
   const [paymentIntentId, setPaymentIntentId] = useState(null);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
-  const [selectedVoteCount, setSelectedVoteCount] = useState(10);
+  const [selectedVoteCount, setSelectedVoteCount] = useState(initialVoteCount);
+
+  // Sync when parent passes a new preset (e.g., opening modal with a chip selected)
+  useEffect(() => {
+    if (isOpen && initialVoteCount) setSelectedVoteCount(initialVoteCount);
+  }, [isOpen, initialVoteCount]);
 
   const stripeConfigured = isStripeConfigured();
 
