@@ -19,6 +19,17 @@ const TASK_ICONS = {
   intro_video: Video,
 };
 
+// Fallback subtitles shown when a task has no description in the DB
+const TASK_DESCRIPTIONS = {
+  complete_profile: 'Fill out your name, bio, and city',
+  add_photo: 'Upload a profile photo so voters can see you',
+  add_social: 'Connect your Instagram, Twitter, or TikTok',
+  view_how_to_win: 'Read through the competition rules and tips',
+  share_profile: 'Share your contestant profile link externally',
+  intro_video: "Upload a short video telling voters who you are and why you should win",
+  bio_link: 'Add your EliteRank profile link to your social media bio',
+};
+
 /**
  * Progress bar for bonus votes
  */
@@ -72,6 +83,7 @@ const ProgressBar = memo(function ProgressBar({ progress, earned, total }) {
 const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
   const isHostManaged = task.host_managed;
   const Icon = isHostManaged ? MapPin : (task.is_custom ? Upload : (TASK_ICONS[task.task_key] || Gift));
+  const description = task.description || (task.is_custom ? null : TASK_DESCRIPTIONS[task.task_key]);
   const isCompleted = task.completed;
   const isCurrentlyAwarding = isAwarding === task.task_key;
   const isPending = task.requires_approval && task.submission_status === 'pending';
@@ -154,13 +166,13 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
             {task.label}
           </span>
         </div>
-        {task.description && (
+        {description && (
           <p style={{
             fontSize: typography.fontSize.xs,
             color: colors.text.muted,
             marginTop: '2px',
           }}>
-            {task.description}
+            {description}
           </p>
         )}
         {/* Approval status messages */}
