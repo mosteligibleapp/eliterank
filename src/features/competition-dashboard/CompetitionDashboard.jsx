@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, PlayCircle, Clock, AlertCircle
+  Eye, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -29,8 +29,6 @@ export default function CompetitionDashboard({
   onBack,
   onLogout,
   onViewPublicSite,
-  onPreviewVotingPage,
-  onPreviewBetweenRounds,
   currentUserId,
 }) {
   const toast = useToast();
@@ -239,50 +237,6 @@ export default function CompetitionDashboard({
           flexShrink: 0,
         }}>
           <NotificationBell size={isMobile ? 32 : 36} />
-          {onPreviewVotingPage && (
-            <button
-              onClick={onPreviewVotingPage}
-              title="Preview what the public voting page will look like"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.xs,
-                padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
-                background: 'transparent',
-                border: `1px solid ${colors.border.light}`,
-                borderRadius: borderRadius.md,
-                color: colors.text.secondary,
-                fontSize: isMobile ? '11px' : typography.fontSize.sm,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <PlayCircle size={isMobile ? 12 : 14} />
-              {isMobile ? 'Voting' : 'Preview Voting'}
-            </button>
-          )}
-          {onPreviewBetweenRounds && (
-            <button
-              onClick={onPreviewBetweenRounds}
-              title="Preview the interim page between end of nominations and start of voting"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.xs,
-                padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
-                background: 'transparent',
-                border: `1px solid ${colors.border.light}`,
-                borderRadius: borderRadius.md,
-                color: colors.text.secondary,
-                fontSize: isMobile ? '11px' : typography.fontSize.sm,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <Clock size={isMobile ? 12 : 14} />
-              {isMobile ? 'Between' : 'Preview Between Rounds'}
-            </button>
-          )}
           {onViewPublicSite && (
             <button
               onClick={onViewPublicSite}
