@@ -969,7 +969,7 @@ export default function PeopleTab({
         gap: spacing.sm,
       }}>
         {[
-          { label: 'Nominees', value: nominees.length + contestants.length, color: colors.gold.primary },
+          { label: 'Nominees', value: nominees.length, color: colors.gold.primary },
           { label: 'Ready to Approve', value: nomineesWithProfile.length, color: '#3b82f6' },
           { label: 'Awaiting Response', value: externalNominees.length, color: '#f59e0b' },
           { label: 'Contestants', value: contestants.length, color: '#22c55e' },
