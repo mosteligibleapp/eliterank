@@ -9,6 +9,25 @@ import AcceptNominationModal from '../../../components/modals/AcceptNominationMo
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
 import { getCityImage } from '../../../utils/cityImages';
 import { getPhaseDisplayConfig, computeCompetitionPhase } from '../../../utils/competitionPhase';
+import CompetitionCardVoting from './CompetitionCardVoting';
+
+/**
+ * Given a competition with a voting_rounds join, return the currently active
+ * voting round (one whose [start_date, end_date) window contains `now`).
+ * Returns null if no active round.
+ */
+function findActiveVotingRound(competition) {
+  const rounds = competition?.voting_rounds || [];
+  if (!rounds.length) return null;
+  const now = Date.now();
+  const active = rounds.find((r) => {
+    if (r.round_type && r.round_type !== 'voting') return false;
+    const start = r.start_date ? new Date(r.start_date).getTime() : null;
+    const end = r.end_date ? new Date(r.end_date).getTime() : null;
+    return start && end && now >= start && now < end;
+  });
+  return active || null;
+}
 
 function getCompetitionLink(competition) {
   const orgSlug = competition?.organization?.slug || 'most-eligible';
@@ -86,6 +105,14 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
   const votingDate = getVotingStartDate(competition);
   const url = entry.url;
 
+  // Inline voting is only shown for contestant entries during an active
+  // voting round. Nominations / between-rounds / completed phases keep the
+  // card as-is.
+  const activeRound = (entry.role === 'contestant' || entry.role === 'winner')
+    ? findActiveVotingRound(competition)
+    : null;
+  const showInlineVoting = !!activeRound && !!entry.contestant?.id;
+
   return (
     <a
       href={url}
@@ -158,6 +185,15 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
               <ChevronRight size={14} />
             </div>
         </div>
+
+        {/* Inline voting panel — active voting rounds only */}
+        {showInlineVoting && (
+          <CompetitionCardVoting
+            contestant={entry.contestant}
+            competition={competition}
+            currentRound={activeRound}
+          />
+        )}
 
         {/* Unclaimed CTA */}
         {entry.isUnclaimed && entry.nomination && (
@@ -316,6 +352,12 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
       status: comp?.status,
       competition: comp,
       votes: entry.votes || 0,
+      contestant: {
+        id: entry.id,
+        name: entry.name,
+        avatarUrl: entry.avatar_url,
+        votes: entry.votes,
+      },
     });
   });
 

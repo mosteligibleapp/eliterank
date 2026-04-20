@@ -291,6 +291,54 @@ async function updateProfileVotes(userId, voteValue) {
 }
 
 /**
+ * Cast a free daily vote as a logged-out visitor. Hits the
+ * /api/cast-anonymous-vote Vercel route which does bot checks, IP rate
+ * limiting, and the voter-profile bootstrap server-side.
+ *
+ * @param {object} params
+ * @param {string} params.email
+ * @param {string} params.firstName
+ * @param {string} params.lastName
+ * @param {string} params.competitionId
+ * @param {string} params.contestantId
+ * @param {number} params.mountedAt - client ms timestamp when form mounted
+ * @param {string} [params.company] - honeypot value (should be empty)
+ */
+export async function submitAnonymousVote({
+  email,
+  firstName,
+  lastName,
+  competitionId,
+  contestantId,
+  mountedAt,
+  company,
+}) {
+  try {
+    const res = await fetch('/api/cast-anonymous-vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        firstName,
+        lastName,
+        competitionId,
+        contestantId,
+        mountedAt,
+        company,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, error: data?.error || 'Vote failed. Please try again.' };
+    }
+    return { success: true, votesAdded: data?.votesAdded || 1 };
+  } catch (err) {
+    console.error('submitAnonymousVote error:', err);
+    return { success: false, error: 'Network error. Please try again.' };
+  }
+}
+
+/**
  * Get time until free vote resets (midnight local time)
  * @returns {string} - Human readable time until reset
  */
