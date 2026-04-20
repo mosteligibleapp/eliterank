@@ -9,6 +9,47 @@ import AcceptNominationModal from '../../../components/modals/AcceptNominationMo
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
 import { getCityImage } from '../../../utils/cityImages';
 import { getPhaseDisplayConfig, computeCompetitionPhase } from '../../../utils/competitionPhase';
+import CompetitionCardVoting from './CompetitionCardVoting';
+
+/**
+ * Given a competition with a voting_rounds join, return the currently active
+ * voting round (one whose [start_date, end_date) window contains `now`).
+ * Returns null if no active round.
+ */
+function findActiveVotingRound(competition) {
+  const rounds = competition?.voting_rounds || [];
+  if (!rounds.length) return null;
+  const now = Date.now();
+  const active = rounds.find((r) => {
+    if (r.round_type && r.round_type !== 'voting') return false;
+    const start = r.start_date ? new Date(r.start_date).getTime() : null;
+    const end = r.end_date ? new Date(r.end_date).getTime() : null;
+    return start && end && now >= start && now < end;
+  });
+  return active || null;
+}
+
+/**
+ * In preview mode, synthesize a plausible active round so the inline voting
+ * panel renders even when the real voting window hasn't opened. Real
+ * mutations are blocked downstream by the isPreview flag — this exists only
+ * to drive the UI.
+ */
+function synthesizePreviewRound(competition) {
+  const rounds = competition?.voting_rounds || [];
+  const sorted = [...rounds]
+    .filter((r) => !r.round_type || r.round_type === 'voting')
+    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+  const first = sorted[0];
+  return {
+    id: first?.id || 'preview-round',
+    round_order: first?.round_order || 1,
+    round_type: 'voting',
+    start_date: first?.start_date || null,
+    end_date: first?.end_date || null,
+    isActive: true,
+  };
+}
 
 function getCompetitionLink(competition) {
   const orgSlug = competition?.organization?.slug || 'most-eligible';
@@ -78,7 +119,7 @@ function getVotingStartDate(competition) {
   return null;
 }
 
-function CompetitionCard({ entry, onAcceptClick, isMobile }) {
+function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) {
   const [isHovered, setIsHovered] = useState(false);
   const competition = entry.competition || {};
   const cityName = competition.city?.name || competition.city || '';
@@ -86,52 +127,74 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
   const votingDate = getVotingStartDate(competition);
   const url = entry.url;
 
-  return (
-    <a
-      href={url}
-      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+  // Inline voting is only shown for contestant entries during an active
+  // voting round. Nominations / between-rounds / completed phases keep the
+  // card as-is — unless the host is previewing the voting phase via the
+  // dashboard Preview tab (isPreview), in which case we synthesize an
+  // active round from the first voting_rounds row so the panel renders.
+  const isContestantEntry = entry.role === 'contestant' || entry.role === 'winner';
+  const realRound = isContestantEntry ? findActiveVotingRound(competition) : null;
+  const previewRound = isContestantEntry && isPreview && !realRound
+    ? synthesizePreviewRound(competition)
+    : null;
+  const activeRound = realRound || previewRound;
+  const showInlineVoting = !!activeRound && !!entry.contestant?.id;
+
+  // When the voting panel is visible, the outer <a> causes button clicks
+  // to bubble and trigger navigation. Split the card into a clickable
+  // "link area" (top of card) and a non-link "voting area" (bottom) that
+  // are siblings — so button clicks in the voting panel never reach the
+  // link. When there's no voting panel, the old anchor-wrapped layout is
+  // fine and keeps full-card-click behavior.
+  const CardBody = (
+    <div
+      style={{
+        padding: isMobile ? spacing.md : spacing.lg,
+        borderRadius: borderRadius.lg,
+        background: isHovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${isHovered ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.06)'}`,
+        transition: 'all 0.2s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: spacing.sm,
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div
+      <a
+        href={url}
         style={{
-          padding: isMobile ? spacing.md : spacing.lg,
-          borderRadius: borderRadius.lg,
-          background: isHovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-          border: `1px solid ${isHovered ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.06)'}`,
-          transition: 'all 0.2s ease',
-          cursor: 'pointer',
+          textDecoration: 'none',
+          color: 'inherit',
           display: 'flex',
           flexDirection: 'column',
           gap: spacing.sm,
+          cursor: 'pointer',
         }}
       >
-        {/* Row 1: Org logo + org name + role badge */}
+        {/* Row 1: Org logo (branding) + competition name + role badge.
+            Org name is intentionally omitted — the logo carries the brand
+            and the competition name often contains the org name already. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-            {org?.logo_url && <OrganizationLogo logo={org.logo_url} size={32} />}
-            {org?.name && (
-              <span style={{
-                fontSize: typography.fontSize.sm,
-                color: colors.gold.primary,
-                fontWeight: typography.fontWeight.medium,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}>
-                {org.name}
-              </span>
+            {org?.logo_url && (
+              <OrganizationLogo
+                logo={org.logo_url}
+                size={28}
+                alt={org?.name || 'Organization'}
+              />
             )}
+            <h4 style={{
+              fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.primary,
+              lineHeight: 1.3,
+              flex: 1,
+              minWidth: 0,
+            }}>
+              {competition.name || entry.name}
+            </h4>
             <RoleBadge role={entry.role} />
         </div>
-
-        {/* Row 2: Competition name */}
-        <h4 style={{
-          fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
-          fontWeight: typography.fontWeight.semibold,
-          color: colors.text.primary,
-          lineHeight: 1.3,
-        }}>
-          {competition.name || entry.name}
-        </h4>
 
         {/* Row 3: Season + City + View */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
@@ -158,42 +221,54 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
               <ChevronRight size={14} />
             </div>
         </div>
+      </a>
 
-        {/* Unclaimed CTA */}
-        {entry.isUnclaimed && entry.nomination && (
-          <div
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onAcceptClick(entry.nomination);
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              padding: `${spacing.xs} ${spacing.md}`,
-              background: 'rgba(212, 175, 55, 0.15)',
-              border: `1px solid ${colors.gold.primary}`,
-              borderRadius: borderRadius.md,
-              color: colors.gold.primary,
-              fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.semibold,
-              cursor: 'pointer',
-              marginTop: spacing.xs,
-              alignSelf: 'flex-start',
-            }}
-          >
-            Accept or Decline
-            <ArrowRight size={13} />
-          </div>
-        )}
-      </div>
+      {/* Inline voting panel — sibling to the link, not inside it, so
+          button clicks never bubble into the <a>'s navigation. */}
+      {showInlineVoting && (
+        <CompetitionCardVoting
+          contestant={entry.contestant}
+          competition={competition}
+          currentRound={activeRound}
+          isPreview={isPreview}
+        />
+      )}
 
-    </a>
+      {/* Unclaimed CTA */}
+      {entry.isUnclaimed && entry.nomination && (
+        <div
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onAcceptClick(entry.nomination);
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: spacing.sm,
+            padding: `${spacing.xs} ${spacing.md}`,
+            background: 'rgba(212, 175, 55, 0.15)',
+            border: `1px solid ${colors.gold.primary}`,
+            borderRadius: borderRadius.md,
+            color: colors.gold.primary,
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.semibold,
+            cursor: 'pointer',
+            marginTop: spacing.xs,
+            alignSelf: 'flex-start',
+          }}
+        >
+          Accept or Decline
+          <ArrowRight size={13} />
+        </div>
+      )}
+    </div>
   );
+
+  return CardBody;
 }
 
-export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false }) {
+export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false, isPreview = false }) {
   const { isMobile, isSmall } = useResponsive();
   const [hostedCompetitions, setHostedCompetitions] = useState([]);
   const [contestantEntries, setContestantEntries] = useState([]);
@@ -316,6 +391,12 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
       status: comp?.status,
       competition: comp,
       votes: entry.votes || 0,
+      contestant: {
+        id: entry.id,
+        name: entry.name,
+        avatarUrl: entry.avatar_url,
+        votes: entry.votes,
+      },
     });
   });
 
@@ -330,6 +411,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
                 entry={entry}
                 onAcceptClick={handleOpenAcceptModal}
                 isMobile={isMobile}
+                isPreview={isPreview}
               />
             ))}
           </div>

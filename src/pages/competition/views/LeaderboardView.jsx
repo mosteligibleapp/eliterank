@@ -26,10 +26,12 @@ export function LeaderboardView() {
   // Between rounds: hide rank badges + vote counts (no active voting).
   const isBetweenRounds = phase?.phase === 'between-rounds';
 
-  // Clicking a contestant navigates to their public profile page.
+  // Clicking a contestant navigates to their public profile page. Preserve
+  // the ?preview= query param so that if the host is inside a phase
+  // preview iframe, the profile keeps rendering in preview mode.
   const handleCardClick = (contestant) => {
     if (!contestant?.user_id) return;
-    navigate(`/profile/${contestant.user_id}`);
+    navigate(`/profile/${contestant.user_id}${location.search || ''}`);
   };
 
   // Filter contestants by search query

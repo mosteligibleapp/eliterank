@@ -242,6 +242,14 @@ export function computeTimelinePhase(competition) {
       if (now < nominationStart) {
         return TIMELINE_PHASES.NOMINATION; // Upcoming
       }
+      // After nominations, before first voting round — mirrors the periods
+      // branch above so legacy flat-field competitions don't fall through
+      // to the default NOMINATION return.
+      const firstRound = sortedRounds[0];
+      const firstRoundStart = firstRound?.start_date ? new Date(firstRound.start_date) : null;
+      if (firstRoundStart && now < firstRoundStart) {
+        return TIMELINE_PHASES.BETWEEN_ROUNDS;
+      }
     }
   }
 

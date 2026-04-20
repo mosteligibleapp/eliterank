@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle, CreditCard, X } from 'lucide-react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Modal, Button, Avatar } from '../../../components/ui';
@@ -23,6 +23,8 @@ export default function VoteModal({
   user,
   onVoteSuccess,
   currentRound,
+  initialVoteCount = 10,
+  autoCheckout = false,
 }) {
   const userId = user?.id;
   const toast = useToast();
@@ -41,7 +43,12 @@ export default function VoteModal({
   const [clientSecret, setClientSecret] = useState(null);
   const [paymentIntentId, setPaymentIntentId] = useState(null);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
-  const [selectedVoteCount, setSelectedVoteCount] = useState(10);
+  const [selectedVoteCount, setSelectedVoteCount] = useState(initialVoteCount);
+
+  // Sync when parent passes a new preset (e.g., opening modal with a chip selected)
+  useEffect(() => {
+    if (isOpen && initialVoteCount) setSelectedVoteCount(initialVoteCount);
+  }, [isOpen, initialVoteCount]);
 
   const stripeConfigured = isStripeConfigured();
 
@@ -81,6 +88,20 @@ export default function VoteModal({
 
     checkVoteStatus();
   }, [isOpen, userId, competitionId]);
+
+  // Auto-initiate the Stripe purchase flow when the modal opens in
+  // autoCheckout mode (invoked from the inline card's "Purchase" CTA).
+  // Works for both authenticated and anonymous voters — Stripe collects
+  // the billing email during checkout for the anonymous path.
+  const autoCheckoutTriggered = useRef(false);
+  useEffect(() => {
+    if (!isOpen) { autoCheckoutTriggered.current = false; return; }
+    if (!autoCheckout || autoCheckoutTriggered.current) return;
+    if (!hasActiveRound || !stripeConfigured) return;
+    autoCheckoutTriggered.current = true;
+    handleInitiatePurchase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, autoCheckout, hasActiveRound, stripeConfigured]);
 
   // Handle free vote submission
   const handleFreeVote = async () => {
@@ -165,15 +186,20 @@ export default function VoteModal({
 
   // Handle successful payment
   const handlePaymentSuccess = async () => {
-    // Record the vote (webhook will also record it, but this gives immediate feedback)
-    await recordPaidVote({
-      paymentIntentId,
-      competitionId,
-      contestantId: contestant.id,
-      voteCount: selectedVoteCount,
-      amountPaid: selectedVoteCount, // $1 per vote
-      voterEmail: user?.email,
-    });
+    // For authenticated voters we record the vote client-side for immediate
+    // feedback; the webhook will dedup on payment_intent_id. For anonymous
+    // voters we let the webhook be the source of truth so voter_email is
+    // populated from Stripe's billing details instead of left null.
+    if (userId) {
+      await recordPaidVote({
+        paymentIntentId,
+        competitionId,
+        contestantId: contestant.id,
+        voteCount: selectedVoteCount,
+        amountPaid: selectedVoteCount, // $1 per vote
+        voterEmail: user?.email,
+      });
+    }
 
     setVotesAdded(selectedVoteCount);
     setShowPaymentForm(false);
@@ -357,6 +383,7 @@ export default function VoteModal({
                   onCancel={handleBackFromPayment}
                   amount={selectedVoteCount}
                   contestantName={contestant.name}
+                  collectEmail={!isAuthenticated}
                 />
               </Elements>
             )}
@@ -608,7 +635,10 @@ export default function VoteModal({
         </p>
       </div>
 
-      {/* Free Vote Section - Compact */}
+      {/* Free Vote Section - Compact (hidden when autoCheckout so the
+          modal feels like a dedicated purchase flow when opened from the
+          inline card's "Purchase" CTA). */}
+      {!autoCheckout && (
       <div style={{ marginBottom: spacing.md }}>
         {!isAuthenticated ? (
           <>
@@ -699,13 +729,16 @@ export default function VoteModal({
           </>
         )}
       </div>
+      )}
 
-      {/* Divider */}
+      {/* Divider (hidden in autoCheckout since free-vote section is gone) */}
+      {!autoCheckout && (
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
         <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
         <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>or buy votes</span>
         <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
       </div>
+      )}
 
       {/* Vote Count Selector - Compact */}
       <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.md }}>
@@ -804,7 +837,7 @@ export default function VoteModal({
 /**
  * Payment checkout form using Stripe Elements
  */
-function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName }) {
+function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, collectEmail = false }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -852,6 +885,10 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName }) {
       <PaymentElement
         options={{
           layout: 'tabs',
+          // For anonymous buyers, force email collection so the webhook
+          // can attribute the paid vote without us prompting for it
+          // separately on the card.
+          fields: collectEmail ? { billingDetails: { email: 'always' } } : undefined,
         }}
       />
 

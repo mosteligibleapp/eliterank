@@ -13,6 +13,7 @@ export default function ProfilePage({
   userRole = 'fan',
   isHost = false,
   contestantId,
+  isPreview = false,
 }) {
   if (isEditing) {
     return (
@@ -33,6 +34,7 @@ export default function ProfilePage({
       userRole={userRole}
       isHost={isHost}
       contestantId={contestantId}
+      isPreview={isPreview}
     />
   );
 }
