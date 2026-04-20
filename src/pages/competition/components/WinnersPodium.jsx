@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Trophy } from 'lucide-react';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
@@ -12,15 +12,17 @@ import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 export function WinnersPodium() {
   const { competition, contestants, topThree, prizePool, openContestantProfile } = usePublicCompetition();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Clicking a contestant card navigates to their shareable public profile
+  // Clicking a contestant card navigates to their shareable public profile.
+  // Preserve ?preview= so phase previews carry through to the profile.
   const handleContestantClick = useCallback((contestant) => {
     if (contestant.user_id) {
-      navigate(`/profile/${contestant.user_id}`);
+      navigate(`/profile/${contestant.user_id}${location.search || ''}`);
     } else {
       openContestantProfile(contestant);
     }
-  }, [openContestantProfile, navigate]);
+  }, [openContestantProfile, navigate, location.search]);
 
   const isLegacy = competition?.is_legacy;
 

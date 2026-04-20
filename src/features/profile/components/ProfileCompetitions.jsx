@@ -29,6 +29,28 @@ function findActiveVotingRound(competition) {
   return active || null;
 }
 
+/**
+ * In preview mode, synthesize a plausible active round so the inline voting
+ * panel renders even when the real voting window hasn't opened. Real
+ * mutations are blocked downstream by the isPreview flag — this exists only
+ * to drive the UI.
+ */
+function synthesizePreviewRound(competition) {
+  const rounds = competition?.voting_rounds || [];
+  const sorted = [...rounds]
+    .filter((r) => !r.round_type || r.round_type === 'voting')
+    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+  const first = sorted[0];
+  return {
+    id: first?.id || 'preview-round',
+    round_order: first?.round_order || 1,
+    round_type: 'voting',
+    start_date: first?.start_date || null,
+    end_date: first?.end_date || null,
+    isActive: true,
+  };
+}
+
 function getCompetitionLink(competition) {
   const orgSlug = competition?.organization?.slug || 'most-eligible';
   if (competition?.slug) {
@@ -97,7 +119,7 @@ function getVotingStartDate(competition) {
   return null;
 }
 
-function CompetitionCard({ entry, onAcceptClick, isMobile }) {
+function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) {
   const [isHovered, setIsHovered] = useState(false);
   const competition = entry.competition || {};
   const cityName = competition.city?.name || competition.city || '';
@@ -107,10 +129,15 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
 
   // Inline voting is only shown for contestant entries during an active
   // voting round. Nominations / between-rounds / completed phases keep the
-  // card as-is.
-  const activeRound = (entry.role === 'contestant' || entry.role === 'winner')
-    ? findActiveVotingRound(competition)
+  // card as-is — unless the host is previewing the voting phase via the
+  // dashboard Preview tab (isPreview), in which case we synthesize an
+  // active round from the first voting_rounds row so the panel renders.
+  const isContestantEntry = entry.role === 'contestant' || entry.role === 'winner';
+  const realRound = isContestantEntry ? findActiveVotingRound(competition) : null;
+  const previewRound = isContestantEntry && isPreview && !realRound
+    ? synthesizePreviewRound(competition)
     : null;
+  const activeRound = realRound || previewRound;
   const showInlineVoting = !!activeRound && !!entry.contestant?.id;
 
   return (
@@ -192,6 +219,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
             contestant={entry.contestant}
             competition={competition}
             currentRound={activeRound}
+            isPreview={isPreview}
           />
         )}
 
@@ -229,7 +257,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile }) {
   );
 }
 
-export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false }) {
+export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false, isPreview = false }) {
   const { isMobile, isSmall } = useResponsive();
   const [hostedCompetitions, setHostedCompetitions] = useState([]);
   const [contestantEntries, setContestantEntries] = useState([]);
@@ -372,6 +400,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
                 entry={entry}
                 onAcceptClick={handleOpenAcceptModal}
                 isMobile={isMobile}
+                isPreview={isPreview}
               />
             ))}
           </div>

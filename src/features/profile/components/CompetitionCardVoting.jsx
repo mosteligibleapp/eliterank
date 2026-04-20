@@ -24,6 +24,7 @@ export default function CompetitionCardVoting({
   contestant,
   competition,
   currentRound,
+  isPreview = false,
 }) {
   const { user } = useSupabaseAuth();
   const toast = useToast();
@@ -66,6 +67,13 @@ export default function CompetitionCardVoting({
     e?.stopPropagation?.();
     if (busy || alreadyVoted || !contestantId || !competitionId) return;
 
+    if (isPreview) {
+      setCastSuccess(true);
+      setAlreadyVoted(true);
+      toast?.info?.('Preview mode — no vote was cast.');
+      return;
+    }
+
     setBusy(true);
     setError('');
     const result = await submitFreeVote({
@@ -89,6 +97,12 @@ export default function CompetitionCardVoting({
     e?.preventDefault?.();
     e?.stopPropagation?.();
     if (busy || !contestantId || !competitionId) return;
+
+    if (isPreview) {
+      setCastSuccess(true);
+      toast?.info?.('Preview mode — no vote was cast.');
+      return;
+    }
 
     setBusy(true);
     setError('');
@@ -150,7 +164,7 @@ export default function CompetitionCardVoting({
           letterSpacing: '0.06em',
         }}>
           <Heart size={12} fill={colors.gold.primary} />
-          Voting is live
+          {isPreview ? 'Preview — voting will be live here' : 'Voting is live'}
         </div>
 
         {castSuccess ? (

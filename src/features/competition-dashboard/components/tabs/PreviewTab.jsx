@@ -94,8 +94,11 @@ export default function PreviewTab({ competition, contestants = [] }) {
   const sampleContestant = useMemo(() => {
     return contestants.find((c) => c.userId) || null;
   }, [contestants]);
+  // Preview the contestant profile in voting mode so the inline voting
+  // panel shows up even when the real voting window hasn't opened yet.
+  // The profile page reads this param and blocks mutations downstream.
   const contestantProfileUrl = sampleContestant
-    ? `/profile/${sampleContestant.userId}`
+    ? `/profile/${sampleContestant.userId}?preview=voting`
     : null;
 
   if (!competitionId) {

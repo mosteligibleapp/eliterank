@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCompetitionUrl, getCompetitionUrlById } from '../utils/slugs';
 import { PageHeader } from '../components/ui';
@@ -17,11 +17,20 @@ export default function ViewPublicProfilePage() {
   const { profileId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [backUrl, setBackUrl] = useState('/');
   const [contestantId, setContestantId] = useState(null);
+
+  // When the host arrives here via the voting-phase preview iframe, the
+  // inline voting panel on the competition card should show even though the
+  // competition's real voting window hasn't opened yet. We flag that with a
+  // `?preview=voting` query param; the card synthesizes an active round,
+  // and any mutations (free vote, paid vote) are blocked downstream.
+  const previewMode = searchParams.get('preview');
+  const isPreview = previewMode === 'voting' || previewMode === 'round1';
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -188,6 +197,7 @@ export default function ViewPublicProfilePage() {
             hostProfile={profileData}
             isEditing={false}
             contestantId={contestantId}
+            isPreview={isPreview}
           />
         </Suspense>
       </div>

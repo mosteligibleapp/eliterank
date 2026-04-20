@@ -15,7 +15,7 @@ import IntroVideoModal from '../../../components/modals/IntroVideoModal';
 
 const FANS_SECTION_ID = 'profile-fans-section';
 
-export default function ProfileView({ hostProfile, onEdit, contestantId }) {
+export default function ProfileView({ hostProfile, onEdit, contestantId, isPreview = false }) {
   const { isMobile, isSmall } = useResponsive();
   const { user } = useSupabaseAuth();
   const [competitionStats, setCompetitionStats] = useState(null);
@@ -357,6 +357,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId }) {
           userEmail={hostProfile?.email}
           user={{ id: hostProfile?.id, email: hostProfile?.email }}
           isOwnProfile={!!onEdit}
+          isPreview={isPreview}
           profile={{
             first_name: hostProfile?.firstName,
             last_name: hostProfile?.lastName,
