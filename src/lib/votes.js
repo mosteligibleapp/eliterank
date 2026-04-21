@@ -192,55 +192,17 @@ export async function submitFreeVote({
       return { success: false, error: voteError.message };
     }
 
-    // 4. Increment contestant's vote count using RPC (atomic operation)
-    const { error: updateError } = await supabase.rpc('increment_contestant_votes', {
-      p_contestant_id: contestantId,
-      p_vote_count: voteValue,
-    });
+    // 4. The on_vote_insert DB trigger has already incremented
+    //    contestants.votes and competitions.total_votes. Only the profile
+    //    lifetime total still needs a separate update.
+    const { data: contestant } = await supabase
+      .from('contestants')
+      .select('user_id')
+      .eq('id', contestantId)
+      .single();
 
-    if (updateError) {
-      // Fallback to manual update if RPC doesn't exist
-      console.warn('RPC increment_contestant_votes failed, using fallback:', updateError);
-
-      // Get current votes and update
-      const { data: contestant, error: fetchError } = await supabase
-        .from('contestants')
-        .select('votes, user_id')
-        .eq('id', contestantId)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching contestant:', fetchError);
-        // Vote was recorded but count update failed
-        return { success: true, votesAdded: voteValue, warning: 'Vote recorded but count may be delayed' };
-      }
-
-      const { error: manualUpdateError } = await supabase
-        .from('contestants')
-        .update({ votes: (contestant.votes || 0) + voteValue })
-        .eq('id', contestantId);
-
-      if (manualUpdateError) {
-        console.error('Error updating contestant votes:', manualUpdateError);
-        return { success: true, votesAdded: voteValue, warning: 'Vote recorded but count may be delayed' };
-      }
-
-      // Update profile stats if contestant is linked to a profile
-      if (contestant.user_id) {
-        await updateProfileVotes(contestant.user_id, voteValue);
-      }
-    } else {
-      // RPC succeeded, now update profile stats
-      // Get contestant's user_id to update their profile stats
-      const { data: contestant } = await supabase
-        .from('contestants')
-        .select('user_id')
-        .eq('id', contestantId)
-        .single();
-
-      if (contestant?.user_id) {
-        await updateProfileVotes(contestant.user_id, voteValue);
-      }
+    if (contestant?.user_id) {
+      await updateProfileVotes(contestant.user_id, voteValue);
     }
 
     return { success: true, votesAdded: voteValue };
@@ -483,28 +445,8 @@ export async function recordPaidVote({
       return { success: false, error: voteError.message };
     }
 
-    // Update contestant vote count
-    const { error: updateError } = await supabase.rpc('increment_contestant_votes', {
-      p_contestant_id: contestantId,
-      p_vote_count: voteCount,
-    });
-
-    if (updateError) {
-      // Fallback to manual update
-      const { data: contestant } = await supabase
-        .from('contestants')
-        .select('votes')
-        .eq('id', contestantId)
-        .single();
-
-      if (contestant) {
-        await supabase
-          .from('contestants')
-          .update({ votes: (contestant.votes || 0) + voteCount })
-          .eq('id', contestantId);
-      }
-    }
-
+    // The on_vote_insert DB trigger updates contestants.votes and
+    // competitions.total_votes atomically with the insert above.
     return { success: true };
   } catch (err) {
     console.error('Error recording paid vote:', err);

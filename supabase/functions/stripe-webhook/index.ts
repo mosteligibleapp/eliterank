@@ -149,27 +149,8 @@ serve(async (req) => {
           )
         }
 
-        // Update contestant vote count
-        const { error: updateError } = await supabase.rpc('increment_contestant_votes', {
-          p_contestant_id: contestant_id,
-          p_vote_count: voteCount,
-        })
-
-        if (updateError) {
-          // Try direct update as fallback
-          const { data: contestant } = await supabase
-            .from('contestants')
-            .select('votes')
-            .eq('id', contestant_id)
-            .single()
-
-          if (contestant) {
-            await supabase
-              .from('contestants')
-              .update({ votes: (contestant.votes || 0) + voteCount })
-              .eq('id', contestant_id)
-          }
-        }
+        // The on_vote_insert DB trigger updates contestants.votes and
+        // competitions.total_votes atomically with the insert above.
 
         // Record activity
         await supabase.from('activity_feed').insert({
