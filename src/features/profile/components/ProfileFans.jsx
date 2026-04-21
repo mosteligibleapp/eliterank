@@ -130,7 +130,7 @@ const styles = {
   },
   card: {
     background: colors.background.primary,
-    border: `1px solid ${colors.border.light}`,
+    border: `1px solid ${colors.border.primary}`,
     borderRadius: borderRadius.xxl,
     width: '100%',
     maxWidth: '460px',
