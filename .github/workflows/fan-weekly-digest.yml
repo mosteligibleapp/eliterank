@@ -60,19 +60,28 @@ jobs:
           fi
           BODY=$(jq -n --argjson d "$DRY_RUN" '{dry_run: $d}')
           echo "POST ${SUPABASE_URL}/functions/v1/send-fan-weekly-digest  body=$BODY"
-          RESPONSE=$(curl -sS --fail-with-body -X POST \
+          # Capture status and body separately so the body is always visible,
+          # even on 5xx. Using --fail-with-body inside $() swallows the body
+          # under `set -e`, which is why prior failed runs only showed "exit 22".
+          HTTP_CODE=$(curl -sS -o /tmp/resp.json -w '%{http_code}' -X POST \
             -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "Content-Type: application/json" \
             -d "$BODY" \
             "${SUPABASE_URL%/}/functions/v1/send-fan-weekly-digest")
-          echo "$RESPONSE" | jq .
+          echo "HTTP $HTTP_CODE"
+          jq . /tmp/resp.json || cat /tmp/resp.json
           # Surface summary into the workflow step summary for easy triage.
           {
             echo "## Fan weekly digest"
             echo ""
+            echo "HTTP $HTTP_CODE"
+            echo ""
             echo '```json'
-            echo "$RESPONSE" | jq '.summary // .'
+            jq '.summary // .' /tmp/resp.json || cat /tmp/resp.json
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          # Fail the step if the function reported failure.
-          echo "$RESPONSE" | jq -e '.success == true' > /dev/null
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "Edge function returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+          jq -e '.success == true' /tmp/resp.json > /dev/null
