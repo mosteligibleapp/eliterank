@@ -24,15 +24,35 @@ export default function ProfileFans({ contestantId, showEmpty = false }) {
     }
 
     const fetchFans = async () => {
-      const { data, error } = await supabase
+      // contestant_fans.user_id references auth.users (not profiles), so
+      // PostgREST can't embed profiles via the FK hint. Fetch fan rows and
+      // profile details in two steps.
+      const { data: fanRows, error: fansErr } = await supabase
         .from('contestant_fans')
-        .select('user_id, created_at, profile:profiles!contestant_fans_user_id_fkey(first_name, last_name, avatar_url, city)')
+        .select('user_id, created_at')
         .eq('contestant_id', contestantId)
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        setFans(data);
+      if (fansErr || !fanRows || fanRows.length === 0) {
+        setFans([]);
+        setLoading(false);
+        return;
       }
+
+      const userIds = fanRows.map((f) => f.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url, city')
+        .in('id', userIds);
+
+      const profileById = new Map((profiles || []).map((p) => [p.id, p]));
+      setFans(
+        fanRows.map((f) => ({
+          user_id: f.user_id,
+          created_at: f.created_at,
+          profile: profileById.get(f.user_id) || null,
+        })),
+      );
       setLoading(false);
     };
 
