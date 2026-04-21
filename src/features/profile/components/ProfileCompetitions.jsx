@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, MapPin, Star, Award, Calendar, ArrowRight, Clock, ChevronRight } from 'lucide-react';
+import { Trophy, Crown, Star, Award, ArrowRight, ChevronRight } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -170,12 +170,13 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           flexDirection: 'column',
           gap: spacing.sm,
           cursor: 'pointer',
+          minWidth: 0,
         }}
       >
-        {/* Row 1: Org logo (branding) + competition name + role badge.
-            Org name is intentionally omitted — the logo carries the brand
-            and the competition name often contains the org name already. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+        {/* Row 1: Org logo + competition name (single line) + role badge.
+            Name uses whiteSpace: nowrap so it stays on one row; the badge
+            is pinned right and won't shrink. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 0 }}>
             {org?.logo_url && (
               <OrganizationLogo
                 logo={org.logo_url}
@@ -190,33 +191,61 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
               lineHeight: 1.3,
               flex: 1,
               minWidth: 0,
+              margin: 0,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              letterSpacing: typography.letterSpacing.tight,
             }}>
               {competition.name || entry.name}
             </h4>
-            <RoleBadge role={entry.role} />
+            <div style={{ flexShrink: 0 }}>
+              <RoleBadge role={entry.role} />
+            </div>
         </div>
 
-        {/* Row 3: Season + City + View */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+        {/* Row 2: Meta (season · city · voting date) on a single line,
+            with View pinned right. Dot separators keep it minimal. */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: spacing.xs,
+          fontSize: typography.fontSize.xs,
+          color: colors.text.secondary,
+          whiteSpace: 'nowrap',
+          minWidth: 0,
+          overflow: 'hidden',
+        }}>
             {competition.season && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                <Calendar size={13} />
-                <span>Season {competition.season}</span>
-              </div>
+              <span style={{ flexShrink: 0 }}>Season {competition.season}</span>
             )}
             {cityName && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                <MapPin size={13} />
-                <span>{cityName}</span>
-              </div>
+              <>
+                {competition.season && (
+                  <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
+                )}
+                <span style={{ flexShrink: 0 }}>{cityName}</span>
+              </>
             )}
             {votingDate && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                <Clock size={13} />
-                <span>Voting starts {votingDate}</span>
-              </div>
+              <>
+                {(competition.season || cityName) && (
+                  <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
+                )}
+                <span style={{ flexShrink: 0 }}>Voting starts {votingDate}</span>
+              </>
             )}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px', color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>
+            <div style={{
+              marginLeft: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              paddingLeft: spacing.sm,
+              color: colors.gold.primary,
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.medium,
+              flexShrink: 0,
+            }}>
               <span>View</span>
               <ChevronRight size={14} />
             </div>
