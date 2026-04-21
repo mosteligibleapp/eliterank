@@ -80,11 +80,10 @@ serve(async (req) => {
       },
     })
 
-    // Fetch competition to get vote price. price_per_vote is the column the
-    // admin UI writes to; vote_price is a legacy duplicate we fall back to.
+    // Fetch competition to get vote price.
     const { data: competition, error: compError } = await supabase
       .from('competitions')
-      .select('id, city, season, price_per_vote, vote_price, use_price_bundler, status')
+      .select('id, name, season, price_per_vote, use_price_bundler, status')
       .eq('id', competitionId)
       .single()
 
@@ -112,7 +111,7 @@ serve(async (req) => {
 
     // Server is the source of truth for the Stripe amount. If the bundler is
     // on, apply the tier multiplier against the competition's base price.
-    const basePrice = parseFloat(competition.price_per_vote ?? competition.vote_price) || 1.00
+    const basePrice = parseFloat(competition.price_per_vote) || 1.00
     const perVotePrice = competition.use_price_bundler
       ? bundledPricePerVote(voteCount, basePrice)
       : basePrice
@@ -136,10 +135,10 @@ serve(async (req) => {
         contestant_id: contestantId,
         vote_count: voteCount.toString(),
         voter_email: voterEmail || '',
-        competition_name: `${competition.city} ${competition.season}`,
+        competition_name: competition.name || `Season ${competition.season}`,
         contestant_name: contestant.name,
       },
-      description: `${voteCount} vote${voteCount > 1 ? 's' : ''} for ${contestant.name} in ${competition.city} ${competition.season}`,
+      description: `${voteCount} vote${voteCount > 1 ? 's' : ''} for ${contestant.name} in ${competition.name || `Season ${competition.season}`}`,
     })
 
     return new Response(
