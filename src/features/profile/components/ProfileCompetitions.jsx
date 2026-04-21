@@ -229,7 +229,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             textOverflow: 'ellipsis',
           }}>
             {competition.season && (
-              <span style={{ flexShrink: 0 }}>Season {competition.season}</span>
+              <span style={{ flexShrink: 0 }}>{competition.season}</span>
             )}
             {cityName && (
               <>
@@ -244,7 +244,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
                 {(competition.season || cityName) && (
                   <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
                 )}
-                <span style={{ flexShrink: 0 }}>Voting starts {votingDate}</span>
+                <span style={{ flexShrink: 0 }}>Voting {votingDate}</span>
               </>
             )}
           </div>
