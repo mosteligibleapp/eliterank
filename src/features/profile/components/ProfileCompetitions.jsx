@@ -207,10 +207,14 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             {competition.name || entry.name}
           </h4>
 
-          {/* Row 2: Role badge as a label beneath the title. */}
-          <div style={{ display: 'flex' }}>
-            <RoleBadge role={entry.role} />
-          </div>
+          {/* Row 2: Role badge as a label beneath the title. Skipped when
+              the role doesn't map to a badge so we don't leave an empty
+              gap in the stack. */}
+          {entry.role && (
+            <div style={{ display: 'flex' }}>
+              <RoleBadge role={entry.role} />
+            </div>
+          )}
 
           {/* Row 3: Meta (season · city · voting date) on a single line. */}
           <div style={{
