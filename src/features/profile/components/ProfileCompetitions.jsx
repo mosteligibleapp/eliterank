@@ -167,16 +167,23 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           textDecoration: 'none',
           color: 'inherit',
           display: 'flex',
-          flexDirection: 'column',
+          alignItems: 'center',
           gap: spacing.sm,
           cursor: 'pointer',
           minWidth: 0,
         }}
       >
-        {/* Row 1: Org logo + competition name (single line) + role badge.
-            Name uses whiteSpace: nowrap so it stays on one row; the badge
-            is pinned right and won't shrink. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 0 }}>
+        {/* Content column (name row + meta row) takes the full remaining
+            width; chevron sits vertically centered on the right. */}
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spacing.xs,
+        }}>
+          {/* Row 1: Org logo + competition name (single line) + role badge. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 0 }}>
             {org?.logo_url && (
               <OrganizationLogo
                 logo={org.logo_url}
@@ -202,20 +209,20 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             <div style={{ flexShrink: 0 }}>
               <RoleBadge role={entry.role} />
             </div>
-        </div>
+          </div>
 
-        {/* Row 2: Meta (season · city · voting date) on a single line.
-            Dot separators keep it minimal. */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.xs,
-          fontSize: typography.fontSize.xs,
-          color: colors.text.secondary,
-          whiteSpace: 'nowrap',
-          minWidth: 0,
-          overflow: 'hidden',
-        }}>
+          {/* Row 2: Meta (season · city · voting date) on a single line. */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.xs,
+            fontSize: typography.fontSize.xs,
+            color: colors.text.secondary,
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
             {competition.season && (
               <span style={{ flexShrink: 0 }}>Season {competition.season}</span>
             )}
@@ -235,22 +242,21 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
                 <span style={{ flexShrink: 0 }}>Voting starts {votingDate}</span>
               </>
             )}
+          </div>
         </div>
 
-        {/* Row 3: View CTA, right-aligned on its own row so the meta
-            line above can stay uncropped. */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: '3px',
-          color: colors.gold.primary,
-          fontSize: typography.fontSize.sm,
-          fontWeight: typography.fontWeight.medium,
-        }}>
-          <span>View</span>
-          <ChevronRight size={14} />
-        </div>
+        {/* Chevron affordance — vertically centered on the whole card.
+            The card's hover state carries the interactivity signal; a gold
+            chevron here marks it as a tappable destination without taking
+            a dedicated row. */}
+        <ChevronRight
+          size={18}
+          style={{
+            flexShrink: 0,
+            color: isHovered ? colors.gold.primary : colors.text.tertiary,
+            transition: 'color 0.2s ease',
+          }}
+        />
       </a>
 
       {/* Inline voting panel — sibling to the link, not inside it, so
