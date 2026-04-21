@@ -182,7 +182,8 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           flexDirection: 'column',
           gap: spacing.xs,
         }}>
-          {/* Row 1: Org logo + competition name (single line) + role badge. */}
+          {/* Row 1: Org logo + competition name. Name gets the full row,
+              so it can always render in full on a single line. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 0 }}>
             {org?.logo_url && (
               <OrganizationLogo
@@ -206,13 +207,18 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             }}>
               {competition.name || entry.name}
             </h4>
-            <div style={{ flexShrink: 0 }}>
-              <RoleBadge role={entry.role} />
-            </div>
           </div>
 
-          {/* Row 2: Meta (season · city · voting date) on a single line. */}
+          {/* Row 2: Role badge sits as a label beneath the title (editorial
+              tag pattern), indented under the name to align with it. */}
+          <div style={{ paddingLeft: 36, display: 'flex' }}>
+            <RoleBadge role={entry.role} />
+          </div>
+
+          {/* Row 3: Meta (season · city · voting date) on a single line,
+              indented to align with the title. */}
           <div style={{
+            paddingLeft: 36,
             display: 'flex',
             alignItems: 'center',
             gap: spacing.xs,
