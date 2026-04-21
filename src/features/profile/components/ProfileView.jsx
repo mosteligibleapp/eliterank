@@ -396,7 +396,10 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
               }}>
                 <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: spacing.sm }}>
+              <div style={{
+                columnCount: isMobile ? 2 : 3,
+                columnGap: spacing.sm,
+              }}>
                 {gallery.filter(Boolean).map((imageUrl, index) => (
                   <a
                     key={index}
@@ -405,12 +408,24 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
                     rel="noopener noreferrer"
                     style={{
                       display: 'block',
-                      aspectRatio: '4 / 5',
-                      background: `url(${imageUrl}) center/cover`,
+                      marginBottom: spacing.sm,
+                      breakInside: 'avoid',
                       borderRadius: borderRadius.lg,
+                      overflow: 'hidden',
                       cursor: 'pointer',
                     }}
-                  />
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`Gallery ${index + 1}`}
+                      loading="lazy"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        height: 'auto',
+                      }}
+                    />
+                  </a>
                 ))}
               </div>
             </div>
