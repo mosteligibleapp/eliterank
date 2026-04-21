@@ -10,7 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
  *     into when they entered the competition)
  *   - each of their fans whose contestant_fans.email_weekly_updates is true
  *
- * Designed to be invoked on a weekly cron — Tuesday 10am CST (16:00 UTC). The
+ * Designed to be invoked on a weekly cron — Friday 10am CST (16:00 UTC). The
  * function is idempotent by design: running it twice on the same day will
  * send two emails, but running it once per week is the intended schedule.
  *

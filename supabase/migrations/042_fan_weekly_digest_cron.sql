@@ -1,5 +1,5 @@
 -- =============================================================================
--- Weekly fan digest cron — Tuesday 10:00 AM Central Time
+-- Weekly fan digest cron — Friday 10:00 AM Central Time
 -- =============================================================================
 -- Invokes the send-fan-weekly-digest edge function once a week so contestants
 -- and their fans get a performance snapshot (rank, trend, total votes, voting
@@ -26,7 +26,7 @@
 
 -- SELECT cron.schedule(
 --   'send-fan-weekly-digest',
---   '0 16 * * 2',   -- Tuesday 16:00 UTC (10 AM CST)
+--   '0 16 * * 5',   -- Friday 16:00 UTC (10 AM CST)
 --   $$
 --   SELECT net.http_post(
 --     url := current_setting('app.supabase_url') || '/functions/v1/send-fan-weekly-digest',
@@ -42,5 +42,5 @@
 -- ALTERNATIVE: invoke from an external scheduler (GitHub Actions, Vercel cron,
 -- etc.) by POSTing to:
 --   ${SUPABASE_URL}/functions/v1/send-fan-weekly-digest
--- with the Authorization: Bearer <service_role_key> header every Tuesday at
+-- with the Authorization: Bearer <service_role_key> header every Friday at
 -- 10:00 America/Chicago. An external scheduler handles DST correctly.
