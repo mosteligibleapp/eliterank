@@ -174,11 +174,12 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           minWidth: 0,
         }}
       >
-        {/* Large org logo as its own column, spanning the content height. */}
+        {/* Large org logo as its own column, vertically centered and
+            sized to match the content stack height. */}
         {org?.logo_url && (
           <OrganizationLogo
             logo={org.logo_url}
-            size={isMobile ? 56 : 64}
+            size={isMobile ? 72 : 84}
             alt={org?.name || 'Organization'}
           />
         )}
