@@ -13,8 +13,6 @@ import FanButton from '../../../components/ui/FanButton';
 import ProfileFans from './ProfileFans';
 import IntroVideoModal from '../../../components/modals/IntroVideoModal';
 
-const FANS_SECTION_ID = 'profile-fans-section';
-
 export default function ProfileView({ hostProfile, onEdit, contestantId, isPreview = false }) {
   const { isMobile, isSmall } = useResponsive();
   const { user } = useSupabaseAuth();
@@ -27,9 +25,8 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
 
   // When a logged-in user views their own contestant profile (either the
   // /profile edit view or the public /profile/:id route), swap "Become a
-  // Fan" for "View My Fans" and show the fan list on the page.
+  // Fan" for a "View My Fans" button that opens the fan list modal.
   const isOwnContestant = !!(user?.id && hostProfile?.id && user.id === hostProfile.id && contestantId);
-  const showFansSection = isOwnContestant || (onEdit && contestantId);
 
   useEffect(() => {
     if (!hostProfile?.id) return;
@@ -367,13 +364,6 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
           }}
         />
 
-        {/* Fans — contestant viewing own profile (public or edit) */}
-        {showFansSection && (
-          <div id={FANS_SECTION_ID}>
-            <ProfileFans contestantId={contestantId} showEmpty={isOwnContestant} />
-          </div>
-        )}
-
         {/* About */}
         {hostProfile.bio && (
           <>
@@ -484,10 +474,11 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
 
 /**
  * "View My Fans" button — only rendered on a contestant's own profile.
- * Shows the current fan count and scrolls to the fan list on click.
+ * Shows the current fan count and opens the fan list modal on click.
  */
 function ViewMyFansButton({ contestantId }) {
   const [count, setCount] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (!contestantId || !supabase) return;
@@ -504,40 +495,40 @@ function ViewMyFansButton({ contestantId }) {
     return () => { cancelled = true; };
   }, [contestantId]);
 
-  const handleClick = () => {
-    document.getElementById(FANS_SECTION_ID)?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  };
-
   return (
-    <button
-      onClick={handleClick}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: spacing.xs,
-        padding: `${spacing.xs} ${spacing.md}`,
-        background: 'rgba(212,175,55,0.15)',
-        border: '1px solid rgba(212,175,55,0.3)',
-        borderRadius: borderRadius.pill,
-        fontSize: typography.fontSize.sm,
-        fontWeight: typography.fontWeight.semibold,
-        color: colors.gold.primary,
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-      }}
-    >
-      <Users size={14} />
-      View My Fans
-      <span style={{
-        marginLeft: '2px',
-        fontSize: typography.fontSize.xs,
-        opacity: 0.7,
-      }}>
-        {count.toLocaleString()}
-      </span>
-    </button>
+    <>
+      <button
+        onClick={() => setModalOpen(true)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: spacing.xs,
+          padding: `${spacing.xs} ${spacing.md}`,
+          background: 'rgba(212,175,55,0.15)',
+          border: '1px solid rgba(212,175,55,0.3)',
+          borderRadius: borderRadius.pill,
+          fontSize: typography.fontSize.sm,
+          fontWeight: typography.fontWeight.semibold,
+          color: colors.gold.primary,
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <Users size={14} />
+        View My Fans
+        <span style={{
+          marginLeft: '2px',
+          fontSize: typography.fontSize.xs,
+          opacity: 0.7,
+        }}>
+          {count.toLocaleString()}
+        </span>
+      </button>
+      <ProfileFans
+        contestantId={contestantId}
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+      />
+    </>
   );
 }
