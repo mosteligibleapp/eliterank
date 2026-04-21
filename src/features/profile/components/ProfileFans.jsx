@@ -1,27 +1,24 @@
 import { useState, useEffect } from 'react';
-import { Users } from 'lucide-react';
+import { X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
-import { useResponsive } from '../../../hooks/useResponsive';
 
 /**
- * ProfileFans — shows a contestant's fans with avatars and names.
+ * ProfileFans — Instagram-style modal listing a contestant's fans.
  *
  * @param {string} contestantId - The contestant's ID to fetch fans for
- * @param {boolean} [showEmpty=false] - When true, renders an empty state
- *   instead of hiding the section when there are no fans. Use on the
- *   contestant's own profile so the fans-list target always exists.
+ * @param {boolean} isOpen - Controls visibility
+ * @param {() => void} onClose - Fires when the overlay or X is clicked
  */
-export default function ProfileFans({ contestantId, showEmpty = false }) {
-  const { isMobile } = useResponsive();
+export default function ProfileFans({ contestantId, isOpen, onClose }) {
   const [fans, setFans] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!contestantId || !supabase) {
-      setLoading(false);
-      return;
-    }
+    if (!isOpen || !contestantId || !supabase) return;
+
+    let cancelled = false;
+    setLoading(true);
 
     const fetchFans = async () => {
       // contestant_fans.user_id references auth.users (not profiles), so
@@ -33,6 +30,7 @@ export default function ProfileFans({ contestantId, showEmpty = false }) {
         .eq('contestant_id', contestantId)
         .order('created_at', { ascending: false });
 
+      if (cancelled) return;
       if (fansErr || !fanRows || fanRows.length === 0) {
         setFans([]);
         setLoading(false);
@@ -45,6 +43,7 @@ export default function ProfileFans({ contestantId, showEmpty = false }) {
         .select('id, first_name, last_name, avatar_url, city')
         .in('id', userIds);
 
+      if (cancelled) return;
       const profileById = new Map((profiles || []).map((p) => [p.id, p]));
       setFans(
         fanRows.map((f) => ({
@@ -57,113 +56,161 @@ export default function ProfileFans({ contestantId, showEmpty = false }) {
     };
 
     fetchFans();
-  }, [contestantId]);
+    return () => { cancelled = true; };
+  }, [isOpen, contestantId]);
 
-  if (loading) return null;
-  if (fans.length === 0 && !showEmpty) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
 
   return (
-    <div style={{ padding: `0 ${isMobile ? spacing.lg : spacing.xxl}` }}>
-      <div style={dividerStyle} />
-      <div style={{ padding: `${spacing.lg} 0` }}>
-        <h3 style={{
-          fontSize: typography.fontSize.md,
-          fontWeight: typography.fontWeight.semibold,
-          color: colors.text.primary,
-          marginBottom: spacing.md,
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.sm,
-        }}>
-          <Users size={16} style={{ color: colors.gold.primary }} />
-          Your Fans ({fans.length})
-        </h3>
-
-        {fans.length === 0 ? (
-          <p style={{
-            fontSize: typography.fontSize.sm,
-            color: colors.text.tertiary,
-            margin: 0,
-          }}>
-            No fans yet. Your fans will appear here once people start supporting you.
-          </p>
-        ) : (
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: spacing.md,
-        }}>
-          {fans.map((fan) => {
-            const profile = fan.profile;
-            const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Anonymous';
-            const initials = (profile?.first_name?.[0] || '?').toUpperCase();
-
-            return (
-              <div
-                key={fan.user_id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                  padding: `${spacing.sm} ${spacing.md}`,
-                  background: colors.background.card,
-                  border: `1px solid ${colors.border.secondary}`,
-                  borderRadius: borderRadius.lg,
-                }}
-              >
-                {/* Avatar */}
-                <div style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: borderRadius.full,
-                  background: profile?.avatar_url
-                    ? `url(${profile.avatar_url}) center/cover`
-                    : 'rgba(212,175,55,0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: typography.fontSize.xs,
-                  fontWeight: typography.fontWeight.semibold,
-                  color: colors.gold.primary,
-                  flexShrink: 0,
-                }}>
-                  {!profile?.avatar_url && initials}
-                </div>
-
-                {/* Name + city */}
-                <div style={{ minWidth: 0 }}>
-                  <p style={{
-                    fontSize: typography.fontSize.sm,
-                    fontWeight: typography.fontWeight.medium,
-                    color: colors.text.primary,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {name}
-                  </p>
-                  {profile?.city && (
-                    <p style={{
-                      fontSize: typography.fontSize.xs,
-                      color: colors.text.muted,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {profile.city}
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.card} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.header}>
+          <h3 style={styles.title}>Fans {fans.length > 0 && `(${fans.length})`}</h3>
+          <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
+            <X size={20} />
+          </button>
         </div>
-        )}
+
+        <div style={styles.list}>
+          {loading ? (
+            <p style={styles.muted}>Loading…</p>
+          ) : fans.length === 0 ? (
+            <p style={styles.muted}>
+              No fans yet. Your fans will appear here once people start supporting you.
+            </p>
+          ) : (
+            fans.map((fan) => {
+              const profile = fan.profile;
+              const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Anonymous';
+              const initials = (profile?.first_name?.[0] || '?').toUpperCase();
+              return (
+                <div key={fan.user_id} style={styles.row}>
+                  <div
+                    style={{
+                      ...styles.avatar,
+                      background: profile?.avatar_url
+                        ? `url(${profile.avatar_url}) center/cover`
+                        : 'rgba(212,175,55,0.15)',
+                    }}
+                  >
+                    {!profile?.avatar_url && initials}
+                  </div>
+                  <div style={styles.textCol}>
+                    <p style={styles.name}>{name}</p>
+                    {profile?.city && <p style={styles.city}>{profile.city}</p>}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-const dividerStyle = {
-  borderTop: `1px solid ${colors.border.secondary}`,
+const styles = {
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.85)',
+    backdropFilter: 'blur(8px)',
+    zIndex: 200,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  card: {
+    background: colors.background.primary,
+    border: `1px solid ${colors.border.light}`,
+    borderRadius: borderRadius.xxl,
+    width: '100%',
+    maxWidth: '460px',
+    maxHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: `${spacing.lg} ${spacing.xl}`,
+    borderBottom: `1px solid ${colors.border.secondary}`,
+    flexShrink: 0,
+  },
+  title: {
+    margin: 0,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  closeBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: colors.text.tertiary,
+    cursor: 'pointer',
+    padding: spacing.xs,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  list: {
+    overflowY: 'auto',
+    padding: `${spacing.sm} 0`,
+    flex: 1,
+  },
+  row: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: `${spacing.sm} ${spacing.xl}`,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.full,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.gold.primary,
+    flexShrink: 0,
+  },
+  textCol: {
+    minWidth: 0,
+    flex: 1,
+  },
+  name: {
+    margin: 0,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  city: {
+    margin: 0,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  muted: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    margin: 0,
+    padding: `${spacing.lg} ${spacing.xl}`,
+  },
 };
