@@ -13,16 +13,28 @@
 -- reconciliation and the new deploy will re-introduce the inflation.
 --
 -- The canonical total for a contestant is:
---   SUM(votes.vote_count) + SUM(bonus_vote_completions.votes_awarded)
+--   SUM(votes.vote_count)
+--   + SUM(archived_votes.vote_count)   -- for completed/archived competitions
+--   + SUM(bonus_vote_completions.votes_awarded)
 -- scoped to that contestant.
+--
+-- archived_votes exists from migration 003 and is only populated by a manual
+-- admin call to archive_old_competition_votes(). Including it in the sum
+-- means this migration is safe to run against both live and archived
+-- competitions without erasing winner totals.
 -- =============================================================================
 
--- Reset contestants.votes to the true sum from the vote ledger + bonus tasks.
+-- Reset contestants.votes to the true sum from the vote ledger + archived
+-- ledger + bonus tasks.
 UPDATE contestants c
 SET votes = COALESCE((
     SELECT SUM(v.vote_count)
     FROM votes v
     WHERE v.contestant_id = c.id
+  ), 0) + COALESCE((
+    SELECT SUM(av.vote_count)
+    FROM archived_votes av
+    WHERE av.contestant_id = c.id
   ), 0) + COALESCE((
     SELECT SUM(bvc.votes_awarded)
     FROM bonus_vote_completions bvc
@@ -35,6 +47,10 @@ SET total_votes = COALESCE((
     SELECT SUM(v.vote_count)
     FROM votes v
     WHERE v.competition_id = comp.id
+  ), 0) + COALESCE((
+    SELECT SUM(av.vote_count)
+    FROM archived_votes av
+    WHERE av.competition_id = comp.id
   ), 0) + COALESCE((
     SELECT SUM(bvc.votes_awarded)
     FROM bonus_vote_completions bvc
