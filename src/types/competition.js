@@ -171,6 +171,7 @@ export const PRICE_BUNDLER_TIERS = [
   { minVotes: 51, maxVotes: 100, discount: 20, pricePerVote: 0.80 },
   { minVotes: 101, maxVotes: 250, discount: 30, pricePerVote: 0.70 },
   { minVotes: 251, maxVotes: 500, discount: 50, pricePerVote: 0.50 },
+  { minVotes: 501, maxVotes: 1000, discount: 60, pricePerVote: 0.40 },
 ];
 
 // =============================================================================

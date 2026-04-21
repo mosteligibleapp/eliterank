@@ -18,12 +18,13 @@ interface PaymentRequest {
 // because this Deno edge function can't import from the frontend bundle.
 // If you edit the tiers, edit both places.
 const PRICE_BUNDLER_TIERS = [
-  { minVotes: 1,   maxVotes: 10,  pricePerVote: 1.00 },
-  { minVotes: 11,  maxVotes: 25,  pricePerVote: 0.90 },
-  { minVotes: 26,  maxVotes: 50,  pricePerVote: 0.85 },
-  { minVotes: 51,  maxVotes: 100, pricePerVote: 0.80 },
-  { minVotes: 101, maxVotes: 250, pricePerVote: 0.70 },
-  { minVotes: 251, maxVotes: 500, pricePerVote: 0.50 },
+  { minVotes: 1,   maxVotes: 10,   pricePerVote: 1.00 },
+  { minVotes: 11,  maxVotes: 25,   pricePerVote: 0.90 },
+  { minVotes: 26,  maxVotes: 50,   pricePerVote: 0.85 },
+  { minVotes: 51,  maxVotes: 100,  pricePerVote: 0.80 },
+  { minVotes: 101, maxVotes: 250,  pricePerVote: 0.70 },
+  { minVotes: 251, maxVotes: 500,  pricePerVote: 0.50 },
+  { minVotes: 501, maxVotes: 1000, pricePerVote: 0.40 },
 ]
 
 function bundledPricePerVote(voteCount: number, basePrice: number): number {
