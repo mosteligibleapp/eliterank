@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, MapPin, Star, Award, Calendar, ArrowRight, Clock, ChevronRight } from 'lucide-react';
+import { Trophy, Crown, Star, Award, ArrowRight, ChevronRight } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -109,12 +109,12 @@ function getVotingStartDate(competition) {
     const sorted = [...rounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
     const first = sorted[0];
     if (first?.start_date) {
-      return new Date(first.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return new Date(first.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
   }
   const votingStart = competition?.settings?.voting_start || competition?.voting_start;
   if (votingStart) {
-    return new Date(votingStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(votingStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
   return null;
 }
@@ -157,6 +157,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
         display: 'flex',
         flexDirection: 'column',
         gap: spacing.sm,
+        overflow: 'hidden',
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -167,60 +168,97 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           textDecoration: 'none',
           color: 'inherit',
           display: 'flex',
-          flexDirection: 'column',
-          gap: spacing.sm,
+          alignItems: 'center',
+          gap: spacing.md,
           cursor: 'pointer',
+          minWidth: 0,
         }}
       >
-        {/* Row 1: Org logo (branding) + competition name + role badge.
-            Org name is intentionally omitted — the logo carries the brand
-            and the competition name often contains the org name already. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-            {org?.logo_url && (
-              <OrganizationLogo
-                logo={org.logo_url}
-                size={28}
-                alt={org?.name || 'Organization'}
-              />
-            )}
-            <h4 style={{
-              fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
-              fontWeight: typography.fontWeight.semibold,
-              color: colors.text.primary,
-              lineHeight: 1.3,
-              flex: 1,
-              minWidth: 0,
-            }}>
-              {competition.name || entry.name}
-            </h4>
-            <RoleBadge role={entry.role} />
-        </div>
+        {/* Large org logo as its own column, vertically centered and
+            sized to match the content stack height. */}
+        {org?.logo_url && (
+          <OrganizationLogo
+            logo={org.logo_url}
+            size={isMobile ? 72 : 84}
+            alt={org?.name || 'Organization'}
+          />
+        )}
 
-        {/* Row 3: Season + City + View */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+        {/* Content column: name + badge + meta, stacked. */}
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spacing.xs,
+        }}>
+          {/* Row 1: Competition name on its own line, full width. */}
+          <h4 style={{
+            fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            lineHeight: 1.3,
+            margin: 0,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            letterSpacing: typography.letterSpacing.tight,
+          }}>
+            {competition.name || entry.name}
+          </h4>
+
+          {/* Row 2: Role badge as a label beneath the title. Skipped when
+              the role doesn't map to a badge so we don't leave an empty
+              gap in the stack. */}
+          {entry.role && (
+            <div style={{ display: 'flex' }}>
+              <RoleBadge role={entry.role} />
+            </div>
+          )}
+
+          {/* Row 3: Meta (season · city · voting date) on a single line. */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.xs,
+            fontSize: typography.fontSize.xs,
+            color: colors.text.secondary,
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
             {competition.season && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                <Calendar size={13} />
-                <span>Season {competition.season}</span>
-              </div>
+              <span style={{ flexShrink: 0 }}>{competition.season}</span>
             )}
             {cityName && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                <MapPin size={13} />
-                <span>{cityName}</span>
-              </div>
+              <>
+                {competition.season && (
+                  <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
+                )}
+                <span style={{ flexShrink: 0 }}>{cityName}</span>
+              </>
             )}
             {votingDate && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                <Clock size={13} />
-                <span>Voting starts {votingDate}</span>
-              </div>
+              <>
+                {(competition.season || cityName) && (
+                  <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
+                )}
+                <span style={{ flexShrink: 0 }}>Voting {votingDate}</span>
+              </>
             )}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px', color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>
-              <span>View</span>
-              <ChevronRight size={14} />
-            </div>
+          </div>
         </div>
+
+        {/* Chevron affordance — vertically centered on the whole card. */}
+        <ChevronRight
+          size={18}
+          style={{
+            flexShrink: 0,
+            color: isHovered ? colors.gold.primary : colors.text.tertiary,
+            transition: 'color 0.2s ease',
+          }}
+        />
       </a>
 
       {/* Inline voting panel — sibling to the link, not inside it, so
