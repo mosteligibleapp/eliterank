@@ -3,12 +3,23 @@ import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Fac
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Modal, Button, Avatar } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients, shadows } from '../../../styles/theme';
-import { formatNumber, formatCurrency } from '../../../utils/formatters';
+import { formatNumber } from '../../../utils/formatters';
 import { VOTE_PRESETS } from '../../../constants';
+import { calculateVotePrice } from '../../../types/competition';
 import { hasUsedFreeVoteToday, submitFreeVote, getTodaysVote, getTimeUntilReset, createVotePaymentIntent, recordPaidVote } from '../../../lib/votes';
 import { useToast } from '../../../contexts/ToastContext';
 import { useIsPreview } from '../../../contexts/PublicCompetitionContext';
 import { getStripe, isStripeConfigured } from '../../../lib/stripe';
+
+// Show $10 for round totals and $9.90 for fractional bundler prices. The
+// shared formatCurrency truncates to whole dollars, which hides the discount.
+const priceFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+const formatPrice = (amount) => priceFormatter.format(amount);
 
 export default function VoteModal({
   isOpen,
@@ -25,6 +36,8 @@ export default function VoteModal({
   currentRound,
   initialVoteCount = 10,
   autoCheckout = false,
+  votePrice = 1.00,
+  useBundler = false,
 }) {
   const userId = user?.id;
   const toast = useToast();
@@ -196,7 +209,7 @@ export default function VoteModal({
         competitionId,
         contestantId: contestant.id,
         voteCount: selectedVoteCount,
-        amountPaid: selectedVoteCount, // $1 per vote
+        amountPaid: calculateVotePrice(selectedVoteCount, useBundler, votePrice),
         voterEmail: user?.email,
       });
     }
@@ -333,7 +346,7 @@ export default function VoteModal({
               }}
             >
               <span style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-                {formatCurrency(selectedVoteCount)}
+                {formatPrice(calculateVotePrice(selectedVoteCount, useBundler, votePrice))}
               </span>
             </div>
             {/* X close button */}
@@ -381,7 +394,7 @@ export default function VoteModal({
                 <PaymentCheckoutForm
                   onSuccess={handlePaymentSuccess}
                   onCancel={handleBackFromPayment}
-                  amount={selectedVoteCount}
+                  amount={calculateVotePrice(selectedVoteCount, useBundler, votePrice)}
                   contestantName={contestant.name}
                   collectEmail={!isAuthenticated}
                 />
@@ -783,7 +796,7 @@ export default function VoteModal({
             Total{forceDoubleVoteDay && <span style={{ color: colors.status.success, marginLeft: '4px' }}>(2x)</span>}
           </span>
           <span style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-            {formatCurrency(selectedVoteCount)}
+            {formatPrice(calculateVotePrice(selectedVoteCount, useBundler, votePrice))}
             {forceDoubleVoteDay && (
               <span style={{ color: colors.status.success, fontSize: typography.fontSize.xs, marginLeft: '4px' }}>
                 = {formatNumber(selectedVoteCount * 2)}
@@ -819,7 +832,7 @@ export default function VoteModal({
         ) : !hasActiveRound ? (
           'Voting Not Active'
         ) : (
-          `Buy ${selectedVoteCount} Votes - ${formatCurrency(selectedVoteCount)}`
+          `Buy ${selectedVoteCount} Votes - ${formatPrice(calculateVotePrice(selectedVoteCount, useBundler, votePrice))}`
         )}
       </Button>
 
@@ -936,7 +949,7 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
         ) : (
           <>
             <CreditCard size={16} />
-            Pay {formatCurrency(amount)}
+            Pay {formatPrice(amount)}
           </>
         )}
       </button>

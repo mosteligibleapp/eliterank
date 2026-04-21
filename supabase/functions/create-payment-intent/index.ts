@@ -14,6 +14,25 @@ interface PaymentRequest {
   voterEmail?: string
 }
 
+// Mirror of PRICE_BUNDLER_TIERS in src/types/competition.js. Kept inline
+// because this Deno edge function can't import from the frontend bundle.
+// If you edit the tiers, edit both places.
+const PRICE_BUNDLER_TIERS = [
+  { minVotes: 1,   maxVotes: 10,  pricePerVote: 1.00 },
+  { minVotes: 11,  maxVotes: 25,  pricePerVote: 0.90 },
+  { minVotes: 26,  maxVotes: 50,  pricePerVote: 0.85 },
+  { minVotes: 51,  maxVotes: 100, pricePerVote: 0.80 },
+  { minVotes: 101, maxVotes: 250, pricePerVote: 0.70 },
+  { minVotes: 251, maxVotes: 500, pricePerVote: 0.50 },
+]
+
+function bundledPricePerVote(voteCount: number, basePrice: number): number {
+  const tier =
+    PRICE_BUNDLER_TIERS.find((t) => voteCount >= t.minVotes && voteCount <= t.maxVotes) ||
+    PRICE_BUNDLER_TIERS[PRICE_BUNDLER_TIERS.length - 1]
+  return basePrice * tier.pricePerVote
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -60,10 +79,11 @@ serve(async (req) => {
       },
     })
 
-    // Fetch competition to get vote price
+    // Fetch competition to get vote price. price_per_vote is the column the
+    // admin UI writes to; vote_price is a legacy duplicate we fall back to.
     const { data: competition, error: compError } = await supabase
       .from('competitions')
-      .select('id, city, season, vote_price, status')
+      .select('id, city, season, price_per_vote, vote_price, use_price_bundler, status')
       .eq('id', competitionId)
       .single()
 
@@ -89,9 +109,13 @@ serve(async (req) => {
       )
     }
 
-    // Calculate amount (vote_price is per vote, stored as decimal)
-    const votePrice = parseFloat(competition.vote_price) || 1.00
-    const totalAmount = Math.round(votePrice * voteCount * 100) // Convert to cents
+    // Server is the source of truth for the Stripe amount. If the bundler is
+    // on, apply the tier multiplier against the competition's base price.
+    const basePrice = parseFloat(competition.price_per_vote ?? competition.vote_price) || 1.00
+    const perVotePrice = competition.use_price_bundler
+      ? bundledPricePerVote(voteCount, basePrice)
+      : basePrice
+    const totalAmount = Math.round(perVotePrice * voteCount * 100) // cents
 
     // Initialize Stripe
     const stripe = new Stripe(stripeSecretKey, {

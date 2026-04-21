@@ -263,7 +263,9 @@ export function parseCompetitionSlug(slug) {
 }
 
 /**
- * Calculate vote price based on bundler tiers
+ * Calculate vote price based on bundler tiers.
+ * tier.pricePerVote is a multiplier against the competition's base price
+ * (e.g. 0.90 = 10% off), matching the admin bundler preview.
  */
 export function calculateVotePrice(voteCount, useBundler = false, basePricePerVote = 1.00) {
   if (!useBundler) {
@@ -274,7 +276,7 @@ export function calculateVotePrice(voteCount, useBundler = false, basePricePerVo
     t => voteCount >= t.minVotes && voteCount <= t.maxVotes
   ) || PRICE_BUNDLER_TIERS[PRICE_BUNDLER_TIERS.length - 1];
 
-  return voteCount * tier.pricePerVote;
+  return voteCount * basePricePerVote * tier.pricePerVote;
 }
 
 /**
