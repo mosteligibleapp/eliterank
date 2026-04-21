@@ -1,0 +1,46 @@
+-- =============================================================================
+-- Weekly fan digest cron — Tuesday 10:00 AM Central Time
+-- =============================================================================
+-- Invokes the send-fan-weekly-digest edge function once a week so contestants
+-- and their fans get a performance snapshot (rank, trend, total votes, voting
+-- round end, next event).
+--
+-- pg_cron runs in UTC, so the schedule below targets 16:00 UTC = 10 AM CST.
+-- NOTE on DST: pg_cron does NOT follow daylight savings. Between March and
+-- November the US Central zone is CDT (UTC-5), which means this job will
+-- actually fire at 11 AM Central during that window. If you want a true
+-- 10 AM wall-clock send year-round, switch to CDT (15:00 UTC) for the summer
+-- half and swap it back — or just accept the seasonal drift.
+--
+-- Enable pg_cron + pg_net in Supabase Dashboard → Database → Extensions, then
+-- uncomment the block below. SUPABASE_URL and the service role key need to be
+-- available via Vault or inlined by an admin (not checked into git).
+
+-- -- Required extensions (enable via Supabase dashboard):
+-- CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- CREATE EXTENSION IF NOT EXISTS pg_net;
+
+-- -- Remove any prior schedule with the same name to make this idempotent.
+-- SELECT cron.unschedule('send-fan-weekly-digest')
+--   WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'send-fan-weekly-digest');
+
+-- SELECT cron.schedule(
+--   'send-fan-weekly-digest',
+--   '0 16 * * 2',   -- Tuesday 16:00 UTC (10 AM CST)
+--   $$
+--   SELECT net.http_post(
+--     url := current_setting('app.supabase_url') || '/functions/v1/send-fan-weekly-digest',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'Authorization', 'Bearer ' || current_setting('app.service_role_key')
+--     ),
+--     body := '{}'::jsonb
+--   );
+--   $$
+-- );
+
+-- ALTERNATIVE: invoke from an external scheduler (GitHub Actions, Vercel cron,
+-- etc.) by POSTing to:
+--   ${SUPABASE_URL}/functions/v1/send-fan-weekly-digest
+-- with the Authorization: Bearer <service_role_key> header every Tuesday at
+-- 10:00 America/Chicago. An external scheduler handles DST correctly.

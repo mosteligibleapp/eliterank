@@ -15,6 +15,7 @@ const corsHeaders = {
  *   - nominee_accepted:     "Your nominee accepted!" notification to the nominator
  *   - nominee_declined:     "Your nominee declined" notification to the nominator
  *   - fan_confirmation:     "You're now a fan of X" — sent when a user becomes a fan
+ *   - fan_weekly_digest:    Weekly performance update sent to fans and to the contestant themselves
  *
  * Required Supabase secrets:
  *   ONESIGNAL_APP_ID     — OneSignal App ID
@@ -23,7 +24,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -41,6 +42,14 @@ interface EmailRequest {
   profile_url?: string
   fan_id?: string
   unsubscribe_url?: string
+  // fan_weekly_digest fields
+  rank?: number | null
+  trend?: 'up' | 'down' | 'same' | null
+  total_votes?: number | null
+  voting_round_end?: string | null
+  next_event_name?: string | null
+  next_event_date?: string | null
+  is_self?: boolean
 }
 
 /**
@@ -313,6 +322,90 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
     }
 
+    case 'fan_weekly_digest': {
+      const contestantName = req.contestant_name || 'your contestant'
+      const isSelf = !!req.is_self
+      const competitionName = req.competition_name || 'Most Eligible'
+
+      const formatShortDate = (iso: string) => {
+        try {
+          return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        } catch {
+          return iso
+        }
+      }
+
+      const trendArrow = req.trend === 'up' ? '&uarr;' : req.trend === 'down' ? '&darr;' : '&rarr;'
+      const trendColor = req.trend === 'up' ? '#22c55e' : req.trend === 'down' ? '#ef4444' : '#999'
+      const trendLabel = req.trend === 'up' ? 'up' : req.trend === 'down' ? 'down' : 'steady'
+
+      const rankBlock = req.rank
+        ? `<div style="display:inline-block;padding:12px 20px;background:#1a1a1a;border:1px solid #333;border-radius:8px;margin:8px 4px;min-width:120px;">
+             <div style="color:#999;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;">Rank</div>
+             <div style="color:#d4a843;font-size:32px;font-weight:bold;line-height:1.1;margin-top:4px;">#${req.rank}</div>
+             <div style="color:${trendColor};font-size:13px;margin-top:4px;">${trendArrow} ${trendLabel}</div>
+           </div>`
+        : ''
+
+      const votesBlock = typeof req.total_votes === 'number'
+        ? `<div style="display:inline-block;padding:12px 20px;background:#1a1a1a;border:1px solid #333;border-radius:8px;margin:8px 4px;min-width:120px;">
+             <div style="color:#999;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;">Total Votes</div>
+             <div style="color:#fff;font-size:32px;font-weight:bold;line-height:1.1;margin-top:4px;">${req.total_votes.toLocaleString()}</div>
+             <div style="color:#666;font-size:13px;margin-top:4px;">all time</div>
+           </div>`
+        : ''
+
+      const statsRow = (rankBlock || votesBlock)
+        ? `<div style="text-align:center;margin:16px 0;">${rankBlock}${votesBlock}</div>`
+        : `<p style="color:#999;font-size:14px;text-align:center;margin:16px 0;">No activity this week — stay tuned!</p>`
+
+      const roundEndLine = req.voting_round_end
+        ? `<p style="color:#ccc;font-size:14px;margin:8px 0;">Current voting round ends <strong style="color:#fff;">${formatShortDate(req.voting_round_end)}</strong></p>`
+        : ''
+
+      const nextEventLine = req.next_event_name && req.next_event_date
+        ? `<p style="color:#ccc;font-size:14px;margin:8px 0;">Next event: <strong style="color:#fff;">${req.next_event_name}</strong> on ${formatShortDate(req.next_event_date)}</p>`
+        : ''
+
+      const intro = isSelf
+        ? `Here's your weekly performance snapshot for <strong>${competitionName}</strong>.`
+        : `Here's how <strong>${contestantName}</strong> is doing this week in <strong>${competitionName}</strong>.`
+
+      const heading = isSelf ? 'Your Weekly Update' : `Weekly Update: ${contestantName}`
+      const subject = isSelf
+        ? `Your weekly update — ${competitionName}`
+        : `Weekly update on ${contestantName}`
+
+      const ctaUrl = req.profile_url || req.competition_url
+      const ctaLabel = isSelf ? 'View My Profile' : `View ${contestantName}'s Profile`
+
+      const unsubLine = req.unsubscribe_url
+        ? (isSelf
+            ? `<p style="color:#666;font-size:12px;margin-top:16px;">
+                 <a href="${req.unsubscribe_url}" style="color:#999;text-decoration:underline;">Manage email preferences</a>
+               </p>`
+            : `<p style="color:#666;font-size:12px;margin-top:16px;">
+                 Not interested in weekly updates for ${contestantName}?
+                 <a href="${req.unsubscribe_url}" style="color:#999;text-decoration:underline;">Unsubscribe</a>.
+               </p>`)
+        : ''
+
+      return {
+        subject,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:26px;margin:0 0 8px;">${heading}</h1>
+            <p style="color:#ccc;font-size:15px;margin:8px 0 16px;">${intro}</p>
+            ${statsRow}
+            ${roundEndLine}
+            ${nextEventLine}
+            ${ctaUrl ? goldButton(ctaLabel, ctaUrl) : ''}
+            ${unsubLine}
+          </div>
+        `),
+      }
+    }
+
     default:
       return {
         subject: 'EliteRank Notification',
@@ -450,18 +543,22 @@ serve(async (req) => {
       )
     }
 
-    // For fan_confirmation, generate the signed one-click unsubscribe link
+    // For fan emails, generate the signed one-click unsubscribe link
     // server-side so the secret never leaves the edge. Caller passes fan_id
     // (the contestant_fans row id); the fan-unsubscribe function verifies
-    // the matching signature.
-    if (body.type === 'fan_confirmation' && body.fan_id) {
+    // the matching signature. Skipped when the caller already supplied an
+    // unsubscribe_url (e.g. contestant-self digests point at settings).
+    const needsFanUnsubLink =
+      (body.type === 'fan_confirmation' || body.type === 'fan_weekly_digest') &&
+      body.fan_id && !body.unsubscribe_url
+    if (needsFanUnsubLink) {
       const unsubSecret = Deno.env.get('FAN_UNSUBSCRIBE_SECRET')
       const supabaseUrl = Deno.env.get('SUPABASE_URL')
       if (unsubSecret && supabaseUrl) {
-        const token = await signFanToken(body.fan_id, unsubSecret)
+        const token = await signFanToken(body.fan_id!, unsubSecret)
         body.unsubscribe_url = `${supabaseUrl}/functions/v1/fan-unsubscribe?token=${encodeURIComponent(token)}`
       } else {
-        console.warn('fan_confirmation: missing FAN_UNSUBSCRIBE_SECRET or SUPABASE_URL — unsubscribe link will not be included')
+        console.warn(`${body.type}: missing FAN_UNSUBSCRIBE_SECRET or SUPABASE_URL — unsubscribe link will not be included`)
       }
     }
 
