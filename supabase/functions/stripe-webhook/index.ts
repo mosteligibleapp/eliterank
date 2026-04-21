@@ -152,14 +152,6 @@ serve(async (req) => {
         // The on_vote_insert DB trigger updates contestants.votes and
         // competitions.total_votes atomically with the insert above.
 
-        // Record activity
-        await supabase.from('activity_feed').insert({
-          competition_id,
-          contestant_id,
-          activity_type: 'vote',
-          message: `received ${voteCount} vote${voteCount > 1 ? 's' : ''}`,
-        })
-
         console.log(`Recorded ${voteCount} paid votes for contestant ${contestant_id}`)
         break
       }
