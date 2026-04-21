@@ -204,8 +204,8 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             </div>
         </div>
 
-        {/* Row 2: Meta (season · city · voting date) on a single line,
-            with View pinned right. Dot separators keep it minimal. */}
+        {/* Row 2: Meta (season · city · voting date) on a single line.
+            Dot separators keep it minimal. */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -235,20 +235,21 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
                 <span style={{ flexShrink: 0 }}>Voting starts {votingDate}</span>
               </>
             )}
-            <div style={{
-              marginLeft: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              paddingLeft: spacing.sm,
-              color: colors.gold.primary,
-              fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.medium,
-              flexShrink: 0,
-            }}>
-              <span>View</span>
-              <ChevronRight size={14} />
-            </div>
+        </div>
+
+        {/* Row 3: View CTA, right-aligned on its own row so the meta
+            line above can stay uncropped. */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: '3px',
+          color: colors.gold.primary,
+          fontSize: typography.fontSize.sm,
+          fontWeight: typography.fontWeight.medium,
+        }}>
+          <span>View</span>
+          <ChevronRight size={14} />
         </div>
       </a>
 
