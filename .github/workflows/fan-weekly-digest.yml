@@ -1,0 +1,78 @@
+name: Fan Weekly Digest
+
+# Weekly performance digest for contestants and their fans.
+#
+# GitHub Actions cron runs in UTC and does not follow daylight savings. To
+# keep the send at a true 10 AM America/Chicago wall-clock year-round, we
+# schedule BOTH 15:00 and 16:00 UTC every Tuesday, then the runtime check
+# below only proceeds when the Chicago hour is actually 10. During CDT
+# (Mar–Nov) only the 15:00 UTC run fires; during CST (Nov–Mar) only the
+# 16:00 UTC run fires. Exactly one send per Tuesday, year-round.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL                — https://<ref>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY   — the service role key from Supabase
+
+on:
+  schedule:
+    - cron: '0 15 * * 2'   # 10 AM CDT (America/Chicago during DST)
+    - cron: '0 16 * * 2'   # 10 AM CST (America/Chicago outside DST)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (fetch recipient list but do not send emails)'
+        type: boolean
+        default: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check wall-clock is 10 AM America/Chicago
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — proceeding."
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            HOUR=$(TZ=America/Chicago date +%H)
+            echo "Current hour in America/Chicago: $HOUR"
+            if [ "$HOUR" = "10" ]; then
+              echo "proceed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Not 10 AM Chicago — skipping this cron tick."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Invoke send-fan-weekly-digest
+        if: steps.check.outputs.proceed == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY secret."
+            exit 1
+          fi
+          BODY=$(jq -n --argjson d "$DRY_RUN" '{dry_run: $d}')
+          echo "POST ${SUPABASE_URL}/functions/v1/send-fan-weekly-digest  body=$BODY"
+          RESPONSE=$(curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" \
+            "${SUPABASE_URL%/}/functions/v1/send-fan-weekly-digest")
+          echo "$RESPONSE" | jq .
+          # Surface summary into the workflow step summary for easy triage.
+          {
+            echo "## Fan weekly digest"
+            echo ""
+            echo '```json'
+            echo "$RESPONSE" | jq '.summary // .'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Fail the step if the function reported failure.
+          echo "$RESPONSE" | jq -e '.success == true' > /dev/null
