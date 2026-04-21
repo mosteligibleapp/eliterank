@@ -69,16 +69,6 @@ interface FanRow {
   user_id: string
   contestant_id: string
   email_weekly_updates: boolean
-  // PostgREST may return the joined relation as a single object or a
-  // single-element array depending on its inferred cardinality.
-  profile: { email: string | null } | { email: string | null }[] | null
-}
-
-function fanEmailOf(fan: FanRow): string | null {
-  const p = fan.profile
-  if (!p) return null
-  if (Array.isArray(p)) return p[0]?.email || null
-  return p.email || null
 }
 
 interface SendResult {
@@ -205,10 +195,13 @@ serve(async (req) => {
 
     const contestantIds = (contestants as Contestant[]).map(c => c.id)
 
-    // 5. Fans for those contestants with opt-in still on. Join profiles for email.
+    // 5. Fans for those contestants with opt-in still on. contestant_fans.user_id
+    // references auth.users (not profiles), so PostgREST cannot embed the
+    // profile relation here — we fetch fan emails in the bulk profiles lookup
+    // below instead.
     const { data: fans, error: fansErr } = await supabase
       .from('contestant_fans')
-      .select('id, user_id, contestant_id, email_weekly_updates, profile:profiles!contestant_fans_user_id_fkey(email)')
+      .select('id, user_id, contestant_id, email_weekly_updates')
       .in('contestant_id', contestantIds)
       .eq('email_weekly_updates', true)
 
@@ -220,18 +213,22 @@ serve(async (req) => {
       fansByContestant.get(f.contestant_id)!.push(f)
     }
 
-    // 6. Contestant user emails (for contestants whose email isn't stored
-    // directly on the contestants row). Fetch their profile emails in bulk.
-    const contestantUserIds = (contestants as Contestant[])
-      .map(c => c.user_id)
-      .filter((id): id is string => !!id)
+    // 6. Profile emails for contestants (fallback when contestants.email is
+    // empty) and fans (always). Fetch in one bulk query.
+    const userIdsNeedingEmail = new Set<string>()
+    for (const c of contestants as Contestant[]) {
+      if (c.user_id) userIdsNeedingEmail.add(c.user_id)
+    }
+    for (const f of (fans || []) as FanRow[]) {
+      userIdsNeedingEmail.add(f.user_id)
+    }
 
     const profileEmailByUserId = new Map<string, string>()
-    if (contestantUserIds.length > 0) {
+    if (userIdsNeedingEmail.size > 0) {
       const { data: profiles, error: profilesErr } = await supabase
         .from('profiles')
         .select('id, email')
-        .in('id', contestantUserIds)
+        .in('id', Array.from(userIdsNeedingEmail))
       if (profilesErr) throw new Error(`profiles fetch: ${profilesErr.message}`)
       for (const p of profiles || []) {
         if (p.email) profileEmailByUserId.set(p.id, p.email)
@@ -329,7 +326,7 @@ serve(async (req) => {
       // 7b. Send to each subscribed fan.
       const fanRows = fansByContestant.get(contestant.id) || []
       for (const fan of fanRows) {
-        const fanEmail = fanEmailOf(fan)
+        const fanEmail = profileEmailByUserId.get(fan.user_id) || null
         if (!fanEmail) {
           results.push({
             contestant_id: contestant.id,
