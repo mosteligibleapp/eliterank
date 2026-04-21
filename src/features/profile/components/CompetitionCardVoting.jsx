@@ -441,6 +441,8 @@ export default function CompetitionCardVoting({
           currentRound={roundForModal}
           initialVoteCount={Number(selectedCount) || 1}
           autoCheckout
+          votePrice={competition?.price_per_vote}
+          useBundler={competition?.use_price_bundler}
         />
       )}
     </>

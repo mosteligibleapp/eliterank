@@ -514,6 +514,8 @@ function ContestantModals() {
         competitionId={competition?.id}
         user={user}
         currentRound={currentRound}
+        votePrice={competition?.price_per_vote}
+        useBundler={competition?.use_price_bundler}
       />
     </>
   );

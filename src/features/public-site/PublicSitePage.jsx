@@ -776,6 +776,8 @@ export default function PublicSitePage({
         user={user}
         onVoteSuccess={handleVoteSuccess}
         currentRound={currentRound}
+        votePrice={competition?.price_per_vote}
+        useBundler={competition?.use_price_bundler}
       />
 
       {/* Full-page Profile View */}

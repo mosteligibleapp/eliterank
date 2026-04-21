@@ -171,6 +171,7 @@ export const PRICE_BUNDLER_TIERS = [
   { minVotes: 51, maxVotes: 100, discount: 20, pricePerVote: 0.80 },
   { minVotes: 101, maxVotes: 250, discount: 30, pricePerVote: 0.70 },
   { minVotes: 251, maxVotes: 500, discount: 50, pricePerVote: 0.50 },
+  { minVotes: 501, maxVotes: 1000, discount: 60, pricePerVote: 0.40 },
 ];
 
 // =============================================================================
@@ -263,7 +264,9 @@ export function parseCompetitionSlug(slug) {
 }
 
 /**
- * Calculate vote price based on bundler tiers
+ * Calculate vote price based on bundler tiers.
+ * tier.pricePerVote is a multiplier against the competition's base price
+ * (e.g. 0.90 = 10% off), matching the admin bundler preview.
  */
 export function calculateVotePrice(voteCount, useBundler = false, basePricePerVote = 1.00) {
   if (!useBundler) {
@@ -274,7 +277,7 @@ export function calculateVotePrice(voteCount, useBundler = false, basePricePerVo
     t => voteCount >= t.minVotes && voteCount <= t.maxVotes
   ) || PRICE_BUNDLER_TIERS[PRICE_BUNDLER_TIERS.length - 1];
 
-  return voteCount * tier.pricePerVote;
+  return voteCount * basePricePerVote * tier.pricePerVote;
 }
 
 /**
