@@ -157,6 +157,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
         display: 'flex',
         flexDirection: 'column',
         gap: spacing.sm,
+        overflow: 'hidden',
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -168,13 +169,21 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           color: 'inherit',
           display: 'flex',
           alignItems: 'center',
-          gap: spacing.sm,
+          gap: spacing.md,
           cursor: 'pointer',
           minWidth: 0,
         }}
       >
-        {/* Content column (name row + meta row) takes the full remaining
-            width; chevron sits vertically centered on the right. */}
+        {/* Large org logo as its own column, spanning the content height. */}
+        {org?.logo_url && (
+          <OrganizationLogo
+            logo={org.logo_url}
+            size={isMobile ? 56 : 64}
+            alt={org?.name || 'Organization'}
+          />
+        )}
+
+        {/* Content column: name + badge + meta, stacked. */}
         <div style={{
           flex: 1,
           minWidth: 0,
@@ -182,43 +191,28 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           flexDirection: 'column',
           gap: spacing.xs,
         }}>
-          {/* Row 1: Org logo + competition name. Name gets the full row,
-              so it can always render in full on a single line. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 0 }}>
-            {org?.logo_url && (
-              <OrganizationLogo
-                logo={org.logo_url}
-                size={28}
-                alt={org?.name || 'Organization'}
-              />
-            )}
-            <h4 style={{
-              fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
-              fontWeight: typography.fontWeight.semibold,
-              color: colors.text.primary,
-              lineHeight: 1.3,
-              flex: 1,
-              minWidth: 0,
-              margin: 0,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              letterSpacing: typography.letterSpacing.tight,
-            }}>
-              {competition.name || entry.name}
-            </h4>
-          </div>
+          {/* Row 1: Competition name on its own line, full width. */}
+          <h4 style={{
+            fontSize: isMobile ? typography.fontSize.base : typography.fontSize.md,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            lineHeight: 1.3,
+            margin: 0,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            letterSpacing: typography.letterSpacing.tight,
+          }}>
+            {competition.name || entry.name}
+          </h4>
 
-          {/* Row 2: Role badge sits as a label beneath the title (editorial
-              tag pattern), indented under the name to align with it. */}
-          <div style={{ paddingLeft: 36, display: 'flex' }}>
+          {/* Row 2: Role badge as a label beneath the title. */}
+          <div style={{ display: 'flex' }}>
             <RoleBadge role={entry.role} />
           </div>
 
-          {/* Row 3: Meta (season · city · voting date) on a single line,
-              indented to align with the title. */}
+          {/* Row 3: Meta (season · city · voting date) on a single line. */}
           <div style={{
-            paddingLeft: 36,
             display: 'flex',
             alignItems: 'center',
             gap: spacing.xs,
@@ -251,10 +245,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           </div>
         </div>
 
-        {/* Chevron affordance — vertically centered on the whole card.
-            The card's hover state carries the interactivity signal; a gold
-            chevron here marks it as a tappable destination without taking
-            a dedicated row. */}
+        {/* Chevron affordance — vertically centered on the whole card. */}
         <ChevronRight
           size={18}
           style={{
