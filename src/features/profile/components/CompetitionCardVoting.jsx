@@ -8,9 +8,20 @@ import {
   submitFreeVote,
   submitAnonymousVote,
 } from '../../../lib/votes';
+import { calculateVotePrice } from '../../../types/competition';
 import VoteModal from '../../public-site/components/VoteModal';
 
 const VOTE_PRESETS = [1, 10, 25, 50, 100];
+
+// Show cents when a bundled total is fractional ($9.90) but keep round
+// totals tidy ($10).
+const priceFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+const formatPrice = (amount) => priceFormatter.format(amount);
 
 /**
  * CompetitionCardVoting
@@ -39,6 +50,7 @@ export default function CompetitionCardVoting({
   const competitionId = competition?.id;
   const contestantId = contestant?.id;
   const pricePerVote = Number(competition?.price_per_vote) || 1;
+  const useBundler = !!competition?.use_price_bundler;
 
   const [selectedCount, setSelectedCount] = useState(10);
   const [busy, setBusy] = useState(false);
@@ -152,7 +164,7 @@ export default function CompetitionCardVoting({
     }
   };
 
-  const total = selectedCount * pricePerVote;
+  const total = calculateVotePrice(selectedCount, useBundler, pricePerVote);
 
   return (
     <>
@@ -318,7 +330,7 @@ export default function CompetitionCardVoting({
                 }}
               >
                 <CreditCard size={16} />
-                Purchase {selectedCount || 0} {selectedCount === 1 ? 'Vote' : 'Votes'} — ${total.toLocaleString()}
+                Purchase {selectedCount || 0} {selectedCount === 1 ? 'Vote' : 'Votes'} — {formatPrice(total)}
               </button>
             </div>
 
