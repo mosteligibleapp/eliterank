@@ -109,12 +109,12 @@ function getVotingStartDate(competition) {
     const sorted = [...rounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
     const first = sorted[0];
     if (first?.start_date) {
-      return new Date(first.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return new Date(first.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
   }
   const votingStart = competition?.settings?.voting_start || competition?.voting_start;
   if (votingStart) {
-    return new Date(votingStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(votingStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
   return null;
 }
