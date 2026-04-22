@@ -56,6 +56,9 @@ export default function CompetitionCardVoting({
   competition,
   currentRound,
   isPreview = false,
+  // Optional — when the parent card already pulls the leaderboard for its
+  // stats row, it can pass the same snapshot in so we don't double-fetch.
+  leaderboard: leaderboardProp,
 }) {
   const { user } = useSupabaseAuth();
   const toast = useToast();
@@ -90,11 +93,14 @@ export default function CompetitionCardVoting({
   const mountedAtRef = useRef(Date.now());
 
   // Pull the current leaderboard snapshot so we can project what rank this
-  // contestant would sit at after the purchase lands. realtime: false —
-  // the projection is advisory, it doesn't need to update as others vote.
-  const { contestants: leaderboard } = useLeaderboard(competitionId, {
-    realtime: false,
-  });
+  // contestant would sit at after the purchase lands. If the parent passed
+  // one in (parent card's stats row uses the same data), skip the fetch.
+  // realtime:false — the projection is advisory, doesn't need live updates.
+  const internalLeaderboard = useLeaderboard(
+    leaderboardProp ? null : competitionId,
+    { realtime: false },
+  );
+  const leaderboard = leaderboardProp || internalLeaderboard.contestants;
 
   useEffect(() => {
     if (!user?.id || !competitionId) return;
@@ -292,21 +298,17 @@ export default function CompetitionCardVoting({
           gap: spacing.md,
         }}
       >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.xs,
-          color: colors.gold.primary,
-          fontSize: typography.fontSize.xs,
+        <h4 style={{
+          margin: 0,
+          fontSize: typography.fontSize.base,
           fontWeight: typography.fontWeight.semibold,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
+          color: colors.text.primary,
+          letterSpacing: typography.letterSpacing.tight,
         }}>
-          <Heart size={12} fill={colors.gold.primary} />
           {isPreview
             ? 'Preview — voting will be live here'
-            : `Support ${firstName}`}
-        </div>
+            : `Send votes to ${firstName}`}
+        </h4>
 
         {castSuccess ? (
           <div style={{
@@ -457,8 +459,23 @@ export default function CompetitionCardVoting({
               Send {selectedCount || 0} {Number(selectedCount) === 1 ? 'vote' : 'votes'} — {formatPrice(total)}
             </button>
 
-            {/* Free vote: small link below */}
-            <FreeVoteLink
+            {/* OR divider + full-width outlined free-vote button */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+              color: colors.text.muted,
+              fontSize: typography.fontSize.xs,
+              fontWeight: typography.fontWeight.semibold,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+            }}>
+              <div style={{ flex: 1, height: '1px', background: colors.border.primary }} />
+              <span>or</span>
+              <div style={{ flex: 1, height: '1px', background: colors.border.primary }} />
+            </div>
+
+            <FreeVoteButton
               user={user}
               alreadyVoted={alreadyVoted}
               busy={busy}
@@ -616,51 +633,38 @@ function PresetTile({ count, pricePerVote, useBundler, active, mostPopular, onCl
   );
 }
 
-function FreeVoteLink({ user, alreadyVoted, busy, showFreeForm, onClick }) {
-  if (user?.id && alreadyVoted) {
-    return (
-      <div style={{
-        textAlign: 'center',
-        padding: `${spacing.xs} 0`,
-        fontSize: typography.fontSize.sm,
-        color: colors.text.muted,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: spacing.xs,
-      }}>
-        <Check size={14} />
-        Free daily vote used
-      </div>
-    );
-  }
+function FreeVoteButton({ user, alreadyVoted, busy, showFreeForm, onClick }) {
+  const used = user?.id && alreadyVoted;
+
+  const content = (() => {
+    if (busy) return <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />;
+    if (used) return (<><Check size={14} /> Free daily vote used</>);
+    return (<><Check size={14} /> Use your 1 free daily vote</>);
+  })();
 
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={busy}
+      disabled={busy || used}
+      aria-expanded={showFreeForm}
       style={{
+        width: '100%',
+        padding: `${spacing.sm} ${spacing.md}`,
         background: 'transparent',
-        border: 'none',
-        padding: `${spacing.xs} 0`,
-        color: colors.text.muted,
+        border: `1px solid ${used ? colors.border.primary : 'rgba(212,175,55,0.35)'}`,
+        borderRadius: borderRadius.md,
+        color: used ? colors.text.muted : colors.gold.primary,
         fontSize: typography.fontSize.sm,
-        cursor: busy ? 'not-allowed' : 'pointer',
+        fontWeight: typography.fontWeight.semibold,
+        cursor: busy || used ? 'not-allowed' : 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: spacing.xs,
       }}
     >
-      {busy ? (
-        <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-      ) : (
-        <>
-          <span>or cast your 1 free daily vote</span>
-          <ArrowRight size={14} style={{ transform: showFreeForm ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-        </>
-      )}
+      {content}
     </button>
   );
 }

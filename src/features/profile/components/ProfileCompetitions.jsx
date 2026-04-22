@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, Star, Award, ArrowRight, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Trophy, Crown, Star, Award, ArrowRight, ChevronRight, Clock } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 
 import { useResponsive } from '../../../hooks/useResponsive';
+import { useLeaderboard } from '../../../hooks';
+import { useCountdown } from '../../../hooks/useCountdown';
+import { formatNumber } from '../../../utils/formatters';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
 import { getCityImage } from '../../../utils/cityImages';
@@ -68,6 +71,62 @@ function getCompetitionLink(competition) {
   return getCompetitionUrl(orgSlug, generatedSlug);
 }
 
+function StatBox({ label, value, suffix, icon, accent = false }) {
+  return (
+    <div style={{
+      padding: spacing.md,
+      background: accent ? 'rgba(212,175,55,0.06)' : 'rgba(255,255,255,0.03)',
+      border: `1px solid ${accent ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.06)'}`,
+      borderRadius: borderRadius.md,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px',
+      minWidth: 0,
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spacing.xs,
+        fontSize: typography.fontSize.xs,
+        fontWeight: typography.fontWeight.semibold,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color: accent ? colors.gold.primary : colors.text.muted,
+        minWidth: 0,
+      }}>
+        {icon}
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {label}
+        </span>
+      </div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: spacing.xs,
+        lineHeight: 1,
+      }}>
+        <span style={{
+          fontSize: typography.fontSize['3xl'],
+          fontWeight: typography.fontWeight.bold,
+          color: accent ? colors.gold.primary : colors.text.primary,
+          fontVariantNumeric: 'tabular-nums',
+        }}>
+          {value}
+        </span>
+        {suffix && (
+          <span style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.muted,
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {suffix}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function RoleBadge({ role, size = 'sm' }) {
   switch (role) {
     case 'nominee':
@@ -124,7 +183,6 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
   const competition = entry.competition || {};
   const cityName = competition.city?.name || competition.city || '';
   const org = competition.organization;
-  const votingDate = getVotingStartDate(competition);
   const url = entry.url;
 
   // Inline voting is only shown for contestant entries during an active
@@ -139,6 +197,29 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
     : null;
   const activeRound = realRound || previewRound;
   const showInlineVoting = !!activeRound && !!entry.contestant?.id;
+
+  // Leaderboard is fetched at the card level so the stats row and the
+  // voting panel share a single round trip. realtime:false — the rank in
+  // the stats bar doesn't need to update live.
+  const { contestants: leaderboard } = useLeaderboard(
+    showInlineVoting ? competition.id : null,
+    { realtime: false },
+  );
+
+  // Countdown to the active round's end_date — drives the ROUND ENDS stat.
+  const countdown = useCountdown(activeRound?.end_date || null);
+
+  // Contestant's current rank + total, derived from the fresh leaderboard
+  // snapshot so the stats bar matches the payload the voting panel sees.
+  const rankStats = useMemo(() => {
+    if (!showInlineVoting || !leaderboard?.length || !entry.contestant?.id) return null;
+    const byVotes = [...leaderboard].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    const idx = byVotes.findIndex((c) => c.id === entry.contestant.id);
+    if (idx === -1) return null;
+    return { current: idx + 1, total: byVotes.length };
+  }, [showInlineVoting, leaderboard, entry.contestant?.id]);
+
+  const voteCount = entry.contestant?.votes ?? entry.votes ?? 0;
 
   // When the voting panel is visible, the outer <a> causes button clicks
   // to bubble and trigger navigation. Split the card into a clickable
@@ -216,7 +297,8 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             </div>
           )}
 
-          {/* Row 3: Meta (season · city · voting date) on a single line. */}
+          {/* Row 3: Meta (city · season) — kept tight because rank / votes
+              / round-end now live in the stats row below. */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -228,38 +310,59 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             overflow: 'hidden',
             textOverflow: 'ellipsis',
           }}>
+            {cityName && (
+              <span style={{ flexShrink: 0 }}>{cityName}</span>
+            )}
+            {cityName && competition.season && (
+              <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
+            )}
             {competition.season && (
               <span style={{ flexShrink: 0 }}>{competition.season}</span>
-            )}
-            {cityName && (
-              <>
-                {competition.season && (
-                  <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
-                )}
-                <span style={{ flexShrink: 0 }}>{cityName}</span>
-              </>
-            )}
-            {votingDate && (
-              <>
-                {(competition.season || cityName) && (
-                  <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
-                )}
-                <span style={{ flexShrink: 0 }}>Voting {votingDate}</span>
-              </>
             )}
           </div>
         </div>
 
-        {/* Chevron affordance — vertically centered on the whole card. */}
-        <ChevronRight
-          size={18}
-          style={{
-            flexShrink: 0,
-            color: isHovered ? colors.gold.primary : colors.text.tertiary,
-            transition: 'color 0.2s ease',
-          }}
-        />
+        {/* Chevron only for non-contestant entries — contestant cards are
+            primarily about the inline voting panel, so the navigational
+            affordance would compete with the primary CTA. */}
+        {!showInlineVoting && (
+          <ChevronRight
+            size={18}
+            style={{
+              flexShrink: 0,
+              color: isHovered ? colors.gold.primary : colors.text.tertiary,
+              transition: 'color 0.2s ease',
+            }}
+          />
+        )}
       </a>
+
+      {/* Stats row: rank / votes / round-ends — rendered only for contestant
+          entries with an active voting round, since the data only makes
+          sense there. */}
+      {showInlineVoting && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: spacing.sm,
+        }}>
+          <StatBox
+            label="Rank"
+            value={rankStats ? `#${rankStats.current}` : '—'}
+            suffix={rankStats ? `/ ${rankStats.total}` : undefined}
+          />
+          <StatBox
+            label="Votes"
+            value={formatNumber(voteCount)}
+          />
+          <StatBox
+            label="Round ends"
+            value={countdown?.isExpired ? 'Ended' : (countdown?.display?.primary || '—')}
+            icon={<Clock size={12} />}
+            accent
+          />
+        </div>
+      )}
 
       {/* Inline voting panel — sibling to the link, not inside it, so
           button clicks never bubble into the <a>'s navigation. */}
@@ -269,6 +372,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           competition={competition}
           currentRound={activeRound}
           isPreview={isPreview}
+          leaderboard={leaderboard}
         />
       )}
 
