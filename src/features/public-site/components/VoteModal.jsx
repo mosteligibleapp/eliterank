@@ -107,8 +107,15 @@ export default function VoteModal({
   // Works for both authenticated and anonymous voters — Stripe collects
   // the billing email during checkout for the anonymous path.
   const autoCheckoutTriggered = useRef(false);
+  // Bumped on every close so any in-flight PaymentIntent request can
+  // tell it was issued by a previous session and discard its result.
+  const requestVersionRef = useRef(0);
   useEffect(() => {
-    if (!isOpen) { autoCheckoutTriggered.current = false; return; }
+    if (!isOpen) {
+      autoCheckoutTriggered.current = false;
+      requestVersionRef.current += 1;
+      return;
+    }
     if (!autoCheckout || autoCheckoutTriggered.current) return;
     if (!hasActiveRound || !stripeConfigured) return;
     autoCheckoutTriggered.current = true;
@@ -173,6 +180,7 @@ export default function VoteModal({
     }
 
     setIsCreatingPayment(true);
+    const requestVersion = requestVersionRef.current;
 
     try {
       const result = await createVotePaymentIntent({
@@ -181,6 +189,10 @@ export default function VoteModal({
         voteCount: selectedVoteCount,
         voterEmail: user?.email,
       });
+
+      // Bail if the modal was closed while this request was in flight; the
+      // PaymentIntent is orphaned but we don't want to poison next open.
+      if (requestVersion !== requestVersionRef.current) return;
 
       if (result.success && result.clientSecret) {
         setClientSecret(result.clientSecret);
@@ -191,10 +203,14 @@ export default function VoteModal({
       }
     } catch (err) {
       console.error('Error initiating purchase:', err);
-      toast.error('An unexpected error occurred');
+      if (requestVersion === requestVersionRef.current) {
+        toast.error('An unexpected error occurred');
+      }
     }
 
-    setIsCreatingPayment(false);
+    if (requestVersion === requestVersionRef.current) {
+      setIsCreatingPayment(false);
+    }
   };
 
   // Handle successful payment
@@ -225,6 +241,11 @@ export default function VoteModal({
     setShowPaymentForm(false);
     setClientSecret(null);
     setPaymentIntentId(null);
+    // In autoCheckout mode there's no vote-selector to fall back to — the
+    // modal only exists to collect the card — so bail out of the whole modal.
+    if (autoCheckout) {
+      onClose();
+    }
   };
 
   if (!contestant) return null;
@@ -284,19 +305,40 @@ export default function VoteModal({
   if (autoCheckout && isOpen && !showSuccess && !showPaymentForm) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="" maxWidth="360px" centered hideCloseButton variant="gold">
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: `${spacing.xxl} ${spacing.lg}`,
-          gap: spacing.md,
-          minHeight: '200px',
-        }}>
-          <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
-          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, margin: 0 }}>
-            Preparing secure checkout…
-          </p>
+        <div style={{ position: 'relative', padding: `${spacing.xxl} ${spacing.lg}` }}>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              position: 'absolute',
+              top: spacing.sm,
+              right: spacing.sm,
+              background: 'rgba(255,255,255,0.08)',
+              border: 'none',
+              borderRadius: borderRadius.full,
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <X size={16} style={{ color: colors.text.secondary }} />
+          </button>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.md,
+            minHeight: '160px',
+          }}>
+            <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, margin: 0 }}>
+              Preparing secure checkout…
+            </p>
+          </div>
         </div>
       </Modal>
     );
