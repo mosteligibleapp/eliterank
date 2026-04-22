@@ -71,10 +71,12 @@ function getCompetitionLink(competition) {
   return getCompetitionUrl(orgSlug, generatedSlug);
 }
 
-function StatBox({ label, value, suffix, icon, accent = false }) {
+function StatBox({ label, value, suffix, icon, accent = false, isMobile = false }) {
   return (
     <div style={{
-      padding: spacing.md,
+      // Tighter padding on mobile so the 3-across grid doesn't crush the
+      // content (the "ROUND ENDS" label was being truncated to "ROUND ...").
+      padding: isMobile ? `${spacing.sm} ${spacing.sm}` : spacing.md,
       background: accent ? 'rgba(212,175,55,0.06)' : 'rgba(255,255,255,0.03)',
       border: `1px solid ${accent ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.06)'}`,
       borderRadius: borderRadius.md,
@@ -93,9 +95,12 @@ function StatBox({ label, value, suffix, icon, accent = false }) {
         textTransform: 'uppercase',
         color: accent ? colors.gold.primary : colors.text.muted,
         minWidth: 0,
+        // Allow the label to wrap to a second line on narrow screens
+        // instead of truncating with an ellipsis.
+        lineHeight: 1.2,
       }}>
         {icon}
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ minWidth: 0 }}>
           {label}
         </span>
       </div>
@@ -350,16 +355,19 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             label="Rank"
             value={rankStats ? `#${rankStats.current}` : '—'}
             suffix={rankStats ? `/ ${rankStats.total}` : undefined}
+            isMobile={isMobile}
           />
           <StatBox
             label="Votes"
             value={formatNumber(voteCount)}
+            isMobile={isMobile}
           />
           <StatBox
             label="Round ends"
             value={countdown?.isExpired ? 'Ended' : (countdown?.display?.primary || '—')}
             icon={<Clock size={12} />}
             accent
+            isMobile={isMobile}
           />
         </div>
       )}
