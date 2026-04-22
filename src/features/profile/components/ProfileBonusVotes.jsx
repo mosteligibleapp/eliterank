@@ -33,7 +33,6 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
   const navigate = useNavigate();
   const { profile } = useAuthContextSafe();
   const toast = useToast();
-  const hasCheckedProfile = useRef(false);
   const [showGuide, setShowGuide] = useState(false);
   const [proofTask, setProofTask] = useState(null);
   const [videoTask, setVideoTask] = useState(null);
@@ -57,18 +56,23 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
     }
   }, [loading, totalBonusVotesEarned, totalBonusVotesAvailable, allCompleted, tasks.length, onBonusVotesLoaded]);
 
-  // Auto-check profile completeness and award applicable bonuses
+  // Auto-check profile completeness and award applicable bonuses.
+  //
+  // We intentionally re-run on every profile change (no once-only guard).
+  // awardBonusVotes is idempotent server-side via UNIQUE(task_id,
+  // contestant_id), so duplicate runs just return already_completed and
+  // produce no toast. This way an avatar or social field that becomes
+  // truthy mid-session (profile edit, late data hydration) actually
+  // triggers the award without waiting for a 'profile-updated' event.
   const hasCheckedNomineeActions = useRef(false);
   useEffect(() => {
-    if (!loading && profile && !hasCheckedProfile.current && tasks.length > 0) {
-      hasCheckedProfile.current = true;
-      checkProfile(profile).then((awarded) => {
-        if (awarded.length > 0) {
-          const totalVotes = awarded.reduce((sum, a) => sum + (a.votes_awarded || 0), 0);
-          toast?.success?.(`You earned ${totalVotes} bonus votes!`);
-        }
-      });
-    }
+    if (loading || !profile || tasks.length === 0) return;
+    checkProfile(profile).then((awarded) => {
+      if (awarded.length > 0) {
+        const totalVotes = awarded.reduce((sum, a) => sum + (a.votes_awarded || 0), 0);
+        toast?.success?.(`You earned ${totalVotes} bonus votes!`);
+      }
+    });
   }, [loading, profile, tasks.length, checkProfile, toast]);
 
   // Auto-award action-based tasks completed during nominee phase
@@ -89,13 +93,6 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
       }
     }
   }, [loading, tasks, userId, competitionId, contestantId, toast]);
-
-  // Re-check when profile is updated
-  useEffect(() => {
-    const handler = () => { hasCheckedProfile.current = false; };
-    window.addEventListener('profile-updated', handler);
-    return () => window.removeEventListener('profile-updated', handler);
-  }, []);
 
   const handleDismiss = useCallback(() => {
     setDismissed(true);
