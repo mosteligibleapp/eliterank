@@ -6,7 +6,7 @@ import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser
 
 import { useResponsive } from '../../../hooks/useResponsive';
 import { useLeaderboard } from '../../../hooks';
-import { useCountdown } from '../../../hooks/useCountdown';
+import useCountdown from '../../../hooks/useCountdown';
 import { formatNumber } from '../../../utils/formatters';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
