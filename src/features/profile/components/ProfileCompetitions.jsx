@@ -472,17 +472,17 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
   // Let the parent know whether this profile has any live voting round —
   // ProfileView hides its header "X votes" pill when voting is live so the
   // per-comp card's stats row isn't duplicated above. Waits for loading to
-  // finish so we don't flicker the pill on first paint.
+  // finish so we don't flicker the pill on first paint. Preview mode is
+  // treated as "active" too, since the card synthesizes a round and renders
+  // its full stats + voting panel, which would otherwise duplicate the pill.
   useEffect(() => {
     if (!onActiveVotingChange || loading) return;
-    // contestantEntries are raw contestant rows (no "role" field yet —
-    // that's applied downstream when we assemble the render list), so any
-    // entry with an active voting round counts.
-    const hasActive = contestantEntries.some(
+    const hasRealActive = contestantEntries.some(
       (entry) => !!findActiveVotingRound(entry.competition),
     );
-    onActiveVotingChange(hasActive);
-  }, [loading, contestantEntries, onActiveVotingChange]);
+    const hasPreviewActive = isPreview && contestantEntries.length > 0;
+    onActiveVotingChange(hasRealActive || hasPreviewActive);
+  }, [loading, contestantEntries, onActiveVotingChange, isPreview]);
 
   if (loading) {
     return (

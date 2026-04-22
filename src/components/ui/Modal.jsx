@@ -35,6 +35,13 @@ export default function Modal({
   return (
     <div
       className={`fixed inset-0 bg-black/80 backdrop-blur-sm flex ${centered ? 'items-center' : 'items-start'} justify-center z-50 p-6 overflow-y-auto`}
+      // Respect iOS safe-area so the modal header doesn't slide under the
+      // dynamic island / notch on non-centered modals. max() keeps the
+      // desktop p-6 padding (24px) as the floor.
+      style={{
+        paddingTop: 'max(1.5rem, env(safe-area-inset-top, 1.5rem))',
+        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))',
+      }}
       onClick={onClose}
     >
       <div
