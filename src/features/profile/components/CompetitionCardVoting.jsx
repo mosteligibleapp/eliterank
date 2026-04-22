@@ -541,9 +541,6 @@ export default function CompetitionCardVoting({
 
 function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
   const total = calculateVotePrice(count, useBundler, pricePerVote);
-  const undiscountedTotal = count * pricePerVote;
-  const save = Math.max(0, undiscountedTotal - total);
-  const perVote = total / count;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -564,49 +561,30 @@ function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
           textAlign: 'left',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: spacing.xs }}>
-            <span style={{
-              fontSize: typography.fontSize['2xl'],
-              fontWeight: typography.fontWeight.bold,
-              color: colors.text.primary,
-              lineHeight: 1,
-            }}>
-              {count}
-            </span>
-            <span style={{
-              fontSize: typography.fontSize.sm,
-              color: colors.text.muted,
-            }}>
-              votes
-            </span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: spacing.xs }}>
           <span style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
-          }}>
-            {formatPrice(perVote)} per vote
-          </span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-          <span style={{
-            fontSize: typography.fontSize.xl,
+            fontSize: typography.fontSize['2xl'],
             fontWeight: typography.fontWeight.bold,
-            color: active ? colors.gold.primary : colors.text.primary,
+            color: colors.text.primary,
             lineHeight: 1,
           }}>
-            {totalFormatter.format(total)}
+            {count}
           </span>
-          {save > 0 && (
-            <span style={{
-              fontSize: typography.fontSize.xs,
-              color: colors.status.success,
-              fontWeight: typography.fontWeight.semibold,
-            }}>
-              save {totalFormatter.format(save)}
-            </span>
-          )}
+          <span style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.muted,
+          }}>
+            votes
+          </span>
         </div>
+        <span style={{
+          fontSize: typography.fontSize.xl,
+          fontWeight: typography.fontWeight.bold,
+          color: active ? colors.gold.primary : colors.text.primary,
+          lineHeight: 1,
+        }}>
+          {totalFormatter.format(total)}
+        </span>
       </button>
     </div>
   );

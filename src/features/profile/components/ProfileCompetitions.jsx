@@ -88,16 +88,19 @@ function StatBox({ label, value, suffix, icon, accent = false, isMobile = false 
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: spacing.xs,
-        fontSize: typography.fontSize.xs,
+        // Tight gap for the accent box so "Round ends" + clock icon
+        // stays on one line at narrow widths.
+        gap: accent ? '3px' : spacing.xs,
+        // Accent label is rendered a shade smaller with tighter tracking
+        // so "ROUND ENDS" fits on a single line on ~390px viewports.
+        fontSize: accent ? '11px' : typography.fontSize.xs,
         fontWeight: typography.fontWeight.semibold,
-        letterSpacing: '0.06em',
+        letterSpacing: accent ? '0.03em' : '0.06em',
         textTransform: 'uppercase',
         color: accent ? colors.gold.primary : colors.text.muted,
         minWidth: 0,
-        // Allow the label to wrap to a second line on narrow screens
-        // instead of truncating with an ellipsis.
-        lineHeight: 1.2,
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
       }}>
         {icon}
         <span style={{ minWidth: 0 }}>
