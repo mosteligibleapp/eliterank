@@ -9,6 +9,7 @@ import {
   submitAnonymousVote,
 } from '../../../lib/votes';
 import { calculateVotePrice } from '../../../types/competition';
+import { getStripe, isStripeConfigured } from '../../../lib/stripe';
 import VoteModal from '../../public-site/components/VoteModal';
 
 const VOTE_PRESETS = [25, 100, 250];
@@ -94,6 +95,15 @@ export default function CompetitionCardVoting({
     });
     return () => { cancelled = true; };
   }, [user?.id, competitionId]);
+
+  // Warm Stripe.js in the background so the checkout modal feels instant
+  // when the user hits Send. loadStripe is singletoned — repeat calls are
+  // cheap and don't trigger another network request.
+  useEffect(() => {
+    if (isStripeConfigured()) {
+      getStripe();
+    }
+  }, []);
 
   const roundForModal = useMemo(() => {
     if (!currentRound) return null;

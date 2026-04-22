@@ -107,6 +107,8 @@ export async function getTodaysVote(userId, competitionId) {
   try {
     const today = new Date().toISOString().split('T')[0];
 
+    // maybeSingle() returns { data: null } when there are 0 rows without
+    // the 406 that .single() produces and logs in the browser console.
     const { data, error } = await supabase
       .from('votes')
       .select('contestant_id')
@@ -115,9 +117,9 @@ export async function getTodaysVote(userId, competitionId) {
       .eq('amount_paid', 0)
       .gte('created_at', `${today}T00:00:00.000Z`)
       .lte('created_at', `${today}T23:59:59.999Z`)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('Error getting today\'s vote:', error);
       return null;
     }
