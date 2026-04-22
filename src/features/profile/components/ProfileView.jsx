@@ -22,6 +22,10 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
   const [cardInfo, setCardInfo] = useState(null);
   const [generatingCard, setGeneratingCard] = useState(false);
   const [introVideoOpen, setIntroVideoOpen] = useState(false);
+  // null = ProfileCompetitions hasn't reported yet. Kept null so we don't
+  // render the header "X votes" pill before we know whether the per-comp
+  // stats row is already showing it.
+  const [hasActiveVotingRound, setHasActiveVotingRound] = useState(null);
 
   // When a logged-in user views their own contestant profile (either the
   // /profile edit view or the public /profile/:id route), swap "Become a
@@ -286,7 +290,11 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
                     marginTop: spacing.md,
                     flexWrap: 'wrap',
                   }}>
-                    {displayVotes > 0 && (
+                    {/* Hide the votes pill once voting is live — the per-comp
+                        card's stats row already surfaces the current count.
+                        Also hides while we're waiting on that signal
+                        (hasActiveVotingRound === null) so we don't flash. */}
+                    {displayVotes > 0 && hasActiveVotingRound === false && (
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -355,6 +363,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
           user={{ id: hostProfile?.id, email: hostProfile?.email }}
           isOwnProfile={!!onEdit}
           isPreview={isPreview}
+          onActiveVotingChange={setHasActiveVotingRound}
           profile={{
             first_name: hostProfile?.firstName,
             last_name: hostProfile?.lastName,

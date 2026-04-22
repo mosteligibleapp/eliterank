@@ -421,7 +421,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
   return CardBody;
 }
 
-export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false, isPreview = false }) {
+export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false, isPreview = false, onActiveVotingChange }) {
   const { isMobile, isSmall } = useResponsive();
   const [hostedCompetitions, setHostedCompetitions] = useState([]);
   const [contestantEntries, setContestantEntries] = useState([]);
@@ -468,6 +468,21 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
   const hasHosted = hostedCompetitions.length > 0;
   const hasContestant = contestantEntries.length > 0;
   const hasNominations = nominations.length > 0;
+
+  // Let the parent know whether this profile has any live voting round —
+  // ProfileView hides its header "X votes" pill when voting is live so the
+  // per-comp card's stats row isn't duplicated above. Waits for loading to
+  // finish so we don't flicker the pill on first paint.
+  useEffect(() => {
+    if (!onActiveVotingChange || loading) return;
+    const hasActive = contestantEntries.some((entry) => {
+      const role = entry.role;
+      if (role !== 'contestant' && role !== 'winner') return false;
+      if (!entry.contestant?.id) return false;
+      return !!findActiveVotingRound(entry.competition);
+    });
+    onActiveVotingChange(hasActive);
+  }, [loading, contestantEntries, onActiveVotingChange]);
 
   if (loading) {
     return (
