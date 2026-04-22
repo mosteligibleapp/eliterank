@@ -225,6 +225,31 @@ export default async function handler(request, response) {
         return response.status(500).json({ error: 'Could not create voter record.' });
       }
       voterId = created.user.id;
+
+      // The handle_new_user trigger may have failed silently (it catches exceptions
+      // to avoid blocking auth.users inserts). Ensure the profile exists so the
+      // vote INSERT doesn't hit a FK violation.
+      const { data: profileCheck } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', voterId)
+        .maybeSingle();
+
+      if (!profileCheck) {
+        console.warn('Profile missing after user creation — creating manually for', voterId);
+        const { error: profileErr } = await supabase
+          .from('profiles')
+          .insert({
+            id: voterId,
+            email: normalizedEmail,
+            first_name: cleanFirst,
+            last_name: cleanLast,
+          });
+        if (profileErr) {
+          console.error('Manual profile creation failed:', profileErr);
+          return response.status(500).json({ error: 'Could not create voter profile.' });
+        }
+      }
     }
 
     // ─── Daily vote dedup ────────────────────────────────────────────────
@@ -260,9 +285,14 @@ export default async function handler(request, response) {
     if (voteErr) {
       console.error('Vote insert failed:', voteErr);
       if (voteErr.code === '23505') {
-        return response.status(409).json({ error: 'You\u2019ve already used your free vote today.' });
+        return response.status(409).json({ error: 'You've already used your free vote today.' });
       }
-      return response.status(500).json({ error: 'Could not record your vote.' });
+      // Include error details in non-production for debugging
+      const isDev = process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
+      const errorPayload = isDev
+        ? { error: 'Could not record your vote.', code: voteErr.code, detail: voteErr.message }
+        : { error: 'Could not record your vote.' };
+      return response.status(500).json(errorPayload);
     }
 
     // Record rate-limit entry only after a successful vote so failed
