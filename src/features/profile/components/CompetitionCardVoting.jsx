@@ -541,6 +541,11 @@ export default function CompetitionCardVoting({
 
 function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
   const total = calculateVotePrice(count, useBundler, pricePerVote);
+  const save = Math.max(0, count * pricePerVote - total);
+  // Only surface the savings when the delta is meaningful — hides the
+  // noisy "save $4" on the 25-vote tile and keeps attention on the big
+  // discounts (100 votes = save $30, 250 votes = save $125).
+  const showSave = save >= 10;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -577,14 +582,25 @@ function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
             votes
           </span>
         </div>
-        <span style={{
-          fontSize: typography.fontSize.xl,
-          fontWeight: typography.fontWeight.bold,
-          color: active ? colors.gold.primary : colors.text.primary,
-          lineHeight: 1,
-        }}>
-          {totalFormatter.format(total)}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+          <span style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.bold,
+            color: active ? colors.gold.primary : colors.text.primary,
+            lineHeight: 1,
+          }}>
+            {totalFormatter.format(total)}
+          </span>
+          {showSave && (
+            <span style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.status.success,
+              fontWeight: typography.fontWeight.semibold,
+            }}>
+              save {totalFormatter.format(save)}
+            </span>
+          )}
+        </div>
       </button>
     </div>
   );
