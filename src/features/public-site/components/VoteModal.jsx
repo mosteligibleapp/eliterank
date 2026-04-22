@@ -38,6 +38,12 @@ export default function VoteModal({
   autoCheckout = false,
   votePrice = 1.00,
   useBundler = false,
+  // Optional — when the opener pre-creates the PaymentIntent (for speed),
+  // set externalCheckout=true and pass the clientSecret as soon as it
+  // resolves. The modal won't fire its own createVotePaymentIntent.
+  externalCheckout = false,
+  preloadedClientSecret = null,
+  preloadedPaymentIntentId = null,
 }) {
   const userId = user?.id;
   const toast = useToast();
@@ -117,11 +123,23 @@ export default function VoteModal({
       return;
     }
     if (!autoCheckout || autoCheckoutTriggered.current) return;
+    // If the opener is managing the PaymentIntent, never fire our own —
+    // just wait for preloadedClientSecret to arrive via the effect below.
+    if (externalCheckout) return;
     if (!hasActiveRound || !stripeConfigured) return;
     autoCheckoutTriggered.current = true;
     handleInitiatePurchase();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, autoCheckout, hasActiveRound, stripeConfigured]);
+  }, [isOpen, autoCheckout, hasActiveRound, stripeConfigured, externalCheckout]);
+
+  // Hydrate local state the moment the opener's pre-created PaymentIntent
+  // is ready so the payment-form branch renders without another trip.
+  useEffect(() => {
+    if (!isOpen || !preloadedClientSecret) return;
+    setClientSecret(preloadedClientSecret);
+    setPaymentIntentId(preloadedPaymentIntentId);
+    setShowPaymentForm(true);
+  }, [isOpen, preloadedClientSecret, preloadedPaymentIntentId]);
 
   // Handle free vote submission
   const handleFreeVote = async () => {

@@ -7,6 +7,7 @@ import {
   hasUsedFreeVoteToday,
   submitFreeVote,
   submitAnonymousVote,
+  createVotePaymentIntent,
 } from '../../../lib/votes';
 import { calculateVotePrice } from '../../../types/competition';
 import { getStripe, isStripeConfigured } from '../../../lib/stripe';
@@ -71,6 +72,14 @@ export default function CompetitionCardVoting({
   const [alreadyVoted, setAlreadyVoted] = useState(false);
   const [showFreeForm, setShowFreeForm] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
+  // Pre-created PaymentIntent kicked off in the Send click handler so the
+  // edge-function round-trip runs in parallel with the modal mounting.
+  const [preloadedCheckout, setPreloadedCheckout] = useState({
+    clientSecret: null,
+    paymentIntentId: null,
+    voteCount: null,
+  });
+  const checkoutRequestRef = useRef(0);
 
   // Logged-out form state
   const [email, setEmail] = useState('');
@@ -146,15 +155,52 @@ export default function CompetitionCardVoting({
     setSelectedCount(count);
   };
 
-  const openBuyVotes = (e) => {
+  const openBuyVotes = async (e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
     if (isPreview) {
       toast?.info?.('Preview mode — no payment was initiated.');
       return;
     }
-    if (!selectedCount || Number(selectedCount) < 1) return;
+    const voteCount = Number(selectedCount);
+    if (!voteCount || voteCount < 1) return;
+
+    // Open the modal immediately (user sees progress instantly) and fire
+    // the PaymentIntent creation in parallel. When it resolves we push
+    // clientSecret into the modal via a prop, skipping the modal's own
+    // round-trip.
+    const requestId = ++checkoutRequestRef.current;
+    setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount });
     setShowVoteModal(true);
+
+    const result = await createVotePaymentIntent({
+      competitionId,
+      contestantId,
+      voteCount,
+      voterEmail: user?.email,
+    });
+
+    // If the modal was closed (or another Send was clicked) while this
+    // request was in flight, abandon the result.
+    if (requestId !== checkoutRequestRef.current) return;
+
+    if (result.success && result.clientSecret) {
+      setPreloadedCheckout({
+        clientSecret: result.clientSecret,
+        paymentIntentId: result.paymentIntentId,
+        voteCount,
+      });
+    } else {
+      setShowVoteModal(false);
+      setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount: null });
+      toast?.error?.(result.error || 'Could not start checkout.');
+    }
+  };
+
+  const handleVoteModalClose = () => {
+    checkoutRequestRef.current += 1;
+    setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount: null });
+    setShowVoteModal(false);
   };
 
   const handleFreeClick = (e) => {
@@ -450,7 +496,7 @@ export default function CompetitionCardVoting({
       {roundForModal && (
         <VoteModal
           isOpen={showVoteModal}
-          onClose={() => setShowVoteModal(false)}
+          onClose={handleVoteModalClose}
           contestant={{
             id: contestantId,
             name: contestant?.name,
@@ -461,7 +507,7 @@ export default function CompetitionCardVoting({
           user={user}
           isAuthenticated={!!user?.id}
           onVoteSuccess={() => {
-            setShowVoteModal(false);
+            handleVoteModalClose();
             toast?.success?.('Votes purchased!');
           }}
           currentRound={roundForModal}
@@ -469,6 +515,9 @@ export default function CompetitionCardVoting({
           autoCheckout
           votePrice={competition?.price_per_vote}
           useBundler={competition?.use_price_bundler}
+          externalCheckout
+          preloadedClientSecret={preloadedCheckout.clientSecret}
+          preloadedPaymentIntentId={preloadedCheckout.paymentIntentId}
         />
       )}
     </>
