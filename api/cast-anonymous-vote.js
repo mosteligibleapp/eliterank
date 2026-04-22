@@ -299,35 +299,12 @@ export default async function handler(request, response) {
     // attempts don't count against the IP.
     await recordIpRateLimit(supabase, ipHash, normalizedEmail);
 
-    // ─── Fire claim email (fire-and-forget) ──────────────────────────────
-    // Magic link so the voter can log in later and claim their profile.
-    // Not awaited — vote succeeds even if the email fails.
-    (async () => {
-      try {
-        const { data: linkData } = await supabase.auth.admin.generateLink({
-          type: 'magiclink',
-          email: normalizedEmail,
-          options: { redirectTo: `${appUrl}/profile` },
-        });
-        const claimUrl = linkData?.properties?.action_link;
-        if (!claimUrl) return;
-
-        await supabase.functions.invoke('send-onesignal-email', {
-          body: {
-            type: 'voter_claim',
-            to_email: normalizedEmail,
-            first_name: cleanFirst,
-            claim_url: claimUrl,
-          },
-        });
-      } catch (err) {
-        console.warn('Claim email send failed (non-fatal):', err?.message);
-      }
-    })();
-
+    // Return voter info so the client can prompt "Become a Fan" post-vote.
+    // No email sent — conversion happens in-context on the success screen.
     return response.status(200).json({
       success: true,
       votesAdded: 1,
+      visitorId: voterId,
       botIdSkipped: botCheck.skipped,
     });
   } catch (err) {

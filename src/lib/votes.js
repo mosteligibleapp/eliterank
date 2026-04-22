@@ -295,9 +295,38 @@ export async function submitAnonymousVote({
     if (!res.ok) {
       return { success: false, error: data?.error || 'Vote failed. Please try again.' };
     }
-    return { success: true, votesAdded: data?.votesAdded || 1 };
+    return {
+      success: true,
+      votesAdded: data?.votesAdded || 1,
+      visitorId: data?.visitorId || null,
+    };
   } catch (err) {
     console.error('submitAnonymousVote error:', err);
+    return { success: false, error: 'Network error. Please try again.' };
+  }
+}
+
+/**
+ * Become a fan as an anonymous voter (post-vote opt-in).
+ * @param {Object} params
+ * @param {string} params.visitorId - The auth user ID from submitAnonymousVote
+ * @param {string} params.contestantId - The contestant to follow
+ * @returns {Promise<{success: boolean, contestantName?: string, error?: string}>}
+ */
+export async function becomeFanAnonymous({ visitorId, contestantId }) {
+  try {
+    const res = await fetch('/api/become-fan-anonymous', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visitorId, contestantId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, error: data?.error || 'Could not become a fan.' };
+    }
+    return { success: true, contestantName: data?.contestantName };
+  } catch (err) {
+    console.error('becomeFanAnonymous error:', err);
     return { success: false, error: 'Network error. Please try again.' };
   }
 }
