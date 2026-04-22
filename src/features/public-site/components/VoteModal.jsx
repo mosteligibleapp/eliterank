@@ -277,83 +277,50 @@ export default function VoteModal({
     onClose();
   };
 
-  // Payment form screen - Compact for mobile
+  // Auto-checkout loader: modal is opening via the inline card's Send CTA,
+  // which means the user has already picked vote count + seen the total on
+  // the button they clicked. Skip the full vote selector and render a
+  // minimal loader while the Stripe PaymentIntent is being created.
+  if (autoCheckout && isOpen && !showSuccess && !showPaymentForm) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="" maxWidth="360px" centered hideCloseButton variant="gold">
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: `${spacing.xxl} ${spacing.lg}`,
+          gap: spacing.md,
+          minHeight: '200px',
+        }}>
+          <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, margin: 0 }}>
+            Preparing secure checkout…
+          </p>
+        </div>
+      </Modal>
+    );
+  }
+
+  // Payment form screen — slim. The amount lives on the Pay button (which
+  // Stripe controls), so no redundant confirmation header.
   if (showPaymentForm && clientSecret) {
     const stripePromise = getStripe();
 
     return (
       <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="360px" centered hideCloseButton variant="gold">
         <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
-          {/* Sticky header with avatar, info, total, and X close button */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              padding: `${spacing.sm} ${spacing.md}`,
-              background: colors.background.card,
-              borderBottom: `1px solid ${colors.border.light}`,
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-            }}
-          >
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: borderRadius.full,
-                overflow: 'hidden',
-                flexShrink: 0,
-                border: `2px solid ${colors.gold.primary}`,
-              }}
-            >
-              {contestant.avatar_url || contestant.avatarUrl ? (
-                <img
-                  src={contestant.avatar_url || contestant.avatarUrl}
-                  alt={contestant.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    background: gradients.gold,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: typography.fontSize.xs,
-                    fontWeight: typography.fontWeight.bold,
-                    color: '#0a0a0f',
-                  }}
-                >
-                  {contestant.name?.charAt(0)}
-                </div>
-              )}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, margin: 0 }}>
-                {selectedVoteCount} Votes for {contestant.name?.split(' ')[0]}
-              </p>
-            </div>
-            <div
-              style={{
-                background: 'rgba(212,175,55,0.15)',
-                borderRadius: borderRadius.md,
-                padding: `2px ${spacing.sm}`,
-                border: `1px solid rgba(212,175,55,0.25)`,
-              }}
-            >
-              <span style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-                {formatPrice(calculateVotePrice(selectedVoteCount, useBundler, votePrice))}
-              </span>
-            </div>
-            {/* X close button */}
+          {/* Minimal close row — no vote/price restatement */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            padding: `${spacing.sm} ${spacing.sm} 0 ${spacing.sm}`,
+          }}>
             <button
               onClick={handleBackFromPayment}
+              aria-label="Close"
               style={{
-                background: 'rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.08)',
                 border: 'none',
                 borderRadius: borderRadius.full,
                 width: '28px',
@@ -362,15 +329,14 @@ export default function VoteModal({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                marginLeft: spacing.xs,
-                flexShrink: 0,
               }}
             >
               <X size={16} style={{ color: colors.text.secondary }} />
             </button>
           </div>
 
-          {/* Scrollable Stripe Elements container */}
+          {/* Stripe Elements — the PaymentElement collects the card and the
+              Pay button below shows the amount, so nothing else is needed. */}
           <div style={{ flex: 1, overflowY: 'auto', padding: spacing.md }}>
             {stripePromise && (
               <Elements
@@ -952,26 +918,6 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
             Pay {formatPrice(amount)}
           </>
         )}
-      </button>
-
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={isProcessing}
-        style={{
-          width: '100%',
-          marginTop: spacing.sm,
-          padding: spacing.sm,
-          background: 'transparent',
-          border: `1px solid ${colors.border.light}`,
-          borderRadius: borderRadius.md,
-          color: colors.text.secondary,
-          fontSize: typography.fontSize.sm,
-          cursor: isProcessing ? 'not-allowed' : 'pointer',
-          opacity: isProcessing ? 0.5 : 1,
-        }}
-      >
-        Cancel
       </button>
 
       <p
