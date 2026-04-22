@@ -14,8 +14,7 @@ import { getStripe, isStripeConfigured } from '../../../lib/stripe';
 import VoteModal from '../../public-site/components/VoteModal';
 
 const VOTE_PRESETS = [25, 100, 250];
-const MOST_POPULAR = 100;
-const DEFAULT_PRESET = MOST_POPULAR;
+const DEFAULT_PRESET = 100;
 
 // Show cents when a bundled total is fractional ($9.90) but keep round
 // totals tidy ($10).
@@ -341,7 +340,6 @@ export default function CompetitionCardVoting({
                   pricePerVote={pricePerVote}
                   useBundler={useBundler}
                   active={Number(selectedCount) === count}
-                  mostPopular={count === MOST_POPULAR}
                   onClick={handleTileClick(count)}
                 />
               ))}
@@ -541,7 +539,7 @@ export default function CompetitionCardVoting({
   );
 }
 
-function PresetTile({ count, pricePerVote, useBundler, active, mostPopular, onClick }) {
+function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
   const total = calculateVotePrice(count, useBundler, pricePerVote);
   const undiscountedTotal = count * pricePerVote;
   const save = Math.max(0, undiscountedTotal - total);
@@ -549,25 +547,6 @@ function PresetTile({ count, pricePerVote, useBundler, active, mostPopular, onCl
 
   return (
     <div style={{ position: 'relative' }}>
-      {mostPopular && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          right: spacing.md,
-          transform: 'translateY(-50%)',
-          padding: `2px ${spacing.sm}`,
-          background: gradients.gold,
-          borderRadius: borderRadius.sm,
-          fontSize: typography.fontSize.xs,
-          fontWeight: typography.fontWeight.bold,
-          color: '#0a0a0f',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          zIndex: 1,
-        }}>
-          Most Popular
-        </div>
-      )}
       <button
         type="button"
         onClick={onClick}

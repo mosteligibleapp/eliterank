@@ -106,7 +106,7 @@ function StatBox({ label, value, suffix, icon, accent = false }) {
         lineHeight: 1,
       }}>
         <span style={{
-          fontSize: typography.fontSize['3xl'],
+          fontSize: typography.fontSize.xl,
           fontWeight: typography.fontWeight.bold,
           color: accent ? colors.gold.primary : colors.text.primary,
           fontVariantNumeric: 'tabular-nums',
