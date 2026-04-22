@@ -4376,12 +4376,19 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   padding-top: 0; /* Header handles top spacing */
 }
 
-/* Search bar */
+/* Search bar — sticks to the top of the viewport so it stays reachable
+   while the contestant grid scrolls underneath. `position: sticky` still
+   establishes a containing block for the absolutely-positioned icon and
+   clear button inside. */
 .leaderboard-search {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
-  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md) 0;
+  margin-bottom: var(--spacing-sm);
+  background: var(--color-bg-primary);
 }
 
 .leaderboard-search-icon {
