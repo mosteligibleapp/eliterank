@@ -5236,6 +5236,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 .competition-layout {
   position: relative;
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 .competition-back-btn {
