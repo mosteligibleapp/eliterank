@@ -475,12 +475,12 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
   // finish so we don't flicker the pill on first paint.
   useEffect(() => {
     if (!onActiveVotingChange || loading) return;
-    const hasActive = contestantEntries.some((entry) => {
-      const role = entry.role;
-      if (role !== 'contestant' && role !== 'winner') return false;
-      if (!entry.contestant?.id) return false;
-      return !!findActiveVotingRound(entry.competition);
-    });
+    // contestantEntries are raw contestant rows (no "role" field yet —
+    // that's applied downstream when we assemble the render list), so any
+    // entry with an active voting round counts.
+    const hasActive = contestantEntries.some(
+      (entry) => !!findActiveVotingRound(entry.competition),
+    );
     onActiveVotingChange(hasActive);
   }, [loading, contestantEntries, onActiveVotingChange]);
 
