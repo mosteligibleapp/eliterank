@@ -16,6 +16,7 @@ const corsHeaders = {
  *   - nominee_declined:     "Your nominee declined" notification to the nominator
  *   - fan_confirmation:     "You're now a fan of X" — sent when a user becomes a fan
  *   - fan_weekly_digest:    Weekly performance update sent to fans and to the contestant themselves
+ *   - vote_receipt:         "Thanks for voting!" receipt for paid voters with current rank
  *
  * Required Supabase secrets:
  *   ONESIGNAL_APP_ID     — OneSignal App ID
@@ -24,7 +25,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -50,6 +51,11 @@ interface EmailRequest {
   next_event_name?: string | null
   next_event_date?: string | null
   is_self?: boolean
+  // vote_receipt fields
+  vote_count?: number | null
+  amount_paid?: number | null
+  signup_url?: string
+  is_anonymous?: boolean
 }
 
 /**
@@ -401,6 +407,73 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${nextEventLine}
             ${ctaUrl ? goldButton(ctaLabel, ctaUrl) : ''}
             ${unsubLine}
+          </div>
+        `),
+      }
+    }
+
+    case 'vote_receipt': {
+      const contestantName = req.contestant_name || 'the contestant'
+      const firstName = contestantName.split(' ')[0]
+      const competitionName = req.competition_name || 'Most Eligible'
+      const voteCount = req.vote_count || 0
+      const amountPaid = req.amount_paid || 0
+      const isAnonymous = !!req.is_anonymous
+
+      const formatShortDate = (iso: string) => {
+        try {
+          return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        } catch {
+          return iso
+        }
+      }
+
+      const voteText = voteCount === 1 ? '1 vote' : `${voteCount.toLocaleString()} votes`
+      const amountText = amountPaid > 0 ? `$${amountPaid.toFixed(2)}` : ''
+
+      const rankBlock = req.rank
+        ? `<div style="display:inline-block;padding:16px 24px;background:#1a1a1a;border:1px solid #333;border-radius:12px;margin:16px 0;">
+             <div style="color:#999;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;">Current Rank</div>
+             <div style="color:#d4a843;font-size:48px;font-weight:bold;line-height:1.1;margin-top:4px;">#${req.rank}</div>
+           </div>`
+        : ''
+
+      const roundEndLine = req.voting_round_end
+        ? `<p style="color:#ccc;font-size:14px;margin:12px 0;">Voting round ends <strong style="color:#fff;">${formatShortDate(req.voting_round_end)}</strong></p>`
+        : ''
+
+      const ctaUrl = req.profile_url || req.competition_url
+
+      // For anonymous voters, prompt to create account and become a fan
+      const fanPrompt = isAnonymous
+        ? `<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;margin-top:24px;">
+             <p style="color:#ccc;font-size:14px;margin:0 0 12px;">
+               Want to follow ${firstName}'s journey? Create a free account to become a fan and get weekly updates.
+             </p>
+             ${req.signup_url ? `<a href="${req.signup_url}" style="display:inline-block;padding:10px 24px;background:transparent;border:1px solid #d4a843;color:#d4a843;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;">Create Account & Become a Fan</a>` : ''}
+           </div>`
+        : `<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;margin-top:24px;">
+             <p style="color:#ccc;font-size:14px;margin:0 0 12px;">
+               Want weekly updates on ${firstName}'s progress?
+             </p>
+             ${ctaUrl ? `<a href="${ctaUrl}?becomeFan=1" style="display:inline-block;padding:10px 24px;background:transparent;border:1px solid #d4a843;color:#d4a843;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;">Become a Fan</a>` : ''}
+           </div>`
+
+      return {
+        subject: `You sent ${voteText} to ${contestantName}!`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Thanks for Voting!</h1>
+            <p style="color:#ccc;font-size:16px;margin:8px 0;">
+              You sent <strong style="color:#fff;">${voteText}</strong> to
+            </p>
+            <p style="color:#fff;font-size:22px;font-weight:bold;margin:8px 0;">${contestantName}</p>
+            <p style="color:#999;font-size:14px;margin:4px 0;">in ${competitionName}</p>
+            ${amountText ? `<p style="color:#666;font-size:13px;margin:8px 0;">Total: ${amountText}</p>` : ''}
+            ${rankBlock}
+            ${roundEndLine}
+            ${ctaUrl ? goldButton(`View ${firstName}'s Profile`, ctaUrl) : ''}
+            ${fanPrompt}
           </div>
         `),
       }

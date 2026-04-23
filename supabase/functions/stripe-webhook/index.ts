@@ -7,6 +7,107 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
 }
 
+/**
+ * Send a vote receipt email to the paid voter.
+ * Fetches contestant/competition details and current rank, then fires the email.
+ */
+async function sendVoteReceiptEmail(
+  supabase: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  serviceKey: string,
+  params: {
+    voterEmail: string
+    contestantId: string
+    competitionId: string
+    voteCount: number
+    amountPaid: number
+    hasAccount: boolean
+  }
+) {
+  const { voterEmail, contestantId, competitionId, voteCount, amountPaid, hasAccount } = params
+  const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
+
+  // Fetch contestant with competition details
+  const { data: contestant, error: contestantError } = await supabase
+    .from('contestants')
+    .select(`
+      id, name, user_id, rank,
+      competition:competitions(
+        id, name, slug,
+        organization:organizations(slug)
+      )
+    `)
+    .eq('id', contestantId)
+    .maybeSingle()
+
+  if (contestantError || !contestant) {
+    console.warn('Could not fetch contestant for receipt email:', contestantError?.message)
+    return
+  }
+
+  const competition = contestant.competition as {
+    id: string
+    name: string | null
+    slug: string | null
+    organization: { slug: string | null } | null
+  } | null
+
+  // Get current voting round end date
+  const nowIso = new Date().toISOString()
+  const { data: currentRound } = await supabase
+    .from('voting_rounds')
+    .select('end_date')
+    .eq('competition_id', competitionId)
+    .eq('round_type', 'voting')
+    .lte('start_date', nowIso)
+    .gt('end_date', nowIso)
+    .limit(1)
+    .maybeSingle()
+
+  // Build URLs
+  const orgSlug = competition?.organization?.slug || 'most-eligible'
+  const competitionSlug = competition?.slug
+  const competitionUrl = competitionSlug
+    ? `${appUrl}/${orgSlug}/${competitionSlug}`
+    : appUrl
+  const profileUrl = contestant.user_id
+    ? `${appUrl}/profile/${contestant.user_id}`
+    : competitionUrl
+  const signupUrl = `${appUrl}/signup?returnTo=${encodeURIComponent(profileUrl)}`
+
+  // Send the email
+  const emailPayload = {
+    type: 'vote_receipt',
+    to_email: voterEmail,
+    contestant_name: contestant.name,
+    competition_name: competition?.name || 'Most Eligible',
+    competition_url: competitionUrl,
+    profile_url: profileUrl,
+    rank: contestant.rank,
+    vote_count: voteCount,
+    amount_paid: amountPaid,
+    voting_round_end: currentRound?.end_date || null,
+    signup_url: signupUrl,
+    is_anonymous: !hasAccount,
+  }
+
+  const res = await fetch(`${supabaseUrl}/functions/v1/send-onesignal-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${serviceKey}`,
+    },
+    body: JSON.stringify(emailPayload),
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Email send failed: ${res.status} ${text.slice(0, 200)}`)
+  }
+
+  console.log(`Vote receipt email sent to ${voterEmail} for ${voteCount} votes`)
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -153,6 +254,21 @@ serve(async (req) => {
         // competitions.total_votes atomically with the insert above.
 
         console.log(`Recorded ${voteCount} paid votes for contestant ${contestant_id}`)
+
+        // Send vote receipt email (fire-and-forget — don't block the webhook response)
+        if (resolvedVoterEmail) {
+          sendVoteReceiptEmail(supabase, supabaseUrl, supabaseServiceKey, {
+            voterEmail: resolvedVoterEmail,
+            contestantId: contestant_id,
+            competitionId: competition_id,
+            voteCount,
+            amountPaid,
+            hasAccount: !!voter_email, // If voter_email was in metadata, they were logged in
+          }).catch(err => {
+            console.warn('Vote receipt email failed (non-fatal):', err?.message || err)
+          })
+        }
+
         break
       }
 
