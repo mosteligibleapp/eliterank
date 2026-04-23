@@ -318,43 +318,16 @@ export default function CompetitionCardVoting({
         {castSuccess && (
           <div style={{
             display: 'flex',
-            flexDirection: 'column',
+            alignItems: 'center',
             gap: spacing.sm,
             padding: spacing.sm,
+            color: colors.status.success,
+            fontSize: typography.fontSize.sm,
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              color: colors.status.success,
-              fontSize: typography.fontSize.sm,
-            }}>
-              <Check size={16} />
-              <span>
-                Vote cast! {user?.id && 'Come back tomorrow for another free vote.'}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowShareModal(true);
-              }}
-              style={{
-                alignSelf: 'flex-start',
-                padding: `${spacing.xs} ${spacing.sm}`,
-                background: 'transparent',
-                border: `1px solid rgba(212,175,55,0.35)`,
-                borderRadius: borderRadius.md,
-                color: colors.gold.primary,
-                fontSize: typography.fontSize.xs,
-                fontWeight: typography.fontWeight.semibold,
-                cursor: 'pointer',
-              }}
-            >
-              View share card
-            </button>
+            <Check size={16} />
+            <span>
+              Vote cast! {user?.id && 'Come back tomorrow for another free vote.'}
+            </span>
           </div>
         )}
 
