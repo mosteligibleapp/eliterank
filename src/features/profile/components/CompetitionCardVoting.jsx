@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { VoteShareCard } from '../../../components/ui';
-import FanButton from '../../../components/ui/FanButton';
 import { useSupabaseAuth, useLeaderboard } from '../../../hooks';
 import { useToast } from '../../../contexts/ToastContext';
 import {
@@ -10,7 +9,6 @@ import {
   submitFreeVote,
   submitAnonymousVote,
   createVotePaymentIntent,
-  becomeFanAnonymous,
 } from '../../../lib/votes';
 import { calculateVotePrice } from '../../../types/competition';
 import { getStripe, isStripeConfigured } from '../../../lib/stripe';
@@ -93,10 +91,6 @@ export default function CompetitionCardVoting({
   const [company, setCompany] = useState(''); // honeypot
   const [error, setError] = useState('');
   const mountedAtRef = useRef(Date.now());
-
-  // Anonymous fan flow — post-vote opt-in
-  const [visitorId, setVisitorId] = useState(null);
-  const [fanStatus, setFanStatus] = useState('idle'); // 'idle' | 'loading' | 'done'
 
   // Pull the current leaderboard snapshot so we can project what rank this
   // contestant would sit at after the purchase lands. If the parent passed
@@ -280,27 +274,9 @@ export default function CompetitionCardVoting({
 
     if (result?.success) {
       setCastSuccess(true);
-      setVisitorId(result.visitorId || null);
       toast?.success?.(`Vote cast for ${contestantName}!`);
     } else {
       setError(result?.error || 'Could not cast your vote.');
-    }
-  };
-
-  const handleBecomeFan = async (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
-    if (!visitorId || !contestantId || fanStatus === 'loading') return;
-
-    setFanStatus('loading');
-    const result = await becomeFanAnonymous({ visitorId, contestantId });
-
-    if (result?.success) {
-      setFanStatus('done');
-      toast?.success?.(`You're now a fan of ${firstName}! We'll send weekly updates.`);
-    } else {
-      setFanStatus('idle');
-      toast?.error?.(result?.error || 'Could not become a fan.');
     }
   };
 
@@ -353,113 +329,6 @@ export default function CompetitionCardVoting({
                 Vote cast! {user?.id && 'Come back tomorrow for another free vote.'}
               </span>
             </div>
-
-            {/* Logged-in voter: prompt to become a fan */}
-            {user?.id && contestantId && (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: spacing.xs,
-                padding: spacing.sm,
-                background: 'rgba(212,175,55,0.08)',
-                borderRadius: borderRadius.md,
-                marginTop: spacing.xs,
-              }}>
-                <p style={{
-                  fontSize: typography.fontSize.sm,
-                  color: colors.text.secondary,
-                  margin: 0,
-                }}>
-                  Follow {firstName}'s journey?
-                </p>
-                <FanButton
-                  contestantId={contestantId}
-                  contestantName={contestant?.name}
-                />
-                <p style={{
-                  fontSize: typography.fontSize.xs,
-                  color: colors.text.muted,
-                  margin: 0,
-                }}>
-                  Get weekly updates on their progress
-                </p>
-              </div>
-            )}
-
-            {/* Anonymous voter: prompt to become a fan */}
-            {!user?.id && visitorId && fanStatus !== 'done' && (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: spacing.xs,
-                padding: spacing.sm,
-                background: 'rgba(212,175,55,0.08)',
-                borderRadius: borderRadius.md,
-                marginTop: spacing.xs,
-              }}>
-                <p style={{
-                  fontSize: typography.fontSize.sm,
-                  color: colors.text.secondary,
-                  margin: 0,
-                }}>
-                  Follow {firstName}'s journey?
-                </p>
-                <button
-                  onClick={handleBecomeFan}
-                  disabled={fanStatus === 'loading'}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: spacing.xs,
-                    padding: `${spacing.xs} ${spacing.md}`,
-                    background: fanStatus === 'loading' ? 'rgba(212,175,55,0.3)' : gradients.gold,
-                    border: 'none',
-                    borderRadius: borderRadius.md,
-                    color: '#0a0a0c',
-                    fontSize: typography.fontSize.sm,
-                    fontWeight: typography.fontWeight.semibold,
-                    cursor: fanStatus === 'loading' ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {fanStatus === 'loading' ? (
-                    <>
-                      <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                      Joining...
-                    </>
-                  ) : (
-                    <>
-                      <Heart size={14} />
-                      Become a Fan
-                    </>
-                  )}
-                </button>
-                <p style={{
-                  fontSize: typography.fontSize.xs,
-                  color: colors.text.muted,
-                  margin: 0,
-                }}>
-                  Get weekly updates on their progress
-                </p>
-              </div>
-            )}
-
-            {/* Fan confirmation */}
-            {fanStatus === 'done' && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing.sm,
-                padding: spacing.sm,
-                background: 'rgba(34,197,94,0.1)',
-                borderRadius: borderRadius.md,
-                color: colors.status.success,
-                fontSize: typography.fontSize.sm,
-              }}>
-                <Heart size={14} fill={colors.status.success} />
-                <span>You're a fan! We'll send weekly updates.</span>
-              </div>
-            )}
 
             {/* Share card */}
             <VoteShareCard
@@ -524,7 +393,10 @@ export default function CompetitionCardVoting({
             }}
             style={{
               minWidth: 0,
-              width: '8ch',
+              // Wide enough for the "Custom amount" placeholder when empty
+              // while still leaving room for the "votes" label + live price
+              // on the right of the row.
+              width: '14ch',
               padding: `${spacing.xs} 0`,
               background: 'transparent',
               border: 'none',
@@ -608,28 +480,35 @@ export default function CompetitionCardVoting({
             cast so the success banner above is the only confirmation. */}
         {!castSuccess && (
           <>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              color: colors.text.muted,
-              fontSize: typography.fontSize.xs,
-              fontWeight: typography.fontWeight.semibold,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}>
-              <div style={{ flex: 1, height: '1px', background: colors.border.primary }} />
-              <span>or</span>
-              <div style={{ flex: 1, height: '1px', background: colors.border.primary }} />
-            </div>
+            {/* "or" divider + the free-vote button are hidden once the anon
+                contact form is open — the form has its own submit CTA, so
+                the outer button is redundant at that point. */}
+            {!showFreeForm && (
+              <>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  color: colors.text.muted,
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.semibold,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                }}>
+                  <div style={{ flex: 1, height: '1px', background: colors.border.primary }} />
+                  <span>or</span>
+                  <div style={{ flex: 1, height: '1px', background: colors.border.primary }} />
+                </div>
 
-            <FreeVoteButton
-              user={user}
-              alreadyVoted={alreadyVoted}
-              busy={busy}
-              showFreeForm={showFreeForm}
-              onClick={handleFreeClick}
-            />
+                <FreeVoteButton
+                  user={user}
+                  alreadyVoted={alreadyVoted}
+                  busy={busy}
+                  showFreeForm={showFreeForm}
+                  onClick={handleFreeClick}
+                />
+              </>
+            )}
 
             {!user?.id && showFreeForm && (
               <AnonForm
