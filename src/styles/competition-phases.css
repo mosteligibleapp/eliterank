@@ -183,6 +183,13 @@
   margin-top: var(--spacing-xs);
 }
 
+/* Icon-only variant — keeps the full header layout but swaps the wide
+   wordmark for the square icon logo (used on the voting phase). */
+.competition-header-icon-only .org-logo {
+  width: 120px;
+  height: 120px;
+}
+
 /* =====================
    PHASE VIEW BASE
    ===================== */

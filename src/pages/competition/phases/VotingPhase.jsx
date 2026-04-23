@@ -38,6 +38,7 @@ export function VotingPhase() {
       <CompetitionHeader
         badge={phase?.label}
         badgeVariant="live"
+        iconOnly
       />
 
       {/* Phase-specific banners */}
