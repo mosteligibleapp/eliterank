@@ -107,10 +107,12 @@ export async function getContestantCompetitions(userId) {
   if (!supabase || !userId) return [];
 
   try {
-    // Get contestant entries
+    // Get contestant entries. Pull the linked profile's avatar_url too so
+    // we can fall back to it when the contestant row doesn't have its own
+    // uploaded photo — matches the pattern in useLeaderboard.
     const { data: contestants, error: contestantsError } = await supabase
       .from('contestants')
-      .select('*')
+      .select('*, profile:profiles!user_id(avatar_url)')
       .eq('user_id', userId)
       .neq('status', 'eliminated')
       .order('created_at', { ascending: false });
@@ -139,6 +141,7 @@ export async function getContestantCompetitions(userId) {
 
     return contestants.map(contestant => ({
       ...contestant,
+      avatar_url: contestant.avatar_url || contestant.profile?.avatar_url || null,
       competition: competitionMap.get(contestant.competition_id) || null,
     }));
   } catch (err) {
