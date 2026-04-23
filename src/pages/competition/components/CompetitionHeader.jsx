@@ -7,8 +7,10 @@ import { Crown } from 'lucide-react';
  *
  * Pass `compact` for secondary views (leaderboard, prizes) where the header
  * should take less vertical space so the primary content is above the fold.
+ * Pass `iconOnly` to prefer the square icon logo over the wide wordmark while
+ * keeping the full header layout (e.g. on the voting phase).
  */
-export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 'default', compact = false }) {
+export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 'default', compact = false, iconOnly = false }) {
   const { competition, organization, about } = usePublicCompetition();
 
   // Determine badge variant class
@@ -19,10 +21,11 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
     complete: 'phase-badge-complete',
   }[badgeVariant] || '';
 
-  // In compact mode (leaderboard / prizes) prefer the square icon logo over
-  // the wide wordmark so the header takes less vertical space and the
-  // primary content sits above the fold.
-  const headerLogo = compact
+  // In compact or icon-only mode prefer the square icon logo over the wide
+  // wordmark. Compact is used on leaderboard/prizes to shrink the header;
+  // icon-only keeps the full header layout but swaps the logo variant.
+  const preferIcon = compact || iconOnly;
+  const headerLogo = preferIcon
     ? (organization?.logo_url || organization?.header_logo_url)
     : (organization?.header_logo_url || organization?.logo_url);
   const websiteUrl = organization?.website_url;
@@ -34,7 +37,7 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
   );
 
   return (
-    <section className={`competition-header${compact ? ' competition-header-compact' : ''}`}>
+    <section className={`competition-header${compact ? ' competition-header-compact' : ''}${iconOnly && !compact ? ' competition-header-icon-only' : ''}`}>
       {/* Organization Branding */}
       <div className="org-branding">
         <span className="org-presented-by">Presented by</span>
