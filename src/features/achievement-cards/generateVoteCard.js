@@ -1,8 +1,10 @@
 /**
  * Vote Share Card Generator
  *
- * Generates a simple shareable card when someone votes.
- * "I voted for [name] for [competition] and you should too!"
+ * Generates a shareable "I Voted" card with the Nominated/Contestant
+ * card visual language — gold-outlined pill badge, rounded-rect photo
+ * with gold border, solid gold CTA button. Reads top-to-bottom as
+ * "I VOTED for [Name] in [Competition] — YOU SHOULD TOO!"
  * Optimized for Instagram Stories (1080x1920).
  */
 
@@ -94,7 +96,6 @@ function drawInitialRect(ctx, initial, x, y, w, h, r) {
  * @param {string} params.contestantName - Name of the contestant voted for
  * @param {string} params.photoUrl - Contestant's photo URL
  * @param {string} params.competitionName - Competition name
- * @param {number} [params.voteCount] - Number of votes cast (optional)
  * @param {string} [params.organizationLogoUrl] - Logo URL
  * @returns {Promise<Blob>} PNG blob
  */
@@ -102,7 +103,6 @@ export async function generateVoteCard({
   contestantName,
   photoUrl,
   competitionName,
-  voteCount,
   organizationLogoUrl,
 }) {
   const canvas = document.createElement('canvas');
@@ -110,30 +110,34 @@ export async function generateVoteCard({
   canvas.height = CARD_HEIGHT;
   const ctx = canvas.getContext('2d');
 
-  // === BACKGROUND — pure black ===
+  // === BACKGROUND ===
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
   // === LOGO (top, centered) ===
-  const logoY = 80;
+  const logoSize = 160;
+  const logoY = 60;
+
   if (organizationLogoUrl) {
     try {
       const logo = await loadImage(organizationLogoUrl);
       const logoAspect = logo.width / logo.height;
-      let drawW = 160 * logoAspect;
-      let drawH = 160;
+      let drawW = logoSize * logoAspect;
+      let drawH = logoSize;
       if (drawW > 360) { drawW = 360; drawH = drawW / logoAspect; }
       ctx.drawImage(logo, CX - drawW / 2, logoY, drawW, drawH);
     } catch {
-      // No logo fallback
+      // No fallback text — logo only
     }
   }
 
-  // === PHOTO — circular, centered ===
-  const photoSize = 480;
-  const photoX = CX - photoSize / 2;
-  const photoY = 320;
-  const photoR = photoSize / 2; // Full circle
+  // === PHOTO — rounded rect with gold border (matches Nominated card) ===
+  const photoW = 560;
+  const photoH = 700;
+  const photoR = 16;
+  const photoStartY = 270;
+  const frameOffset = 4;
+  const frameR = photoR + frameOffset;
 
   let loadedImg = null;
   if (photoUrl) {
@@ -144,90 +148,74 @@ export async function generateVoteCard({
     }
   }
 
-  // Gold ring around photo
-  ctx.beginPath();
-  ctx.arc(CX, photoY + photoSize / 2, photoSize / 2 + 6, 0, Math.PI * 2);
+  const photoX = CX - photoW / 2;
+  const photoY = photoStartY;
+
+  roundRect(
+    ctx,
+    photoX - frameOffset,
+    photoY - frameOffset,
+    photoW + frameOffset * 2,
+    photoH + frameOffset * 2,
+    frameR,
+  );
   ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Photo or initial fallback (circular)
   if (loadedImg) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(CX, photoY + photoSize / 2, photoSize / 2, 0, Math.PI * 2);
-    ctx.clip();
-    const imgAspect = loadedImg.width / loadedImg.height;
-    let dw, dh, dx, dy;
-    if (imgAspect > 1) {
-      dh = photoSize;
-      dw = dh * imgAspect;
-      dx = photoX + (photoSize - dw) / 2;
-      dy = photoY;
-    } else {
-      dw = photoSize;
-      dh = dw / imgAspect;
-      dx = photoX;
-      dy = photoY + (photoSize - dh) / 2;
-    }
-    ctx.drawImage(loadedImg, dx, dy, dw, dh);
-    ctx.restore();
+    drawRoundedRectImage(ctx, loadedImg, photoX, photoY, photoW, photoH, photoR);
   } else {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(CX, photoY + photoSize / 2, photoSize / 2, 0, Math.PI * 2);
-    ctx.fillStyle = '#111111';
-    ctx.fill();
-    ctx.restore();
-    ctx.fillStyle = `${GOLD}40`;
-    ctx.font = `300 ${photoSize * 0.4}px ${FONT}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText((contestantName?.charAt(0) || '?').toUpperCase(), CX, photoY + photoSize / 2);
+    drawInitialRect(ctx, contestantName?.charAt(0) || '?', photoX, photoY, photoW, photoH, photoR);
   }
 
-  // === "I VOTED" Badge ===
-  let y = photoY + photoSize + 60;
+  // === CONTENT SECTION ===
+  let y = photoY + photoH + 60;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
 
-  const badgeFontSize = 42;
+  // === BADGE — "I VOTED" gold-outlined pill with gold dots ===
+  const badgeFontSize = 34;
   ctx.font = `700 ${badgeFontSize}px ${FONT}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '6px';
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4px';
   const badgeText = 'I VOTED';
   const badgeTextW = ctx.measureText(badgeText).width;
-  const badgePadH = 48;
+  const badgePadH = 56;
   const badgePadV = 20;
   const badgeW = badgeTextW + badgePadH * 2;
   const badgeH = badgeFontSize + badgePadV * 2;
   const badgeX = CX - badgeW / 2;
   const badgeY = y;
 
-  // Solid gold pill
   roundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  const dotR = 5;
+  const dotY = badgeY + badgeH / 2;
+  const textHalfW = badgeTextW / 2;
   ctx.fillStyle = GOLD;
+  ctx.beginPath();
+  ctx.arc(CX - textHalfW - 20, dotY, dotR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(CX + textHalfW + 20, dotY, dotR, 0, Math.PI * 2);
   ctx.fill();
 
-  // Black text
-  ctx.fillStyle = '#000000';
+  ctx.fillStyle = GOLD;
   ctx.font = `700 ${badgeFontSize}px ${FONT}`;
   ctx.textBaseline = 'middle';
   ctx.fillText(badgeText, CX, badgeY + badgeH / 2);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
 
-  y = badgeY + badgeH + 48;
+  y = badgeY + badgeH + 44;
 
-  // === "for" ===
+  // === LINE 1 — Contestant name (72px white bold) ===
   ctx.textBaseline = 'top';
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.font = `400 38px ${FONT}`;
-  ctx.fillText('for', CX, y);
-  y += 38 + 20;
-
-  // === Contestant Name ===
   ctx.fillStyle = '#FFFFFF';
   ctx.font = `700 72px ${FONT}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-1.5px';
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-1.44px';
   let displayName = contestantName || 'Contestant';
   if (ctx.measureText(displayName).width > 960) {
     while (ctx.measureText(displayName + '...').width > 960 && displayName.length > 0) {
@@ -237,30 +225,34 @@ export async function generateVoteCard({
   }
   ctx.fillText(displayName, CX, y);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += 72 + 24;
+  y += 72 + 20;
 
-  // === "in [Competition]" ===
+  // === LINE 2 — "for" (muted subtitle) ===
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.font = `400 38px ${FONT}`;
-  ctx.fillText('in', CX, y);
+  ctx.fillText('for', CX, y);
   y += 38 + 16;
 
+  // === LINE 3 — Competition name ===
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = `600 48px ${FONT}`;
-  let compDisplay = competitionName || 'Most Eligible';
-  if (ctx.measureText(compDisplay).width > 900) {
-    ctx.font = `600 40px ${FONT}`;
+  const compFontSize = 52;
+  ctx.font = `600 ${compFontSize}px ${FONT}`;
+  let compDisplay = competitionName || 'the competition';
+  if (ctx.measureText(compDisplay).width > 960) {
+    ctx.font = `600 44px ${FONT}`;
   }
   ctx.fillText(compDisplay, CX, y);
-  y += 56 + 48;
+  y += compFontSize + 48;
 
-  // === Call to action ===
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font = `500 36px ${FONT}`;
-  ctx.fillText('and you should too!', CX, y);
-  y += 36 + 80;
+  // === LINE 4 — "YOU SHOULD TOO!" (gold, tracked, uppercase) ===
+  ctx.fillStyle = GOLD;
+  ctx.font = `700 44px ${FONT}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '6px';
+  ctx.fillText('YOU SHOULD TOO!', CX, y);
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  y += 44 + 56;
 
-  // === CTA Button — solid gold pill ===
+  // === CTA BUTTON — solid gold pill, black text ===
   const ctaText = 'www.eliterank.co';
   const ctaFontSize = 34;
   ctx.font = `700 ${ctaFontSize}px ${FONT}`;
