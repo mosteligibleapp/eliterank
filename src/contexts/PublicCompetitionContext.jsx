@@ -137,9 +137,13 @@ export function PublicCompetitionProvider({
     };
   }, [previewMode, realPhase, votingRounds, nominationPeriods]);
 
-  // Leaderboard data (only fetch if we have a competition)
+  // Leaderboard data (only fetch if we have a competition). The danger zone
+  // (contestants at risk of elimination) is derived from the current round's
+  // configured advancing count so it matches the actual cutoff; we fall back
+  // to the percentage threshold when no round is active.
   const leaderboardData = useLeaderboard(competition?.id, {
     realtime: phase?.isVoting ?? false,
+    advancingCount: phase?.currentRound?.contestants_advance,
     eliminationThreshold: 0.2,
   });
 

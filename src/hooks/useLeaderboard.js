@@ -7,11 +7,16 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  * @param {string} competitionId - Competition UUID
  * @param {object} options - Configuration options
  * @param {boolean} options.realtime - Enable real-time updates (default: true)
- * @param {number} options.eliminationThreshold - Percentage for danger zone (default: 0.2 = bottom 20%)
+ * @param {number} options.advancingCount - How many contestants advance to the
+ *   next round. When provided, anyone ranked below this cutoff is flagged as
+ *   at risk of elimination (i.e. rank > advancingCount). Falls back to the
+ *   percentage-based threshold when not set.
+ * @param {number} options.eliminationThreshold - Percentage for danger zone,
+ *   used only when advancingCount is not provided (default: 0.2 = bottom 20%)
  * @returns {object} Leaderboard data and helpers
  */
 export function useLeaderboard(competitionId, options = {}) {
-  const { realtime = true, eliminationThreshold = 0.2 } = options;
+  const { realtime = true, advancingCount, eliminationThreshold = 0.2 } = options;
 
   const [contestants, setContestants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -156,7 +161,13 @@ export function useLeaderboard(competitionId, options = {}) {
   // Ranked contestants with zone info
   const rankedContestants = useMemo(() => {
     const total = sortedContestants.length;
-    const dangerZoneStart = Math.ceil(total * (1 - eliminationThreshold));
+    // Prefer the round's explicit advancing count (e.g. "top 50 move on")
+    // so the danger zone reflects the actual elimination cutoff. Only fall
+    // back to the percentage threshold when no advancing count is supplied.
+    const dangerZoneStart =
+      Number.isFinite(advancingCount) && advancingCount > 0
+        ? advancingCount
+        : Math.ceil(total * (1 - eliminationThreshold));
 
     return sortedContestants.map((contestant, index) => {
       const rank =
@@ -172,7 +183,7 @@ export function useLeaderboard(competitionId, options = {}) {
         isTop3,
       };
     });
-  }, [sortedContestants, eliminationThreshold, sortBy]);
+  }, [sortedContestants, advancingCount, eliminationThreshold, sortBy]);
 
   // Top 3 contestants
   const topThree = useMemo(() => {

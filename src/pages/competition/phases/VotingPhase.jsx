@@ -53,6 +53,11 @@ export function VotingPhase() {
         </div>
       )}
 
+      {/* Round Countdown - full width above the leaderboard */}
+      <section className="voting-countdown-section">
+        <CountdownDisplay label="Round ends in" large />
+      </section>
+
       {/* Main Content Grid */}
       <section className="voting-grid">
         {/* Leaderboard - Main Column */}
@@ -62,11 +67,6 @@ export function VotingPhase() {
 
         {/* Sidebar */}
         <aside className="voting-sidebar">
-          {/* Countdown Timer */}
-          <div className="sidebar-countdown">
-            <CountdownDisplay label="Round ends in" large />
-          </div>
-
           {/* Bonus Votes Checklist - shown to contestants */}
           {currentContestant && competition?.id && (
             <ContestantBonusVotes
