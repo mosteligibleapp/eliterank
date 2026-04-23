@@ -1,6 +1,13 @@
 {
+  "framework": "vite",
   "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "outputDirectory": "dist",
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "@vercel/node@3"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
