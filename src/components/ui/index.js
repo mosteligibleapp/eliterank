@@ -11,6 +11,7 @@ export { Toast, ToastContainer } from './Toast';
 export { default as ProfileIcon } from './ProfileIcon';
 export { default as NotificationBell } from './NotificationBell';
 export { default as PageHeader } from './PageHeader';
+export { default as VoteShareCard } from './VoteShareCard';
 
 // Custom icons
 export { EliteRankCrown, CrownIcon } from './icons';
