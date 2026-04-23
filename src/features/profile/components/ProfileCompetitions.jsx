@@ -81,12 +81,15 @@ function StatBox({ label, value, suffix, icon, accent = false, isMobile = false 
       borderRadius: borderRadius.md,
       display: 'flex',
       flexDirection: 'column',
+      alignItems: 'center',
+      textAlign: 'center',
       gap: '2px',
       minWidth: 0,
     }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         // Tight gap for the accent box so "Round ends" + clock icon
         // stays on one line at narrow widths.
         gap: accent ? '3px' : spacing.xs,
@@ -109,6 +112,7 @@ function StatBox({ label, value, suffix, icon, accent = false, isMobile = false 
       <div style={{
         display: 'flex',
         alignItems: 'baseline',
+        justifyContent: 'center',
         gap: spacing.xs,
         lineHeight: 1,
       }}>
