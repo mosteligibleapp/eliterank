@@ -58,26 +58,25 @@ export function VotingPhase() {
         <CountdownDisplay label="Round ends in" large />
       </section>
 
-      {/* Main Content Grid */}
-      <section className="voting-grid">
-        {/* Leaderboard - Main Column */}
-        <div className="voting-main">
-          <LeaderboardCompact />
-        </div>
+      {/* Bonus Votes Checklist - shown to contestants */}
+      {currentContestant && competition?.id && (
+        <section className="phase-section">
+          <ContestantBonusVotes
+            competitionId={competition.id}
+            contestantId={currentContestant.id}
+            userId={user.id}
+          />
+        </section>
+      )}
 
-        {/* Sidebar */}
-        <aside className="voting-sidebar">
-          {/* Bonus Votes Checklist - shown to contestants */}
-          {currentContestant && competition?.id && (
-            <ContestantBonusVotes
-              competitionId={competition.id}
-              contestantId={currentContestant.id}
-              userId={user.id}
-            />
-          )}
+      {/* Leaderboard */}
+      <section className="phase-section">
+        <LeaderboardCompact />
+      </section>
 
-          <ActivityFeedCompact limit={5} />
-        </aside>
+      {/* Activity Feed */}
+      <section className="phase-section">
+        <ActivityFeedCompact limit={5} />
       </section>
 
       {/* Charity partner */}

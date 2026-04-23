@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
-import { VoteShareCard } from '../../../components/ui';
+import { VoteShareCard, Modal } from '../../../components/ui';
 import { useSupabaseAuth, useLeaderboard } from '../../../hooks';
 import { useToast } from '../../../contexts/ToastContext';
 import {
@@ -75,6 +75,7 @@ export default function CompetitionCardVoting({
   const [alreadyVoted, setAlreadyVoted] = useState(false);
   const [showFreeForm, setShowFreeForm] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   // Pre-created PaymentIntent kicked off in the Send click handler so the
   // edge-function round-trip runs in parallel with the modal mounting.
   const [preloadedCheckout, setPreloadedCheckout] = useState({
@@ -225,6 +226,7 @@ export default function CompetitionCardVoting({
     if (isPreview) {
       setCastSuccess(true);
       setAlreadyVoted(true);
+      setShowShareModal(true);
       toast?.info?.('Preview mode — no vote was cast.');
       return;
     }
@@ -242,6 +244,7 @@ export default function CompetitionCardVoting({
     if (result?.success) {
       setCastSuccess(true);
       setAlreadyVoted(true);
+      setShowShareModal(true);
       toast?.success?.(`Vote cast for ${contestantName}!`);
     } else {
       setError(result?.error || 'Could not cast your vote.');
@@ -255,6 +258,7 @@ export default function CompetitionCardVoting({
 
     if (isPreview) {
       setCastSuccess(true);
+      setShowShareModal(true);
       toast?.info?.('Preview mode — no vote was cast.');
       return;
     }
@@ -274,6 +278,7 @@ export default function CompetitionCardVoting({
 
     if (result?.success) {
       setCastSuccess(true);
+      setShowShareModal(true);
       toast?.success?.(`Vote cast for ${contestantName}!`);
     } else {
       setError(result?.error || 'Could not cast your vote.');
@@ -313,29 +318,16 @@ export default function CompetitionCardVoting({
         {castSuccess && (
           <div style={{
             display: 'flex',
-            flexDirection: 'column',
+            alignItems: 'center',
             gap: spacing.sm,
             padding: spacing.sm,
+            color: colors.status.success,
+            fontSize: typography.fontSize.sm,
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              color: colors.status.success,
-              fontSize: typography.fontSize.sm,
-            }}>
-              <Check size={16} />
-              <span>
-                Vote cast! {user?.id && 'Come back tomorrow for another free vote.'}
-              </span>
-            </div>
-
-            {/* Share card */}
-            <VoteShareCard
-              contestant={contestant}
-              competition={competition}
-              voteCount={1}
-            />
+            <Check size={16} />
+            <span>
+              Vote cast! {user?.id && 'Come back tomorrow for another free vote.'}
+            </span>
           </div>
         )}
 
@@ -564,6 +556,19 @@ export default function CompetitionCardVoting({
           preloadedPaymentIntentId={preloadedCheckout.paymentIntentId}
         />
       )}
+
+      <Modal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        maxWidth="420px"
+        centered
+      >
+        <VoteShareCard
+          contestant={contestant}
+          competition={competition}
+          voteCount={1}
+        />
+      </Modal>
     </>
   );
 }
