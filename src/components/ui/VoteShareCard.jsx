@@ -11,15 +11,13 @@ import { colors, spacing, borderRadius, typography } from '../../styles/theme';
  *
  * @param {Object} props
  * @param {Object} props.contestant - { name, avatar_url }
- * @param {Object} props.competition - { name }
- * @param {number} [props.voteCount] - Number of votes (optional display)
- * @param {string} [props.organizationLogoUrl] - Logo for the card
+ * @param {Object} props.competition - { name, organization }
+ * @param {string} [props.organizationLogoUrl] - Logo override for the card
  * @param {function} [props.onShare] - Callback when share is attempted
  */
 export default function VoteShareCard({
   contestant,
   competition,
-  voteCount,
   organizationLogoUrl,
   onShare,
 }) {
@@ -31,6 +29,7 @@ export default function VoteShareCard({
   const contestantName = contestant?.name || 'Contestant';
   const photoUrl = contestant?.avatar_url || contestant?.avatarUrl;
   const competitionName = competition?.name || 'Most Eligible';
+  const effectiveLogoUrl = organizationLogoUrl || competition?.organization?.logo_url;
 
   // Generate the card on mount
   useEffect(() => {
@@ -43,8 +42,7 @@ export default function VoteShareCard({
       contestantName,
       photoUrl,
       competitionName,
-      voteCount,
-      organizationLogoUrl,
+      organizationLogoUrl: effectiveLogoUrl,
     })
       .then((blob) => {
         if (cancelled) return;
@@ -62,7 +60,7 @@ export default function VoteShareCard({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [contestantName, photoUrl, competitionName, voteCount, organizationLogoUrl]);
+  }, [contestantName, photoUrl, competitionName, effectiveLogoUrl]);
 
   // Download the card
   const handleDownload = useCallback(() => {
