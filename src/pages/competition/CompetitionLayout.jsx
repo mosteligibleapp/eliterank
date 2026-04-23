@@ -155,6 +155,15 @@ function CompetitionLayoutInner() {
   // between-rounds phase.
   const hasStandingsViews = phase?.isVoting || phase?.phase === 'between-rounds';
 
+  // Drop the user at the top of the leaderboard (heart + title) whenever
+  // they enter the tab, instead of inheriting the scroll position from
+  // the Competition view.
+  useEffect(() => {
+    if (isLeaderboardView) {
+      window.scrollTo({ top: 0, left: 0 });
+    }
+  }, [isLeaderboardView]);
+
   const handleBack = () => {
     navigate('/');
   };
