@@ -332,7 +332,7 @@ export default function CompetitionCardVoting({
             : `Send votes to ${firstName}`}
         </h4>
 
-        {castSuccess ? (
+        {castSuccess && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -427,139 +427,143 @@ export default function CompetitionCardVoting({
               </div>
             )}
           </div>
-        ) : (
+        )}
+
+        {/* Paid vote UI — always visible so voters can still buy votes
+            after using their free daily vote. */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spacing.sm,
+        }}>
+          {VOTE_PRESETS.map((count) => (
+            <PresetTile
+              key={count}
+              count={count}
+              pricePerVote={pricePerVote}
+              useBundler={useBundler}
+              active={Number(selectedCount) === count}
+              onClick={handleTileClick(count)}
+            />
+          ))}
+        </div>
+
+        {/* Custom amount */}
+        <div style={{
+          padding: `${spacing.sm} ${spacing.md}`,
+          background: 'rgba(0,0,0,0.25)',
+          border: `1px solid ${colors.border.primary}`,
+          borderRadius: borderRadius.md,
+          display: 'flex',
+          alignItems: 'center',
+          gap: spacing.sm,
+        }}>
+          <span style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.muted,
+            whiteSpace: 'nowrap',
+          }}>
+            Or enter custom amount
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1"
+            max="1000"
+            value={selectedCount}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') {
+                setSelectedCount('');
+                return;
+              }
+              const n = Math.max(1, Math.min(1000, parseInt(raw, 10) || 0));
+              setSelectedCount(n);
+            }}
+            onBlur={(e) => {
+              if (!e.target.value || Number(e.target.value) < 1) {
+                setSelectedCount(DEFAULT_PRESET);
+              }
+            }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: `${spacing.xs} 0`,
+              background: 'transparent',
+              border: 'none',
+              color: colors.text.primary,
+              fontSize: typography.fontSize.base,
+              fontWeight: typography.fontWeight.semibold,
+              textAlign: 'right',
+              outline: 'none',
+            }}
+          />
+          <span style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.text.muted,
+          }}>
+            votes
+          </span>
+        </div>
+
+        {/* Rank projection */}
+        {rankProjection && rankProjection.delta > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: `${spacing.sm} ${spacing.md}`,
+            background: 'rgba(212,175,55,0.05)',
+            border: `1px solid rgba(212,175,55,0.2)`,
+            borderRadius: borderRadius.md,
+            fontSize: typography.fontSize.sm,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.secondary }}>
+              <TrendingUp size={14} style={{ color: colors.gold.primary }} />
+              <span>
+                Moves {firstName}{' '}
+                <strong style={{ color: colors.text.primary }}>
+                  up {rankProjection.delta} {rankProjection.delta === 1 ? 'spot' : 'spots'}
+                </strong>
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.muted }}>
+              <span>#{rankProjection.current}</span>
+              <ArrowRight size={12} />
+              <strong style={{ color: colors.gold.primary }}>#{rankProjection.projected}</strong>
+            </div>
+          </div>
+        )}
+
+        {/* Primary CTA */}
+        <button
+          type="button"
+          onClick={openBuyVotes}
+          disabled={!canSend}
+          style={{
+            padding: `${spacing.md} ${spacing.md}`,
+            background: canSend ? gradients.gold : 'rgba(212,175,55,0.2)',
+            color: '#0a0a0f',
+            border: 'none',
+            borderRadius: borderRadius.md,
+            fontSize: typography.fontSize.base,
+            fontWeight: typography.fontWeight.bold,
+            cursor: canSend ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.sm,
+            opacity: canSend ? 1 : 0.6,
+          }}
+        >
+          Send {selectedCount || 0} {Number(selectedCount) === 1 ? 'vote' : 'votes'} — {formatPrice(total)}
+        </button>
+
+        {/* Free-vote path — hide once the free vote has been successfully
+            cast so the success banner above is the only confirmation. */}
+        {!castSuccess && (
           <>
-            {/* Preset tiles */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: spacing.sm,
-            }}>
-              {VOTE_PRESETS.map((count) => (
-                <PresetTile
-                  key={count}
-                  count={count}
-                  pricePerVote={pricePerVote}
-                  useBundler={useBundler}
-                  active={Number(selectedCount) === count}
-                  onClick={handleTileClick(count)}
-                />
-              ))}
-            </div>
-
-            {/* Custom amount */}
-            <div style={{
-              padding: `${spacing.sm} ${spacing.md}`,
-              background: 'rgba(0,0,0,0.25)',
-              border: `1px solid ${colors.border.primary}`,
-              borderRadius: borderRadius.md,
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-            }}>
-              <span style={{
-                fontSize: typography.fontSize.sm,
-                color: colors.text.muted,
-                whiteSpace: 'nowrap',
-              }}>
-                Or enter custom amount
-              </span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min="1"
-                max="1000"
-                value={selectedCount}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (raw === '') {
-                    setSelectedCount('');
-                    return;
-                  }
-                  const n = Math.max(1, Math.min(1000, parseInt(raw, 10) || 0));
-                  setSelectedCount(n);
-                }}
-                onBlur={(e) => {
-                  if (!e.target.value || Number(e.target.value) < 1) {
-                    setSelectedCount(DEFAULT_PRESET);
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  padding: `${spacing.xs} 0`,
-                  background: 'transparent',
-                  border: 'none',
-                  color: colors.text.primary,
-                  fontSize: typography.fontSize.base,
-                  fontWeight: typography.fontWeight.semibold,
-                  textAlign: 'right',
-                  outline: 'none',
-                }}
-              />
-              <span style={{
-                fontSize: typography.fontSize.xs,
-                color: colors.text.muted,
-              }}>
-                votes
-              </span>
-            </div>
-
-            {/* Rank projection */}
-            {rankProjection && rankProjection.delta > 0 && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: `${spacing.sm} ${spacing.md}`,
-                background: 'rgba(212,175,55,0.05)',
-                border: `1px solid rgba(212,175,55,0.2)`,
-                borderRadius: borderRadius.md,
-                fontSize: typography.fontSize.sm,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.secondary }}>
-                  <TrendingUp size={14} style={{ color: colors.gold.primary }} />
-                  <span>
-                    Moves {firstName}{' '}
-                    <strong style={{ color: colors.text.primary }}>
-                      up {rankProjection.delta} {rankProjection.delta === 1 ? 'spot' : 'spots'}
-                    </strong>
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.muted }}>
-                  <span>#{rankProjection.current}</span>
-                  <ArrowRight size={12} />
-                  <strong style={{ color: colors.gold.primary }}>#{rankProjection.projected}</strong>
-                </div>
-              </div>
-            )}
-
-            {/* Primary CTA */}
-            <button
-              type="button"
-              onClick={openBuyVotes}
-              disabled={!canSend}
-              style={{
-                padding: `${spacing.md} ${spacing.md}`,
-                background: canSend ? gradients.gold : 'rgba(212,175,55,0.2)',
-                color: '#0a0a0f',
-                border: 'none',
-                borderRadius: borderRadius.md,
-                fontSize: typography.fontSize.base,
-                fontWeight: typography.fontWeight.bold,
-                cursor: canSend ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: spacing.sm,
-                opacity: canSend ? 1 : 0.6,
-              }}
-            >
-              Send {selectedCount || 0} {Number(selectedCount) === 1 ? 'vote' : 'votes'} — {formatPrice(total)}
-            </button>
-
-            {/* OR divider + full-width outlined free-vote button */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
