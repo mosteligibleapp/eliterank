@@ -319,7 +319,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${contestantName}</p>
             ${competitionLine}
             <p style="color:#ccc;font-size:15px;margin-top:16px;">
-              We'll send you a <strong>weekly competition update</strong> so you can follow how ${contestantName} is doing — round standings, milestones, and when it's time to vote again.
+              We'll send you a <strong>weekly competition update</strong> so you can follow how ${contestantName} is doing — round standings, performance and ways to support.
             </p>
             ${ctaUrl ? goldButton(`View ${contestantName}'s Profile`, ctaUrl) : ''}
             ${unsubLine}
