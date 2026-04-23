@@ -7,7 +7,6 @@ import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser
 import { useResponsive } from '../../../hooks/useResponsive';
 import { useLeaderboard } from '../../../hooks';
 import useCountdown from '../../../hooks/useCountdown';
-import { formatNumber } from '../../../utils/formatters';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
 import { getCityImage } from '../../../utils/cityImages';
@@ -82,12 +81,15 @@ function StatBox({ label, value, suffix, icon, accent = false, isMobile = false 
       borderRadius: borderRadius.md,
       display: 'flex',
       flexDirection: 'column',
+      alignItems: 'center',
+      textAlign: 'center',
       gap: '2px',
       minWidth: 0,
     }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         // Tight gap for the accent box so "Round ends" + clock icon
         // stays on one line at narrow widths.
         gap: accent ? '3px' : spacing.xs,
@@ -110,6 +112,7 @@ function StatBox({ label, value, suffix, icon, accent = false, isMobile = false 
       <div style={{
         display: 'flex',
         alignItems: 'baseline',
+        justifyContent: 'center',
         gap: spacing.xs,
         lineHeight: 1,
       }}>
@@ -227,8 +230,6 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
     return { current: idx + 1, total: byVotes.length };
   }, [showInlineVoting, leaderboard, entry.contestant?.id]);
 
-  const voteCount = entry.contestant?.votes ?? entry.votes ?? 0;
-
   // When the voting panel is visible, the outer <a> causes button clicks
   // to bubble and trigger navigation. Split the card into a clickable
   // "link area" (top of card) and a non-link "voting area" (bottom) that
@@ -345,24 +346,19 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
         )}
       </a>
 
-      {/* Stats row: rank / votes / round-ends — rendered only for contestant
+      {/* Stats row: rank / round-ends — rendered only for contestant
           entries with an active voting round, since the data only makes
           sense there. */}
       {showInlineVoting && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
           gap: spacing.sm,
         }}>
           <StatBox
             label="Rank"
             value={rankStats ? `#${rankStats.current}` : '—'}
             suffix={rankStats ? `/ ${rankStats.total}` : undefined}
-            isMobile={isMobile}
-          />
-          <StatBox
-            label="Votes"
-            value={formatNumber(voteCount)}
             isMobile={isMobile}
           />
           <StatBox
@@ -421,7 +417,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
   return CardBody;
 }
 
-export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false, isPreview = false, onActiveVotingChange }) {
+export default function ProfileCompetitions({ userId, userEmail, user, profile, isOwnProfile = false, isPreview = false }) {
   const { isMobile, isSmall } = useResponsive();
   const [hostedCompetitions, setHostedCompetitions] = useState([]);
   const [contestantEntries, setContestantEntries] = useState([]);
@@ -468,21 +464,6 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
   const hasHosted = hostedCompetitions.length > 0;
   const hasContestant = contestantEntries.length > 0;
   const hasNominations = nominations.length > 0;
-
-  // Let the parent know whether this profile has any live voting round —
-  // ProfileView hides its header "X votes" pill when voting is live so the
-  // per-comp card's stats row isn't duplicated above. Waits for loading to
-  // finish so we don't flicker the pill on first paint. Preview mode is
-  // treated as "active" too, since the card synthesizes a round and renders
-  // its full stats + voting panel, which would otherwise duplicate the pill.
-  useEffect(() => {
-    if (!onActiveVotingChange || loading) return;
-    const hasRealActive = contestantEntries.some(
-      (entry) => !!findActiveVotingRound(entry.competition),
-    );
-    const hasPreviewActive = isPreview && contestantEntries.length > 0;
-    onActiveVotingChange(hasRealActive || hasPreviewActive);
-  }, [loading, contestantEntries, onActiveVotingChange, isPreview]);
 
   if (loading) {
     return (

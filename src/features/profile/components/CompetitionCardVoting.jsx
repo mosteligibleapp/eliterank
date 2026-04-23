@@ -15,7 +15,6 @@ import { getStripe, isStripeConfigured } from '../../../lib/stripe';
 import VoteModal from '../../public-site/components/VoteModal';
 
 const VOTE_PRESETS = [25, 100, 250];
-const DEFAULT_PRESET = 100;
 
 // Show cents when a bundled total is fractional ($9.90) but keep round
 // totals tidy ($10).
@@ -69,7 +68,7 @@ export default function CompetitionCardVoting({
   const pricePerVote = Number(competition?.price_per_vote) || 1;
   const useBundler = !!competition?.use_price_bundler;
 
-  const [selectedCount, setSelectedCount] = useState(DEFAULT_PRESET);
+  const [selectedCount, setSelectedCount] = useState('');
   const [busy, setBusy] = useState(false);
   const [castSuccess, setCastSuccess] = useState(false);
   const [alreadyVoted, setAlreadyVoted] = useState(false);
@@ -382,11 +381,6 @@ export default function CompetitionCardVoting({
               }
               const n = Math.max(1, Math.min(1000, parseInt(raw, 10) || 0));
               setSelectedCount(n);
-            }}
-            onBlur={(e) => {
-              if (!e.target.value || Number(e.target.value) < 1) {
-                setSelectedCount(DEFAULT_PRESET);
-              }
             }}
             style={{
               minWidth: 0,
