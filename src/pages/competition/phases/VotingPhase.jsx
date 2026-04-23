@@ -4,7 +4,7 @@ import { LeaderboardCompact } from '../components/LeaderboardCompact';
 import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
-import { HostCard } from '../components/HostCard';
+import { HostSection } from '../components/HostSection';
 import { CharityHighlight } from '../components/CharityHighlight';
 import { JudgesSection } from '../components/JudgesSection';
 import ContestantBonusVotes from '../components/ContestantBonusVotes';
@@ -86,7 +86,7 @@ export function VotingPhase() {
 
       {/* Host */}
       <section className="phase-section">
-        <HostCard />
+        <HostSection />
       </section>
 
       {/* Judges */}
