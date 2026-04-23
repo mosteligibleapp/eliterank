@@ -285,7 +285,7 @@ export default async function handler(request, response) {
     if (voteErr) {
       console.error('Vote insert failed:', voteErr);
       if (voteErr.code === '23505') {
-        return response.status(409).json({ error: 'You've already used your free vote today.' });
+        return response.status(409).json({ error: "You've already used your free vote today." });
       }
       // Include error details in non-production for debugging
       const isDev = process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
