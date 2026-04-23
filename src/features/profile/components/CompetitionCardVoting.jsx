@@ -76,6 +76,7 @@ export default function CompetitionCardVoting({
   const [showFreeForm, setShowFreeForm] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [shareVoteCount, setShareVoteCount] = useState(1);
   // Pre-created PaymentIntent kicked off in the Send click handler so the
   // edge-function round-trip runs in parallel with the modal mounting.
   const [preloadedCheckout, setPreloadedCheckout] = useState({
@@ -226,6 +227,7 @@ export default function CompetitionCardVoting({
     if (isPreview) {
       setCastSuccess(true);
       setAlreadyVoted(true);
+      setShareVoteCount(1);
       setShowShareModal(true);
       toast?.info?.('Preview mode — no vote was cast.');
       return;
@@ -244,6 +246,7 @@ export default function CompetitionCardVoting({
     if (result?.success) {
       setCastSuccess(true);
       setAlreadyVoted(true);
+      setShareVoteCount(1);
       setShowShareModal(true);
       toast?.success?.(`Vote cast for ${contestantName}!`);
     } else {
@@ -258,6 +261,7 @@ export default function CompetitionCardVoting({
 
     if (isPreview) {
       setCastSuccess(true);
+      setShareVoteCount(1);
       setShowShareModal(true);
       toast?.info?.('Preview mode — no vote was cast.');
       return;
@@ -278,6 +282,7 @@ export default function CompetitionCardVoting({
 
     if (result?.success) {
       setCastSuccess(true);
+      setShareVoteCount(1);
       setShowShareModal(true);
       toast?.success?.(`Vote cast for ${contestantName}!`);
     } else {
@@ -543,7 +548,10 @@ export default function CompetitionCardVoting({
           user={user}
           isAuthenticated={!!user?.id}
           onVoteSuccess={() => {
+            const purchased = preloadedCheckout.voteCount || Number(selectedCount) || 1;
             handleVoteModalClose();
+            setShareVoteCount(purchased);
+            setShowShareModal(true);
             toast?.success?.('Votes purchased!');
           }}
           currentRound={roundForModal}
@@ -566,7 +574,7 @@ export default function CompetitionCardVoting({
         <VoteShareCard
           contestant={contestant}
           competition={competition}
-          voteCount={1}
+          voteCount={shareVoteCount}
         />
       </Modal>
     </>
