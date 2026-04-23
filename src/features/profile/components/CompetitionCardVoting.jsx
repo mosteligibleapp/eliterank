@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
+import { VoteShareCard } from '../../../components/ui';
+import FanButton from '../../../components/ui/FanButton';
 import { useSupabaseAuth, useLeaderboard } from '../../../hooks';
 import { useToast } from '../../../contexts/ToastContext';
 import {
@@ -352,6 +354,38 @@ export default function CompetitionCardVoting({
               </span>
             </div>
 
+            {/* Logged-in voter: prompt to become a fan */}
+            {user?.id && contestantId && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: spacing.xs,
+                padding: spacing.sm,
+                background: 'rgba(212,175,55,0.08)',
+                borderRadius: borderRadius.md,
+                marginTop: spacing.xs,
+              }}>
+                <p style={{
+                  fontSize: typography.fontSize.sm,
+                  color: colors.text.secondary,
+                  margin: 0,
+                }}>
+                  Follow {firstName}'s journey?
+                </p>
+                <FanButton
+                  contestantId={contestantId}
+                  contestantName={contestant?.name}
+                />
+                <p style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.muted,
+                  margin: 0,
+                }}>
+                  Get weekly updates on their progress
+                </p>
+              </div>
+            )}
+
             {/* Anonymous voter: prompt to become a fan */}
             {!user?.id && visitorId && fanStatus !== 'done' && (
               <div style={{
@@ -426,6 +460,13 @@ export default function CompetitionCardVoting({
                 <span>You're a fan! We'll send weekly updates.</span>
               </div>
             )}
+
+            {/* Share card */}
+            <VoteShareCard
+              contestant={contestant}
+              competition={competition}
+              voteCount={1}
+            />
           </div>
         )}
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { checkAndAwardProfileBonuses } from '../lib/bonusVotes';
 
 /**
  * Supabase authentication hook
@@ -221,12 +222,34 @@ export default function useSupabaseAuth() {
           .then(() => {}); // fire-and-forget
       }
 
-      setProfile((prev) => ({ ...prev, ...updates }));
+      const updatedProfile = { ...profile, ...updates };
+      setProfile(updatedProfile);
+
+      // Fire-and-forget: check and award profile-based bonus votes
+      // This catches users who complete their profile after becoming a contestant
+      (async () => {
+        try {
+          const { data: contestants } = await supabase
+            .from('contestants')
+            .select('id, competition_id')
+            .eq('user_id', user.id)
+            .eq('status', 'active');
+
+          if (contestants?.length) {
+            for (const c of contestants) {
+              await checkAndAwardProfileBonuses(c.competition_id, c.id, user.id, updatedProfile);
+            }
+          }
+        } catch (err) {
+          console.warn('Error checking profile bonuses:', err);
+        }
+      })();
+
       return { error: null };
     } catch (err) {
       return { error: err.message };
     }
-  }, [user]);
+  }, [user, profile]);
 
   // Refresh profile
   const refreshProfile = useCallback(() => {

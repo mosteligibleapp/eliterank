@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle, CreditCard, X } from 'lucide-react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Modal, Button, Avatar } from '../../../components/ui';
+import { Modal, Button, Avatar, VoteShareCard } from '../../../components/ui';
+import FanButton from '../../../components/ui/FanButton';
 import { colors, spacing, borderRadius, typography, gradients, shadows } from '../../../styles/theme';
 import { formatNumber } from '../../../utils/formatters';
 import { VOTE_PRESETS } from '../../../constants';
@@ -508,87 +509,45 @@ export default function VoteModal({
             You gave <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>{contestant.name}</span> {votesAdded} {votesAdded > 1 ? 'votes' : 'vote'}
           </p>
 
-          {/* Share prompt */}
-          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, marginBottom: spacing.md }}>
-            Share to help them win
-          </p>
-
-          {/* Share buttons row */}
-          <div style={{ display: 'flex', gap: spacing.sm, justifyContent: 'center', marginBottom: spacing.xl }}>
-            {canNativeShare && (
-              <button
-                onClick={handleNativeShare}
-                style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: borderRadius.full,
-                  background: 'linear-gradient(135deg, #E1306C, #F77737)',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                }}
-              >
-                <Share2 size={22} style={{ color: 'white' }} />
-              </button>
-            )}
-            <button
-              onClick={handleShareTwitter}
-              style={{
-                width: '52px',
-                height: '52px',
-                borderRadius: borderRadius.full,
-                background: '#1DA1F2',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Twitter size={22} style={{ color: 'white' }} />
-            </button>
-            <button
-              onClick={handleShareFacebook}
-              style={{
-                width: '52px',
-                height: '52px',
-                borderRadius: borderRadius.full,
-                background: '#4267B2',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Facebook size={22} style={{ color: 'white' }} />
-            </button>
-            <button
-              onClick={handleCopyLink}
-              style={{
-                width: '52px',
-                height: '52px',
-                borderRadius: borderRadius.full,
-                background: linkCopied ? colors.status.success : 'rgba(255,255,255,0.1)',
-                border: `1px solid ${linkCopied ? colors.status.success : colors.border.light}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              {linkCopied ? <Check size={22} style={{ color: 'white' }} /> : <Link2 size={22} style={{ color: colors.text.secondary }} />}
-            </button>
-          </div>
-
-          {linkCopied && (
-            <p style={{ color: colors.status.success, fontSize: typography.fontSize.sm, marginBottom: spacing.md }}>
-              Link copied!
-            </p>
+          {/* Become a Fan prompt for logged-in users */}
+          {isAuthenticated && contestant?.id && (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: spacing.xs,
+              padding: spacing.md,
+              background: 'rgba(212,175,55,0.08)',
+              borderRadius: borderRadius.lg,
+              marginBottom: spacing.md,
+            }}>
+              <p style={{
+                fontSize: typography.fontSize.sm,
+                color: colors.text.secondary,
+                margin: 0,
+              }}>
+                Follow {contestant.name?.split(' ')[0]}'s journey?
+              </p>
+              <FanButton
+                contestantId={contestant.id}
+                contestantName={contestant.name}
+              />
+              <p style={{
+                fontSize: typography.fontSize.xs,
+                color: colors.text.muted,
+                margin: 0,
+              }}>
+                Get weekly updates on their progress
+              </p>
+            </div>
           )}
+
+          {/* Share card */}
+          <VoteShareCard
+            contestant={contestant}
+            competition={{ name: 'Most Eligible' }}
+            voteCount={votesAdded}
+          />
 
           {/* Done button */}
           <button
