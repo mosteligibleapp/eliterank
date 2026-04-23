@@ -448,7 +448,8 @@ export default function CompetitionCardVoting({
           ))}
         </div>
 
-        {/* Custom amount */}
+        {/* Custom amount — mirrors the preset tile layout: input on the
+            left (typing flows left-to-right), live price on the right. */}
         <div style={{
           padding: `${spacing.sm} ${spacing.md}`,
           background: 'rgba(0,0,0,0.25)',
@@ -458,19 +459,13 @@ export default function CompetitionCardVoting({
           alignItems: 'center',
           gap: spacing.sm,
         }}>
-          <span style={{
-            fontSize: typography.fontSize.sm,
-            color: colors.text.muted,
-            whiteSpace: 'nowrap',
-          }}>
-            Or enter custom amount
-          </span>
           <input
             type="number"
             inputMode="numeric"
             min="1"
             max="1000"
             value={selectedCount}
+            placeholder="Custom amount"
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => {
               const raw = e.target.value;
@@ -487,23 +482,31 @@ export default function CompetitionCardVoting({
               }
             }}
             style={{
-              flex: 1,
               minWidth: 0,
+              width: '8ch',
               padding: `${spacing.xs} 0`,
               background: 'transparent',
               border: 'none',
               color: colors.text.primary,
               fontSize: typography.fontSize.base,
               fontWeight: typography.fontWeight.semibold,
-              textAlign: 'right',
+              textAlign: 'left',
               outline: 'none',
             }}
           />
           <span style={{
             fontSize: typography.fontSize.xs,
             color: colors.text.muted,
+            flex: 1,
           }}>
             votes
+          </span>
+          <span style={{
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.muted,
+          }}>
+            {formatPrice(total)}
           </span>
         </div>
 
