@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { VoteShareCard, Modal } from '../../../components/ui';
-import { useSupabaseAuth, useLeaderboard } from '../../../hooks';
+import { useSupabaseAuth, useLeaderboard, useFingerprint } from '../../../hooks';
 import { useToast } from '../../../contexts/ToastContext';
 import {
   hasUsedFreeVoteToday,
@@ -66,6 +66,7 @@ export default function CompetitionCardVoting({
 }) {
   const { user } = useSupabaseAuth();
   const toast = useToast();
+  const { fingerprint } = useFingerprint();
   const competitionId = competition?.id;
   const contestantId = contestant?.id;
   const contestantName = contestant?.name || 'this contestant';
@@ -278,6 +279,7 @@ export default function CompetitionCardVoting({
       contestantId,
       mountedAt: mountedAtRef.current,
       company,
+      fingerprint,
     });
     setBusy(false);
 

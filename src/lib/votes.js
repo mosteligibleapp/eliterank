@@ -267,6 +267,7 @@ async function updateProfileVotes(userId, voteValue) {
  * @param {string} params.contestantId
  * @param {number} params.mountedAt - client ms timestamp when form mounted
  * @param {string} [params.company] - honeypot value (should be empty)
+ * @param {string} [params.fingerprint] - browser fingerprint for fraud prevention
  */
 export async function submitAnonymousVote({
   email,
@@ -276,6 +277,7 @@ export async function submitAnonymousVote({
   contestantId,
   mountedAt,
   company,
+  fingerprint,
 }) {
   try {
     const res = await fetch('/api/cast-anonymous-vote', {
@@ -289,6 +291,7 @@ export async function submitAnonymousVote({
         contestantId,
         mountedAt,
         company,
+        fingerprint,
       }),
     });
     const data = await res.json().catch(() => ({}));
