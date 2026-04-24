@@ -246,6 +246,7 @@ export default function VoteModal({
         voteCount: selectedVoteCount,
         amountPaid: calculateVotePrice(selectedVoteCount, useBundler, votePrice),
         voterEmail: user?.email,
+        voterId: userId,
       });
     }
 

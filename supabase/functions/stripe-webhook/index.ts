@@ -214,12 +214,13 @@ serve(async (req) => {
         const voteCount = parseInt(vote_count, 10)
         const amountPaid = paymentIntent.amount / 100 // Convert from cents to dollars
 
-        // Check if this payment has already been processed (idempotency)
+        // Check if this payment has already been processed (idempotency).
+        // maybeSingle() returns null without an error when no row matches.
         const { data: existingVote } = await supabase
           .from('votes')
           .select('id')
           .eq('payment_intent_id', paymentIntent.id)
-          .single()
+          .maybeSingle()
 
         if (existingVote) {
           console.log('Payment already processed:', paymentIntent.id)
@@ -229,12 +230,26 @@ serve(async (req) => {
           )
         }
 
+        // Attribute the vote to a registered voter when possible so the
+        // webhook-inserted row is visible to the voter under RLS and shows
+        // up in their vote history.
+        let resolvedVoterId: string | null = null
+        if (resolvedVoterEmail) {
+          const { data: voterProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .ilike('email', resolvedVoterEmail)
+            .maybeSingle()
+          resolvedVoterId = voterProfile?.id ?? null
+        }
+
         // Record the paid votes
         const { error: voteError } = await supabase
           .from('votes')
           .insert({
             competition_id,
             contestant_id,
+            voter_id: resolvedVoterId,
             voter_email: resolvedVoterEmail || null,
             vote_count: voteCount,
             amount_paid: amountPaid,
@@ -243,6 +258,17 @@ serve(async (req) => {
           })
 
         if (voteError) {
+          // UNIQUE constraint on payment_intent_id — the client-side
+          // recordPaidVote (or an earlier webhook retry) already inserted
+          // this vote. The trigger has updated the counts. Ack as success
+          // so Stripe doesn't keep retrying.
+          if (voteError.code === '23505') {
+            console.log('Payment already processed (unique violation):', paymentIntent.id)
+            return new Response(
+              JSON.stringify({ received: true, status: 'already_processed' }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
           console.error('Failed to record vote:', voteError)
           return new Response(
             JSON.stringify({ error: 'Failed to record vote', details: voteError.message }),
