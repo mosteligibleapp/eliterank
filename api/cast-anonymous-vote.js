@@ -7,13 +7,12 @@
  * then fire a magic-link "claim" email so the voter can log in later to
  * see their vote history.
  *
- * Bot protection is layered:
+ * Bot/fraud protection is layered:
  *   1. Honeypot field (`company`) — bots fill hidden fields
  *   2. Min-submit-time check — bots submit in <1s
- *   3. Per-IP rate limit — max 10 distinct emails per 24h (Supabase-backed
- *      so the limit holds across serverless instances)
- *   4. Vercel BotID — invisible bot detection (optional, enabled when
- *      @vercel/botid is installed and BOTID_ENABLED=true)
+ *   3. Browser fingerprint — 1 free vote per device per competition per day
+ *   4. Per-IP rate limit — max 10 distinct emails per 24h (backup)
+ *   5. Vercel BotID — invisible bot detection (optional)
  *
  * Env vars required:
  *   SUPABASE_URL
@@ -69,14 +68,50 @@ async function checkIpRateLimit(supabase, ipHash, email, limit) {
   return { allowed: true };
 }
 
-async function recordIpRateLimit(supabase, ipHash, email) {
+async function recordIpRateLimit(supabase, ipHash, email, fingerprint, competitionId) {
   const { error } = await supabase
     .from('anonymous_vote_rate_limits')
-    .insert({ ip_hash: ipHash, email });
+    .insert({ ip_hash: ipHash, email, fingerprint, competition_id: competitionId });
   if (error) {
     // Non-fatal — the vote already succeeded.
     console.warn('Rate limit insert failed (non-fatal):', error);
   }
+}
+
+/**
+ * Check if this browser fingerprint has already voted in this competition today.
+ * This is the primary fraud prevention — stops same device from voting with
+ * multiple fake emails.
+ */
+async function checkFingerprintLimit(supabase, fingerprint, competitionId) {
+  if (!fingerprint) {
+    // No fingerprint provided — fall back to IP-only checks
+    return { allowed: true, skipped: true };
+  }
+
+  const cutoffIso = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+
+  const { data, error } = await supabase
+    .from('anonymous_vote_rate_limits')
+    .select('id')
+    .eq('fingerprint', fingerprint)
+    .eq('competition_id', competitionId)
+    .gte('created_at', cutoffIso)
+    .limit(1);
+
+  if (error) {
+    console.error('Fingerprint rate limit lookup failed (allowing vote):', error);
+    return { allowed: true, skipped: true };
+  }
+
+  if (data && data.length > 0) {
+    return { 
+      allowed: false, 
+      reason: "You've already cast your free daily vote from this device. Come back tomorrow!" 
+    };
+  }
+
+  return { allowed: true };
 }
 
 function isValidEmail(email) {
@@ -134,6 +169,7 @@ export default async function handler(request, response) {
     contestantId,
     mountedAt,     // client timestamp when form mounted
     company,       // honeypot — must be empty
+    fingerprint,   // browser fingerprint for fraud prevention
   } = body || {};
 
   // ─── Bot traps ─────────────────────────────────────────────────────────
@@ -169,7 +205,13 @@ export default async function handler(request, response) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // ─── IP rate limit ─────────────────────────────────────────────────────
+  // ─── Fingerprint rate limit (primary fraud prevention) ───────────────
+  const fpCheck = await checkFingerprintLimit(supabase, fingerprint, competitionId);
+  if (!fpCheck.allowed) {
+    return response.status(429).json({ error: fpCheck.reason });
+  }
+
+  // ─── IP rate limit (backup) ────────────────────────────────────────────
   const ip = getClientIp(request);
   const ipHash = await hashIp(ip);
   const rateCheck = await checkIpRateLimit(supabase, ipHash, normalizedEmail, ipLimit);
@@ -296,8 +338,8 @@ export default async function handler(request, response) {
     }
 
     // Record rate-limit entry only after a successful vote so failed
-    // attempts don't count against the IP.
-    await recordIpRateLimit(supabase, ipHash, normalizedEmail);
+    // attempts don't count against the IP/fingerprint.
+    await recordIpRateLimit(supabase, ipHash, normalizedEmail, fingerprint, competitionId);
 
     // Return voter info so the client can prompt "Become a Fan" post-vote.
     // No email sent — conversion happens in-context on the success screen.
