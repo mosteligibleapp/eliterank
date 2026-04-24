@@ -442,12 +442,14 @@ export async function recordPaidVote({
   }
 
   try {
-    // Check if already recorded (idempotency - webhook may have already recorded it)
+    // Check if already recorded (idempotency - webhook may have already recorded it).
+    // maybeSingle returns {data: null} instead of a 406 error when there's no row,
+    // which is the expected case on the first try.
     const { data: existingVote } = await supabase
       .from('votes')
       .select('id')
       .eq('payment_intent_id', paymentIntentId)
-      .single();
+      .maybeSingle();
 
     if (existingVote) {
       // Already recorded by webhook, return success

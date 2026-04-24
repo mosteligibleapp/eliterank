@@ -147,12 +147,15 @@ serve(async (req) => {
     // Get the raw body for signature verification
     const body = await req.text()
 
-    // Verify the webhook signature
+    // Verify the webhook signature.
+    // Deno's Web Crypto is async-only, so we must use constructEventAsync.
+    // The synchronous constructEvent throws under Deno and is the root cause
+    // of the 100% 400 rate observed on this endpoint.
     let event: Stripe.Event
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret)
     } catch (err) {
-      console.error('Webhook signature verification failed:', err)
+      console.error('Webhook signature verification failed:', err instanceof Error ? err.message : err)
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

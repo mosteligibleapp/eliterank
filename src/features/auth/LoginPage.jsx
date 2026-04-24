@@ -108,7 +108,7 @@ export default function LoginPage({ onLogin, onBack }) {
           claimed_at,
           status,
           user_id,
-          competition:competitions(id, city, season, status)
+          competition:competitions(id, season, status, city:cities(name))
         `)
         .ilike('email', email)
         .neq('status', 'rejected')

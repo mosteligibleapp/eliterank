@@ -57,6 +57,33 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
     }).catch(console.error);
   }, [hostProfile?.id, hostProfile?.email]);
 
+  // Live-refresh the "X votes" pill. process_vote() updates the
+  // contestant row whenever someone votes for this profile; we refetch
+  // getCompetitionStats so the header reflects the new count within ~1s.
+  // Filtered to this user's contestant rows only to avoid waking up on
+  // every vote in the DB.
+  useEffect(() => {
+    if (!hostProfile?.id || !supabase) return;
+    const channel = supabase
+      .channel(`profile-stats-${hostProfile.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'contestants',
+          filter: `user_id=eq.${hostProfile.id}`,
+        },
+        () => {
+          getCompetitionStats(hostProfile.id)
+            .then(setCompetitionStats)
+            .catch(console.error);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [hostProfile?.id]);
+
   const handleBonusVotesLoaded = useCallback((data) => {
     setBonusVotes(data);
   }, []);
