@@ -886,7 +886,7 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
           // For anonymous buyers, force email collection so the webhook
           // can attribute the paid vote without us prompting for it
           // separately on the card.
-          fields: collectEmail ? { billingDetails: { email: 'always' } } : undefined,
+          fields: collectEmail ? { billingDetails: 'auto' } : { billingDetails: { email: 'never' } },
         }}
       />
 
