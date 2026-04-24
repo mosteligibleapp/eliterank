@@ -58,6 +58,11 @@ export default function CompetitionCardVoting({
   // Optional — when the parent card already pulls the leaderboard for its
   // stats row, it can pass the same snapshot in so we don't double-fetch.
   leaderboard: leaderboardProp,
+  // Optional — parent's hook to force-refresh the leaderboard after a
+  // successful vote. Complements the realtime subscription so the count
+  // also updates immediately on the voter's own screen when the socket
+  // is throttled (background tab, reconnect).
+  onVoteCast,
 }) {
   const { user } = useSupabaseAuth();
   const toast = useToast();
@@ -245,6 +250,7 @@ export default function CompetitionCardVoting({
       setAlreadyVoted(true);
       setShowShareModal(true);
       toast?.success?.(`Vote cast for ${contestantName}!`);
+      onVoteCast?.();
     } else {
       setError(result?.error || 'Could not cast your vote.');
     }
@@ -279,6 +285,7 @@ export default function CompetitionCardVoting({
       setCastSuccess(true);
       setShowShareModal(true);
       toast?.success?.(`Vote cast for ${contestantName}!`);
+      onVoteCast?.();
     } else {
       setError(result?.error || 'Could not cast your vote.');
     }
@@ -540,6 +547,7 @@ export default function CompetitionCardVoting({
             handleVoteModalClose();
             setShowShareModal(true);
             toast?.success?.('Votes purchased!');
+            onVoteCast?.();
           }}
           currentRound={roundForModal}
           initialVoteCount={Number(selectedCount) || 1}

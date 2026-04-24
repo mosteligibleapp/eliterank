@@ -210,11 +210,13 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
   const showInlineVoting = !!activeRound && !!entry.contestant?.id;
 
   // Leaderboard is fetched at the card level so the stats row and the
-  // voting panel share a single round trip. realtime:false — the rank in
-  // the stats bar doesn't need to update live.
-  const { contestants: leaderboard } = useLeaderboard(
+  // voting panel share a single round trip. Realtime is on so the rank
+  // in the stats bar updates live when process_vote() bumps
+  // contestants.votes — useLeaderboard subscribes to postgres_changes
+  // on `contestants` (see hooks/useLeaderboard.js).
+  const { contestants: leaderboard, refetch: refetchLeaderboard } = useLeaderboard(
     showInlineVoting ? competition.id : null,
-    { realtime: false },
+    { realtime: true },
   );
 
   // Countdown to the active round's end_date — drives the ROUND ENDS stat.
@@ -380,6 +382,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           currentRound={activeRound}
           isPreview={isPreview}
           leaderboard={leaderboard}
+          onVoteCast={refetchLeaderboard}
         />
       )}
 
