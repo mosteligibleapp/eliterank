@@ -15,7 +15,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@fingerprintjs/fingerprintjs": "^5.2.0",
     "@stripe/react-stripe-js": "^5.4.1",
     "@stripe/stripe-js": "^8.6.1",
     "@supabase/supabase-js": "^2.47.10",
