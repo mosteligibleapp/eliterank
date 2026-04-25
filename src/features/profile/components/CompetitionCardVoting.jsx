@@ -543,7 +543,6 @@ export default function CompetitionCardVoting({
                 </div>
 
                 <FreeVoteButton
-                  user={user}
                   alreadyVoted={alreadyVoted}
                   busy={busy}
                   showFreeForm={showFreeForm}
@@ -691,7 +690,7 @@ function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
   );
 }
 
-function FreeVoteButton({ user, alreadyVoted, busy, showFreeForm, onClick }) {
+function FreeVoteButton({ alreadyVoted, busy, showFreeForm, onClick }) {
   // Treat the device as "used" for anonymous voters too — the server check
   // is per-fingerprint, not per-account.
   const used = alreadyVoted;
