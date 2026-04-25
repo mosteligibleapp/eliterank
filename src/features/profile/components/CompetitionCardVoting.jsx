@@ -10,38 +10,12 @@ import {
   submitAnonymousVote,
   createVotePaymentIntent,
 } from '../../../lib/votes';
+import { readAnonVoted, writeAnonVoted } from '../../../lib/anonVoteLock';
 import { calculateVotePrice } from '../../../types/competition';
 import { getStripe, isStripeConfigured } from '../../../lib/stripe';
 import VoteModal from '../../public-site/components/VoteModal';
 
 const VOTE_PRESETS = [25, 100, 250];
-
-// Anonymous voters are de-duped server-side by browser fingerprint, but we
-// also remember the verdict locally so a returning visitor sees the disabled
-// "Free daily vote used" state immediately instead of filling out the form
-// only to be told no on submit.
-const ANON_VOTED_KEY_PREFIX = 'eliterank-anon-voted';
-const anonVotedKey = (competitionId) => {
-  const today = new Date().toISOString().split('T')[0];
-  return `${ANON_VOTED_KEY_PREFIX}-${competitionId}-${today}`;
-};
-function readAnonVoted(competitionId) {
-  if (!competitionId || typeof window === 'undefined') return false;
-  try {
-    return window.localStorage.getItem(anonVotedKey(competitionId)) === '1';
-  } catch {
-    return false;
-  }
-}
-function writeAnonVoted(competitionId) {
-  if (!competitionId || typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(anonVotedKey(competitionId), '1');
-  } catch {
-    // Storage may be disabled (private mode, quota). The server check is
-    // still authoritative — this is just a UX optimization.
-  }
-}
 
 // Show cents when a bundled total is fractional ($9.90) but keep round
 // totals tidy ($10).
