@@ -10,7 +10,12 @@ import {
   submitAnonymousVote,
   createVotePaymentIntent,
 } from '../../../lib/votes';
-import { readAnonVoted, writeAnonVoted } from '../../../lib/anonVoteLock';
+import {
+  readAnonVoted,
+  writeAnonVoted,
+  getAnonVoteResetMs,
+  formatResetIn,
+} from '../../../lib/anonVoteLock';
 import { calculateVotePrice } from '../../../types/competition';
 import { getStripe, isStripeConfigured } from '../../../lib/stripe';
 import VoteModal from '../../public-site/components/VoteModal';
@@ -304,13 +309,21 @@ export default function CompetitionCardVoting({
     } else {
       // Server enforces 1 free vote per device per competition per day. When
       // we hit that limit, lock the free-vote section so the voter can't keep
-      // resubmitting the same form and getting the same error.
+      // resubmitting the same form, and surface a clearer message that
+      // points them at paid votes as the alternative.
       if (result?.code === 'ALREADY_VOTED') {
         setAlreadyVoted(true);
         setShowFreeForm(false);
         writeAnonVoted(competitionId);
+        const resetIn = formatResetIn(getAnonVoteResetMs(competitionId));
+        setError(
+          resetIn
+            ? `Free vote resets in ${resetIn} — or send paid votes anytime.`
+            : 'Free vote resets in 24h — or send paid votes anytime.'
+        );
+      } else {
+        setError(result?.error || 'Could not cast your vote.');
       }
-      setError(result?.error || 'Could not cast your vote.');
     }
   };
 
@@ -522,6 +535,22 @@ export default function CompetitionCardVoting({
                   showFreeForm={showFreeForm}
                   onClick={handleFreeClick}
                 />
+
+                {/* Anonymous voters: when the free vote is locked, surface the
+                    countdown + the paid-vote alternative so they don't bounce. */}
+                {alreadyVoted && !user?.id && (() => {
+                  const resetIn = formatResetIn(getAnonVoteResetMs(competitionId));
+                  return (
+                    <p style={{
+                      margin: 0,
+                      fontSize: typography.fontSize.xs,
+                      color: colors.text.muted,
+                      textAlign: 'center',
+                    }}>
+                      Free vote resets in {resetIn || '24h'} — or send paid votes anytime.
+                    </p>
+                  );
+                })()}
               </>
             )}
 

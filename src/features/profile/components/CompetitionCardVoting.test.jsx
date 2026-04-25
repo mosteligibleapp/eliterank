@@ -121,7 +121,55 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
     const used = await screen.findByRole('button', { name: /Free daily vote used/i });
     expect(used).toBeDisabled();
 
-    expect(screen.getByText(/already cast/i)).toBeInTheDocument();
+    // The friendlier countdown message replaces the raw server text in
+    // both the error slot and the caption under the disabled button.
+    const messages = await screen.findAllByText(
+      /Free vote resets in .+ — or send paid votes anytime\./i,
+    );
+    expect(messages.length).toBeGreaterThan(0);
+  });
+
+  it('shows the "Free vote resets in Xh" caption when locked on mount', async () => {
+    // Stored 1h ago → ~23h remaining.
+    window.localStorage.setItem(
+      'eliterank-anon-voted-comp-1',
+      String(Date.now() - 60 * 60 * 1000),
+    );
+
+    render(<CompetitionCardVoting {...baseProps} />);
+
+    expect(
+      await screen.findByText(/Free vote resets in 23h — or send paid votes anytime\./i),
+    ).toBeInTheDocument();
+  });
+
+  it('replaces the raw server error with the friendlier reset message after ALREADY_VOTED', async () => {
+    submitAnonymousVoteMock.mockResolvedValue({
+      success: false,
+      error: "You've already cast your free daily vote from this device. Come back tomorrow!",
+      code: 'ALREADY_VOTED',
+    });
+
+    render(<CompetitionCardVoting {...baseProps} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Use your 1 free daily vote/i }));
+    fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'Kelly' } });
+    fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Clark' } });
+    fireEvent.change(screen.getByPlaceholderText('you@email.com'), {
+      target: { value: 'kelly@example.com' },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Submit free vote/i }));
+    });
+
+    // The raw "Come back tomorrow!" string is gone; the friendlier message
+    // is shown in both the error slot and the caption.
+    expect(screen.queryByText(/Come back tomorrow/i)).toBeNull();
+    const messages = await screen.findAllByText(
+      /Free vote resets in .+ — or send paid votes anytime\./i,
+    );
+    expect(messages.length).toBeGreaterThanOrEqual(1);
   });
 
   it('does NOT lock on a generic (non-ALREADY_VOTED) error', async () => {
