@@ -210,17 +210,43 @@ export default async function handler(request, response) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // Compute ipHash once up front so we can attach it to every blocked-attempt
+  // log row, including the ones that fire before we'd otherwise need it.
+  const ip = getClientIp(request);
+  const ipHash = await hashIp(ip);
+
+  // Best-effort logger. Never throws, never blocks the response on failure —
+  // the user is already being blocked, so logging is purely diagnostic.
+  // Reasons are kept categorical (lowercase snake_case) so they group cleanly
+  // in `SELECT reason, COUNT(*) FROM anonymous_vote_blocked_attempts ...`.
+  const logBlocked = async (reason) => {
+    try {
+      await supabase
+        .from('anonymous_vote_blocked_attempts')
+        .insert({
+          reason,
+          competition_id: competitionId || null,
+          contestant_id: contestantId || null,
+          fingerprint: fingerprint || null,
+          ip_hash: ipHash || null,
+          email: normalizedEmail || null,
+        });
+    } catch (err) {
+      console.warn('Blocked attempt log failed (non-fatal):', err);
+    }
+  };
+
   // ─── Fingerprint rate limit (primary fraud prevention) ───────────────
   const fpCheck = await checkFingerprintLimit(supabase, fingerprint, competitionId);
   if (!fpCheck.allowed) {
+    await logBlocked('fingerprint_limit');
     return response.status(429).json({ error: fpCheck.reason, code: 'ALREADY_VOTED' });
   }
 
   // ─── IP rate limit (backup) ────────────────────────────────────────────
-  const ip = getClientIp(request);
-  const ipHash = await hashIp(ip);
   const rateCheck = await checkIpRateLimit(supabase, ipHash, normalizedEmail, ipLimit);
   if (!rateCheck.allowed) {
+    await logBlocked('ip_limit');
     return response.status(429).json({ error: rateCheck.reason });
   }
 
@@ -241,6 +267,7 @@ export default async function handler(request, response) {
       return response.status(500).json({ error: 'Could not verify voting round.' });
     }
     if (!rounds || rounds.length === 0) {
+      await logBlocked('round_inactive');
       return response.status(400).json({ error: 'Voting is not currently open.' });
     }
 
@@ -312,6 +339,7 @@ export default async function handler(request, response) {
       .maybeSingle();
 
     if (recentVote?.id) {
+      await logBlocked('voter_dedup');
       return response.status(409).json({ error: 'You\u2019ve already used your free vote for this competition today.', code: 'ALREADY_VOTED' });
     }
 
@@ -332,6 +360,7 @@ export default async function handler(request, response) {
     if (voteErr) {
       console.error('Vote insert failed:', voteErr);
       if (voteErr.code === '23505') {
+        await logBlocked('unique_constraint');
         return response.status(409).json({ error: "You've already used your free vote today.", code: 'ALREADY_VOTED' });
       }
       // Include error details in non-production for debugging
