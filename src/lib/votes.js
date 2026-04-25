@@ -430,6 +430,11 @@ export async function createVotePaymentIntent({
  * @param {number} params.voteCount - Number of votes purchased
  * @param {number} params.amountPaid - Amount paid in dollars
  * @param {string} params.voterEmail - The voter's email
+ * @param {string} [params.voterId] - The authenticated voter's user id.
+ *   Required so the row attributes to the voter (and passes RLS on SELECT).
+ *   Without it, the idempotency check below can't see rows the webhook
+ *   inserted (voter_id null) and the voter can't query their own paid
+ *   vote history.
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export async function recordPaidVote({
@@ -439,6 +444,7 @@ export async function recordPaidVote({
   voteCount,
   amountPaid,
   voterEmail,
+  voterId,
 }) {
   if (!supabase) {
     return { success: false, error: 'Database not configured' };
@@ -463,6 +469,7 @@ export async function recordPaidVote({
     const { error: voteError } = await supabase
       .from('votes')
       .insert({
+        voter_id: voterId || null,
         voter_email: voterEmail || null,
         competition_id: competitionId,
         contestant_id: contestantId,
