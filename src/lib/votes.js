@@ -296,7 +296,11 @@ export async function submitAnonymousVote({
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return { success: false, error: data?.error || 'Vote failed. Please try again.' };
+      return {
+        success: false,
+        error: data?.error || 'Vote failed. Please try again.',
+        code: data?.code || null,
+      };
     }
     return {
       success: true,

@@ -10,6 +10,7 @@ import {
   submitAnonymousVote,
   createVotePaymentIntent,
 } from '../../../lib/votes';
+import { readAnonVoted, writeAnonVoted } from '../../../lib/anonVoteLock';
 import { calculateVotePrice } from '../../../types/competition';
 import { getStripe, isStripeConfigured } from '../../../lib/stripe';
 import VoteModal from '../../public-site/components/VoteModal';
@@ -109,7 +110,17 @@ export default function CompetitionCardVoting({
   const leaderboard = leaderboardProp || internalLeaderboard.contestants;
 
   useEffect(() => {
-    if (!user?.id || !competitionId) return;
+    if (!competitionId) return;
+    // Anonymous voters: restore the per-device "already voted today" flag from
+    // localStorage so we don't show the form to someone who'll just be
+    // bounced by the fingerprint check on submit.
+    if (!user?.id) {
+      if (readAnonVoted(competitionId)) {
+        setAlreadyVoted(true);
+        setShowFreeForm(false);
+      }
+      return;
+    }
     let cancelled = false;
     hasUsedFreeVoteToday(user.id, competitionId).then((used) => {
       if (!cancelled) setAlreadyVoted(!!used);
@@ -285,10 +296,20 @@ export default function CompetitionCardVoting({
 
     if (result?.success) {
       setCastSuccess(true);
+      setAlreadyVoted(true);
+      writeAnonVoted(competitionId);
       setShowShareModal(true);
       toast?.success?.(`Vote cast for ${contestantName}!`);
       onVoteCast?.();
     } else {
+      // Server enforces 1 free vote per device per competition per day. When
+      // we hit that limit, lock the free-vote section so the voter can't keep
+      // resubmitting the same form and getting the same error.
+      if (result?.code === 'ALREADY_VOTED') {
+        setAlreadyVoted(true);
+        setShowFreeForm(false);
+        writeAnonVoted(competitionId);
+      }
       setError(result?.error || 'Could not cast your vote.');
     }
   };
@@ -496,7 +517,6 @@ export default function CompetitionCardVoting({
                 </div>
 
                 <FreeVoteButton
-                  user={user}
                   alreadyVoted={alreadyVoted}
                   busy={busy}
                   showFreeForm={showFreeForm}
@@ -644,8 +664,10 @@ function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
   );
 }
 
-function FreeVoteButton({ user, alreadyVoted, busy, showFreeForm, onClick }) {
-  const used = user?.id && alreadyVoted;
+function FreeVoteButton({ alreadyVoted, busy, showFreeForm, onClick }) {
+  // Treat the device as "used" for anonymous voters too — the server check
+  // is per-fingerprint, not per-account.
+  const used = alreadyVoted;
 
   const content = (() => {
     if (busy) return <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />;

@@ -208,7 +208,7 @@ export default async function handler(request, response) {
   // ─── Fingerprint rate limit (primary fraud prevention) ───────────────
   const fpCheck = await checkFingerprintLimit(supabase, fingerprint, competitionId);
   if (!fpCheck.allowed) {
-    return response.status(429).json({ error: fpCheck.reason });
+    return response.status(429).json({ error: fpCheck.reason, code: 'ALREADY_VOTED' });
   }
 
   // ─── IP rate limit (backup) ────────────────────────────────────────────
@@ -307,7 +307,7 @@ export default async function handler(request, response) {
       .maybeSingle();
 
     if (recentVote?.id) {
-      return response.status(409).json({ error: 'You\u2019ve already used your free vote for this competition today.' });
+      return response.status(409).json({ error: 'You\u2019ve already used your free vote for this competition today.', code: 'ALREADY_VOTED' });
     }
 
     // ─── Insert the vote ─────────────────────────────────────────────────
@@ -327,7 +327,7 @@ export default async function handler(request, response) {
     if (voteErr) {
       console.error('Vote insert failed:', voteErr);
       if (voteErr.code === '23505') {
-        return response.status(409).json({ error: "You've already used your free vote today." });
+        return response.status(409).json({ error: "You've already used your free vote today.", code: 'ALREADY_VOTED' });
       }
       // Include error details in non-production for debugging
       const isDev = process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
