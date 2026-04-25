@@ -423,7 +423,8 @@ export default function VoteModal({
                   onCancel={handleBackFromPayment}
                   amount={calculateVotePrice(selectedVoteCount, useBundler, votePrice)}
                   contestantName={contestant.name}
-                  collectEmail={!isAuthenticated}
+                  collectEmail={!isAuthenticated || !user?.email}
+                  userEmail={user?.email}
                 />
               </Elements>
             )}
@@ -835,7 +836,7 @@ export default function VoteModal({
 /**
  * Payment checkout form using Stripe Elements
  */
-function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, collectEmail = false }) {
+function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, collectEmail = false, userEmail = null }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -856,6 +857,15 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
         elements,
         confirmParams: {
           return_url: window.location.href, // Fallback, but we handle redirect: 'if_required'
+          // When collectEmail is false (authenticated user), we told Stripe not to collect
+          // email in the form, so we must provide it here
+          ...(!collectEmail && userEmail ? {
+            payment_method_data: {
+              billing_details: {
+                email: userEmail,
+              },
+            },
+          } : {}),
         },
         redirect: 'if_required',
       });
