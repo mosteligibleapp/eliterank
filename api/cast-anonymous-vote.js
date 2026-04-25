@@ -63,7 +63,12 @@ async function checkIpRateLimit(supabase, ipHash, email, limit) {
 
   const distinctEmails = new Set((data || []).map((r) => r.email));
   if (distinctEmails.size >= limit && !distinctEmails.has(email)) {
-    return { allowed: false, reason: 'Too many distinct voters from this network. Please try again later.' };
+    // Limit is set high enough (default 10) that small friend groups on the
+    // same WiFi all get through — this only fires for unusually large bursts.
+    return {
+      allowed: false,
+      reason: 'A lot of people have voted from this network in the last 24h. Try again later, or send paid votes anytime.',
+    };
   }
   return { allowed: true };
 }

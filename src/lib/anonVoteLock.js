@@ -43,3 +43,41 @@ export function writeAnonVoted(competitionId) {
     // still authoritative — this is just a UX optimization.
   }
 }
+
+/**
+ * How many ms until the lock expires for this competition. Returns 0 when
+ * there's no lock or when the stored timestamp is already past the window.
+ */
+export function getAnonVoteResetMs(competitionId) {
+  if (!competitionId || typeof window === 'undefined') return 0;
+  try {
+    const raw = window.localStorage.getItem(keyFor(competitionId));
+    if (!raw) return 0;
+    const ts = Number(raw);
+    if (!Number.isFinite(ts)) return 0;
+    const remaining = ts + ANON_VOTED_WINDOW_MS - Date.now();
+    return remaining > 0 ? remaining : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Format a ms duration as a short, human-readable countdown:
+ *   ms ≥ 1h  → "23h" (drop minutes — at this scale they're noise)
+ *   ms ≥ 1m  → "45m"
+ *   ms > 0   → "<1m"
+ *   ms ≤ 0   → ""    (caller should treat the lock as expired)
+ *
+ * Round up so the displayed value is always an upper bound on the wait —
+ * better to overestimate by a minute than to show "0m" while the lock is
+ * still active.
+ */
+const MS_PER_MIN = 60_000;
+const MS_PER_HOUR = 60 * MS_PER_MIN;
+export function formatResetIn(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return '';
+  if (ms < MS_PER_MIN) return '<1m';
+  if (ms < MS_PER_HOUR) return `${Math.ceil(ms / MS_PER_MIN)}m`;
+  return `${Math.ceil(ms / MS_PER_HOUR)}h`;
+}
