@@ -924,7 +924,47 @@ export default function EliteRankCityModal({
               </div>
             )}
 
-            <HallOfWinners />
+            {/* Ready to Host CTA */}
+            <div style={{
+              maxWidth: '700px',
+              margin: '0 auto',
+              marginTop: spacing.xxxl,
+              marginBottom: spacing.xl,
+              padding: isMobile ? spacing.xl : spacing.xxl,
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(212,175,55,0.02) 100%)',
+              borderRadius: borderRadius.xl,
+              border: `1px solid rgba(212, 175, 55, 0.2)`,
+              textAlign: 'center',
+            }}>
+              <h3 style={{
+                fontSize: isMobile ? typography.fontSize.xl : typography.fontSize['2xl'],
+                fontWeight: typography.fontWeight.bold,
+                color: colors.text.primary,
+                marginBottom: spacing.md,
+              }}>
+                Ready to host?
+              </h3>
+              <p style={{
+                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                color: colors.text.secondary,
+                lineHeight: typography.lineHeight.relaxed,
+                maxWidth: '550px',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                marginBottom: spacing.xl,
+              }}>
+                EliteRank is the premier competition, contest, and award management platform. 
+                Applications, events, voting, sponsors — we've got you covered.
+              </p>
+              <Button
+                variant="gold"
+                size="sm"
+                onClick={() => window.location.href = 'mailto:info@eliterank.co?subject=Host%20Application'}
+              >
+                Contact Us
+                <ArrowRight size={16} style={{ marginLeft: spacing.sm }} />
+              </Button>
+            </div>
           </div>
         );
 
@@ -1099,7 +1139,7 @@ export default function EliteRankCityModal({
                 <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.lg }}>
                   Upcoming
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: spacing.lg }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: spacing.lg }}>
                   {upcomingEvents.map(event => renderEventCard(event))}
                 </div>
               </div>
@@ -1108,7 +1148,7 @@ export default function EliteRankCityModal({
             {pastEvents.length > 0 && (
               <div>
                 <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.secondary, marginBottom: spacing.lg }}>Past Events</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: spacing.lg }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: spacing.lg }}>
                   {pastEvents.slice(0, 6).map(event => renderEventCard(event, true))}
                 </div>
               </div>
