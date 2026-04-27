@@ -230,6 +230,7 @@ export default async function handler(request, response) {
   const ip = getClientIp(request);
   const ipHash = await hashIp(ip);
   const webview = isInAppWebview(request);
+  const ua = request.headers['user-agent'] || '';
 
   // ─── Device dedup: fingerprint + IP combined ────────────────────────
   // Skip for in-app webviews (Instagram, FB, TikTok, …) — FP collides there
@@ -238,6 +239,10 @@ export default async function handler(request, response) {
   if (!webview) {
     const fpCheck = await checkFingerprintLimit(supabase, fingerprint, ipHash, competitionId);
     if (!fpCheck.allowed) {
+      // Server-side log only (Vercel function logs, not visible to voter).
+      // Lets us confirm post-deploy whether the FP+IP block is still firing
+      // for UAs the webview detector missed.
+      console.warn('[cast-anonymous-vote] 429 ALREADY_VOTED (FP+IP)', { ua, webview });
       return response.status(429).json({ error: fpCheck.reason, code: 'ALREADY_VOTED' });
     }
   }
@@ -245,6 +250,7 @@ export default async function handler(request, response) {
   // ─── IP rate limit (backup) ────────────────────────────────────────────
   const rateCheck = await checkIpRateLimit(supabase, ipHash, normalizedEmail, ipLimit);
   if (!rateCheck.allowed) {
+    console.warn('[cast-anonymous-vote] 429 IP_EMAIL_CAP', { ua, webview });
     return response.status(429).json({ error: rateCheck.reason, code: 'IP_EMAIL_CAP' });
   }
 
