@@ -11,7 +11,11 @@
  * client and server agree on when the lock expires.
  */
 
-const KEY_PREFIX = 'eliterank-anon-voted';
+// v2 — the v1 prefix was bumped to clear stale "already voted" entries
+// written when the server's old fingerprint dedup falsely locked webview
+// voters. Anyone with a v1 entry will see the form again on next visit;
+// the server will still reject real duplicates via the email-based check.
+const KEY_PREFIX = 'eliterank-anon-voted-v2';
 export const ANON_VOTED_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const keyFor = (competitionId) => `${KEY_PREFIX}-${competitionId}`;
