@@ -3,9 +3,9 @@
  *
  * Lets a logged-out visitor cast a free daily vote for a contestant by
  * providing email + first/last name. We create (or reuse) a lightweight
- * Supabase auth user so votes dedup on voter_id like authenticated voting,
- * then fire a magic-link "claim" email so the voter can log in later to
- * see their vote history.
+ * Supabase auth user so votes dedup on voter_id like authenticated voting.
+ * No email is sent on success — the voter sees the share/become-a-fan
+ * modal in-context and that's the end of the flow.
  *
  * Bot/fraud protection is layered:
  *   1. Honeypot field (`company`) — bots fill hidden fields
