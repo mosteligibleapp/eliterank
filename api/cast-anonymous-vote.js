@@ -84,13 +84,20 @@ async function recordIpRateLimit(supabase, ipHash, email, fingerprint, competiti
 }
 
 /**
- * Check if this browser fingerprint has already voted in this competition today.
- * This is the primary fraud prevention — stops same device from voting with
- * multiple fake emails.
+ * Check if this browser fingerprint + IP has already voted in this competition
+ * today. We require BOTH to match because open-source FingerprintJS produces
+ * highly collision-prone visitor IDs in webviews like Instagram's in-app
+ * browser — many distinct users share a fingerprint there. Pairing it with
+ * the IP hash means we only block when both device and network look the same,
+ * which catches the natural fraud (same person, multiple emails) without
+ * false-positiving real voters arriving from social-media webviews.
+ *
+ * Email-based dedup (later in the handler) and the per-IP email-cap
+ * (checkIpRateLimit) are the remaining lines of defense.
  */
-async function checkFingerprintLimit(supabase, fingerprint, competitionId) {
-  if (!fingerprint) {
-    // No fingerprint provided — fall back to IP-only checks
+async function checkFingerprintLimit(supabase, fingerprint, ipHash, competitionId) {
+  if (!fingerprint || !ipHash) {
+    // Missing either signal → can't make a reliable device match.
     return { allowed: true, skipped: true };
   }
 
@@ -100,6 +107,7 @@ async function checkFingerprintLimit(supabase, fingerprint, competitionId) {
     .from('anonymous_vote_rate_limits')
     .select('id')
     .eq('fingerprint', fingerprint)
+    .eq('ip_hash', ipHash)
     .eq('competition_id', competitionId)
     .gte('created_at', cutoffIso)
     .limit(1);
@@ -110,9 +118,9 @@ async function checkFingerprintLimit(supabase, fingerprint, competitionId) {
   }
 
   if (data && data.length > 0) {
-    return { 
-      allowed: false, 
-      reason: "You've already cast your free daily vote from this device. Come back tomorrow!" 
+    return {
+      allowed: false,
+      reason: "You've already cast your free daily vote from this device. Come back tomorrow!"
     };
   }
 
@@ -210,15 +218,18 @@ export default async function handler(request, response) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // ─── Fingerprint rate limit (primary fraud prevention) ───────────────
-  const fpCheck = await checkFingerprintLimit(supabase, fingerprint, competitionId);
+  const ip = getClientIp(request);
+  const ipHash = await hashIp(ip);
+
+  // ─── Device dedup: fingerprint + IP combined ────────────────────────
+  // Fingerprint alone collides too often in social-media webviews to be a
+  // reliable blocker, so we pair it with the IP hash.
+  const fpCheck = await checkFingerprintLimit(supabase, fingerprint, ipHash, competitionId);
   if (!fpCheck.allowed) {
     return response.status(429).json({ error: fpCheck.reason, code: 'ALREADY_VOTED' });
   }
 
   // ─── IP rate limit (backup) ────────────────────────────────────────────
-  const ip = getClientIp(request);
-  const ipHash = await hashIp(ip);
   const rateCheck = await checkIpRateLimit(supabase, ipHash, normalizedEmail, ipLimit);
   if (!rateCheck.allowed) {
     return response.status(429).json({ error: rateCheck.reason });

@@ -143,7 +143,7 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
     ).toBeInTheDocument();
   });
 
-  it('replaces the raw server error with the friendlier reset message after ALREADY_VOTED', async () => {
+  it('shows the reset caption exactly once after ALREADY_VOTED — no duplicate red error', async () => {
     submitAnonymousVoteMock.mockResolvedValue({
       success: false,
       error: "You've already cast your free daily vote from this device. Come back tomorrow!",
@@ -163,13 +163,14 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
       fireEvent.click(screen.getByRole('button', { name: /Submit free vote/i }));
     });
 
-    // The raw "Come back tomorrow!" string is gone; the friendlier message
-    // is shown in both the error slot and the caption.
+    // The raw server message never bleeds into the UI…
     expect(screen.queryByText(/Come back tomorrow/i)).toBeNull();
+    // …and the friendly caption is rendered exactly once (gray caption only —
+    // we no longer mirror it as a red error below the disabled button).
     const messages = await screen.findAllByText(
       /Free vote resets in .+ — or send paid votes anytime\./i,
     );
-    expect(messages.length).toBeGreaterThanOrEqual(1);
+    expect(messages).toHaveLength(1);
   });
 
   it('does NOT lock on a generic (non-ALREADY_VOTED) error', async () => {
