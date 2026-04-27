@@ -333,7 +333,7 @@ export default async function handler(request, response) {
     const dayAgoIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: recentVote } = await supabase
       .from('votes')
-      .select('id')
+      .select('id, created_at')
       .eq('voter_id', voterId)
       .eq('competition_id', competitionId)
       .is('payment_intent_id', null)
@@ -342,6 +342,19 @@ export default async function handler(request, response) {
       .maybeSingle();
 
     if (recentVote?.id) {
+      // Mirror the 429 log lines above so every "already voted" path is
+      // visible in Vercel logs with consistent context. Lets us tell at a
+      // glance whether 409s are cross-device dupes (expected) vs same-device
+      // retries (would suggest a client-side lock regression).
+      const prevVoteAgeHours = recentVote.created_at
+        ? Math.round((Date.now() - new Date(recentVote.created_at).getTime()) / 3600000 * 10) / 10
+        : null;
+      console.warn('[cast-anonymous-vote] 409 ALREADY_VOTED (email)', {
+        ua,
+        webview,
+        ipHash,
+        prevVoteAgeHours,
+      });
       return response.status(409).json({ error: 'You\u2019ve already used your free vote for this competition today.', code: 'ALREADY_VOTED' });
     }
 
