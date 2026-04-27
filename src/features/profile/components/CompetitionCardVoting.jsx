@@ -309,18 +309,14 @@ export default function CompetitionCardVoting({
     } else {
       // Server enforces 1 free vote per device per competition per day. When
       // we hit that limit, lock the free-vote section so the voter can't keep
-      // resubmitting the same form, and surface a clearer message that
-      // points them at paid votes as the alternative.
+      // resubmitting the same form. The gray caption rendered below the
+      // disabled button (alreadyVoted && !user?.id) already shows the reset
+      // countdown + paid-vote alternative — no need to duplicate it as a red
+      // error here.
       if (result?.code === 'ALREADY_VOTED') {
         setAlreadyVoted(true);
         setShowFreeForm(false);
         writeAnonVoted(competitionId);
-        const resetIn = formatResetIn(getAnonVoteResetMs(competitionId));
-        setError(
-          resetIn
-            ? `Free vote resets in ${resetIn} — or send paid votes anytime.`
-            : 'Free vote resets in 24h — or send paid votes anytime.'
-        );
       } else {
         setError(result?.error || 'Could not cast your vote.');
       }
