@@ -307,16 +307,21 @@ export default function CompetitionCardVoting({
       toast?.success?.(`Vote cast for ${contestantName}!`);
       onVoteCast?.();
     } else {
-      // Server enforces 1 free vote per device per competition per day. When
-      // we hit that limit, lock the free-vote section so the voter can't keep
-      // resubmitting the same form. The gray caption rendered below the
-      // disabled button (alreadyVoted && !user?.id) already shows the reset
-      // countdown + paid-vote alternative — no need to duplicate it as a red
-      // error here.
+      // Server enforces 1 free vote per device per competition per day. Lock
+      // the free-vote section so the voter can't keep resubmitting, and fire
+      // an info toast — the silent form-collapse alone was getting missed
+      // (voters reported thinking the vote went through). The gray reset
+      // caption under the disabled button still shows the countdown.
       if (result?.code === 'ALREADY_VOTED') {
         setAlreadyVoted(true);
         setShowFreeForm(false);
         writeAnonVoted(competitionId);
+        const resetIn = formatResetIn(getAnonVoteResetMs(competitionId));
+        toast?.info?.(
+          resetIn
+            ? `You've already used your free vote for this competition. Try again in ${resetIn}.`
+            : `You've already used your free vote for this competition today.`
+        );
       } else {
         setError(result?.error || 'Could not cast your vote.');
       }
