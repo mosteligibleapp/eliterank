@@ -334,7 +334,7 @@ export default function CompetitionCardVoting({
           }}>
             <Check size={16} />
             <span>
-              Vote cast! {user?.id && 'Come back tomorrow for another free vote.'}
+              Vote cast! Come back tomorrow for another free vote or purchase votes at any time.
             </span>
           </div>
         )}

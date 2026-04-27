@@ -965,7 +965,7 @@ export default function EliteRankCityModal({
                   paddingRight: spacing.xl,
                 }}
               >
-                Apply Today
+                Contact Us
                 <ArrowRight size={16} style={{ marginLeft: spacing.sm }} />
               </Button>
             </div>
