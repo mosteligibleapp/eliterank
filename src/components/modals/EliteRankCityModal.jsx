@@ -924,8 +924,6 @@ export default function EliteRankCityModal({
               </div>
             )}
 
-            <HallOfWinners />
-
             {/* Ready to Host CTA */}
             <div style={{
               maxWidth: '700px',
