@@ -951,19 +951,15 @@ export default function EliteRankCityModal({
                 marginBottom: spacing.xl,
                 maxWidth: '550px',
                 margin: '0 auto',
-                marginBottom: spacing.xl,
+                marginBottom: spacing.xxxl,
               }}>
                 EliteRank is the premier competition, contest, and award management platform. 
                 Applications, events, voting, sponsors — we've got you covered.
               </p>
               <Button
                 variant="gold"
-                size={isMobile ? 'md' : 'lg'}
+                size="sm"
                 onClick={() => window.location.href = 'mailto:info@eliterank.co?subject=Host%20Application'}
-                style={{
-                  paddingLeft: spacing.xl,
-                  paddingRight: spacing.xl,
-                }}
               >
                 Contact Us
                 <ArrowRight size={16} style={{ marginLeft: spacing.sm }} />
