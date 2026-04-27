@@ -925,6 +925,52 @@ export default function EliteRankCityModal({
             )}
 
             <HallOfWinners />
+
+            {/* Ready to Host CTA */}
+            <div style={{
+              maxWidth: '700px',
+              margin: '0 auto',
+              marginTop: spacing.xxxl,
+              marginBottom: spacing.xl,
+              padding: isMobile ? spacing.xl : spacing.xxl,
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(212,175,55,0.02) 100%)',
+              borderRadius: borderRadius.xl,
+              border: `1px solid rgba(212, 175, 55, 0.2)`,
+              textAlign: 'center',
+            }}>
+              <h3 style={{
+                fontSize: isMobile ? typography.fontSize.xl : typography.fontSize['2xl'],
+                fontWeight: typography.fontWeight.bold,
+                color: colors.text.primary,
+                marginBottom: spacing.md,
+              }}>
+                Ready to host?
+              </h3>
+              <p style={{
+                fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                color: colors.text.secondary,
+                lineHeight: typography.lineHeight.relaxed,
+                marginBottom: spacing.xl,
+                maxWidth: '550px',
+                margin: '0 auto',
+                marginBottom: spacing.xl,
+              }}>
+                EliteRank is the premier competition, contest, and award management platform. 
+                Applications, events, voting, sponsors — we've got you covered.
+              </p>
+              <Button
+                variant="gold"
+                size={isMobile ? 'md' : 'lg'}
+                onClick={() => window.location.href = 'mailto:info@eliterank.co?subject=Host%20Application'}
+                style={{
+                  paddingLeft: spacing.xl,
+                  paddingRight: spacing.xl,
+                }}
+              >
+                Apply Today
+                <ArrowRight size={16} style={{ marginLeft: spacing.sm }} />
+              </Button>
+            </div>
           </div>
         );
 
