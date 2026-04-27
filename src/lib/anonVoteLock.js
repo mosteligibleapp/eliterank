@@ -38,10 +38,24 @@ export function readAnonVoted(competitionId) {
   }
 }
 
-export function writeAnonVoted(competitionId) {
+/**
+ * @param {string} competitionId
+ * @param {string|number|Date} [voteAt]  Timestamp of the prior vote returned
+ *   by the server on a 409 ALREADY_VOTED. When omitted (e.g. on a fresh
+ *   successful vote), we stamp `Date.now()`. Passing the server's value lets
+ *   the lock — and the "Try again in Xh" countdown derived from it — reflect
+ *   the real prior vote instead of pessimistically resetting to 24h on every
+ *   rejection from a new device/browser.
+ */
+export function writeAnonVoted(competitionId, voteAt) {
   if (!competitionId || typeof window === 'undefined') return;
+  let ts = Date.now();
+  if (voteAt) {
+    const parsed = new Date(voteAt).getTime();
+    if (Number.isFinite(parsed)) ts = parsed;
+  }
   try {
-    window.localStorage.setItem(keyFor(competitionId), String(Date.now()));
+    window.localStorage.setItem(keyFor(competitionId), String(ts));
   } catch {
     // Storage may be disabled (private mode, quota). The server check is
     // still authoritative — this is just a UX optimization.

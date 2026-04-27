@@ -355,7 +355,13 @@ export default async function handler(request, response) {
         ipHash,
         prevVoteAgeHours,
       });
-      return response.status(409).json({ error: 'You\u2019ve already used your free vote for this competition today.', code: 'ALREADY_VOTED' });
+      return response.status(409).json({
+        error: 'You\u2019ve already used your free vote for this competition today.',
+        code: 'ALREADY_VOTED',
+        // Lets the client display an accurate "Try again in Xh" countdown
+        // based on the real prior vote, not a pessimistic 24h-from-now lock.
+        prevVoteAt: recentVote.created_at,
+      });
     }
 
     // ─── Insert the vote ─────────────────────────────────────────────────

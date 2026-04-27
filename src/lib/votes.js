@@ -300,6 +300,7 @@ export async function submitAnonymousVote({
         success: false,
         error: data?.error || 'Vote failed. Please try again.',
         code: data?.code || null,
+        prevVoteAt: data?.prevVoteAt || null,
       };
     }
     return {
