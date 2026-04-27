@@ -1139,7 +1139,7 @@ export default function EliteRankCityModal({
                 <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.lg }}>
                   Upcoming
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: spacing.lg }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: spacing.lg }}>
                   {upcomingEvents.map(event => renderEventCard(event))}
                 </div>
               </div>
@@ -1148,7 +1148,7 @@ export default function EliteRankCityModal({
             {pastEvents.length > 0 && (
               <div>
                 <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.secondary, marginBottom: spacing.lg }}>Past Events</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: spacing.lg }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: spacing.lg }}>
                   {pastEvents.slice(0, 6).map(event => renderEventCard(event, true))}
                 </div>
               </div>
