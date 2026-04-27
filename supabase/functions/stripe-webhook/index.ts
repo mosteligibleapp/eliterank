@@ -214,7 +214,7 @@ serve(async (req) => {
           resolvedVoterEmail = ''
         }
 
-        const voteCount = parseInt(vote_count, 10)
+        const purchasedVoteCount = parseInt(vote_count, 10)
         const amountPaid = paymentIntent.amount / 100 // Convert from cents to dollars
 
         // Check if this payment has already been processed (idempotency)
@@ -232,6 +232,20 @@ serve(async (req) => {
           )
         }
 
+        // Check if today is a host-scheduled double vote day for this competition.
+        // Server-side so it can't be spoofed by the client. Uses UTC date to match
+        // the daily-quota and PublicSitePage detection logic.
+        const todayDate = new Date().toISOString().split('T')[0]
+        const { data: doubleDayRow } = await supabase
+          .from('competition_double_days')
+          .select('id')
+          .eq('competition_id', competition_id)
+          .eq('date', todayDate)
+          .limit(1)
+          .maybeSingle()
+        const isDoubleVoteDay = !!doubleDayRow?.id
+        const voteCount = isDoubleVoteDay ? purchasedVoteCount * 2 : purchasedVoteCount
+
         // Record the paid votes
         const { error: voteError } = await supabase
           .from('votes')
@@ -242,7 +256,7 @@ serve(async (req) => {
             vote_count: voteCount,
             amount_paid: amountPaid,
             payment_intent_id: paymentIntent.id,
-            is_double_vote: false,
+            is_double_vote: isDoubleVoteDay,
           })
 
         if (voteError) {

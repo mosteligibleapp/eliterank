@@ -23,6 +23,10 @@ vi.mock('../../../lib/votes', () => ({
   createVotePaymentIntent: vi.fn(),
 }));
 
+vi.mock('../../../lib/doubleVoteDay', () => ({
+  isDoubleVoteDayForCompetition: vi.fn().mockResolvedValue(false),
+}));
+
 vi.mock('../../../lib/stripe', () => ({
   getStripe: vi.fn(),
   isStripeConfigured: () => false,

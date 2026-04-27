@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, Zap } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -58,12 +58,15 @@ export default function SetupTab({
   sponsors,
   events,
   prizes = [],
+  doubleDays = [],
   isSuperAdmin = false,
   onRefresh,
   onDeleteJudge,
   onDeleteSponsor,
   onDeleteEvent,
   onDeletePrize,
+  onAddDoubleDay,
+  onDeleteDoubleDay,
   onOpenJudgeModal,
   onOpenSponsorModal,
   onOpenCharityModal,
@@ -102,6 +105,28 @@ export default function SetupTab({
   const [attendanceContestants, setAttendanceContestants] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [awardingAttendance, setAwardingAttendance] = useState(null);
+
+  // Double vote day form state
+  const [newDoubleDayDate, setNewDoubleDayDate] = useState('');
+  const [doubleDayError, setDoubleDayError] = useState('');
+  const [doubleDaySaving, setDoubleDaySaving] = useState(false);
+
+  const handleAddDoubleDay = async () => {
+    setDoubleDayError('');
+    if (!newDoubleDayDate) {
+      setDoubleDayError('Pick a date first.');
+      return;
+    }
+    if (!onAddDoubleDay) return;
+    setDoubleDaySaving(true);
+    const result = await onAddDoubleDay(newDoubleDayDate);
+    setDoubleDaySaving(false);
+    if (result?.success) {
+      setNewDoubleDayDate('');
+    } else {
+      setDoubleDayError(result?.error || 'Could not add date.');
+    }
+  };
 
   // Video prompts state
   const [videoPrompts, setVideoPrompts] = useState([]);
@@ -713,6 +738,122 @@ export default function SetupTab({
                     </button>
                     <button
                       onClick={() => onDeleteEvent(event.id)}
+                      style={{
+                        padding: spacing.sm,
+                        background: 'transparent',
+                        border: `1px solid rgba(239,68,68,0.3)`,
+                        borderRadius: borderRadius.md,
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        minWidth: '36px',
+                        minHeight: '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </Panel>
+
+      {/* Double Vote Days Section */}
+      <Panel
+        title={`Double Vote Days (${doubleDays.length})`}
+        icon={Zap}
+        collapsible
+        defaultCollapsed
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
+            Pick calendar dates when every vote (free and paid) counts twice for this competition.
+          </p>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: spacing.sm,
+            alignItems: isMobile ? 'stretch' : 'center',
+            marginBottom: spacing.lg,
+          }}>
+            <input
+              type="date"
+              value={newDoubleDayDate}
+              onChange={(e) => {
+                setNewDoubleDayDate(e.target.value);
+                if (doubleDayError) setDoubleDayError('');
+              }}
+              min={new Date().toISOString().split('T')[0]}
+              style={{
+                flex: 1,
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: colors.background.secondary,
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.md,
+                color: colors.text.primary,
+                fontSize: typography.fontSize.base,
+                colorScheme: 'dark',
+              }}
+            />
+            <Button
+              size="sm"
+              icon={Plus}
+              onClick={handleAddDoubleDay}
+              disabled={doubleDaySaving || !newDoubleDayDate}
+            >
+              {doubleDaySaving ? 'Adding…' : 'Add Date'}
+            </Button>
+          </div>
+
+          {doubleDayError && (
+            <p style={{
+              color: colors.status.error,
+              fontSize: typography.fontSize.sm,
+              marginBottom: spacing.md,
+            }}>
+              {doubleDayError}
+            </p>
+          )}
+
+          {doubleDays.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+              <Zap size={48} style={{ marginBottom: spacing.md, opacity: 0.5, color: colors.gold.primary }} />
+              <p>No double vote days scheduled</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: spacing.sm }}>
+              {doubleDays.map((day) => {
+                const dateObj = parseDateLocal(day.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isToday = dateObj.getTime() === today.getTime();
+                const isPast = dateObj < today;
+                return (
+                  <div key={day.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    padding: spacing.md,
+                    background: colors.background.secondary,
+                    borderRadius: borderRadius.md,
+                    border: isToday ? `1px solid ${colors.gold.primary}` : `1px solid ${colors.border.lighter}`,
+                    opacity: isPast ? 0.55 : 1,
+                  }}>
+                    <Zap size={18} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: typography.fontWeight.medium }}>
+                        {dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+                    {isToday && <Badge variant="gold" size="sm">Active today</Badge>}
+                    {isPast && !isToday && <Badge variant="secondary" size="sm">Past</Badge>}
+                    <button
+                      onClick={() => onDeleteDoubleDay(day.id)}
                       style={{
                         padding: spacing.sm,
                         background: 'transparent',

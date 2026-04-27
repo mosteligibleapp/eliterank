@@ -76,6 +76,7 @@ export default function PublicSitePage({
     events: [],
     announcements: [],
     judges: [],
+    doubleDayDates: [],
     loading: true,
   });
 
@@ -133,12 +134,13 @@ export default function PublicSitePage({
 
       try {
         // Fetch only dynamic data - sponsors, host, and voting rounds come from cached hooks
-        const [contestantsResult, eventsResult, announcementsResult, judgesResult] = await Promise.all([
+        const [contestantsResult, eventsResult, announcementsResult, judgesResult, doubleDaysResult] = await Promise.all([
           // Join with profiles to get full profile data when contestant is linked to a user
           supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
           supabase.from('judges').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('sort_order'),
+          supabase.from('competition_double_days').select('date').eq('competition_id', competitionId),
         ]);
 
         setFetchedData({
@@ -173,6 +175,7 @@ export default function PublicSitePage({
           announcements: (announcementsResult.data || []).map(a => ({
             id: a.id, title: a.title, content: a.content, date: a.published_at, pinned: a.pinned,
           })),
+          doubleDayDates: (doubleDaysResult.data || []).map(d => d.date),
           judges: (judgesResult.data || []).map(j => {
             // Merge profile data with judge data (profile has more fields)
             const profile = j.profile || {};
@@ -295,26 +298,16 @@ export default function PublicSitePage({
   const displaySponsors = transformedSponsors.length > 0 ? transformedSponsors : sponsors;
   const displayHost = transformedHost || host;
 
-  // Compute if today is a double vote day based on events
+  // Compute if today is a double vote day from the host-scheduled dates.
+  // Uses UTC to match server-side check in api/cast-anonymous-vote.js and
+  // supabase/functions/stripe-webhook so client and server agree.
   const isDoubleVoteDay = useMemo(() => {
-    // If explicitly forced via prop, use that
     if (forceDoubleVoteDayProp !== undefined) {
       return forceDoubleVoteDayProp;
     }
-
-    // Check if any event is marked as double vote day AND is today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return displayEvents.some(event => {
-      if (!event.isDoubleVoteDay || !event.date) return false;
-
-      const eventDate = new Date(typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date) ? event.date + 'T00:00:00' : event.date);
-      eventDate.setHours(0, 0, 0, 0);
-
-      return eventDate.getTime() === today.getTime();
-    });
-  }, [displayEvents, forceDoubleVoteDayProp]);
+    const todayStr = new Date().toISOString().split('T')[0];
+    return (fetchedData.doubleDayDates || []).includes(todayStr);
+  }, [fetchedData.doubleDayDates, forceDoubleVoteDayProp]);
 
   // Compute current voting/judging round and its end date
   const currentRound = useMemo(() => {
