@@ -834,14 +834,6 @@ function AnonForm({
           </>
         )}
       </button>
-
-      <p style={{
-        fontSize: typography.fontSize.xs,
-        color: colors.text.muted,
-        lineHeight: 1.4,
-      }}>
-        We&rsquo;ll email you a link to log in later so you can see your vote history.
-      </p>
     </form>
   );
 }
