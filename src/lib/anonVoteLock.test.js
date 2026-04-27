@@ -36,7 +36,7 @@ describe('anonVoteLock', () => {
     vi.advanceTimersByTime(ANON_VOTED_WINDOW_MS);
     expect(readAnonVoted(COMP)).toBe(false);
     // Stale key should have been removed during the read.
-    expect(window.localStorage.getItem(`eliterank-anon-voted-${COMP}`)).toBeNull();
+    expect(window.localStorage.getItem(`eliterank-anon-voted-v2-${COMP}`)).toBeNull();
   });
 
   it('still returns true just under the 24h window', () => {
@@ -51,7 +51,7 @@ describe('anonVoteLock', () => {
   });
 
   it('treats a non-numeric stored value as no lock', () => {
-    window.localStorage.setItem(`eliterank-anon-voted-${COMP}`, 'nonsense');
+    window.localStorage.setItem(`eliterank-anon-voted-v2-${COMP}`, 'nonsense');
     expect(readAnonVoted(COMP)).toBe(false);
   });
 
@@ -106,7 +106,7 @@ describe('getAnonVoteResetMs', () => {
   });
 
   it('returns 0 for a malformed value', () => {
-    window.localStorage.setItem(`eliterank-anon-voted-${COMP}`, 'nonsense');
+    window.localStorage.setItem(`eliterank-anon-voted-v2-${COMP}`, 'nonsense');
     expect(getAnonVoteResetMs(COMP)).toBe(0);
   });
 });

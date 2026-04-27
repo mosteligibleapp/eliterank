@@ -10,9 +10,11 @@
  * Bot/fraud protection is layered:
  *   1. Honeypot field (`company`) — bots fill hidden fields
  *   2. Min-submit-time check — bots submit in <1s
- *   3. Browser fingerprint — 1 free vote per device per competition per day
- *   4. Per-IP rate limit — max 10 distinct emails per 24h (backup)
- *   5. Vercel BotID — invisible bot detection (optional)
+ *   3. Browser fingerprint + IP — 1 free vote per device per competition per day
+ *      (skipped for social-media in-app webviews where FP is too collision-prone)
+ *   4. Email-based daily dedup — same voter_id, same competition, last 24h
+ *   5. Per-IP rate limit — max 10 distinct emails per 24h (backup)
+ *   6. Vercel BotID — invisible bot detection (optional)
  *
  * Env vars required:
  *   SUPABASE_URL
@@ -33,6 +35,19 @@ function getClientIp(request) {
   if (typeof fwd === 'string') return fwd.split(',')[0].trim();
   if (Array.isArray(fwd)) return fwd[0];
   return request.socket?.remoteAddress || 'unknown';
+}
+
+// Open-source FingerprintJS produces colliding visitor IDs in social-media
+// in-app browsers (Instagram, Facebook, TikTok, …) — canvas/audio APIs are
+// stripped, so many distinct users share a fingerprint. Pairing FP with IP
+// helped, but mobile carriers' CGNAT means cellular voters on the same
+// carrier can still share an external IP, so the FP+IP combo also collides.
+// For these UAs we skip the device dedup entirely and rely on email-based
+// dedup (per voter_id) + the per-IP email cap as the fraud nets.
+function isInAppWebview(request) {
+  const ua = request.headers['user-agent'] || '';
+  if (!ua) return false;
+  return /Instagram|FBAN|FBAV|FB_IAB|FBIOS|BytedanceWebview|musical_ly|aweme|TikTok|Snapchat|LinkedInApp|Pinterest|Twitter/i.test(ua);
 }
 
 async function hashIp(ip) {
@@ -84,16 +99,10 @@ async function recordIpRateLimit(supabase, ipHash, email, fingerprint, competiti
 }
 
 /**
- * Check if this browser fingerprint + IP has already voted in this competition
- * today. We require BOTH to match because open-source FingerprintJS produces
- * highly collision-prone visitor IDs in webviews like Instagram's in-app
- * browser — many distinct users share a fingerprint there. Pairing it with
- * the IP hash means we only block when both device and network look the same,
- * which catches the natural fraud (same person, multiple emails) without
- * false-positiving real voters arriving from social-media webviews.
- *
- * Email-based dedup (later in the handler) and the per-IP email-cap
- * (checkIpRateLimit) are the remaining lines of defense.
+ * Device dedup: same fingerprint + same IP + same competition within 24h.
+ * Skipped entirely for in-app webviews (see isInAppWebview) where the FP is
+ * unreliable. Email-based dedup (later in the handler) and the per-IP
+ * email-cap (checkIpRateLimit) are the remaining lines of defense.
  */
 async function checkFingerprintLimit(supabase, fingerprint, ipHash, competitionId) {
   if (!fingerprint || !ipHash) {
@@ -220,19 +229,29 @@ export default async function handler(request, response) {
 
   const ip = getClientIp(request);
   const ipHash = await hashIp(ip);
+  const webview = isInAppWebview(request);
+  const ua = request.headers['user-agent'] || '';
 
   // ─── Device dedup: fingerprint + IP combined ────────────────────────
-  // Fingerprint alone collides too often in social-media webviews to be a
-  // reliable blocker, so we pair it with the IP hash.
-  const fpCheck = await checkFingerprintLimit(supabase, fingerprint, ipHash, competitionId);
-  if (!fpCheck.allowed) {
-    return response.status(429).json({ error: fpCheck.reason, code: 'ALREADY_VOTED' });
+  // Skip for in-app webviews (Instagram, FB, TikTok, …) — FP collides there
+  // and on cellular CGNAT the IP collides too, falsely locking real voters.
+  // The email-based dedup below is the actual "you already voted" check.
+  if (!webview) {
+    const fpCheck = await checkFingerprintLimit(supabase, fingerprint, ipHash, competitionId);
+    if (!fpCheck.allowed) {
+      // Server-side log only (Vercel function logs, not visible to voter).
+      // Lets us confirm post-deploy whether the FP+IP block is still firing
+      // for UAs the webview detector missed.
+      console.warn('[cast-anonymous-vote] 429 ALREADY_VOTED (FP+IP)', { ua, webview });
+      return response.status(429).json({ error: fpCheck.reason, code: 'ALREADY_VOTED' });
+    }
   }
 
   // ─── IP rate limit (backup) ────────────────────────────────────────────
   const rateCheck = await checkIpRateLimit(supabase, ipHash, normalizedEmail, ipLimit);
   if (!rateCheck.allowed) {
-    return response.status(429).json({ error: rateCheck.reason });
+    console.warn('[cast-anonymous-vote] 429 IP_EMAIL_CAP', { ua, webview });
+    return response.status(429).json({ error: rateCheck.reason, code: 'IP_EMAIL_CAP' });
   }
 
   try {

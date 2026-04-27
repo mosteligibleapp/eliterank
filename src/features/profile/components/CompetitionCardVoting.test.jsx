@@ -59,7 +59,7 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
   });
 
   it('shows the disabled "Free daily vote used" state when localStorage has a recent timestamp', async () => {
-    window.localStorage.setItem('eliterank-anon-voted-comp-1', String(Date.now()));
+    window.localStorage.setItem('eliterank-anon-voted-v2-comp-1', String(Date.now()));
 
     render(<CompetitionCardVoting {...baseProps} />);
 
@@ -71,7 +71,7 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
 
   it('treats a stale (>24h) localStorage entry as not voted', async () => {
     window.localStorage.setItem(
-      'eliterank-anon-voted-comp-1',
+      'eliterank-anon-voted-v2-comp-1',
       String(Date.now() - 25 * 60 * 60 * 1000),
     );
 
@@ -113,7 +113,7 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
     //  - The free-vote CTA renders disabled with "Free daily vote used"
     //  - Error text is shown
     await waitFor(() => {
-      expect(window.localStorage.getItem('eliterank-anon-voted-comp-1')).toBeTruthy();
+      expect(window.localStorage.getItem('eliterank-anon-voted-v2-comp-1')).toBeTruthy();
     });
 
     expect(screen.queryByRole('button', { name: /Submit free vote/i })).toBeNull();
@@ -132,7 +132,7 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
   it('shows the "Free vote resets in Xh" caption when locked on mount', async () => {
     // Stored 1h ago → ~23h remaining.
     window.localStorage.setItem(
-      'eliterank-anon-voted-comp-1',
+      'eliterank-anon-voted-v2-comp-1',
       String(Date.now() - 60 * 60 * 1000),
     );
 
@@ -194,7 +194,7 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
     });
 
     // localStorage remains empty — we only lock on the explicit code.
-    expect(window.localStorage.getItem('eliterank-anon-voted-comp-1')).toBeNull();
+    expect(window.localStorage.getItem('eliterank-anon-voted-v2-comp-1')).toBeNull();
     // Error is shown but the form stays open so the user can retry.
     expect(screen.getByText(/Submitted too fast/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Submit free vote/i })).toBeInTheDocument();
