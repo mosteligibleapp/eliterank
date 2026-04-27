@@ -315,7 +315,10 @@ export default function CompetitionCardVoting({
       if (result?.code === 'ALREADY_VOTED') {
         setAlreadyVoted(true);
         setShowFreeForm(false);
-        writeAnonVoted(competitionId);
+        // Use the server's actual prior-vote timestamp so the localStorage
+        // lock — and the toast countdown derived from it — reflects when
+        // the vote really expires, not 24h-from-now.
+        writeAnonVoted(competitionId, result?.prevVoteAt);
         const resetIn = formatResetIn(getAnonVoteResetMs(competitionId));
         toast?.info?.(
           resetIn

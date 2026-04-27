@@ -71,6 +71,24 @@ describe('anonVoteLock', () => {
     expect(() => writeAnonVoted(COMP)).not.toThrow();
     spy.mockRestore();
   });
+
+  it('uses the supplied voteAt timestamp so the countdown reflects the real prior vote, not Date.now()', () => {
+    // Server's 409 reports the prior vote was 23h ago. The lock should
+    // expire 24h after that — i.e. ~1h from now — not 24h from now.
+    const oneHourMs = 60 * 60 * 1000;
+    const priorVote = new Date(Date.now() - 23 * oneHourMs).toISOString();
+    writeAnonVoted(COMP, priorVote);
+    expect(getAnonVoteResetMs(COMP)).toBe(oneHourMs);
+  });
+
+  it('falls back to Date.now() when voteAt is omitted (success path) or invalid', () => {
+    writeAnonVoted(COMP);
+    expect(getAnonVoteResetMs(COMP)).toBe(ANON_VOTED_WINDOW_MS);
+
+    window.localStorage.clear();
+    writeAnonVoted(COMP, 'not a date');
+    expect(getAnonVoteResetMs(COMP)).toBe(ANON_VOTED_WINDOW_MS);
+  });
 });
 
 describe('getAnonVoteResetMs', () => {
