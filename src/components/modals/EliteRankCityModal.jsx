@@ -948,9 +948,9 @@ export default function EliteRankCityModal({
                 fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 color: colors.text.secondary,
                 lineHeight: typography.lineHeight.relaxed,
-                marginBottom: spacing.xl,
                 maxWidth: '550px',
-                margin: '0 auto',
+                marginLeft: 'auto',
+                marginRight: 'auto',
                 marginBottom: spacing.xxxl,
               }}>
                 EliteRank is the premier competition, contest, and award management platform. 
