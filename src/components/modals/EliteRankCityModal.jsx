@@ -951,7 +951,7 @@ export default function EliteRankCityModal({
                 maxWidth: '550px',
                 marginLeft: 'auto',
                 marginRight: 'auto',
-                marginBottom: spacing.xxxl,
+                marginBottom: spacing.xl,
               }}>
                 EliteRank is the premier competition, contest, and award management platform. 
                 Applications, events, voting, sponsors — we've got you covered.
