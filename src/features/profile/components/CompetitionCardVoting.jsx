@@ -443,6 +443,7 @@ export default function CompetitionCardVoting({
               count={count}
               pricePerVote={pricePerVote}
               useBundler={useBundler}
+              isDoubleDay={isDoubleDay}
               active={Number(selectedCount) === count}
               onClick={handleTileClick(count)}
             />
@@ -499,6 +500,11 @@ export default function CompetitionCardVoting({
             flex: 1,
           }}>
             votes
+            {isDoubleDay && Number(selectedCount) > 0 && (
+              <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold, marginLeft: '4px' }}>
+                ({Number(selectedCount) * 2} with 2x)
+              </span>
+            )}
           </span>
           <span style={{
             fontSize: typography.fontSize.sm,
@@ -559,7 +565,12 @@ export default function CompetitionCardVoting({
             opacity: canSend ? 1 : 0.6,
           }}
         >
-          Send {selectedCount || 0} {Number(selectedCount) === 1 ? 'vote' : 'votes'} — {formatPrice(total)}
+          {(() => {
+            const purchased = Number(selectedCount) || 0;
+            const effective = isDoubleDay ? purchased * 2 : purchased;
+            const noun = effective === 1 ? 'vote' : 'votes';
+            return `Send ${effective} ${noun} — ${formatPrice(total)}`;
+          })()}
         </button>
 
         {/* Free-vote path — hide once the free vote has been successfully
@@ -683,13 +694,14 @@ export default function CompetitionCardVoting({
   );
 }
 
-function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
+function PresetTile({ count, pricePerVote, useBundler, isDoubleDay, active, onClick }) {
   const total = calculateVotePrice(count, useBundler, pricePerVote);
   const save = Math.max(0, count * pricePerVote - total);
   // Only surface the savings when the delta is meaningful — hides the
   // noisy "save $4" on the 25-vote tile and keeps attention on the big
   // discounts (100 votes = save $30, 250 votes = save $125).
   const showSave = save >= 10;
+  const displayCount = isDoubleDay ? count * 2 : count;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -717,7 +729,7 @@ function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
             color: colors.text.primary,
             lineHeight: 1,
           }}>
-            {count}
+            {displayCount}
           </span>
           <span style={{
             fontSize: typography.fontSize.sm,
@@ -725,6 +737,15 @@ function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
           }}>
             votes
           </span>
+          {isDoubleDay && (
+            <span style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.gold.primary,
+              fontWeight: typography.fontWeight.semibold,
+            }}>
+              (2x)
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
           <span style={{
