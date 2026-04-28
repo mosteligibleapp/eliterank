@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight } from 'lucide-react';
+import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight, Sparkles } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { VoteShareCard, Modal } from '../../../components/ui';
 import { useSupabaseAuth, useLeaderboard, useFingerprint } from '../../../hooks';
@@ -11,6 +11,7 @@ import {
   createVotePaymentIntent,
 } from '../../../lib/votes';
 import { isDoubleVoteDayForCompetition } from '../../../lib/doubleVoteDay';
+import { supabase } from '../../../lib/supabase';
 import {
   readAnonVoted,
   writeAnonVoted,
@@ -103,6 +104,7 @@ export default function CompetitionCardVoting({
   const [lastFormName, setLastFormName] = useState('');
   const [company, setCompany] = useState(''); // honeypot
   const [error, setError] = useState('');
+  const [isDoubleDay, setIsDoubleDay] = useState(false);
   const mountedAtRef = useRef(Date.now());
 
   // Pull the current leaderboard snapshot so we can project what rank this
@@ -133,6 +135,39 @@ export default function CompetitionCardVoting({
     });
     return () => { cancelled = true; };
   }, [user?.id, competitionId]);
+
+  // Drive the "DOUBLE VOTE DAY" banner. Initial fetch + realtime so the
+  // badge appears/disappears if the host edits the schedule mid-session.
+  useEffect(() => {
+    if (!competitionId) return;
+    let cancelled = false;
+    isDoubleVoteDayForCompetition(competitionId).then((active) => {
+      if (!cancelled) setIsDoubleDay(!!active);
+    });
+    if (!supabase || typeof supabase.channel !== 'function') {
+      return () => { cancelled = true; };
+    }
+    const channel = supabase
+      .channel(`comp-card-${competitionId}-doubledays`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'competition_double_days',
+          filter: `competition_id=eq.${competitionId}`,
+        },
+        async () => {
+          const active = await isDoubleVoteDayForCompetition(competitionId);
+          if (!cancelled) setIsDoubleDay(!!active);
+        }
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [competitionId]);
 
   // Warm Stripe.js in the background so the checkout modal feels instant
   // when the user hits Send. loadStripe is singletoned — repeat calls are
@@ -355,6 +390,29 @@ export default function CompetitionCardVoting({
             ? 'Preview — voting will be live here'
             : `Send votes to ${firstName}`}
         </h4>
+
+        {isDoubleDay && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(251,191,36,0.1))',
+            border: `1px solid rgba(212,175,55,0.4)`,
+            borderRadius: borderRadius.md,
+            padding: `${spacing.sm} ${spacing.md}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.sm,
+          }}>
+            <Sparkles size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+            <p style={{
+              margin: 0,
+              color: colors.gold.primary,
+              fontWeight: typography.fontWeight.bold,
+              fontSize: typography.fontSize.sm,
+            }}>
+              DOUBLE VOTE DAY — All votes count 2x!
+            </p>
+          </div>
+        )}
 
         {castSuccess && (
           <div style={{
