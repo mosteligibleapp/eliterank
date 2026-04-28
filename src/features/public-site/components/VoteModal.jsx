@@ -272,7 +272,11 @@ export default function VoteModal({
       });
     }
 
-    setVotesAdded(selectedVoteCount);
+    // Match the doubling that stripe-webhook applies before inserting into
+    // votes.vote_count, so the success screen reflects what actually got
+    // credited. Free votes already get this right via submitFreeVote's
+    // returned votesAdded; paid votes were the gap.
+    setVotesAdded(forceDoubleVoteDay ? selectedVoteCount * 2 : selectedVoteCount);
     setShowPaymentForm(false);
     setShowSuccess(true);
     onVoteSuccess?.();
