@@ -45,6 +45,11 @@ export default function VoteModal({
   externalCheckout = false,
   preloadedClientSecret = null,
   preloadedPaymentIntentId = null,
+  // Server-authoritative charge amount in cents from create-payment-intent.
+  // When provided, the modal uses this for every displayed price after the
+  // PaymentIntent resolves so the user never sees a number that disagrees
+  // with what Stripe will charge.
+  serverAmount = null,
 }) {
   const userId = user?.id;
   const toast = useToast();
@@ -64,6 +69,22 @@ export default function VoteModal({
   const [paymentIntentId, setPaymentIntentId] = useState(null);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [selectedVoteCount, setSelectedVoteCount] = useState(initialVoteCount);
+  // Cents. Once set, replaces the client-side calculateVotePrice estimate
+  // everywhere downstream. Null = no PaymentIntent has resolved yet.
+  const [confirmedAmount, setConfirmedAmount] = useState(serverAmount);
+
+  // Adopt the server amount whenever the opener pushes a fresh one in
+  // (externalCheckout flow — the parent's createVotePaymentIntent landed).
+  useEffect(() => {
+    if (serverAmount != null) setConfirmedAmount(serverAmount);
+  }, [serverAmount]);
+
+  // Authoritative price the UI should show. Falls back to the client estimate
+  // before any PaymentIntent has resolved (preset tiles, modal-open total).
+  const displayedTotal =
+    confirmedAmount != null
+      ? confirmedAmount / 100
+      : calculateVotePrice(selectedVoteCount, useBundler, votePrice);
 
   // Sync when parent passes a new preset (e.g., opening modal with a chip selected)
   useEffect(() => {
@@ -81,6 +102,7 @@ export default function VoteModal({
       setClientSecret(null);
       setPaymentIntentId(null);
       setSelectedVoteCount(10);
+      setConfirmedAmount(null);
     }
   }, [isOpen]);
 
@@ -216,6 +238,7 @@ export default function VoteModal({
       if (result.success && result.clientSecret) {
         setClientSecret(result.clientSecret);
         setPaymentIntentId(result.paymentIntentId);
+        if (result.amount != null) setConfirmedAmount(result.amount);
         setShowPaymentForm(true);
       } else {
         toast.error(result.error || 'Failed to create payment');
@@ -244,7 +267,7 @@ export default function VoteModal({
         competitionId,
         contestantId: contestant.id,
         voteCount: selectedVoteCount,
-        amountPaid: calculateVotePrice(selectedVoteCount, useBundler, votePrice),
+        amountPaid: displayedTotal,
         voterEmail: user?.email,
       });
     }
@@ -260,6 +283,7 @@ export default function VoteModal({
     setShowPaymentForm(false);
     setClientSecret(null);
     setPaymentIntentId(null);
+    setConfirmedAmount(null);
     // In autoCheckout mode there's no vote-selector to fall back to — the
     // modal only exists to collect the card — so bail out of the whole modal.
     if (autoCheckout) {
@@ -355,7 +379,7 @@ export default function VoteModal({
           }}>
             <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
             <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, margin: 0 }}>
-              Preparing secure checkout…
+              Verifying total &amp; preparing secure checkout…
             </p>
           </div>
         </div>
@@ -421,7 +445,7 @@ export default function VoteModal({
                 <PaymentCheckoutForm
                   onSuccess={handlePaymentSuccess}
                   onCancel={handleBackFromPayment}
-                  amount={calculateVotePrice(selectedVoteCount, useBundler, votePrice)}
+                  amount={displayedTotal}
                   contestantName={contestant.name}
                   collectEmail={!isAuthenticated || !user?.email}
                   userEmail={user?.email}
@@ -782,7 +806,9 @@ export default function VoteModal({
             Total{forceDoubleVoteDay && <span style={{ color: colors.status.success, marginLeft: '4px' }}>(2x)</span>}
           </span>
           <span style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-            {formatPrice(calculateVotePrice(selectedVoteCount, useBundler, votePrice))}
+            {isCreatingPayment && confirmedAmount == null
+              ? 'Verifying price…'
+              : formatPrice(displayedTotal)}
             {forceDoubleVoteDay && (
               <span style={{ color: colors.status.success, fontSize: typography.fontSize.xs, marginLeft: '4px' }}>
                 = {formatNumber(selectedVoteCount * 2)}
@@ -818,7 +844,7 @@ export default function VoteModal({
         ) : !hasActiveRound ? (
           'Voting Not Active'
         ) : (
-          `Buy ${selectedVoteCount} Votes - ${formatPrice(calculateVotePrice(selectedVoteCount, useBundler, votePrice))}`
+          `Buy ${selectedVoteCount} Votes - ${formatPrice(displayedTotal)}`
         )}
       </Button>
 
