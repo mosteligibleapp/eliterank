@@ -10,6 +10,7 @@ import {
   submitAnonymousVote,
   createVotePaymentIntent,
 } from '../../../lib/votes';
+import { isDoubleVoteDayForCompetition } from '../../../lib/doubleVoteDay';
 import {
   readAnonVoted,
   writeAnonVoted,
@@ -254,11 +255,13 @@ export default function CompetitionCardVoting({
 
     setBusy(true);
     setError('');
+    const isDoubleVoteDay = await isDoubleVoteDayForCompetition(competitionId);
     const result = await submitFreeVote({
       userId: user.id,
       voterEmail: user.email,
       competitionId,
       contestantId,
+      isDoubleVoteDay,
     });
     setBusy(false);
 

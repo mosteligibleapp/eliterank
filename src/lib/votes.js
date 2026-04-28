@@ -146,7 +146,9 @@ export async function submitFreeVote({
   voterEmail,
   competitionId,
   contestantId,
-  isDoubleVoteDay = false,
+  // Accepted for callers/UI but ignored — we re-check against the
+  // competition_double_days table below so the multiplier can't be spoofed.
+  isDoubleVoteDay: _isDoubleVoteDayHint = false,
 }) {
   if (!supabase) {
     return { success: false, error: 'Database not configured' };
@@ -155,8 +157,6 @@ export async function submitFreeVote({
   if (!userId || !competitionId || !contestantId) {
     return { success: false, error: 'Missing required parameters' };
   }
-
-  const voteValue = isDoubleVoteDay ? 2 : 1;
 
   try {
     // 1. Check if there's an active voting round (server-side validation)
@@ -171,7 +171,17 @@ export async function submitFreeVote({
       return { success: false, error: 'You have already used your free vote today' };
     }
 
-    // 3. Insert the vote record
+    // 3. Re-verify double-vote-day status against the source of truth.
+    // is_double_vote_day RPC compares against the competition's local
+    // timezone (see migration 051), so we don't trust the caller-supplied
+    // hint or the client's clock.
+    const { data: rpcDouble } = await supabase.rpc('is_double_vote_day', {
+      p_competition_id: competitionId,
+    });
+    const isDoubleVoteDay = rpcDouble === true;
+    const voteValue = isDoubleVoteDay ? 2 : 1;
+
+    // 4. Insert the vote record
     const { error: voteError } = await supabase
       .from('votes')
       .insert({

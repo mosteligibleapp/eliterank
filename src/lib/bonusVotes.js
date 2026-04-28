@@ -71,7 +71,11 @@ export async function getBonusVoteStatus(competitionId, contestantId) {
 
 /**
  * Award bonus votes for completing a task
- * Idempotent - won't double-award
+ * Idempotent - won't double-award.
+ * Bonus votes are flat engagement rewards — intentionally NOT subject to
+ * the double-vote-day multiplier. The award_bonus_votes RPC writes
+ * directly to contestants.votes (bypassing the votes table), so the
+ * multiplier code path can never accidentally apply here.
  */
 export async function awardBonusVotes(competitionId, contestantId, userId, taskKey) {
   if (!supabase || !competitionId || !contestantId || !taskKey) {

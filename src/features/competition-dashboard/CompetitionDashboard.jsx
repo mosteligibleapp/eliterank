@@ -62,6 +62,9 @@ export default function CompetitionDashboard({
     addEvent,
     updateEvent,
     deleteEvent,
+    addDoubleDay,
+    deleteDoubleDay,
+    updateCompetitionTimezone,
     addAnnouncement,
     updateAnnouncement,
     deleteAnnouncement,
@@ -459,12 +462,16 @@ export default function CompetitionDashboard({
             sponsors={data.sponsors}
             events={data.events}
             prizes={data.prizes}
+            doubleDays={data.doubleDays}
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onDeleteJudge={deleteJudge}
             onDeleteSponsor={deleteSponsor}
             onDeleteEvent={deleteEvent}
             onDeletePrize={deletePrize}
+            onAddDoubleDay={addDoubleDay}
+            onDeleteDoubleDay={deleteDoubleDay}
+            onUpdateTimezone={updateCompetitionTimezone}
             onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
             onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}

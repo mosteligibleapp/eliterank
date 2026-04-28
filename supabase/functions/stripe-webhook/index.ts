@@ -20,11 +20,13 @@ async function sendVoteReceiptEmail(
     contestantId: string
     competitionId: string
     voteCount: number
+    purchasedVoteCount: number
+    wasDoubled: boolean
     amountPaid: number
     hasAccount: boolean
   }
 ) {
-  const { voterEmail, contestantId, competitionId, voteCount, amountPaid, hasAccount } = params
+  const { voterEmail, contestantId, competitionId, voteCount, purchasedVoteCount, wasDoubled, amountPaid, hasAccount } = params
   const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
 
   // Fetch contestant with competition details
@@ -85,6 +87,8 @@ async function sendVoteReceiptEmail(
     profile_url: profileUrl,
     rank: contestant.rank,
     vote_count: voteCount,
+    purchased_vote_count: purchasedVoteCount,
+    was_doubled: wasDoubled,
     amount_paid: amountPaid,
     voting_round_end: currentRound?.end_date || null,
     signup_url: signupUrl,
@@ -214,7 +218,7 @@ serve(async (req) => {
           resolvedVoterEmail = ''
         }
 
-        const voteCount = parseInt(vote_count, 10)
+        const purchasedVoteCount = parseInt(vote_count, 10)
         const amountPaid = paymentIntent.amount / 100 // Convert from cents to dollars
 
         // Check if this payment has already been processed (idempotency)
@@ -232,6 +236,16 @@ serve(async (req) => {
           )
         }
 
+        // Check if today is a host-scheduled double vote day for this competition.
+        // is_double_vote_day uses the competition's stored timezone, so a host
+        // in LA picking April 28 gets activation across the LA calendar day,
+        // not UTC's. See migration 051_competition_timezone_and_helpers.sql.
+        const { data: isDoubleRpc } = await supabase.rpc('is_double_vote_day', {
+          p_competition_id: competition_id,
+        })
+        const isDoubleVoteDay = isDoubleRpc === true
+        const voteCount = isDoubleVoteDay ? purchasedVoteCount * 2 : purchasedVoteCount
+
         // Record the paid votes
         const { error: voteError } = await supabase
           .from('votes')
@@ -242,7 +256,7 @@ serve(async (req) => {
             vote_count: voteCount,
             amount_paid: amountPaid,
             payment_intent_id: paymentIntent.id,
-            is_double_vote: false,
+            is_double_vote: isDoubleVoteDay,
           })
 
         if (voteError) {
@@ -265,6 +279,8 @@ serve(async (req) => {
             contestantId: contestant_id,
             competitionId: competition_id,
             voteCount,
+            purchasedVoteCount,
+            wasDoubled: isDoubleVoteDay,
             amountPaid,
             hasAccount: !!voter_email, // If voter_email was in metadata, they were logged in
           }).catch(err => {

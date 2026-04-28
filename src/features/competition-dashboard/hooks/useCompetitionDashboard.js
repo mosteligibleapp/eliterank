@@ -21,6 +21,7 @@ export function useCompetitionDashboard(competitionId) {
     announcements: [],
     rules: [],
     prizes: [],
+    doubleDays: [],
     host: null,
     competition: null,
   });
@@ -60,6 +61,7 @@ export function useCompetitionDashboard(competitionId) {
         announcementsResult,
         rulesResult,
         prizesResult,
+        doubleDaysResult,
         competitionResult,
       ] = await Promise.all([
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
@@ -119,6 +121,13 @@ export function useCompetitionDashboard(competitionId) {
           .eq('competition_id', competitionId)
           .order('sort_order'),
 
+        // Double vote days ordered by date
+        supabase
+          .from('competition_double_days')
+          .select('id, date')
+          .eq('competition_id', competitionId)
+          .order('date'),
+
         // Get competition info with category, demographic, city, and organization joins
         supabase
           .from('competitions')
@@ -145,6 +154,7 @@ export function useCompetitionDashboard(competitionId) {
         announcementsResult.error,
         rulesResult.error,
         prizesResult.error,
+        doubleDaysResult.error,
         competitionResult.error,
       ].filter(Boolean);
 
@@ -349,6 +359,12 @@ export function useCompetitionDashboard(competitionId) {
         sortOrder: r.sort_order,
       }));
 
+      // Transform double vote days
+      const doubleDays = (doubleDaysResult.data || []).map((d) => ({
+        id: d.id,
+        date: d.date,
+      }));
+
       // Transform prizes
       const prizes = (prizesResult.data || []).map((p) => ({
         id: p.id,
@@ -371,6 +387,7 @@ export function useCompetitionDashboard(competitionId) {
         announcements,
         rules,
         prizes,
+        doubleDays,
         host,
         competition: competition ? {
           id: competition.id,
@@ -424,6 +441,9 @@ export function useCompetitionDashboard(competitionId) {
           charityName: competition.charity_name || null,
           charityLogoUrl: competition.charity_logo_url || null,
           charityWebsiteUrl: competition.charity_website_url || null,
+          // IANA timezone for double-vote-day scheduling. Default 'UTC'
+          // matches the column default; hosts opt in via SetupTab.
+          timezone: competition.timezone || 'UTC',
           // Timeline arrays — pass through so computeCompetitionPhase can
           // detect between-rounds vs. nominations correctly.
           nomination_periods: competition.nomination_periods || [],
@@ -1104,6 +1124,77 @@ export function useCompetitionDashboard(competitionId) {
   }, [fetchDashboardData]);
 
   // ============================================================================
+  // DOUBLE VOTE DAY OPERATIONS
+  // ============================================================================
+
+  const addDoubleDay = useCallback(async (date) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+    if (!date) return { success: false, error: 'Date is required' };
+
+    try {
+      const { error } = await supabase
+        .from('competition_double_days')
+        .insert({ competition_id: competitionId, date });
+
+      if (error) {
+        if (error.code === '23505') {
+          return { success: false, error: 'That date is already scheduled.' };
+        }
+        throw error;
+      }
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding double vote day:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  const deleteDoubleDay = useCallback(async (id) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competition_double_days')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error deleting double vote day:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  const updateCompetitionTimezone = useCallback(async (timezone) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+    if (!timezone) return { success: false, error: 'Timezone is required' };
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({ timezone })
+        .eq('id', competitionId);
+
+      // The validate_competition_timezone trigger surfaces invalid IANA
+      // zones with ERRCODE check_violation — turn that into a friendly msg.
+      if (error) {
+        if (error.code === '23514' || /Invalid IANA timezone/.test(error.message || '')) {
+          return { success: false, error: 'That timezone is not recognized.' };
+        }
+        throw error;
+      }
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating timezone:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  // ============================================================================
   // ANNOUNCEMENT OPERATIONS
   // ============================================================================
 
@@ -1512,6 +1603,10 @@ export function useCompetitionDashboard(competitionId) {
     addEvent,
     updateEvent,
     deleteEvent,
+    // Double vote day operations
+    addDoubleDay,
+    deleteDoubleDay,
+    updateCompetitionTimezone,
     // Announcement operations
     addAnnouncement,
     updateAnnouncement,

@@ -364,6 +364,15 @@ export default async function handler(request, response) {
       });
     }
 
+    // ─── Double vote day check (server-side, can't be spoofed by client) ─
+    // is_double_vote_day uses the competition's stored timezone so "today"
+    // means the host's local calendar day, not UTC. See migration 051.
+    const { data: isDoubleRpc } = await supabase.rpc('is_double_vote_day', {
+      p_competition_id: competitionId,
+    });
+    const isDoubleVoteDay = isDoubleRpc === true;
+    const voteCount = isDoubleVoteDay ? 2 : 1;
+
     // ─── Insert the vote ─────────────────────────────────────────────────
     const { error: voteErr } = await supabase
       .from('votes')
@@ -372,10 +381,10 @@ export default async function handler(request, response) {
         voter_email: normalizedEmail,
         competition_id: competitionId,
         contestant_id: contestantId,
-        vote_count: 1,
+        vote_count: voteCount,
         amount_paid: 0,
         payment_intent_id: null,
-        is_double_vote: false,
+        is_double_vote: isDoubleVoteDay,
       });
 
     if (voteErr) {
@@ -399,7 +408,8 @@ export default async function handler(request, response) {
     // No email sent — conversion happens in-context on the success screen.
     return response.status(200).json({
       success: true,
-      votesAdded: 1,
+      votesAdded: voteCount,
+      isDoubleVoteDay,
       visitorId: voterId,
       botIdSkipped: botCheck.skipped,
     });

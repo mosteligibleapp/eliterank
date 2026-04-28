@@ -76,6 +76,7 @@ export default function PublicSitePage({
     events: [],
     announcements: [],
     judges: [],
+    isDoubleVoteDay: false,
     loading: true,
   });
 
@@ -132,13 +133,16 @@ export default function PublicSitePage({
       }
 
       try {
-        // Fetch only dynamic data - sponsors, host, and voting rounds come from cached hooks
-        const [contestantsResult, eventsResult, announcementsResult, judgesResult] = await Promise.all([
+        // Fetch only dynamic data - sponsors, host, and voting rounds come from cached hooks.
+        // is_double_vote_day RPC consults the competition's stored timezone, so the
+        // (2x) badge follows the host's calendar day, not UTC. See migration 051.
+        const [contestantsResult, eventsResult, announcementsResult, judgesResult, doubleDayResult] = await Promise.all([
           // Join with profiles to get full profile data when contestant is linked to a user
           supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
           supabase.from('judges').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('sort_order'),
+          supabase.rpc('is_double_vote_day', { p_competition_id: competitionId }),
         ]);
 
         setFetchedData({
@@ -173,6 +177,7 @@ export default function PublicSitePage({
           announcements: (announcementsResult.data || []).map(a => ({
             id: a.id, title: a.title, content: a.content, date: a.published_at, pinned: a.pinned,
           })),
+          isDoubleVoteDay: doubleDayResult.data === true,
           judges: (judgesResult.data || []).map(j => {
             // Merge profile data with judge data (profile has more fields)
             const profile = j.profile || {};
@@ -244,6 +249,37 @@ export default function PublicSitePage({
     };
   }, [competition?.id]);
 
+  // Realtime: keep isDoubleVoteDay in sync if the host edits the schedule
+  // mid-session. Without this the badge would stay stale until refresh while
+  // the server is already doubling (or not).
+  useEffect(() => {
+    const competitionId = competition?.id;
+    if (!competitionId || !supabase) return;
+
+    const channel = supabase
+      .channel(`competition-${competitionId}-doubledays`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'competition_double_days',
+          filter: `competition_id=eq.${competitionId}`,
+        },
+        async () => {
+          const { data } = await supabase.rpc('is_double_vote_day', {
+            p_competition_id: competitionId,
+          });
+          setFetchedData((prev) => ({ ...prev, isDoubleVoteDay: data === true }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [competition?.id]);
+
   // Callback to refresh contestant data after voting
   const handleVoteSuccess = useCallback(async () => {
     const competitionId = competition?.id;
@@ -295,26 +331,12 @@ export default function PublicSitePage({
   const displaySponsors = transformedSponsors.length > 0 ? transformedSponsors : sponsors;
   const displayHost = transformedHost || host;
 
-  // Compute if today is a double vote day based on events
-  const isDoubleVoteDay = useMemo(() => {
-    // If explicitly forced via prop, use that
-    if (forceDoubleVoteDayProp !== undefined) {
-      return forceDoubleVoteDayProp;
-    }
-
-    // Check if any event is marked as double vote day AND is today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return displayEvents.some(event => {
-      if (!event.isDoubleVoteDay || !event.date) return false;
-
-      const eventDate = new Date(typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date) ? event.date + 'T00:00:00' : event.date);
-      eventDate.setHours(0, 0, 0, 0);
-
-      return eventDate.getTime() === today.getTime();
-    });
-  }, [displayEvents, forceDoubleVoteDayProp]);
+  // The is_double_vote_day RPC (server-side, timezone-aware) is the single
+  // source of truth — see migration 051. Phase 3 wires up a realtime channel
+  // so this stays fresh when the host edits the schedule mid-session.
+  const isDoubleVoteDay = forceDoubleVoteDayProp !== undefined
+    ? forceDoubleVoteDayProp
+    : !!fetchedData.isDoubleVoteDay;
 
   // Compute current voting/judging round and its end date
   const currentRound = useMemo(() => {
