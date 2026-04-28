@@ -20,11 +20,13 @@ async function sendVoteReceiptEmail(
     contestantId: string
     competitionId: string
     voteCount: number
+    purchasedVoteCount: number
+    wasDoubled: boolean
     amountPaid: number
     hasAccount: boolean
   }
 ) {
-  const { voterEmail, contestantId, competitionId, voteCount, amountPaid, hasAccount } = params
+  const { voterEmail, contestantId, competitionId, voteCount, purchasedVoteCount, wasDoubled, amountPaid, hasAccount } = params
   const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
 
   // Fetch contestant with competition details
@@ -85,6 +87,8 @@ async function sendVoteReceiptEmail(
     profile_url: profileUrl,
     rank: contestant.rank,
     vote_count: voteCount,
+    purchased_vote_count: purchasedVoteCount,
+    was_doubled: wasDoubled,
     amount_paid: amountPaid,
     voting_round_end: currentRound?.end_date || null,
     signup_url: signupUrl,
@@ -233,17 +237,13 @@ serve(async (req) => {
         }
 
         // Check if today is a host-scheduled double vote day for this competition.
-        // Server-side so it can't be spoofed by the client. Uses UTC date to match
-        // the daily-quota and PublicSitePage detection logic.
-        const todayDate = new Date().toISOString().split('T')[0]
-        const { data: doubleDayRow } = await supabase
-          .from('competition_double_days')
-          .select('id')
-          .eq('competition_id', competition_id)
-          .eq('date', todayDate)
-          .limit(1)
-          .maybeSingle()
-        const isDoubleVoteDay = !!doubleDayRow?.id
+        // is_double_vote_day uses the competition's stored timezone, so a host
+        // in LA picking April 28 gets activation across the LA calendar day,
+        // not UTC's. See migration 051_competition_timezone_and_helpers.sql.
+        const { data: isDoubleRpc } = await supabase.rpc('is_double_vote_day', {
+          p_competition_id: competition_id,
+        })
+        const isDoubleVoteDay = isDoubleRpc === true
         const voteCount = isDoubleVoteDay ? purchasedVoteCount * 2 : purchasedVoteCount
 
         // Record the paid votes
@@ -279,6 +279,8 @@ serve(async (req) => {
             contestantId: contestant_id,
             competitionId: competition_id,
             voteCount,
+            purchasedVoteCount,
+            wasDoubled: isDoubleVoteDay,
             amountPaid,
             hasAccount: !!voter_email, // If voter_email was in metadata, they were logged in
           }).catch(err => {

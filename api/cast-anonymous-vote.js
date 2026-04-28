@@ -346,15 +346,12 @@ export default async function handler(request, response) {
     }
 
     // ─── Double vote day check (server-side, can't be spoofed by client) ─
-    const todayDate = new Date().toISOString().split('T')[0];
-    const { data: doubleDayRow } = await supabase
-      .from('competition_double_days')
-      .select('id')
-      .eq('competition_id', competitionId)
-      .eq('date', todayDate)
-      .limit(1)
-      .maybeSingle();
-    const isDoubleVoteDay = !!doubleDayRow?.id;
+    // is_double_vote_day uses the competition's stored timezone so "today"
+    // means the host's local calendar day, not UTC. See migration 051.
+    const { data: isDoubleRpc } = await supabase.rpc('is_double_vote_day', {
+      p_competition_id: competitionId,
+    });
+    const isDoubleVoteDay = isDoubleRpc === true;
     const voteCount = isDoubleVoteDay ? 2 : 1;
 
     // ─── Insert the vote ─────────────────────────────────────────────────

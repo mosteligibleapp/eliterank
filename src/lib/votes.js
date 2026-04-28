@@ -172,17 +172,13 @@ export async function submitFreeVote({
     }
 
     // 3. Re-verify double-vote-day status against the source of truth.
-    // competition_double_days is publicly readable, so the authenticated
-    // client can read it directly; we don't trust the caller-supplied hint.
-    const todayDate = new Date().toISOString().split('T')[0];
-    const { data: doubleDayRow } = await supabase
-      .from('competition_double_days')
-      .select('id')
-      .eq('competition_id', competitionId)
-      .eq('date', todayDate)
-      .limit(1)
-      .maybeSingle();
-    const isDoubleVoteDay = !!doubleDayRow?.id;
+    // is_double_vote_day RPC compares against the competition's local
+    // timezone (see migration 051), so we don't trust the caller-supplied
+    // hint or the client's clock.
+    const { data: rpcDouble } = await supabase.rpc('is_double_vote_day', {
+      p_competition_id: competitionId,
+    });
+    const isDoubleVoteDay = rpcDouble === true;
     const voteValue = isDoubleVoteDay ? 2 : 1;
 
     // 4. Insert the vote record

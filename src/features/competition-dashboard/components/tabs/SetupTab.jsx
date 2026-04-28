@@ -14,6 +14,18 @@ import VideoPlayer from '../../../../components/VideoPlayer';
 import { getVideoPrompts, getVideoResponses, createVideoPrompt, deleteVideoPrompt, reviewVideoResponse, notifyContestantsOfPrompt } from '../../../../lib/videoPrompts';
 import { useAuthContextSafe } from '../../../../contexts/AuthContext';
 import { useToast } from '../../../../contexts/ToastContext';
+import { getTimezoneOptionGroups } from '../../../../lib/timezones';
+
+// Today's calendar date in the given IANA timezone, as 'YYYY-MM-DD'.
+// Matches the server-side today_for_competition() function so the
+// "Active today" badge reflects the same day the trigger does.
+function todayInTimezone(timezone) {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone || 'UTC' }).format(new Date());
+  } catch {
+    return new Date().toISOString().split('T')[0];
+  }
+}
 
 // Helper to format currency from cents
 const formatCurrency = (cents) => {
@@ -67,6 +79,7 @@ export default function SetupTab({
   onDeletePrize,
   onAddDoubleDay,
   onDeleteDoubleDay,
+  onUpdateTimezone,
   onOpenJudgeModal,
   onOpenSponsorModal,
   onOpenCharityModal,
@@ -110,6 +123,11 @@ export default function SetupTab({
   const [newDoubleDayDate, setNewDoubleDayDate] = useState('');
   const [doubleDayError, setDoubleDayError] = useState('');
   const [doubleDaySaving, setDoubleDaySaving] = useState(false);
+  const [timezoneSaving, setTimezoneSaving] = useState(false);
+  const [timezoneError, setTimezoneError] = useState('');
+
+  const competitionTimezone = competition?.timezone || 'UTC';
+  const timezoneGroups = React.useMemo(() => getTimezoneOptionGroups(), []);
 
   const handleAddDoubleDay = async () => {
     setDoubleDayError('');
@@ -125,6 +143,18 @@ export default function SetupTab({
       setNewDoubleDayDate('');
     } else {
       setDoubleDayError(result?.error || 'Could not add date.');
+    }
+  };
+
+  const handleTimezoneChange = async (e) => {
+    const next = e.target.value;
+    if (!next || next === competitionTimezone || !onUpdateTimezone) return;
+    setTimezoneError('');
+    setTimezoneSaving(true);
+    const result = await onUpdateTimezone(next);
+    setTimezoneSaving(false);
+    if (!result?.success) {
+      setTimezoneError(result?.error || 'Could not update timezone.');
     }
   };
 
@@ -774,6 +804,56 @@ export default function SetupTab({
             Pick calendar dates when every vote (free and paid) counts twice for this competition.
           </p>
 
+          <div style={{ marginBottom: spacing.lg }}>
+            <label style={{
+              display: 'block',
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.medium,
+              color: colors.text.primary,
+              marginBottom: spacing.xs,
+            }}>
+              Timezone
+            </label>
+            <select
+              value={competitionTimezone}
+              onChange={handleTimezoneChange}
+              disabled={timezoneSaving || !onUpdateTimezone}
+              style={{
+                width: '100%',
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: colors.background.secondary,
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.md,
+                color: colors.text.primary,
+                fontSize: typography.fontSize.base,
+              }}
+            >
+              {timezoneGroups.map(([groupName, zones]) => (
+                <optgroup key={groupName} label={groupName}>
+                  {zones.map((zone) => (
+                    <option key={zone} value={zone}>{zone}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <p style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.text.secondary,
+              marginTop: spacing.xs,
+            }}>
+              Dates below are interpreted in this timezone.
+            </p>
+            {timezoneError && (
+              <p style={{
+                color: colors.status.error,
+                fontSize: typography.fontSize.sm,
+                marginTop: spacing.xs,
+              }}>
+                {timezoneError}
+              </p>
+            )}
+          </div>
+
           <div style={{
             display: 'flex',
             flexDirection: isMobile ? 'column' : 'row',
@@ -788,7 +868,7 @@ export default function SetupTab({
                 setNewDoubleDayDate(e.target.value);
                 if (doubleDayError) setDoubleDayError('');
               }}
-              min={new Date().toISOString().split('T')[0]}
+              min={todayInTimezone(competitionTimezone)}
               style={{
                 flex: 1,
                 padding: `${spacing.sm} ${spacing.md}`,
@@ -829,10 +909,11 @@ export default function SetupTab({
             <div style={{ display: 'grid', gap: spacing.sm }}>
               {doubleDays.map((day) => {
                 const dateObj = parseDateLocal(day.date);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const isToday = dateObj.getTime() === today.getTime();
-                const isPast = dateObj < today;
+                // Compare against today in the competition's timezone, matching
+                // the server-side today_for_competition() function.
+                const todayStr = todayInTimezone(competitionTimezone);
+                const isToday = day.date === todayStr;
+                const isPast = day.date < todayStr;
                 return (
                   <div key={day.id} style={{
                     display: 'flex',

@@ -441,6 +441,9 @@ export function useCompetitionDashboard(competitionId) {
           charityName: competition.charity_name || null,
           charityLogoUrl: competition.charity_logo_url || null,
           charityWebsiteUrl: competition.charity_website_url || null,
+          // IANA timezone for double-vote-day scheduling. Default 'UTC'
+          // matches the column default; hosts opt in via SetupTab.
+          timezone: competition.timezone || 'UTC',
           // Timeline arrays — pass through so computeCompetitionPhase can
           // detect between-rounds vs. nominations correctly.
           nomination_periods: competition.nomination_periods || [],
@@ -1165,6 +1168,32 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [fetchDashboardData]);
 
+  const updateCompetitionTimezone = useCallback(async (timezone) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+    if (!timezone) return { success: false, error: 'Timezone is required' };
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({ timezone })
+        .eq('id', competitionId);
+
+      // The validate_competition_timezone trigger surfaces invalid IANA
+      // zones with ERRCODE check_violation — turn that into a friendly msg.
+      if (error) {
+        if (error.code === '23514' || /Invalid IANA timezone/.test(error.message || '')) {
+          return { success: false, error: 'That timezone is not recognized.' };
+        }
+        throw error;
+      }
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating timezone:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   // ============================================================================
   // ANNOUNCEMENT OPERATIONS
   // ============================================================================
@@ -1577,6 +1606,7 @@ export function useCompetitionDashboard(competitionId) {
     // Double vote day operations
     addDoubleDay,
     deleteDoubleDay,
+    updateCompetitionTimezone,
     // Announcement operations
     addAnnouncement,
     updateAnnouncement,

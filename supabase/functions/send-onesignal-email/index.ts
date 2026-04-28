@@ -54,6 +54,8 @@ interface EmailRequest {
   // vote_receipt fields
   vote_count?: number | null
   amount_paid?: number | null
+  purchased_vote_count?: number | null
+  was_doubled?: boolean
   signup_url?: string
   is_anonymous?: boolean
 }
@@ -418,6 +420,8 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       const competitionName = req.competition_name || 'Most Eligible'
       const voteCount = req.vote_count || 0
       const amountPaid = req.amount_paid || 0
+      const purchasedVoteCount = req.purchased_vote_count || 0
+      const wasDoubled = !!req.was_doubled && purchasedVoteCount > 0 && voteCount > purchasedVoteCount
       const isAnonymous = !!req.is_anonymous
 
       const formatShortDate = (iso: string) => {
@@ -440,6 +444,15 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
 
       const roundEndLine = req.voting_round_end
         ? `<p style="color:#ccc;font-size:14px;margin:12px 0;">Voting round ends <strong style="color:#fff;">${formatShortDate(req.voting_round_end)}</strong></p>`
+        : ''
+
+      // When the host scheduled today as a double-vote day, the webhook
+      // doubled the purchased count. Tell the voter so the receipt total
+      // doesn't read as a billing bug.
+      const doubledLine = wasDoubled
+        ? `<p style="color:#d4a843;font-size:14px;margin:12px 0;font-weight:bold;">
+             Today is a Double Vote Day — your ${purchasedVoteCount.toLocaleString()} paid ${purchasedVoteCount === 1 ? 'vote counts' : 'votes count'} as ${voteCount.toLocaleString()}.
+           </p>`
         : ''
 
       const ctaUrl = req.profile_url || req.competition_url
@@ -470,6 +483,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             <p style="color:#fff;font-size:22px;font-weight:bold;margin:8px 0;">${contestantName}</p>
             <p style="color:#999;font-size:14px;margin:4px 0;">in ${competitionName}</p>
             ${amountText ? `<p style="color:#666;font-size:13px;margin:8px 0;">Total: ${amountText}</p>` : ''}
+            ${doubledLine}
             ${rankBlock}
             ${roundEndLine}
             ${ctaUrl ? goldButton(`View ${firstName}'s Profile`, ctaUrl) : ''}
