@@ -88,6 +88,11 @@ export default function CompetitionCardVoting({
   const [showFreeForm, setShowFreeForm] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  // True when today is a host-scheduled double-vote day for this competition.
+  // Drives the modal's 2× indicator + receipt copy. The free-vote handler
+  // refetches on click for freshness; this state exists for the paid-vote
+  // modal which renders before any user interaction.
+  const [isDoubleVoteDay, setIsDoubleVoteDay] = useState(false);
   // Pre-created PaymentIntent kicked off in the Send click handler so the
   // edge-function round-trip runs in parallel with the modal mounting.
   const [preloadedCheckout, setPreloadedCheckout] = useState({
@@ -147,6 +152,18 @@ export default function CompetitionCardVoting({
       getStripe();
     }
   }, []);
+
+  // Resolve double-vote-day status once per competition so the modal can
+  // surface the 2× indicator on open. The free-vote handler still fetches
+  // fresh on click — this state is for render-time consumers only.
+  useEffect(() => {
+    if (!competitionId) return;
+    let cancelled = false;
+    isDoubleVoteDayForCompetition(competitionId).then((flag) => {
+      if (!cancelled) setIsDoubleVoteDay(!!flag);
+    });
+    return () => { cancelled = true; };
+  }, [competitionId]);
 
   const roundForModal = useMemo(() => {
     if (!currentRound) return null;
@@ -618,6 +635,7 @@ export default function CompetitionCardVoting({
           autoCheckout
           votePrice={competition?.price_per_vote}
           useBundler={competition?.use_price_bundler}
+          forceDoubleVoteDay={isDoubleVoteDay}
           externalCheckout
           preloadedClientSecret={preloadedCheckout.clientSecret}
           preloadedPaymentIntentId={preloadedCheckout.paymentIntentId}
