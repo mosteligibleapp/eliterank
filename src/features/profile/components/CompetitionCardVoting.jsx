@@ -94,6 +94,11 @@ export default function CompetitionCardVoting({
     clientSecret: null,
     paymentIntentId: null,
     voteCount: null,
+    // Server-authoritative charge amount in cents. Until this is set, any
+    // displayed price is just a client-side estimate against possibly-stale
+    // competition.price_per_vote. Once set, all downstream prices must come
+    // from here so what the user sees matches what Stripe charges.
+    amount: null,
   });
   const checkoutRequestRef = useRef(0);
 
@@ -199,7 +204,7 @@ export default function CompetitionCardVoting({
     // clientSecret into the modal via a prop, skipping the modal's own
     // round-trip.
     const requestId = ++checkoutRequestRef.current;
-    setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount });
+    setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount, amount: null });
     setShowVoteModal(true);
 
     const result = await createVotePaymentIntent({
@@ -218,17 +223,18 @@ export default function CompetitionCardVoting({
         clientSecret: result.clientSecret,
         paymentIntentId: result.paymentIntentId,
         voteCount,
+        amount: result.amount ?? null,
       });
     } else {
       setShowVoteModal(false);
-      setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount: null });
+      setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount: null, amount: null });
       toast?.error?.(result.error || 'Could not start checkout.');
     }
   };
 
   const handleVoteModalClose = () => {
     checkoutRequestRef.current += 1;
-    setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount: null });
+    setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount: null, amount: null });
     setShowVoteModal(false);
   };
 
@@ -615,6 +621,7 @@ export default function CompetitionCardVoting({
           externalCheckout
           preloadedClientSecret={preloadedCheckout.clientSecret}
           preloadedPaymentIntentId={preloadedCheckout.paymentIntentId}
+          serverAmount={preloadedCheckout.amount}
         />
       )}
 

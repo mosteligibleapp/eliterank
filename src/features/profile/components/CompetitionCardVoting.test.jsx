@@ -37,8 +37,9 @@ vi.mock('../../../components/ui', () => ({
   Modal: ({ children, isOpen }) => (isOpen ? <div>{children}</div> : null),
 }));
 
+const voteModalMock = vi.hoisted(() => vi.fn(() => null));
 vi.mock('../../public-site/components/VoteModal', () => ({
-  default: () => null,
+  default: voteModalMock,
 }));
 
 const { default: CompetitionCardVoting } = await import('./CompetitionCardVoting');
@@ -175,6 +176,48 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
       /Free vote resets in .+ — or send paid votes anytime\./i,
     );
     expect(messages).toHaveLength(1);
+  });
+
+  it('passes the server-returned amount to VoteModal as serverAmount', async () => {
+    // The server's authoritative price for 250 votes against the *current*
+    // competitions.price_per_vote (e.g. $1.40 base × 0.50 tier = $1.75/vote).
+    // The client estimate using the prop's stale price_per_vote=1 would be
+    // $125 — we want to prove the server's $175 reaches the modal regardless.
+    const votesLib = await import('../../../lib/votes');
+    votesLib.createVotePaymentIntent.mockResolvedValueOnce({
+      success: true,
+      clientSecret: 'cs_test_123',
+      paymentIntentId: 'pi_test_123',
+      amount: 17500, // cents — server is the source of truth
+      voteCount: 250,
+      contestantName: 'Katie Smith',
+    });
+
+    voteModalMock.mockClear();
+    render(<CompetitionCardVoting {...baseProps} />);
+
+    // Pick the 250-vote preset.
+    const tile250 = (await screen.findAllByRole('button')).find((b) =>
+      /250\s*votes/i.test(b.textContent || ''),
+    );
+    expect(tile250).toBeTruthy();
+    fireEvent.click(tile250);
+
+    // Send → opens modal + fires PaymentIntent.
+    const sendBtn = await screen.findByRole('button', { name: /Send\s+250\s+votes/i });
+    await act(async () => {
+      fireEvent.click(sendBtn);
+    });
+
+    // The modal opens immediately with serverAmount=null (estimate phase),
+    // then re-renders with serverAmount=17500 once createVotePaymentIntent
+    // resolves. Wait for the post-resolve render.
+    await waitFor(() => {
+      const calls = voteModalMock.mock.calls;
+      const last = calls[calls.length - 1]?.[0];
+      expect(last?.serverAmount).toBe(17500);
+      expect(last?.preloadedClientSecret).toBe('cs_test_123');
+    });
   });
 
   it('does NOT lock on a generic (non-ALREADY_VOTED) error', async () => {
