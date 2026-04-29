@@ -438,13 +438,23 @@ export async function createVotePaymentIntent({
  * Record a paid vote after successful payment
  * Note: This is called client-side for immediate UI feedback.
  * The webhook will also record the vote, so we use idempotency checks.
+ *
+ * IMPORTANT: this client-side write almost always wins the race against
+ * the webhook (network round-trip from Stripe). Whatever values we pass
+ * here become the final values stored in the votes row, because the
+ * webhook short-circuits as soon as it sees an existing row matching the
+ * payment_intent_id. So `voteCount` MUST be pre-doubled when applicable
+ * and `isDoubleVote` MUST be set correctly — otherwise the webhook's
+ * doubling logic is dead code for authenticated voters.
+ *
  * @param {Object} params - Vote parameters
  * @param {string} params.paymentIntentId - The Stripe payment intent ID
  * @param {string} params.competitionId - The competition ID
  * @param {string} params.contestantId - The contestant ID
- * @param {number} params.voteCount - Number of votes purchased
+ * @param {number} params.voteCount - Number of votes to credit (pre-doubled when isDoubleVote)
  * @param {number} params.amountPaid - Amount paid in dollars
  * @param {string} params.voterEmail - The voter's email
+ * @param {boolean} params.isDoubleVote - True if today is a host-scheduled double-vote day
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export async function recordPaidVote({
@@ -454,6 +464,7 @@ export async function recordPaidVote({
   voteCount,
   amountPaid,
   voterEmail,
+  isDoubleVote = false,
 }) {
   if (!supabase) {
     return { success: false, error: 'Database not configured' };
@@ -484,7 +495,7 @@ export async function recordPaidVote({
         vote_count: voteCount,
         amount_paid: amountPaid,
         payment_intent_id: paymentIntentId,
-        is_double_vote: false,
+        is_double_vote: isDoubleVote,
       });
 
     if (voteError) {

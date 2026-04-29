@@ -257,6 +257,16 @@ export default function VoteModal({
 
   // Handle successful payment
   const handlePaymentSuccess = async () => {
+    // Pre-double the count for double-vote days so the values we write
+    // here are correct regardless of whether the webhook gets a chance to
+    // run. The webhook would compute the same numbers, but it short-
+    // circuits the moment it sees an existing row matching this
+    // payment_intent_id — so for authenticated voters this client write
+    // is effectively the source of truth.
+    const creditedVoteCount = forceDoubleVoteDay
+      ? selectedVoteCount * 2
+      : selectedVoteCount;
+
     // For authenticated voters we record the vote client-side for immediate
     // feedback; the webhook will dedup on payment_intent_id. For anonymous
     // voters we let the webhook be the source of truth so voter_email is
@@ -266,13 +276,14 @@ export default function VoteModal({
         paymentIntentId,
         competitionId,
         contestantId: contestant.id,
-        voteCount: selectedVoteCount,
+        voteCount: creditedVoteCount,
         amountPaid: displayedTotal,
         voterEmail: user?.email,
+        isDoubleVote: !!forceDoubleVoteDay,
       });
     }
 
-    setVotesAdded(selectedVoteCount);
+    setVotesAdded(creditedVoteCount);
     setShowPaymentForm(false);
     setShowSuccess(true);
     onVoteSuccess?.();
