@@ -1,0 +1,92 @@
+name: Deploy Supabase Edge Functions
+
+# Auto-deploys all edge functions in supabase/functions/ on every push to
+# main that touches one of them, so the Supabase backend stays in lockstep
+# with the Vercel-deployed frontend. The original tier-pricing overcharge
+# bug (~$558 across 36 customers) was caused by exactly this gap: Vercel
+# shipped new tier boundaries while create-payment-intent kept billing
+# against the old ones.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  — generate at https://app.supabase.com/account/tokens
+#   SUPABASE_PROJECT_REF   — project ref (the subdomain in the Supabase URL)
+#
+# Migrations are intentionally NOT auto-deployed here — they require a
+# human review step. Only edge functions.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-edge-functions.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-edge-functions
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Validate secrets
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_PROJECT_REF:-}" ]; then
+            echo "::error::Missing SUPABASE_ACCESS_TOKEN or SUPABASE_PROJECT_REF secret."
+            echo "Add both under Settings → Secrets and variables → Actions before merging."
+            exit 1
+          fi
+
+      - name: Deploy all edge functions
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          # Functions that must be deployed with --no-verify-jwt because they
+          # authenticate via something other than a Supabase JWT. Add new
+          # public-callable functions here, otherwise Supabase will 401 every
+          # request before it reaches the function code.
+          #
+          #   stripe-webhook    — Stripe sends webhooks signed with stripe-signature
+          #   fan-unsubscribe   — HMAC token in the email link, no session
+          #   accept-nomination — invite token / magic link, no session
+          NO_JWT_FUNCTIONS=("stripe-webhook" "fan-unsubscribe" "accept-nomination")
+
+          deployed=0
+          for dir in supabase/functions/*/; do
+            name="$(basename "$dir")"
+            # Skip shared-module dirs (Supabase convention: leading underscore).
+            if [[ "$name" == _* ]]; then continue; fi
+
+            flags=()
+            for nojwt in "${NO_JWT_FUNCTIONS[@]}"; do
+              if [[ "$name" == "$nojwt" ]]; then
+                flags+=(--no-verify-jwt)
+              fi
+            done
+
+            echo "::group::Deploying $name${flags[*]:+ (${flags[*]})}"
+            supabase functions deploy "$name" \
+              --project-ref "$SUPABASE_PROJECT_REF" \
+              "${flags[@]}"
+            echo "::endgroup::"
+            deployed=$((deployed + 1))
+          done
+
+          {
+            echo "## Edge functions deployed"
+            echo ""
+            echo "Deployed **$deployed** function(s) to project \`$SUPABASE_PROJECT_REF\`."
+          } >> "$GITHUB_STEP_SUMMARY"
