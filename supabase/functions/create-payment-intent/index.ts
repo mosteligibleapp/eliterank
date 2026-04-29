@@ -117,6 +117,26 @@ serve(async (req) => {
       : basePrice
     const totalAmount = Math.round(perVotePrice * voteCount * 100) // cents
 
+    // Resolve double-vote-day status so the Stripe description and receipt
+    // reflect what the contestant actually gets credited (e.g. "200 votes
+    // (2× Double Vote Day)") instead of the raw purchase count. Without
+    // this, customers paying $70 for 100 votes on a double day saw "100
+    // votes" on their statement while their contestant got 200 credited —
+    // confusing and looks like short-changing.
+    //
+    // Important: metadata.vote_count stays as the raw purchase count.
+    // stripe-webhook reads it and applies its own doubling at insert time;
+    // doubling it here would compound to 4×.
+    const { data: isDoubleRpc } = await supabase.rpc('is_double_vote_day', {
+      p_competition_id: competitionId,
+    })
+    const isDoubleVoteDay = isDoubleRpc === true
+    const creditedVoteCount = isDoubleVoteDay ? voteCount * 2 : voteCount
+    const compName = competition.name || `Season ${competition.season}`
+    const description = isDoubleVoteDay
+      ? `${creditedVoteCount} votes (2× Double Vote Day) for ${contestant.name} in ${compName}`
+      : `${creditedVoteCount} vote${creditedVoteCount > 1 ? 's' : ''} for ${contestant.name} in ${compName}`
+
     // Initialize Stripe
     const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16',
@@ -135,10 +155,12 @@ serve(async (req) => {
         contestant_id: contestantId,
         vote_count: voteCount.toString(),
         voter_email: voterEmail || '',
-        competition_name: competition.name || `Season ${competition.season}`,
+        competition_name: compName,
         contestant_name: contestant.name,
+        is_double_vote_day: isDoubleVoteDay ? 'true' : 'false',
+        credited_vote_count: creditedVoteCount.toString(),
       },
-      description: `${voteCount} vote${voteCount > 1 ? 's' : ''} for ${contestant.name} in ${competition.name || `Season ${competition.season}`}`,
+      description,
     })
 
     return new Response(
