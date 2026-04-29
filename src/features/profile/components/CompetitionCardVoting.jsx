@@ -480,14 +480,19 @@ export default function CompetitionCardVoting({
             }}
             style={{
               minWidth: 0,
-              // Wide enough for the "Custom amount" placeholder when empty
-              // while still leaving room for the "votes" label + live price
-              // on the right of the row.
-              width: '14ch',
+              // Reserve placeholder width when empty; once the user types,
+              // shrink to fit so the doubled-count display can sit right
+              // next to it instead of being pushed across the row.
+              width: selectedCount ? `${String(selectedCount).length + 1}ch` : '14ch',
               padding: `${spacing.xs} 0`,
               background: 'transparent',
               border: 'none',
-              color: colors.text.primary,
+              // On a double day the typed value is the "before" and the
+              // doubled count is the new primary — mute the input so the
+              // doubled count gets visual priority.
+              color: isDoubleVoteDay && Number(selectedCount) >= 1
+                ? colors.text.muted
+                : colors.text.primary,
               fontSize: typography.fontSize.base,
               fontWeight: typography.fontWeight.semibold,
               textAlign: 'left',
@@ -500,7 +505,6 @@ export default function CompetitionCardVoting({
               display: 'flex',
               alignItems: 'baseline',
               gap: spacing.xs,
-              marginLeft: `-${spacing.sm}`,
             }}>
               <span style={{
                 fontSize: typography.fontSize.sm,
