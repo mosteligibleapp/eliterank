@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown } from 'lucide-react';
+import { isDoubleVoteDayForCompetition } from '../../../lib/doubleVoteDay';
 
 /**
  * Consistent competition header across all phases
@@ -13,13 +15,37 @@ import { Crown } from 'lucide-react';
 export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 'default', compact = false, iconOnly = false }) {
   const { competition, organization, about } = usePublicCompetition();
 
-  // Determine badge variant class
+  // Resolve double-vote-day status so the phase badge can flip to a
+  // green "DOUBLE DAY · ALL VOTES 2×" overlay during a host-scheduled
+  // double day. Re-polls every 60s so the badge auto-flips at the
+  // competition's local midnight without requiring a page refresh.
+  const [isDoubleVoteDay, setIsDoubleVoteDay] = useState(false);
+  useEffect(() => {
+    if (!competition?.id) return undefined;
+    let cancelled = false;
+    const refresh = () => {
+      isDoubleVoteDayForCompetition(competition.id).then((flag) => {
+        if (!cancelled) setIsDoubleVoteDay(!!flag);
+      });
+    };
+    refresh();
+    const handle = setInterval(refresh, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(handle);
+    };
+  }, [competition?.id]);
+
+  // Determine badge variant class (overridden to green 'active' style
+  // during a double day so the visual cue matches the inline panel).
+  const effectiveVariant = isDoubleVoteDay ? 'active' : badgeVariant;
   const badgeClass = {
     default: '',
     active: 'phase-badge-active',
     live: 'phase-badge-live',
     complete: 'phase-badge-complete',
-  }[badgeVariant] || '';
+  }[effectiveVariant] || '';
+  const effectiveBadge = isDoubleVoteDay ? 'Double Day · All Votes 2×' : badge;
 
   // In compact or icon-only mode prefer the square icon logo over the wide
   // wordmark. Compact is used on leaderboard/prizes to shrink the header;
@@ -71,11 +97,11 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
       )}
 
       {/* Phase Badge */}
-      {badge && (
+      {effectiveBadge && (
         <div className={`phase-badge ${badgeClass}`}>
-          {BadgeIcon && <BadgeIcon size={14} />}
+          {BadgeIcon && !isDoubleVoteDay && <BadgeIcon size={14} />}
           <span className="badge-dot" />
-          {badge}
+          {effectiveBadge}
         </div>
       )}
     </section>
