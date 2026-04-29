@@ -437,6 +437,7 @@ export default function CompetitionCardVoting({
               count={count}
               pricePerVote={pricePerVote}
               useBundler={useBundler}
+              isDoubleVoteDay={isDoubleVoteDay}
               active={Number(selectedCount) === count}
               onClick={handleTileClick(count)}
             />
@@ -679,13 +680,22 @@ export default function CompetitionCardVoting({
   );
 }
 
-function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
+function PresetTile({ count, pricePerVote, useBundler, isDoubleVoteDay, active, onClick }) {
   const total = calculateVotePrice(count, useBundler, pricePerVote);
   const save = Math.max(0, count * pricePerVote - total);
   // Only surface the savings when the delta is meaningful — hides the
   // noisy "save $4" on the 25-vote tile and keeps attention on the big
   // discounts (100 votes = save $30, 250 votes = save $125).
   const showSave = save >= 10;
+
+  // Two value props can stack on a tile: the bundler savings (existing)
+  // and the double-vote-day bonus (new). Both render in the same green
+  // accent slot under the price, separated by a middot when both apply.
+  // For the 25-vote tile bundler savings are hidden, so on a double day
+  // it shows only "+25 today" — the cleanest possible signal.
+  const bonusLabel = isDoubleVoteDay ? `+${count} today` : null;
+  const saveLabel = showSave ? `save ${totalFormatter.format(save)}` : null;
+  const benefitLine = [bonusLabel, saveLabel].filter(Boolean).join(' · ');
 
   return (
     <div style={{ position: 'relative' }}>
@@ -731,13 +741,13 @@ function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
           }}>
             {totalFormatter.format(total)}
           </span>
-          {showSave && (
+          {benefitLine && (
             <span style={{
               fontSize: typography.fontSize.xs,
               color: colors.status.success,
               fontWeight: typography.fontWeight.semibold,
             }}>
-              save {totalFormatter.format(save)}
+              {benefitLine}
             </span>
           )}
         </div>
