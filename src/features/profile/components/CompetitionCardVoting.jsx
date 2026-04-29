@@ -488,13 +488,44 @@ export default function CompetitionCardVoting({
               outline: 'none',
             }}
           />
-          <span style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
-            flex: 1,
-          }}>
-            votes
-          </span>
+          {isDoubleVoteDay && Number(selectedCount) >= 1 ? (
+            <span style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: spacing.xs,
+            }}>
+              <span style={{
+                fontSize: typography.fontSize.xs,
+                color: colors.text.muted,
+                textDecoration: 'line-through',
+                textDecorationColor: 'rgba(255,255,255,0.45)',
+              }}>
+                {selectedCount}
+              </span>
+              <span style={{
+                fontSize: typography.fontSize.sm,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.text.primary,
+              }}>
+                {Number(selectedCount) * 2}
+              </span>
+              <span style={{
+                fontSize: typography.fontSize.xs,
+                color: colors.text.muted,
+              }}>
+                votes
+              </span>
+            </span>
+          ) : (
+            <span style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.text.muted,
+              flex: 1,
+            }}>
+              votes
+            </span>
+          )}
           <span style={{
             fontSize: typography.fontSize.sm,
             fontWeight: typography.fontWeight.semibold,
@@ -554,7 +585,7 @@ export default function CompetitionCardVoting({
             opacity: canSend ? 1 : 0.6,
           }}
         >
-          Send {selectedCount || 0} {Number(selectedCount) === 1 ? 'vote' : 'votes'} — {formatPrice(total)}
+          Send {isDoubleVoteDay ? Number(selectedCount || 0) * 2 : (selectedCount || 0)} {Number(selectedCount) === 1 && !isDoubleVoteDay ? 'vote' : 'votes'} — {formatPrice(total)}
         </button>
 
         {/* Free-vote path — hide once the free vote has been successfully
@@ -687,15 +718,10 @@ function PresetTile({ count, pricePerVote, useBundler, isDoubleVoteDay, active, 
   // noisy "save $4" on the 25-vote tile and keeps attention on the big
   // discounts (100 votes = save $30, 250 votes = save $125).
   const showSave = save >= 10;
-
-  // Two value props can stack on a tile: the bundler savings (existing)
-  // and the double-vote-day bonus (new). Both render in the same green
-  // accent slot under the price, separated by a middot when both apply.
-  // For the 25-vote tile bundler savings are hidden, so on a double day
-  // it shows only "+25 today" — the cleanest possible signal.
-  const bonusLabel = isDoubleVoteDay ? `+${count} today` : null;
-  const saveLabel = showSave ? `save ${totalFormatter.format(save)}` : null;
-  const benefitLine = [bonusLabel, saveLabel].filter(Boolean).join(' · ');
+  // Strikethrough pattern carries the double-day signal on the count
+  // itself (struck-through original + bold doubled count) so the green
+  // accent slot can stay reserved for the bundler savings only.
+  const displayCount = isDoubleVoteDay ? count * 2 : count;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -717,13 +743,25 @@ function PresetTile({ count, pricePerVote, useBundler, isDoubleVoteDay, active, 
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: spacing.xs }}>
+          {isDoubleVoteDay && (
+            <span style={{
+              fontSize: typography.fontSize.lg,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.muted,
+              textDecoration: 'line-through',
+              textDecorationColor: 'rgba(255,255,255,0.45)',
+              lineHeight: 1,
+            }}>
+              {count}
+            </span>
+          )}
           <span style={{
             fontSize: typography.fontSize['2xl'],
             fontWeight: typography.fontWeight.bold,
             color: colors.text.primary,
             lineHeight: 1,
           }}>
-            {count}
+            {displayCount}
           </span>
           <span style={{
             fontSize: typography.fontSize.sm,
@@ -741,13 +779,13 @@ function PresetTile({ count, pricePerVote, useBundler, isDoubleVoteDay, active, 
           }}>
             {totalFormatter.format(total)}
           </span>
-          {benefitLine && (
+          {showSave && (
             <span style={{
               fontSize: typography.fontSize.xs,
               color: colors.status.success,
               fontWeight: typography.fontWeight.semibold,
             }}>
-              {benefitLine}
+              save {totalFormatter.format(save)}
             </span>
           )}
         </div>
