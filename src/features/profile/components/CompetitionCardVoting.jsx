@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight } from 'lucide-react';
+import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight, Sparkles } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { VoteShareCard, Modal } from '../../../components/ui';
 import { useSupabaseAuth, useLeaderboard, useFingerprint } from '../../../hooks';
@@ -387,34 +387,23 @@ export default function CompetitionCardVoting({
             : `Send votes to ${firstName}`}
         </h4>
 
-        {/* Double-vote-day banner — surfaces the 2× promo before the voter
-            opens the modal. Hidden on normal days. Matches the modal's
-            gold+green accent so the visual cue is consistent across both
-            surfaces. */}
+        {/* Double-vote-day banner — single source of truth for the 2×
+            cue. We deliberately don't repeat the math on every tile or in
+            the CTA; one calm signal beats three loud ones. */}
         {isDoubleVoteDay && (
           <div style={{
-            padding: `${spacing.sm} ${spacing.md}`,
-            background: 'linear-gradient(135deg, rgba(212,175,55,0.18), rgba(34,197,94,0.12))',
-            border: `1px solid rgba(34,197,94,0.35)`,
+            padding: `${spacing.xs} ${spacing.md}`,
+            background: 'rgba(34,197,94,0.07)',
+            border: `1px solid rgba(34,197,94,0.22)`,
             borderRadius: borderRadius.md,
             display: 'flex',
             alignItems: 'center',
             gap: spacing.sm,
           }}>
-            <span style={{
-              fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.bold,
-              color: colors.status.success,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-            }}>
-              2× Double Vote Day
-            </span>
-            <span style={{
-              fontSize: typography.fontSize.xs,
-              color: colors.text.secondary,
-            }}>
-              every vote counts twice today
+            <Sparkles size={14} style={{ color: colors.status.success, flexShrink: 0 }} />
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
+              <strong style={{ fontWeight: typography.fontWeight.semibold }}>Double Vote Day</strong>
+              <span style={{ color: colors.text.muted }}>{' · every vote counts 2× today'}</span>
             </span>
           </div>
         )}
@@ -448,7 +437,6 @@ export default function CompetitionCardVoting({
               count={count}
               pricePerVote={pricePerVote}
               useBundler={useBundler}
-              isDoubleVoteDay={isDoubleVoteDay}
               active={Number(selectedCount) === count}
               onClick={handleTileClick(count)}
             />
@@ -565,9 +553,7 @@ export default function CompetitionCardVoting({
             opacity: canSend ? 1 : 0.6,
           }}
         >
-          Send {selectedCount || 0} {Number(selectedCount) === 1 ? 'vote' : 'votes'}
-          {isDoubleVoteDay && Number(selectedCount) >= 1 ? ` (= ${Number(selectedCount) * 2} today)` : ''}
-          {' '}— {formatPrice(total)}
+          Send {selectedCount || 0} {Number(selectedCount) === 1 ? 'vote' : 'votes'} — {formatPrice(total)}
         </button>
 
         {/* Free-vote path — hide once the free vote has been successfully
@@ -693,7 +679,7 @@ export default function CompetitionCardVoting({
   );
 }
 
-function PresetTile({ count, pricePerVote, useBundler, isDoubleVoteDay, active, onClick }) {
+function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
   const total = calculateVotePrice(count, useBundler, pricePerVote);
   const save = Math.max(0, count * pricePerVote - total);
   // Only surface the savings when the delta is meaningful — hides the
@@ -735,16 +721,6 @@ function PresetTile({ count, pricePerVote, useBundler, isDoubleVoteDay, active, 
           }}>
             votes
           </span>
-          {isDoubleVoteDay && (
-            <span style={{
-              fontSize: typography.fontSize.xs,
-              color: colors.status.success,
-              fontWeight: typography.fontWeight.semibold,
-              marginLeft: spacing.xs,
-            }}>
-              = {count * 2} today
-            </span>
-          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
           <span style={{
