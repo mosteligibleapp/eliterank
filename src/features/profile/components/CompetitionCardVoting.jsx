@@ -494,15 +494,8 @@ export default function CompetitionCardVoting({
               display: 'flex',
               alignItems: 'baseline',
               gap: spacing.xs,
+              marginLeft: `-${spacing.sm}`,
             }}>
-              <span style={{
-                fontSize: typography.fontSize.xs,
-                color: colors.text.muted,
-                textDecoration: 'line-through',
-                textDecorationColor: 'rgba(255,255,255,0.45)',
-              }}>
-                {selectedCount}
-              </span>
               <span style={{
                 fontSize: typography.fontSize.sm,
                 fontWeight: typography.fontWeight.semibold,
