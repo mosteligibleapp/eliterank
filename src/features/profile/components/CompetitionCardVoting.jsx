@@ -398,12 +398,18 @@ export default function CompetitionCardVoting({
             borderRadius: borderRadius.md,
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: spacing.sm,
           }}>
             <Sparkles size={14} style={{ color: colors.status.success, flexShrink: 0 }} />
-            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
-              <strong style={{ fontWeight: typography.fontWeight.semibold }}>Double Vote Day</strong>
-              <span style={{ color: colors.text.muted }}>{' · every vote counts 2× today'}</span>
+            <span style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.primary,
+              fontWeight: typography.fontWeight.semibold,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}>
+              Double Vote Day · every vote counts 2× today
             </span>
           </div>
         )}
