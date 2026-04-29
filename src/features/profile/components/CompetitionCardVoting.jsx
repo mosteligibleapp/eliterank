@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight } from 'lucide-react';
+import { Heart, Loader, Check, Mail, TrendingUp, ArrowRight, Sparkles } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { VoteShareCard, Modal } from '../../../components/ui';
 import { useSupabaseAuth, useLeaderboard, useFingerprint } from '../../../hooks';
@@ -387,6 +387,33 @@ export default function CompetitionCardVoting({
             : `Send votes to ${firstName}`}
         </h4>
 
+        {/* Double-vote-day banner — single source of truth for the 2×
+            cue. We deliberately don't repeat the math on every tile or in
+            the CTA; one calm signal beats three loud ones. */}
+        {isDoubleVoteDay && (
+          <div style={{
+            padding: `${spacing.xs} ${spacing.md}`,
+            background: 'rgba(34,197,94,0.07)',
+            border: `1px solid rgba(34,197,94,0.22)`,
+            borderRadius: borderRadius.md,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.sm,
+          }}>
+            <Sparkles size={14} style={{ color: colors.status.success, flexShrink: 0 }} />
+            <span style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.primary,
+              fontWeight: typography.fontWeight.semibold,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}>
+              Double Vote Day · every vote counts 2× today
+            </span>
+          </div>
+        )}
+
         {castSuccess && (
           <div style={{
             display: 'flex',
@@ -416,6 +443,7 @@ export default function CompetitionCardVoting({
               count={count}
               pricePerVote={pricePerVote}
               useBundler={useBundler}
+              isDoubleVoteDay={isDoubleVoteDay}
               active={Number(selectedCount) === count}
               onClick={handleTileClick(count)}
             />
@@ -466,13 +494,37 @@ export default function CompetitionCardVoting({
               outline: 'none',
             }}
           />
-          <span style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
-            flex: 1,
-          }}>
-            votes
-          </span>
+          {isDoubleVoteDay && Number(selectedCount) >= 1 ? (
+            <span style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: spacing.xs,
+              marginLeft: `-${spacing.sm}`,
+            }}>
+              <span style={{
+                fontSize: typography.fontSize.sm,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.text.primary,
+              }}>
+                {Number(selectedCount) * 2}
+              </span>
+              <span style={{
+                fontSize: typography.fontSize.xs,
+                color: colors.text.muted,
+              }}>
+                votes
+              </span>
+            </span>
+          ) : (
+            <span style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.text.muted,
+              flex: 1,
+            }}>
+              votes
+            </span>
+          )}
           <span style={{
             fontSize: typography.fontSize.sm,
             fontWeight: typography.fontWeight.semibold,
@@ -532,7 +584,7 @@ export default function CompetitionCardVoting({
             opacity: canSend ? 1 : 0.6,
           }}
         >
-          Send {selectedCount || 0} {Number(selectedCount) === 1 ? 'vote' : 'votes'} — {formatPrice(total)}
+          Send {isDoubleVoteDay ? Number(selectedCount || 0) * 2 : (selectedCount || 0)} {Number(selectedCount) === 1 && !isDoubleVoteDay ? 'vote' : 'votes'} — {formatPrice(total)}
         </button>
 
         {/* Free-vote path — hide once the free vote has been successfully
@@ -658,13 +710,17 @@ export default function CompetitionCardVoting({
   );
 }
 
-function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
+function PresetTile({ count, pricePerVote, useBundler, isDoubleVoteDay, active, onClick }) {
   const total = calculateVotePrice(count, useBundler, pricePerVote);
   const save = Math.max(0, count * pricePerVote - total);
   // Only surface the savings when the delta is meaningful — hides the
   // noisy "save $4" on the 25-vote tile and keeps attention on the big
   // discounts (100 votes = save $30, 250 votes = save $125).
   const showSave = save >= 10;
+  // Strikethrough pattern carries the double-day signal on the count
+  // itself (struck-through original + bold doubled count) so the green
+  // accent slot can stay reserved for the bundler savings only.
+  const displayCount = isDoubleVoteDay ? count * 2 : count;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -686,13 +742,25 @@ function PresetTile({ count, pricePerVote, useBundler, active, onClick }) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: spacing.xs }}>
+          {isDoubleVoteDay && (
+            <span style={{
+              fontSize: typography.fontSize.lg,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.muted,
+              textDecoration: 'line-through',
+              textDecorationColor: 'rgba(255,255,255,0.45)',
+              lineHeight: 1,
+            }}>
+              {count}
+            </span>
+          )}
           <span style={{
             fontSize: typography.fontSize['2xl'],
             fontWeight: typography.fontWeight.bold,
             color: colors.text.primary,
             lineHeight: 1,
           }}>
-            {count}
+            {displayCount}
           </span>
           <span style={{
             fontSize: typography.fontSize.sm,
