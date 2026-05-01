@@ -65,7 +65,7 @@ export default function NomineeInfoStep({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           onChange={handlePhotoChange}
           className="entry-photo-input"
         />
