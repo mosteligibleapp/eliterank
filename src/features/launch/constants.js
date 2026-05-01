@@ -71,7 +71,7 @@ export const START_TIMEFRAME_OPTIONS = [
 export const INITIAL_FORM = {
   // Org
   org_name: '',
-  org_is_new: true,
+  is_new_to_hosting: true,
   contact_name: '',
   contact_email: '',
   // Category

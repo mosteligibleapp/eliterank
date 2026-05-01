@@ -210,7 +210,8 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
         gap: spacing.lg,
       }}>
         <DetailSection title="Organization">
-          <DetailRow label="Org name">{submission.org_name} {submission.org_is_new ? '(new)' : '(existing)'}</DetailRow>
+          <DetailRow label="Org name">{submission.org_name}</DetailRow>
+          <DetailRow label="Hosting">{submission.is_new_to_hosting ? 'New to hosting' : 'Has been running competitions'}</DetailRow>
           <DetailRow label="Contact">{dash(submission.contact_name)}</DetailRow>
           <DetailRow label="Email">
             <a href={`mailto:${submission.contact_email}`} style={{ color: colors.gold.primary, textDecoration: 'none' }}>
@@ -422,7 +423,7 @@ export default function CompetitionSubmissionsViewer() {
         <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
           <Building2 size={14} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
           <span style={{ fontWeight: typography.fontWeight.medium }}>
-            {val} {row.org_is_new ? '' : <span style={{ color: colors.text.tertiary, fontSize: typography.fontSize.xs }}>(existing)</span>}
+            {val} {row.is_new_to_hosting === false && <span style={{ color: colors.text.tertiary, fontSize: typography.fontSize.xs }}>(experienced)</span>}
           </span>
         </span>
       ),

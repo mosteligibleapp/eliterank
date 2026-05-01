@@ -33,7 +33,7 @@ interface Submission {
   contact_name: string | null
   contact_email: string
   org_name: string
-  org_is_new: boolean
+  is_new_to_hosting: boolean
   category: string
   category_other: string | null
   competition_name: string | null
@@ -107,7 +107,7 @@ function adminNotificationEmail(sub: Submission, appUrl: string): { subject: str
   const inner = `
     <h2 style="color:#d4af37;font-size:20px;margin:0 0 16px;">New launch submission</h2>
     <table style="width:100%;font-size:13px;border-collapse:collapse;">
-      ${row('Org', `${escape(sub.org_name)} ${sub.org_is_new ? '(new)' : '(existing)'}`)}
+      ${row('Org', `${escape(sub.org_name)} ${sub.is_new_to_hosting ? '(new to hosting)' : '(experienced organizer)'}`)}
       ${row('Contact', `${escape(sub.contact_name || '—')} &lt;${escape(sub.contact_email)}&gt;`)}
       ${row('Competition', escape(compLabel))}
       ${row('Category', escape(sub.category_other || sub.category))}

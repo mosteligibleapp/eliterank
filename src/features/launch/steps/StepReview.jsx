@@ -105,7 +105,8 @@ export default function StepReview({ form, onJumpTo }) {
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
         <Section title="Organization" stepKey="org" onEdit={goTo}>
-          <Row label="Org name">{dash(form.org_name)} {form.org_is_new ? '(new)' : '(existing)'}</Row>
+          <Row label="Org name">{dash(form.org_name)}</Row>
+          <Row label="Hosting">{form.is_new_to_hosting ? 'New to hosting' : "Has been running competitions"}</Row>
           <Row label="Contact">{dash(form.contact_name)}</Row>
           <Row label="Email">{dash(form.contact_email)}</Row>
         </Section>

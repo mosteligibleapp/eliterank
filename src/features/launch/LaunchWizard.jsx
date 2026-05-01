@@ -189,7 +189,7 @@ function buildPayload(form) {
   const num = (v) => (v === '' || v == null ? null : Number(v));
   return {
     org_name: form.org_name.trim(),
-    org_is_new: !!form.org_is_new,
+    is_new_to_hosting: !!form.is_new_to_hosting,
     contact_name: form.contact_name.trim() || null,
     contact_email: form.contact_email.trim(),
     category: form.category,

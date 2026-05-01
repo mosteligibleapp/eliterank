@@ -7,7 +7,7 @@ export default function StepOrg({ form, errors, showErrors, setField }) {
   return (
     <StepShell
       title="Tell us about your org"
-      subtitle="We'll match you to existing infrastructure if you already host with us."
+      subtitle="Helps us understand where you're starting from."
     >
       <div>
         <Label htmlFor="org_name" required>Organization name</Label>
@@ -23,15 +23,15 @@ export default function StepOrg({ form, errors, showErrors, setField }) {
       </div>
 
       <div>
-        <Label>Are you new or do you already host with us?</Label>
+        <Label>Have you organized competitions before?</Label>
         <div style={{ marginTop: spacing.xs }}>
           <ChipGroup
             options={[
-              { value: 'new', label: 'New org' },
-              { value: 'existing', label: 'Existing host' },
+              { value: 'new', label: 'New to hosting' },
+              { value: 'experienced', label: "I've been running competitions" },
             ]}
-            value={form.org_is_new ? 'new' : 'existing'}
-            onChange={(v) => setField('org_is_new', v === 'new')}
+            value={form.is_new_to_hosting ? 'new' : 'experienced'}
+            onChange={(v) => setField('is_new_to_hosting', v === 'new')}
             multiSelect={false}
           />
         </div>
