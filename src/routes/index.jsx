@@ -39,6 +39,7 @@ const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
 const PhotoBoothPage = lazy(() => import('../pages/PhotoBoothPage'));
 const AccountSettingsPage = lazy(() => import('../pages/AccountSettingsPage'));
+const LaunchCompetitionPage = lazy(() => import('../pages/LaunchCompetitionPage'));
 
 const darkVoid = <div style={{ minHeight: '100vh', background: '#0a0a0c' }} />;
 
@@ -193,6 +194,16 @@ export default function AppRoutes() {
         element={
           <SuspenseWrapper>
             <PhotoBoothPage />
+          </SuspenseWrapper>
+        }
+      />
+
+      {/* Launch a competition — public top-of-funnel wizard */}
+      <Route
+        path="/launch"
+        element={
+          <SuspenseWrapper>
+            <LaunchCompetitionPage />
           </SuspenseWrapper>
         }
       />

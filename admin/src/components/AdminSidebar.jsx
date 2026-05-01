@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   Trophy, FileText, Users, Building2, MapPin, Gift, Package, Settings,
-  Crown, ChevronLeft, ChevronRight, Menu, X,
+  Crown, ChevronLeft, ChevronRight, Menu, X, Rocket,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, transitions } from '@shared/styles/theme';
 import { useResponsive } from '@shared/hooks/useResponsive';
+import { usePendingSubmissionCount } from '../features/super-admin/components/CompetitionSubmissionsViewer';
 
 const NAV_GROUPS = [
   {
@@ -12,6 +13,7 @@ const NAV_GROUPS = [
     items: [
       { key: 'competitions', label: 'All Competitions', icon: Trophy },
       { key: 'interests', label: 'Interest Submissions', icon: FileText },
+      { key: 'launch_submissions', label: 'Competition Submissions', icon: Rocket, badgeKey: 'pending_submissions' },
     ],
   },
   {
@@ -45,7 +47,48 @@ const NAV_GROUPS = [
 const SIDEBAR_EXPANDED_WIDTH = 220;
 const SIDEBAR_COLLAPSED_WIDTH = 56;
 
-function NavItem({ item, isActive, collapsed, onNavigate }) {
+function Badge({ count, collapsed }) {
+  if (!count) return null;
+  if (collapsed) {
+    return (
+      <span style={{
+        position: 'absolute',
+        top: 4,
+        right: 8,
+        minWidth: 16,
+        height: 16,
+        padding: '0 4px',
+        background: colors.gold.primary,
+        color: colors.text.inverse,
+        borderRadius: borderRadius.pill,
+        fontSize: 10,
+        fontWeight: typography.fontWeight.bold,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>{count > 99 ? '99+' : count}</span>
+    );
+  }
+  return (
+    <span style={{
+      marginLeft: 'auto',
+      minWidth: 20,
+      height: 20,
+      padding: `0 ${spacing.xs}`,
+      background: colors.gold.primary,
+      color: colors.text.inverse,
+      borderRadius: borderRadius.pill,
+      fontSize: typography.fontSize.xs,
+      fontWeight: typography.fontWeight.bold,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    }}>{count > 99 ? '99+' : count}</span>
+  );
+}
+
+function NavItem({ item, isActive, collapsed, onNavigate, badgeCount }) {
   const [hovered, setHovered] = useState(false);
   const Icon = item.icon;
 
@@ -56,6 +99,7 @@ function NavItem({ item, isActive, collapsed, onNavigate }) {
       onMouseLeave={() => setHovered(false)}
       title={collapsed ? item.label : undefined}
       style={{
+        position: 'relative',
         display: 'flex',
         alignItems: 'center',
         gap: spacing.md,
@@ -98,6 +142,7 @@ function NavItem({ item, isActive, collapsed, onNavigate }) {
           {item.label}
         </span>
       )}
+      <Badge count={badgeCount} collapsed={collapsed} />
     </button>
   );
 }
@@ -125,6 +170,9 @@ export default function AdminSidebar({ activeSection, onNavigate, collapsed, onT
   const [collapseHovered, setCollapseHovered] = useState(false);
   const { isMobile, isTablet } = useResponsive();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pendingSubmissions = usePendingSubmissionCount();
+  const badgeCounts = { pending_submissions: pendingSubmissions };
+  const getBadge = (item) => (item.badgeKey ? badgeCounts[item.badgeKey] || 0 : 0);
 
   // Close mobile drawer when navigating
   const handleNavigate = (key) => {
@@ -261,6 +309,7 @@ export default function AdminSidebar({ activeSection, onNavigate, collapsed, onT
                     isActive={activeSection === item.key}
                     collapsed={false}
                     onNavigate={handleNavigate}
+                    badgeCount={getBadge(item)}
                   />
                 ))}
               </div>
@@ -355,6 +404,7 @@ export default function AdminSidebar({ activeSection, onNavigate, collapsed, onT
                 isActive={activeSection === item.key}
                 collapsed={collapsed}
                 onNavigate={handleNavigate}
+                badgeCount={getBadge(item)}
               />
             ))}
           </div>

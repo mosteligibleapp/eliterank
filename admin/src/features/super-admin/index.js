@@ -5,3 +5,4 @@ export { default as OrganizationsManager } from './components/OrganizationsManag
 export { default as CitiesManager } from './components/CitiesManager';
 export { default as CompetitionsManager } from './components/CompetitionsManager';
 export { default as InterestSubmissionsViewer } from './components/InterestSubmissionsViewer';
+export { default as CompetitionSubmissionsViewer } from './components/CompetitionSubmissionsViewer';

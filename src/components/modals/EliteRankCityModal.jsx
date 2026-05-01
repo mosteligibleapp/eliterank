@@ -1621,6 +1621,27 @@ export default function EliteRankCityModal({
 
           {/* Auth Actions */}
           <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
+            {!isMobile && (
+              <a
+                href="/launch"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: `${spacing.sm} ${spacing.lg}`,
+                  background: 'transparent',
+                  border: `1px solid ${colors.gold.primary}`,
+                  borderRadius: borderRadius.pill,
+                  color: colors.gold.primary,
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: typography.fontWeight.semibold,
+                  textDecoration: 'none',
+                  transition: `all ${transitions.fast}`,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Launch a competition
+              </a>
+            )}
             {isAuthenticated && (
               <NotificationBell size={isMobile ? 36 : 40} />
             )}

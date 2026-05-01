@@ -15,6 +15,7 @@ const RewardsManager = lazy(() => import('./components/RewardsManager'));
 const SiteSettingsManager = lazy(() => import('./components/SiteSettingsManager'));
 const PrizeRedemptionTracker = lazy(() => import('./components/PrizeRedemptionTracker'));
 const InterestSubmissionsViewer = lazy(() => import('./components/InterestSubmissionsViewer'));
+const CompetitionSubmissionsViewer = lazy(() => import('./components/CompetitionSubmissionsViewer'));
 const CompetitionDashboard = lazy(() =>
   import('@shared/features/competition-dashboard').then((mod) => ({
     default: mod.CompetitionDashboard,
@@ -24,6 +25,7 @@ const CompetitionDashboard = lazy(() =>
 const SECTION_CONFIG = {
   competitions: { title: 'Competitions', subtitle: 'Create and manage competitions' },
   interests: { title: 'Interest Submissions', subtitle: 'Review pending submissions' },
+  launch_submissions: { title: 'Competition Submissions', subtitle: 'Review concepts submitted via /launch' },
   hosts: { title: 'Hosts', subtitle: 'Manage host accounts' },
   organizations: { title: 'Organizations', subtitle: 'Manage organizations' },
   cities: { title: 'Cities', subtitle: 'Manage competition cities' },
@@ -160,6 +162,12 @@ export default function SuperAdminPage({ onLogout, user, profile }) {
               competition={interestCompetition}
               onClose={() => setInterestCompetition(null)}
             />
+          </Suspense>
+        );
+      case 'launch_submissions':
+        return (
+          <Suspense fallback={<SectionLoader />}>
+            <CompetitionSubmissionsViewer />
           </Suspense>
         );
       case 'hosts':
