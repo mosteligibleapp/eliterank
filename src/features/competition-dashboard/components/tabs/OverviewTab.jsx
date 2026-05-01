@@ -6,7 +6,7 @@ import { useResponsive } from '../../../../hooks/useResponsive';
 import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
-import { generateRankingsCarousel } from '../../../achievement-cards/generateRankingsCarousel';
+import { generateRankingsCarousel, DEFAULT_BRAND as RANKINGS_BRAND } from '../../../achievement-cards/generateRankingsCarousel';
 import { supabase } from '../../../../lib/supabase';
 import { isLive } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
@@ -73,12 +73,18 @@ export default function OverviewTab({
     if (generatingRankings || rankedContestants.length === 0) return;
     setGeneratingRankings(true);
     try {
+      const orgLogo = competition?.organizationLogoUrl;
+      const brand = orgLogo
+        ? { ...RANKINGS_BRAND, logo: { ...RANKINGS_BRAND.logo, iconPath: orgLogo } }
+        : RANKINGS_BRAND;
+
       const slides = await generateRankingsCarousel({
         contestants: rankedContestants,
         competitionSlug: competition?.slug || competition?.name,
         cityName: competition?.city,
         season: competition?.season,
         roundTitle: activeRound?.title,
+        brand,
       });
       if (!slides.length) return;
 

@@ -397,34 +397,6 @@ function topLabelFor(index, roundEndType) {
   return 'RANK';
 }
 
-function contextLineFor(index, contestants) {
-  // X is always a positive integer. Returns { prefix: 'VOTES · ', tail, emphasize }
-  const votesAt = (i) => Number(contestants[i]?.votes || 0);
-  if (index === 0) {
-    if (contestants.length < 2) return { tail: 'LEADING THE FIELD' };
-    const x = Math.abs(votesAt(0) - votesAt(1));
-    return { tail: `LEADING BY ${fmtVotes(x)}` };
-  }
-  if (index === 1 && contestants.length >= 2) {
-    const x = Math.abs(votesAt(0) - votesAt(1));
-    return { tail: `${fmtVotes(x)} BEHIND #1` };
-  }
-  if (index === 2 && contestants.length >= 3) {
-    const x = Math.abs(votesAt(1) - votesAt(2));
-    return { tail: `${fmtVotes(x)} BEHIND #2` };
-  }
-  if (index === 3 && contestants.length >= 4) {
-    const x = Math.abs(votesAt(2) - votesAt(3));
-    return { tail: `${fmtVotes(x)} BEHIND #3` };
-  }
-  if (index === 4) {
-    if (contestants.length < 6) return { tail: 'HOLDING THE CUTLINE', emphasize: true };
-    const x = Math.abs(votesAt(4) - votesAt(5));
-    return { tail: `${fmtVotes(x)} AHEAD OF #6`, emphasize: true };
-  }
-  return { tail: '' };
-}
-
 async function renderSpotlightSlide({
   index,
   contestants,
@@ -467,9 +439,9 @@ async function renderSpotlightSlide({
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
   y += 96 + 22;
 
-  // photo — reduced container, 3:4 portrait
-  const photoH = 680;
-  const photoW = photoH * (3 / 4); // 510
+  // photo — bigger now that handle + context are gone
+  const photoH = 800;
+  const photoW = photoH * (3 / 4); // 600
   const photoX = CX - photoW / 2;
   const photoY = y;
   drawRoundedImageWithBorder(
@@ -483,39 +455,29 @@ async function renderSpotlightSlide({
     isFirst ? brand.colors.primary : brand.colors.primaryDark,
     isFirst ? 2 : 1
   );
-  y = photoY + photoH + 10; // tight: pull vote count up to the photo
+  y = photoY + photoH + 36;
 
-  // hero vote count — sits under the photo as one unit
-  ctx.fillStyle = brand.colors.primary;
-  ctx.font = `${brand.font.weights.bold} 136px ${brand.font.family}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-4px';
+  // name + votes inline, same font, same size — name white, votes red
+  const nameVoteSize = 40;
+  ctx.font = `${brand.font.weights.bold} ${nameVoteSize}px ${brand.font.family}`;
   ctx.textBaseline = 'top';
-  ctx.fillText(fmtVotes(c.votes), CX, y);
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += 136 + 6;
-
-  // context line — editorial tracked caption
-  const ctxLine = contextLineFor(index, contestants);
-  const fullLine = ctxLine.tail ? `VOTES · ${ctxLine.tail}` : 'VOTES';
-  ctx.fillStyle = ctxLine.emphasize ? brand.colors.primary : brand.colors.mutedGray;
-  ctx.font = `${brand.font.weights.bold} 14px ${brand.font.family}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '3.5px';
-  ctx.fillText(fullLine, CX, y);
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += 14 + 22;
-
-  // name — display, supporting role beneath the data moment
+  const nameText = c.name || 'Contestant';
+  const sep = '   ·   ';
+  const voteText = fmtVotes(c.votes);
+  const nameW = ctx.measureText(nameText).width;
+  const sepW = ctx.measureText(sep).width;
+  const voteW = ctx.measureText(voteText).width;
+  const totalW = nameW + sepW + voteW;
+  let cursorX = CX - totalW / 2;
+  ctx.textAlign = 'left';
   ctx.fillStyle = brand.colors.white;
-  ctx.font = `${brand.font.weights.bold} 38px ${brand.font.family}`;
-  ctx.fillText(c.name || 'Contestant', CX, y);
-  y += 38 + 6;
-
-  // instagram handle
-  if (c.instagram) {
-    ctx.fillStyle = brand.colors.mutedGray;
-    ctx.font = `${brand.font.weights.medium} 18px ${brand.font.family}`;
-    ctx.fillText(`@${String(c.instagram).replace(/^@/, '')}`, CX, y);
-  }
+  ctx.fillText(nameText, cursorX, y);
+  cursorX += nameW;
+  ctx.fillStyle = brand.colors.dividerGray;
+  ctx.fillText(sep, cursorX, y);
+  cursorX += sepW;
+  ctx.fillStyle = brand.colors.primary;
+  ctx.fillText(voteText, cursorX, y);
 
   return new Promise((resolve) => {
     canvas.toBlob((b) => resolve(b), 'image/png');
