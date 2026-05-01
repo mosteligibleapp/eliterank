@@ -153,7 +153,7 @@ function EventPortraitCard({ event }) {
     <Wrapper {...wrapperProps} className="portrait-card portrait-card-event">
       <div className="portrait-image-wrap">
         {imageUrl ? (
-          <img src={imageUrl} alt={event.name} className="portrait-image" style={{ objectFit: 'cover' }} />
+          <img src={imageUrl} alt={event.name} className="portrait-image" loading="lazy" decoding="async" style={{ objectFit: 'cover' }} />
         ) : (
           <div className="portrait-placeholder">
             <Calendar size={28} />
@@ -203,6 +203,9 @@ export function PortraitCard({
             src={contestant.avatar_url}
             alt={contestant.name}
             className="portrait-image"
+            loading={rank <= 3 ? 'eager' : 'lazy'}
+            fetchpriority={rank <= 3 ? 'high' : 'auto'}
+            decoding="async"
             style={{ opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.2s ease' }}
             onLoad={handleLoad}
             onError={handleError}
