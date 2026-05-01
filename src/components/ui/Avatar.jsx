@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState, useCallback } from 'react';
+import { avatarUrl } from '../../lib/storageImage';
 
 function Avatar({
   name,
@@ -8,6 +9,7 @@ function Avatar({
   style = {},
 }) {
   const [imgStatus, setImgStatus] = useState(src ? 'loading' : 'none');
+  const resolvedSrc = useMemo(() => avatarUrl(src, size), [src, size]);
 
   const initials = useMemo(() => {
     return name
@@ -34,8 +36,10 @@ function Avatar({
       {imgStatus !== 'loaded' && initials}
       {src && imgStatus !== 'error' && (
         <img
-          src={src}
+          src={resolvedSrc}
           alt={name || 'Avatar'}
+          loading="lazy"
+          decoding="async"
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${imgStatus === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
           onLoad={handleLoad}
           onError={handleError}
