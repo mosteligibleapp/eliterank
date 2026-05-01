@@ -2,9 +2,17 @@ import React from 'react';
 import { Pencil } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, transitions } from '../../../styles/theme';
 import StepShell from '../components/StepShell';
-import { CATEGORY_OPTIONS, STEP_KEYS } from '../constants';
+import {
+  CATEGORY_OPTIONS,
+  SCOPE_OPTIONS,
+  START_TIMEFRAME_OPTIONS,
+  STEP_KEYS,
+} from '../constants';
 
 const dash = (v) => (v == null || v === '' ? '—' : v);
+
+const lookupLabel = (options, value) =>
+  options.find((o) => o.value === value)?.label || value || '—';
 
 function categoryLabel(form) {
   if (!form.category) return '—';
@@ -16,11 +24,6 @@ function ageLabel(form) {
   if (form.no_age_restrictions) return 'No age restrictions';
   if (!form.age_min || !form.age_max) return '—';
   return `${form.age_min}-${form.age_max}`;
-}
-
-function moneyLabel(v) {
-  if (v == null || v === '') return '—';
-  return `$${Number(v).toLocaleString()}`;
 }
 
 const sectionStyle = {
@@ -87,7 +90,7 @@ function Row({ label, children }) {
   return (
     <div style={rowStyle}>
       <span style={{ color: colors.text.tertiary }}>{label}</span>
-      <span style={{ color: colors.text.primary }}>{children}</span>
+      <span style={{ color: colors.text.primary, wordBreak: 'break-word' }}>{children}</span>
     </div>
   );
 }
@@ -111,9 +114,9 @@ export default function StepReview({ form, onJumpTo }) {
           <Row label="Category">{categoryLabel(form)}</Row>
         </Section>
 
-        <Section title="Name" stepKey="name" onEdit={goTo}>
+        <Section title="Name & scope" stepKey="name" onEdit={goTo}>
           <Row label="Competition">{dash(form.competition_name)}</Row>
-          <Row label="Tagline">{dash(form.tagline)}</Row>
+          <Row label="Scope">{lookupLabel(SCOPE_OPTIONS, form.scope)}</Row>
         </Section>
 
         <Section title="Eligibility" stepKey="who" onEdit={goTo}>
@@ -121,37 +124,17 @@ export default function StepReview({ form, onJumpTo }) {
           <Row label="Ages">{ageLabel(form)}</Row>
         </Section>
 
-        <Section title="Social" stepKey="social" onEdit={goTo}>
-          <Row label="Platforms">{form.social_platforms.join(', ') || '—'}</Row>
-          <Row label="Hashtag">{dash(form.campaign_hashtag)}</Row>
-          <Row label="Min followers">{dash(form.min_followers)}</Row>
+        <Section title="Presence" stepKey="presence" onEdit={goTo}>
+          <Row label="Website">{dash(form.website_url)}</Row>
+          <Row label="Social">{dash(form.social_url)}</Row>
         </Section>
 
         <Section title="Revenue" stepKey="revenue" onEdit={goTo}>
           <Row label="Models">{form.revenue_models.join(', ') || '—'}</Row>
-          {form.revenue_models.includes('Paid voting') && (
-            <Row label="Vote price">{moneyLabel(form.vote_price_usd)}</Row>
-          )}
-          {form.revenue_models.includes('Sponsorships') && (
-            <Row label="Sponsor tiers">{dash(form.sponsor_tiers)}</Row>
-          )}
         </Section>
 
-        <Section title="Winning" stepKey="winning" onEdit={goTo}>
-          <Row label="Winners / round">{form.num_winners}</Row>
-          <Row label="Cash pool">{moneyLabel(form.cash_pool_usd)}</Row>
-          <Row label="In-kind prizes">{form.in_kind_prizes.join(', ') || '—'}</Row>
-        </Section>
-
-        <Section title="City" stepKey="city" onEdit={goTo}>
-          <Row label="City">{dash(form.city)}</Row>
-          <Row label="Venue">{dash(form.venue)}</Row>
-        </Section>
-
-        <Section title="Schedule" stepKey="launch" onEdit={goTo}>
-          <Row label="Voting rounds">{form.num_rounds}</Row>
-          <Row label="Start">{dash(form.start_date)}</Row>
-          <Row label="End">{dash(form.end_date)}</Row>
+        <Section title="Timing" stepKey="timing" onEdit={goTo}>
+          <Row label="Get started">{lookupLabel(START_TIMEFRAME_OPTIONS, form.start_timeframe)}</Row>
         </Section>
 
         <Section title="Notes" stepKey="notes" onEdit={goTo}>

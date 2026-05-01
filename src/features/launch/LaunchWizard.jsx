@@ -17,11 +17,9 @@ import StepOrg from './steps/StepOrg';
 import StepCategory from './steps/StepCategory';
 import StepName from './steps/StepName';
 import StepWho from './steps/StepWho';
-import StepSocial from './steps/StepSocial';
+import StepPresence from './steps/StepPresence';
 import StepRevenue from './steps/StepRevenue';
-import StepWinning from './steps/StepWinning';
-import StepCity from './steps/StepCity';
-import StepLaunch from './steps/StepLaunch';
+import StepTiming from './steps/StepTiming';
 import StepNotes from './steps/StepNotes';
 import StepReview from './steps/StepReview';
 
@@ -30,11 +28,9 @@ const stepComponents = {
   category: StepCategory,
   name: StepName,
   who: StepWho,
-  social: StepSocial,
+  presence: StepPresence,
   revenue: StepRevenue,
-  winning: StepWinning,
-  city: StepCity,
-  launch: StepLaunch,
+  timing: StepTiming,
   notes: StepNotes,
   review: StepReview,
 };
@@ -198,28 +194,16 @@ function buildPayload(form) {
     contact_email: form.contact_email.trim(),
     category: form.category,
     category_other: form.category === 'other' ? form.category_other.trim() || null : null,
-    competition_name: form.competition_name.trim(),
-    tagline: form.tagline.trim() || null,
+    competition_name: form.competition_name.trim() || null,
+    scope: form.scope,
     gender_eligibility: form.gender_eligibility,
     age_min: form.no_age_restrictions ? null : num(form.age_min),
     age_max: form.no_age_restrictions ? null : num(form.age_max),
     no_age_restrictions: !!form.no_age_restrictions,
-    social_platforms: form.social_platforms,
-    campaign_hashtag: form.campaign_hashtag.trim() || null,
-    min_followers: num(form.min_followers),
+    website_url: form.website_url.trim() || null,
+    social_url: form.social_url.trim() || null,
     revenue_models: form.revenue_models,
-    vote_price_usd: form.revenue_models.includes('Paid voting') ? num(form.vote_price_usd) : null,
-    sponsor_tiers: form.revenue_models.includes('Sponsorships')
-      ? form.sponsor_tiers.trim() || null
-      : null,
-    num_winners: Number(form.num_winners) || 1,
-    cash_pool_usd: num(form.cash_pool_usd),
-    in_kind_prizes: form.in_kind_prizes,
-    city: form.city.trim(),
-    venue: form.venue.trim() || null,
-    num_rounds: Number(form.num_rounds) || 6,
-    start_date: form.start_date,
-    end_date: form.end_date,
+    start_timeframe: form.start_timeframe,
     notes: form.notes.trim() || null,
     status: 'pending',
   };

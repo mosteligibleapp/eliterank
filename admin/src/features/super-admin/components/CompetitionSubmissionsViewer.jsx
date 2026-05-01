@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Mail, Phone, Building2, Calendar, CheckCircle, XCircle, Clock, Eye,
+  Building2, CheckCircle, XCircle, Clock, Eye,
   ArrowLeft, ExternalLink, Send, FileText, Trophy,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, transitions } from '@shared/styles/theme';
@@ -25,9 +25,7 @@ const STATUS_BADGES = {
 };
 
 const dash = (v) => (v == null || v === '' ? '—' : v);
-const money = (v) => (v == null || v === '' ? '—' : `$${Number(v).toLocaleString()}`);
 const dateTime = (v) => (v ? new Date(v).toLocaleString() : '—');
-const dateOnly = (v) => (v ? new Date(v).toLocaleDateString() : '—');
 
 function StatusPill({ status }) {
   const cfg = STATUS_BADGES[status] || STATUS_BADGES.pending;
@@ -222,9 +220,9 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
         </DetailSection>
 
         <DetailSection title="Competition">
-          <DetailRow label="Name">{submission.competition_name}</DetailRow>
-          <DetailRow label="Tagline">{dash(submission.tagline)}</DetailRow>
+          <DetailRow label="Name">{dash(submission.competition_name)}</DetailRow>
           <DetailRow label="Category">{submission.category_other || submission.category}</DetailRow>
+          <DetailRow label="Scope">{submission.scope}</DetailRow>
         </DetailSection>
 
         <DetailSection title="Eligibility">
@@ -232,33 +230,29 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
           <DetailRow label="Ages">{ageRange}</DetailRow>
         </DetailSection>
 
-        <DetailSection title="Social">
-          <DetailRow label="Platforms">{(submission.social_platforms || []).join(', ') || '—'}</DetailRow>
-          <DetailRow label="Hashtag">{dash(submission.campaign_hashtag)}</DetailRow>
-          <DetailRow label="Min followers">{dash(submission.min_followers)}</DetailRow>
+        <DetailSection title="Presence">
+          <DetailRow label="Website">
+            {submission.website_url ? (
+              <a href={submission.website_url} target="_blank" rel="noopener noreferrer" style={{ color: colors.gold.primary, textDecoration: 'none' }}>
+                {submission.website_url}
+              </a>
+            ) : '—'}
+          </DetailRow>
+          <DetailRow label="Social">
+            {submission.social_url ? (
+              <a href={submission.social_url} target="_blank" rel="noopener noreferrer" style={{ color: colors.gold.primary, textDecoration: 'none' }}>
+                {submission.social_url}
+              </a>
+            ) : '—'}
+          </DetailRow>
         </DetailSection>
 
         <DetailSection title="Revenue">
           <DetailRow label="Models">{(submission.revenue_models || []).join(', ') || '—'}</DetailRow>
-          <DetailRow label="Vote price">{money(submission.vote_price_usd)}</DetailRow>
-          <DetailRow label="Sponsor tiers">{dash(submission.sponsor_tiers)}</DetailRow>
         </DetailSection>
 
-        <DetailSection title="Winning">
-          <DetailRow label="Winners / round">{submission.num_winners}</DetailRow>
-          <DetailRow label="Cash pool">{money(submission.cash_pool_usd)}</DetailRow>
-          <DetailRow label="In-kind prizes">{(submission.in_kind_prizes || []).join(', ') || '—'}</DetailRow>
-        </DetailSection>
-
-        <DetailSection title="Location">
-          <DetailRow label="City">{submission.city}</DetailRow>
-          <DetailRow label="Venue">{dash(submission.venue)}</DetailRow>
-        </DetailSection>
-
-        <DetailSection title="Schedule">
-          <DetailRow label="Voting rounds">{submission.num_rounds}</DetailRow>
-          <DetailRow label="Start">{dateOnly(submission.start_date)}</DetailRow>
-          <DetailRow label="End">{dateOnly(submission.end_date)}</DetailRow>
+        <DetailSection title="Timing">
+          <DetailRow label="Wants to start">{dash(submission.start_timeframe)}</DetailRow>
         </DetailSection>
       </div>
 
@@ -385,7 +379,7 @@ export default function CompetitionSubmissionsViewer() {
     return submissions.filter((sub) => {
       if (statusFilter && sub.status !== statusFilter) return false;
       if (!q) return true;
-      const hay = `${sub.org_name} ${sub.contact_name || ''} ${sub.contact_email} ${sub.competition_name} ${sub.city}`.toLowerCase();
+      const hay = `${sub.org_name} ${sub.contact_name || ''} ${sub.contact_email} ${sub.competition_name || ''} ${sub.scope || ''}`.toLowerCase();
       return hay.includes(q);
     });
   }, [submissions, statusFilter, searchQuery]);
@@ -447,11 +441,11 @@ export default function CompetitionSubmissionsViewer() {
       render: (val) => (
         <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
           <Trophy size={12} style={{ color: colors.gold.primary, flexShrink: 0 }} />
-          {val}
+          {val || <span style={{ color: colors.text.tertiary }}>(unnamed)</span>}
         </span>
       ),
     },
-    { key: 'city', label: 'City', sortable: true },
+    { key: 'scope', label: 'Scope', sortable: true },
     {
       key: 'status', label: 'Status', sortable: true,
       render: (val) => <StatusPill status={val} />,
@@ -472,7 +466,7 @@ export default function CompetitionSubmissionsViewer() {
       <FilterBar
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search org, contact, competition, city…"
+        searchPlaceholder="Search org, contact, competition, scope…"
         filters={[
           { key: 'status', label: 'Status', options: STATUS_OPTIONS, value: statusFilter },
         ]}

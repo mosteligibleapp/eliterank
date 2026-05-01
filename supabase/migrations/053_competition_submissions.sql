@@ -27,9 +27,9 @@ CREATE TABLE IF NOT EXISTS competition_submissions (
   category              TEXT NOT NULL,
   category_other        TEXT,
 
-  -- Step 3: Name
-  competition_name      TEXT NOT NULL,
-  tagline               TEXT,
+  -- Step 3: Name + Scope
+  competition_name      TEXT,
+  scope                 TEXT NOT NULL,
 
   -- Step 4: Eligibility
   gender_eligibility    TEXT[] NOT NULL DEFAULT '{}',
@@ -37,31 +37,17 @@ CREATE TABLE IF NOT EXISTS competition_submissions (
   age_max               INT,
   no_age_restrictions   BOOLEAN NOT NULL DEFAULT FALSE,
 
-  -- Step 5: Social (skippable)
-  social_platforms      TEXT[] NOT NULL DEFAULT '{}',
-  campaign_hashtag      TEXT,
-  min_followers         INT,
+  -- Step 5: Presence (skippable)
+  website_url           TEXT,
+  social_url            TEXT,
 
   -- Step 6: Revenue
   revenue_models        TEXT[] NOT NULL DEFAULT '{}',
-  vote_price_usd        NUMERIC(10, 2),
-  sponsor_tiers         TEXT,
 
-  -- Step 7: Winning
-  num_winners           INT NOT NULL DEFAULT 1,
-  cash_pool_usd         NUMERIC(12, 2),
-  in_kind_prizes        TEXT[] NOT NULL DEFAULT '{}',
+  -- Step 7: Timing
+  start_timeframe       TEXT NOT NULL,
 
-  -- Step 8: City
-  city                  TEXT NOT NULL,
-  venue                 TEXT,
-
-  -- Step 9: Launch
-  num_rounds            INT NOT NULL DEFAULT 6,
-  start_date            DATE NOT NULL,
-  end_date              DATE NOT NULL,
-
-  -- Step 10: Notes
+  -- Step 8: Notes (skippable)
   notes                 TEXT,
 
   -- Review metadata
@@ -69,8 +55,6 @@ CREATE TABLE IF NOT EXISTS competition_submissions (
   reviewed_at           TIMESTAMPTZ,
   internal_notes        TEXT,
 
-  CONSTRAINT competition_submissions_dates_chk
-    CHECK (end_date > start_date),
   CONSTRAINT competition_submissions_age_chk
     CHECK (no_age_restrictions OR (age_min IS NOT NULL AND age_max IS NOT NULL AND age_max >= age_min))
 );
@@ -120,5 +104,7 @@ CREATE POLICY "Super admins can delete competition submissions"
 
 COMMENT ON TABLE  competition_submissions IS 'Public /launch wizard submissions. Reviewed by super admins; can be converted to a live competition.';
 COMMENT ON COLUMN competition_submissions.status IS 'pending → in_review → approved | rejected';
+COMMENT ON COLUMN competition_submissions.scope IS 'Geographic reach: local, city-wide, state-wide, national, international';
 COMMENT ON COLUMN competition_submissions.gender_eligibility IS 'Free-form chips: Women, Men, All genders, Non-binary inclusive';
-COMMENT ON COLUMN competition_submissions.revenue_models IS 'Subset of: Paid voting, Sponsorships, Event tickets, Entry fees, Merchandise';
+COMMENT ON COLUMN competition_submissions.revenue_models IS 'Subset of: Paid voting, Sponsorships, Event tickets, Entry fees, Merchandise, Charity-based, Not sure yet';
+COMMENT ON COLUMN competition_submissions.start_timeframe IS 'Bucket: asap, 1-3-months, 3-6-months, 6-12-months, 12-plus-months';

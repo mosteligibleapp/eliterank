@@ -1,4 +1,5 @@
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_RE = /^(https?:\/\/)?[\w.-]+\.[a-z]{2,}([/?#].*)?$/i;
 
 export function validateStep(stepKey, form) {
   switch (stepKey) {
@@ -18,7 +19,8 @@ export function validateStep(stepKey, form) {
     }
     case 'name': {
       const errors = {};
-      if (!form.competition_name.trim()) errors.competition_name = 'Name is required.';
+      // competition_name is optional — they can change it later
+      if (!form.scope) errors.scope = 'Pick the geographic scope.';
       return errors;
     }
     case 'who': {
@@ -34,43 +36,23 @@ export function validateStep(stepKey, form) {
       }
       return errors;
     }
-    case 'social':
-      return {};
+    case 'presence': {
+      const errors = {};
+      // Both fields are optional, but if provided they must look like URLs.
+      if (form.website_url && !URL_RE.test(form.website_url.trim()))
+        errors.website_url = 'Looks like that isn\'t a valid URL.';
+      if (form.social_url && !URL_RE.test(form.social_url.trim()))
+        errors.social_url = 'Looks like that isn\'t a valid URL.';
+      return errors;
+    }
     case 'revenue': {
       const errors = {};
       if (!form.revenue_models.length) errors.revenue_models = 'Pick at least one revenue model.';
-      if (form.revenue_models.includes('Paid voting') && form.vote_price_usd !== '') {
-        const v = Number(form.vote_price_usd);
-        if (Number.isNaN(v) || v < 0) errors.vote_price_usd = 'Vote price must be a positive number.';
-      }
       return errors;
     }
-    case 'winning': {
+    case 'timing': {
       const errors = {};
-      if (!form.num_winners || Number(form.num_winners) < 1)
-        errors.num_winners = 'At least one winner per round.';
-      if (form.cash_pool_usd !== '') {
-        const v = Number(form.cash_pool_usd);
-        if (Number.isNaN(v) || v < 0) errors.cash_pool_usd = 'Cash pool must be a positive number.';
-      }
-      return errors;
-    }
-    case 'city': {
-      const errors = {};
-      if (!form.city.trim()) errors.city = 'City is required.';
-      return errors;
-    }
-    case 'launch': {
-      const errors = {};
-      if (!form.start_date) errors.start_date = 'Start date is required.';
-      if (!form.end_date) errors.end_date = 'End date is required.';
-      if (form.start_date && form.end_date) {
-        const start = new Date(form.start_date);
-        const end = new Date(form.end_date);
-        if (!(end > start)) errors.end_date = 'End date must be after start date.';
-      }
-      if (!form.num_rounds || Number(form.num_rounds) < 1)
-        errors.num_rounds = 'At least one voting round.';
+      if (!form.start_timeframe) errors.start_timeframe = 'Pick a timeframe to continue.';
       return errors;
     }
     case 'notes':

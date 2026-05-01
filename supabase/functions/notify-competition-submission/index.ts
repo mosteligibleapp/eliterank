@@ -36,26 +36,16 @@ interface Submission {
   org_is_new: boolean
   category: string
   category_other: string | null
-  competition_name: string
-  tagline: string | null
-  city: string
-  venue: string | null
-  start_date: string
-  end_date: string
-  num_rounds: number
-  num_winners: number
-  cash_pool_usd: number | null
-  in_kind_prizes: string[]
+  competition_name: string | null
+  scope: string
   gender_eligibility: string[]
   age_min: number | null
   age_max: number | null
   no_age_restrictions: boolean
-  social_platforms: string[]
-  campaign_hashtag: string | null
-  min_followers: number | null
+  website_url: string | null
+  social_url: string | null
   revenue_models: string[]
-  vote_price_usd: number | null
-  sponsor_tiers: string | null
+  start_timeframe: string
   notes: string | null
 }
 
@@ -83,15 +73,16 @@ function brandShell(inner: string, appUrl: string): string {
 }
 
 function confirmationEmail(sub: Submission, appUrl: string): { subject: string; body: string } {
-  const subject = `We received your competition concept — ${sub.competition_name}`
+  const compLabel = sub.competition_name || 'your competition'
+  const subject = `We received your competition concept — ${compLabel}`
   const greeting = sub.contact_name ? `Hi ${escape(sub.contact_name)},` : 'Hi there,'
   const inner = `
     <h2 style="color:#d4af37;font-size:20px;margin:0 0 16px;">Thanks — we've got it.</h2>
     <p style="margin:0 0 12px;">${greeting}</p>
     <p style="margin:0 0 12px;">
-      We received your concept for <strong style="color:#fff;">${escape(sub.competition_name)}</strong>
-      in <strong style="color:#fff;">${escape(sub.city)}</strong>. Our team reviews every submission
-      personally and will reach out within 1-2 business days to discuss next steps.
+      We received your concept for <strong style="color:#fff;">${escape(compLabel)}</strong>.
+      Our team reviews every submission personally and will reach out within 1-2 business days
+      to discuss next steps.
     </p>
     <p style="margin:0 0 12px;color:#999;font-size:12px;">
       Submission ID: <code style="color:#d4a843;">${escape(sub.id)}</code>
@@ -102,7 +93,8 @@ function confirmationEmail(sub: Submission, appUrl: string): { subject: string; 
 }
 
 function adminNotificationEmail(sub: Submission, appUrl: string): { subject: string; body: string } {
-  const subject = `[Launch] ${sub.competition_name} — ${sub.org_name} (${sub.city})`
+  const compLabel = sub.competition_name || '(unnamed)'
+  const subject = `[Launch] ${compLabel} — ${sub.org_name} (${sub.scope})`
   const ageRange = sub.no_age_restrictions
     ? 'No age restrictions'
     : `${sub.age_min ?? '?'}-${sub.age_max ?? '?'}`
@@ -117,22 +109,14 @@ function adminNotificationEmail(sub: Submission, appUrl: string): { subject: str
     <table style="width:100%;font-size:13px;border-collapse:collapse;">
       ${row('Org', `${escape(sub.org_name)} ${sub.org_is_new ? '(new)' : '(existing)'}`)}
       ${row('Contact', `${escape(sub.contact_name || '—')} &lt;${escape(sub.contact_email)}&gt;`)}
-      ${row('Competition', escape(sub.competition_name))}
-      ${row('Tagline', escape(sub.tagline || '—'))}
+      ${row('Competition', escape(compLabel))}
       ${row('Category', escape(sub.category_other || sub.category))}
-      ${row('City / Venue', `${escape(sub.city)}${sub.venue ? ' — ' + escape(sub.venue) : ''}`)}
+      ${row('Scope', escape(sub.scope))}
       ${row('Eligibility', `${escape(sub.gender_eligibility.join(', ') || '—')} · ${escape(ageRange)}`)}
-      ${row('Social', escape(sub.social_platforms.join(', ') || '—'))}
-      ${row('Hashtag', escape(sub.campaign_hashtag || '—'))}
-      ${row('Min followers', sub.min_followers != null ? String(sub.min_followers) : '—')}
-      ${row('Revenue', escape(sub.revenue_models.join(', ') || '—'))}
-      ${row('Vote price', sub.vote_price_usd != null ? `$${sub.vote_price_usd}` : '—')}
-      ${row('Sponsor tiers', escape(sub.sponsor_tiers || '—'))}
-      ${row('Winners / round', String(sub.num_winners))}
-      ${row('Cash pool', sub.cash_pool_usd != null ? `$${sub.cash_pool_usd}` : '—')}
-      ${row('In-kind prizes', escape(sub.in_kind_prizes.join(', ') || '—'))}
-      ${row('Rounds', String(sub.num_rounds))}
-      ${row('Dates', `${escape(sub.start_date)} → ${escape(sub.end_date)}`)}
+      ${row('Website', escape(sub.website_url || '—'))}
+      ${row('Social', escape(sub.social_url || '—'))}
+      ${row('Revenue models', escape(sub.revenue_models.join(', ') || '—'))}
+      ${row('Wants to start', escape(sub.start_timeframe))}
       ${row('Notes', escape(sub.notes || '—'))}
     </table>
     <p style="margin:24px 0 0;">

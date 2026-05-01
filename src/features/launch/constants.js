@@ -1,15 +1,13 @@
-export const LAUNCH_DRAFT_KEY = 'eliterank-launch-draft-v1';
+export const LAUNCH_DRAFT_KEY = 'eliterank-launch-draft-v2';
 
 export const STEP_KEYS = [
   'org',
   'category',
   'name',
   'who',
-  'social',
+  'presence',
   'revenue',
-  'winning',
-  'city',
-  'launch',
+  'timing',
   'notes',
   'review',
 ];
@@ -19,16 +17,14 @@ export const STEP_LABELS = {
   category: 'Category',
   name: 'Name',
   who: 'Eligibility',
-  social: 'Social',
+  presence: 'Presence',
   revenue: 'Revenue',
-  winning: 'Winning',
-  city: 'City',
-  launch: 'Schedule',
+  timing: 'Timing',
   notes: 'Notes',
   review: 'Review',
 };
 
-export const SKIPPABLE_STEPS = new Set(['social', 'notes']);
+export const SKIPPABLE_STEPS = new Set(['presence', 'notes']);
 
 export const CATEGORY_OPTIONS = [
   { value: 'dating', label: 'Dating & Relationships', description: "Most eligible singles, matchmaking events." },
@@ -39,6 +35,14 @@ export const CATEGORY_OPTIONS = [
   { value: 'other', label: 'Other', description: 'Tell us what you have in mind.' },
 ];
 
+export const SCOPE_OPTIONS = [
+  { value: 'local',         label: 'Local',         description: 'A single venue or neighborhood.' },
+  { value: 'city-wide',     label: 'City-wide',     description: 'Across one city.' },
+  { value: 'state-wide',    label: 'State-wide',    description: 'Across one state.' },
+  { value: 'national',      label: 'National',      description: 'Across the country.' },
+  { value: 'international', label: 'International', description: 'Across multiple countries.' },
+];
+
 export const GENDER_CHIPS = [
   { value: 'Women', label: 'Women' },
   { value: 'Men', label: 'Men' },
@@ -46,21 +50,22 @@ export const GENDER_CHIPS = [
   { value: 'Non-binary inclusive', label: 'Non-binary inclusive' },
 ];
 
-export const SOCIAL_PLATFORMS = [
-  { value: 'Instagram', label: 'Instagram' },
-  { value: 'TikTok', label: 'TikTok' },
-  { value: 'YouTube', label: 'YouTube' },
-  { value: 'X', label: 'X' },
-  { value: 'LinkedIn', label: 'LinkedIn' },
-  { value: 'Facebook', label: 'Facebook' },
+export const REVENUE_MODELS = [
+  { value: 'Paid voting',    label: 'Paid voting' },
+  { value: 'Sponsorships',   label: 'Sponsorships' },
+  { value: 'Event tickets',  label: 'Event tickets' },
+  { value: 'Entry fees',     label: 'Entry fees' },
+  { value: 'Merchandise',    label: 'Merchandise' },
+  { value: 'Charity-based',  label: 'Charity-based' },
+  { value: 'Not sure yet',   label: 'Not sure yet' },
 ];
 
-export const REVENUE_MODELS = [
-  { value: 'Paid voting', label: 'Paid voting' },
-  { value: 'Sponsorships', label: 'Sponsorships' },
-  { value: 'Event tickets', label: 'Event tickets' },
-  { value: 'Entry fees', label: 'Entry fees' },
-  { value: 'Merchandise', label: 'Merchandise' },
+export const START_TIMEFRAME_OPTIONS = [
+  { value: 'asap',           label: 'ASAP / within a month' },
+  { value: '1-3-months',     label: '1-3 months' },
+  { value: '3-6-months',     label: '3-6 months' },
+  { value: '6-12-months',    label: '6-12 months' },
+  { value: '12-plus-months', label: '12+ months / just exploring' },
 ];
 
 export const INITIAL_FORM = {
@@ -72,33 +77,21 @@ export const INITIAL_FORM = {
   // Category
   category: '',
   category_other: '',
-  // Name
+  // Name + scope
   competition_name: '',
-  tagline: '',
+  scope: '',
   // Who
   gender_eligibility: [],
   age_min: '',
   age_max: '',
   no_age_restrictions: false,
-  // Social
-  social_platforms: [],
-  campaign_hashtag: '',
-  min_followers: '',
+  // Presence
+  website_url: '',
+  social_url: '',
   // Revenue
   revenue_models: [],
-  vote_price_usd: '',
-  sponsor_tiers: '',
-  // Winning
-  num_winners: 1,
-  cash_pool_usd: '',
-  in_kind_prizes: [],
-  // City
-  city: '',
-  venue: '',
-  // Launch
-  num_rounds: 6,
-  start_date: '',
-  end_date: '',
+  // Timing
+  start_timeframe: '',
   // Notes
   notes: '',
 };
