@@ -4,8 +4,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 /**
  * notify-competition-submission
  *
- * Fired by the public /launch wizard after a competition_submissions row is
- * inserted. Sends two emails via OneSignal:
+ * Fired by the public /launch sales lead form after a competition_submissions
+ * row is inserted. Sends two emails via OneSignal:
  *   1. Confirmation email to the submitter
  *   2. Internal notification to the super admin notification address
  *
@@ -30,21 +30,11 @@ interface RequestBody {
 interface Submission {
   id: string
   created_at: string
-  contact_name: string | null
+  contact_name: string
   contact_email: string
-  org_name: string
-  is_new_to_hosting: boolean
-  category: string
-  category_other: string | null
-  competition_name: string | null
-  scope: string
-  gender_eligibility: string[]
-  age_min: number | null
-  age_max: number | null
-  no_age_restrictions: boolean
+  org_name: string | null
   website_url: string | null
-  social_url: string | null
-  revenue_models: string[]
+  pitch: string
   start_timeframe: string
   notes: string | null
 }
@@ -73,16 +63,14 @@ function brandShell(inner: string, appUrl: string): string {
 }
 
 function confirmationEmail(sub: Submission, appUrl: string): { subject: string; body: string } {
-  const compLabel = sub.competition_name || 'your competition'
-  const subject = `We received your competition concept — ${compLabel}`
-  const greeting = sub.contact_name ? `Hi ${escape(sub.contact_name)},` : 'Hi there,'
+  const subject = `We got your interest — talk soon`
   const inner = `
     <h2 style="color:#d4af37;font-size:20px;margin:0 0 16px;">Thanks — we've got it.</h2>
-    <p style="margin:0 0 12px;">${greeting}</p>
+    <p style="margin:0 0 12px;">Hi ${escape(sub.contact_name)},</p>
     <p style="margin:0 0 12px;">
-      We received your concept for <strong style="color:#fff;">${escape(compLabel)}</strong>.
-      Our team reviews every submission personally and will reach out within 1-2 business days
-      to discuss next steps.
+      We received your interest in launching a competition with EliteRank.
+      Someone from our team will reach out within 1-2 business days to talk
+      through what you have in mind.
     </p>
     <p style="margin:0 0 12px;color:#999;font-size:12px;">
       Submission ID: <code style="color:#d4a843;">${escape(sub.id)}</code>
@@ -93,32 +81,27 @@ function confirmationEmail(sub: Submission, appUrl: string): { subject: string; 
 }
 
 function adminNotificationEmail(sub: Submission, appUrl: string): { subject: string; body: string } {
-  const compLabel = sub.competition_name || '(unnamed)'
-  const subject = `[Launch] ${compLabel} — ${sub.org_name} (${sub.scope})`
-  const ageRange = sub.no_age_restrictions
-    ? 'No age restrictions'
-    : `${sub.age_min ?? '?'}-${sub.age_max ?? '?'}`
+  const subject = `[Lead] ${sub.org_name || sub.contact_name} — ${sub.start_timeframe}`
   const row = (label: string, value: string) => `
     <tr>
-      <td style="padding:6px 12px 6px 0;color:#999;vertical-align:top;width:160px;">${label}</td>
+      <td style="padding:6px 12px 6px 0;color:#999;vertical-align:top;width:140px;">${label}</td>
       <td style="padding:6px 0;color:#fff;">${value}</td>
     </tr>
   `
   const inner = `
-    <h2 style="color:#d4af37;font-size:20px;margin:0 0 16px;">New launch submission</h2>
+    <h2 style="color:#d4af37;font-size:20px;margin:0 0 16px;">New launch lead</h2>
     <table style="width:100%;font-size:13px;border-collapse:collapse;">
-      ${row('Org', `${escape(sub.org_name)} ${sub.is_new_to_hosting ? '(new to hosting)' : '(experienced organizer)'}`)}
-      ${row('Contact', `${escape(sub.contact_name || '—')} &lt;${escape(sub.contact_email)}&gt;`)}
-      ${row('Competition', escape(compLabel))}
-      ${row('Category', escape(sub.category_other || sub.category))}
-      ${row('Scope', escape(sub.scope))}
-      ${row('Eligibility', `${escape(sub.gender_eligibility.join(', ') || '—')} · ${escape(ageRange)}`)}
-      ${row('Website', escape(sub.website_url || '—'))}
-      ${row('Social', escape(sub.social_url || '—'))}
-      ${row('Revenue models', escape(sub.revenue_models.join(', ') || '—'))}
+      ${row('Contact', `${escape(sub.contact_name)} &lt;${escape(sub.contact_email)}&gt;`)}
+      ${row('Org', escape(sub.org_name || '—'))}
+      ${row('Website / social', escape(sub.website_url || '—'))}
       ${row('Wants to start', escape(sub.start_timeframe))}
-      ${row('Notes', escape(sub.notes || '—'))}
     </table>
+    <h3 style="color:#d4af37;font-size:14px;margin:24px 0 8px;">What they want to launch</h3>
+    <p style="margin:0;white-space:pre-wrap;">${escape(sub.pitch)}</p>
+    ${sub.notes ? `
+      <h3 style="color:#d4af37;font-size:14px;margin:24px 0 8px;">Notes</h3>
+      <p style="margin:0;white-space:pre-wrap;">${escape(sub.notes)}</p>
+    ` : ''}
     <p style="margin:24px 0 0;">
       <a href="${appUrl}/admin/" style="display:inline-block;padding:10px 16px;background:#d4af37;color:#0a0a0c;text-decoration:none;border-radius:8px;font-weight:600;">
         Open in admin
@@ -205,7 +188,6 @@ serve(async (req) => {
 
     const results: Record<string, unknown> = {}
 
-    // 1. Confirmation to submitter
     const confirm = confirmationEmail(sub, appUrl)
     const confirmResult = await sendOneSignalEmail(
       appId,
@@ -214,13 +196,9 @@ serve(async (req) => {
       confirm.subject,
       confirm.body,
     )
-    results.confirmation = {
-      ok: confirmResult.ok,
-      status: confirmResult.status,
-    }
+    results.confirmation = { ok: confirmResult.ok, status: confirmResult.status }
     if (!confirmResult.ok) console.error('Confirmation send failed:', confirmResult.result)
 
-    // 2. Admin notification (best-effort — don't fail the whole call)
     if (adminEmail) {
       const admin = adminNotificationEmail(sub, appUrl)
       const adminResult = await sendOneSignalEmail(
@@ -230,10 +208,7 @@ serve(async (req) => {
         admin.subject,
         admin.body,
       )
-      results.admin_notification = {
-        ok: adminResult.ok,
-        status: adminResult.status,
-      }
+      results.admin_notification = { ok: adminResult.ok, status: adminResult.status }
       if (!adminResult.ok) console.error('Admin notification failed:', adminResult.result)
     } else {
       console.warn('SUPER_ADMIN_NOTIFICATION_EMAIL not set; skipping admin alert')

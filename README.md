@@ -17,39 +17,46 @@ Opens at http://localhost:5173
 - Vite
 - Lucide React (icons)
 
-## "Launch a competition" wizard
+## "Launch a competition" lead form
 
-`/launch` is a public, unauthenticated wizard for prospective hosts to submit
-a competition concept. Submissions land in `competition_submissions` as
-`pending` and are reviewed in the super-admin dashboard.
+`/launch` is a public, unauthenticated sales lead form for prospective
+hosts. Submissions land in `competition_submissions` as `pending` and a
+salesperson follows up to qualify them. The form intentionally collects
+just enough to make the first call useful — richer onboarding happens
+post-sale (the wizard prototype for that lives in git history; see
+commits `f5f8e50` … `0238414`).
 
 ### Flow
 
-1. **Public entry.** Marketing nav exposes a "Launch a competition" CTA on the
-   landing page (`src/components/modals/EliteRankCityModal.jsx`). Anchor links
-   to `/launch`. The slug `launch` is reserved in `src/utils/slugs.js` so it
-   isn't matched as an org slug.
+1. **Public entry.** Marketing nav exposes a "Launch a competition" CTA on
+   the landing page (`src/components/modals/EliteRankCityModal.jsx`),
+   which links to `/launch`. The slug `launch` is reserved in
+   `src/utils/slugs.js` so it isn't matched as an org slug.
 
-2. **Wizard (`src/features/launch/`).** 8-step wizard (Org, Category,
-   Name + Scope, Eligibility, Revenue, Timing, Notes, Review) with a
-   progress bar, per-step validation, a skippable Notes step, and a
-   clickable step indicator that lets the user jump back to any step
-   they've already reached. Draft state is autosaved to `localStorage`
-   under `eliterank-launch-draft-v2` on every change and cleared on
-   successful submit. State machine lives in `useLaunchWizard.js`;
-   per-step validators in `validation.js`; option lists and
-   `INITIAL_FORM` shape in `constants.js`.
+2. **Form (`src/features/launch/LaunchForm.jsx`).** Single-page form:
+   - Your full name (required)
+   - Email (required)
+   - Company / Organization name (optional)
+   - Website or Instagram (optional)
+   - "What are you looking to launch?" (required, free text)
+   - When do you want to start? (required, one of four buckets)
+   - Anything else we should know? (optional)
 
-3. **Submit.** Client inserts directly into `competition_submissions` (table
-   policy allows public INSERT only) and then fires-and-forgets a call to the
-   `notify-competition-submission` edge function with `{ submission_id }`.
+   Inputs autosave to `localStorage` under `eliterank-launch-lead-draft-v1`
+   so refreshes don't lose progress; the draft is cleared on successful
+   submit. Inline validation; mobile-responsive.
+
+3. **Submit.** Client inserts directly into `competition_submissions`
+   (table policy allows public INSERT only) and then fire-and-forgets a
+   call to the `notify-competition-submission` edge function with
+   `{ submission_id }`.
 
 4. **Notification (`supabase/functions/notify-competition-submission/`).**
-   Re-fetches the submission with the service role and sends two emails via
-   OneSignal:
+   Re-fetches the submission with the service role and sends two emails
+   via OneSignal:
      - Confirmation to `contact_email` (with submission ID).
-     - Internal alert to `SUPER_ADMIN_NOTIFICATION_EMAIL` containing every
-       field for at-a-glance review and a link back to the admin app.
+     - Internal alert to `SUPER_ADMIN_NOTIFICATION_EMAIL` with the pitch
+       and contact info for fast follow-up, plus a link to the admin app.
    Mirrors the OneSignal call pattern from `send-onesignal-email`.
 
 5. **Success screen (`LaunchSuccess.jsx`).** "Thanks, we'll be in touch"
@@ -57,18 +64,20 @@ a competition concept. Submissions land in `competition_submissions` as
 
 ### Super-admin review
 
-A new sidebar entry (Admin → Competitions → **Competition Submissions**)
-opens `CompetitionSubmissionsViewer.jsx`, which provides:
+A sidebar entry (Admin → Competitions → **Launch Leads**) opens
+`CompetitionSubmissionsViewer.jsx`, which provides:
 
 - Stat row (Total / Pending / In Review / Approved / Rejected).
-- Filter bar with status + free-text search (org, contact, competition, city).
+- Filter bar with status + free-text search (name, email, org, pitch).
 - Sortable table; clicking a row opens the detail view.
-- Detail view shows every submitted field, plus:
+- Detail view shows the contact info, the pitch, the start timeframe, and
+  any submitter notes, plus:
   - Status dropdown (`pending` → `in_review` → `approved` | `rejected`).
   - Internal notes textarea (super-admin only).
   - **Reply to contact** opens `mailto:` prefilled with subject/body.
-  - **Convert to live competition** (placeholder; logs the submission to the
-    console — the actual conversion will be wired in a follow-up).
+  - **Start onboarding** (placeholder; logs the lead to the console — the
+    actual handoff to the post-sale onboarding flow will be wired up
+    later).
 - Pending count appears as a gold badge on the sidebar nav item, kept fresh
   via a Postgres realtime subscription on the table.
 
@@ -91,5 +100,5 @@ Set with `supabase secrets set ...` and deploy with
 - Migration: `supabase/migrations/053_competition_submissions.sql`
 - Table: `competition_submissions`
 - RLS: public can `INSERT`; super admins can `SELECT`/`UPDATE`/`DELETE`.
-- Constraint: either `no_age_restrictions` is true OR both `age_min` and
-  `age_max` are set with `age_max >= age_min`.
+- The migration is idempotent — safe to re-run after earlier wizard-shaped
+  drafts; it drops the obsolete columns and adds `pitch` if missing.

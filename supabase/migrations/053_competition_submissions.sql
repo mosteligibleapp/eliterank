@@ -1,10 +1,11 @@
 -- =============================================================================
--- Migration 053: Competition launch submissions
--- Stores public-facing /launch wizard submissions from prospective host orgs.
--- Submissions land as 'pending' and are reviewed by super admins.
+-- Migration 053: Competition launch / sales lead submissions
+-- Captures top-of-funnel leads from the public /launch form. A sales person
+-- follows up to qualify and discuss a competition concept.
 --
--- This migration is idempotent — safe to re-run if the schema was applied
--- with an earlier shape during development.
+-- This migration is idempotent — safe to re-run after earlier shapes that
+-- collected wizard-style onboarding data (which has been moved to a future
+-- post-sale onboarding flow).
 -- =============================================================================
 
 -- Status enum (safe-create)
@@ -20,29 +21,12 @@ CREATE TABLE IF NOT EXISTS competition_submissions (
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   status                competition_submission_status NOT NULL DEFAULT 'pending',
 
-  contact_name          TEXT,
+  contact_name          TEXT NOT NULL,
   contact_email         TEXT NOT NULL,
-  org_name              TEXT NOT NULL,
-  is_new_to_hosting     BOOLEAN NOT NULL DEFAULT TRUE,
-
-  category              TEXT NOT NULL,
-  category_other        TEXT,
-
-  competition_name      TEXT,
-  scope                 TEXT NOT NULL,
-
-  gender_eligibility    TEXT[] NOT NULL DEFAULT '{}',
-  age_min               INT,
-  age_max               INT,
-  no_age_restrictions   BOOLEAN NOT NULL DEFAULT FALSE,
-
+  org_name              TEXT,
   website_url           TEXT,
-  social_url            TEXT,
-
-  revenue_models        TEXT[] NOT NULL DEFAULT '{}',
-
+  pitch                 TEXT NOT NULL,
   start_timeframe       TEXT NOT NULL,
-
   notes                 TEXT,
 
   reviewed_by           UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -51,27 +35,11 @@ CREATE TABLE IF NOT EXISTS competition_submissions (
 );
 
 -- ----------------------------------------------------------------------------
--- Reconcile schema for any environment that ran an earlier shape of 053.
--- All statements use IF EXISTS / IF NOT EXISTS so they're safe on a fresh DB.
+-- Reconcile schema for any environment that ran an earlier wizard-shaped 053.
+-- Each statement is safe on a fresh DB and on partially-migrated environments.
 -- ----------------------------------------------------------------------------
 
--- Rename org_is_new → is_new_to_hosting if the old column still exists.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'competition_submissions'
-      AND column_name = 'org_is_new'
-  ) AND NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'competition_submissions'
-      AND column_name = 'is_new_to_hosting'
-  ) THEN
-    ALTER TABLE competition_submissions RENAME COLUMN org_is_new TO is_new_to_hosting;
-  END IF;
-END $$;
-
--- Drop columns from earlier drafts that we no longer collect.
+-- Drop wizard-era columns that are no longer collected on the sales lead form.
 ALTER TABLE competition_submissions
   DROP COLUMN IF EXISTS tagline,
   DROP COLUMN IF EXISTS social_platforms,
@@ -86,30 +54,39 @@ ALTER TABLE competition_submissions
   DROP COLUMN IF EXISTS venue,
   DROP COLUMN IF EXISTS num_rounds,
   DROP COLUMN IF EXISTS start_date,
-  DROP COLUMN IF EXISTS end_date;
+  DROP COLUMN IF EXISTS end_date,
+  DROP COLUMN IF EXISTS org_is_new,
+  DROP COLUMN IF EXISTS is_new_to_hosting,
+  DROP COLUMN IF EXISTS category,
+  DROP COLUMN IF EXISTS category_other,
+  DROP COLUMN IF EXISTS competition_name,
+  DROP COLUMN IF EXISTS scope,
+  DROP COLUMN IF EXISTS gender_eligibility,
+  DROP COLUMN IF EXISTS age_min,
+  DROP COLUMN IF EXISTS age_max,
+  DROP COLUMN IF EXISTS no_age_restrictions,
+  DROP COLUMN IF EXISTS social_url,
+  DROP COLUMN IF EXISTS revenue_models;
 
--- Drop check constraint that referenced the removed date columns.
 ALTER TABLE competition_submissions
-  DROP CONSTRAINT IF EXISTS competition_submissions_dates_chk;
-
--- Add the new columns if a partial earlier shape exists.
-ALTER TABLE competition_submissions
-  ADD COLUMN IF NOT EXISTS is_new_to_hosting BOOLEAN NOT NULL DEFAULT TRUE,
-  ADD COLUMN IF NOT EXISTS scope             TEXT,
-  ADD COLUMN IF NOT EXISTS website_url       TEXT,
-  ADD COLUMN IF NOT EXISTS social_url        TEXT,
-  ADD COLUMN IF NOT EXISTS start_timeframe   TEXT;
-
--- competition_name was NOT NULL in the first draft; relax it.
-ALTER TABLE competition_submissions
-  ALTER COLUMN competition_name DROP NOT NULL;
-
--- Re-attach the age check constraint on the canonical name.
-ALTER TABLE competition_submissions
+  DROP CONSTRAINT IF EXISTS competition_submissions_dates_chk,
   DROP CONSTRAINT IF EXISTS competition_submissions_age_chk;
+
+-- Make sure the lean set of columns exists with the right shape, regardless
+-- of which earlier shape the table is in.
 ALTER TABLE competition_submissions
-  ADD CONSTRAINT competition_submissions_age_chk
-    CHECK (no_age_restrictions OR (age_min IS NOT NULL AND age_max IS NOT NULL AND age_max >= age_min));
+  ADD COLUMN IF NOT EXISTS pitch           TEXT,
+  ADD COLUMN IF NOT EXISTS website_url     TEXT,
+  ADD COLUMN IF NOT EXISTS start_timeframe TEXT;
+
+-- Tighten / relax NOT NULL where needed. We can only add NOT NULL safely
+-- when there are no rows missing the value — these are dev-only changes for
+-- a feature that hasn't shipped, so it's acceptable to enforce immediately.
+ALTER TABLE competition_submissions ALTER COLUMN contact_name DROP DEFAULT;
+ALTER TABLE competition_submissions ALTER COLUMN contact_name SET NOT NULL;
+ALTER TABLE competition_submissions ALTER COLUMN org_name DROP NOT NULL;
+ALTER TABLE competition_submissions ALTER COLUMN pitch SET NOT NULL;
+ALTER TABLE competition_submissions ALTER COLUMN start_timeframe SET NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_competition_submissions_email   ON competition_submissions(contact_email);
 CREATE INDEX IF NOT EXISTS idx_competition_submissions_status  ON competition_submissions(status);
@@ -150,10 +127,8 @@ CREATE POLICY "Super admins can delete competition submissions"
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_super_admin = TRUE)
   );
 
-COMMENT ON TABLE  competition_submissions IS 'Public /launch wizard submissions. Reviewed by super admins; can be converted to a live competition.';
+COMMENT ON TABLE  competition_submissions IS 'Public /launch sales-lead submissions. Sales follow-up + super-admin review.';
 COMMENT ON COLUMN competition_submissions.status IS 'pending → in_review → approved | rejected';
-COMMENT ON COLUMN competition_submissions.is_new_to_hosting IS 'TRUE = new to organizing competitions; FALSE = has been running them elsewhere';
-COMMENT ON COLUMN competition_submissions.scope IS 'Geographic reach: local, city-wide, state-wide, national, international';
-COMMENT ON COLUMN competition_submissions.gender_eligibility IS 'Free-form chips: Women, Men, All genders';
-COMMENT ON COLUMN competition_submissions.revenue_models IS 'Subset of: Paid voting, Sponsorships, Event tickets, Entry fees, Merchandise, Charity-based, Not sure yet';
-COMMENT ON COLUMN competition_submissions.start_timeframe IS 'Bucket: asap, 1-3-months, 3-6-months, 6-12-months, 12-plus-months';
+COMMENT ON COLUMN competition_submissions.pitch IS 'Free-text answer to "What are you looking to launch?"';
+COMMENT ON COLUMN competition_submissions.start_timeframe IS 'Bucket: asap, 1-3-months, 3-6-months, 6-plus-months';
+COMMENT ON COLUMN competition_submissions.website_url IS 'Their website or social handle (no validation beyond URL-ish format)';

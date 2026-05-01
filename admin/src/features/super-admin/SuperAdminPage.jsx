@@ -25,7 +25,7 @@ const CompetitionDashboard = lazy(() =>
 const SECTION_CONFIG = {
   competitions: { title: 'Competitions', subtitle: 'Create and manage competitions' },
   interests: { title: 'Interest Submissions', subtitle: 'Review pending submissions' },
-  launch_submissions: { title: 'Competition Submissions', subtitle: 'Review concepts submitted via /launch' },
+  launch_submissions: { title: 'Launch Leads', subtitle: 'Sales leads submitted via /launch' },
   hosts: { title: 'Hosts', subtitle: 'Manage host accounts' },
   organizations: { title: 'Organizations', subtitle: 'Manage organizations' },
   cities: { title: 'Cities', subtitle: 'Manage competition cities' },

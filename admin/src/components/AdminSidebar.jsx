@@ -13,7 +13,7 @@ const NAV_GROUPS = [
     items: [
       { key: 'competitions', label: 'All Competitions', icon: Trophy },
       { key: 'interests', label: 'Interest Submissions', icon: FileText },
-      { key: 'launch_submissions', label: 'Competition Submissions', icon: Rocket, badgeKey: 'pending_submissions' },
+      { key: 'launch_submissions', label: 'Launch Leads', icon: Rocket, badgeKey: 'pending_submissions' },
     ],
   },
   {

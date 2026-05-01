@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Building2, CheckCircle, XCircle, Clock, Eye,
-  ArrowLeft, ExternalLink, Send, FileText, Trophy,
+  ArrowLeft, ExternalLink, Send, FileText, MessageSquare,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, transitions } from '@shared/styles/theme';
 import { supabase } from '@shared/lib/supabase';
@@ -49,22 +49,6 @@ function StatusPill({ status }) {
   );
 }
 
-function DetailRow({ label, children }) {
-  return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '160px 1fr',
-      gap: spacing.md,
-      padding: `${spacing.xs} 0`,
-      borderBottom: `1px solid ${colors.border.secondary}`,
-      fontSize: typography.fontSize.sm,
-    }}>
-      <span style={{ color: colors.text.tertiary }}>{label}</span>
-      <span style={{ color: colors.text.primary, wordBreak: 'break-word' }}>{children}</span>
-    </div>
-  );
-}
-
 function DetailSection({ title, children }) {
   return (
     <div style={{
@@ -82,6 +66,22 @@ function DetailSection({ title, children }) {
         margin: `0 0 ${spacing.md}`,
       }}>{title}</h3>
       {children}
+    </div>
+  );
+}
+
+function DetailRow({ label, children }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '140px 1fr',
+      gap: spacing.md,
+      padding: `${spacing.xs} 0`,
+      borderBottom: `1px solid ${colors.border.secondary}`,
+      fontSize: typography.fontSize.sm,
+    }}>
+      <span style={{ color: colors.text.tertiary }}>{label}</span>
+      <span style={{ color: colors.text.primary, wordBreak: 'break-word' }}>{children}</span>
     </div>
   );
 }
@@ -117,22 +117,18 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
   }, [status, internalNotes, submission, toast, onUpdate]);
 
   const handleReply = () => {
-    const subject = encodeURIComponent(`Re: ${submission.competition_name} on EliteRank`);
+    const subject = encodeURIComponent(`Re: launching a competition with EliteRank`);
     const body = encodeURIComponent(
-      `Hi ${submission.contact_name || 'there'},\n\nThanks for submitting your concept for ${submission.competition_name}.`,
+      `Hi ${submission.contact_name || 'there'},\n\nThanks for reaching out about your competition concept.`,
     );
     window.location.href = `mailto:${submission.contact_email}?subject=${subject}&body=${body}`;
   };
 
   const handleConvert = () => {
     // eslint-disable-next-line no-console
-    console.log('TODO: convert submission to live competition', submission);
+    console.log('TODO: convert lead to live competition / start onboarding', submission);
     toast.info('Conversion flow coming soon — wired up in a follow-up.');
   };
-
-  const ageRange = submission.no_age_restrictions
-    ? 'No age restrictions'
-    : `${submission.age_min ?? '?'}-${submission.age_max ?? '?'}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
@@ -167,7 +163,7 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
           <button
             onClick={handleConvert}
             disabled={submission.status !== 'approved'}
-            title={submission.status !== 'approved' ? 'Approve the submission first' : 'Convert to live competition'}
+            title={submission.status !== 'approved' ? 'Approve the lead first' : 'Convert to onboarding'}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: spacing.xs,
               padding: `${spacing.xs} ${spacing.md}`,
@@ -180,7 +176,7 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
               opacity: submission.status === 'approved' ? 1 : 0.6,
             }}
           >
-            <ExternalLink size={14} /> Convert to live competition
+            <ExternalLink size={14} /> Start onboarding
           </button>
         </div>
       </div>
@@ -192,70 +188,42 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
             fontWeight: typography.fontWeight.bold,
             color: colors.text.primary,
             margin: 0,
-          }}>{submission.competition_name}</h2>
+          }}>{submission.contact_name}</h2>
           <p style={{
             fontSize: typography.fontSize.sm,
             color: colors.text.tertiary,
             margin: 0,
           }}>
-            {submission.org_name} · submitted {dateTime(submission.created_at)}
+            {submission.org_name ? `${submission.org_name} · ` : ''}
+            submitted {dateTime(submission.created_at)}
           </p>
         </div>
         <StatusPill status={submission.status} />
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: spacing.lg,
-      }}>
-        <DetailSection title="Organization">
-          <DetailRow label="Org name">{submission.org_name}</DetailRow>
-          <DetailRow label="Hosting">{submission.is_new_to_hosting ? 'New to hosting' : 'Has been running competitions'}</DetailRow>
-          <DetailRow label="Contact">{dash(submission.contact_name)}</DetailRow>
-          <DetailRow label="Email">
-            <a href={`mailto:${submission.contact_email}`} style={{ color: colors.gold.primary, textDecoration: 'none' }}>
-              {submission.contact_email}
-            </a>
-          </DetailRow>
-        </DetailSection>
+      <DetailSection title="Contact">
+        <DetailRow label="Name">{submission.contact_name}</DetailRow>
+        <DetailRow label="Email">
+          <a href={`mailto:${submission.contact_email}`} style={{ color: colors.gold.primary, textDecoration: 'none' }}>
+            {submission.contact_email}
+          </a>
+        </DetailRow>
+        <DetailRow label="Org">{dash(submission.org_name)}</DetailRow>
+        <DetailRow label="Website / social">
+          {submission.website_url
+            ? (submission.website_url.startsWith('http')
+                ? <a href={submission.website_url} target="_blank" rel="noopener noreferrer" style={{ color: colors.gold.primary, textDecoration: 'none' }}>{submission.website_url}</a>
+                : submission.website_url)
+            : '—'}
+        </DetailRow>
+        <DetailRow label="Wants to start">{dash(submission.start_timeframe)}</DetailRow>
+      </DetailSection>
 
-        <DetailSection title="Competition">
-          <DetailRow label="Name">{dash(submission.competition_name)}</DetailRow>
-          <DetailRow label="Category">{submission.category_other || submission.category}</DetailRow>
-          <DetailRow label="Scope">{submission.scope}</DetailRow>
-        </DetailSection>
-
-        <DetailSection title="Eligibility">
-          <DetailRow label="Genders">{(submission.gender_eligibility || []).join(', ') || '—'}</DetailRow>
-          <DetailRow label="Ages">{ageRange}</DetailRow>
-        </DetailSection>
-
-        <DetailSection title="Presence">
-          <DetailRow label="Website">
-            {submission.website_url ? (
-              <a href={submission.website_url} target="_blank" rel="noopener noreferrer" style={{ color: colors.gold.primary, textDecoration: 'none' }}>
-                {submission.website_url}
-              </a>
-            ) : '—'}
-          </DetailRow>
-          <DetailRow label="Social">
-            {submission.social_url ? (
-              <a href={submission.social_url} target="_blank" rel="noopener noreferrer" style={{ color: colors.gold.primary, textDecoration: 'none' }}>
-                {submission.social_url}
-              </a>
-            ) : '—'}
-          </DetailRow>
-        </DetailSection>
-
-        <DetailSection title="Revenue">
-          <DetailRow label="Models">{(submission.revenue_models || []).join(', ') || '—'}</DetailRow>
-        </DetailSection>
-
-        <DetailSection title="Timing">
-          <DetailRow label="Wants to start">{dash(submission.start_timeframe)}</DetailRow>
-        </DetailSection>
-      </div>
+      <DetailSection title="What they want to launch">
+        <p style={{ fontSize: typography.fontSize.sm, color: colors.text.primary, whiteSpace: 'pre-wrap', margin: 0 }}>
+          {submission.pitch}
+        </p>
+      </DetailSection>
 
       {submission.notes && (
         <DetailSection title="Submitter notes">
@@ -380,7 +348,7 @@ export default function CompetitionSubmissionsViewer() {
     return submissions.filter((sub) => {
       if (statusFilter && sub.status !== statusFilter) return false;
       if (!q) return true;
-      const hay = `${sub.org_name} ${sub.contact_name || ''} ${sub.contact_email} ${sub.competition_name || ''} ${sub.scope || ''}`.toLowerCase();
+      const hay = `${sub.contact_name || ''} ${sub.contact_email} ${sub.org_name || ''} ${sub.pitch || ''}`.toLowerCase();
       return hay.includes(q);
     });
   }, [submissions, statusFilter, searchQuery]);
@@ -418,35 +386,37 @@ export default function CompetitionSubmissionsViewer() {
       ),
     },
     {
-      key: 'org_name', label: 'Org', sortable: true,
-      render: (val, row) => (
-        <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-          <Building2 size={14} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
-          <span style={{ fontWeight: typography.fontWeight.medium }}>
-            {val} {row.is_new_to_hosting === false && <span style={{ color: colors.text.tertiary, fontSize: typography.fontSize.xs }}>(experienced)</span>}
-          </span>
-        </span>
-      ),
-    },
-    {
       key: 'contact_name', label: 'Contact', sortable: true,
       render: (val, row) => (
         <span style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: typography.fontSize.sm }}>{val || '—'}</span>
+          <span style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>{val}</span>
           <span style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary }}>{row.contact_email}</span>
         </span>
       ),
     },
     {
-      key: 'competition_name', label: 'Competition', sortable: true,
+      key: 'org_name', label: 'Org', sortable: true,
       render: (val) => (
-        <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-          <Trophy size={12} style={{ color: colors.gold.primary, flexShrink: 0 }} />
-          {val || <span style={{ color: colors.text.tertiary }}>(unnamed)</span>}
+        <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+          <Building2 size={14} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
+          <span>{val || <span style={{ color: colors.text.tertiary }}>—</span>}</span>
         </span>
       ),
     },
-    { key: 'scope', label: 'Scope', sortable: true },
+    {
+      key: 'pitch', label: 'Looking to launch', sortable: false,
+      render: (val) => (
+        <span style={{
+          display: 'flex', alignItems: 'flex-start', gap: spacing.xs,
+          fontSize: typography.fontSize.xs, color: colors.text.secondary,
+          maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          <MessageSquare size={12} style={{ color: colors.text.tertiary, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</span>
+        </span>
+      ),
+    },
+    { key: 'start_timeframe', label: 'Wants to start', sortable: true },
     {
       key: 'status', label: 'Status', sortable: true,
       render: (val) => <StatusPill status={val} />,
@@ -467,7 +437,7 @@ export default function CompetitionSubmissionsViewer() {
       <FilterBar
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search org, contact, competition, scope…"
+        searchPlaceholder="Search name, email, org, pitch…"
         filters={[
           { key: 'status', label: 'Status', options: STATUS_OPTIONS, value: statusFilter },
         ]}
@@ -482,8 +452,8 @@ export default function CompetitionSubmissionsViewer() {
         onRowClick={(row) => setSelected(row)}
         emptyMessage={
           searchQuery || statusFilter
-            ? 'No submissions match your filters.'
-            : 'No competition submissions yet.'
+            ? 'No leads match your filters.'
+            : 'No leads yet.'
         }
       />
     </div>
@@ -491,8 +461,8 @@ export default function CompetitionSubmissionsViewer() {
 }
 
 /**
- * Hook that returns the count of pending competition submissions for the
- * sidebar badge. Polled lightly via realtime so the count stays fresh.
+ * Hook that returns the count of pending leads for the sidebar badge.
+ * Refreshed via Postgres realtime so the count stays fresh.
  */
 export function usePendingSubmissionCount() {
   const [count, setCount] = useState(0);

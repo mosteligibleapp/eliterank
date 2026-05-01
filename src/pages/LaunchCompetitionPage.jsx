@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { LaunchSuccess, LaunchWizard } from '../features/launch';
+import { LaunchForm, LaunchSuccess } from '../features/launch';
 
 /**
- * Public-facing /launch page. Wraps the wizard and toggles to a success
- * screen on submit. No auth required — top-of-funnel form.
+ * Public-facing /launch page. A simple sales lead form — sales follows up
+ * within 1-2 business days. The richer post-sale onboarding flow lives
+ * elsewhere (see git history for the wizard prototype).
  */
 export default function LaunchCompetitionPage() {
   const [submission, setSubmission] = useState(null);
@@ -13,7 +14,6 @@ export default function LaunchCompetitionPage() {
       <LaunchSuccess
         submission={submission}
         onSubmitAnother={() => {
-          // Force a remount so the wizard hook re-reads (now-cleared) draft state.
           setSubmission(null);
           if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
         }}
@@ -21,5 +21,5 @@ export default function LaunchCompetitionPage() {
     );
   }
 
-  return <LaunchWizard onSubmitted={setSubmission} />;
+  return <LaunchForm onSubmitted={setSubmission} />;
 }

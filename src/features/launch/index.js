@@ -1,3 +1,2 @@
-export { default as LaunchWizard } from './LaunchWizard';
+export { default as LaunchForm, clearDraft } from './LaunchForm';
 export { default as LaunchSuccess } from './LaunchSuccess';
-export { clearDraft } from './useLaunchWizard';
