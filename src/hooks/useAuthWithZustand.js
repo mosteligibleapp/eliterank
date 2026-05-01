@@ -12,6 +12,7 @@
  * - Other components can just use useAuthStore() directly for reading state
  */
 import { useEffect, useRef, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import { supabase } from '../lib/supabase';
 import { log } from '../lib/logger';
 import { useAuthStore } from '../stores';
@@ -109,6 +110,7 @@ export default function useAuthWithZustand() {
           setLoading(false);
 
           if (currentUser) {
+            Sentry.setUser({ id: currentUser.id });
             log.info('auth', 'Session found', { email: currentUser.email });
             loadProfile(currentUser.id, currentUser.email);
           } else {
@@ -134,8 +136,10 @@ export default function useAuthWithZustand() {
         setUser(currentUser);
 
         if (event === 'SIGNED_IN' && currentUser) {
+          Sentry.setUser({ id: currentUser.id });
           loadProfile(currentUser.id, currentUser.email);
         } else if (event === 'SIGNED_OUT') {
+          Sentry.setUser(null);
           // Use clearAuth (not signOutStore) to avoid calling supabase.auth.signOut()
           // again, which would trigger another onAuthStateChange and loop.
           clearAuth();
