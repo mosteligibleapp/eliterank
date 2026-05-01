@@ -298,6 +298,17 @@ async function renderCoverSlide({
   const rowW = SLIDE_W - rowX * 2;
   let rowY = rowsTop;
 
+  // Compute the votes column once so every row aligns to the same x.
+  // The number is right-aligned to `voteNumberRightX`; " votes" sits
+  // immediately after, anchored so its right edge stays at the row's
+  // right padding boundary.
+  const voteSize = 28;
+  ctx.font = `${brand.font.weights.regular} ${voteSize}px ${brand.font.family}`;
+  const voteLabelText = ' votes';
+  const voteLabelW = ctx.measureText(voteLabelText).width;
+  const voteRightPad = 32;
+  const voteNumberRightX = rowX + rowW - voteRightPad - voteLabelW;
+
   for (let i = 0; i < total; i++) {
     const c = contestants[i] || {};
     const displayRank = ranks[i];
@@ -329,27 +340,22 @@ async function renderCoverSlide({
       drawCircleInitial(ctx, c.name?.charAt(0) || '?', avatarCX, avatarCY, avatarR, brand);
     }
 
-    // name + votes — inline, name·votes pulled together as a single cluster
-    const clusterX = avatarCX + avatarR + 26;
-    const clusterMaxW = rowX + rowW - 28 - clusterX;
-    const sep = '   ·   ';
-    ctx.font = `${brand.font.weights.bold} 30px ${brand.font.family}`;
+    // votes column — number right-aligned at fixed column, label after
+    ctx.font = `${brand.font.weights.regular} ${voteSize}px ${brand.font.family}`;
+    ctx.fillStyle = brand.colors.white;
+    ctx.textAlign = 'right';
     const voteText = fmtVotes(c.votes);
-    const voteW = ctx.measureText(voteText).width;
-    const sepW = ctx.measureText(sep).width;
-    const nameMaxW = clusterMaxW - voteW - sepW;
-    const nameText = truncate(ctx, c.name || 'Contestant', nameMaxW);
-    const nameW = ctx.measureText(nameText).width;
+    ctx.fillText(voteText, voteNumberRightX, rowY + cappedRowH / 2);
+    ctx.textAlign = 'left';
+    ctx.fillText(voteLabelText, voteNumberRightX, rowY + cappedRowH / 2);
 
-    let cx = clusterX;
+    // name — left-aligned, truncated to fit before the votes column
+    const nameX = avatarCX + avatarR + 26;
+    const nameMaxW = voteNumberRightX - 32 - nameX; // breathing room before vote column
+    ctx.font = `${brand.font.weights.bold} 30px ${brand.font.family}`;
+    ctx.textAlign = 'left';
     ctx.fillStyle = brand.colors.white;
-    ctx.fillText(nameText, cx, rowY + cappedRowH / 2);
-    cx += nameW;
-    ctx.fillStyle = brand.colors.dividerGray;
-    ctx.fillText(sep, cx, rowY + cappedRowH / 2);
-    cx += sepW;
-    ctx.fillStyle = brand.colors.white;
-    ctx.fillText(voteText, cx, rowY + cappedRowH / 2);
+    ctx.fillText(truncate(ctx, c.name || 'Contestant', nameMaxW), nameX, rowY + cappedRowH / 2);
 
     rowY += cappedRowH + rowGap;
   }
@@ -415,27 +421,40 @@ async function renderSpotlightSlide({
   );
   y = photoY + photoH + 60;
 
-  // name + votes inline — same font and size; name white, votes red
+  // name + votes inline — name bold white, vote count and "votes" label
+  // both regular weight in white
   const nameVoteSize = 56;
   ctx.font = `${brand.font.weights.bold} ${nameVoteSize}px ${brand.font.family}`;
   ctx.textBaseline = 'top';
   const nameText = c.name || 'Contestant';
   const sep = '   ·   ';
   const voteText = fmtVotes(c.votes);
+  const voteLabel = ' votes';
+
   const nameW = ctx.measureText(nameText).width;
+  ctx.font = `${brand.font.weights.regular} ${nameVoteSize}px ${brand.font.family}`;
   const sepW = ctx.measureText(sep).width;
   const voteW = ctx.measureText(voteText).width;
-  const totalW = nameW + sepW + voteW;
+  const voteLabelW = ctx.measureText(voteLabel).width;
+
+  const totalW = nameW + sepW + voteW + voteLabelW;
   let cursorX = CX - totalW / 2;
   ctx.textAlign = 'left';
+
+  ctx.font = `${brand.font.weights.bold} ${nameVoteSize}px ${brand.font.family}`;
   ctx.fillStyle = brand.colors.white;
   ctx.fillText(nameText, cursorX, y);
   cursorX += nameW;
+
+  ctx.font = `${brand.font.weights.regular} ${nameVoteSize}px ${brand.font.family}`;
   ctx.fillStyle = brand.colors.dividerGray;
   ctx.fillText(sep, cursorX, y);
   cursorX += sepW;
-  ctx.fillStyle = brand.colors.primary;
+
+  ctx.fillStyle = brand.colors.white;
   ctx.fillText(voteText, cursorX, y);
+  cursorX += voteW;
+  ctx.fillText(voteLabel, cursorX, y);
 
   return new Promise((resolve) => {
     canvas.toBlob((b) => resolve(b), 'image/png');
