@@ -1,7 +1,7 @@
 /**
  * Rankings Carousel Generator
  *
- * Renders a 6-slide Instagram carousel (1080×1350 each, 4:5 portrait):
+ * Renders a 6-slide Instagram Story set (1080×1920 each, 9:16 portrait):
  *   slide 1 — full top-10 cover
  *   slides 2-6 — top 5 spotlights, in rank order
  *
@@ -12,7 +12,7 @@
  */
 
 const SLIDE_W = 1080;
-const SLIDE_H = 1350;
+const SLIDE_H = 1920;
 const CX = SLIDE_W / 2;
 
 export const DEFAULT_BRAND = {
@@ -27,7 +27,7 @@ export const DEFAULT_BRAND = {
   },
   logo: {
     iconPath: '/heart-city-logo.svg',
-    height: 100,
+    height: 120,
   },
   font: {
     family: "'Montserrat', 'Inter', system-ui, sans-serif",
@@ -231,18 +231,18 @@ async function renderCoverSlide({
   ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
   enableHQ(ctx);
 
-  let y = 60;
+  let y = 100;
 
   // ----- pill: "• [ROUND] STANDINGS •" -----
   const pillText = `• ${(roundTitle || 'CURRENT').toUpperCase()} STANDINGS •`;
-  const pillFontSize = 22;
+  const pillFontSize = 26;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = `${brand.font.weights.bold} ${pillFontSize}px ${brand.font.family}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2px';
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2.5px';
   const pillTextW = ctx.measureText(pillText).width;
-  const pillPadH = 32;
-  const pillPadV = 14;
+  const pillPadH = 36;
+  const pillPadV = 16;
   const pillW = pillTextW + pillPadH * 2;
   const pillH = pillFontSize + pillPadV * 2;
   const pillX = CX - pillW / 2;
@@ -253,59 +253,46 @@ async function renderCoverSlide({
   ctx.fillStyle = brand.colors.primary;
   ctx.fillText(pillText, CX, y + pillH / 2);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += pillH + 28;
+  y += pillH + 40;
 
   // ----- title (display) -----
   ctx.fillStyle = brand.colors.white;
-  ctx.font = `${brand.font.weights.bold} 44px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.bold} 56px ${brand.font.family}`;
   ctx.textBaseline = 'top';
   let displayTitle = title;
   if (ctx.measureText(displayTitle).width > 1000) {
-    ctx.font = `${brand.font.weights.bold} 36px ${brand.font.family}`;
+    ctx.font = `${brand.font.weights.bold} 44px ${brand.font.family}`;
   }
   ctx.fillText(displayTitle, CX, y);
-  y += 44 + 14;
+  y += 56 + 36;
 
-  // ----- subtitle: "CHICAGO · 2026" -----
+  // ----- subtitle: "CHICAGO · 2026" — larger and breathing room above -----
   const subtitle = [cityName, season].filter(Boolean).join('   ·   ').toUpperCase();
   if (subtitle) {
     ctx.fillStyle = brand.colors.mutedGray;
-    ctx.font = `${brand.font.weights.medium} 16px ${brand.font.family}`;
-    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '3px';
+    ctx.font = `${brand.font.weights.medium} 24px ${brand.font.family}`;
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '5px';
     ctx.fillText(subtitle, CX, y);
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-    y += 16 + 32;
+    y += 24 + 56;
   } else {
-    y += 16;
+    y += 24;
   }
 
-  // ----- footer (drawn first so we know where rows end) -----
-  const logoTop = drawFooterLogo(ctx, brand, logoImg, 50);
-  // swipe text sits above the logo
-  const swipeY = logoTop - 30;
-  ctx.fillStyle = brand.colors.mutedGray;
-  ctx.font = `${brand.font.weights.medium} 16px ${brand.font.family}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2px';
-  ctx.fillText('SWIPE TO MEET THE TOP 5 →', CX, swipeY);
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  // ----- footer logo (drawn first so rows can size to remaining space) -----
+  const logoTop = drawFooterLogo(ctx, brand, logoImg, 60);
 
-  // ----- contestant rows -----
+  // ----- contestant rows — uniform full-color treatment for all 10 -----
   const rowsTop = y;
-  const rowsBottomLimit = swipeY - 32; // breathing room above swipe text
+  const rowsBottomLimit = logoTop - 50; // breathing room above logo
   const rowsAvailable = rowsBottomLimit - rowsTop;
 
   const total = contestants.length;
-  const splitIndex = Math.min(5, Math.ceil(total / 2));
-  const showThreshold = total > splitIndex;
-  const thresholdGap = showThreshold ? 24 : 0;
-
-  const rowGap = 4;
+  const rowGap = 6;
   const rowH = Math.floor(
-    (rowsAvailable - thresholdGap - rowGap * Math.max(total - 1, 0)) / Math.max(total, 1)
+    (rowsAvailable - rowGap * Math.max(total - 1, 0)) / Math.max(total, 1)
   );
-  const cappedRowH = Math.max(70, Math.min(100, rowH));
+  const cappedRowH = Math.max(80, Math.min(132, rowH));
 
   const rowX = 56;
   const rowW = SLIDE_W - rowX * 2;
@@ -314,83 +301,56 @@ async function renderCoverSlide({
   for (let i = 0; i < total; i++) {
     const c = contestants[i] || {};
     const displayRank = ranks[i];
-    const isTop5 = i < splitIndex;
-    const isFirst = i === 0;
 
-    if (showThreshold && i === splitIndex) {
-      const ty = rowY + thresholdGap / 2;
-      dasharrayLine(ctx, rowX + 8, ty, rowX + rowW - 8, ty, brand.colors.dividerGray);
-      rowY += thresholdGap;
-    }
-
-    if (isTop5) {
-      ctx.save();
-      ctx.fillStyle = 'rgba(225, 29, 42, 0.08)';
-      roundRectPath(ctx, rowX, rowY, rowW, cappedRowH, 4);
-      ctx.fill();
-      ctx.restore();
-      ctx.fillStyle = brand.colors.primary;
-      ctx.fillRect(rowX, rowY, 2, cappedRowH);
-    }
-
-    const dimAlpha = isTop5 ? 1 : 0.6;
+    // uniform row container — red-tinted bg + 2px red left border for every row
     ctx.save();
-    ctx.globalAlpha = dimAlpha;
+    ctx.fillStyle = 'rgba(225, 29, 42, 0.08)';
+    roundRectPath(ctx, rowX, rowY, rowW, cappedRowH, 4);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = brand.colors.primary;
+    ctx.fillRect(rowX, rowY, 2, cappedRowH);
 
-    // rank number — display weight
+    // rank — uniform white bold (rank 1 matches rank 2 styling)
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    const rankColor = isFirst
-      ? brand.colors.primary
-      : isTop5
-        ? brand.colors.white
-        : brand.colors.mutedGray;
-    ctx.fillStyle = rankColor;
-    ctx.font = `${brand.font.weights.bold} 36px ${brand.font.family}`;
+    ctx.fillStyle = brand.colors.white;
+    ctx.font = `${brand.font.weights.bold} 44px ${brand.font.family}`;
     const rankText = String(displayRank).padStart(2, '0');
-    ctx.fillText(rankText, rowX + 28, rowY + cappedRowH / 2);
+    ctx.fillText(rankText, rowX + 32, rowY + cappedRowH / 2);
 
-    // avatar
-    const avatarR = Math.floor((cappedRowH - 22) / 2);
-    const avatarCX = rowX + 124;
+    // avatar — same circle for every row, no special border
+    const avatarR = Math.floor((cappedRowH - 28) / 2);
+    const avatarCX = rowX + 152;
     const avatarCY = rowY + cappedRowH / 2;
     if (avatars[i]) {
       drawCircleImage(ctx, avatars[i], avatarCX, avatarCY, avatarR);
     } else {
       drawCircleInitial(ctx, c.name?.charAt(0) || '?', avatarCX, avatarCY, avatarR, brand);
     }
-    if (isFirst) {
-      ctx.beginPath();
-      ctx.arc(avatarCX, avatarCY, avatarR, 0, Math.PI * 2);
-      ctx.strokeStyle = brand.colors.primary;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
 
-    // votes (right) — display weight
-    const voteColor = isFirst
-      ? brand.colors.primary
-      : isTop5
-        ? brand.colors.white
-        : brand.colors.dimmedWhite;
-    ctx.fillStyle = voteColor;
-    ctx.font = `${brand.font.weights.bold} 28px ${brand.font.family}`;
-    ctx.textAlign = 'right';
-    const voteRightX = rowX + rowW - 28;
+    // name + votes — inline, name·votes pulled together as a single cluster
+    const clusterX = avatarCX + avatarR + 26;
+    const clusterMaxW = rowX + rowW - 28 - clusterX;
+    const sep = '   ·   ';
+    ctx.font = `${brand.font.weights.bold} 30px ${brand.font.family}`;
     const voteText = fmtVotes(c.votes);
-    ctx.fillText(voteText, voteRightX, rowY + cappedRowH / 2);
-    const voteTextW = ctx.measureText(voteText).width;
+    const voteW = ctx.measureText(voteText).width;
+    const sepW = ctx.measureText(sep).width;
+    const nameMaxW = clusterMaxW - voteW - sepW;
+    const nameText = truncate(ctx, c.name || 'Contestant', nameMaxW);
+    const nameW = ctx.measureText(nameText).width;
 
-    // name
-    const nameX = avatarCX + avatarR + 22;
-    const nameMaxW = voteRightX - voteTextW - 28 - nameX;
-    const nameColor = isTop5 ? brand.colors.white : '#DDDDDD';
-    ctx.fillStyle = nameColor;
-    ctx.textAlign = 'left';
-    ctx.font = `${brand.font.weights.medium} 24px ${brand.font.family}`;
-    ctx.fillText(truncate(ctx, c.name || 'Contestant', nameMaxW), nameX, rowY + cappedRowH / 2);
+    let cx = clusterX;
+    ctx.fillStyle = brand.colors.white;
+    ctx.fillText(nameText, cx, rowY + cappedRowH / 2);
+    cx += nameW;
+    ctx.fillStyle = brand.colors.dividerGray;
+    ctx.fillText(sep, cx, rowY + cappedRowH / 2);
+    cx += sepW;
+    ctx.fillStyle = brand.colors.white;
+    ctx.fillText(voteText, cx, rowY + cappedRowH / 2);
 
-    ctx.restore();
     rowY += cappedRowH + rowGap;
   }
 
@@ -419,27 +379,27 @@ async function renderSpotlightSlide({
   enableHQ(ctx);
 
   // logo anchors the bottom — draw first so layout above can be measured
-  drawFooterLogo(ctx, brand, logoImg, 50);
+  drawFooterLogo(ctx, brand, logoImg, 60);
 
   const c = contestants[index] || {};
   const displayRank = ranks[index];
   const isFirst = index === 0;
 
-  let y = 80;
+  let y = 120;
 
   // hero rank — display weight, tight tracking
   ctx.fillStyle = brand.colors.primary;
-  ctx.font = `${brand.font.weights.bold} 96px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.bold} 120px ${brand.font.family}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-3px';
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-4px';
   ctx.fillText(String(displayRank).padStart(2, '0'), CX, y);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += 96 + 32;
+  y += 120 + 60;
 
-  // photo — 3:4 portrait
-  const photoH = 800;
-  const photoW = photoH * (3 / 4); // 600
+  // photo — 3:4 portrait, sized for the taller story canvas
+  const photoH = 1200;
+  const photoW = photoH * (3 / 4); // 900
   const photoX = CX - photoW / 2;
   const photoY = y;
   drawRoundedImageWithBorder(
@@ -449,14 +409,14 @@ async function renderSpotlightSlide({
     photoY,
     photoW,
     photoH,
-    6,
+    8,
     isFirst ? brand.colors.primary : brand.colors.primaryDark,
     isFirst ? 2 : 1
   );
-  y = photoY + photoH + 40;
+  y = photoY + photoH + 60;
 
   // name + votes inline — same font and size; name white, votes red
-  const nameVoteSize = 40;
+  const nameVoteSize = 56;
   ctx.font = `${brand.font.weights.bold} ${nameVoteSize}px ${brand.font.family}`;
   ctx.textBaseline = 'top';
   const nameText = c.name || 'Contestant';
