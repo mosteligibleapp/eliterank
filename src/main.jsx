@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import './index.css';
 import './styles/competition-phases.css';
 import App from './App.jsx';
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')).render(
         <ToastProvider>
           <NotificationProvider>
             <App />
+            <SpeedInsights />
           </NotificationProvider>
         </ToastProvider>
       </BrowserRouter>
