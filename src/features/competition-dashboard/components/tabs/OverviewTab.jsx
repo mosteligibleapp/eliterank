@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Eye, Users, UserPlus, Star, Plus, Crown, Calendar, DollarSign, FileText, Pin, Edit, Trash2, Download, Loader, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
@@ -6,6 +6,8 @@ import { useResponsive } from '../../../../hooks/useResponsive';
 import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
+import { generateRankingsGraphic } from '../../../achievement-cards/generateRankingsGraphic';
+import { supabase } from '../../../../lib/supabase';
 import { isLive } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
@@ -37,10 +39,69 @@ export default function OverviewTab({
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
   const [generatingCardId, setGeneratingCardId] = useState(null);
+  const [generatingRankings, setGeneratingRankings] = useState(false);
+  const [activeRound, setActiveRound] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadActiveRound = async () => {
+      if (!supabase || !competition?.id) return;
+      const { data } = await supabase
+        .from('voting_rounds')
+        .select('id, title, round_order, start_date, end_date')
+        .eq('competition_id', competition.id)
+        .order('round_order');
+      if (cancelled || !data?.length) return;
+      const now = Date.now();
+      const current = data.find((r) => {
+        const start = r.start_date ? new Date(r.start_date).getTime() : null;
+        const end = r.end_date ? new Date(r.end_date).getTime() : null;
+        return start && end && start <= now && now <= end;
+      });
+      setActiveRound(current || data[data.length - 1]);
+    };
+    loadActiveRound();
+    return () => { cancelled = true; };
+  }, [competition?.id]);
 
   const handleViewProfile = (profileId) => {
     if (!profileId) return;
     navigate(`/profile/${profileId}`);
+  };
+
+  const handleDownloadRankings = async () => {
+    if (generatingRankings || rankedContestants.length === 0) return;
+    setGeneratingRankings(true);
+    try {
+      const blob = await generateRankingsGraphic({
+        contestants: rankedContestants.slice(0, 10),
+        competitionName: competition?.name || `Most Eligible ${competition?.city || ''}`.trim(),
+        cityName: competition?.city,
+        season: competition?.season,
+        roundTitle: activeRound?.title,
+        organizationLogoUrl: competition?.organizationLogoUrl,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const slug = (competition?.slug || competition?.name || 'competition')
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, '-');
+      const roundSlug = activeRound?.title
+        ? `-${activeRound.title.toLowerCase().replace(/\s+/g, '-')}`
+        : '';
+      a.download = `${slug}${roundSlug}-standings.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Rankings graphic generation failed:', err);
+    } finally {
+      setGeneratingRankings(false);
+    }
   };
 
   const handleDownloadCard = async (person) => {
@@ -322,18 +383,46 @@ export default function OverviewTab({
           icon={Crown}
           style={{ marginBottom: 0 }}
           action={
-            <button
-              onClick={() => onNavigateToTab?.('people')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: colors.gold.primary,
-                fontSize: typography.fontSize.sm,
-                cursor: 'pointer',
-              }}
-            >
-              View All →
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+              <button
+                onClick={handleDownloadRankings}
+                disabled={generatingRankings || rankedContestants.length === 0}
+                title="Download standings graphic (1080×1350)"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: spacing.xs,
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  background: 'rgba(212,175,55,0.1)',
+                  border: `1px solid ${colors.border.gold}`,
+                  borderRadius: borderRadius.md,
+                  color: colors.gold.primary,
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.medium,
+                  cursor: generatingRankings || rankedContestants.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: rankedContestants.length === 0 ? 0.5 : 1,
+                }}
+              >
+                {generatingRankings ? (
+                  <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <Download size={12} />
+                )}
+                {generatingRankings ? 'Generating…' : 'Standings'}
+              </button>
+              <button
+                onClick={() => onNavigateToTab?.('people')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: colors.gold.primary,
+                  fontSize: typography.fontSize.sm,
+                  cursor: 'pointer',
+                }}
+              >
+                View All →
+              </button>
+            </div>
           }
           collapsible
         >
