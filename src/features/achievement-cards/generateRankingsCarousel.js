@@ -27,11 +27,11 @@ export const DEFAULT_BRAND = {
   },
   logo: {
     iconPath: '/heart-city-logo.svg',
-    height: 80,
+    height: 56,
   },
   font: {
     family: "'Montserrat', 'Inter', system-ui, sans-serif",
-    weights: { regular: 400, medium: 500 },
+    weights: { regular: 400, medium: 500, bold: 700 },
   },
 };
 
@@ -182,19 +182,19 @@ function dasharrayLine(ctx, x1, y1, x2, y2, color, dash = [6, 8]) {
 // ---------- shared header ----------
 
 async function drawHeaderLogo(ctx, brand, logoImg) {
-  if (!logoImg) return;
+  if (!logoImg) return { bottom: 24 };
   const targetH = brand.logo.height;
   const aspect = logoImg.width / logoImg.height;
   let drawH = targetH;
   let drawW = drawH * aspect;
-  // Cap width so very wide logos don't dominate
-  const maxW = 360;
+  const maxW = 280;
   if (drawW > maxW) {
     drawW = maxW;
     drawH = drawW / aspect;
   }
-  const padTop = 24;
+  const padTop = 22;
   ctx.drawImage(logoImg, CX - drawW / 2, padTop, drawW, drawH);
+  return { bottom: padTop + drawH + 18 };
 }
 
 // ---------- slide 1 — cover ----------
@@ -218,20 +218,19 @@ async function renderCoverSlide({
   ctx.fillStyle = brand.colors.background;
   ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
 
-  await drawHeaderLogo(ctx, brand, logoImg);
-  // header zone: 24 (pad top) + logo height + 24 (pad bottom)
-  let y = 24 + brand.logo.height + 24;
+  const header = await drawHeaderLogo(ctx, brand, logoImg);
+  let y = header.bottom;
 
   // ----- pill: "• [ROUND] STANDINGS •" -----
   const pillText = `• ${(roundTitle || 'CURRENT').toUpperCase()} STANDINGS •`;
-  const pillFontSize = 18;
+  const pillFontSize = 22;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `${brand.font.weights.medium} ${pillFontSize}px ${brand.font.family}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '1.5px';
+  ctx.font = `${brand.font.weights.bold} ${pillFontSize}px ${brand.font.family}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2px';
   const pillTextW = ctx.measureText(pillText).width;
-  const pillPadH = 24;
-  const pillPadV = 12;
+  const pillPadH = 32;
+  const pillPadV = 14;
   const pillW = pillTextW + pillPadH * 2;
   const pillH = pillFontSize + pillPadV * 2;
   const pillX = CX - pillW / 2;
@@ -244,44 +243,48 @@ async function renderCoverSlide({
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
   y += pillH + 28;
 
-  // ----- title -----
+  // ----- title (display) -----
   ctx.fillStyle = brand.colors.white;
-  ctx.font = `${brand.font.weights.medium} 18px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.bold} 44px ${brand.font.family}`;
   ctx.textBaseline = 'top';
-  ctx.fillText(title, CX, y);
-  y += 18 + 10;
+  let displayTitle = title;
+  if (ctx.measureText(displayTitle).width > 1000) {
+    ctx.font = `${brand.font.weights.bold} 36px ${brand.font.family}`;
+  }
+  ctx.fillText(displayTitle, CX, y);
+  y += 44 + 14;
 
   // ----- subtitle: "CHICAGO · 2026" -----
-  const subtitle = [cityName, season].filter(Boolean).join('  ·  ').toUpperCase();
+  const subtitle = [cityName, season].filter(Boolean).join('   ·   ').toUpperCase();
   if (subtitle) {
     ctx.fillStyle = brand.colors.mutedGray;
-    ctx.font = `${brand.font.weights.regular} 13px ${brand.font.family}`;
-    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2px';
+    ctx.font = `${brand.font.weights.medium} 16px ${brand.font.family}`;
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '3px';
     ctx.fillText(subtitle, CX, y);
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-    y += 13 + 28;
+    y += 16 + 32;
   } else {
-    y += 12;
+    y += 16;
   }
 
   // ----- contestant rows -----
   const rowsTop = y;
-  const footerReserved = 90; // footer text + bottom margin
+  const footerReserved = 84;
   const rowsBottomLimit = SLIDE_H - footerReserved;
   const rowsAvailable = rowsBottomLimit - rowsTop;
 
   const total = contestants.length;
-  const splitIndex = Math.min(5, Math.ceil(total / 2)); // threshold after this index
+  const splitIndex = Math.min(5, Math.ceil(total / 2));
   const showThreshold = total > splitIndex;
-  const thresholdGap = showThreshold ? 26 : 0;
+  const thresholdGap = showThreshold ? 24 : 0;
 
-  const rowGap = 6;
+  const rowGap = 4;
   const rowH = Math.floor(
     (rowsAvailable - thresholdGap - rowGap * Math.max(total - 1, 0)) / Math.max(total, 1)
   );
-  const cappedRowH = Math.max(60, Math.min(96, rowH));
+  const cappedRowH = Math.max(70, Math.min(100, rowH));
 
-  const rowX = 60;
+  const rowX = 56;
   const rowW = SLIDE_W - rowX * 2;
   let rowY = rowsTop;
 
@@ -291,22 +294,18 @@ async function renderCoverSlide({
     const isTop5 = i < splitIndex;
     const isFirst = i === 0;
 
-    // dashed threshold between top-tier and rest
     if (showThreshold && i === splitIndex) {
       const ty = rowY + thresholdGap / 2;
-      dasharrayLine(ctx, rowX, ty, rowX + rowW, ty, brand.colors.dividerGray);
+      dasharrayLine(ctx, rowX + 8, ty, rowX + rowW - 8, ty, brand.colors.dividerGray);
       rowY += thresholdGap;
     }
 
-    // row container
     if (isTop5) {
-      // red-tinted background
       ctx.save();
       ctx.fillStyle = 'rgba(225, 29, 42, 0.08)';
-      roundRectPath(ctx, rowX, rowY, rowW, cappedRowH, 6);
+      roundRectPath(ctx, rowX, rowY, rowW, cappedRowH, 4);
       ctx.fill();
       ctx.restore();
-      // 2px solid red left border
       ctx.fillStyle = brand.colors.primary;
       ctx.fillRect(rowX, rowY, 2, cappedRowH);
     }
@@ -315,7 +314,7 @@ async function renderCoverSlide({
     ctx.save();
     ctx.globalAlpha = dimAlpha;
 
-    // rank number
+    // rank number — display weight
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
     const rankColor = isFirst
@@ -324,13 +323,13 @@ async function renderCoverSlide({
         ? brand.colors.white
         : brand.colors.mutedGray;
     ctx.fillStyle = rankColor;
-    ctx.font = `${brand.font.weights.medium} 28px ${brand.font.family}`;
+    ctx.font = `${brand.font.weights.bold} 36px ${brand.font.family}`;
     const rankText = String(displayRank).padStart(2, '0');
-    ctx.fillText(rankText, rowX + 24, rowY + cappedRowH / 2);
+    ctx.fillText(rankText, rowX + 28, rowY + cappedRowH / 2);
 
     // avatar
-    const avatarR = Math.floor((cappedRowH - 24) / 2);
-    const avatarCX = rowX + 100;
+    const avatarR = Math.floor((cappedRowH - 22) / 2);
+    const avatarCX = rowX + 124;
     const avatarCY = rowY + cappedRowH / 2;
     if (avatars[i]) {
       drawCircleImage(ctx, avatars[i], avatarCX, avatarCY, avatarR);
@@ -341,45 +340,44 @@ async function renderCoverSlide({
       ctx.beginPath();
       ctx.arc(avatarCX, avatarCY, avatarR, 0, Math.PI * 2);
       ctx.strokeStyle = brand.colors.primary;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
     }
 
-    // votes (right)
+    // votes (right) — display weight
     const voteColor = isFirst
       ? brand.colors.primary
       : isTop5
         ? brand.colors.white
         : brand.colors.dimmedWhite;
     ctx.fillStyle = voteColor;
-    ctx.font = `${brand.font.weights.medium} 18px ${brand.font.family}`;
+    ctx.font = `${brand.font.weights.bold} 28px ${brand.font.family}`;
     ctx.textAlign = 'right';
-    const voteRightX = rowX + rowW - 24;
+    const voteRightX = rowX + rowW - 28;
     const voteText = fmtVotes(c.votes);
     ctx.fillText(voteText, voteRightX, rowY + cappedRowH / 2);
     const voteTextW = ctx.measureText(voteText).width;
 
     // name
-    const nameX = avatarCX + avatarR + 18;
-    const nameMaxW = voteRightX - voteTextW - 24 - nameX;
+    const nameX = avatarCX + avatarR + 22;
+    const nameMaxW = voteRightX - voteTextW - 28 - nameX;
     const nameColor = isTop5 ? brand.colors.white : '#DDDDDD';
     ctx.fillStyle = nameColor;
     ctx.textAlign = 'left';
-    ctx.font = `${brand.font.weights.medium} 18px ${brand.font.family}`;
+    ctx.font = `${brand.font.weights.medium} 24px ${brand.font.family}`;
     ctx.fillText(truncate(ctx, c.name || 'Contestant', nameMaxW), nameX, rowY + cappedRowH / 2);
 
     ctx.restore();
-
     rowY += cappedRowH + rowGap;
   }
 
   // ----- footer -----
   ctx.fillStyle = brand.colors.mutedGray;
-  ctx.font = `${brand.font.weights.medium} 14px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.medium} 16px ${brand.font.family}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '1.5px';
-  ctx.fillText('SWIPE TO MEET THE TOP 5 →', CX, SLIDE_H - 44);
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2px';
+  ctx.fillText('SWIPE TO MEET THE TOP 5 →', CX, SLIDE_H - 40);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
 
   return new Promise((resolve) => {
@@ -444,34 +442,36 @@ async function renderSpotlightSlide({
   ctx.fillStyle = brand.colors.background;
   ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
 
-  await drawHeaderLogo(ctx, brand, logoImg);
-  let y = 24 + brand.logo.height + 24;
+  const header = await drawHeaderLogo(ctx, brand, logoImg);
+  let y = header.bottom;
 
   const c = contestants[index] || {};
   const displayRank = ranks[index];
+  const isFirst = index === 0;
 
-  // top label (small uppercase, red)
+  // top label (small uppercase, red, tracked) — editorial caption
   ctx.fillStyle = brand.colors.primary;
-  ctx.font = `${brand.font.weights.medium} 14px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.bold} 16px ${brand.font.family}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2.5px';
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4px';
   ctx.fillText(topLabelFor(index, roundEndType), CX, y);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += 14 + 12;
+  y += 16 + 12;
 
-  // large rank number
+  // hero rank — display weight, tight tracking
   ctx.fillStyle = brand.colors.primary;
-  ctx.font = `${brand.font.weights.medium} 36px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.bold} 96px ${brand.font.family}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-3px';
   ctx.fillText(String(displayRank).padStart(2, '0'), CX, y);
-  y += 36 + 24;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  y += 96 + 22;
 
-  // photo (3:4 portrait, ~720 tall)
-  const photoH = 720;
-  const photoW = photoH * (3 / 4); // 540
+  // photo — reduced container, 3:4 portrait
+  const photoH = 680;
+  const photoW = photoH * (3 / 4); // 510
   const photoX = CX - photoW / 2;
   const photoY = y;
-  const isFirst = index === 0;
   drawRoundedImageWithBorder(
     ctx,
     photoImg,
@@ -479,44 +479,43 @@ async function renderSpotlightSlide({
     photoY,
     photoW,
     photoH,
-    8,
+    6,
     isFirst ? brand.colors.primary : brand.colors.primaryDark,
     isFirst ? 2 : 1
   );
-  y = photoY + photoH + 28;
+  y = photoY + photoH + 10; // tight: pull vote count up to the photo
 
-  // name
-  ctx.fillStyle = brand.colors.white;
-  ctx.font = `${brand.font.weights.medium} 22px ${brand.font.family}`;
-  ctx.textAlign = 'center';
+  // hero vote count — sits under the photo as one unit
+  ctx.fillStyle = brand.colors.primary;
+  ctx.font = `${brand.font.weights.bold} 136px ${brand.font.family}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-4px';
   ctx.textBaseline = 'top';
+  ctx.fillText(fmtVotes(c.votes), CX, y);
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  y += 136 + 6;
+
+  // context line — editorial tracked caption
+  const ctxLine = contextLineFor(index, contestants);
+  const fullLine = ctxLine.tail ? `VOTES · ${ctxLine.tail}` : 'VOTES';
+  ctx.fillStyle = ctxLine.emphasize ? brand.colors.primary : brand.colors.mutedGray;
+  ctx.font = `${brand.font.weights.bold} 14px ${brand.font.family}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '3.5px';
+  ctx.fillText(fullLine, CX, y);
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  y += 14 + 22;
+
+  // name — display, supporting role beneath the data moment
+  ctx.fillStyle = brand.colors.white;
+  ctx.font = `${brand.font.weights.bold} 38px ${brand.font.family}`;
   ctx.fillText(c.name || 'Contestant', CX, y);
-  y += 22 + 8;
+  y += 38 + 6;
 
   // instagram handle
   if (c.instagram) {
     ctx.fillStyle = brand.colors.mutedGray;
-    ctx.font = `${brand.font.weights.regular} 13px ${brand.font.family}`;
+    ctx.font = `${brand.font.weights.medium} 18px ${brand.font.family}`;
     ctx.fillText(`@${String(c.instagram).replace(/^@/, '')}`, CX, y);
-    y += 13 + 18;
-  } else {
-    y += 18;
   }
-
-  // large vote count in red
-  ctx.fillStyle = brand.colors.primary;
-  ctx.font = `${brand.font.weights.medium} 56px ${brand.font.family}`;
-  ctx.fillText(fmtVotes(c.votes), CX, y);
-  y += 56 + 12;
-
-  // context line
-  const ctxLine = contextLineFor(index, contestants);
-  const fullLine = ctxLine.tail ? `VOTES · ${ctxLine.tail}` : 'VOTES';
-  ctx.fillStyle = ctxLine.emphasize ? brand.colors.primary : brand.colors.mutedGray;
-  ctx.font = `${brand.font.weights.medium} 12px ${brand.font.family}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2px';
-  ctx.fillText(fullLine, CX, y);
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
 
   return new Promise((resolve) => {
     canvas.toBlob((b) => resolve(b), 'image/png');
