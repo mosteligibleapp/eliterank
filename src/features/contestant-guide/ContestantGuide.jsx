@@ -273,8 +273,10 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     'A set number of contestants advances each round based on vote count, and votes reset at the start of every round',
   ];
   if (hasJudgeStep) {
-    howItWorksPoints.push(`After the Top ${preFinalists} are determined, a panel of judges will score the finalists — judge scores determine who advances to the Top ${finalists}`);
+    howItWorksPoints.push(`After the Top ${preFinalists} are determined, judges decide who makes it as a top finalist — a panel scores the contestants and the Top ${finalists} advance`);
     howItWorksPoints.push(`From there, the Top ${finalists} compete in a final voting round — votes reset one last time, and the final vote count determines the winners' rankings (1st–${numWinners}th)`);
+  } else {
+    howItWorksPoints.push('Judges decide who makes it as a top finalist');
   }
   howItWorksPoints.push(`${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
 
@@ -345,7 +347,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
         {
           text: `1st place receives a cash prize (min $${prizeMinimum.toLocaleString()})`,
           subpoints: [
-            'Cash prize grows from every paid vote purchased',
+            'Paid votes are available but not required to advance.',
             'Winner may keep the prize or donate to a verified 501(c)(3) of their choice',
           ],
         },
