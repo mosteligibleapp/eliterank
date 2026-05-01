@@ -203,7 +203,8 @@ export function PortraitCard({
             src={contestant.avatar_url}
             alt={contestant.name}
             className="portrait-image"
-            loading="lazy"
+            loading={rank <= 3 ? 'eager' : 'lazy'}
+            fetchpriority={rank <= 3 ? 'high' : 'auto'}
             decoding="async"
             style={{ opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.2s ease' }}
             onLoad={handleLoad}
