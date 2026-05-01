@@ -237,7 +237,6 @@ serve(async (req) => {
 
     // 7. For each contestant, build payload and dispatch.
     const results: SendResult[] = []
-    const settingsUrl = `${appUrl}/notifications`
 
     const sendOne = async (payload: Record<string, unknown>, label: SendResult) => {
       if (dryRun) {
@@ -306,9 +305,6 @@ serve(async (req) => {
             ...sharedPayload,
             to_email: contestantEmail,
             is_self: true,
-            // Self-digests don't have a fan row to unsubscribe; point at
-            // notification settings so send-onesignal-email skips HMAC signing.
-            unsubscribe_url: settingsUrl,
           },
           { contestant_id: contestant.id, contestant_name: contestant.name, recipient: 'self', to_email: contestantEmail, status: 'sent' },
         )

@@ -387,15 +387,11 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       const ctaUrl = req.profile_url || req.competition_url
       const ctaLabel = isSelf ? 'View My Profile' : `View ${contestantName}'s Profile`
 
-      const unsubLine = req.unsubscribe_url
-        ? (isSelf
-            ? `<p style="color:#666;font-size:12px;margin-top:16px;">
-                 <a href="${req.unsubscribe_url}" style="color:#999;text-decoration:underline;">Manage email preferences</a>
-               </p>`
-            : `<p style="color:#666;font-size:12px;margin-top:16px;">
-                 Not interested in weekly updates for ${contestantName}?
-                 <a href="${req.unsubscribe_url}" style="color:#999;text-decoration:underline;">Unsubscribe</a>.
-               </p>`)
+      const unsubLine = !isSelf && req.unsubscribe_url
+        ? `<p style="color:#666;font-size:12px;margin-top:16px;">
+             Not interested in weekly updates for ${contestantName}?
+             <a href="${req.unsubscribe_url}" style="color:#999;text-decoration:underline;">Unsubscribe</a>.
+           </p>`
         : ''
 
       return {
