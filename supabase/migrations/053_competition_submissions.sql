@@ -154,6 +154,6 @@ COMMENT ON TABLE  competition_submissions IS 'Public /launch wizard submissions.
 COMMENT ON COLUMN competition_submissions.status IS 'pending → in_review → approved | rejected';
 COMMENT ON COLUMN competition_submissions.is_new_to_hosting IS 'TRUE = new to organizing competitions; FALSE = has been running them elsewhere';
 COMMENT ON COLUMN competition_submissions.scope IS 'Geographic reach: local, city-wide, state-wide, national, international';
-COMMENT ON COLUMN competition_submissions.gender_eligibility IS 'Free-form chips: Women, Men, All genders, Non-binary inclusive';
+COMMENT ON COLUMN competition_submissions.gender_eligibility IS 'Free-form chips: Women, Men, All genders';
 COMMENT ON COLUMN competition_submissions.revenue_models IS 'Subset of: Paid voting, Sponsorships, Event tickets, Entry fees, Merchandise, Charity-based, Not sure yet';
 COMMENT ON COLUMN competition_submissions.start_timeframe IS 'Bucket: asap, 1-3-months, 3-6-months, 6-12-months, 12-plus-months';

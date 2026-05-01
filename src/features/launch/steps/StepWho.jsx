@@ -21,7 +21,7 @@ export default function StepWho({ form, errors, showErrors, setField, update }) 
   return (
     <StepShell
       title="Who is eligible?"
-      subtitle='"All genders" replaces the others. Non-binary inclusive can stack with Women or Men.'
+      subtitle='"All genders" replaces the others.'
     >
       <div>
         <Label required>Gender eligibility</Label>

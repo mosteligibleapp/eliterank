@@ -45,7 +45,6 @@ export const GENDER_CHIPS = [
   { value: 'Women', label: 'Women' },
   { value: 'Men', label: 'Men' },
   { value: 'All genders', label: 'All genders' },
-  { value: 'Non-binary inclusive', label: 'Non-binary inclusive' },
 ];
 
 export const REVENUE_MODELS = [
