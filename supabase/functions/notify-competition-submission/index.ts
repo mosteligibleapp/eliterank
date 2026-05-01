@@ -4,8 +4,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 /**
  * notify-competition-submission
  *
- * Fired by the public /launch sales lead form after a competition_submissions
- * row is inserted. Sends two emails via OneSignal:
+ * Fired by the public /launch sales lead form after a row is inserted into
+ * interest_submissions (with interest_type='launching'). Sends two emails
+ * via OneSignal:
  *   1. Confirmation email to the submitter
  *   2. Internal notification to the super admin notification address
  *
@@ -39,7 +40,7 @@ interface Submission {
   org_name: string | null
   website_url: string | null
   pitch: string | null
-  target_launch_timeframe: string | null
+  start_timeframe: string | null
   message: string | null
 }
 
@@ -85,7 +86,7 @@ function confirmationEmail(sub: Submission, appUrl: string): { subject: string; 
 }
 
 function adminNotificationEmail(sub: Submission, appUrl: string): { subject: string; body: string } {
-  const subject = `[Lead] ${sub.org_name || sub.name} — ${sub.target_launch_timeframe || 'no timeframe'}`
+  const subject = `[Lead] ${sub.org_name || sub.name} — ${sub.start_timeframe || 'no timeframe'}`
   const row = (label: string, value: string) => `
     <tr>
       <td style="padding:6px 12px 6px 0;color:#999;vertical-align:top;width:140px;">${label}</td>
@@ -98,7 +99,7 @@ function adminNotificationEmail(sub: Submission, appUrl: string): { subject: str
       ${row('Contact', `${escape(sub.name)} &lt;${escape(sub.email)}&gt;`)}
       ${row('Org', escape(sub.org_name || '—'))}
       ${row('Website / social', escape(sub.website_url || '—'))}
-      ${row('Wants to start', escape(sub.target_launch_timeframe || '—'))}
+      ${row('Wants to start', escape(sub.start_timeframe || '—'))}
     </table>
     <h3 style="color:#d4af37;font-size:14px;margin:24px 0 8px;">What they want to launch</h3>
     <p style="margin:0;white-space:pre-wrap;">${escape(sub.pitch || '—')}</p>

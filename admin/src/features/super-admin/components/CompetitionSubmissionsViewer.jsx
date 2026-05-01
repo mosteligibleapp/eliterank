@@ -223,7 +223,7 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
                 : submission.website_url)
             : '—'}
         </DetailRow>
-        <DetailRow label="Wants to start">{dash(submission.target_launch_timeframe)}</DetailRow>
+        <DetailRow label="Wants to start">{dash(submission.start_timeframe)}</DetailRow>
       </DetailSection>
 
       <DetailSection title="What they want to launch">
@@ -424,7 +424,7 @@ export default function CompetitionSubmissionsViewer() {
         </span>
       ),
     },
-    { key: 'target_launch_timeframe', label: 'Wants to start', sortable: true },
+    { key: 'start_timeframe', label: 'Wants to start', sortable: true },
     {
       key: 'status', label: 'Status', sortable: true,
       render: (val) => <StatusPill status={val} />,

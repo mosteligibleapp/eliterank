@@ -102,58 +102,6 @@ export const INTEREST_TYPE_CONFIG = {
   },
 };
 
-// Interest types that trigger the onboarding step (competition vision questions)
-export const ONBOARDING_INTEREST_TYPES = [
-  INTEREST_TYPE.HOSTING,
-  INTEREST_TYPE.SPONSORING,
-];
-
-// =============================================================================
-// HOST / PARTNER ONBOARDING OPTIONS
-// =============================================================================
-
-export const COMPETITION_TYPE_OPTIONS = [
-  { value: 'pageant', label: 'Pageant' },
-  { value: 'talent', label: 'Talent / Performance' },
-  { value: 'athletic', label: 'Athletic / Fitness' },
-  { value: 'business-awards', label: 'Business / Professional Awards' },
-  { value: 'lifestyle', label: 'Lifestyle / Influencer' },
-  { value: 'community', label: 'Community / Civic' },
-  { value: 'other', label: 'Other' },
-];
-
-export const TARGET_DEMOGRAPHIC_OPTIONS = [
-  { value: 'open', label: 'Open / Mixed' },
-  { value: 'women-21-39', label: 'Women 21-39' },
-  { value: 'women-40-plus', label: 'Women 40+' },
-  { value: 'men-21-39', label: 'Men 21-39' },
-  { value: 'men-40-plus', label: 'Men 40+' },
-  { value: 'lgbtq-plus-21-39', label: 'LGBTQ+ 21-39' },
-  { value: 'lgbtq-plus-40-plus', label: 'LGBTQ+ 40+' },
-];
-
-export const EXPECTED_CONTESTANTS_OPTIONS = [
-  { value: 'under-25', label: 'Under 25' },
-  { value: '25-50', label: '25-50' },
-  { value: '50-100', label: '50-100' },
-  { value: '100-plus', label: '100+' },
-];
-
-export const LAUNCH_TIMEFRAME_OPTIONS = [
-  { value: '1-3-months', label: '1-3 months' },
-  { value: '3-6-months', label: '3-6 months' },
-  { value: '6-12-months', label: '6-12 months' },
-  { value: '12-plus-months', label: '12+ months / exploring' },
-];
-
-export const BUDGET_RANGE_OPTIONS = [
-  { value: 'under-5k', label: 'Under $5k' },
-  { value: '5k-25k', label: '$5k - $25k' },
-  { value: '25k-100k', label: '$25k - $100k' },
-  { value: '100k-plus', label: '$100k+' },
-  { value: 'unsure', label: 'Not sure yet' },
-];
-
 // =============================================================================
 // US STATES
 // =============================================================================

@@ -260,7 +260,7 @@ export default function LaunchForm({ onSubmitted }) {
       org_name: form.org_name.trim() || null,
       website_url: form.website_url.trim() || null,
       pitch: form.pitch.trim(),
-      target_launch_timeframe: form.start_timeframe,
+      start_timeframe: form.start_timeframe,
       message: form.notes.trim() || null,
       status: 'pending',
     };

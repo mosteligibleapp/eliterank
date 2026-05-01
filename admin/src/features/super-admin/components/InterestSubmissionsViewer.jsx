@@ -6,16 +6,7 @@ import {
 import { colors, spacing, borderRadius, typography } from '@shared/styles/theme';
 import { supabase } from '@shared/lib/supabase';
 import { useToast } from '@shared/contexts/ToastContext';
-import {
-  INTEREST_TYPE,
-  INTEREST_TYPE_CONFIG,
-  ONBOARDING_INTEREST_TYPES,
-  COMPETITION_TYPE_OPTIONS,
-  TARGET_DEMOGRAPHIC_OPTIONS,
-  EXPECTED_CONTESTANTS_OPTIONS,
-  LAUNCH_TIMEFRAME_OPTIONS,
-  BUDGET_RANGE_OPTIONS,
-} from '@shared/types/competition';
+import { INTEREST_TYPE, INTEREST_TYPE_CONFIG } from '@shared/types/competition';
 import FilterBar from '../../../components/FilterBar';
 import DataTable from '../../../components/DataTable';
 import StatRow from '../../../components/StatRow';
@@ -45,31 +36,6 @@ const TYPE_OPTIONS = Object.entries(INTEREST_TYPE).map(([_, value]) => ({
   value,
   label: INTEREST_TYPE_CONFIG[value]?.label || value,
 }));
-
-const buildLookup = (options) =>
-  options.reduce((acc, opt) => ({ ...acc, [opt.value]: opt.label }), {});
-
-const ONBOARDING_LOOKUPS = {
-  competition_type: buildLookup(COMPETITION_TYPE_OPTIONS),
-  target_demographic: buildLookup(TARGET_DEMOGRAPHIC_OPTIONS),
-  expected_contestants: buildLookup(EXPECTED_CONTESTANTS_OPTIONS),
-  target_launch_timeframe: buildLookup(LAUNCH_TIMEFRAME_OPTIONS),
-  budget_range: buildLookup(BUDGET_RANGE_OPTIONS),
-};
-
-const ONBOARDING_DETAIL_FIELDS = [
-  { key: 'competition_type', label: 'Competition Type' },
-  { key: 'target_demographic', label: 'Demographic' },
-  { key: 'expected_contestants', label: 'Expected Contestants' },
-  { key: 'target_launch_timeframe', label: 'Launch Timeframe' },
-  { key: 'budget_range', label: 'Budget' },
-];
-
-const formatBool = (val) => {
-  if (val === true) return 'Yes';
-  if (val === false) return 'No';
-  return null;
-};
 
 export default function InterestSubmissionsViewer({ competition }) {
   const toast = useToast();
@@ -147,29 +113,13 @@ export default function InterestSubmissionsViewer({ competition }) {
 
   // CSV export
   const exportToCsv = () => {
-    const headers = [
-      'Name', 'Email', 'Phone', 'Interest Type', 'Message',
-      'Competition Type', 'Demographic', 'Target City', 'Target State',
-      'Expected Contestants', 'Launch Timeframe', 'Budget',
-      'Has Venue', 'Has Audience', 'Goals',
-      'Status', 'Submitted At',
-    ];
+    const headers = ['Name', 'Email', 'Phone', 'Interest Type', 'Message', 'Status', 'Submitted At'];
     const rows = filtered.map(sub => [
       sub.name,
       sub.email,
       sub.phone || '',
       INTEREST_TYPE_CONFIG[sub.interest_type]?.label || sub.interest_type,
       sub.message || '',
-      ONBOARDING_LOOKUPS.competition_type[sub.competition_type] || sub.competition_type || '',
-      ONBOARDING_LOOKUPS.target_demographic[sub.target_demographic] || sub.target_demographic || '',
-      sub.target_city || '',
-      sub.target_state || '',
-      ONBOARDING_LOOKUPS.expected_contestants[sub.expected_contestants] || sub.expected_contestants || '',
-      ONBOARDING_LOOKUPS.target_launch_timeframe[sub.target_launch_timeframe] || sub.target_launch_timeframe || '',
-      ONBOARDING_LOOKUPS.budget_range[sub.budget_range] || sub.budget_range || '',
-      formatBool(sub.has_venue) || '',
-      formatBool(sub.has_audience) || '',
-      sub.goals || '',
       sub.status || 'pending',
       new Date(sub.created_at).toLocaleString(),
     ]);
@@ -279,34 +229,7 @@ export default function InterestSubmissionsViewer({ competition }) {
   ];
 
   // Expanded row
-  const renderExpanded = (row) => {
-    const isOnboarding = ONBOARDING_INTEREST_TYPES.includes(row.interest_type);
-    const onboardingDetails = isOnboarding
-      ? ONBOARDING_DETAIL_FIELDS
-          .map(({ key, label }) => {
-            const raw = row[key];
-            if (!raw) return null;
-            const display = ONBOARDING_LOOKUPS[key]?.[raw] || raw;
-            return { key, label, display };
-          })
-          .filter(Boolean)
-      : [];
-    const targetLocation = isOnboarding && (row.target_city || row.target_state)
-      ? [row.target_city, row.target_state].filter(Boolean).join(', ')
-      : null;
-    if (targetLocation) {
-      onboardingDetails.push({ key: 'target_location', label: 'Target Location', display: targetLocation });
-    }
-    const venueLabel = isOnboarding ? formatBool(row.has_venue) : null;
-    if (venueLabel) {
-      onboardingDetails.push({ key: 'has_venue', label: 'Venue Secured', display: venueLabel });
-    }
-    const audienceLabel = isOnboarding ? formatBool(row.has_audience) : null;
-    if (audienceLabel) {
-      onboardingDetails.push({ key: 'has_audience', label: 'Existing Audience', display: audienceLabel });
-    }
-
-    return (
+  const renderExpanded = (row) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
       <div style={{ display: 'flex', gap: spacing.xl, flexWrap: 'wrap', fontSize: typography.fontSize.sm }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.secondary }}>
@@ -320,36 +243,6 @@ export default function InterestSubmissionsViewer({ competition }) {
           </span>
         )}
       </div>
-      {onboardingDetails.length > 0 && (
-        <div style={{
-          background: colors.background.card, borderRadius: borderRadius.sm,
-          padding: spacing.md, border: `1px solid ${colors.border.secondary}`,
-        }}>
-          <div style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, marginBottom: spacing.sm }}>
-            Onboarding Details
-          </div>
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: spacing.sm,
-          }}>
-            {onboardingDetails.map(({ key, label, display }) => (
-              <div key={key}>
-                <div style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary }}>{label}</div>
-                <div style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>{display}</div>
-              </div>
-            ))}
-          </div>
-          {row.goals && (
-            <div style={{ marginTop: spacing.md }}>
-              <div style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, marginBottom: spacing.xs }}>
-                Goals
-              </div>
-              <p style={{ fontSize: typography.fontSize.sm, color: colors.text.primary, whiteSpace: 'pre-wrap', margin: 0 }}>
-                {row.goals}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
       {row.message && (
         <div style={{
           background: colors.background.card, borderRadius: borderRadius.sm,
@@ -396,7 +289,6 @@ export default function InterestSubmissionsViewer({ competition }) {
       </div>
     </div>
   );
-  };
 
   // Export button
   const actionBtnStyle = {

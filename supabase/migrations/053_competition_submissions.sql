@@ -28,11 +28,12 @@ ALTER TABLE interest_submissions
   ADD CONSTRAINT interest_submissions_interest_type_check
   CHECK (interest_type IN ('hosting', 'sponsoring', 'competing', 'judging', 'fan', 'launching'));
 
--- 4. Three new optional columns specific to launch leads.
+-- 4. Optional columns specific to launch leads.
 ALTER TABLE interest_submissions
-  ADD COLUMN IF NOT EXISTS org_name    TEXT,
-  ADD COLUMN IF NOT EXISTS website_url TEXT,
-  ADD COLUMN IF NOT EXISTS pitch       TEXT;
+  ADD COLUMN IF NOT EXISTS org_name        TEXT,
+  ADD COLUMN IF NOT EXISTS website_url     TEXT,
+  ADD COLUMN IF NOT EXISTS pitch           TEXT,
+  ADD COLUMN IF NOT EXISTS start_timeframe TEXT;
 
 -- 5. Patch the UPDATE policy so super admins can still review launch leads.
 -- The original policy from 001 required a competition row to match, which
@@ -54,6 +55,7 @@ CREATE POLICY "Interest submissions updatable by admins" ON interest_submissions
 CREATE INDEX IF NOT EXISTS idx_interest_submissions_type_created
   ON interest_submissions(interest_type, created_at DESC);
 
-COMMENT ON COLUMN interest_submissions.org_name    IS 'Optional company / organization name (used for launching leads)';
-COMMENT ON COLUMN interest_submissions.website_url IS 'Optional website or social handle (used for launching leads)';
-COMMENT ON COLUMN interest_submissions.pitch       IS 'Free-text answer to "What are you looking to launch?" (used for launching leads)';
+COMMENT ON COLUMN interest_submissions.org_name        IS 'Optional company / organization name (used for launching leads)';
+COMMENT ON COLUMN interest_submissions.website_url     IS 'Optional website or social handle (used for launching leads)';
+COMMENT ON COLUMN interest_submissions.pitch           IS 'Free-text answer to "What are you looking to launch?" (used for launching leads)';
+COMMENT ON COLUMN interest_submissions.start_timeframe IS 'Bucket: asap, 1-3-months, 3-6-months, 6-plus-months (used for launching leads)';
