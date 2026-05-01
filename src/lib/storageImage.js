@@ -12,7 +12,7 @@
  * against the "Storage Image Transformations" quota by unique source
  * image, not per request.
  */
-export function transformSupabaseImage(url, { width, height, quality = 75, resize = 'cover' } = {}) {
+export function transformSupabaseImage(url, { width, height, quality = 75, resize } = {}) {
   if (!url || typeof url !== 'string') return url;
   if (!url.includes('/storage/v1/')) return url;
 
@@ -28,10 +28,16 @@ export function transformSupabaseImage(url, { width, height, quality = 75, resiz
     return url;
   }
 
+  // Default to `cover` only when both dimensions are given. With a single
+  // dimension `cover` would force a square crop and chop off heads/bodies;
+  // letting the param default to undefined keeps proportional scaling and
+  // lets CSS object-fit handle the visual framing.
+  const effectiveResize = resize ?? (width && height ? 'cover' : undefined);
+
   const params = new URLSearchParams();
   if (width) params.set('width', String(Math.round(width)));
   if (height) params.set('height', String(Math.round(height)));
-  if (resize) params.set('resize', resize);
+  if (effectiveResize) params.set('resize', effectiveResize);
   if (quality) params.set('quality', String(quality));
 
   const qs = params.toString();

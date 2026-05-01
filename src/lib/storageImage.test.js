@@ -7,11 +7,23 @@ const VERCEL_BLOB = 'https://abc.public.blob.vercel-storage.com/foo/bar.jpg';
 
 describe('transformSupabaseImage', () => {
   it('rewrites object URLs to render URLs with sizing params', () => {
-    const out = transformSupabaseImage(SUPA_OBJECT, { width: 400, quality: 70 });
+    const out = transformSupabaseImage(SUPA_OBJECT, { width: 400, height: 400, quality: 70 });
     expect(out).toContain('/storage/v1/render/image/public/avatars/foo/bar.jpg');
     expect(out).toContain('width=400');
     expect(out).toContain('quality=70');
     expect(out).toContain('resize=cover');
+  });
+
+  it('omits resize when only width is given (avoids unwanted square crop)', () => {
+    const out = transformSupabaseImage(SUPA_OBJECT, { width: 600 });
+    expect(out).toContain('width=600');
+    expect(out).not.toContain('resize=');
+    expect(out).not.toContain('height=');
+  });
+
+  it('respects an explicit resize even when only one dimension is given', () => {
+    const out = transformSupabaseImage(SUPA_OBJECT, { width: 600, resize: 'contain' });
+    expect(out).toContain('resize=contain');
   });
 
   it('replaces existing query params on render URLs', () => {
