@@ -20,6 +20,23 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     tracesSampleRate: 0.1,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
+    ignoreErrors: [
+      // Instagram / Facebook in-app browser injected scripts (Android WebView)
+      'Java object is gone',
+      'enableDidUserTypeOnKeyboardLogging',
+      'navigation_performance_logger_android',
+      // Generic WebView / third-party noise
+      'ResizeObserver loop limit exceeded',
+      'ResizeObserver loop completed with undelivered notifications',
+    ],
+    denyUrls: [
+      // Instagram / Meta in-app browser injected JS
+      /iabjs:\/\//i,
+      // Generic browser extensions
+      /^chrome-extension:\/\//i,
+      /^moz-extension:\/\//i,
+      /^safari-extension:\/\//i,
+    ],
   });
 }
 
