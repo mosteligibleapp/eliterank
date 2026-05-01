@@ -53,7 +53,7 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
       const fileName = `org-logos/header-${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
       const { error } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+        .upload(fileName, file, { cacheControl: '31536000', upsert: false });
       if (error) throw error;
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
       setHeaderLogoUrl(urlData.publicUrl);
