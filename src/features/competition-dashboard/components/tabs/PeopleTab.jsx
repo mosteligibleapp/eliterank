@@ -760,7 +760,7 @@ export default function PeopleTab({
       <input
         ref={avatarFileRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic"
+        accept="image/jpeg,image/png,image/webp"
         style={{ display: 'none' }}
         onChange={handleAvatarFileChange}
       />

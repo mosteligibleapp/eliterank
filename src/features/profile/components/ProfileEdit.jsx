@@ -82,7 +82,7 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
       <input
         ref={avatarInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         onChange={handleAvatarUpload}
         style={{ display: 'none' }}
       />

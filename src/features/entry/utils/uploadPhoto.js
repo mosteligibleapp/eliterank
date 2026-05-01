@@ -2,7 +2,11 @@ import { supabase } from '../../../lib/supabase';
 import { upload } from '@vercel/blob/client';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+// HEIC is excluded — most browsers can't render it, so an iPhone photo
+// uploaded as HEIC saves successfully but renders as a black tile on the
+// leaderboard. Restricting to JPEG/PNG/WebP makes iOS auto-convert HEIC
+// to JPEG when the user picks the photo.
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 /**
  * Upload a photo to Supabase Storage (avatars bucket), with fallback to Vercel Blob
