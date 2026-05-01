@@ -894,7 +894,7 @@ export default function PhotoBoothPage() {
             .from('avatars')
             .upload(fileName, brandedBlobs[i], {
               contentType: 'image/jpeg',
-              cacheControl: '3600',
+              cacheControl: '31536000',
               upsert: false,
             });
           if (uploadError) {
