@@ -97,8 +97,18 @@ Set with `supabase secrets set ...` and deploy with
 
 ### Database
 
+Launch leads piggy-back on the existing `interest_submissions` table —
+they're just another shape of "someone wants to do something with us".
+
 - Migration: `supabase/migrations/053_competition_submissions.sql`
-- Table: `competition_submissions`
-- RLS: public can `INSERT`; super admins can `SELECT`/`UPDATE`/`DELETE`.
-- The migration is idempotent — safe to re-run after earlier wizard-shaped
-  drafts; it drops the obsolete columns and adds `pitch` if missing.
+  (despite the filename, it ALTERs `interest_submissions` rather than
+  creating a new table — kept on disk under that name so the migration
+  ordering stays stable).
+- Table: `interest_submissions`. Launch leads have
+  `interest_type = 'launching'` and `competition_id IS NULL`.
+- New columns added by `053`: `org_name`, `website_url`, `pitch`.
+  Existing columns reused: `name`, `email`, `target_launch_timeframe`
+  (added in `052`), `message`, `status`.
+- RLS: existing policies still apply. The `INSERT` policy already allows
+  the public; `053` patches the `UPDATE` policy so super admins can edit
+  rows whose `competition_id` is `NULL`.

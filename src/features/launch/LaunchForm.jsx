@@ -251,13 +251,17 @@ export default function LaunchForm({ onSubmitted }) {
     setSubmitError('');
 
     const payload = {
-      contact_name: form.contact_name.trim(),
-      contact_email: form.contact_email.trim(),
+      // Reuse the interest_submissions inbox; launching leads are
+      // unaffiliated (no competition_id) and identified by interest_type.
+      competition_id: null,
+      interest_type: 'launching',
+      name: form.contact_name.trim(),
+      email: form.contact_email.trim(),
       org_name: form.org_name.trim() || null,
       website_url: form.website_url.trim() || null,
       pitch: form.pitch.trim(),
-      start_timeframe: form.start_timeframe,
-      notes: form.notes.trim() || null,
+      target_launch_timeframe: form.start_timeframe,
+      message: form.notes.trim() || null,
       status: 'pending',
     };
 
@@ -272,7 +276,7 @@ export default function LaunchForm({ onSubmitted }) {
 
     try {
       const { data, error } = await supabase
-        .from('competition_submissions')
+        .from('interest_submissions')
         .insert(payload)
         .select('id')
         .single();
@@ -283,7 +287,7 @@ export default function LaunchForm({ onSubmitted }) {
         .catch((err) => console.warn('notify-competition-submission failed:', err));
 
       clearDraft();
-      onSubmitted({ id: data.id, ...payload });
+      onSubmitted({ id: data.id, ...payload, contact_email: payload.email });
     } catch (err) {
       console.error('Submit failed:', err);
       setSubmitError('Something went wrong submitting your interest. Please try again.');

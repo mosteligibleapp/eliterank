@@ -27,16 +27,20 @@ interface RequestBody {
   submission_id: string
 }
 
+/**
+ * Launch leads are stored as rows in interest_submissions with
+ * interest_type='launching'. Column names below follow that table.
+ */
 interface Submission {
   id: string
   created_at: string
-  contact_name: string
-  contact_email: string
+  name: string
+  email: string
   org_name: string | null
   website_url: string | null
-  pitch: string
-  start_timeframe: string
-  notes: string | null
+  pitch: string | null
+  target_launch_timeframe: string | null
+  message: string | null
 }
 
 const escape = (s: string | null | undefined) =>
@@ -66,7 +70,7 @@ function confirmationEmail(sub: Submission, appUrl: string): { subject: string; 
   const subject = `We got your interest — talk soon`
   const inner = `
     <h2 style="color:#d4af37;font-size:20px;margin:0 0 16px;">Thanks — we've got it.</h2>
-    <p style="margin:0 0 12px;">Hi ${escape(sub.contact_name)},</p>
+    <p style="margin:0 0 12px;">Hi ${escape(sub.name)},</p>
     <p style="margin:0 0 12px;">
       We received your interest in launching a competition with EliteRank.
       Someone from our team will reach out within 1-2 business days to talk
@@ -81,7 +85,7 @@ function confirmationEmail(sub: Submission, appUrl: string): { subject: string; 
 }
 
 function adminNotificationEmail(sub: Submission, appUrl: string): { subject: string; body: string } {
-  const subject = `[Lead] ${sub.org_name || sub.contact_name} — ${sub.start_timeframe}`
+  const subject = `[Lead] ${sub.org_name || sub.name} — ${sub.target_launch_timeframe || 'no timeframe'}`
   const row = (label: string, value: string) => `
     <tr>
       <td style="padding:6px 12px 6px 0;color:#999;vertical-align:top;width:140px;">${label}</td>
@@ -91,16 +95,16 @@ function adminNotificationEmail(sub: Submission, appUrl: string): { subject: str
   const inner = `
     <h2 style="color:#d4af37;font-size:20px;margin:0 0 16px;">New launch lead</h2>
     <table style="width:100%;font-size:13px;border-collapse:collapse;">
-      ${row('Contact', `${escape(sub.contact_name)} &lt;${escape(sub.contact_email)}&gt;`)}
+      ${row('Contact', `${escape(sub.name)} &lt;${escape(sub.email)}&gt;`)}
       ${row('Org', escape(sub.org_name || '—'))}
       ${row('Website / social', escape(sub.website_url || '—'))}
-      ${row('Wants to start', escape(sub.start_timeframe))}
+      ${row('Wants to start', escape(sub.target_launch_timeframe || '—'))}
     </table>
     <h3 style="color:#d4af37;font-size:14px;margin:24px 0 8px;">What they want to launch</h3>
-    <p style="margin:0;white-space:pre-wrap;">${escape(sub.pitch)}</p>
-    ${sub.notes ? `
+    <p style="margin:0;white-space:pre-wrap;">${escape(sub.pitch || '—')}</p>
+    ${sub.message ? `
       <h3 style="color:#d4af37;font-size:14px;margin:24px 0 8px;">Notes</h3>
-      <p style="margin:0;white-space:pre-wrap;">${escape(sub.notes)}</p>
+      <p style="margin:0;white-space:pre-wrap;">${escape(sub.message)}</p>
     ` : ''}
     <p style="margin:24px 0 0;">
       <a href="${appUrl}/admin/" style="display:inline-block;padding:10px 16px;background:#d4af37;color:#0a0a0c;text-decoration:none;border-radius:8px;font-weight:600;">
@@ -173,9 +177,10 @@ serve(async (req) => {
     })
 
     const { data: sub, error } = await supabase
-      .from('competition_submissions')
+      .from('interest_submissions')
       .select('*')
       .eq('id', submission_id)
+      .eq('interest_type', 'launching')
       .single<Submission>()
 
     if (error || !sub) {
@@ -192,7 +197,7 @@ serve(async (req) => {
     const confirmResult = await sendOneSignalEmail(
       appId,
       apiKey,
-      sub.contact_email,
+      sub.email,
       confirm.subject,
       confirm.body,
     )

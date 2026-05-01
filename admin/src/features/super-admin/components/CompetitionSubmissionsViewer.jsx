@@ -10,6 +10,13 @@ import FilterBar from '../../../components/FilterBar';
 import DataTable from '../../../components/DataTable';
 import StatRow from '../../../components/StatRow';
 
+/**
+ * Launch leads viewer — reads from interest_submissions filtered to
+ * interest_type = 'launching' (unaffiliated leads from the public /launch
+ * form). Per-competition interest submissions are handled by a separate
+ * viewer that filters by competition_id.
+ */
+
 const STATUS_OPTIONS = [
   { value: 'pending',    label: 'Pending' },
   { value: 'in_review',  label: 'In review' },
@@ -98,7 +105,7 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
     setSaving(true);
     try {
       const { error } = await supabase
-        .from('competition_submissions')
+        .from('interest_submissions')
         .update({
           status,
           internal_notes: internalNotes.trim() || null,
@@ -106,11 +113,11 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
         })
         .eq('id', submission.id);
       if (error) throw error;
-      toast.success('Submission updated');
+      toast.success('Lead updated');
       onUpdate({ ...submission, status, internal_notes: internalNotes.trim() || null });
     } catch (err) {
       console.error('Update failed:', err);
-      toast.error('Failed to update submission');
+      toast.error('Failed to update lead');
     } finally {
       setSaving(false);
     }
@@ -119,9 +126,9 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
   const handleReply = () => {
     const subject = encodeURIComponent(`Re: launching a competition with EliteRank`);
     const body = encodeURIComponent(
-      `Hi ${submission.contact_name || 'there'},\n\nThanks for reaching out about your competition concept.`,
+      `Hi ${submission.name || 'there'},\n\nThanks for reaching out about your competition concept.`,
     );
-    window.location.href = `mailto:${submission.contact_email}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${submission.email}?subject=${subject}&body=${body}`;
   };
 
   const handleConvert = () => {
@@ -188,7 +195,7 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
             fontWeight: typography.fontWeight.bold,
             color: colors.text.primary,
             margin: 0,
-          }}>{submission.contact_name}</h2>
+          }}>{submission.name}</h2>
           <p style={{
             fontSize: typography.fontSize.sm,
             color: colors.text.tertiary,
@@ -202,10 +209,10 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
       </div>
 
       <DetailSection title="Contact">
-        <DetailRow label="Name">{submission.contact_name}</DetailRow>
+        <DetailRow label="Name">{submission.name}</DetailRow>
         <DetailRow label="Email">
-          <a href={`mailto:${submission.contact_email}`} style={{ color: colors.gold.primary, textDecoration: 'none' }}>
-            {submission.contact_email}
+          <a href={`mailto:${submission.email}`} style={{ color: colors.gold.primary, textDecoration: 'none' }}>
+            {submission.email}
           </a>
         </DetailRow>
         <DetailRow label="Org">{dash(submission.org_name)}</DetailRow>
@@ -216,19 +223,19 @@ function SubmissionDetail({ submission, onBack, onUpdate }) {
                 : submission.website_url)
             : '—'}
         </DetailRow>
-        <DetailRow label="Wants to start">{dash(submission.start_timeframe)}</DetailRow>
+        <DetailRow label="Wants to start">{dash(submission.target_launch_timeframe)}</DetailRow>
       </DetailSection>
 
       <DetailSection title="What they want to launch">
         <p style={{ fontSize: typography.fontSize.sm, color: colors.text.primary, whiteSpace: 'pre-wrap', margin: 0 }}>
-          {submission.pitch}
+          {dash(submission.pitch)}
         </p>
       </DetailSection>
 
-      {submission.notes && (
+      {submission.message && (
         <DetailSection title="Submitter notes">
           <p style={{ fontSize: typography.fontSize.sm, color: colors.text.primary, whiteSpace: 'pre-wrap', margin: 0 }}>
-            {submission.notes}
+            {submission.message}
           </p>
         </DetailSection>
       )}
@@ -328,14 +335,15 @@ export default function CompetitionSubmissionsViewer() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('competition_submissions')
+        .from('interest_submissions')
         .select('*')
+        .eq('interest_type', 'launching')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setSubmissions(data || []);
     } catch (err) {
-      console.error('Error fetching competition submissions:', err);
-      toast.error('Failed to load submissions');
+      console.error('Error fetching launch leads:', err);
+      toast.error('Failed to load leads');
     } finally {
       setLoading(false);
     }
@@ -348,7 +356,7 @@ export default function CompetitionSubmissionsViewer() {
     return submissions.filter((sub) => {
       if (statusFilter && sub.status !== statusFilter) return false;
       if (!q) return true;
-      const hay = `${sub.contact_name || ''} ${sub.contact_email} ${sub.org_name || ''} ${sub.pitch || ''}`.toLowerCase();
+      const hay = `${sub.name || ''} ${sub.email || ''} ${sub.org_name || ''} ${sub.pitch || ''}`.toLowerCase();
       return hay.includes(q);
     });
   }, [submissions, statusFilter, searchQuery]);
@@ -386,11 +394,11 @@ export default function CompetitionSubmissionsViewer() {
       ),
     },
     {
-      key: 'contact_name', label: 'Contact', sortable: true,
+      key: 'name', label: 'Contact', sortable: true,
       render: (val, row) => (
         <span style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>{val}</span>
-          <span style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary }}>{row.contact_email}</span>
+          <span style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary }}>{row.email}</span>
         </span>
       ),
     },
@@ -412,11 +420,11 @@ export default function CompetitionSubmissionsViewer() {
           maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           <MessageSquare size={12} style={{ color: colors.text.tertiary, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{val || '—'}</span>
         </span>
       ),
     },
-    { key: 'start_timeframe', label: 'Wants to start', sortable: true },
+    { key: 'target_launch_timeframe', label: 'Wants to start', sortable: true },
     {
       key: 'status', label: 'Status', sortable: true,
       render: (val) => <StatusPill status={val} />,
@@ -461,8 +469,9 @@ export default function CompetitionSubmissionsViewer() {
 }
 
 /**
- * Hook that returns the count of pending leads for the sidebar badge.
- * Refreshed via Postgres realtime so the count stays fresh.
+ * Hook that returns the count of pending launch leads for the sidebar
+ * badge. Filtered to interest_type='launching' so the existing per-comp
+ * interest submissions don't bleed into this count.
  */
 export function usePendingSubmissionCount() {
   const [count, setCount] = useState(0);
@@ -470,8 +479,9 @@ export function usePendingSubmissionCount() {
   const fetchCount = useCallback(async () => {
     if (!supabase) return;
     const { count: c, error } = await supabase
-      .from('competition_submissions')
+      .from('interest_submissions')
       .select('id', { count: 'exact', head: true })
+      .eq('interest_type', 'launching')
       .eq('status', 'pending');
     if (!error && typeof c === 'number') setCount(c);
   }, []);
@@ -480,10 +490,10 @@ export function usePendingSubmissionCount() {
     fetchCount();
     if (!supabase) return undefined;
     const channel = supabase
-      .channel('competition_submissions_pending_count')
+      .channel('launch_leads_pending_count')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'competition_submissions' },
+        { event: '*', schema: 'public', table: 'interest_submissions' },
         fetchCount,
       )
       .subscribe();
