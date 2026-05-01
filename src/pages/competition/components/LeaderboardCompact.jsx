@@ -5,7 +5,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import CrownIcon from '../../../components/ui/icons/CrownIcon';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 import { formatEventTime } from '../../../utils/formatters';
-import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
  * Image-focused leaderboard - contestants are the STARS
@@ -154,7 +153,7 @@ function EventPortraitCard({ event }) {
     <Wrapper {...wrapperProps} className="portrait-card portrait-card-event">
       <div className="portrait-image-wrap">
         {imageUrl ? (
-          <img src={transformSupabaseImage(imageUrl, { width: 600, quality: 75 })} alt={event.name} className="portrait-image" loading="lazy" decoding="async" style={{ objectFit: 'cover' }} />
+          <img src={imageUrl} alt={event.name} className="portrait-image" loading="lazy" decoding="async" style={{ objectFit: 'cover' }} />
         ) : (
           <div className="portrait-placeholder">
             <Calendar size={28} />
@@ -201,7 +200,7 @@ export function PortraitCard({
         </div>
         {showImg && (
           <img
-            src={transformSupabaseImage(contestant.avatar_url, { width: 600, quality: 75 })}
+            src={contestant.avatar_url}
             alt={contestant.name}
             className="portrait-image"
             loading="lazy"
