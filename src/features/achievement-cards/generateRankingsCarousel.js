@@ -27,7 +27,7 @@ export const DEFAULT_BRAND = {
   },
   logo: {
     iconPath: '/heart-city-logo.svg',
-    height: 56,
+    height: 100,
   },
   font: {
     family: "'Montserrat', 'Inter', system-ui, sans-serif",
@@ -179,22 +179,34 @@ function dasharrayLine(ctx, x1, y1, x2, y2, color, dash = [6, 8]) {
   ctx.restore();
 }
 
-// ---------- shared header ----------
+// ---------- shared footer logo ----------
 
-async function drawHeaderLogo(ctx, brand, logoImg) {
-  if (!logoImg) return { bottom: 24 };
+function enableHQ(ctx) {
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+}
+
+/**
+ * Draws the brand logo as a footer stamp, anchored to the bottom of the slide.
+ * Returns the y-coordinate of the logo's top edge so callers know where the
+ * content area ends.
+ */
+function drawFooterLogo(ctx, brand, logoImg, bottomMargin = 50) {
+  if (!logoImg) return SLIDE_H - bottomMargin;
   const targetH = brand.logo.height;
   const aspect = logoImg.width / logoImg.height;
   let drawH = targetH;
   let drawW = drawH * aspect;
-  const maxW = 280;
+  const maxW = 360;
   if (drawW > maxW) {
     drawW = maxW;
     drawH = drawW / aspect;
   }
-  const padTop = 22;
-  ctx.drawImage(logoImg, CX - drawW / 2, padTop, drawW, drawH);
-  return { bottom: padTop + drawH + 18 };
+  // Integer pixel positions — avoids sub-pixel sampling blur.
+  const topY = Math.round(SLIDE_H - bottomMargin - drawH);
+  const x = Math.round(CX - drawW / 2);
+  ctx.drawImage(logoImg, x, topY, Math.round(drawW), Math.round(drawH));
+  return topY;
 }
 
 // ---------- slide 1 — cover ----------
@@ -217,9 +229,9 @@ async function renderCoverSlide({
 
   ctx.fillStyle = brand.colors.background;
   ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
+  enableHQ(ctx);
 
-  const header = await drawHeaderLogo(ctx, brand, logoImg);
-  let y = header.bottom;
+  let y = 60;
 
   // ----- pill: "• [ROUND] STANDINGS •" -----
   const pillText = `• ${(roundTitle || 'CURRENT').toUpperCase()} STANDINGS •`;
@@ -267,10 +279,21 @@ async function renderCoverSlide({
     y += 16;
   }
 
+  // ----- footer (drawn first so we know where rows end) -----
+  const logoTop = drawFooterLogo(ctx, brand, logoImg, 50);
+  // swipe text sits above the logo
+  const swipeY = logoTop - 30;
+  ctx.fillStyle = brand.colors.mutedGray;
+  ctx.font = `${brand.font.weights.medium} 16px ${brand.font.family}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2px';
+  ctx.fillText('SWIPE TO MEET THE TOP 5 →', CX, swipeY);
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+
   // ----- contestant rows -----
   const rowsTop = y;
-  const footerReserved = 84;
-  const rowsBottomLimit = SLIDE_H - footerReserved;
+  const rowsBottomLimit = swipeY - 32; // breathing room above swipe text
   const rowsAvailable = rowsBottomLimit - rowsTop;
 
   const total = contestants.length;
@@ -371,15 +394,6 @@ async function renderCoverSlide({
     rowY += cappedRowH + rowGap;
   }
 
-  // ----- footer -----
-  ctx.fillStyle = brand.colors.mutedGray;
-  ctx.font = `${brand.font.weights.medium} 16px ${brand.font.family}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2px';
-  ctx.fillText('SWIPE TO MEET THE TOP 5 →', CX, SLIDE_H - 40);
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-
   return new Promise((resolve) => {
     canvas.toBlob((b) => resolve(b), 'image/png');
   });
@@ -387,21 +401,10 @@ async function renderCoverSlide({
 
 // ---------- slides 2-6 — spotlight ----------
 
-function topLabelFor(index, roundEndType) {
-  if (index === 0) {
-    if (roundEndType === 'seasonEnd') return 'SEASON CHAMPION';
-    if (roundEndType === 'roundEnd') return 'ROUND WINNER';
-    return 'CURRENT LEADER';
-  }
-  if (index === 4) return 'ON THE CUTLINE';
-  return 'RANK';
-}
-
 async function renderSpotlightSlide({
   index,
   contestants,
   ranks,
-  roundEndType,
   brand,
   logoImg,
   photoImg,
@@ -413,33 +416,28 @@ async function renderSpotlightSlide({
 
   ctx.fillStyle = brand.colors.background;
   ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
+  enableHQ(ctx);
 
-  const header = await drawHeaderLogo(ctx, brand, logoImg);
-  let y = header.bottom;
+  // logo anchors the bottom — draw first so layout above can be measured
+  drawFooterLogo(ctx, brand, logoImg, 50);
 
   const c = contestants[index] || {};
   const displayRank = ranks[index];
   const isFirst = index === 0;
 
-  // top label (small uppercase, red, tracked) — editorial caption
-  ctx.fillStyle = brand.colors.primary;
-  ctx.font = `${brand.font.weights.bold} 16px ${brand.font.family}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4px';
-  ctx.fillText(topLabelFor(index, roundEndType), CX, y);
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += 16 + 12;
+  let y = 80;
 
   // hero rank — display weight, tight tracking
   ctx.fillStyle = brand.colors.primary;
   ctx.font = `${brand.font.weights.bold} 96px ${brand.font.family}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-3px';
   ctx.fillText(String(displayRank).padStart(2, '0'), CX, y);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += 96 + 22;
+  y += 96 + 32;
 
-  // photo — bigger now that handle + context are gone
+  // photo — 3:4 portrait
   const photoH = 800;
   const photoW = photoH * (3 / 4); // 600
   const photoX = CX - photoW / 2;
@@ -455,9 +453,9 @@ async function renderSpotlightSlide({
     isFirst ? brand.colors.primary : brand.colors.primaryDark,
     isFirst ? 2 : 1
   );
-  y = photoY + photoH + 36;
+  y = photoY + photoH + 40;
 
-  // name + votes inline, same font, same size — name white, votes red
+  // name + votes inline — same font and size; name white, votes red
   const nameVoteSize = 40;
   ctx.font = `${brand.font.weights.bold} ${nameVoteSize}px ${brand.font.family}`;
   ctx.textBaseline = 'top';
@@ -516,7 +514,6 @@ function computeDisplayRanks(contestants) {
  * @param {string}   [params.cityName]      Subtitle location (e.g. "Chicago").
  * @param {string|number} [params.season]   Subtitle year/season.
  * @param {string}   [params.roundTitle]    "Entry Round", "Round 1", … "Final Round".
- * @param {'live'|'roundEnd'|'seasonEnd'} [params.roundEndType='live']
  * @param {Object}   [params.brand=DEFAULT_BRAND]  Brand config — see DEFAULT_BRAND shape.
  *
  * @returns {Promise<Array<{ filename: string, blob: Blob }>>}
@@ -528,7 +525,6 @@ export async function generateRankingsCarousel({
   cityName,
   season,
   roundTitle,
-  roundEndType = 'live',
   brand = DEFAULT_BRAND,
 }) {
   const all = contestants.slice(0, 10);
@@ -572,7 +568,6 @@ export async function generateRankingsCarousel({
       index: i,
       contestants: all,
       ranks,
-      roundEndType,
       brand,
       logoImg,
       photoImg: photos[i],
