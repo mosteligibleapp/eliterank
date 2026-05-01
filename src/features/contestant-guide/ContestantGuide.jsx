@@ -352,7 +352,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
           ],
         },
       ],
-      tip: `Current cash prize: $${currentPrize.toLocaleString()}+ — and growing!`,
+      tip: `Current cash prize: $${currentPrize.toLocaleString()}+`,
     },
   ];
 
