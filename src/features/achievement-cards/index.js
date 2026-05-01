@@ -5,6 +5,6 @@ export {
   getPlacementTitle,
   getRoundAdvancementTitle,
 } from './generateAchievementCard';
-export { generateRankingsGraphic } from './generateRankingsGraphic';
+export { generateRankingsCarousel, DEFAULT_BRAND as RANKINGS_BRAND } from './generateRankingsCarousel';
 export { useAchievementCards } from './useAchievementCards';
 export { default as MyCardsSection } from './MyCardsSection';

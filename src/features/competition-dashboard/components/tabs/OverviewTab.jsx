@@ -6,7 +6,7 @@ import { useResponsive } from '../../../../hooks/useResponsive';
 import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
-import { generateRankingsGraphic } from '../../../achievement-cards/generateRankingsGraphic';
+import { generateRankingsCarousel } from '../../../achievement-cards/generateRankingsCarousel';
 import { supabase } from '../../../../lib/supabase';
 import { isLive } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
@@ -73,18 +73,20 @@ export default function OverviewTab({
     if (generatingRankings || rankedContestants.length === 0) return;
     setGeneratingRankings(true);
     try {
-      const blob = await generateRankingsGraphic({
-        contestants: rankedContestants.slice(0, 10),
-        competitionName: competition?.name || `Most Eligible ${competition?.city || ''}`.trim(),
+      const slides = await generateRankingsCarousel({
+        contestants: rankedContestants,
+        competitionSlug: competition?.slug || competition?.name,
         cityName: competition?.city,
         season: competition?.season,
         roundTitle: activeRound?.title,
-        organizationLogoUrl: competition?.organizationLogoUrl,
       });
+      if (!slides.length) return;
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      slides.forEach(({ filename, blob }) => zip.file(filename, blob));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+
       const slug = (competition?.slug || competition?.name || 'competition')
         .toString()
         .toLowerCase()
@@ -92,13 +94,17 @@ export default function OverviewTab({
       const roundSlug = activeRound?.title
         ? `-${activeRound.title.toLowerCase().replace(/\s+/g, '-')}`
         : '';
-      a.download = `${slug}${roundSlug}-standings.png`;
+
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${slug}${roundSlug}-standings.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Rankings graphic generation failed:', err);
+      console.error('Rankings carousel generation failed:', err);
     } finally {
       setGeneratingRankings(false);
     }
@@ -387,7 +393,7 @@ export default function OverviewTab({
               <button
                 onClick={handleDownloadRankings}
                 disabled={generatingRankings || rankedContestants.length === 0}
-                title="Download standings graphic (1080×1350)"
+                title="Download standings carousel (6 slides, 1080×1350) as zip"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -408,7 +414,7 @@ export default function OverviewTab({
                 ) : (
                   <Download size={12} />
                 )}
-                {generatingRankings ? 'Generating…' : 'Standings'}
+                {generatingRankings ? 'Generating…' : 'Carousel'}
               </button>
               <button
                 onClick={() => onNavigateToTab?.('people')}
