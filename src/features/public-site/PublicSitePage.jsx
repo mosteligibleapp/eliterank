@@ -379,6 +379,32 @@ export default function PublicSitePage({
   // Check if teaser page
   const isTeaser = competition?.isTeaser === true || competition?.status === COMPETITION_STATUSES.PUBLISH;
 
+  // Phase detection — must run unconditionally because hooks below depend on it
+  const isDraftPhase = phase === 'draft';
+  const isNominationPhase = phase === 'nomination';
+  const isVotingPhase = phase === 'voting';
+  const isJudgingPhase = phase === 'judging';
+  const isCompletedPhase = phase === 'completed' || phase === 'complete';
+
+  const [activeTab, setActiveTab] = useState(() => {
+    if (isCompletedPhase) return 'winners';
+    if (isNominationPhase || isDraftPhase) return 'nominate';
+    return 'contestants';
+  });
+  const [selectedContestant, setSelectedContestant] = useState(null);
+  const [voteCount, setVoteCount] = useState(1);
+  const [viewingProfile, setViewingProfile] = useState(null);
+  const [viewingProfileRole, setViewingProfileRole] = useState('fan');
+
+  // Reset tab when phase changes
+  useEffect(() => {
+    let newDefaultTab;
+    if (phase === 'completed' || phase === 'complete') newDefaultTab = 'winners';
+    else if (phase === 'nomination' || phase === 'draft') newDefaultTab = 'nominate';
+    else newDefaultTab = 'contestants';
+    setActiveTab(newDefaultTab);
+  }, [phase, city]);
+
   if (isOpen && isTeaser) {
     return (
       <CompetitionTeaser
@@ -391,31 +417,15 @@ export default function PublicSitePage({
     );
   }
 
-  // Phase detection
-  const isDraftPhase = phase === 'draft';
-  const isNominationPhase = phase === 'nomination';
-  const isVotingPhase = phase === 'voting';
-  const isJudgingPhase = phase === 'judging';
-  const isCompletedPhase = phase === 'completed' || phase === 'complete';
-
   // Determine tabs based on phase
-  let TABS, defaultTab;
+  let TABS;
   if (isCompletedPhase) {
     TABS = COMPLETED_TABS;
-    defaultTab = 'winners';
   } else if (isNominationPhase || isDraftPhase) {
     TABS = NOMINATION_TABS;
-    defaultTab = 'nominate';
   } else {
     TABS = VOTING_TABS;
-    defaultTab = 'contestants';
   }
-
-  const [activeTab, setActiveTab] = useState(defaultTab);
-  const [selectedContestant, setSelectedContestant] = useState(null);
-  const [voteCount, setVoteCount] = useState(1);
-  const [viewingProfile, setViewingProfile] = useState(null);
-  const [viewingProfileRole, setViewingProfileRole] = useState('fan');
 
   const handleViewProfile = (profile, role = 'fan') => {
     setViewingProfile(profile);
@@ -426,15 +436,6 @@ export default function PublicSitePage({
     setViewingProfile(null);
     setViewingProfileRole('fan');
   };
-
-  // Reset tab when phase changes
-  useEffect(() => {
-    let newDefaultTab;
-    if (phase === 'completed' || phase === 'complete') newDefaultTab = 'winners';
-    else if (phase === 'nomination' || phase === 'draft') newDefaultTab = 'nominate';
-    else newDefaultTab = 'contestants';
-    setActiveTab(newDefaultTab);
-  }, [phase, city]);
 
   if (!isOpen) return null;
 

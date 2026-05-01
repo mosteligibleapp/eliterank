@@ -8,11 +8,10 @@ import { uploadPhoto } from '../../entry/utils/uploadPhoto';
 
 export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, userId }) {
   const { isMobile, isSmall } = useResponsive();
-
-  if (!hostProfile) return null;
-
   const [uploading, setUploading] = useState({ avatar: false, gallery: null });
   const avatarInputRef = useRef(null);
+
+  if (!hostProfile) return null;
 
   const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
 
