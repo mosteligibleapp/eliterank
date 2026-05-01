@@ -6,8 +6,13 @@ export function validateStep(stepKey, form) {
     case 'org': {
       const errors = {};
       if (!form.org_name.trim()) errors.org_name = 'Org name is required.';
+      if (!form.contact_name.trim()) errors.contact_name = 'Your name is required.';
       if (!form.contact_email.trim()) errors.contact_email = 'Contact email is required.';
       else if (!EMAIL_RE.test(form.contact_email.trim())) errors.contact_email = 'Enter a valid email.';
+      if (form.website_url && !URL_RE.test(form.website_url.trim()))
+        errors.website_url = 'Looks like that isn\'t a valid URL.';
+      if (form.social_url && !URL_RE.test(form.social_url.trim()))
+        errors.social_url = 'Looks like that isn\'t a valid URL.';
       return errors;
     }
     case 'category': {
@@ -34,15 +39,6 @@ export function validateStep(stepKey, form) {
         else if (min < 13) errors.age_range = 'Minimum age must be 13 or higher.';
         else if (max < min) errors.age_range = 'Max age must be ≥ min age.';
       }
-      return errors;
-    }
-    case 'presence': {
-      const errors = {};
-      // Both fields are optional, but if provided they must look like URLs.
-      if (form.website_url && !URL_RE.test(form.website_url.trim()))
-        errors.website_url = 'Looks like that isn\'t a valid URL.';
-      if (form.social_url && !URL_RE.test(form.social_url.trim()))
-        errors.social_url = 'Looks like that isn\'t a valid URL.';
       return errors;
     }
     case 'revenue': {

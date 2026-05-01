@@ -30,15 +30,15 @@ a competition concept. Submissions land in `competition_submissions` as
    to `/launch`. The slug `launch` is reserved in `src/utils/slugs.js` so it
    isn't matched as an org slug.
 
-2. **Wizard (`src/features/launch/`).** 9-step wizard (Org, Category,
-   Name + Scope, Eligibility, Presence, Revenue, Timing, Notes, Review)
-   with a progress bar, per-step validation, skippable Presence and Notes
-   steps, and a clickable step indicator that lets the user jump back to
-   any step they've already reached. Draft state is autosaved to
-   `localStorage` under `eliterank-launch-draft-v2` on every change and
-   cleared on successful submit. State machine lives in `useLaunchWizard.js`;
-   per-step validators in `validation.js`; option lists and `INITIAL_FORM`
-   shape in `constants.js`.
+2. **Wizard (`src/features/launch/`).** 8-step wizard (Org, Category,
+   Name + Scope, Eligibility, Revenue, Timing, Notes, Review) with a
+   progress bar, per-step validation, a skippable Notes step, and a
+   clickable step indicator that lets the user jump back to any step
+   they've already reached. Draft state is autosaved to `localStorage`
+   under `eliterank-launch-draft-v2` on every change and cleared on
+   successful submit. State machine lives in `useLaunchWizard.js`;
+   per-step validators in `validation.js`; option lists and
+   `INITIAL_FORM` shape in `constants.js`.
 
 3. **Submit.** Client inserts directly into `competition_submissions` (table
    policy allows public INSERT only) and then fires-and-forgets a call to the

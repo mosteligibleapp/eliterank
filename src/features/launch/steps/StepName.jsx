@@ -11,7 +11,7 @@ export default function StepName({ form, errors, showErrors, setField }) {
       subtitle="A working name and how far it reaches."
     >
       <div>
-        <Label htmlFor="competition_name">Competition name</Label>
+        <Label htmlFor="competition_name">Competition name (optional)</Label>
         <TextInput
           id="competition_name"
           autoFocus

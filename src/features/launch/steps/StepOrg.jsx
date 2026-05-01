@@ -1,7 +1,7 @@
 import React from 'react';
 import { spacing } from '../../../styles/theme';
 import StepShell from '../components/StepShell';
-import { ChipGroup, FieldError, Label, TextInput } from '../components/Field';
+import { ChipGroup, FieldError, Hint, Label, TextInput } from '../components/Field';
 
 export default function StepOrg({ form, errors, showErrors, setField }) {
   return (
@@ -38,13 +38,45 @@ export default function StepOrg({ form, errors, showErrors, setField }) {
       </div>
 
       <div>
-        <Label htmlFor="contact_name">Your name</Label>
+        <Label htmlFor="website_url">Org website</Label>
+        <TextInput
+          id="website_url"
+          type="url"
+          inputMode="url"
+          value={form.website_url}
+          onChange={(e) => setField('website_url', e.target.value)}
+          placeholder="https://yourorg.com"
+          error={showErrors && errors.website_url}
+        />
+        <Hint>Optional.</Hint>
+        <FieldError>{showErrors && errors.website_url}</FieldError>
+      </div>
+
+      <div>
+        <Label htmlFor="social_url">Org social media</Label>
+        <TextInput
+          id="social_url"
+          type="url"
+          inputMode="url"
+          value={form.social_url}
+          onChange={(e) => setField('social_url', e.target.value)}
+          placeholder="https://instagram.com/yourorg"
+          error={showErrors && errors.social_url}
+        />
+        <Hint>Optional. Instagram, TikTok, or wherever you're most active.</Hint>
+        <FieldError>{showErrors && errors.social_url}</FieldError>
+      </div>
+
+      <div>
+        <Label htmlFor="contact_name" required>Your name</Label>
         <TextInput
           id="contact_name"
           value={form.contact_name}
           onChange={(e) => setField('contact_name', e.target.value)}
+          error={showErrors && errors.contact_name}
           placeholder="Full name"
         />
+        <FieldError>{showErrors && errors.contact_name}</FieldError>
       </div>
 
       <div>

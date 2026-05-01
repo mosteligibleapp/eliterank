@@ -17,7 +17,6 @@ import StepOrg from './steps/StepOrg';
 import StepCategory from './steps/StepCategory';
 import StepName from './steps/StepName';
 import StepWho from './steps/StepWho';
-import StepPresence from './steps/StepPresence';
 import StepRevenue from './steps/StepRevenue';
 import StepTiming from './steps/StepTiming';
 import StepNotes from './steps/StepNotes';
@@ -28,7 +27,6 @@ const stepComponents = {
   category: StepCategory,
   name: StepName,
   who: StepWho,
-  presence: StepPresence,
   revenue: StepRevenue,
   timing: StepTiming,
   notes: StepNotes,

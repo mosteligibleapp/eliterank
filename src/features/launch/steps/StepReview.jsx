@@ -107,6 +107,8 @@ export default function StepReview({ form, onJumpTo }) {
         <Section title="Organization" stepKey="org" onEdit={goTo}>
           <Row label="Org name">{dash(form.org_name)}</Row>
           <Row label="Hosting">{form.is_new_to_hosting ? 'New to hosting' : "Has been running competitions"}</Row>
+          <Row label="Website">{dash(form.website_url)}</Row>
+          <Row label="Social">{dash(form.social_url)}</Row>
           <Row label="Contact">{dash(form.contact_name)}</Row>
           <Row label="Email">{dash(form.contact_email)}</Row>
         </Section>
@@ -123,11 +125,6 @@ export default function StepReview({ form, onJumpTo }) {
         <Section title="Eligibility" stepKey="who" onEdit={goTo}>
           <Row label="Genders">{form.gender_eligibility.join(', ') || '—'}</Row>
           <Row label="Ages">{ageLabel(form)}</Row>
-        </Section>
-
-        <Section title="Presence" stepKey="presence" onEdit={goTo}>
-          <Row label="Website">{dash(form.website_url)}</Row>
-          <Row label="Social">{dash(form.social_url)}</Row>
         </Section>
 
         <Section title="Revenue" stepKey="revenue" onEdit={goTo}>

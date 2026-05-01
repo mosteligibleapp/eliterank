@@ -5,7 +5,6 @@ export const STEP_KEYS = [
   'category',
   'name',
   'who',
-  'presence',
   'revenue',
   'timing',
   'notes',
@@ -17,14 +16,13 @@ export const STEP_LABELS = {
   category: 'Category',
   name: 'Name',
   who: 'Eligibility',
-  presence: 'Presence',
   revenue: 'Revenue',
   timing: 'Timing',
   notes: 'Notes',
   review: 'Review',
 };
 
-export const SKIPPABLE_STEPS = new Set(['presence', 'notes']);
+export const SKIPPABLE_STEPS = new Set(['notes']);
 
 export const CATEGORY_OPTIONS = [
   { value: 'dating', label: 'Dating & Relationships', description: "Most eligible singles, matchmaking events." },
