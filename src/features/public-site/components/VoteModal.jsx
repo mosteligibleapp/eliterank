@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle, CreditCard, X } from 'lucide-react';
+import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle, CreditCard, X, AlertCircle, RefreshCw } from 'lucide-react';
+import * as Sentry from '@sentry/react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Modal, Button, Avatar, VoteShareCard } from '../../../components/ui';
 import FanButton from '../../../components/ui/FanButton';
@@ -93,6 +94,12 @@ export default function VoteModal({
 
   const stripeConfigured = isStripeConfigured();
 
+  // Stripe.js load failures (ad-blockers, network) are silent inside the
+  // Elements provider — it just renders nothing. Track the load explicitly
+  // so we can show a retry UI instead of an empty modal.
+  const [stripeLoadFailed, setStripeLoadFailed] = useState(false);
+  const [stripeRetryKey, setStripeRetryKey] = useState(0);
+
   // Reset states when modal opens/closes or contestant changes
   useEffect(() => {
     if (!isOpen) {
@@ -103,8 +110,44 @@ export default function VoteModal({
       setPaymentIntentId(null);
       setSelectedVoteCount(10);
       setConfirmedAmount(null);
+      setStripeLoadFailed(false);
     }
   }, [isOpen]);
+
+  // Pre-resolve Stripe.js when the payment form is about to render so
+  // ad-blocker/network failures surface as a recoverable error instead of
+  // an empty Elements provider. Distinct Sentry tag so this signal is
+  // separable from the noisy warmup case.
+  useEffect(() => {
+    if (!showPaymentForm || !clientSecret) return;
+    let cancelled = false;
+    setStripeLoadFailed(false);
+    const promise = getStripe();
+    if (!promise) {
+      setStripeLoadFailed(true);
+      return;
+    }
+    promise.catch((err) => {
+      if (cancelled) return;
+      setStripeLoadFailed(true);
+      Sentry.captureException(err, {
+        tags: { stage: 'stripe-load-on-payment' },
+        extra: {
+          paymentIntentId,
+          voteCount: selectedVoteCount,
+          contestantId: contestant?.id,
+          competitionId,
+        },
+      });
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPaymentForm, clientSecret, stripeRetryKey]);
+
+  const retryStripeLoad = () => {
+    setStripeLoadFailed(false);
+    setStripeRetryKey((k) => k + 1);
+  };
 
   // Check if user has already used their free vote today
   useEffect(() => {
@@ -401,6 +444,68 @@ export default function VoteModal({
   // Payment form screen — slim. The amount lives on the Pay button (which
   // Stripe controls), so no redundant confirmation header.
   if (showPaymentForm && clientSecret) {
+    if (stripeLoadFailed) {
+      return (
+        <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="360px" centered hideCloseButton variant="gold">
+          <div style={{ padding: `${spacing.xl} ${spacing.lg}`, textAlign: 'center' }}>
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: borderRadius.full,
+                background: colors.status.errorMuted,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: `0 auto ${spacing.md}`,
+              }}
+            >
+              <AlertCircle size={28} style={{ color: colors.status.error }} />
+            </div>
+            <h3
+              style={{
+                fontSize: typography.fontSize.lg,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.text.primary,
+                margin: `0 0 ${spacing.sm}`,
+              }}
+            >
+              Couldn't load payment form
+            </h3>
+            <p
+              style={{
+                fontSize: typography.fontSize.sm,
+                color: colors.text.secondary,
+                margin: `0 0 ${spacing.lg}`,
+                lineHeight: 1.5,
+              }}
+            >
+              Stripe was blocked from loading. This usually means an ad-blocker or strict privacy setting on this network. Try disabling it for this site, then retry.
+            </p>
+            <Button fullWidth size="lg" onClick={retryStripeLoad}>
+              <RefreshCw size={16} />
+              Retry
+            </Button>
+            <button
+              onClick={handleBackFromPayment}
+              style={{
+                marginTop: spacing.sm,
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                color: colors.text.secondary,
+                fontSize: typography.fontSize.sm,
+                cursor: 'pointer',
+                padding: spacing.sm,
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
     const stripePromise = getStripe();
 
     return (
