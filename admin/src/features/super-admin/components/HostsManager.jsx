@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Users, UserCheck, Clock, Eye, Trash2, Check, X } from 'lucide-react';
+import { Users, UserCheck, Clock, Eye, Trash2, Check, X, Plus, AlertTriangle } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '@shared/styles/theme';
+import { Button } from '@shared/components/ui';
 import { supabase } from '@shared/lib/supabase';
 import StatRow from '../../../components/StatRow';
 import FilterBar from '../../../components/FilterBar';
 import DataTable from '../../../components/DataTable';
 import ActionMenu from '../../../components/ActionMenu';
+import FormModal from '../../../components/FormModal';
+import { FormField, TextInput } from '../../../components/FormField';
 
 export default function HostsManager() {
   const [hosts, setHosts] = useState([]);
@@ -13,6 +16,16 @@ export default function HostsManager() {
   const [loading, setLoading] = useState(true);
   const [searchValue, setSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  // Add Host modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addEmail, setAddEmail] = useState('');
+  const [addError, setAddError] = useState('');
+  const [addSubmitting, setAddSubmitting] = useState(false);
+
+  // Remove Host modal state
+  const [hostToRemove, setHostToRemove] = useState(null);
+  const [removeSubmitting, setRemoveSubmitting] = useState(false);
 
   const fetchHosts = useCallback(async () => {
     if (!supabase) { setHosts([]); return; }
@@ -92,6 +105,74 @@ export default function HostsManager() {
     } catch (err) { console.error('Error rejecting application:', err); }
   };
 
+  const openAddModal = () => {
+    setAddEmail('');
+    setAddError('');
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    if (addSubmitting) return;
+    setShowAddModal(false);
+    setAddEmail('');
+    setAddError('');
+  };
+
+  const handleAddHost = async () => {
+    if (!supabase) return;
+    const email = addEmail.trim().toLowerCase();
+    if (!email) { setAddError('Email is required.'); return; }
+    setAddError('');
+    setAddSubmitting(true);
+    try {
+      const { data: profile, error: lookupErr } = await supabase
+        .from('profiles')
+        .select('id, email, is_host')
+        .ilike('email', email)
+        .maybeSingle();
+      if (lookupErr) throw lookupErr;
+      if (!profile) {
+        setAddError('No user found with that email. The user must sign up first.');
+        return;
+      }
+      if (profile.is_host) {
+        setAddError('This user is already a host.');
+        return;
+      }
+      const { error: updateErr } = await supabase
+        .from('profiles')
+        .update({ is_host: true })
+        .eq('id', profile.id);
+      if (updateErr) throw updateErr;
+      await fetchHosts();
+      setShowAddModal(false);
+      setAddEmail('');
+    } catch (err) {
+      console.error('Error adding host:', err);
+      setAddError(err?.message || 'Failed to add host.');
+    } finally {
+      setAddSubmitting(false);
+    }
+  };
+
+  const handleRemoveHost = async () => {
+    if (!supabase || !hostToRemove) return;
+    setRemoveSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_host: false })
+        .eq('id', hostToRemove.id);
+      if (error) throw error;
+      await fetchHosts();
+      setHostToRemove(null);
+    } catch (err) {
+      console.error('Error removing host:', err);
+    } finally {
+      setRemoveSubmitting(false);
+    }
+  };
+
   const showPending = statusFilter === 'pending';
 
   const filteredHosts = useMemo(() => {
@@ -152,9 +233,16 @@ export default function HostsManager() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
-      <div>
-        <h1 style={S.title}>Host Management</h1>
-        <p style={S.subtitle}>Manage hosts and review applications</p>
+      <div style={S.headerRow}>
+        <div>
+          <h1 style={S.title}>Host Management</h1>
+          <p style={S.subtitle}>Manage hosts and review applications</p>
+        </div>
+        {!showPending && (
+          <Button icon={Plus} onClick={openAddModal}>
+            Add Host
+          </Button>
+        )}
       </div>
 
       <StatRow stats={stats} />
@@ -179,11 +267,11 @@ export default function HostsManager() {
           columns={hostColumns}
           data={filteredHosts}
           loading={loading}
-          emptyMessage="No hosts found. Hosts will appear when users are assigned the host role."
+          emptyMessage="No hosts found. Add an existing user as a host to get started."
           actions={(row) => (
             <ActionMenu actions={[
               { label: 'View Profile', icon: Eye, onClick: () => { /* placeholder */ } },
-              { label: 'Remove Host', icon: Trash2, variant: 'danger', onClick: () => { /* placeholder */ } },
+              { label: 'Remove Host', icon: Trash2, variant: 'danger', onClick: () => setHostToRemove(row) },
             ]} />
           )}
         />
@@ -220,15 +308,68 @@ export default function HostsManager() {
           )}
         />
       )}
+
+      {/* ── Add Host Modal ─────────────────────────────── */}
+      <FormModal
+        isOpen={showAddModal}
+        onClose={closeAddModal}
+        title="Add Host"
+        subtitle="Promote an existing user to host"
+        onSubmit={handleAddHost}
+        submitLabel={addSubmitting ? 'Adding...' : 'Add Host'}
+        loading={addSubmitting}
+        size="sm"
+      >
+        <FormField
+          label="User email"
+          description="The user must already have an EliteRank account."
+          error={addError}
+          required
+        >
+          <TextInput
+            type="email"
+            value={addEmail}
+            onChange={(e) => setAddEmail(e.target.value)}
+            placeholder="user@example.com"
+            autoFocus
+          />
+        </FormField>
+      </FormModal>
+
+      {/* ── Remove Host Confirmation ───────────────────── */}
+      <FormModal
+        isOpen={!!hostToRemove}
+        onClose={() => { if (!removeSubmitting) setHostToRemove(null); }}
+        title="Remove Host?"
+        subtitle={hostToRemove ? hostToRemove.name : ''}
+        onSubmit={handleRemoveHost}
+        submitLabel={removeSubmitting ? 'Removing...' : 'Remove Host'}
+        loading={removeSubmitting}
+        size="sm"
+      >
+        <div style={S.confirmBody}>
+          <div style={S.confirmIcon}>
+            <AlertTriangle size={24} style={{ color: colors.status.error }} />
+          </div>
+          <p style={S.confirmText}>
+            This will revoke host access for this user. They will no longer be able to manage competitions.
+            This does not delete their account or any past competitions they hosted.
+          </p>
+        </div>
+      </FormModal>
     </div>
   );
 }
 
 const S = {
+  headerRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   title: { fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, marginBottom: spacing.xs, color: colors.text.primary },
   subtitle: { color: colors.text.secondary, fontSize: typography.fontSize.sm },
   avatar: { width: '28px', height: '28px', borderRadius: borderRadius.full, background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold, color: '#fff', flexShrink: 0, overflow: 'hidden' },
   avatarImg: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: borderRadius.full },
   expandLabel: { fontSize: typography.fontSize.xs, color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: typography.fontWeight.semibold },
   expandText: { fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.6, margin: 0 },
+  confirmBody: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md, padding: `${spacing.md} 0` },
+  confirmIcon: { width: '48px', height: '48px', borderRadius: borderRadius.full, background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  confirmText: { fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.6, margin: 0, textAlign: 'center' },
 };
