@@ -145,11 +145,12 @@ export default function CompetitionCardVoting({
   }, [user?.id, competitionId]);
 
   // Warm Stripe.js in the background so the checkout modal feels instant
-  // when the user hits Send. loadStripe is singletoned — repeat calls are
-  // cheap and don't trigger another network request.
+  // when the user hits Send. Swallow failures — ad-blockers and flaky
+  // networks shouldn't surface as unhandled rejections during warmup; the
+  // real load attempt happens when the user opens the payment modal.
   useEffect(() => {
     if (isStripeConfigured()) {
-      getStripe();
+      getStripe()?.catch(() => {});
     }
   }, []);
 

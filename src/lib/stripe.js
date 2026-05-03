@@ -16,7 +16,12 @@ export function getStripe() {
   }
 
   if (!stripePromise) {
-    stripePromise = loadStripe(stripePublishableKey);
+    // Clear the singleton on failure so the next caller (e.g. user actually
+    // opening the payment modal) retries instead of reusing a rejected promise.
+    stripePromise = loadStripe(stripePublishableKey).catch((err) => {
+      stripePromise = null;
+      throw err;
+    });
   }
 
   return stripePromise;
