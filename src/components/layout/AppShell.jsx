@@ -17,6 +17,7 @@ import { useAuthStore, useUIStore } from '../../stores';
 import { ErrorBoundary } from '../common';
 
 const AcceptNominationModal = lazy(() => import('../modals/AcceptNominationModal'));
+const VotePaymentReturnHandler = lazy(() => import('../VotePaymentReturnHandler'));
 
 /**
  * PendingNominationsModal - Shows when user has multiple pending nominations
@@ -237,6 +238,13 @@ export default function AppShell({ children }) {
   return (
     <ErrorBoundary>
       {children}
+
+      {/* Stripe redirect-back handler — Cash App Pay / Amazon Pay etc. send the
+          buyer off-site, so the in-page VoteModal is gone by the time they
+          return. This re-shows the success / share-card popup. */}
+      <Suspense fallback={null}>
+        <VotePaymentReturnHandler />
+      </Suspense>
 
       {/* Pending Nominations Modal */}
       {showNominationsModal && pendingNominations?.length > 0 && (
