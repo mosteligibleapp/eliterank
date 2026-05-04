@@ -429,7 +429,11 @@ export default function VoteModal({
             alignItems: 'center',
             justifyContent: 'center',
             gap: spacing.md,
-            minHeight: '160px',
+            // Pre-allocate the eventual payment-form height so the modal
+            // doesn't visibly grow & recenter when clientSecret arrives and
+            // Stripe Elements loads in. Without this the buyer sees the
+            // modal "zoom in" / shift up the page.
+            minHeight: '420px',
           }}>
             <Loader size={24} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
             <p style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, margin: 0 }}>
@@ -510,7 +514,11 @@ export default function VoteModal({
 
     return (
       <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="360px" centered hideCloseButton variant="gold">
-        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+        {/* minHeight matches the auto-checkout loader so the modal frame
+            stays the same size when transitioning loader → payment form.
+            Without it the modal recenters as content grows, which the
+            buyer perceives as the popup "moving" / "zooming in". */}
+        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh', minHeight: '420px' }}>
           {/* Minimal close row — no vote/price restatement */}
           <div style={{
             display: 'flex',
