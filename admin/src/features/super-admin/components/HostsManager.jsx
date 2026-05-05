@@ -125,10 +125,14 @@ export default function HostsManager() {
     setAddError('');
     setAddSubmitting(true);
     try {
+      // Escape LIKE wildcards so values like "alice_smith@..." aren't treated
+      // as patterns. Email local-parts allow `_` and `%` (legacy), so without
+      // this `_` would match any single char and produce wrong/multiple rows.
+      const likeEscaped = email.replace(/([\\%_])/g, '\\$1');
       const { data: profile, error: lookupErr } = await supabase
         .from('profiles')
         .select('id, email, is_host')
-        .ilike('email', email)
+        .ilike('email', likeEscaped)
         .maybeSingle();
       if (lookupErr) throw lookupErr;
       if (!profile) {
