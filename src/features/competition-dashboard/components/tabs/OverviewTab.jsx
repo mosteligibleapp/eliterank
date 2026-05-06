@@ -21,6 +21,7 @@ export default function OverviewTab({
   events,
   announcements,
   host,
+  voteRevenue = 0,
   isSuperAdmin,
   onViewPublicSite,
   onNavigateToTab,
@@ -102,7 +103,7 @@ export default function OverviewTab({
   }, [events]);
 
   const sponsorRevenue = (sponsors || []).reduce((sum, s) => sum + (s.amount || 0), 0);
-  const totalRevenue = sponsorRevenue;
+  const totalRevenue = sponsorRevenue + (voteRevenue || 0);
 
   const sortedAnnouncements = useMemo(() => {
     return [...(announcements || [])].sort((a, b) => {
@@ -307,7 +308,10 @@ export default function OverviewTab({
           </p>
           {totalRevenue > 0 ? (
             <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, position: 'relative' }}>
-              Sponsors {formatCurrency(sponsorRevenue)}
+              {[
+                voteRevenue > 0 && `Votes ${formatCurrency(voteRevenue)}`,
+                sponsorRevenue > 0 && `Sponsors ${formatCurrency(sponsorRevenue)}`,
+              ].filter(Boolean).join(' · ')}
             </p>
           ) : (
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, position: 'relative' }}>

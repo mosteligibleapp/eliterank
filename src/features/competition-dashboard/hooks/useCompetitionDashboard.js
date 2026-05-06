@@ -24,6 +24,7 @@ export function useCompetitionDashboard(competitionId) {
     doubleDays: [],
     host: null,
     competition: null,
+    voteRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -63,6 +64,7 @@ export function useCompetitionDashboard(competitionId) {
         prizesResult,
         doubleDaysResult,
         competitionResult,
+        paidVotesResult,
       ] = await Promise.all([
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
         supabase
@@ -142,6 +144,13 @@ export function useCompetitionDashboard(competitionId) {
           `)
           .eq('id', competitionId)
           .single(),
+
+        // Paid votes (Stripe) — only rows with a payment_intent_id, summed client-side for revenue
+        supabase
+          .from('votes')
+          .select('amount_paid')
+          .eq('competition_id', competitionId)
+          .not('payment_intent_id', 'is', null),
       ]);
 
       // Check for errors
@@ -156,6 +165,7 @@ export function useCompetitionDashboard(competitionId) {
         prizesResult.error,
         doubleDaysResult.error,
         competitionResult.error,
+        paidVotesResult.error,
       ].filter(Boolean);
 
       if (errors.length > 0) {
@@ -365,6 +375,12 @@ export function useCompetitionDashboard(competitionId) {
         date: d.date,
       }));
 
+      // Sum revenue from paid votes (Stripe)
+      const voteRevenue = (paidVotesResult.data || []).reduce(
+        (sum, v) => sum + (parseFloat(v.amount_paid) || 0),
+        0
+      );
+
       // Transform prizes
       const prizes = (prizesResult.data || []).map((p) => ({
         id: p.id,
@@ -389,6 +405,7 @@ export function useCompetitionDashboard(competitionId) {
         prizes,
         doubleDays,
         host,
+        voteRevenue,
         competition: competition ? {
           id: competition.id,
           name: competition.name,
