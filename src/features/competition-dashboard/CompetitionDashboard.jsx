@@ -404,12 +404,17 @@ export default function CompetitionDashboard({
             sponsors={data.sponsors}
             events={data.events}
             announcements={data.announcements}
+            prizes={data.prizes}
+            judges={data.judges}
             host={data.host}
             isSuperAdmin={isSuperAdmin}
             onViewPublicSite={onViewPublicSite}
             onNavigateToTab={setActiveTab}
             onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+            onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
+            onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
+            onOpenAddPersonModal={openAddPersonModal}
             onAddAnnouncement={addAnnouncement}
             onUpdateAnnouncement={updateAnnouncement}
             onDeleteAnnouncement={deleteAnnouncement}
