@@ -55,8 +55,8 @@ COMMENT ON COLUMN contestants.votes_at_round_start IS
 -- Backfill
 -- ---------------------------------------------------------------------------
 -- Critical: mark every already-ended round as finalized with an empty snapshot
--- so the new cron job does not retroactively eliminate contestants from rounds
--- that ended before this migration ran.
+-- so ensure_round_state does not retroactively eliminate contestants from
+-- rounds that ended before this migration ran.
 
 UPDATE voting_rounds
 SET tier_label = title
