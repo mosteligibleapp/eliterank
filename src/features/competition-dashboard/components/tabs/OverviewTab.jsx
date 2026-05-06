@@ -49,7 +49,7 @@ function buildStages({
       sub: (competition?.organizationHeaderLogoUrl || competition?.organizationLogoUrl) ? 'Uploaded' : 'Add a logo for the page header',
       icon: ImageIcon,
       done: !!(competition?.organizationHeaderLogoUrl || competition?.organizationLogoUrl),
-      onClick: () => handlers.navigate('setup'),
+      onClick: () => handlers.navigate('content'),
     },
     {
       id: 'website',
@@ -57,7 +57,7 @@ function buildStages({
       sub: competition?.organizationWebsiteUrl || 'Link out to your main site',
       icon: Globe,
       done: !!competition?.organizationWebsiteUrl,
-      onClick: () => handlers.navigate('setup'),
+      onClick: () => handlers.navigate('content'),
     },
     {
       id: 'host-profile',
