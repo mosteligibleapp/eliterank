@@ -414,10 +414,12 @@ export const DEFAULT_COMPETITION_SETTINGS = {
 export const DEFAULT_VOTING_ROUND = {
   title: '',
   round_order: 1,
-  round_type: 'voting', // 'voting' or 'judging'
+  round_type: 'voting', // 'voting' | 'judging' | 'resurrection' | 'finale'
   start_date: null,
   end_date: null,
   contestants_advance: 10,
+  tier_label: '',
+  votes_reset_at_start: false,
 };
 
 export const DEFAULT_NOMINATION_PERIOD = {
@@ -431,6 +433,8 @@ export const DEFAULT_NOMINATION_PERIOD = {
 export const ROUND_TYPES = {
   VOTING: 'voting',
   JUDGING: 'judging',
+  RESURRECTION: 'resurrection',
+  FINALE: 'finale',
 };
 
 export const ROUND_TYPE_CONFIG = {
@@ -445,6 +449,18 @@ export const ROUND_TYPE_CONFIG = {
     description: 'Judges score contestants',
     icon: 'Award',
     color: '#8b5cf6',
+  },
+  resurrection: {
+    label: 'Resurrection',
+    description: 'Eliminated contestants compete for wildcard spots',
+    icon: 'Vote',
+    color: '#22c55e',
+  },
+  finale: {
+    label: 'Finale',
+    description: 'Final round — top finishers crowned as winners',
+    icon: 'Trophy',
+    color: '#22c55e',
   },
 };
 

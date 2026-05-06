@@ -30,7 +30,7 @@ export default function ViewPublicProfilePage() {
   // `?preview=voting` query param; the card synthesizes an active round,
   // and any mutations (free vote, paid vote) are blocked downstream.
   const previewMode = searchParams.get('preview');
-  const isPreview = previewMode === 'voting' || previewMode === 'round1';
+  const isPreview = previewMode === 'voting';
 
   useEffect(() => {
     const fetchProfile = async () => {

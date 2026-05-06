@@ -7,12 +7,16 @@
  * Phases:
  * - 'coming-soon': Competition announced but not yet accepting nominations
  * - 'nominations': Accepting nominations/applications
- * - 'round1', 'round2', etc.: Active voting rounds
+ * - 'voting': Active voting round (any non-finale, non-resurrection round)
  * - 'resurrection': Special round for eliminated contestants
  * - 'finals': Final voting round
  * - 'results': Competition complete, showing winners
  * - 'draft': Not yet public (host only)
  * - 'cancelled': Competition was cancelled
+ *
+ * The display name for a voting round comes from `voting_rounds.tier_label`
+ * (e.g. "Top 50") and is exposed as `phase.label` and `phase.tier`. Falls back
+ * to `voting_rounds.title` and finally to `Round N`.
  */
 
 import {
@@ -111,6 +115,8 @@ export function getCompetitionPhase(
     return {
       phase: roundPhase.phase,
       label: roundPhase.label,
+      tier: roundPhase.tier,
+      roundType: roundPhase.roundType,
       isPublic: true,
       isVoting: true,
       canNominate: false,
@@ -260,28 +266,34 @@ function findActiveNominationPeriod(nominationPeriods, now) {
 }
 
 /**
- * Determine specific round phase based on round properties
+ * Determine specific round phase based on round properties.
+ *
+ * Returns `{ phase, label, tier, roundType }` where:
+ * - `phase` is one of 'voting' | 'finals' | 'resurrection'
+ * - `label` is the host-defined display name (tier_label || title || `Round N`)
+ * - `tier` is the explicit tier_label (or null)
+ * - `roundType` is the underlying round_type column value
  */
 function determineRoundPhase(round) {
   const title = (round.title || '').toLowerCase();
-  const roundType = (round.round_type || '').toLowerCase();
-
-  // Check for resurrection
-  if (roundType === 'resurrection' || title.includes('resurrection')) {
-    return { phase: 'resurrection', label: 'Resurrection Round' };
-  }
-
-  // Check for finals
-  if (roundType === 'finals' || title.includes('final')) {
-    return { phase: 'finals', label: 'Finals' };
-  }
-
-  // Default to numbered round
+  const roundType = (round.round_type || 'voting').toLowerCase();
+  const tier = round.tier_label || null;
   const roundNum = round.round_order || 1;
-  return {
-    phase: `round${roundNum}`,
-    label: round.title || `Round ${roundNum}`,
-  };
+  const label = tier || round.title || `Round ${roundNum}`;
+
+  if (roundType === 'resurrection' || title.includes('resurrection')) {
+    return { phase: 'resurrection', label, tier, roundType: 'resurrection' };
+  }
+
+  if (
+    roundType === 'finale' ||
+    roundType === 'finals' ||
+    title.includes('final')
+  ) {
+    return { phase: 'finals', label, tier, roundType: 'finale' };
+  }
+
+  return { phase: 'voting', label, tier, roundType };
 }
 
 /**
@@ -338,36 +350,22 @@ function formatTimeRemaining(days, hours, minutes) {
  * Check if competition is in a voting phase
  */
 export function isVotingPhase(phase) {
-  return (
-    [
-      'round1',
-      'round2',
-      'round3',
-      'round4',
-      'resurrection',
-      'finals',
-    ].includes(phase) || phase?.startsWith('round')
-  );
+  return ['voting', 'resurrection', 'finals'].includes(phase);
 }
 
 /**
  * Check if competition is publicly visible
  */
 export function isPublicPhase(phase) {
-  return (
-    [
-      'coming-soon',
-      'nominations',
-      'round1',
-      'round2',
-      'round3',
-      'round4',
-      'resurrection',
-      'finals',
-      'results',
-      'between-rounds',
-    ].includes(phase) || phase?.startsWith('round')
-  );
+  return [
+    'coming-soon',
+    'nominations',
+    'voting',
+    'resurrection',
+    'finals',
+    'results',
+    'between-rounds',
+  ].includes(phase);
 }
 
 export default getCompetitionPhase;

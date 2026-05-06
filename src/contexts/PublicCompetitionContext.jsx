@@ -126,8 +126,9 @@ export function PublicCompetitionProvider({
     // Default: voting preview
     return {
       ...realPhase,
-      phase: 'round1',
-      label: previewRound.title || 'Voting Preview',
+      phase: 'voting',
+      label: previewRound.tier_label || previewRound.title || 'Voting Preview',
+      tier: previewRound.tier_label || null,
       isPublic: true,
       isVoting: true,
       canNominate: false,
