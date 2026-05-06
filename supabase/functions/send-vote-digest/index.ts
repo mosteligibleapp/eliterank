@@ -161,8 +161,8 @@ serve(async (req) => {
 
       const title = total === 1 ? 'You got a new vote!' : `You got ${total} new votes!`
       const body = total === 1
-        ? `1 vote in ${compName} since yesterday. Keep the momentum going!`
-        : `${total} votes in ${compName} since yesterday. Keep the momentum going!`
+        ? `1 vote in ${compName} since yesterday.`
+        : `${total} votes in ${compName} since yesterday.`
 
       const result: PerContestantResult = {
         contestant_id: contestant.id,
