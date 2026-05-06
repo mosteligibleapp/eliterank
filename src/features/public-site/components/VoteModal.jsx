@@ -555,7 +555,11 @@ export default function VoteModal({
                   appearance: {
                     theme: 'night',
                     variables: {
-                      colorPrimary: '#d4af37',
+                      // Pick up the host's themed primary from the live
+                      // competition layout if present; fall back to gold.
+                      colorPrimary: (typeof window !== 'undefined'
+                        && getComputedStyle(document.querySelector('.competition-layout') || document.documentElement)
+                          .getPropertyValue('--color-primary').trim()) || '#d4af37',
                       colorBackground: '#18181b',
                       colorText: '#ffffff',
                       colorDanger: '#ef4444',

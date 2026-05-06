@@ -32,6 +32,21 @@ const EntryFlow = lazy(() => import('../../features/entry/EntryFlow'));
 // Contestant Guide (lazy loaded)
 const ContestantGuide = lazy(() => import('../../features/contestant-guide/ContestantGuide'));
 
+// Convert "#d4af37" -> "212, 175, 55" so it can be plugged into rgba()
+// CSS expressions via a CSS variable (--color-primary-rgb).
+function hexToRgbTriplet(hex) {
+  if (typeof hex !== 'string') return null;
+  const cleaned = hex.trim().replace(/^#/, '');
+  const expanded = cleaned.length === 3
+    ? cleaned.split('').map((c) => c + c).join('')
+    : cleaned;
+  if (!/^[0-9a-f]{6}$/i.test(expanded)) return null;
+  const r = parseInt(expanded.slice(0, 2), 16);
+  const g = parseInt(expanded.slice(2, 4), 16);
+  const b = parseInt(expanded.slice(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
 /**
  * Inner layout component (has access to context)
  */
@@ -48,6 +63,7 @@ function CompetitionLayoutInner() {
     about,
     contestants,
     organization,
+    theme,
     isPreview,
     previewMode,
   } = usePublicCompetition();
@@ -171,8 +187,23 @@ function CompetitionLayoutInner() {
   // Hide floating buttons when modals are open
   const isModalOpen = showVoteModal || showProfileModal || showGuide;
 
+  // Per-competition theme overrides for --color-primary / --color-voting.
+  // Falls back to the gold defaults baked into competition-phases.css when
+  // the host hasn't picked a color.
+  const themeStyle = {};
+  if (theme?.primary) {
+    themeStyle['--color-primary'] = theme.primary;
+    const rgb = hexToRgbTriplet(theme.primary);
+    if (rgb) themeStyle['--color-primary-rgb'] = rgb;
+  }
+  if (theme?.voting) {
+    themeStyle['--color-voting'] = theme.voting;
+    const rgb = hexToRgbTriplet(theme.voting);
+    if (rgb) themeStyle['--color-voting-rgb'] = rgb;
+  }
+
   return (
-    <div className="competition-layout">
+    <div className="competition-layout" style={themeStyle}>
       {/* Preview banner - shown to hosts previewing a phase */}
       {isPreview && <PreviewBanner mode={previewMode} />}
 

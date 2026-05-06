@@ -11,7 +11,7 @@ import { useToast } from '../../../../contexts/ToastContext';
 
 /**
  * Theme color editor for host dashboard
- * Allows customization of primary, voting, and resurrection colors
+ * Allows customization of brand and voting accent colors
  *
  * @param {object} competition - Competition object
  * @param {object} organization - Organization object with defaults
@@ -26,13 +26,11 @@ export function ThemeEditor({ competition, organization, onSave }) {
   const defaults = {
     primary: organization?.default_theme_primary || '#d4af37',
     voting: organization?.default_theme_voting || '#f472b6',
-    resurrection: organization?.default_theme_resurrection || '#8b5cf6',
   };
 
   // Form state
   const [primaryColor, setPrimaryColor] = useState(defaults.primary);
   const [votingColor, setVotingColor] = useState(defaults.voting);
-  const [resurrectionColor, setResurrectionColor] = useState(defaults.resurrection);
 
   // UI state
   const [saving, setSaving] = useState(false);
@@ -46,17 +44,15 @@ export function ThemeEditor({ competition, organization, onSave }) {
     if (competition) {
       setPrimaryColor(competition.theme_primary || defaults.primary);
       setVotingColor(competition.theme_voting || defaults.voting);
-      setResurrectionColor(competition.theme_resurrection || defaults.resurrection);
     }
-  }, [competition, defaults.primary, defaults.voting, defaults.resurrection]);
+  }, [competition, defaults.primary, defaults.voting]);
 
   // Check for changes
   const hasChanges = () => {
     if (!competition) return false;
     return (
       primaryColor !== (competition.theme_primary || defaults.primary) ||
-      votingColor !== (competition.theme_voting || defaults.voting) ||
-      resurrectionColor !== (competition.theme_resurrection || defaults.resurrection)
+      votingColor !== (competition.theme_voting || defaults.voting)
     );
   };
 
@@ -64,7 +60,6 @@ export function ThemeEditor({ competition, organization, onSave }) {
   const resetToDefaults = () => {
     setPrimaryColor(defaults.primary);
     setVotingColor(defaults.voting);
-    setResurrectionColor(defaults.resurrection);
   };
 
   // Save changes
@@ -81,10 +76,6 @@ export function ThemeEditor({ competition, organization, onSave }) {
     if (votingColor !== (competition.theme_voting || defaults.voting)) {
       updates.theme_voting = votingColor;
       changedFields.push('theme_voting');
-    }
-    if (resurrectionColor !== (competition.theme_resurrection || defaults.resurrection)) {
-      updates.theme_resurrection = resurrectionColor;
-      changedFields.push('theme_resurrection');
     }
 
     // Check for warnings
@@ -146,7 +137,7 @@ export function ThemeEditor({ competition, organization, onSave }) {
 
   const colorEditorsStyle = {
     display: 'grid',
-    gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+    gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
     gap: spacing.lg,
   };
 
@@ -269,14 +260,16 @@ export function ThemeEditor({ competition, organization, onSave }) {
       }
     >
       <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-        <p style={descStyle}>Customize the color scheme for your public competition page.</p>
+        <p style={descStyle}>
+          Pick the colors that run through your public competition page. Defaults to gold and pink if you don't set them.
+        </p>
 
         <div style={colorEditorsStyle}>
-          {/* Primary Color */}
+          {/* Brand Color */}
           <FieldLockIndicator fieldName="theme_primary" status={status}>
             <div style={colorEditorStyle}>
               <label style={labelStyle}>
-                Primary (Gold)
+                Brand color
                 <LockIcon fieldName="theme_primary" status={status} />
               </label>
               <div style={colorInputGroupStyle}>
@@ -297,15 +290,15 @@ export function ThemeEditor({ competition, organization, onSave }) {
                   style={colorTextInputStyle}
                 />
               </div>
-              <span style={usageStyle}>Headlines, CTAs, prize highlights</span>
+              <span style={usageStyle}>Page headers, CTAs, prize amounts, share cards</span>
             </div>
           </FieldLockIndicator>
 
-          {/* Voting Color */}
+          {/* Voting Accent */}
           <FieldLockIndicator fieldName="theme_voting" status={status}>
             <div style={colorEditorStyle}>
               <label style={labelStyle}>
-                Voting (Pink)
+                Voting accent
                 <LockIcon fieldName="theme_voting" status={status} />
               </label>
               <div style={colorInputGroupStyle}>
@@ -326,36 +319,7 @@ export function ThemeEditor({ competition, organization, onSave }) {
                   style={colorTextInputStyle}
                 />
               </div>
-              <span style={usageStyle}>Vote buttons, Round 1 & 2 accents</span>
-            </div>
-          </FieldLockIndicator>
-
-          {/* Resurrection Color */}
-          <FieldLockIndicator fieldName="theme_resurrection" status={status}>
-            <div style={colorEditorStyle}>
-              <label style={labelStyle}>
-                Resurrection (Purple)
-                <LockIcon fieldName="theme_resurrection" status={status} />
-              </label>
-              <div style={colorInputGroupStyle}>
-                <input
-                  type="color"
-                  value={resurrectionColor}
-                  onChange={(e) => setResurrectionColor(e.target.value)}
-                  disabled={isFieldEditable('theme_resurrection', status) === false}
-                  style={colorPickerStyle}
-                />
-                <input
-                  type="text"
-                  value={resurrectionColor}
-                  onChange={(e) => setResurrectionColor(e.target.value)}
-                  placeholder="#8b5cf6"
-                  maxLength={7}
-                  disabled={isFieldEditable('theme_resurrection', status) === false}
-                  style={colorTextInputStyle}
-                />
-              </div>
-              <span style={usageStyle}>Resurrection round theming</span>
+              <span style={usageStyle}>Vote buttons and accents during voting rounds</span>
             </div>
           </FieldLockIndicator>
         </div>
@@ -419,20 +383,6 @@ export function ThemeEditor({ competition, organization, onSave }) {
               >
                 Vote Now
               </button>
-
-              {/* Resurrection Badge Preview */}
-              <div
-                style={{
-                  padding: `${spacing.xs} ${spacing.sm}`,
-                  background: `${resurrectionColor}20`,
-                  border: `1px solid ${resurrectionColor}`,
-                  borderRadius: borderRadius.pill,
-                  fontSize: typography.fontSize.xs,
-                  color: resurrectionColor,
-                }}
-              >
-                Resurrection Round
-              </div>
             </div>
           </div>
         )}

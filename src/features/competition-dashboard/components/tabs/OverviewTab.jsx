@@ -37,8 +37,8 @@ function buildStages({
   const identityItems = [
     {
       id: 'theme',
-      label: 'Theme color',
-      sub: competition?.themePrimary ? 'Set' : 'Pick a brand color',
+      label: 'Brand color',
+      sub: competition?.themePrimary ? 'Set' : 'Pick a brand color (defaults to gold)',
       icon: Palette,
       done: !!competition?.themePrimary,
       onClick: () => handlers.navigate('setup'),
