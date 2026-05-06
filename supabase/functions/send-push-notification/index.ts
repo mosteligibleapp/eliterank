@@ -102,8 +102,8 @@ function getNotificationContent(req: PushRequest): { title: string; body: string
       return {
         title: count === 1 ? 'You got a new vote!' : `You got ${count} new votes!`,
         body: count === 1
-          ? `1 vote${where} since yesterday. Keep the momentum going!`
-          : `${count} votes${where} since yesterday. Keep the momentum going!`,
+          ? `1 vote${where} since yesterday.`
+          : `${count} votes${where} since yesterday.`,
       }
     }
 
