@@ -405,6 +405,7 @@ export default function CompetitionDashboard({
             events={data.events}
             announcements={data.announcements}
             host={data.host}
+            voteRevenue={data.voteRevenue}
             isSuperAdmin={isSuperAdmin}
             onViewPublicSite={onViewPublicSite}
             onNavigateToTab={setActiveTab}

@@ -1,7 +1,27 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useProfiles } from '../../../hooks/useCachedQuery';
+import { getCached, setCache, dedupeRequest } from '../../../lib/queryCache';
 import { checkAndAwardProfileBonuses, awardNomineeActionBonuses, setupDefaultBonusTasks } from '../../../lib/bonusVotes';
+
+const REVENUE_CACHE_TABLE = 'competition_revenue';
+const REVENUE_CACHE_TTL = 60000; // 60s — refreshes on dashboard remount past TTL
+
+function fetchCompetitionRevenue(competitionId) {
+  const cached = getCached(REVENUE_CACHE_TABLE, { competitionId });
+  if (cached !== null) {
+    return Promise.resolve({ data: cached, error: null });
+  }
+  return dedupeRequest(`${REVENUE_CACHE_TABLE}:${competitionId}`, async () => {
+    const result = await supabase.rpc('get_competition_revenue', {
+      p_competition_id: competitionId,
+    });
+    if (!result.error) {
+      setCache(REVENUE_CACHE_TABLE, { competitionId }, result.data, REVENUE_CACHE_TTL);
+    }
+    return result;
+  });
+}
 
 /**
  * Hook to fetch all dashboard data for a specific competition
@@ -24,6 +44,7 @@ export function useCompetitionDashboard(competitionId) {
     doubleDays: [],
     host: null,
     competition: null,
+    voteRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -63,6 +84,7 @@ export function useCompetitionDashboard(competitionId) {
         prizesResult,
         doubleDaysResult,
         competitionResult,
+        paidVotesResult,
       ] = await Promise.all([
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
         supabase
@@ -142,6 +164,9 @@ export function useCompetitionDashboard(competitionId) {
           `)
           .eq('id', competitionId)
           .single(),
+
+        // Paid-vote revenue — server-side SUM via RPC, cached for 60s
+        fetchCompetitionRevenue(competitionId),
       ]);
 
       // Check for errors
@@ -156,6 +181,7 @@ export function useCompetitionDashboard(competitionId) {
         prizesResult.error,
         doubleDaysResult.error,
         competitionResult.error,
+        paidVotesResult.error,
       ].filter(Boolean);
 
       if (errors.length > 0) {
@@ -365,6 +391,9 @@ export function useCompetitionDashboard(competitionId) {
         date: d.date,
       }));
 
+      // Paid-vote revenue (Stripe) — scalar from get_competition_revenue RPC
+      const voteRevenue = parseFloat(paidVotesResult.data) || 0;
+
       // Transform prizes
       const prizes = (prizesResult.data || []).map((p) => ({
         id: p.id,
@@ -389,6 +418,7 @@ export function useCompetitionDashboard(competitionId) {
         prizes,
         doubleDays,
         host,
+        voteRevenue,
         competition: competition ? {
           id: competition.id,
           name: competition.name,
