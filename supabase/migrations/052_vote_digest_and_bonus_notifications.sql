@@ -14,7 +14,8 @@
 --
 --   After this migration:
 --     - The per-vote trigger is removed. Existing `vote_received` rows are
---       deleted (clean slate; the new digest will repopulate from now on).
+--       left in place — they'll naturally age out as users mark them read or
+--       the bell history rolls over.
 --     - send-vote-digest edge function (cron: daily 23:00 UTC, peak engagement
 --       hour from prod data) inserts one `vote_digest` row per contestant
 --       summarising the last 24h.
@@ -26,14 +27,11 @@
 --       wrapper can fire a OneSignal push to the contestant's external_id.
 -- =============================================================================
 
--- 1. Kill the per-vote in-app notification trigger.
+-- 1. Kill the per-vote in-app notification trigger. Stops new vote_received
+--    rows from being created; existing rows are left untouched.
 DROP TRIGGER IF EXISTS trigger_vote_notification ON votes;
 
--- 2. Clear out existing per-vote notifications (clean slate, per request).
---    Future vote notifications come from send-vote-digest as type='vote_digest'.
-DELETE FROM notifications WHERE type = 'vote_received';
-
--- 3. Add the new notification types to the enum CHECK constraint.
+-- 2. Add the new notification types to the enum CHECK constraint.
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS valid_notification_type;
 ALTER TABLE notifications ADD CONSTRAINT valid_notification_type CHECK (type = ANY (ARRAY[
   'nominated', 'nomination_approved', 'nominee_accepted', 'nominee_declined',
