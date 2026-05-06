@@ -8,7 +8,9 @@
 --   * snapshot the standings into voting_rounds.finalized_snapshot
 --   * if the next round opts in to votes_reset_at_start, store each surviving
 --     contestant's pre-reset total in contestants.votes_at_round_start and
---     zero out contestants.votes
+--     reset contestants.votes to that contestant's bonus-vote carry-over
+--     (sum of bonus_vote_completions.votes_awarded), so paid votes start
+--     fresh while earned bonus votes persist into the next round.
 --
 -- Finale rounds (round_type = 'finale') skip elimination; the top N are marked
 -- as winners and written to competitions.winners.
@@ -196,11 +198,17 @@ BEGIN
       AND round_order = v_round.round_order + 1;
 
     IF FOUND AND v_next_round.votes_reset_at_start AND v_advanced_ids IS NOT NULL THEN
-      UPDATE contestants
-      SET votes_at_round_start = votes_at_round_start
-            || jsonb_build_object(v_next_round.id::text, votes),
-          votes = 0
-      WHERE id = ANY(v_advanced_ids);
+      -- Snapshot pre-reset total and reset to bonus-vote carry-over so paid
+      -- votes start fresh while bonus votes earned this season persist.
+      UPDATE contestants c
+      SET votes_at_round_start = c.votes_at_round_start
+            || jsonb_build_object(v_next_round.id::text, c.votes),
+          votes = COALESCE((
+            SELECT SUM(bvc.votes_awarded)
+            FROM bonus_vote_completions bvc
+            WHERE bvc.contestant_id = c.id
+          ), 0)
+      WHERE c.id = ANY(v_advanced_ids);
     END IF;
   END IF;
 
