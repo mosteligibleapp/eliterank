@@ -1,7 +1,27 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useProfiles } from '../../../hooks/useCachedQuery';
+import { getCached, setCache, dedupeRequest } from '../../../lib/queryCache';
 import { checkAndAwardProfileBonuses, awardNomineeActionBonuses, setupDefaultBonusTasks } from '../../../lib/bonusVotes';
+
+const REVENUE_CACHE_TABLE = 'competition_revenue';
+const REVENUE_CACHE_TTL = 60000; // 60s — refreshes on dashboard remount past TTL
+
+function fetchCompetitionRevenue(competitionId) {
+  const cached = getCached(REVENUE_CACHE_TABLE, { competitionId });
+  if (cached !== null) {
+    return Promise.resolve({ data: cached, error: null });
+  }
+  return dedupeRequest(`${REVENUE_CACHE_TABLE}:${competitionId}`, async () => {
+    const result = await supabase.rpc('get_competition_revenue', {
+      p_competition_id: competitionId,
+    });
+    if (!result.error) {
+      setCache(REVENUE_CACHE_TABLE, { competitionId }, result.data, REVENUE_CACHE_TTL);
+    }
+    return result;
+  });
+}
 
 /**
  * Hook to fetch all dashboard data for a specific competition
@@ -145,12 +165,8 @@ export function useCompetitionDashboard(competitionId) {
           .eq('id', competitionId)
           .single(),
 
-        // Paid votes (Stripe) — only rows with a payment_intent_id, summed client-side for revenue
-        supabase
-          .from('votes')
-          .select('amount_paid')
-          .eq('competition_id', competitionId)
-          .not('payment_intent_id', 'is', null),
+        // Paid-vote revenue — server-side SUM via RPC, cached for 60s
+        fetchCompetitionRevenue(competitionId),
       ]);
 
       // Check for errors
@@ -375,11 +391,8 @@ export function useCompetitionDashboard(competitionId) {
         date: d.date,
       }));
 
-      // Sum revenue from paid votes (Stripe)
-      const voteRevenue = (paidVotesResult.data || []).reduce(
-        (sum, v) => sum + (parseFloat(v.amount_paid) || 0),
-        0
-      );
+      // Paid-vote revenue (Stripe) — scalar from get_competition_revenue RPC
+      const voteRevenue = parseFloat(paidVotesResult.data) || 0;
 
       // Transform prizes
       const prizes = (prizesResult.data || []).map((p) => ({
