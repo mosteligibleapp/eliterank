@@ -18,10 +18,7 @@ export function CompetitionMainView() {
     case 'nominations':
       return <NominationsPhase />;
 
-    case 'round1':
-    case 'round2':
-    case 'round3':
-    case 'round4':
+    case 'voting':
     case 'resurrection':
     case 'finals':
       return <VotingPhase />;

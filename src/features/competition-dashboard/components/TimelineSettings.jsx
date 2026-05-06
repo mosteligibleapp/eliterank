@@ -434,6 +434,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           start_date: round.start_date || null,
           end_date: round.end_date || null,
           contestants_advance: round.contestants_advance || 10,
+          tier_label: round.tier_label?.trim() || null,
+          votes_reset_at_start: !!round.votes_reset_at_start,
         }));
 
         const { error: roundsError } = await supabase
@@ -980,6 +982,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                     >
                       <option value="voting">Voting</option>
                       <option value="judging">Judging</option>
+                      <option value="resurrection">Resurrection</option>
+                      <option value="finale">Finale</option>
                     </select>
                   </div>
                   <button
@@ -1058,6 +1062,62 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                     />
                     <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
                       Top {round.contestants_advance} move to next round
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                  gap: spacing.sm,
+                  marginTop: spacing.sm,
+                }}>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
+                      Tier label
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Top 50, Quarterfinals, Finale…"
+                      value={round.tier_label || ''}
+                      onChange={(e) => updateVotingRound(index, 'tier_label', e.target.value)}
+                      style={{
+                        ...inputStyle,
+                        fontSize: '16px',
+                        padding: spacing.md,
+                        minHeight: '44px',
+                      }}
+                    />
+                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+                      Public headline shown during this round. Falls back to the round title.
+                    </p>
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
+                      Vote behavior
+                    </label>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.sm,
+                      minHeight: '44px',
+                      padding: spacing.md,
+                      background: colors.background.secondary,
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.sm,
+                      cursor: 'pointer',
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={!!round.votes_reset_at_start}
+                        onChange={(e) => updateVotingRound(index, 'votes_reset_at_start', e.target.checked)}
+                      />
+                      <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
+                        Reset votes at start of this round
+                      </span>
+                    </label>
+                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+                      Off (default) = cumulative across rounds. On = surviving contestants restart at zero.
                     </p>
                   </div>
                 </div>

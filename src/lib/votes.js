@@ -1,7 +1,13 @@
 import { supabase } from './supabase';
 
 /**
- * Check if there's an active voting round for the competition
+ * Check if there's an active voting round for the competition.
+ *
+ * Calls ensure_round_state() which lazily finalizes any rounds whose end_date
+ * has passed (eliminations, advancements, optional vote reset) before
+ * returning the currently active round — so round transitions happen the
+ * moment a voter or the public page hits this path, without waiting for cron.
+ *
  * @param {string} competitionId - The competition ID
  * @returns {Promise<{isActive: boolean, round?: object, error?: string}>}
  */
@@ -11,25 +17,17 @@ export async function checkActiveVotingRound(competitionId) {
   }
 
   try {
-    const now = new Date().toISOString();
-
-    const { data: rounds, error } = await supabase
-      .from('voting_rounds')
-      .select('*')
-      .eq('competition_id', competitionId)
-      .eq('round_type', 'voting') // Only check voting rounds, not judging rounds
-      .lte('start_date', now)
-      .gt('end_date', now)
-      .limit(1);
+    const { data, error } = await supabase.rpc('ensure_round_state', {
+      p_competition_id: competitionId,
+    });
 
     if (error) {
       console.warn('Error checking active voting round:', error.message);
-      // Return false to be safe - don't allow votes if we can't verify
       return { isActive: false, error: error.message };
     }
 
-    if (rounds && rounds.length > 0) {
-      return { isActive: true, round: rounds[0] };
+    if (data?.active) {
+      return { isActive: true, round: data.round };
     }
 
     return { isActive: false };

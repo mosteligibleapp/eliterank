@@ -354,13 +354,13 @@ function PhaseContent({ phase }) {
     case 'between-rounds':
       return <BetweenRoundsPhase />;
 
-    // All voting phases (round1, round2, resurrection, finals, etc.)
+    case 'voting':
+    case 'resurrection':
+    case 'finals':
+      return <VotingPhase />;
+
     default:
-      if (phase?.isVoting || phaseName.startsWith('round') || phaseName === 'finals' || phaseName === 'resurrection') {
-        return <VotingPhase />;
-      }
-      // Fallback for unknown phases - show voting or coming soon based on isPublic
-      if (phase?.isPublic) {
+      if (phase?.isVoting || phase?.isPublic) {
         return <VotingPhase />;
       }
       return <ComingSoonPhase />;

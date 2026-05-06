@@ -29,7 +29,7 @@ const PREVIEW_PHASES = [
     label: 'Voting',
     description: 'Active voting — voters see the leaderboard and can cast votes.',
     matchesPhase: (current) =>
-      current === 'voting' || current === 'round1' || current === 'round2' || current === 'finals',
+      current === 'voting' || current === 'finals' || current === 'resurrection',
   },
   {
     key: 'results',
@@ -381,9 +381,8 @@ function formatPhaseLabel(phase) {
     nomination: 'Nominations Open',
     nominations: 'Nominations Open',
     voting: 'Voting Open',
-    round1: 'Round 1 Voting',
-    round2: 'Round 2 Voting',
     finals: 'Finals',
+    resurrection: 'Resurrection',
     judging: 'Judging',
     between: 'Between Rounds',
     'between-rounds': 'Between Rounds',
