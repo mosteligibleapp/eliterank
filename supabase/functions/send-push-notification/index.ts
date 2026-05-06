@@ -18,6 +18,9 @@ const corsHeaders = {
  *   - nominee_accepted:   "Your nominee accepted!" push to the nominator
  *   - nominee_declined:   "Your nominee declined" push to the nominator
  *   - vote_received:      "You got new votes!" push to contestant
+ *   - vote_digest:        Daily vote roll-up push to contestant
+ *   - bonus_awarded:      "You earned bonus votes!" push to contestant
+ *   - bonus_rejected:     "Bonus task needs another try" push to contestant
  *   - rank_change:        "Your rank changed!" push to contestant
  *   - new_reward:         "You have a new reward!" push to contestant
  *   - generic:            Custom title/body push
@@ -92,6 +95,37 @@ function getNotificationContent(req: PushRequest): { title: string; body: string
           ? `You received ${req.vote_count} vote${req.vote_count > 1 ? 's' : ''}!`
           : 'You received new votes!',
       }
+
+    case 'vote_digest': {
+      const count = req.vote_count || 0
+      const where = req.competition_name ? ` in ${req.competition_name}` : ''
+      return {
+        title: count === 1 ? 'You got a new vote!' : `You got ${count} new votes!`,
+        body: count === 1
+          ? `1 vote${where} since yesterday. Keep the momentum going!`
+          : `${count} votes${where} since yesterday. Keep the momentum going!`,
+      }
+    }
+
+    case 'bonus_awarded': {
+      const count = req.vote_count || 0
+      const label = (req.data?.task_label as string | undefined) || 'a bonus task'
+      return {
+        title: count > 0 ? `+${count} bonus votes!` : 'Bonus votes earned!',
+        body: `You earned bonus votes for "${label}". Tap to see your standing.`,
+      }
+    }
+
+    case 'bonus_rejected': {
+      const label = (req.data?.task_label as string | undefined) || 'your submission'
+      const reason = req.data?.rejection_reason as string | undefined
+      return {
+        title: 'Bonus task needs another try',
+        body: reason
+          ? `"${label}" was not approved. Reason: ${reason}. You can resubmit.`
+          : `"${label}" was not approved. You can resubmit.`,
+      }
+    }
 
     case 'rank_change':
       if (req.old_rank && req.new_rank && req.new_rank < req.old_rank) {

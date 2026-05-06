@@ -95,7 +95,26 @@ export async function awardBonusVotes(competitionId, contestantId, userId, taskK
       return { success: false, error: error.message };
     }
 
-    return data || { success: false, error: 'No response' };
+    // Fire push for the contestant if the credit landed and we have a user to push to.
+    // The SQL function already inserted the in-app notification.
+    const result = data || { success: false, error: 'No response' };
+    if (result.success && result.contestant_user_id) {
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          user_id: result.contestant_user_id,
+          type: 'bonus_awarded',
+          vote_count: result.votes_awarded,
+          url: `/profile/${result.contestant_user_id}`,
+          data: {
+            task_label: result.task_label,
+            competition_id: competitionId,
+            contestant_id: contestantId,
+          },
+        },
+      }).catch((err) => console.warn('bonus_awarded push (non-blocking):', err));
+    }
+
+    return result;
   } catch (err) {
     console.error('Error awarding bonus votes:', err);
     return { success: false, error: 'Failed to award bonus votes' };
@@ -366,7 +385,28 @@ export async function reviewBonusSubmission(submissionId, reviewerId, action, re
       return { success: false, error: error.message };
     }
 
-    return data || { success: false, error: 'No response' };
+    const result = data || { success: false, error: 'No response' };
+    // The approve path's award_bonus_votes() call is what inserts the in-app
+    // bonus_awarded row; the reject path inserts bonus_rejected directly.
+    // Either way, fire a push so the contestant is notified outside the app too.
+    if (result.success && result.contestant_user_id) {
+      const pushType = result.action === 'approved' ? 'bonus_awarded' : 'bonus_rejected';
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          user_id: result.contestant_user_id,
+          type: pushType,
+          vote_count: result.votes_awarded || 0,
+          url: `/profile/${result.contestant_user_id}`,
+          data: {
+            task_label: result.task_label,
+            rejection_reason: result.rejection_reason || null,
+            submission_id: submissionId,
+          },
+        },
+      }).catch((err) => console.warn(`${pushType} push (non-blocking):`, err));
+    }
+
+    return result;
   } catch (err) {
     console.error('Error reviewing submission:', err);
     return { success: false, error: 'Failed to review submission' };
