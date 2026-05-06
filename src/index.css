@@ -19,7 +19,7 @@
   --color-border-gold: rgba(212, 175, 55, 0.3);
 
   /* Font family */
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Base styles */

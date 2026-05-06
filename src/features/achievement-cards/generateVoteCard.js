@@ -12,7 +12,7 @@ const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1920;
 const CX = CARD_WIDTH / 2;
 
-const FONT = "'Montserrat', 'Inter', system-ui, sans-serif";
+const FONT = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 const GOLD = '#d4af37';
 
 function loadImage(src) {
