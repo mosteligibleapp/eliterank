@@ -406,6 +406,7 @@ export default function CompetitionDashboard({
             announcements={data.announcements}
             prizes={data.prizes}
             judges={data.judges}
+            doubleDays={data.doubleDays}
             host={data.host}
             isSuperAdmin={isSuperAdmin}
             onViewPublicSite={onViewPublicSite}

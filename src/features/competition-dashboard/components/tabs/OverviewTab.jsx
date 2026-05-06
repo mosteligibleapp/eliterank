@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
   Eye, Users, UserPlus, Star, Plus, Crown, Calendar, FileText, Pin, Edit, Trash2,
-  Download, Loader, ExternalLink, Link2, Megaphone, Image as ImageIcon, Award,
-  Settings as SettingsIcon, CheckCircle2, Circle, ArrowRight, Sparkles, Trophy,
-  Building2,
+  Download, Loader, ExternalLink, Link2, Megaphone, Award, Settings as SettingsIcon,
+  CheckCircle2, Circle, ArrowRight, Sparkles, Trophy, Building2, Palette, Image as ImageIcon,
+  Globe, User, ChevronDown, ChevronUp, DollarSign, TrendingUp, ListChecks,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
@@ -16,209 +16,516 @@ import {
   computeCompetitionPhase,
   isLive as checkIsLive,
   TIMELINE_PHASES,
-  COMPETITION_STATUSES,
 } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
 
 // =============================================================================
-// CHRONOLOGICAL CHECKLIST — what the host should do next, ordered by phase
+// STAGE DEFINITIONS — chronological setup journey
 // =============================================================================
 
-function buildActionChecklist({
-  competition,
-  contestants,
-  nominees,
-  events,
-  prizes,
-  judges,
-  sponsors,
-  announcements,
-  phase,
-  isLive,
-  isCompleted,
-  isDraftOrPublish,
-  handlers,
+function buildStages({
+  competition, host, events, doubleDays, prizes, judges, sponsors,
+  nominees, contestants, announcements, phase, handlers,
 }) {
   const minContestants = competition?.minContestants || 40;
   const contestantCount = contestants?.length || 0;
   const pendingNominees = (nominees || []).filter(n => n.status === 'pending').length;
-  const upcomingEventCount = (events || []).filter(e => {
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    return e.date >= todayStr;
-  }).length;
+  const pinnedAnnouncements = (announcements || []).filter(a => a.pinned).length;
 
-  const hasTimelineDates = !!(competition?.nominationEnd && (competition?.votingEnd || competition?.finalsDate));
-  const hasPrizes = (prizes?.length || 0) > 0;
-  const hasJudges = (judges?.length || 0) > 0;
-  const hasSponsors = (sponsors?.length || 0) > 0;
-  const hasAnnouncement = (announcements?.length || 0) > 0;
-  const meetsMin = contestantCount >= minContestants;
-  const hasUpcomingEvent = upcomingEventCount > 0;
-  const hasFinalsEvent = (events || []).some(e => /final/i.test(e.name || ''));
-
-  // Build the full ordered list. Each item can be 'done', 'todo', or 'urgent'.
-  const all = [
+  // Stage 1 — Identity
+  const identityItems = [
     {
-      id: 'set-timeline',
-      group: 'Pre-launch',
-      label: 'Set the competition timeline',
-      sub: 'Lock in nomination, voting, and finals dates',
-      icon: Calendar,
-      done: hasTimelineDates,
-      cta: 'Open Setup',
+      id: 'theme',
+      label: 'Theme color',
+      sub: competition?.themePrimary ? 'Set' : 'Pick a brand color',
+      icon: Palette,
+      done: !!competition?.themePrimary,
       onClick: () => handlers.navigate('setup'),
     },
     {
-      id: 'add-prizes',
-      group: 'Pre-launch',
-      label: 'Add winner prizes',
-      sub: 'Define what contestants are competing for',
+      id: 'logo',
+      label: 'Organization logo',
+      sub: (competition?.organizationHeaderLogoUrl || competition?.organizationLogoUrl) ? 'Uploaded' : 'Add a logo for the page header',
+      icon: ImageIcon,
+      done: !!(competition?.organizationHeaderLogoUrl || competition?.organizationLogoUrl),
+      onClick: () => handlers.navigate('setup'),
+    },
+    {
+      id: 'website',
+      label: 'Organization website',
+      sub: competition?.organizationWebsiteUrl || 'Link out to your main site',
+      icon: Globe,
+      done: !!competition?.organizationWebsiteUrl,
+      onClick: () => handlers.navigate('setup'),
+    },
+    {
+      id: 'host-profile',
+      label: 'Host profile',
+      sub: host?.bio
+        ? `${host.name} — bio set`
+        : host?.id
+          ? `${host.name} — add a bio so contestants know you`
+          : 'No host assigned yet',
+      icon: User,
+      done: !!(host?.id && host?.bio && host?.avatar),
+      onClick: () => host?.id && handlers.openHostProfile(host.id),
+    },
+  ];
+
+  // Stage 2 — Schedule
+  const hasNominationDates = !!(competition?.nominationStart && competition?.nominationEnd);
+  const hasVotingDates = !!(competition?.votingStart && competition?.votingEnd);
+  const hasFinalsDate = !!competition?.finalsDate;
+  const hasDoubleDay = (doubleDays?.length || 0) > 0;
+
+  const scheduleItems = [
+    {
+      id: 'nomination-dates',
+      label: 'Nomination dates',
+      sub: hasNominationDates ? 'Set' : 'When can people nominate contestants?',
+      icon: UserPlus,
+      done: hasNominationDates,
+      onClick: () => handlers.navigate('setup'),
+    },
+    {
+      id: 'voting-dates',
+      label: 'Voting dates',
+      sub: hasVotingDates ? 'Set' : 'When do voters cast their picks?',
+      icon: Calendar,
+      done: hasVotingDates,
+      onClick: () => handlers.navigate('setup'),
+    },
+    {
+      id: 'finals-date',
+      label: 'Finals date',
+      sub: hasFinalsDate ? formatDate(competition.finalsDate, { month: 'short', day: 'numeric', year: 'numeric' }) : 'When does the competition wrap?',
       icon: Trophy,
-      done: hasPrizes,
-      cta: 'Add Prize',
+      done: hasFinalsDate,
+      onClick: () => handlers.navigate('setup'),
+    },
+    {
+      id: 'double-day',
+      label: 'Double day',
+      sub: hasDoubleDay ? `${doubleDays.length} scheduled` : 'Double-vote days drive momentum',
+      icon: Sparkles,
+      done: hasDoubleDay,
+      onClick: () => handlers.navigate('setup'),
+    },
+  ];
+
+  // Stage 3 — Collaborators
+  const collaboratorItems = [
+    {
+      id: 'prize',
+      label: 'Add a prize',
+      sub: (prizes?.length || 0) > 0 ? `${prizes.length} prize${prizes.length === 1 ? '' : 's'}` : 'Define what contestants compete for',
+      icon: Trophy,
+      done: (prizes?.length || 0) > 0,
       onClick: () => handlers.openPrizeModal(),
     },
     {
-      id: 'invite-nominees',
-      group: 'Nomination',
-      label: 'Invite your first nominees',
-      sub: 'Seed the competition with people in your network',
+      id: 'judge',
+      label: 'Add a judge',
+      sub: (judges?.length || 0) > 0 ? `${judges.length} judge${judges.length === 1 ? '' : 's'}` : 'Judges score the finalists',
+      icon: Award,
+      done: (judges?.length || 0) > 0,
+      onClick: () => handlers.openJudgeModal(),
+    },
+    {
+      id: 'sponsor',
+      label: 'Add a sponsor',
+      sub: (sponsors?.length || 0) > 0 ? `${sponsors.length} sponsor${sponsors.length === 1 ? '' : 's'}` : 'Sponsors fund prizes and add credibility',
+      icon: Building2,
+      done: (sponsors?.length || 0) > 0,
+      onClick: () => handlers.openSponsorModal(),
+    },
+  ];
+
+  // Stage 4 — People
+  const meetsMin = contestantCount >= minContestants;
+  const peopleItems = [
+    {
+      id: 'invite',
+      label: 'Invite first nominees',
+      sub: (nominees?.length || 0) > 0 ? `${nominees.length} nominated` : 'Seed the competition with your network',
       icon: UserPlus,
       done: (nominees?.length || 0) > 0,
-      cta: 'Add Nominee',
       onClick: () => handlers.openAddPersonModal('nominee'),
     },
     {
-      id: 'review-pending',
-      group: 'Nomination',
-      label: 'Review pending nominations',
-      sub: pendingNominees > 0 ? `${pendingNominees} waiting for your decision` : 'No pending nominations right now',
-      icon: Users,
-      done: pendingNominees === 0,
+      id: 'review',
+      label: 'Review pending',
+      sub: pendingNominees > 0 ? `${pendingNominees} waiting for your decision` : 'No pending right now',
+      icon: ListChecks,
+      done: pendingNominees === 0 && (nominees?.length || 0) > 0,
       urgent: pendingNominees >= 5,
-      cta: 'Review',
       onClick: () => handlers.navigate('people'),
       hide: (nominees?.length || 0) === 0,
     },
     {
-      id: 'min-contestants',
-      group: 'Nomination',
+      id: 'min',
       label: `Reach ${minContestants} contestants`,
       sub: meetsMin
-        ? `${contestantCount} contestants confirmed`
-        : `${contestantCount} of ${minContestants} confirmed — need ${minContestants - contestantCount} more`,
+        ? `${contestantCount} confirmed — minimum met`
+        : `${contestantCount} of ${minContestants} confirmed`,
       icon: Crown,
       done: meetsMin,
       urgent: !meetsMin && phase === TIMELINE_PHASES.NOMINATION,
-      cta: 'Manage People',
       onClick: () => handlers.navigate('people'),
-    },
-    {
-      id: 'launch-event',
-      group: 'Nomination',
-      label: 'Schedule a launch event',
-      sub: hasUpcomingEvent ? `${upcomingEventCount} event${upcomingEventCount === 1 ? '' : 's'} on the calendar` : 'Give voters something to rally around',
-      icon: Calendar,
-      done: hasUpcomingEvent,
-      cta: 'Add Event',
-      onClick: () => handlers.openEventModal(),
-    },
-    {
-      id: 'first-announcement',
-      group: 'Nomination',
-      label: 'Post your first announcement',
-      sub: 'Welcome contestants and set the tone',
-      icon: Megaphone,
-      done: hasAnnouncement,
-      cta: 'Write Post',
-      onClick: () => handlers.navigate('content'),
-    },
-    {
-      id: 'recruit-sponsor',
-      group: 'Voting',
-      label: 'Recruit a sponsor',
-      sub: hasSponsors ? `${sponsors.length} sponsor${sponsors.length === 1 ? '' : 's'} signed on` : 'Sponsors fund prizes and add credibility',
-      icon: Building2,
-      done: hasSponsors,
-      cta: 'Add Sponsor',
-      onClick: () => handlers.openSponsorModal(),
-    },
-    {
-      id: 'add-judges',
-      group: 'Judging',
-      label: 'Add judges for the final round',
-      sub: hasJudges ? `${judges.length} judge${judges.length === 1 ? '' : 's'} confirmed` : 'Judges score the finalists',
-      icon: Award,
-      done: hasJudges,
-      cta: 'Add Judge',
-      onClick: () => handlers.openJudgeModal(),
-    },
-    {
-      id: 'finals-event',
-      group: 'Judging',
-      label: 'Schedule the finals event',
-      sub: hasFinalsEvent ? 'Finals event on the calendar' : 'Set the date and venue for the finale',
-      icon: Sparkles,
-      done: hasFinalsEvent,
-      cta: 'Add Event',
-      onClick: () => handlers.openEventModal(),
     },
   ];
 
-  return all.filter(item => !item.hide);
+  // Stage 5 — Communications
+  const commsItems = [
+    {
+      id: 'announcement',
+      label: 'Post an announcement',
+      sub: (announcements?.length || 0) > 0 ? `${announcements.length} posted` : 'Welcome contestants and set the tone',
+      icon: Megaphone,
+      done: (announcements?.length || 0) > 0,
+      onClick: () => handlers.navigate('content'),
+    },
+    {
+      id: 'pin',
+      label: 'Pin your best update',
+      sub: pinnedAnnouncements > 0 ? `${pinnedAnnouncements} pinned` : 'Pin so it stays at the top',
+      icon: Pin,
+      done: pinnedAnnouncements > 0,
+      onClick: () => handlers.navigate('content'),
+    },
+  ];
+
+  return [
+    {
+      id: 'identity',
+      number: 1,
+      title: 'Identity',
+      subtitle: 'Who you are and what this competition looks like',
+      icon: Palette,
+      items: identityItems,
+      primaryCta: { label: 'Edit branding', onClick: () => handlers.navigate('setup') },
+      secondaryCta: host?.id ? { label: 'Edit host profile', onClick: () => handlers.openHostProfile(host.id) } : null,
+    },
+    {
+      id: 'schedule',
+      number: 2,
+      title: 'Schedule',
+      subtitle: 'Phase dates, double days, and key events',
+      icon: Calendar,
+      items: scheduleItems,
+      primaryCta: { label: 'Open Setup', onClick: () => handlers.navigate('setup') },
+    },
+    {
+      id: 'collaborators',
+      number: 3,
+      title: 'Collaborators',
+      subtitle: 'Prizes, judges, and sponsors that bring the competition to life',
+      icon: Award,
+      items: collaboratorItems,
+      primaryCta: { label: 'Manage collaborators', onClick: () => handlers.navigate('setup') },
+    },
+    {
+      id: 'people',
+      number: 4,
+      title: 'People',
+      subtitle: 'Recruit nominees and approve contestants',
+      icon: Users,
+      items: peopleItems.filter(i => !i.hide),
+      primaryCta: { label: 'Manage people', onClick: () => handlers.navigate('people') },
+    },
+    {
+      id: 'communications',
+      number: 5,
+      title: 'Communications',
+      subtitle: 'Keep everyone in the loop',
+      icon: Megaphone,
+      items: commsItems,
+      primaryCta: { label: 'Manage announcements', onClick: () => handlers.navigate('content') },
+    },
+  ];
 }
 
 // =============================================================================
-// HOST TOOLKIT — random-but-helpful shortcuts
+// HOST TOOLKIT — day-to-day shortcuts
 // =============================================================================
 
-function buildToolkit({ competition, handlers, onViewPublicSite }) {
+function buildToolkit({ handlers, onViewPublicSite }) {
   return [
-    {
-      id: 'view-public',
-      label: 'View as Voter',
-      sub: 'Open the public competition page',
-      icon: Eye,
-      onClick: onViewPublicSite,
-      disabled: !onViewPublicSite,
-    },
-    {
-      id: 'copy-link',
-      label: 'Copy Public Link',
-      sub: 'Share the competition URL',
-      icon: Link2,
-      onClick: handlers.copyPublicLink,
-    },
-    {
-      id: 'announcement',
-      label: 'Broadcast Announcement',
-      sub: 'Notify everyone with a new post',
-      icon: Megaphone,
-      onClick: () => handlers.navigate('content'),
-    },
-    {
-      id: 'add-event',
-      label: 'Schedule Event',
-      sub: 'Mixers, launches, finales',
-      icon: Calendar,
-      onClick: () => handlers.openEventModal(),
-    },
-    {
-      id: 'add-sponsor',
-      label: 'Add Sponsor',
-      sub: 'Bring on a partner',
-      icon: Building2,
-      onClick: () => handlers.openSponsorModal(),
-    },
-    {
-      id: 'manage-timeline',
-      label: 'Manage Timeline',
-      sub: 'Edit phases and dates',
-      icon: SettingsIcon,
-      onClick: () => handlers.navigate('setup'),
-    },
+    { id: 'view-public', label: 'View as Voter', sub: 'Open the public page', icon: Eye, onClick: onViewPublicSite, disabled: !onViewPublicSite },
+    { id: 'copy-link', label: 'Copy Public Link', sub: 'Share the URL', icon: Link2, onClick: handlers.copyPublicLink },
+    { id: 'announcement', label: 'New Announcement', sub: 'Post an update', icon: Megaphone, onClick: () => handlers.navigate('content') },
+    { id: 'add-event', label: 'Schedule Event', sub: 'Mixers, launches, finales', icon: Calendar, onClick: () => handlers.openEventModal() },
+    { id: 'add-sponsor', label: 'Add Sponsor', sub: 'Bring on a partner', icon: Building2, onClick: () => handlers.openSponsorModal() },
+    { id: 'manage-timeline', label: 'Manage Timeline', sub: 'Edit phases and dates', icon: SettingsIcon, onClick: () => handlers.navigate('setup') },
   ];
+}
+
+// =============================================================================
+// STAGE PANEL
+// =============================================================================
+
+function StagePanel({ stage, defaultExpanded, isMobile }) {
+  const total = stage.items.length;
+  const done = stage.items.filter(i => i.done).length;
+  const isComplete = total > 0 && done === total;
+  const progress = total > 0 ? (done / total) * 100 : 0;
+
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  // Auto-collapse complete stages, but allow user to toggle.
+  const showCollapsed = isComplete && !expanded;
+
+  const statusPill = isComplete
+    ? { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.3)', color: colors.status.success, label: 'Complete' }
+    : done === 0
+      ? { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)', color: colors.text.muted, label: 'Not started' }
+      : { bg: 'rgba(212,175,55,0.12)', border: 'rgba(212,175,55,0.3)', color: colors.gold.primary, label: `In progress · ${done}/${total}` };
+
+  const numberStyle = isComplete
+    ? {
+        background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
+        color: '#0a0a0c',
+        border: 'none',
+        boxShadow: '0 2px 8px rgba(212,175,55,0.25)',
+      }
+    : done > 0
+      ? {
+          background: 'rgba(212,175,55,0.15)',
+          color: colors.gold.primary,
+          border: `1px solid ${colors.gold.primary}`,
+        }
+      : {
+          background: 'rgba(255,255,255,0.04)',
+          color: colors.text.muted,
+          border: '1px solid rgba(255,255,255,0.08)',
+        };
+
+  return (
+    <div style={{
+      background: colors.background.secondary,
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          width: '100%',
+          padding: isMobile ? spacing.md : spacing.lg,
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? spacing.sm : spacing.md,
+          textAlign: 'left',
+        }}
+      >
+        {/* Number circle */}
+        <div style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: typography.fontWeight.bold,
+          fontSize: typography.fontSize.md,
+          flexShrink: 0,
+          ...numberStyle,
+        }}>
+          {isComplete ? '✓' : stage.number}
+        </div>
+
+        {/* Title + subtitle */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: typography.fontSize.lg,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.primary,
+            }}>
+              {stage.title}
+            </span>
+            <span style={{
+              padding: `2px ${spacing.sm}`,
+              background: statusPill.bg,
+              border: `1px solid ${statusPill.border}`,
+              borderRadius: borderRadius.pill,
+              fontSize: typography.fontSize.xs,
+              fontWeight: typography.fontWeight.semibold,
+              color: statusPill.color,
+            }}>
+              {statusPill.label}
+            </span>
+          </div>
+          <div style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.text.muted,
+            marginTop: '2px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {stage.subtitle}
+          </div>
+        </div>
+
+        {/* Chevron */}
+        <div style={{ flexShrink: 0, color: colors.text.muted }}>
+          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </div>
+      </button>
+
+      {/* Progress bar */}
+      <div style={{
+        height: '3px',
+        background: 'rgba(255,255,255,0.05)',
+      }}>
+        <div style={{
+          width: `${progress}%`,
+          height: '100%',
+          background: isComplete
+            ? 'linear-gradient(90deg, #22c55e, #4ade80)'
+            : 'linear-gradient(90deg, #d4af37, #f4d03f)',
+          transition: 'width 0.4s ease',
+        }} />
+      </div>
+
+      {/* Body */}
+      {!showCollapsed && (
+        <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+            gap: spacing.sm,
+            marginBottom: spacing.md,
+          }}>
+            {stage.items.map(item => {
+              const Icon = item.icon;
+              const StatusIcon = item.done ? CheckCircle2 : Circle;
+              const statusColor = item.done
+                ? colors.status.success
+                : item.urgent
+                  ? colors.status.warning
+                  : colors.text.muted;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={item.onClick}
+                  disabled={!item.onClick}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    padding: spacing.md,
+                    background: item.done
+                      ? 'rgba(34,197,94,0.04)'
+                      : item.urgent
+                        ? 'rgba(245,158,11,0.06)'
+                        : 'rgba(255,255,255,0.02)',
+                    border: item.urgent && !item.done
+                      ? '1px solid rgba(245,158,11,0.25)'
+                      : '1px solid rgba(255,255,255,0.04)',
+                    borderRadius: borderRadius.lg,
+                    color: colors.text.primary,
+                    textAlign: 'left',
+                    cursor: item.onClick ? 'pointer' : 'default',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <StatusIcon size={16} style={{ color: statusColor, flexShrink: 0 }} />
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: borderRadius.md,
+                    background: item.done ? 'rgba(34,197,94,0.1)' : 'rgba(212,175,55,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    opacity: item.done ? 0.6 : 1,
+                  }}>
+                    <Icon size={14} style={{ color: item.done ? colors.status.success : colors.gold.primary }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: typography.fontSize.sm,
+                      fontWeight: typography.fontWeight.semibold,
+                      color: item.done ? colors.text.secondary : colors.text.primary,
+                      marginBottom: '2px',
+                    }}>
+                      {item.label}
+                    </div>
+                    <div style={{
+                      fontSize: typography.fontSize.xs,
+                      color: colors.text.muted,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {item.sub}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Stage CTAs */}
+          {(stage.primaryCta || stage.secondaryCta) && (
+            <div style={{ display: 'flex', gap: spacing.sm, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              {stage.secondaryCta && (
+                <button
+                  onClick={stage.secondaryCta.onClick}
+                  style={{
+                    padding: `${spacing.xs} ${spacing.md}`,
+                    background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: borderRadius.md,
+                    color: colors.text.secondary,
+                    fontSize: typography.fontSize.xs,
+                    fontWeight: typography.fontWeight.medium,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                  }}
+                >
+                  {stage.secondaryCta.label}
+                  <ArrowRight size={12} />
+                </button>
+              )}
+              {stage.primaryCta && (
+                <button
+                  onClick={stage.primaryCta.onClick}
+                  style={{
+                    padding: `${spacing.xs} ${spacing.md}`,
+                    background: 'rgba(212,175,55,0.12)',
+                    border: '1px solid rgba(212,175,55,0.3)',
+                    borderRadius: borderRadius.md,
+                    color: colors.gold.primary,
+                    fontSize: typography.fontSize.xs,
+                    fontWeight: typography.fontWeight.semibold,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                  }}
+                >
+                  {stage.primaryCta.label}
+                  <ArrowRight size={12} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // =============================================================================
@@ -234,6 +541,7 @@ export default function OverviewTab({
   announcements,
   prizes,
   judges,
+  doubleDays,
   host,
   isSuperAdmin,
   onViewPublicSite,
@@ -259,11 +567,9 @@ export default function OverviewTab({
 
   const computedPhase = computeCompetitionPhase(competition);
   const isLive = checkIsLive(competition?.status);
-  const isCompleted = computedPhase === COMPETITION_STATUSES.COMPLETED;
-  const isDraftOrPublish = !isLive && !isCompleted;
 
   // -------------------------------------------------------------------------
-  // Handlers shared by checklist + toolkit
+  // Shared handlers
   // -------------------------------------------------------------------------
 
   const handlers = useMemo(() => ({
@@ -273,6 +579,7 @@ export default function OverviewTab({
     openSponsorModal: () => onOpenSponsorModal?.(null),
     openEventModal: () => onOpenEventModal?.(null),
     openAddPersonModal: (type) => onOpenAddPersonModal?.(type),
+    openHostProfile: (hostId) => navigate(`/profile/${hostId}`),
     copyPublicLink: async () => {
       const orgSlug = competition?.organizationSlug || competition?.organization?.slug || 'most-eligible';
       const cityName = competition?.city?.name || competition?.city || 'competition';
@@ -286,38 +593,35 @@ export default function OverviewTab({
         toast.error('Could not copy link');
       }
     },
-  }), [competition, onNavigateToTab, onOpenPrizeModal, onOpenJudgeModal, onOpenSponsorModal, onOpenEventModal, onOpenAddPersonModal, toast]);
+  }), [competition, onNavigateToTab, onOpenPrizeModal, onOpenJudgeModal, onOpenSponsorModal, onOpenEventModal, onOpenAddPersonModal, navigate, toast]);
 
   // -------------------------------------------------------------------------
-  // Derived data
+  // Stages + pulse metrics
   // -------------------------------------------------------------------------
 
-  const checklist = useMemo(() => buildActionChecklist({
-    competition, contestants, nominees, events, prizes, judges, sponsors, announcements,
-    phase: computedPhase, isLive, isCompleted, isDraftOrPublish, handlers,
-  }), [competition, contestants, nominees, events, prizes, judges, sponsors, announcements, computedPhase, isLive, isCompleted, isDraftOrPublish, handlers]);
+  const stages = useMemo(() => buildStages({
+    competition, host, events, doubleDays, prizes, judges, sponsors,
+    nominees, contestants, announcements, phase: computedPhase, handlers,
+  }), [competition, host, events, doubleDays, prizes, judges, sponsors, nominees, contestants, announcements, computedPhase, handlers]);
 
-  const toolkit = useMemo(() => buildToolkit({
-    competition, handlers, onViewPublicSite,
-  }), [competition, handlers, onViewPublicSite]);
+  const totalItems = stages.reduce((sum, s) => sum + s.items.length, 0);
+  const itemsDone = stages.reduce((sum, s) => sum + s.items.filter(i => i.done).length, 0);
+  const stagesComplete = stages.filter(s => s.items.length > 0 && s.items.every(i => i.done)).length;
+  const setupPercent = totalItems > 0 ? Math.round((itemsDone / totalItems) * 100) : 0;
+  const firstIncompleteStageId = stages.find(s => !s.items.every(i => i.done))?.id;
 
-  const checklistDone = checklist.filter(i => i.done).length;
-  const checklistTotal = checklist.length;
-  const checklistProgress = checklistTotal > 0 ? (checklistDone / checklistTotal) * 100 : 0;
-  const nextAction = checklist.find(i => !i.done);
+  // -------------------------------------------------------------------------
+  // Derived data for day-to-day section
+  // -------------------------------------------------------------------------
+
+  const toolkit = useMemo(() => buildToolkit({ handlers, onViewPublicSite }), [handlers, onViewPublicSite]);
 
   const rankedContestants = useMemo(() => {
     return [...(contestants || [])].sort((a, b) => (b.votes || 0) - (a.votes || 0));
   }, [contestants]);
   const topContestants = rankedContestants.slice(0, 5);
 
-  const completedNominees = (nominees || []).filter(n => !(n.nominatedBy === 'self' && !n.claimedAt));
-  const incompleteCount = (nominees || []).filter(n =>
-    n.nominatedBy === 'self' && !n.claimedAt &&
-    (n.status === 'pending' || n.status === 'awaiting_profile')
-  ).length;
-  const pendingNominees = completedNominees.filter(n => n.status === 'pending').length;
-  const totalNominees = (nominees || []).length;
+  const minContestants = competition?.minContestants || 40;
   const sponsorRevenue = (sponsors || []).reduce((sum, s) => sum + (s.amount || 0), 0);
 
   const upcomingEvents = useMemo(() => {
@@ -394,169 +698,6 @@ export default function OverviewTab({
   };
 
   // -------------------------------------------------------------------------
-  // Renderers
-  // -------------------------------------------------------------------------
-
-  const renderChecklistItem = (item) => {
-    const Icon = item.icon;
-    const StatusIcon = item.done ? CheckCircle2 : Circle;
-    const statusColor = item.done
-      ? colors.status.success
-      : item.urgent
-        ? colors.status.warning
-        : colors.text.muted;
-
-    return (
-      <div
-        key={item.id}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.md,
-          padding: spacing.md,
-          background: item.done
-            ? 'rgba(34,197,94,0.04)'
-            : item.urgent
-              ? 'rgba(245,158,11,0.06)'
-              : colors.background.secondary,
-          borderRadius: borderRadius.lg,
-          border: item.urgent && !item.done
-            ? '1px solid rgba(245,158,11,0.25)'
-            : '1px solid rgba(255,255,255,0.04)',
-          transition: 'background 0.15s ease',
-        }}
-      >
-        <StatusIcon size={18} style={{ color: statusColor, flexShrink: 0 }} />
-        <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: borderRadius.md,
-          background: item.done ? 'rgba(34,197,94,0.1)' : 'rgba(212,175,55,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          opacity: item.done ? 0.6 : 1,
-        }}>
-          <Icon size={15} style={{ color: item.done ? colors.status.success : colors.gold.primary }} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.semibold,
-            color: item.done ? colors.text.secondary : colors.text.primary,
-            textDecoration: item.done ? 'line-through' : 'none',
-            marginBottom: '2px',
-          }}>
-            {item.label}
-          </div>
-          <div style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {item.sub}
-          </div>
-        </div>
-        {!item.done && item.cta && (
-          <button
-            onClick={item.onClick}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.xs,
-              padding: `${spacing.xs} ${spacing.md}`,
-              background: item.urgent
-                ? 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.1))'
-                : 'rgba(212,175,55,0.12)',
-              border: `1px solid ${item.urgent ? 'rgba(245,158,11,0.4)' : 'rgba(212,175,55,0.3)'}`,
-              borderRadius: borderRadius.md,
-              color: item.urgent ? colors.status.warning : colors.gold.primary,
-              fontSize: typography.fontSize.xs,
-              fontWeight: typography.fontWeight.semibold,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            {item.cta}
-            <ArrowRight size={12} />
-          </button>
-        )}
-      </div>
-    );
-  };
-
-  const renderToolkitItem = (tool) => {
-    const Icon = tool.icon;
-    return (
-      <button
-        key={tool.id}
-        onClick={tool.onClick}
-        disabled={tool.disabled}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.md,
-          padding: spacing.md,
-          background: colors.background.secondary,
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: borderRadius.lg,
-          color: colors.text.primary,
-          textAlign: 'left',
-          cursor: tool.disabled ? 'not-allowed' : 'pointer',
-          opacity: tool.disabled ? 0.5 : 1,
-          transition: 'all 0.15s ease',
-          minHeight: '56px',
-        }}
-        onMouseEnter={(e) => {
-          if (tool.disabled) return;
-          e.currentTarget.style.background = colors.background.cardHover;
-          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)';
-        }}
-        onMouseLeave={(e) => {
-          if (tool.disabled) return;
-          e.currentTarget.style.background = colors.background.secondary;
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-        }}
-      >
-        <div style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: borderRadius.md,
-          background: 'rgba(212,175,55,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <Icon size={16} style={{ color: colors.gold.primary }} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.semibold,
-            marginBottom: '2px',
-          }}>
-            {tool.label}
-          </div>
-          <div style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {tool.sub}
-          </div>
-        </div>
-      </button>
-    );
-  };
-
-  // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
 
@@ -565,63 +706,75 @@ export default function OverviewTab({
       {/* Phase / Timeline header */}
       <TimelineCard competition={competition} events={events} />
 
-      {/* Hero: "Your Next Actions" chronological checklist */}
-      <Panel
-        title="Your Next Actions"
-        icon={Sparkles}
-        action={
-          <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs }}>
-            {checklistDone} of {checklistTotal} complete
-          </span>
-        }
-        style={{ marginBottom: 0 }}
-      >
+      {/* Performance Pulse */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+        gap: isMobile ? spacing.sm : spacing.md,
+      }}>
+        <MetricCard
+          icon={ListChecks}
+          label="Setup"
+          value={`${stagesComplete} / 5`}
+          goal={5}
+          goalLabel={`${setupPercent}% of items done`}
+          variant="gold"
+          cta={firstIncompleteStageId ? 'Continue setup →' : 'All set ✓'}
+          onCtaClick={firstIncompleteStageId ? () => {
+            const el = document.getElementById(`stage-${firstIncompleteStageId}`);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } : undefined}
+        />
+        <MetricCard
+          icon={TrendingUp}
+          label="Recruitment"
+          value={contestants?.length || 0}
+          goal={minContestants}
+          goalLabel={`${nominees?.length || 0} nominated`}
+          warning={(contestants?.length || 0) < minContestants
+            ? `Need ${minContestants - (contestants?.length || 0)} more`
+            : null}
+          variant={(contestants?.length || 0) >= minContestants ? 'success' : 'warning'}
+          cta="Manage people →"
+          onCtaClick={() => onNavigateToTab?.('people')}
+        />
+        <MetricCard
+          icon={DollarSign}
+          label="Revenue"
+          value={sponsorRevenue > 0 ? formatCurrency(sponsorRevenue) : '$0'}
+          goalLabel={(sponsors?.length || 0) > 0 ? `${sponsors.length} sponsor${sponsors.length === 1 ? '' : 's'}` : 'No sponsors yet'}
+          variant="default"
+          cta={(sponsors?.length || 0) > 0 ? 'Manage sponsors →' : '+ Add sponsor'}
+          onCtaClick={() => (sponsors?.length || 0) > 0 ? onNavigateToTab?.('setup') : onOpenSponsorModal?.(null)}
+        />
+      </div>
+
+      {/* Setup Journey */}
+      <Panel title="Setup Journey" icon={Sparkles} style={{ marginBottom: 0 }}>
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {/* Progress bar */}
-          <div style={{
-            height: '4px',
-            background: 'rgba(255,255,255,0.06)',
-            borderRadius: borderRadius.pill,
-            overflow: 'hidden',
+          <p style={{
+            color: colors.text.secondary,
+            fontSize: typography.fontSize.sm,
             marginBottom: spacing.lg,
+            lineHeight: 1.5,
           }}>
-            <div style={{
-              width: `${checklistProgress}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg, #d4af37, #f4d03f)',
-              borderRadius: borderRadius.pill,
-              transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: '0 0 8px rgba(212,175,55,0.3)',
-            }} />
-          </div>
-
-          {/* Next-action callout */}
-          {nextAction && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              padding: spacing.md,
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.12), rgba(212,175,55,0.04))',
-              border: '1px solid rgba(212,175,55,0.25)',
-              borderRadius: borderRadius.lg,
-              marginBottom: spacing.lg,
-            }}>
-              <Sparkles size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />
-              <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                Up next: <strong style={{ color: colors.gold.primary }}>{nextAction.label}</strong>
-              </span>
-            </div>
-          )}
-
-          {/* Checklist items */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-            {checklist.map(renderChecklistItem)}
+            Five stages to launch a great competition. Work through them in order — each stage auto-collapses when you complete it.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+            {stages.map(stage => (
+              <div key={stage.id} id={`stage-${stage.id}`}>
+                <StagePanel
+                  stage={stage}
+                  defaultExpanded={stage.id === firstIncompleteStageId}
+                  isMobile={isMobile}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </Panel>
 
-      {/* Two-column layout: metrics+toolkit+events on left; leaderboard+announcements on right */}
+      {/* Day-to-day section */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -630,49 +783,6 @@ export default function OverviewTab({
       }}>
         {/* Left column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
-          {/* Compact metrics row */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: isMobile ? spacing.sm : spacing.md,
-          }}>
-            <MetricCard
-              icon={UserPlus}
-              label="Nominations"
-              value={totalNominees}
-              goal={300}
-              goalLabel={[
-                pendingNominees > 0 && `${pendingNominees} pending`,
-                incompleteCount > 0 && `${incompleteCount} incomplete`,
-              ].filter(Boolean).join(', ') || null}
-              variant="default"
-              cta="People →"
-              onCtaClick={() => onNavigateToTab?.('people')}
-            />
-            <MetricCard
-              icon={Users}
-              label="Contestants"
-              value={contestants?.length || 0}
-              goal={competition?.minContestants || 40}
-              warning={contestants?.length < (competition?.minContestants || 40)
-                ? `Need ${(competition?.minContestants || 40) - contestants?.length} more`
-                : null}
-              variant={contestants?.length >= (competition?.minContestants || 40) ? 'success' : 'warning'}
-              cta="People →"
-              onCtaClick={() => onNavigateToTab?.('people')}
-            />
-            <MetricCard
-              icon={Star}
-              label="Sponsors"
-              value={sponsors?.length || 0}
-              goalLabel={sponsorRevenue > 0 ? formatCurrency(sponsorRevenue) : null}
-              variant="gold"
-              cta="+ Add"
-              onCtaClick={() => onOpenSponsorModal?.(null)}
-            />
-          </div>
-
-          {/* Host Toolkit */}
           <Panel title="Host Toolkit" icon={SettingsIcon} style={{ marginBottom: 0 }} collapsible>
             <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
               <div style={{
@@ -680,12 +790,65 @@ export default function OverviewTab({
                 gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
                 gap: spacing.sm,
               }}>
-                {toolkit.map(renderToolkitItem)}
+                {toolkit.map(tool => {
+                  const Icon = tool.icon;
+                  return (
+                    <button
+                      key={tool.id}
+                      onClick={tool.onClick}
+                      disabled={tool.disabled}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.md,
+                        padding: spacing.md,
+                        background: colors.background.secondary,
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        borderRadius: borderRadius.lg,
+                        color: colors.text.primary,
+                        textAlign: 'left',
+                        cursor: tool.disabled ? 'not-allowed' : 'pointer',
+                        opacity: tool.disabled ? 0.5 : 1,
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: borderRadius.md,
+                        background: 'rgba(212,175,55,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <Icon size={14} style={{ color: colors.gold.primary }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: typography.fontSize.sm,
+                          fontWeight: typography.fontWeight.semibold,
+                          marginBottom: '2px',
+                        }}>
+                          {tool.label}
+                        </div>
+                        <div style={{
+                          fontSize: typography.fontSize.xs,
+                          color: colors.text.muted,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {tool.sub}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </Panel>
 
-          {/* Upcoming Events */}
           <Panel
             title="Upcoming Events"
             icon={Calendar}
@@ -765,7 +928,6 @@ export default function OverviewTab({
 
         {/* Right column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
-          {/* Top Contestants */}
           <Panel
             title="Top Contestants"
             icon={Crown}
@@ -901,7 +1063,6 @@ export default function OverviewTab({
             </div>
           </Panel>
 
-          {/* Announcements */}
           <Panel
             title="Announcements"
             icon={FileText}
