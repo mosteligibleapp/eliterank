@@ -127,6 +127,21 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
         compError = result.error;
       }
 
+      // Lazily transition any rounds whose end_date has passed (eliminations,
+      // advancements, optional vote reset). The follow-up re-fetch reads the
+      // post-finalize state. Fire-and-forget keeps the initial render fast;
+      // if the round just ended, the realtime contestants subscription will
+      // surface the change within a couple of seconds.
+      if (compData?.id) {
+        supabase
+          .rpc('ensure_round_state', { p_competition_id: compData.id })
+          .then(({ error: ensureErr }) => {
+            if (ensureErr) {
+              console.warn('ensure_round_state failed:', ensureErr.message);
+            }
+          });
+      }
+
       if (compError || !compData) {
         throw new Error('Competition not found');
       }

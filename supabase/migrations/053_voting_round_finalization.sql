@@ -15,9 +15,10 @@
 -- Finale rounds (round_type = 'finale') skip elimination; the top N are marked
 -- as winners and written to competitions.winners.
 --
--- The job is invoked hourly via pg_cron (block at the bottom — commented by
--- default; enable in the Supabase dashboard alongside pg_net) or manually:
---   SELECT finalize_due_voting_rounds();
+-- Transitions are pull-based: ensure_round_state(competition_id) is called by
+-- the vote submit and public page load paths. It finalizes any due rounds for
+-- the competition and returns the currently active voting round. No cron is
+-- required — the same pattern the double-vote-day system uses.
 
 -- ---------------------------------------------------------------------------
 -- Schema additions
@@ -233,63 +234,67 @@ COMMENT ON FUNCTION finalize_voting_round(UUID) IS
   'Idempotently finalize a voting round: rank active contestants, mark advances/eliminations (or winners for finale), snapshot results, and apply per-round vote resets when configured.';
 
 -- ---------------------------------------------------------------------------
--- finalize_due_voting_rounds()
+-- ensure_round_state(p_competition_id)
 -- ---------------------------------------------------------------------------
+-- Pull-based entry point. Finalizes any due rounds for the competition (so
+-- eliminations / advancements / vote resets land lazily on the next user
+-- interaction), then returns the currently active voting round. Called by
+-- checkActiveVotingRound() at vote submit time and by the public competition
+-- page on load.
 
-CREATE OR REPLACE FUNCTION finalize_due_voting_rounds()
+CREATE OR REPLACE FUNCTION ensure_round_state(p_competition_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_round_id    UUID;
-  v_results     JSONB := '[]'::jsonb;
-  v_outcome     JSONB;
+  v_round_id     UUID;
+  v_active       voting_rounds%ROWTYPE;
 BEGIN
+  IF p_competition_id IS NULL THEN
+    RETURN jsonb_build_object('active', false);
+  END IF;
+
+  -- Finalize any rounds in this competition whose end_date has passed.
+  -- Each call is idempotent and FOR-UPDATE-protected, so concurrent invokers
+  -- (e.g. two voters hitting the boundary at once) are safe.
   FOR v_round_id IN
     SELECT id
     FROM voting_rounds
-    WHERE end_date < NOW()
+    WHERE competition_id = p_competition_id
+      AND end_date < NOW()
       AND finalized_at IS NULL
     ORDER BY end_date ASC
   LOOP
     BEGIN
-      v_outcome := finalize_voting_round(v_round_id);
-      v_results := v_results || jsonb_build_array(v_outcome);
+      PERFORM finalize_voting_round(v_round_id);
     EXCEPTION WHEN OTHERS THEN
-      v_results := v_results || jsonb_build_array(jsonb_build_object(
-        'round_id', v_round_id,
-        'error', SQLERRM
-      ));
+      -- Don't let a single bad round wedge the active-round lookup.
+      RAISE WARNING 'finalize_voting_round(%) failed: %', v_round_id, SQLERRM;
     END;
   END LOOP;
 
-  RETURN jsonb_build_object('processed', jsonb_array_length(v_results), 'results', v_results);
+  -- Return the active voting round, if any.
+  SELECT * INTO v_active
+  FROM voting_rounds
+  WHERE competition_id = p_competition_id
+    AND round_type = 'voting'
+    AND start_date <= NOW()
+    AND end_date > NOW()
+  ORDER BY round_order ASC
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('active', false);
+  END IF;
+
+  RETURN jsonb_build_object('active', true, 'round', to_jsonb(v_active));
 END;
 $$;
 
-COMMENT ON FUNCTION finalize_due_voting_rounds() IS
-  'Finalize every voting round whose end_date has passed and which has not yet been finalized. Safe to invoke repeatedly.';
+COMMENT ON FUNCTION ensure_round_state(UUID) IS
+  'Lazy round-transition entry point. Finalizes any due voting rounds for the competition and returns the currently active round. Safe to call from anonymous and authenticated users.';
 
 GRANT EXECUTE ON FUNCTION finalize_voting_round(UUID) TO service_role;
-GRANT EXECUTE ON FUNCTION finalize_due_voting_rounds() TO service_role;
-
--- ---------------------------------------------------------------------------
--- Hourly cron registration
--- ---------------------------------------------------------------------------
--- Mirrors supabase/migrations/042: requires pg_cron enabled via Supabase
--- dashboard. Uncomment after enabling the extension. External schedulers
--- (GitHub Actions, Vercel cron) can also POST to a wrapper edge function or
--- invoke the SQL function directly.
-
--- CREATE EXTENSION IF NOT EXISTS pg_cron;
---
--- SELECT cron.unschedule('finalize-voting-rounds')
---   WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'finalize-voting-rounds');
---
--- SELECT cron.schedule(
---   'finalize-voting-rounds',
---   '0 * * * *',           -- top of every hour
---   $$ SELECT finalize_due_voting_rounds(); $$
--- );
+GRANT EXECUTE ON FUNCTION ensure_round_state(UUID) TO authenticated, anon;
