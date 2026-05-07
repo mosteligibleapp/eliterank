@@ -428,10 +428,14 @@ export default function ProfileBonusVotes({ userId, userEmail, profile, onBonusV
       getContestantCompetitions(userId),
       getNominationsForUser(userId, userEmail),
     ]).then(([contestants, nominations]) => {
-      // Filter contestants: show for all non-completed competitions
+      // Filter contestants: show for all non-completed competitions, and
+      // skip eliminated contestants — they can no longer earn bonus votes,
+      // so the checklist would be misleading (and any award attempt is
+      // rejected server-side by award_bonus_votes anyway).
       const activeContestants = contestants.filter(entry => {
         const status = entry.competition?.status;
-        return status && status !== 'completed';
+        if (!status || status === 'completed') return false;
+        return entry.status !== 'eliminated';
       });
 
       // Filter nominations: non-completed competitions that DON'T already have a contestant entry

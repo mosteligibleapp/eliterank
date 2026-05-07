@@ -37,13 +37,22 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
       getContestantCompetitions(hostProfile.id),
       getNominationsForUser(hostProfile.id, hostProfile.email),
     ]).then(([contestants, nominations]) => {
-      // Prefer contestant entry, then nomination
-      const entry = contestants[0] || nominations[0];
+      // Eliminated rows now flow through getContestantCompetitions (they're
+      // shown on the profile with an "Eliminated — <Round>" badge), but they
+      // shouldn't drive the shareable card — neither a "contestant" card
+      // (falsely claims they're still competing) nor a "nominated" fallback
+      // (most eliminated users still have a converted nomination row, so the
+      // fallback would say "nominated" when they actually competed and were
+      // eliminated). If a user has any contestant entry and all of them are
+      // eliminated, suppress the card entirely.
+      const activeContestant = contestants.find((c) => c.status !== 'eliminated');
+      if (contestants.length > 0 && !activeContestant) return;
+      const entry = activeContestant || nominations[0];
       if (!entry) return;
       const comp = entry.competition || entry;
       const org = comp?.organization;
       const city = comp?.city?.name || comp?.city || '';
-      const role = contestants.length > 0 ? 'contestant' : 'nominee';
+      const role = activeContestant ? 'contestant' : 'nominee';
       const cardType = entry.status === 'winner' ? 'winner' : (role === 'contestant' ? 'contestant' : 'nominated');
       setCardInfo({
         type: cardType,

@@ -185,14 +185,23 @@ export function PortraitCard({
   const handleError = useCallback(() => setImgFailed(true), []);
   const handleLoad = useCallback(() => setImgLoaded(true), []);
 
-  const isDanger = !hideDanger && contestant.zone === 'danger';
-  const isWinner = rank <= numberOfWinners;
+  const isEliminated = contestant.status === 'eliminated';
+  const isDanger = !hideDanger && !isEliminated && contestant.zone === 'danger';
+  const isWinner = !isEliminated && rank <= numberOfWinners;
   const showImg = contestant.avatar_url && !imgFailed;
+
+  // Eliminated rows render as non-interactive: no click-through to profile,
+  // grayed visual, and an "Eliminated" badge replaces the rank/danger chip.
+  const handleClick = isEliminated ? undefined : () => onVote(contestant);
 
   return (
     <div
-      className={`portrait-card ${isDanger ? 'at-risk' : ''}`}
-      onClick={() => onVote(contestant)}
+      className={`portrait-card ${isDanger ? 'at-risk' : ''} ${isEliminated ? 'eliminated' : ''}`}
+      onClick={handleClick}
+      style={isEliminated
+        ? { cursor: 'default', opacity: 0.55, filter: 'grayscale(0.6)' }
+        : undefined}
+      aria-disabled={isEliminated || undefined}
     >
       <div className="portrait-image-wrap">
         <div className="portrait-placeholder">
@@ -211,21 +220,45 @@ export function PortraitCard({
             onError={handleError}
           />
         )}
-        {!hideRank && (isWinner ? (
+        {isEliminated ? (
           <span
-            className="portrait-rank portrait-rank-winner"
-            aria-label={`Winner rank ${rank}`}
+            className="portrait-eliminated"
+            style={{
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              padding: '3px 8px',
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: 'var(--color-text-secondary)',
+              background: 'var(--color-bg-secondary)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-sm)',
+            }}
           >
-            <CrownIcon size={14} color="#0a0a0f" />
+            Eliminated
           </span>
         ) : (
-          <span className="portrait-rank">#{rank}</span>
-        ))}
-        {isDanger && (
-          <span className="portrait-danger">
-            <AlertTriangle size={12} />
-            At Risk
-          </span>
+          <>
+            {!hideRank && (isWinner ? (
+              <span
+                className="portrait-rank portrait-rank-winner"
+                aria-label={`Winner rank ${rank}`}
+              >
+                <CrownIcon size={14} color="#0a0a0f" />
+              </span>
+            ) : (
+              <span className="portrait-rank">#{rank}</span>
+            ))}
+            {isDanger && (
+              <span className="portrait-danger">
+                <AlertTriangle size={12} />
+                At Risk
+              </span>
+            )}
+          </>
         )}
       </div>
       <div className="portrait-info">

@@ -114,7 +114,7 @@ export async function getContestantCompetitions(userId) {
       .from('contestants')
       .select('*, profile:profiles!user_id(avatar_url)')
       .eq('user_id', userId)
-      .neq('status', 'eliminated')
+      .neq('status', 'removed')
       .order('created_at', { ascending: false });
 
     if (contestantsError || !contestants?.length) {
@@ -128,7 +128,7 @@ export async function getContestantCompetitions(userId) {
 
     const { data: competitions, error: competitionsError } = await supabase
       .from('competitions')
-      .select('*, city:cities(name), organization:organizations(name, slug, logo_url), voting_rounds(id, start_date, end_date, round_order, round_type)')
+      .select('*, city:cities(name), organization:organizations(name, slug, logo_url), voting_rounds(id, start_date, end_date, round_order, round_type, title, tier_label)')
       .in('id', competitionIds);
 
     if (competitionsError) {
@@ -169,7 +169,7 @@ export async function getCompetitionStats(userId) {
         .from('contestants')
         .select('votes, rank, status')
         .eq('user_id', userId)
-        .neq('status', 'eliminated'),
+        .neq('status', 'removed'),
     ]);
 
     const profile = profileResult.data;

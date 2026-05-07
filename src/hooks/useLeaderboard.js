@@ -65,7 +65,9 @@ export function useLeaderboard(competitionId, options = {}) {
         `
         )
         .eq('competition_id', competitionId)
-        .eq('status', 'active') // Only active contestants
+        // Eliminated contestants stay on the leaderboard (visually flagged
+        // and non-clickable); only fully removed rows are excluded.
+        .neq('status', 'removed')
         .order('rank', { ascending: true, nullsFirst: false });
 
       if (fetchError) throw fetchError;
@@ -107,7 +109,9 @@ export function useLeaderboard(competitionId, options = {}) {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            if (payload.new.status === 'active') {
+            // Eliminated rows are kept on the leaderboard (non-clickable);
+            // only fully-removed contestants stay out.
+            if (payload.new.status !== 'removed') {
               setContestants((prev) => [...prev, payload.new]);
             }
           } else if (payload.eventType === 'UPDATE') {
@@ -138,20 +142,35 @@ export function useLeaderboard(competitionId, options = {}) {
     };
   }, [competitionId, realtime, isDemoMode]);
 
-  // Sorted contestants
+  // Sorted contestants — eliminated contestants always rank below all active
+  // ones regardless of vote count (post-reset advancers can have lower vote
+  // totals than eliminated contestants, but they're still in the running).
   const sortedContestants = useMemo(() => {
     const sorted = [...contestants];
+    const tier = (c) => (c.status === 'eliminated' ? 1 : 0);
 
     switch (sortBy) {
       case 'votes':
-        sorted.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+        sorted.sort((a, b) => {
+          const t = tier(a) - tier(b);
+          if (t !== 0) return t;
+          return (b.votes || 0) - (a.votes || 0);
+        });
         break;
       case 'recent':
-        sorted.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+        sorted.sort((a, b) => {
+          const t = tier(a) - tier(b);
+          if (t !== 0) return t;
+          return new Date(b.updated_at) - new Date(a.updated_at);
+        });
         break;
       case 'rank':
       default:
-        sorted.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+        sorted.sort((a, b) => {
+          const t = tier(a) - tier(b);
+          if (t !== 0) return t;
+          return (a.rank || 999) - (b.rank || 999);
+        });
         break;
     }
 
