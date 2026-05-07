@@ -37,25 +37,49 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
       getContestantCompetitions(hostProfile.id),
       getNominationsForUser(hostProfile.id, hostProfile.email),
     ]).then(([contestants, nominations]) => {
-      // Eliminated rows now flow through getContestantCompetitions (they're
-      // shown on the profile with an "Eliminated — <Round>" badge), but they
-      // shouldn't drive the shareable card — neither a "contestant" card
-      // (falsely claims they're still competing) nor a "nominated" fallback
-      // (most eliminated users still have a converted nomination row, so the
-      // fallback would say "nominated" when they actually competed and were
-      // eliminated). If a user has any contestant entry and all of them are
-      // eliminated, suppress the card entirely.
+      // Eliminated contestants keep their card — it becomes a record of how
+      // far they got. Title reflects whichever tier they reached (e.g.
+      // "TOP 50 CONTESTANT" for someone eliminated in Round 1 after
+      // surviving Entry Round). Prefer a non-eliminated entry when one
+      // exists so an active competition takes precedence over a past one.
       const activeContestant = contestants.find((c) => c.status !== 'eliminated');
-      if (contestants.length > 0 && !activeContestant) return;
-      const entry = activeContestant || nominations[0];
+      const contestantEntry = activeContestant || contestants[0];
+      const entry = contestantEntry || nominations[0];
       if (!entry) return;
       const comp = entry.competition || entry;
       const org = comp?.organization;
       const city = comp?.city?.name || comp?.city || '';
-      const role = activeContestant ? 'contestant' : 'nominee';
+      const role = contestantEntry ? 'contestant' : 'nominee';
       const cardType = entry.status === 'winner' ? 'winner' : (role === 'contestant' ? 'contestant' : 'nominated');
+
+      // Compute the tier this contestant has secured. Active contestants
+      // get credit for the most recently completed round; eliminated
+      // contestants get credit for whichever round they survived through
+      // (eliminated_in_round - 1). Falls back to the default "CONTESTANT"
+      // badge when the tier is undefined (e.g. eliminated in the very
+      // first round, or no rounds have ended yet).
+      let customTitle;
+      if (cardType === 'contestant') {
+        const rounds = comp?.voting_rounds || [];
+        let tierRound;
+        if (entry.status === 'eliminated' && entry.eliminated_in_round) {
+          tierRound = rounds.find((r) => r.round_order === entry.eliminated_in_round - 1);
+        } else {
+          const now = Date.now();
+          const completed = rounds
+            .filter((r) => r.end_date && new Date(r.end_date).getTime() <= now)
+            .sort((a, b) => (b.round_order || 0) - (a.round_order || 0));
+          tierRound = completed[0];
+        }
+        const tierCount = tierRound?.contestants_advance;
+        if (Number.isFinite(tierCount) && tierCount > 0) {
+          customTitle = `TOP ${tierCount} CONTESTANT`;
+        }
+      }
+
       setCardInfo({
         type: cardType,
+        customTitle,
         competitionName: comp?.name,
         cityName: city,
         season: comp?.season?.toString(),
@@ -124,6 +148,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
     try {
       const blob = await generateAchievementCard({
         achievementType: cardInfo.type,
+        customTitle: cardInfo.customTitle,
         name: `${hostProfile.firstName || ''} ${hostProfile.lastName || ''}`.trim() || 'Contestant',
         photoUrl: hostProfile.avatarUrl,
         competitionName: cardInfo.competitionName,
