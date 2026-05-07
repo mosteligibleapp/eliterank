@@ -59,22 +59,6 @@ export function getRoundAdvancementTitle(round, nextRound) {
   return 'ADVANCED';
 }
 
-function formatVotingDate(dateStr) {
-  if (!dateStr) return null;
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return null;
-    const month = d.toLocaleDateString('en-US', { month: 'long' });
-    const day = d.getDate();
-    const suffix = day === 1 || day === 21 || day === 31 ? 'st'
-      : day === 2 || day === 22 ? 'nd'
-      : day === 3 || day === 23 ? 'rd' : 'th';
-    return `${month} ${day}${suffix}`;
-  } catch {
-    return null;
-  }
-}
-
 function formatSeasonLabel(season) {
   if (!season) return null;
   const year = typeof season === 'number' ? season : Number(season);
@@ -172,7 +156,9 @@ export async function generateAchievementCard({
   accentColor = GOLD,
   voteUrl,
   rank,
-  votingStartDate,
+  // votingStartDate kept for API compat — many callers pass it, but the
+  // "Voting opens …" line was removed from the card layout.
+  votingStartDate: _votingStartDate,
 }) {
   const canvas = document.createElement('canvas');
   canvas.width = CARD_WIDTH;
@@ -182,7 +168,6 @@ export async function generateAchievementCard({
   const achievement = ACHIEVEMENT_TYPES[achievementType] || ACHIEVEMENT_TYPES.nominated;
   const displayTitle = customTitle || achievement.title;
   const subtitle = achievement.subtitle;
-  const isNominated = achievementType === 'nominated';
 
   // Safety: coerce cityName to string (callers may pass an object)
   const cityName = (rawCityName && typeof rawCityName === 'object')
@@ -271,7 +256,7 @@ export async function generateAchievementCard({
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
   y += 72 + 36;
 
-  // === BADGE — pill, gold border, transparent bg, gold dots on sides ===
+  // === BADGE — pill, gold border, transparent bg ===
   const badgeFontSize = 34;
   ctx.font = `700 ${badgeFontSize}px ${FONT}`;
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '4px';
@@ -289,20 +274,6 @@ export async function generateAchievementCard({
   ctx.strokeStyle = GOLD;
   ctx.lineWidth = 1.5;
   ctx.stroke();
-
-  // Gold dots on each side of text
-  const dotR = 5;
-  const dotY = badgeY + badgeH / 2;
-  const textHalfW = badgeTextW / 2;
-  ctx.fillStyle = GOLD;
-  // Left dot
-  ctx.beginPath();
-  ctx.arc(CX - textHalfW - 20, dotY, dotR, 0, Math.PI * 2);
-  ctx.fill();
-  // Right dot
-  ctx.beginPath();
-  ctx.arc(CX + textHalfW + 20, dotY, dotR, 0, Math.PI * 2);
-  ctx.fill();
 
   // Badge text
   ctx.fillStyle = GOLD;
@@ -358,15 +329,6 @@ export async function generateAchievementCard({
     ctx.font = `700 30px ${FONT}`;
     ctx.fillText(`#${rank}`, CX, y);
     y += 46;
-  }
-
-  // === VOTING DATE — gold ===
-  const formattedDate = !isNominated ? formatVotingDate(votingStartDate) : null;
-  if (formattedDate) {
-    ctx.fillStyle = GOLD;
-    ctx.font = `500 34px ${FONT}`;
-    ctx.fillText(`Voting opens ${formattedDate}`, CX, y);
-    y += 34 + 32;
   }
 
   // === CTA BUTTON — solid gold pill, black text ===

@@ -128,7 +128,7 @@ export async function getContestantCompetitions(userId) {
 
     const { data: competitions, error: competitionsError } = await supabase
       .from('competitions')
-      .select('*, city:cities(name), organization:organizations(name, slug, logo_url), voting_rounds(id, start_date, end_date, round_order, round_type, title, tier_label)')
+      .select('*, city:cities(name), organization:organizations(name, slug, logo_url), voting_rounds(id, start_date, end_date, round_order, round_type, title, tier_label, contestants_advance)')
       .in('id', competitionIds);
 
     if (competitionsError) {

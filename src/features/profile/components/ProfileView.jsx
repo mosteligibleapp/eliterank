@@ -54,8 +54,27 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
       const city = comp?.city?.name || comp?.city || '';
       const role = activeContestant ? 'contestant' : 'nominee';
       const cardType = entry.status === 'winner' ? 'winner' : (role === 'contestant' ? 'contestant' : 'nominated');
+
+      // For an active contestant, dynamically reflect the tier they've
+      // already secured by surviving the most recently completed round.
+      // Example: after the Entry Round ends (contestants_advance=50), the
+      // 50 advancers' cards read "TOP 50 CONTESTANT". Before any round
+      // has ended, the badge stays as the default "CONTESTANT".
+      let customTitle;
+      if (cardType === 'contestant') {
+        const now = Date.now();
+        const completed = (comp?.voting_rounds || [])
+          .filter((r) => r.end_date && new Date(r.end_date).getTime() <= now)
+          .sort((a, b) => (b.round_order || 0) - (a.round_order || 0));
+        const lastCount = completed[0]?.contestants_advance;
+        if (Number.isFinite(lastCount) && lastCount > 0) {
+          customTitle = `TOP ${lastCount} CONTESTANT`;
+        }
+      }
+
       setCardInfo({
         type: cardType,
+        customTitle,
         competitionName: comp?.name,
         cityName: city,
         season: comp?.season?.toString(),
@@ -124,6 +143,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
     try {
       const blob = await generateAchievementCard({
         achievementType: cardInfo.type,
+        customTitle: cardInfo.customTitle,
         name: `${hostProfile.firstName || ''} ${hostProfile.lastName || ''}`.trim() || 'Contestant',
         photoUrl: hostProfile.avatarUrl,
         competitionName: cardInfo.competitionName,
