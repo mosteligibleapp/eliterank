@@ -138,7 +138,7 @@ function StatBox({ label, value, suffix, icon, accent = false, isMobile = false 
   );
 }
 
-function RoleBadge({ role, size = 'sm' }) {
+function RoleBadge({ role, size = 'sm', subLabel }) {
   switch (role) {
     case 'nominee':
       return (
@@ -168,9 +168,27 @@ function RoleBadge({ role, size = 'sm' }) {
           Contestant
         </Badge>
       );
+    case 'eliminated':
+      return (
+        <Badge variant="outline" size={size} pill>
+          {subLabel ? `Eliminated — ${subLabel}` : 'Eliminated'}
+        </Badge>
+      );
     default:
       return null;
   }
+}
+
+/**
+ * Resolve a human-readable round label from the competition's voting_rounds
+ * by round_order. Falls back to "Round N" when the row isn't joined.
+ */
+function getRoundLabel(competition, roundOrder) {
+  if (!roundOrder) return null;
+  const round = (competition?.voting_rounds || []).find(
+    (r) => r.round_order === roundOrder,
+  );
+  return round?.tier_label || round?.title || `Round ${roundOrder}`;
 }
 
 function getVotingStartDate(competition) {
@@ -304,7 +322,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
               gap in the stack. */}
           {entry.role && (
             <div style={{ display: 'flex' }}>
-              <RoleBadge role={entry.role} />
+              <RoleBadge role={entry.role} subLabel={entry.eliminatedRoundLabel} />
             </div>
           )}
 
@@ -535,11 +553,13 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
   contestantEntries.forEach(entry => {
     const comp = entry.competition;
     const isWinner = entry?.status === 'winner';
+    const isEliminated = entry?.status === 'eliminated';
     entries.push({
       id: `contestant-${entry.id}`,
       name: comp?.name || `${comp?.city?.name || comp?.city || 'Competition'} ${comp?.season || ''}`.trim(),
       url: getCompetitionLink(comp),
-      role: isWinner ? 'winner' : 'contestant',
+      role: isWinner ? 'winner' : (isEliminated ? 'eliminated' : 'contestant'),
+      eliminatedRoundLabel: isEliminated ? getRoundLabel(comp, entry.eliminated_in_round) : null,
       status: comp?.status,
       competition: comp,
       votes: entry.votes || 0,
