@@ -72,6 +72,23 @@ const FORMAT_SPECS = {
       photoVoteGap: 60,
       nameVoteSize: 56,
     },
+    list: {
+      topPad: 70,
+      photoSize: 280,
+      nameFontSize: 32,
+      nameGap: 16,
+      rowGap: 14,
+      colGap: 28,
+      footer: {
+        gapAbove: 32,
+        logoHeight: 80,
+        logoTitleGap: 18,
+        titleFontSize: 30,
+        titleSubtitleGap: 8,
+        subtitleFontSize: 18,
+        subtitleTracking: '4px',
+      },
+    },
   },
   grid: {
     height: 1350,
@@ -102,6 +119,23 @@ const FORMAT_SPECS = {
       photoH: 800,          // photoW = 600
       photoVoteGap: 36,
       nameVoteSize: 40,
+    },
+    list: {
+      topPad: 40,
+      photoSize: 200,
+      nameFontSize: 22,
+      nameGap: 10,
+      rowGap: 12,
+      colGap: 24,
+      footer: {
+        gapAbove: 24,
+        logoHeight: 60,
+        logoTitleGap: 14,
+        titleFontSize: 22,
+        titleSubtitleGap: 6,
+        subtitleFontSize: 14,
+        subtitleTracking: '3.5px',
+      },
     },
   },
 };
@@ -516,6 +550,140 @@ async function renderSpotlightSlide({
   });
 }
 
+// ---------- list variant — pages of photo + name only ----------
+
+/**
+ * Draw the brand footer for a list page: logo + competition title +
+ * "[CITY] · [SEASON] · TOP X" subtitle. Returns the y-coordinate of
+ * the footer's top edge so callers can size the body grid above it.
+ */
+function drawListFooter(ctx, brand, logoImg, slideH, m, competitionName, cityName, season, topN) {
+  const f = m.footer;
+
+  // Stack vertically: logo, title, subtitle. Anchor the bottom of
+  // the subtitle to (slideH - logoBottomPad-ish) and grow upward.
+  const subtitleY = slideH - 60; // baseline
+  const titleY = subtitleY - f.subtitleFontSize - f.titleSubtitleGap;
+  const logoBottomY = titleY - f.logoTitleGap;
+
+  // Logo
+  if (logoImg) {
+    const aspect = logoImg.width / logoImg.height;
+    let drawH = f.logoHeight;
+    let drawW = drawH * aspect;
+    const maxW = 320;
+    if (drawW > maxW) { drawW = maxW; drawH = drawW / aspect; }
+    const logoY = Math.round(logoBottomY - drawH);
+    const logoX = Math.round(CX - drawW / 2);
+    ctx.drawImage(logoImg, logoX, logoY, Math.round(drawW), Math.round(drawH));
+  }
+
+  // Title (competition name)
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = brand.colors.white;
+  ctx.font = `${brand.font.weights.bold} ${f.titleFontSize}px ${brand.font.family}`;
+  ctx.fillText(competitionName, CX, titleY);
+
+  // Subtitle: "CHICAGO · 2026 · TOP 50"
+  const parts = [cityName, season, `TOP ${topN}`].filter(Boolean).map(String);
+  const subtitle = parts.join('   ·   ').toUpperCase();
+  ctx.fillStyle = brand.colors.mutedGray;
+  ctx.font = `${brand.font.weights.medium} ${f.subtitleFontSize}px ${brand.font.family}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = f.subtitleTracking;
+  ctx.fillText(subtitle, CX, subtitleY);
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+
+  // Top of footer = whichever element is highest
+  const footerTop = logoImg ? logoBottomY - f.logoHeight : titleY;
+  return footerTop - f.gapAbove;
+}
+
+async function renderListPage({
+  spec,
+  contestants,         // up to pageSize for this page
+  pageContestantImages, // pre-loaded photo Images for this page
+  competitionName,
+  cityName,
+  season,
+  topN,
+  brand,
+  logoImg,
+}) {
+  const SLIDE_H = spec.height;
+  const m = spec.list;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = SLIDE_W;
+  canvas.height = SLIDE_H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = brand.colors.background;
+  ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
+  enableHQ(ctx);
+
+  // Footer first so we know where the body grid ends
+  const bodyBottomLimit = drawListFooter(
+    ctx, brand, logoImg, SLIDE_H, m,
+    competitionName, cityName, season, topN
+  );
+
+  // Body: 2 columns × 5 rows of [photo + name]
+  const cols = 2;
+  const rows = 5;
+  const bodyTop = m.topPad;
+  const bodyAvailable = bodyBottomLimit - bodyTop;
+  const cellH = (bodyAvailable - m.rowGap * (rows - 1)) / rows;
+  const cellW = (SLIDE_W - 80 - m.colGap * (cols - 1)) / cols; // 40px side margins
+  const sideMargin = 40;
+
+  for (let i = 0; i < contestants.length; i++) {
+    const c = contestants[i];
+    if (!c) continue;
+
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const cellX = sideMargin + col * (cellW + m.colGap);
+    const cellY = bodyTop + row * (cellH + m.rowGap);
+    const cellCX = cellX + cellW / 2;
+
+    // Photo (square, rounded, centered in cell)
+    const photoSize = Math.min(m.photoSize, Math.floor(cellW), Math.floor(cellH - m.nameGap - m.nameFontSize - 8));
+    const photoX = Math.round(cellCX - photoSize / 2);
+    const photoY = Math.round(cellY);
+    const photoR = 14;
+    const img = pageContestantImages[i];
+    if (img) {
+      drawRoundedImageWithBorder(ctx, img, photoX, photoY, photoSize, photoSize, photoR, brand.colors.primaryDark, 1);
+    } else {
+      ctx.save();
+      roundRectPath(ctx, photoX, photoY, photoSize, photoSize, photoR);
+      ctx.fillStyle = '#1A1A1A';
+      ctx.fill();
+      ctx.restore();
+      // Initial fallback
+      ctx.fillStyle = brand.colors.mutedGray;
+      ctx.font = `${brand.font.weights.medium} ${Math.round(photoSize * 0.4)}px ${brand.font.family}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText((c.name?.charAt(0) || '?').toUpperCase(), cellCX, photoY + photoSize / 2);
+    }
+
+    // Name below photo, centered, truncated to cell width
+    const nameY = photoY + photoSize + m.nameGap;
+    ctx.font = `${brand.font.weights.bold} ${m.nameFontSize}px ${brand.font.family}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = brand.colors.white;
+    const nameMaxW = cellW - 16;
+    ctx.fillText(truncate(ctx, c.name || 'Contestant', nameMaxW), cellCX, nameY);
+  }
+
+  return new Promise((resolve) => {
+    canvas.toBlob((b) => resolve(b), 'image/png');
+  });
+}
+
 // ---------- ranking with tie handling ----------
 
 function computeDisplayRanks(contestants) {
@@ -538,18 +706,25 @@ function computeDisplayRanks(contestants) {
 // ---------- public API ----------
 
 /**
- * Generate a 6-slide carousel of standings in the requested IG format.
+ * Generate a carousel of standings in the requested IG format and variant.
+ *
+ * Two variants:
+ *   - 'spotlight' (default): 6 slides — top-10 cover + 5 spotlight portraits
+ *   - 'list': N pages of `pageSize` contestants each, photo + name only
  *
  * @param {Object}   params
  * @param {Array}    params.contestants     Pre-sorted contestants (votes desc).
  *                                          Each: { name, votes, avatarUrl, photoUrl?, instagram }
  * @param {string}   [params.competitionSlug]
- * @param {string}   [params.title='Most Eligible Bachelorettes'] Slide-1 title line.
+ * @param {string}   [params.title='Most Eligible Bachelorettes'] Title used on cover/list footer.
  * @param {string}   [params.cityName]      Subtitle location (e.g. "Chicago").
  * @param {string|number} [params.season]   Subtitle year/season.
- * @param {string}   [params.roundTitle]    "Entry Round", "Round 1", … "Final Round".
+ * @param {string}   [params.roundTitle]    "Entry Round", "Round 1", … "Final Round" (spotlight only).
  * @param {'story'|'grid'} [params.format='story']
  *        'story' → 1080×1920 (9:16). 'grid' → 1080×1350 (4:5).
+ * @param {'spotlight'|'list'} [params.variant='spotlight']
+ * @param {number}   [params.topN]          List variant: total contestants to render. Default 50.
+ * @param {number}   [params.pageSize=10]   List variant: contestants per page.
  * @param {Object}   [params.brand=DEFAULT_BRAND]  Brand config — see DEFAULT_BRAND shape.
  *
  * @returns {Promise<Array<{ filename: string, blob: Blob }>>}
@@ -562,18 +737,66 @@ export async function generateRankingsCarousel({
   season,
   roundTitle,
   format = 'story',
+  variant = 'spotlight',
+  topN,
+  pageSize = 10,
   brand = DEFAULT_BRAND,
 }) {
   const spec = FORMAT_SPECS[format] || FORMAT_SPECS.story;
+  if (contestants.length === 0) return [];
+
+  const slug = slugify(competitionSlug || title || 'standings');
+  const roundSlug = slugify(roundTitle || 'current');
+  const fmtSlug = format === 'grid' ? 'grid' : 'story';
+
+  const logoImg = brand.logo?.iconPath
+    ? await loadImage(brand.logo.iconPath).catch(() => null)
+    : null;
+
+  // ---------- list variant ----------
+  if (variant === 'list') {
+    const limit = Math.min(contestants.length, topN || 50);
+    const all = contestants.slice(0, limit);
+    const totalPages = Math.max(1, Math.ceil(limit / pageSize));
+
+    // Preload all photos in parallel — prefer photoUrl over avatarUrl for bigger crops.
+    const photos = await Promise.all(
+      all.map((c) => {
+        const url = c?.photoUrl || c?.avatarUrl;
+        return url ? loadImage(url).catch(() => null) : Promise.resolve(null);
+      })
+    );
+
+    const out = [];
+    for (let p = 0; p < totalPages; p++) {
+      const start = p * pageSize;
+      const pageContestants = all.slice(start, start + pageSize);
+      const pageImages = photos.slice(start, start + pageSize);
+      const blob = await renderListPage({
+        spec,
+        contestants: pageContestants,
+        pageContestantImages: pageImages,
+        competitionName: title,
+        cityName,
+        season,
+        topN: limit,
+        brand,
+        logoImg,
+      });
+      if (blob) {
+        out.push({ filename: `${slug}-${roundSlug}-list-${fmtSlug}-${p + 1}.png`, blob });
+      }
+    }
+    return out;
+  }
+
+  // ---------- spotlight variant (default) ----------
   const all = contestants.slice(0, 10);
-  if (all.length === 0) return [];
-
   const ranks = computeDisplayRanks(all);
-
-  // preload assets in parallel — logo + per-row avatars + spotlight photos
   const spotlightCount = Math.min(5, all.length);
-  const [logoImg, ...rest] = await Promise.all([
-    brand.logo?.iconPath ? loadImage(brand.logo.iconPath).catch(() => null) : Promise.resolve(null),
+
+  // preload row avatars + spotlight photos in parallel
+  const rest = await Promise.all([
     ...all.map((c) => (c?.avatarUrl ? loadImage(c.avatarUrl).catch(() => null) : Promise.resolve(null))),
     ...all.slice(0, spotlightCount).map((c) => {
       const url = c?.photoUrl || c?.avatarUrl;
@@ -582,10 +805,6 @@ export async function generateRankingsCarousel({
   ]);
   const avatars = rest.slice(0, all.length);
   const photos = rest.slice(all.length, all.length + spotlightCount);
-
-  const slug = slugify(competitionSlug || title || 'standings');
-  const roundSlug = slugify(roundTitle || 'current');
-  const fmtSlug = format === 'grid' ? 'grid' : 'story';
 
   const out = [];
 

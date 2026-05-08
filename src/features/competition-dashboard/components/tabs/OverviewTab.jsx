@@ -39,7 +39,10 @@ export default function OverviewTab({
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
   const [generatingCardId, setGeneratingCardId] = useState(null);
-  const [generatingFormat, setGeneratingFormat] = useState(null); // 'story' | 'grid' | null
+  // identifier of the in-flight standings download, e.g. "spotlight:story",
+  // "spotlight:grid", "list:story", "list:grid". null when idle.
+  const [generatingJob, setGeneratingJob] = useState(null);
+  const [listTopN, setListTopN] = useState(50);
   const [activeRound, setActiveRound] = useState(null);
 
   useEffect(() => {
@@ -69,9 +72,10 @@ export default function OverviewTab({
     navigate(`/profile/${profileId}`);
   };
 
-  const handleDownloadRankings = async (format) => {
-    if (generatingFormat || rankedContestants.length === 0) return;
-    setGeneratingFormat(format);
+  const handleDownloadRankings = async ({ variant, format, topN }) => {
+    const jobId = `${variant}:${format}`;
+    if (generatingJob || rankedContestants.length === 0) return;
+    setGeneratingJob(jobId);
     try {
       const orgLogo = competition?.organizationLogoUrl;
       const brand = orgLogo
@@ -85,6 +89,8 @@ export default function OverviewTab({
         season: competition?.season,
         roundTitle: activeRound?.title,
         format,
+        variant,
+        topN,
         brand,
       });
       if (!slides.length) return;
@@ -101,11 +107,12 @@ export default function OverviewTab({
       const roundSlug = activeRound?.title
         ? `-${activeRound.title.toLowerCase().replace(/\s+/g, '-')}`
         : '';
+      const variantSlug = variant === 'list' ? `top${topN || 50}` : 'spotlight';
 
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${slug}${roundSlug}-standings-${format}.zip`;
+      a.download = `${slug}${roundSlug}-${variantSlug}-${format}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -113,7 +120,7 @@ export default function OverviewTab({
     } catch (err) {
       console.error('Rankings carousel generation failed:', err);
     } finally {
-      setGeneratingFormat(null);
+      setGeneratingJob(null);
     }
   };
 
@@ -329,38 +336,113 @@ export default function OverviewTab({
           </div>
         </Panel>
 
-        {/* Standings Graphic — downloadable carousel of current top 10 */}
+        {/* Standings Graphic — downloadable carousels of current standings */}
         <Panel
           title="Standings Graphic"
           icon={Download}
           style={{ marginBottom: 0 }}
           collapsible
         >
-          <div style={{ padding: isMobile ? spacing.md : spacing.xl, display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, lineHeight: 1.5 }}>
-              {rankedContestants.length === 0
-                ? 'Standings graphics become available once contestants have votes.'
-                : `Generate a 6-piece carousel of the current top 10 — ${activeRound?.title ? `${activeRound.title.toLowerCase()} standings` : 'live standings'} — ready to post. Each download is a zip of six PNGs.`}
-            </p>
-            <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
-              <Button
-                size="sm"
-                icon={generatingFormat === 'story' ? Loader : Download}
-                onClick={() => handleDownloadRankings('story')}
-                disabled={!!generatingFormat || rankedContestants.length === 0}
-              >
-                {generatingFormat === 'story' ? 'Generating…' : 'Stories (9:16)'}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                icon={generatingFormat === 'grid' ? Loader : Download}
-                onClick={() => handleDownloadRankings('grid')}
-                disabled={!!generatingFormat || rankedContestants.length === 0}
-              >
-                {generatingFormat === 'grid' ? 'Generating…' : 'Grid Posts (4:5)'}
-              </Button>
-            </div>
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl, display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
+            {rankedContestants.length === 0 ? (
+              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, lineHeight: 1.5 }}>
+                Standings graphics become available once contestants have votes.
+              </p>
+            ) : (
+              <>
+                {/* Spotlight Carousel — cover + top 5 portraits */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+                  <div>
+                    <p style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>
+                      Spotlight Carousel
+                    </p>
+                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, lineHeight: 1.5 }}>
+                      6 slides — cover with top 10, plus a portrait spotlight for each of the top 5.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+                    <Button
+                      size="sm"
+                      icon={generatingJob === 'spotlight:story' ? Loader : Download}
+                      onClick={() => handleDownloadRankings({ variant: 'spotlight', format: 'story' })}
+                      disabled={!!generatingJob}
+                    >
+                      {generatingJob === 'spotlight:story' ? 'Generating…' : 'Stories (9:16)'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={generatingJob === 'spotlight:grid' ? Loader : Download}
+                      onClick={() => handleDownloadRankings({ variant: 'spotlight', format: 'grid' })}
+                      disabled={!!generatingJob}
+                    >
+                      {generatingJob === 'spotlight:grid' ? 'Generating…' : 'Grid Posts (4:5)'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Top X List — pages of photos + names, no rank/votes */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: spacing.sm,
+                  paddingTop: spacing.md,
+                  borderTop: `1px solid ${colors.border.light}`,
+                }}>
+                  <div>
+                    <p style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>
+                      Top {listTopN} List
+                    </p>
+                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, lineHeight: 1.5 }}>
+                      {Math.ceil(Math.min(rankedContestants.length, listTopN) / 10)} pages, 10 contestants each — photo + name only, no ranks or votes.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.text.secondary, fontSize: typography.fontSize.xs }}>
+                      Top
+                      <input
+                        type="number"
+                        min={10}
+                        max={Math.max(10, rankedContestants.length)}
+                        step={10}
+                        value={listTopN}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!isNaN(v) && v > 0) setListTopN(v);
+                        }}
+                        disabled={!!generatingJob}
+                        style={{
+                          width: 70,
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          background: colors.background.primary,
+                          border: `1px solid ${colors.border.light}`,
+                          borderRadius: borderRadius.md,
+                          color: '#fff',
+                          fontSize: typography.fontSize.sm,
+                        }}
+                      />
+                    </label>
+                    <Button
+                      size="sm"
+                      icon={generatingJob === 'list:story' ? Loader : Download}
+                      onClick={() => handleDownloadRankings({ variant: 'list', format: 'story', topN: listTopN })}
+                      disabled={!!generatingJob}
+                    >
+                      {generatingJob === 'list:story' ? 'Generating…' : 'Stories (9:16)'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={generatingJob === 'list:grid' ? Loader : Download}
+                      onClick={() => handleDownloadRankings({ variant: 'list', format: 'grid', topN: listTopN })}
+                      disabled={!!generatingJob}
+                    >
+                      {generatingJob === 'list:grid' ? 'Generating…' : 'Grid Posts (4:5)'}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </Panel>
       </div>
