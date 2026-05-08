@@ -240,19 +240,35 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
   // Countdown to the active round's end_date — drives the ROUND ENDS stat.
   const countdown = useCountdown(activeRound?.end_date || null);
 
-  // Contestant's current rank + total, derived from the fresh leaderboard
-  // snapshot so the stats bar matches the payload the voting panel sees.
-  // Eliminated contestants stay on the leaderboard for display but are
-  // excluded here so rank/total reflect only contestants still in the
-  // running (e.g. "5 / 50" instead of "5 / 89").
+  // Tier the contestant currently holds — derived from the prior round's
+  // contestants_advance (the cap of who advanced INTO this round). Stays
+  // stable for the duration of the round, even if a contestant drops out
+  // mid-round. Mirrors the tier-title pattern in ProfileView.jsx. When
+  // there's no prior round (first voting round, or a preview-synthesized
+  // round) tierCount is null and the badge falls back to plain
+  // "Contestant".
+  const tierCount = useMemo(() => {
+    if (!showInlineVoting || !activeRound) return null;
+    const rounds = competition?.voting_rounds || [];
+    const priorOrder = (activeRound.round_order || 0) - 1;
+    if (priorOrder < 1) return null;
+    const prior = rounds.find((r) => r.round_order === priorOrder);
+    const count = prior?.contestants_advance;
+    return Number.isFinite(count) && count > 0 ? count : null;
+  }, [showInlineVoting, activeRound, competition?.voting_rounds]);
+
+  // Contestant's current rank among contestants still active in this
+  // round. The denominator prefers the tier cap (e.g. 50 for a "Top 50"
+  // round) so it stays stable; falls back to the live active count when
+  // the round doesn't expose a cap.
   const rankStats = useMemo(() => {
     if (!showInlineVoting || !leaderboard?.length || !entry.contestant?.id) return null;
     const active = leaderboard.filter((c) => c.status === 'active');
     const byVotes = [...active].sort((a, b) => (b.votes || 0) - (a.votes || 0));
     const idx = byVotes.findIndex((c) => c.id === entry.contestant.id);
     if (idx === -1) return null;
-    return { current: idx + 1, total: byVotes.length };
-  }, [showInlineVoting, leaderboard, entry.contestant?.id]);
+    return { current: idx + 1, total: tierCount || byVotes.length };
+  }, [showInlineVoting, leaderboard, entry.contestant?.id, tierCount]);
 
   // When the voting panel is visible, the outer <a> causes button clicks
   // to bubble and trigger navigation. Split the card into a clickable
@@ -329,7 +345,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
               <RoleBadge
                 role={entry.role}
                 subLabel={entry.eliminatedRoundLabel}
-                contestantLabel={rankStats ? `Top ${rankStats.total} Contestant` : undefined}
+                contestantLabel={tierCount ? `Top ${tierCount} Contestant` : undefined}
               />
             </div>
           )}
