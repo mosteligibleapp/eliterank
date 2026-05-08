@@ -1,9 +1,14 @@
 /**
  * Rankings Carousel Generator
  *
- * Renders a 6-slide Instagram Story set (1080×1920 each, 9:16 portrait):
- *   slide 1 — full top-10 cover
- *   slides 2-6 — top 5 spotlights, in rank order
+ * Renders a 6-slide carousel of competition standings in either of two
+ * Instagram-native formats:
+ *
+ *   format: 'story'  → 1080×1920 (9:16 portrait, IG Stories / Reels)
+ *   format: 'grid'   → 1080×1350 (4:5 portrait, IG feed / carousel post)
+ *
+ * Each carousel: 1 cover slide (top 10) + up to 5 spotlight slides
+ * (one per top-5 contestant, in rank order).
  *
  * The `brand` argument is the seam where per-organization brand guidelines
  * will plug in once that feature ships. The generator does not hard-code
@@ -12,7 +17,6 @@
  */
 
 const SLIDE_W = 1080;
-const SLIDE_H = 1920;
 const CX = SLIDE_W / 2;
 
 export const DEFAULT_BRAND = {
@@ -27,11 +31,78 @@ export const DEFAULT_BRAND = {
   },
   logo: {
     iconPath: '/heart-city-logo.svg',
-    height: 120,
   },
   font: {
     family: "'Montserrat', 'Inter', system-ui, sans-serif",
     weights: { regular: 400, medium: 500, bold: 700 },
+  },
+};
+
+// Per-format layout metrics — every size that should scale between
+// IG Stories (9:16, taller) and IG feed posts (4:5, shorter) is defined
+// here so the render functions stay layout-agnostic.
+const FORMAT_SPECS = {
+  story: {
+    height: 1920,
+    logoHeight: 120,
+    logoBottomPad: 60,
+    cover: {
+      topPad: 100,
+      pillFontSize: 26,
+      pillPadH: 36,
+      pillPadV: 16,
+      pillGapBelow: 40,
+      titleFontSize: 56,
+      titleGapBelow: 36,
+      subtitleFontSize: 24,
+      subtitleTracking: '5px',
+      subtitleGapBelow: 56,
+      rowsBottomBreathing: 50,
+      rowH: { min: 80, max: 132 },
+      rowGap: 6,
+      rowRankSize: 44,
+      rowNameSize: 30,
+      rowVoteSize: 28,
+    },
+    spotlight: {
+      topPad: 120,
+      rankSize: 120,
+      rankPhotoGap: 60,
+      photoH: 1200,         // photoW = photoH * 3/4 = 900
+      photoVoteGap: 60,
+      nameVoteSize: 56,
+    },
+  },
+  grid: {
+    height: 1350,
+    logoHeight: 96,
+    logoBottomPad: 50,
+    cover: {
+      topPad: 60,
+      pillFontSize: 22,
+      pillPadH: 32,
+      pillPadV: 14,
+      pillGapBelow: 28,
+      titleFontSize: 44,
+      titleGapBelow: 28,
+      subtitleFontSize: 20,
+      subtitleTracking: '4px',
+      subtitleGapBelow: 36,
+      rowsBottomBreathing: 36,
+      rowH: { min: 70, max: 104 },
+      rowGap: 4,
+      rowRankSize: 36,
+      rowNameSize: 24,
+      rowVoteSize: 22,
+    },
+    spotlight: {
+      topPad: 70,
+      rankSize: 88,
+      rankPhotoGap: 32,
+      photoH: 800,          // photoW = 600
+      photoVoteGap: 36,
+      nameVoteSize: 40,
+    },
   },
 };
 
@@ -167,35 +238,20 @@ function slugify(s) {
     .replace(/^-+|-+$/g, '');
 }
 
-function dasharrayLine(ctx, x1, y1, x2, y2, color, dash = [6, 8]) {
-  ctx.save();
-  ctx.setLineDash(dash);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
-  ctx.restore();
-}
-
-// ---------- shared footer logo ----------
-
 function enableHQ(ctx) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 }
 
 /**
- * Draws the brand logo as a footer stamp, anchored to the bottom of the slide.
+ * Draws the brand logo as a footer stamp anchored to the bottom of the slide.
  * Returns the y-coordinate of the logo's top edge so callers know where the
  * content area ends.
  */
-function drawFooterLogo(ctx, brand, logoImg, bottomMargin = 50) {
-  if (!logoImg) return SLIDE_H - bottomMargin;
-  const targetH = brand.logo.height;
+function drawFooterLogo(ctx, brand, logoImg, slideH, logoHeight, bottomMargin) {
+  if (!logoImg) return slideH - bottomMargin;
   const aspect = logoImg.width / logoImg.height;
-  let drawH = targetH;
+  let drawH = logoHeight;
   let drawW = drawH * aspect;
   const maxW = 360;
   if (drawW > maxW) {
@@ -203,7 +259,7 @@ function drawFooterLogo(ctx, brand, logoImg, bottomMargin = 50) {
     drawH = drawW / aspect;
   }
   // Integer pixel positions — avoids sub-pixel sampling blur.
-  const topY = Math.round(SLIDE_H - bottomMargin - drawH);
+  const topY = Math.round(slideH - bottomMargin - drawH);
   const x = Math.round(CX - drawW / 2);
   ctx.drawImage(logoImg, x, topY, Math.round(drawW), Math.round(drawH));
   return topY;
@@ -212,6 +268,7 @@ function drawFooterLogo(ctx, brand, logoImg, bottomMargin = 50) {
 // ---------- slide 1 — cover ----------
 
 async function renderCoverSlide({
+  spec,
   contestants,
   ranks,
   title,
@@ -222,6 +279,9 @@ async function renderCoverSlide({
   logoImg,
   avatars,
 }) {
+  const SLIDE_H = spec.height;
+  const m = spec.cover;
+
   const canvas = document.createElement('canvas');
   canvas.width = SLIDE_W;
   canvas.height = SLIDE_H;
@@ -231,20 +291,17 @@ async function renderCoverSlide({
   ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
   enableHQ(ctx);
 
-  let y = 100;
+  let y = m.topPad;
 
   // ----- pill: "• [ROUND] STANDINGS •" -----
   const pillText = `• ${(roundTitle || 'CURRENT').toUpperCase()} STANDINGS •`;
-  const pillFontSize = 26;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `${brand.font.weights.bold} ${pillFontSize}px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.bold} ${m.pillFontSize}px ${brand.font.family}`;
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '2.5px';
   const pillTextW = ctx.measureText(pillText).width;
-  const pillPadH = 36;
-  const pillPadV = 16;
-  const pillW = pillTextW + pillPadH * 2;
-  const pillH = pillFontSize + pillPadV * 2;
+  const pillW = pillTextW + m.pillPadH * 2;
+  const pillH = m.pillFontSize + m.pillPadV * 2;
   const pillX = CX - pillW / 2;
   roundRectPath(ctx, pillX, y, pillW, pillH, pillH / 2);
   ctx.strokeStyle = brand.colors.primary;
@@ -253,57 +310,52 @@ async function renderCoverSlide({
   ctx.fillStyle = brand.colors.primary;
   ctx.fillText(pillText, CX, y + pillH / 2);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += pillH + 40;
+  y += pillH + m.pillGapBelow;
 
   // ----- title (display) -----
   ctx.fillStyle = brand.colors.white;
-  ctx.font = `${brand.font.weights.bold} 56px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.bold} ${m.titleFontSize}px ${brand.font.family}`;
   ctx.textBaseline = 'top';
   let displayTitle = title;
   if (ctx.measureText(displayTitle).width > 1000) {
-    ctx.font = `${brand.font.weights.bold} 44px ${brand.font.family}`;
+    ctx.font = `${brand.font.weights.bold} ${Math.round(m.titleFontSize * 0.8)}px ${brand.font.family}`;
   }
   ctx.fillText(displayTitle, CX, y);
-  y += 56 + 36;
+  y += m.titleFontSize + m.titleGapBelow;
 
-  // ----- subtitle: "CHICAGO · 2026" — larger and breathing room above -----
+  // ----- subtitle: "CHICAGO · 2026" -----
   const subtitle = [cityName, season].filter(Boolean).join('   ·   ').toUpperCase();
   if (subtitle) {
     ctx.fillStyle = brand.colors.mutedGray;
-    ctx.font = `${brand.font.weights.medium} 24px ${brand.font.family}`;
-    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '5px';
+    ctx.font = `${brand.font.weights.medium} ${m.subtitleFontSize}px ${brand.font.family}`;
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = m.subtitleTracking;
     ctx.fillText(subtitle, CX, y);
     if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-    y += 24 + 56;
+    y += m.subtitleFontSize + m.subtitleGapBelow;
   } else {
-    y += 24;
+    y += m.subtitleFontSize;
   }
 
   // ----- footer logo (drawn first so rows can size to remaining space) -----
-  const logoTop = drawFooterLogo(ctx, brand, logoImg, 60);
+  const logoTop = drawFooterLogo(ctx, brand, logoImg, SLIDE_H, spec.logoHeight, spec.logoBottomPad);
 
   // ----- contestant rows — uniform full-color treatment for all 10 -----
   const rowsTop = y;
-  const rowsBottomLimit = logoTop - 50; // breathing room above logo
+  const rowsBottomLimit = logoTop - m.rowsBottomBreathing;
   const rowsAvailable = rowsBottomLimit - rowsTop;
 
   const total = contestants.length;
-  const rowGap = 6;
   const rowH = Math.floor(
-    (rowsAvailable - rowGap * Math.max(total - 1, 0)) / Math.max(total, 1)
+    (rowsAvailable - m.rowGap * Math.max(total - 1, 0)) / Math.max(total, 1)
   );
-  const cappedRowH = Math.max(80, Math.min(132, rowH));
+  const cappedRowH = Math.max(m.rowH.min, Math.min(m.rowH.max, rowH));
 
   const rowX = 56;
   const rowW = SLIDE_W - rowX * 2;
   let rowY = rowsTop;
 
   // Compute the votes column once so every row aligns to the same x.
-  // The number is right-aligned to `voteNumberRightX`; " votes" sits
-  // immediately after, anchored so its right edge stays at the row's
-  // right padding boundary.
-  const voteSize = 28;
-  ctx.font = `${brand.font.weights.regular} ${voteSize}px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.regular} ${m.rowVoteSize}px ${brand.font.family}`;
   const voteLabelText = ' votes';
   const voteLabelW = ctx.measureText(voteLabelText).width;
   const voteRightPad = 32;
@@ -313,7 +365,7 @@ async function renderCoverSlide({
     const c = contestants[i] || {};
     const displayRank = ranks[i];
 
-    // uniform row container — red-tinted bg + 2px red left border for every row
+    // uniform row container — red-tinted bg + 2px red left border
     ctx.save();
     ctx.fillStyle = 'rgba(225, 29, 42, 0.08)';
     roundRectPath(ctx, rowX, rowY, rowW, cappedRowH, 4);
@@ -322,15 +374,15 @@ async function renderCoverSlide({
     ctx.fillStyle = brand.colors.primary;
     ctx.fillRect(rowX, rowY, 2, cappedRowH);
 
-    // rank — uniform white bold (rank 1 matches rank 2 styling)
+    // rank
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
     ctx.fillStyle = brand.colors.white;
-    ctx.font = `${brand.font.weights.bold} 44px ${brand.font.family}`;
+    ctx.font = `${brand.font.weights.bold} ${m.rowRankSize}px ${brand.font.family}`;
     const rankText = String(displayRank).padStart(2, '0');
     ctx.fillText(rankText, rowX + 32, rowY + cappedRowH / 2);
 
-    // avatar — same circle for every row, no special border
+    // avatar
     const avatarR = Math.floor((cappedRowH - 28) / 2);
     const avatarCX = rowX + 152;
     const avatarCY = rowY + cappedRowH / 2;
@@ -341,7 +393,7 @@ async function renderCoverSlide({
     }
 
     // votes column — number right-aligned at fixed column, label after
-    ctx.font = `${brand.font.weights.regular} ${voteSize}px ${brand.font.family}`;
+    ctx.font = `${brand.font.weights.regular} ${m.rowVoteSize}px ${brand.font.family}`;
     ctx.fillStyle = brand.colors.white;
     ctx.textAlign = 'right';
     const voteText = fmtVotes(c.votes);
@@ -351,13 +403,13 @@ async function renderCoverSlide({
 
     // name — left-aligned, truncated to fit before the votes column
     const nameX = avatarCX + avatarR + 26;
-    const nameMaxW = voteNumberRightX - 32 - nameX; // breathing room before vote column
-    ctx.font = `${brand.font.weights.bold} 30px ${brand.font.family}`;
+    const nameMaxW = voteNumberRightX - 32 - nameX;
+    ctx.font = `${brand.font.weights.bold} ${m.rowNameSize}px ${brand.font.family}`;
     ctx.textAlign = 'left';
     ctx.fillStyle = brand.colors.white;
     ctx.fillText(truncate(ctx, c.name || 'Contestant', nameMaxW), nameX, rowY + cappedRowH / 2);
 
-    rowY += cappedRowH + rowGap;
+    rowY += cappedRowH + m.rowGap;
   }
 
   return new Promise((resolve) => {
@@ -368,6 +420,7 @@ async function renderCoverSlide({
 // ---------- slides 2-6 — spotlight ----------
 
 async function renderSpotlightSlide({
+  spec,
   index,
   contestants,
   ranks,
@@ -375,6 +428,9 @@ async function renderSpotlightSlide({
   logoImg,
   photoImg,
 }) {
+  const SLIDE_H = spec.height;
+  const m = spec.spotlight;
+
   const canvas = document.createElement('canvas');
   canvas.width = SLIDE_W;
   canvas.height = SLIDE_H;
@@ -384,28 +440,28 @@ async function renderSpotlightSlide({
   ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
   enableHQ(ctx);
 
-  // logo anchors the bottom — draw first so layout above can be measured
-  drawFooterLogo(ctx, brand, logoImg, 60);
+  // logo anchors the bottom
+  drawFooterLogo(ctx, brand, logoImg, SLIDE_H, spec.logoHeight, spec.logoBottomPad);
 
   const c = contestants[index] || {};
   const displayRank = ranks[index];
   const isFirst = index === 0;
 
-  let y = 120;
+  let y = m.topPad;
 
-  // hero rank — display weight, tight tracking
+  // hero rank
   ctx.fillStyle = brand.colors.primary;
-  ctx.font = `${brand.font.weights.bold} 120px ${brand.font.family}`;
+  ctx.font = `${brand.font.weights.bold} ${m.rankSize}px ${brand.font.family}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-4px';
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '-3px';
   ctx.fillText(String(displayRank).padStart(2, '0'), CX, y);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-  y += 120 + 60;
+  y += m.rankSize + m.rankPhotoGap;
 
-  // photo — 3:4 portrait, sized for the taller story canvas
-  const photoH = 1200;
-  const photoW = photoH * (3 / 4); // 900
+  // photo (3:4 portrait)
+  const photoH = m.photoH;
+  const photoW = photoH * (3 / 4);
   const photoX = CX - photoW / 2;
   const photoY = y;
   drawRoundedImageWithBorder(
@@ -419,18 +475,17 @@ async function renderSpotlightSlide({
     isFirst ? brand.colors.primary : brand.colors.primaryDark,
     isFirst ? 2 : 1
   );
-  y = photoY + photoH + 60;
+  y = photoY + photoH + m.photoVoteGap;
 
-  // name + votes inline — name bold white, vote count and "votes" label
-  // both regular weight in white
-  const nameVoteSize = 56;
-  ctx.font = `${brand.font.weights.bold} ${nameVoteSize}px ${brand.font.family}`;
+  // name + votes inline — name bold white, count + " votes" both white regular
+  const nameVoteSize = m.nameVoteSize;
   ctx.textBaseline = 'top';
   const nameText = c.name || 'Contestant';
   const sep = '   ·   ';
   const voteText = fmtVotes(c.votes);
   const voteLabel = ' votes';
 
+  ctx.font = `${brand.font.weights.bold} ${nameVoteSize}px ${brand.font.family}`;
   const nameW = ctx.measureText(nameText).width;
   ctx.font = `${brand.font.weights.regular} ${nameVoteSize}px ${brand.font.family}`;
   const sepW = ctx.measureText(sep).width;
@@ -483,7 +538,7 @@ function computeDisplayRanks(contestants) {
 // ---------- public API ----------
 
 /**
- * Generate a 6-slide IG carousel of standings.
+ * Generate a 6-slide carousel of standings in the requested IG format.
  *
  * @param {Object}   params
  * @param {Array}    params.contestants     Pre-sorted contestants (votes desc).
@@ -493,6 +548,8 @@ function computeDisplayRanks(contestants) {
  * @param {string}   [params.cityName]      Subtitle location (e.g. "Chicago").
  * @param {string|number} [params.season]   Subtitle year/season.
  * @param {string}   [params.roundTitle]    "Entry Round", "Round 1", … "Final Round".
+ * @param {'story'|'grid'} [params.format='story']
+ *        'story' → 1080×1920 (9:16). 'grid' → 1080×1350 (4:5).
  * @param {Object}   [params.brand=DEFAULT_BRAND]  Brand config — see DEFAULT_BRAND shape.
  *
  * @returns {Promise<Array<{ filename: string, blob: Blob }>>}
@@ -504,8 +561,10 @@ export async function generateRankingsCarousel({
   cityName,
   season,
   roundTitle,
+  format = 'story',
   brand = DEFAULT_BRAND,
 }) {
+  const spec = FORMAT_SPECS[format] || FORMAT_SPECS.story;
   const all = contestants.slice(0, 10);
   if (all.length === 0) return [];
 
@@ -526,10 +585,12 @@ export async function generateRankingsCarousel({
 
   const slug = slugify(competitionSlug || title || 'standings');
   const roundSlug = slugify(roundTitle || 'current');
+  const fmtSlug = format === 'grid' ? 'grid' : 'story';
 
   const out = [];
 
   const cover = await renderCoverSlide({
+    spec,
     contestants: all,
     ranks,
     title,
@@ -540,10 +601,11 @@ export async function generateRankingsCarousel({
     logoImg,
     avatars,
   });
-  if (cover) out.push({ filename: `${slug}-${roundSlug}-slide-1.png`, blob: cover });
+  if (cover) out.push({ filename: `${slug}-${roundSlug}-${fmtSlug}-1.png`, blob: cover });
 
   for (let i = 0; i < spotlightCount; i++) {
     const blob = await renderSpotlightSlide({
+      spec,
       index: i,
       contestants: all,
       ranks,
@@ -552,7 +614,7 @@ export async function generateRankingsCarousel({
       photoImg: photos[i],
     });
     if (blob) {
-      out.push({ filename: `${slug}-${roundSlug}-slide-${i + 2}.png`, blob });
+      out.push({ filename: `${slug}-${roundSlug}-${fmtSlug}-${i + 2}.png`, blob });
     }
   }
 

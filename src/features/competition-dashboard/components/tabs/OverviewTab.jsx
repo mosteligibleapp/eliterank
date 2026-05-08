@@ -39,7 +39,7 @@ export default function OverviewTab({
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
   const [generatingCardId, setGeneratingCardId] = useState(null);
-  const [generatingRankings, setGeneratingRankings] = useState(false);
+  const [generatingFormat, setGeneratingFormat] = useState(null); // 'story' | 'grid' | null
   const [activeRound, setActiveRound] = useState(null);
 
   useEffect(() => {
@@ -69,9 +69,9 @@ export default function OverviewTab({
     navigate(`/profile/${profileId}`);
   };
 
-  const handleDownloadRankings = async () => {
-    if (generatingRankings || rankedContestants.length === 0) return;
-    setGeneratingRankings(true);
+  const handleDownloadRankings = async (format) => {
+    if (generatingFormat || rankedContestants.length === 0) return;
+    setGeneratingFormat(format);
     try {
       const orgLogo = competition?.organizationLogoUrl;
       const brand = orgLogo
@@ -84,6 +84,7 @@ export default function OverviewTab({
         cityName: competition?.city,
         season: competition?.season,
         roundTitle: activeRound?.title,
+        format,
         brand,
       });
       if (!slides.length) return;
@@ -104,7 +105,7 @@ export default function OverviewTab({
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${slug}${roundSlug}-standings.zip`;
+      a.download = `${slug}${roundSlug}-standings-${format}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -112,7 +113,7 @@ export default function OverviewTab({
     } catch (err) {
       console.error('Rankings carousel generation failed:', err);
     } finally {
-      setGeneratingRankings(false);
+      setGeneratingFormat(null);
     }
   };
 
@@ -327,6 +328,41 @@ export default function OverviewTab({
             )}
           </div>
         </Panel>
+
+        {/* Standings Graphic — downloadable carousel of current top 10 */}
+        <Panel
+          title="Standings Graphic"
+          icon={Download}
+          style={{ marginBottom: 0 }}
+          collapsible
+        >
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl, display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, lineHeight: 1.5 }}>
+              {rankedContestants.length === 0
+                ? 'Standings graphics become available once contestants have votes.'
+                : `Generate a 6-piece carousel of the current top 10 — ${activeRound?.title ? `${activeRound.title.toLowerCase()} standings` : 'live standings'} — ready to post. Each download is a zip of six PNGs.`}
+            </p>
+            <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+              <Button
+                size="sm"
+                icon={generatingFormat === 'story' ? Loader : Download}
+                onClick={() => handleDownloadRankings('story')}
+                disabled={!!generatingFormat || rankedContestants.length === 0}
+              >
+                {generatingFormat === 'story' ? 'Generating…' : 'Stories (9:16)'}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={generatingFormat === 'grid' ? Loader : Download}
+                onClick={() => handleDownloadRankings('grid')}
+                disabled={!!generatingFormat || rankedContestants.length === 0}
+              >
+                {generatingFormat === 'grid' ? 'Generating…' : 'Grid Posts (4:5)'}
+              </Button>
+            </div>
+          </div>
+        </Panel>
       </div>
 
       {/* Right Column */}
@@ -395,46 +431,18 @@ export default function OverviewTab({
           icon={Crown}
           style={{ marginBottom: 0 }}
           action={
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-              <button
-                onClick={handleDownloadRankings}
-                disabled={generatingRankings || rankedContestants.length === 0}
-                title="Download standings carousel (6 slides, 1080×1350) as zip"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: spacing.xs,
-                  padding: `${spacing.xs} ${spacing.sm}`,
-                  background: 'rgba(212,175,55,0.1)',
-                  border: `1px solid ${colors.border.gold}`,
-                  borderRadius: borderRadius.md,
-                  color: colors.gold.primary,
-                  fontSize: typography.fontSize.xs,
-                  fontWeight: typography.fontWeight.medium,
-                  cursor: generatingRankings || rankedContestants.length === 0 ? 'not-allowed' : 'pointer',
-                  opacity: rankedContestants.length === 0 ? 0.5 : 1,
-                }}
-              >
-                {generatingRankings ? (
-                  <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : (
-                  <Download size={12} />
-                )}
-                {generatingRankings ? 'Generating…' : 'Carousel'}
-              </button>
-              <button
-                onClick={() => onNavigateToTab?.('people')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: colors.gold.primary,
-                  fontSize: typography.fontSize.sm,
-                  cursor: 'pointer',
-                }}
-              >
-                View All →
-              </button>
-            </div>
+            <button
+              onClick={() => onNavigateToTab?.('people')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: colors.gold.primary,
+                fontSize: typography.fontSize.sm,
+                cursor: 'pointer',
+              }}
+            >
+              View All →
+            </button>
           }
           collapsible
         >
