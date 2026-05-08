@@ -20,6 +20,24 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     tracesSampleRate: 0.1,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
+    ignoreErrors: [
+      // Facebook in-app browser fires this from its injected navigation_performance_logger
+      // after the WebView's Java bridge has been GC'd. Not actionable from our code.
+      'Java object is gone',
+      'Error invoking postMessage',
+      // Other common in-app browser / extension noise
+      'ResizeObserver loop limit exceeded',
+      'ResizeObserver loop completed with undelivered notifications',
+    ],
+    denyUrls: [
+      // Facebook in-app browser injected scripts
+      /^iabjs:\/\//i,
+      // Browser extensions
+      /extensions\//i,
+      /^chrome:\/\//i,
+      /^chrome-extension:\/\//i,
+      /^moz-extension:\/\//i,
+    ],
   });
 }
 
