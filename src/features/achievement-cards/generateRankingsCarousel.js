@@ -73,17 +73,18 @@ const FORMAT_SPECS = {
       nameVoteSize: 56,
     },
     list: {
-      topPad: 70,
-      photoSize: 280,
-      nameFontSize: 32,
-      nameGap: 16,
-      rowGap: 14,
-      colGap: 28,
-      footer: {
-        gapAbove: 32,
-        logoHeight: 80,
+      topPad: 50,
+      bottomPad: 50,
+      photoSize: 300,
+      nameFontSize: 28,
+      nameGap: 14,
+      rowGap: 18,
+      centerColW: 360,
+      centerGap: 30,
+      brand: {
+        logoHeight: 110,
         logoTitleGap: 18,
-        titleFontSize: 30,
+        titleFontSize: 26,
         titleSubtitleGap: 8,
         subtitleFontSize: 18,
         subtitleTracking: '4px',
@@ -121,20 +122,21 @@ const FORMAT_SPECS = {
       nameVoteSize: 40,
     },
     list: {
-      topPad: 40,
-      photoSize: 200,
-      nameFontSize: 22,
-      nameGap: 10,
+      topPad: 30,
+      bottomPad: 30,
+      photoSize: 220,
+      nameFontSize: 18,
+      nameGap: 8,
       rowGap: 12,
-      colGap: 24,
-      footer: {
-        gapAbove: 24,
-        logoHeight: 60,
+      centerColW: 360,
+      centerGap: 24,
+      brand: {
+        logoHeight: 80,
         logoTitleGap: 14,
-        titleFontSize: 22,
+        titleFontSize: 20,
         titleSubtitleGap: 6,
         subtitleFontSize: 14,
-        subtitleTracking: '3.5px',
+        subtitleTracking: '3px',
       },
     },
   },
@@ -550,59 +552,65 @@ async function renderSpotlightSlide({
   });
 }
 
-// ---------- list variant — pages of photo + name only ----------
+// ---------- list variant — 3-column grid: photos | brand | photos ----------
 
 /**
- * Draw the brand footer for a list page: logo + competition title +
- * "[CITY] · [SEASON] · TOP X" subtitle. Returns the y-coordinate of
- * the footer's top edge so callers can size the body grid above it.
+ * Draw the brand cluster (logo + competition title + "CITY · YEAR · TOP X")
+ * vertically centered inside the page's middle column. Auto-shrinks the title
+ * font if it overflows the column width.
  */
-function drawListFooter(ctx, brand, logoImg, slideH, m, competitionName, cityName, season, topN) {
-  const f = m.footer;
+function drawCenterBrand(ctx, brand, logoImg, b, colCenterX, colWidth, bodyTop, bodyBottom, competitionName, cityName, season, topN) {
+  // Measure the cluster height to vertically center it.
+  const logoH = logoImg ? b.logoHeight : 0;
+  const totalH = logoH
+    + (logoImg ? b.logoTitleGap : 0)
+    + b.titleFontSize
+    + b.titleSubtitleGap
+    + b.subtitleFontSize;
 
-  // Stack vertically: logo, title, subtitle. Anchor the bottom of
-  // the subtitle to (slideH - logoBottomPad-ish) and grow upward.
-  const subtitleY = slideH - 60; // baseline
-  const titleY = subtitleY - f.subtitleFontSize - f.titleSubtitleGap;
-  const logoBottomY = titleY - f.logoTitleGap;
+  const colCY = (bodyTop + bodyBottom) / 2;
+  let yCur = colCY - totalH / 2;
 
   // Logo
   if (logoImg) {
     const aspect = logoImg.width / logoImg.height;
-    let drawH = f.logoHeight;
+    let drawH = b.logoHeight;
     let drawW = drawH * aspect;
-    const maxW = 320;
+    const maxW = colWidth - 12;
     if (drawW > maxW) { drawW = maxW; drawH = drawW / aspect; }
-    const logoY = Math.round(logoBottomY - drawH);
-    const logoX = Math.round(CX - drawW / 2);
-    ctx.drawImage(logoImg, logoX, logoY, Math.round(drawW), Math.round(drawH));
+    const lx = Math.round(colCenterX - drawW / 2);
+    const ly = Math.round(yCur);
+    ctx.drawImage(logoImg, lx, ly, Math.round(drawW), Math.round(drawH));
+    yCur = ly + drawH + b.logoTitleGap;
   }
 
-  // Title (competition name)
+  // Title — auto-shrink if it overflows the center column
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.fillStyle = brand.colors.white;
-  ctx.font = `${brand.font.weights.bold} ${f.titleFontSize}px ${brand.font.family}`;
-  ctx.fillText(competitionName, CX, titleY);
+  let titleSize = b.titleFontSize;
+  ctx.font = `${brand.font.weights.bold} ${titleSize}px ${brand.font.family}`;
+  while (ctx.measureText(competitionName).width > colWidth - 8 && titleSize > 12) {
+    titleSize -= 1;
+    ctx.font = `${brand.font.weights.bold} ${titleSize}px ${brand.font.family}`;
+  }
+  ctx.fillText(competitionName, colCenterX, yCur);
+  yCur += titleSize + b.titleSubtitleGap;
 
-  // Subtitle: "CHICAGO · 2026 · TOP 50"
+  // Subtitle — "CHICAGO · 2026 · TOP 50"
   const parts = [cityName, season, `TOP ${topN}`].filter(Boolean).map(String);
   const subtitle = parts.join('   ·   ').toUpperCase();
   ctx.fillStyle = brand.colors.mutedGray;
-  ctx.font = `${brand.font.weights.medium} ${f.subtitleFontSize}px ${brand.font.family}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = f.subtitleTracking;
-  ctx.fillText(subtitle, CX, subtitleY);
+  ctx.font = `${brand.font.weights.medium} ${b.subtitleFontSize}px ${brand.font.family}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = b.subtitleTracking;
+  ctx.fillText(subtitle, colCenterX, yCur);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
-
-  // Top of footer = whichever element is highest
-  const footerTop = logoImg ? logoBottomY - f.logoHeight : titleY;
-  return footerTop - f.gapAbove;
 }
 
 async function renderListPage({
   spec,
-  contestants,         // up to pageSize for this page
-  pageContestantImages, // pre-loaded photo Images for this page
+  contestants,
+  pageContestantImages,
   competitionName,
   cityName,
   season,
@@ -622,33 +630,37 @@ async function renderListPage({
   ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
   enableHQ(ctx);
 
-  // Footer first so we know where the body grid ends
-  const bodyBottomLimit = drawListFooter(
-    ctx, brand, logoImg, SLIDE_H, m,
-    competitionName, cityName, season, topN
-  );
+  // 3-column horizontal layout: side photos | center brand | side photos
+  const sideMargin = 30;
+  const centerColW = m.centerColW;
+  const centerGap = m.centerGap;
+  const sideColW = (SLIDE_W - sideMargin * 2 - centerColW - centerGap * 2) / 2;
+  const leftColX = sideMargin;
+  const centerColX = leftColX + sideColW + centerGap;
+  const rightColX = centerColX + centerColW + centerGap;
 
-  // Body: 2 columns × 5 rows of [photo + name]
-  const cols = 2;
-  const rows = 5;
   const bodyTop = m.topPad;
-  const bodyAvailable = bodyBottomLimit - bodyTop;
-  const cellH = (bodyAvailable - m.rowGap * (rows - 1)) / rows;
-  const cellW = (SLIDE_W - 80 - m.colGap * (cols - 1)) / cols; // 40px side margins
-  const sideMargin = 40;
+  const bodyBottom = SLIDE_H - m.bottomPad;
+  const bodyHeight = bodyBottom - bodyTop;
+
+  // 5 rows; each row has one photo on the left and one on the right.
+  const rows = 5;
+  const cellH = (bodyHeight - m.rowGap * (rows - 1)) / rows;
 
   for (let i = 0; i < contestants.length; i++) {
     const c = contestants[i];
     if (!c) continue;
 
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const cellX = sideMargin + col * (cellW + m.colGap);
+    const isLeft = (i % 2 === 0);
+    const row = Math.floor(i / 2);
+    const cellX = isLeft ? leftColX : rightColX;
     const cellY = bodyTop + row * (cellH + m.rowGap);
-    const cellCX = cellX + cellW / 2;
+    const cellCX = cellX + sideColW / 2;
 
-    // Photo (square, rounded, centered in cell)
-    const photoSize = Math.min(m.photoSize, Math.floor(cellW), Math.floor(cellH - m.nameGap - m.nameFontSize - 8));
+    // Photo (square, rounded, centered horizontally in the side column)
+    const maxPhotoW = sideColW - 8;
+    const maxPhotoH = cellH - m.nameGap - m.nameFontSize - 6;
+    const photoSize = Math.min(m.photoSize, Math.floor(maxPhotoW), Math.floor(maxPhotoH));
     const photoX = Math.round(cellCX - photoSize / 2);
     const photoY = Math.round(cellY);
     const photoR = 14;
@@ -661,7 +673,6 @@ async function renderListPage({
       ctx.fillStyle = '#1A1A1A';
       ctx.fill();
       ctx.restore();
-      // Initial fallback
       ctx.fillStyle = brand.colors.mutedGray;
       ctx.font = `${brand.font.weights.medium} ${Math.round(photoSize * 0.4)}px ${brand.font.family}`;
       ctx.textAlign = 'center';
@@ -669,15 +680,33 @@ async function renderListPage({
       ctx.fillText((c.name?.charAt(0) || '?').toUpperCase(), cellCX, photoY + photoSize / 2);
     }
 
-    // Name below photo, centered, truncated to cell width
+    // Name below photo, centered in side column, truncated to fit
     const nameY = photoY + photoSize + m.nameGap;
     ctx.font = `${brand.font.weights.bold} ${m.nameFontSize}px ${brand.font.family}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillStyle = brand.colors.white;
-    const nameMaxW = cellW - 16;
+    const nameMaxW = sideColW - 12;
     ctx.fillText(truncate(ctx, c.name || 'Contestant', nameMaxW), cellCX, nameY);
   }
+
+  // Brand cluster — logo + competition title + city/year/top-N — drawn last
+  // so it visually sits on top of (and centered within) the empty middle column.
+  const centerColCenterX = centerColX + centerColW / 2;
+  drawCenterBrand(
+    ctx,
+    brand,
+    logoImg,
+    m.brand,
+    centerColCenterX,
+    centerColW,
+    bodyTop,
+    bodyBottom,
+    competitionName,
+    cityName,
+    season,
+    topN
+  );
 
   return new Promise((resolve) => {
     canvas.toBlob((b) => resolve(b), 'image/png');
