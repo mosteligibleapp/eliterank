@@ -108,8 +108,10 @@ serve(async (req) => {
     const prevRound = (rounds || []).find((r) => r.round_order === round.round_order - 1)
 
     const roundLabel = round.tier_label || round.title || `Round ${round.round_order}`
+    // Prefer title over tier_label for the next round so user-facing copy
+    // reads "Top 50" rather than the internal "Round 1" tier label.
     const nextRoundLabel = nextRound
-      ? (nextRound.tier_label || nextRound.title || `Round ${nextRound.round_order}`)
+      ? (nextRound.title || nextRound.tier_label || `Round ${nextRound.round_order}`)
       : null
 
     // Tier reached for eliminated contestants = contestants_advance of the

@@ -520,12 +520,26 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
       const endLine = formatEndDate(req.next_round_end)
 
+      // Compose the "made it to X" phrase. "Top 50" labels take an article
+      // and an explicit "Round" suffix ("the Top 50 Round"); generic
+      // "Round 2" / "Round 3" labels stand alone; everything else takes
+      // a plain article ("the Final Round").
+      const nextRoundPhrase = nextRoundLabel
+        ? /^Top\s+\d/i.test(nextRoundLabel)
+          ? `to the ${nextRoundLabel} Round`
+          : /^Round\s+\d/i.test(nextRoundLabel)
+            ? `to ${nextRoundLabel}`
+            : `to the ${nextRoundLabel}`
+        : null
+
       const headline = isWinner ? 'You won!' : `You advanced!`
       const subhead = isWinner
         ? `${firstName}, you took the crown in ${competitionName}.`
-        : tierCount
-          ? `${firstName}, you survived ${roundLabel} and made the Top ${tierCount}.`
-          : `${firstName}, you survived ${roundLabel} and are moving on.`
+        : nextRoundPhrase
+          ? `${firstName}, you survived ${roundLabel} and made it ${nextRoundPhrase}.`
+          : tierCount
+            ? `${firstName}, you survived ${roundLabel} and made the Top ${tierCount}.`
+            : `${firstName}, you survived ${roundLabel} and are moving on.`
 
       const tierBlock = tierCount && !isWinner
         ? `<div style="display:inline-block;padding:16px 28px;background:#1a1a1a;border:1px solid #d4a843;border-radius:12px;margin:20px 0;">
@@ -548,18 +562,17 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       const nextAdvanceLine = !isWinner && nextAdvance
         ? `<p style="color:#ccc;font-size:14px;margin:4px 0;">Top <strong style="color:#d4a843;">${nextAdvance}</strong> will advance.</p>`
         : ''
-      const carryoverLine = !isWinner
-        ? `<p style="color:#999;font-size:13px;margin:16px 0;">Votes reset for the new round, but bonus votes you've earned carry over.</p>`
-        : ''
 
       const ctaUrl = req.profile_url || req.competition_url
 
       return {
         subject: isWinner
           ? `You won ${competitionName}!`
-          : tierCount
-            ? `You made the Top ${tierCount}`
-            : `You advanced!`,
+          : nextRoundLabel
+            ? `You made it to ${nextRoundLabel}`
+            : tierCount
+              ? `You made the Top ${tierCount}`
+              : `You advanced!`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#d4a843;font-size:32px;margin:0 0 8px;">${headline}</h1>
@@ -568,9 +581,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${nextRoundOpenLine}
             ${nextRoundEndsLine}
             ${nextAdvanceLine}
-            ${carryoverLine}
-            ${ctaUrl ? goldButton(isWinner ? 'View Your Profile' : 'Share Your Card', ctaUrl) : ''}
-            <p style="color:#999;font-size:13px;margin-top:24px;">Tap your profile to download a shareable card showing your tier.</p>
+            ${ctaUrl ? goldButton(isWinner ? 'View Your Profile' : 'Tell your fans you made it', ctaUrl) : ''}
           </div>
         `),
       }
