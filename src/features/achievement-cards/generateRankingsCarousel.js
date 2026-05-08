@@ -75,19 +75,28 @@ const FORMAT_SPECS = {
     list: {
       topPad: 50,
       bottomPad: 50,
-      photoSize: 300,
-      nameFontSize: 28,
+      photoH: 300,           // 4:5 cell — width = photoH * 4/5 = 240
+      photoVerticalBias: 0.3, // bias crop toward top (preserves faces)
+      nameFontSize: 26,
       nameGap: 14,
       rowGap: 18,
       centerColW: 360,
       centerGap: 30,
       brand: {
         logoHeight: 110,
-        logoTitleGap: 18,
-        titleFontSize: 26,
-        titleSubtitleGap: 8,
-        subtitleFontSize: 18,
+        logoTitleGap: 26,
+        titleFontSize: 28,
+        titleTracking: '1.5px',
+        titleLineGap: 4,
+        titleRuleGap: 22,
+        ruleWidth: 70,
+        ruleColor: 'primary',  // resolved from brand.colors
+        ruleSubtitleGap: 18,
+        subtitleFontSize: 16,
         subtitleTracking: '4px',
+        subtitleHeroGap: 18,
+        heroFontSize: 22,
+        heroTracking: '5px',
       },
     },
   },
@@ -124,7 +133,8 @@ const FORMAT_SPECS = {
     list: {
       topPad: 30,
       bottomPad: 30,
-      photoSize: 220,
+      photoH: 225,           // 4:5 cell — width = 180
+      photoVerticalBias: 0.3,
       nameFontSize: 18,
       nameGap: 8,
       rowGap: 12,
@@ -132,11 +142,19 @@ const FORMAT_SPECS = {
       centerGap: 24,
       brand: {
         logoHeight: 80,
-        logoTitleGap: 14,
-        titleFontSize: 20,
-        titleSubtitleGap: 6,
-        subtitleFontSize: 14,
+        logoTitleGap: 18,
+        titleFontSize: 18,
+        titleTracking: '1px',
+        titleLineGap: 2,
+        titleRuleGap: 16,
+        ruleWidth: 50,
+        ruleColor: 'primary',
+        ruleSubtitleGap: 12,
+        subtitleFontSize: 12,
         subtitleTracking: '3px',
+        subtitleHeroGap: 12,
+        heroFontSize: 16,
+        heroTracking: '3.5px',
       },
     },
   },
@@ -219,7 +237,13 @@ function drawCircleInitial(ctx, ch, cx, cy, r, brand) {
   ctx.fillText((ch || '?').toUpperCase(), cx, cy);
 }
 
-function drawRoundedImageWithBorder(ctx, img, x, y, w, h, r, borderColor, borderWidth) {
+/**
+ * Draw `img` cover-cropped into a rounded rectangle.
+ * verticalBias controls how vertical overflow gets cropped when the
+ * source is taller than the box: 0 = anchor to top (preserve heads),
+ * 0.5 = center crop, 1 = anchor to bottom. Default 0.5.
+ */
+function drawRoundedImageWithBorder(ctx, img, x, y, w, h, r, borderColor, borderWidth, verticalBias = 0.5) {
   ctx.save();
   roundRectPath(ctx, x, y, w, h, r);
   ctx.clip();
@@ -236,7 +260,10 @@ function drawRoundedImageWithBorder(ctx, img, x, y, w, h, r, borderColor, border
       dw = w;
       dh = dw / aspect;
       dx = x;
-      dy = y + (h - dh) / 2;
+      // Bias: 0 keeps the top of the source flush with the top of the
+      // box (max top crop); 1 keeps the bottom flush (max bottom crop);
+      // 0.5 centers. Bias < 0.5 favors preserving the top of the source.
+      dy = y - (dh - h) * verticalBias;
     }
     ctx.drawImage(img, dx, dy, dw, dh);
   } else {
@@ -555,18 +582,68 @@ async function renderSpotlightSlide({
 // ---------- list variant — 3-column grid: photos | brand | photos ----------
 
 /**
- * Draw the brand cluster (logo + competition title + "CITY · YEAR · TOP X")
- * vertically centered inside the page's middle column. Auto-shrinks the title
- * font if it overflows the column width.
+ * Split a competition title into two visually balanced lines.
+ * "Most Eligible Bachelorettes" → ["Most Eligible", "Bachelorettes"]
+ * Single-word titles return a single-element array (caller renders one line).
+ */
+function splitTitle(title) {
+  const t = (title || '').trim();
+  const words = t.split(/\s+/);
+  if (words.length <= 1) return [t];
+  if (words.length === 2) return words;
+  // 3+ words: pick the split closest to the visual midpoint by char count.
+  const mid = t.length / 2;
+  let bestIdx = 0;
+  let bestDelta = Infinity;
+  let cur = 0;
+  for (let i = 0; i < words.length - 1; i++) {
+    cur += words[i].length + 1;
+    const delta = Math.abs(cur - mid);
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      bestIdx = i;
+    }
+  }
+  return [
+    words.slice(0, bestIdx + 1).join(' '),
+    words.slice(bestIdx + 1).join(' '),
+  ];
+}
+
+/**
+ * Draws the brand cluster vertically centered inside the page's middle
+ * column. Editorial layout: logo, two-line uppercase title, thin red rule,
+ * city·year subtitle, and an oversized "TOP N" hero label.
  */
 function drawCenterBrand(ctx, brand, logoImg, b, colCenterX, colWidth, bodyTop, bodyBottom, competitionName, cityName, season, topN) {
-  // Measure the cluster height to vertically center it.
-  const logoH = logoImg ? b.logoHeight : 0;
-  const totalH = logoH
-    + (logoImg ? b.logoTitleGap : 0)
-    + b.titleFontSize
-    + b.titleSubtitleGap
-    + b.subtitleFontSize;
+  const titleLines = splitTitle(competitionName).map((l) => l.toUpperCase());
+
+  // Auto-shrink title if any line overflows the column width.
+  let titleSize = b.titleFontSize;
+  ctx.font = `${brand.font.weights.bold} ${titleSize}px ${brand.font.family}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = b.titleTracking;
+  let widest = Math.max(...titleLines.map((l) => ctx.measureText(l).width));
+  while (widest > colWidth - 12 && titleSize > 10) {
+    titleSize -= 1;
+    ctx.font = `${brand.font.weights.bold} ${titleSize}px ${brand.font.family}`;
+    widest = Math.max(...titleLines.map((l) => ctx.measureText(l).width));
+  }
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+
+  const titleBlockH = titleLines.length * titleSize + (titleLines.length - 1) * b.titleLineGap;
+
+  // Total cluster height
+  const logoBlockH = logoImg ? b.logoHeight : 0;
+  const totalH =
+    logoBlockH +
+    (logoImg ? b.logoTitleGap : 0) +
+    titleBlockH +
+    b.titleRuleGap +
+    1 + // rule
+    b.ruleSubtitleGap +
+    b.subtitleFontSize +
+    b.subtitleHeroGap +
+    b.heroFontSize;
 
   const colCY = (bodyTop + bodyBottom) / 2;
   let yCur = colCY - totalH / 2;
@@ -584,26 +661,44 @@ function drawCenterBrand(ctx, brand, logoImg, b, colCenterX, colWidth, bodyTop, 
     yCur = ly + drawH + b.logoTitleGap;
   }
 
-  // Title — auto-shrink if it overflows the center column
+  // Title — uppercase, bold, two lines, tracked
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.fillStyle = brand.colors.white;
-  let titleSize = b.titleFontSize;
   ctx.font = `${brand.font.weights.bold} ${titleSize}px ${brand.font.family}`;
-  while (ctx.measureText(competitionName).width > colWidth - 8 && titleSize > 12) {
-    titleSize -= 1;
-    ctx.font = `${brand.font.weights.bold} ${titleSize}px ${brand.font.family}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = b.titleTracking;
+  for (let i = 0; i < titleLines.length; i++) {
+    ctx.fillText(titleLines[i], colCenterX, yCur);
+    yCur += titleSize + (i < titleLines.length - 1 ? b.titleLineGap : 0);
   }
-  ctx.fillText(competitionName, colCenterX, yCur);
-  yCur += titleSize + b.titleSubtitleGap;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  yCur += b.titleRuleGap;
 
-  // Subtitle — "CHICAGO · 2026 · TOP 50"
-  const parts = [cityName, season, `TOP ${topN}`].filter(Boolean).map(String);
-  const subtitle = parts.join('   ·   ').toUpperCase();
-  ctx.fillStyle = brand.colors.mutedGray;
-  ctx.font = `${brand.font.weights.medium} ${b.subtitleFontSize}px ${brand.font.family}`;
-  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = b.subtitleTracking;
-  ctx.fillText(subtitle, colCenterX, yCur);
+  // Thin red rule
+  const ruleColor = b.ruleColor === 'primary' ? brand.colors.primary : b.ruleColor;
+  const ruleY = Math.round(yCur);
+  const ruleX = Math.round(colCenterX - b.ruleWidth / 2);
+  ctx.fillStyle = ruleColor;
+  ctx.fillRect(ruleX, ruleY, b.ruleWidth, 1);
+  yCur = ruleY + 1 + b.ruleSubtitleGap;
+
+  // Subtitle — "CHICAGO · 2026" tracked uppercase muted
+  const subtitleParts = [cityName, season].filter(Boolean).map(String);
+  const subtitle = subtitleParts.join('   ·   ').toUpperCase();
+  if (subtitle) {
+    ctx.fillStyle = brand.colors.mutedGray;
+    ctx.font = `${brand.font.weights.medium} ${b.subtitleFontSize}px ${brand.font.family}`;
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = b.subtitleTracking;
+    ctx.fillText(subtitle, colCenterX, yCur);
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  }
+  yCur += b.subtitleFontSize + b.subtitleHeroGap;
+
+  // Hero — "TOP 50" — bold red, tracked uppercase
+  ctx.fillStyle = brand.colors.primary;
+  ctx.font = `${brand.font.weights.bold} ${b.heroFontSize}px ${brand.font.family}`;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = b.heroTracking;
+  ctx.fillText(`TOP ${topN}`, colCenterX, yCur);
   if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
 }
 
@@ -657,31 +752,40 @@ async function renderListPage({
     const cellY = bodyTop + row * (cellH + m.rowGap);
     const cellCX = cellX + sideColW / 2;
 
-    // Photo (square, rounded, centered horizontally in the side column)
-    const maxPhotoW = sideColW - 8;
+    // Photo cell is 4:5 portrait (W = H * 4/5) — better preserves vertical
+    // content like full-body shots and headshots than a square crop.
     const maxPhotoH = cellH - m.nameGap - m.nameFontSize - 6;
-    const photoSize = Math.min(m.photoSize, Math.floor(maxPhotoW), Math.floor(maxPhotoH));
-    const photoX = Math.round(cellCX - photoSize / 2);
+    const targetH = Math.min(m.photoH, Math.floor(maxPhotoH));
+    const targetW = Math.min(Math.floor(targetH * 4 / 5), Math.floor(sideColW - 8));
+    // Recompute height if width was the binding constraint, to keep 4:5.
+    const photoW = targetW;
+    const photoH = Math.round(photoW * 5 / 4);
+    const photoX = Math.round(cellCX - photoW / 2);
     const photoY = Math.round(cellY);
     const photoR = 14;
     const img = pageContestantImages[i];
     if (img) {
-      drawRoundedImageWithBorder(ctx, img, photoX, photoY, photoSize, photoSize, photoR, brand.colors.primaryDark, 1);
+      drawRoundedImageWithBorder(
+        ctx, img,
+        photoX, photoY, photoW, photoH, photoR,
+        brand.colors.primaryDark, 1,
+        m.photoVerticalBias != null ? m.photoVerticalBias : 0.5
+      );
     } else {
       ctx.save();
-      roundRectPath(ctx, photoX, photoY, photoSize, photoSize, photoR);
+      roundRectPath(ctx, photoX, photoY, photoW, photoH, photoR);
       ctx.fillStyle = '#1A1A1A';
       ctx.fill();
       ctx.restore();
       ctx.fillStyle = brand.colors.mutedGray;
-      ctx.font = `${brand.font.weights.medium} ${Math.round(photoSize * 0.4)}px ${brand.font.family}`;
+      ctx.font = `${brand.font.weights.medium} ${Math.round(photoW * 0.4)}px ${brand.font.family}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText((c.name?.charAt(0) || '?').toUpperCase(), cellCX, photoY + photoSize / 2);
+      ctx.fillText((c.name?.charAt(0) || '?').toUpperCase(), cellCX, photoY + photoH / 2);
     }
 
     // Name below photo, centered in side column, truncated to fit
-    const nameY = photoY + photoSize + m.nameGap;
+    const nameY = photoY + photoH + m.nameGap;
     ctx.font = `${brand.font.weights.bold} ${m.nameFontSize}px ${brand.font.family}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
