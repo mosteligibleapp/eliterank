@@ -25,7 +25,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'round_advanced' | 'round_eliminated'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -58,6 +58,13 @@ interface EmailRequest {
   was_doubled?: boolean
   signup_url?: string
   is_anonymous?: boolean
+  // round_advanced / round_eliminated fields
+  round_label?: string
+  next_round_label?: string | null
+  next_round_start?: string | null
+  tier_count?: number | null
+  final_rank?: number | null
+  is_winner?: boolean
 }
 
 /**
@@ -484,6 +491,95 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${roundEndLine}
             ${ctaUrl ? goldButton(`View ${firstName}'s Profile`, ctaUrl) : ''}
             ${fanPrompt}
+          </div>
+        `),
+      }
+    }
+
+    case 'round_advanced': {
+      const firstName = (req.contestant_name || req.to_name || '').split(' ')[0] || 'Contestant'
+      const competitionName = req.competition_name || 'EliteRank'
+      const roundLabel = req.round_label || 'this round'
+      const nextRoundLabel = req.next_round_label || 'the next round'
+      const tierCount = req.tier_count
+      const finalRank = req.final_rank
+      const isWinner = !!req.is_winner
+
+      const formatStartDate = (iso?: string | null) => {
+        if (!iso) return null
+        try {
+          return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+        } catch {
+          return null
+        }
+      }
+      const startLine = formatStartDate(req.next_round_start)
+
+      const headline = isWinner ? 'You won!' : `You advanced!`
+      const subhead = isWinner
+        ? `${firstName}, you took the crown in ${competitionName}.`
+        : tierCount
+          ? `${firstName}, you survived ${roundLabel} and made the Top ${tierCount}.`
+          : `${firstName}, you survived ${roundLabel} and are moving on.`
+
+      const tierBlock = tierCount && !isWinner
+        ? `<div style="display:inline-block;padding:16px 28px;background:#1a1a1a;border:1px solid #d4a843;border-radius:12px;margin:20px 0;">
+             <div style="color:#999;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;">You're now</div>
+             <div style="color:#d4a843;font-size:36px;font-weight:bold;line-height:1.1;margin-top:6px;">TOP ${tierCount}</div>
+             ${finalRank ? `<div style="color:#999;font-size:12px;margin-top:6px;">Finished ${roundLabel} at #${finalRank}</div>` : ''}
+           </div>`
+        : ''
+
+      const nextRoundBlock = !isWinner && startLine
+        ? `<p style="color:#ccc;font-size:14px;margin:16px 0;">${nextRoundLabel} starts <strong style="color:#fff;">${startLine}</strong>. Votes reset for the new round, but bonus votes you've earned carry over.</p>`
+        : !isWinner
+          ? `<p style="color:#ccc;font-size:14px;margin:16px 0;">${nextRoundLabel} is next. Votes reset for the new round, but bonus votes you've earned carry over.</p>`
+          : ''
+
+      const ctaUrl = req.profile_url || req.competition_url
+
+      return {
+        subject: isWinner
+          ? `You won ${competitionName}!`
+          : nextRoundLabel === 'the next round'
+            ? `You advanced!`
+            : `You advanced to ${nextRoundLabel}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:32px;margin:0 0 8px;">${headline}</h1>
+            <p style="color:#ccc;font-size:16px;margin:8px 0;">${subhead}</p>
+            ${tierBlock}
+            ${nextRoundBlock}
+            ${ctaUrl ? goldButton(isWinner ? 'View Your Profile' : 'Share Your Card', ctaUrl) : ''}
+            <p style="color:#999;font-size:13px;margin-top:24px;">Tap your profile to download a shareable card showing your tier.</p>
+          </div>
+        `),
+      }
+    }
+
+    case 'round_eliminated': {
+      const firstName = (req.contestant_name || req.to_name || '').split(' ')[0] || 'Contestant'
+      const competitionName = req.competition_name || 'EliteRank'
+      const roundLabel = req.round_label || 'this round'
+      const tierCount = req.tier_count
+      const finalRank = req.final_rank
+
+      const tierLine = tierCount
+        ? `<p style="color:#ccc;font-size:15px;margin:12px 0;">You finished as a <strong style="color:#d4a843;">Top ${tierCount} contestant</strong> in ${competitionName}.${finalRank ? ` Final rank in ${roundLabel}: <strong style="color:#fff;">#${finalRank}</strong>.` : ''}</p>`
+        : `<p style="color:#ccc;font-size:15px;margin:12px 0;">You competed in ${competitionName}${finalRank ? ` and finished ${roundLabel} at <strong style="color:#fff;">#${finalRank}</strong>` : ''}. Thank you for being part of this season.</p>`
+
+      const ctaUrl = req.profile_url || req.competition_url
+
+      return {
+        subject: `Thanks for competing in ${competitionName}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Thanks, ${firstName}.</h1>
+            <p style="color:#ccc;font-size:16px;margin:8px 0;">Your season ended in ${roundLabel}.</p>
+            ${tierLine}
+            <p style="color:#999;font-size:14px;margin:16px 0;">Your profile stays live with the tier you reached. You can download a shareable card or keep watching the rest of the competition unfold.</p>
+            ${ctaUrl ? goldButton('Get Your Card', ctaUrl) : ''}
+            ${req.competition_url ? `<p style="margin-top:16px;"><a href="${req.competition_url}" style="color:#d4a843;font-size:13px;text-decoration:none;">Watch the rest of the competition →</a></p>` : ''}
           </div>
         `),
       }
