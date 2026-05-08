@@ -578,27 +578,35 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
 
     case 'round_eliminated': {
       const firstName = (req.contestant_name || req.to_name || '').split(' ')[0] || 'Contestant'
-      const competitionName = req.competition_name || 'EliteRank'
+      const baseCompetitionName = req.competition_name || 'EliteRank'
+      // Display the competition with its season year tagged on. Hardcoded
+      // here (vs DB) per direction — keeps other surfaces using the bare
+      // name. If we run a 2027 season, bump this string.
+      const competitionName = `${baseCompetitionName} 2026`
       const roundLabel = req.round_label || 'this round'
       const tierCount = req.tier_count
       const finalRank = req.final_rank
 
+      // "the Entry Round" / "the Final Round" reads natural; "Round 2"
+      // doesn't take an article.
+      const roundLabelWithArticle = /^Round\s+\d/.test(roundLabel)
+        ? roundLabel
+        : `the ${roundLabel}`
+
       const tierLine = tierCount
         ? `<p style="color:#ccc;font-size:15px;margin:12px 0;">You finished as a <strong style="color:#d4a843;">Top ${tierCount} contestant</strong> in ${competitionName}.${finalRank ? ` Final rank in ${roundLabel}: <strong style="color:#fff;">#${finalRank}</strong>.` : ''}</p>`
         : `<p style="color:#ccc;font-size:15px;margin:12px 0;">You competed in ${competitionName}${finalRank ? ` and finished ${roundLabel} at <strong style="color:#fff;">#${finalRank}</strong>` : ''}. Thank you for being part of this season.</p>`
-
-      const ctaUrl = req.profile_url || req.competition_url
 
       return {
         subject: `Thanks for competing in ${competitionName}`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Thanks, ${firstName}.</h1>
-            <p style="color:#ccc;font-size:16px;margin:8px 0;">Your season ended in ${roundLabel}.</p>
+            <p style="color:#fff;font-size:16px;margin:8px 0 4px;">Your contestant journey ended in ${roundLabelWithArticle}.</p>
+            <p style="color:#ccc;font-size:15px;margin:0 0 12px;">You made it farther than most!</p>
             ${tierLine}
-            <p style="color:#999;font-size:14px;margin:16px 0;">Your profile stays live with the tier you reached. You can download a shareable card or keep watching the rest of the competition unfold.</p>
-            ${ctaUrl ? goldButton('Get Your Card', ctaUrl) : ''}
-            ${req.competition_url ? `<p style="margin-top:16px;"><a href="${req.competition_url}" style="color:#d4a843;font-size:13px;text-decoration:none;">Watch the rest of the competition →</a></p>` : ''}
+            <p style="color:#ccc;font-size:14px;margin:16px 0;">We hope that you will consider competing again next year and attend the upcoming events.</p>
+            ${req.competition_url ? `<p style="margin-top:24px;"><a href="${req.competition_url}" style="color:#d4a843;font-size:14px;text-decoration:none;font-weight:bold;">Watch the rest of the competition →</a></p>` : ''}
           </div>
         `),
       }
