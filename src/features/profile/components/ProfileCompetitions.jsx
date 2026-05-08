@@ -138,7 +138,7 @@ function StatBox({ label, value, suffix, icon, accent = false, isMobile = false 
   );
 }
 
-function RoleBadge({ role, size = 'sm', subLabel }) {
+function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
   switch (role) {
     case 'nominee':
       return (
@@ -165,7 +165,7 @@ function RoleBadge({ role, size = 'sm', subLabel }) {
       return (
         <Badge variant="success" size={size} pill>
           <Crown size={10} style={{ marginRight: '4px' }} />
-          Contestant
+          {contestantLabel || 'Contestant'}
         </Badge>
       );
     case 'eliminated':
@@ -242,9 +242,13 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
 
   // Contestant's current rank + total, derived from the fresh leaderboard
   // snapshot so the stats bar matches the payload the voting panel sees.
+  // Eliminated contestants stay on the leaderboard for display but are
+  // excluded here so rank/total reflect only contestants still in the
+  // running (e.g. "5 / 50" instead of "5 / 89").
   const rankStats = useMemo(() => {
     if (!showInlineVoting || !leaderboard?.length || !entry.contestant?.id) return null;
-    const byVotes = [...leaderboard].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    const active = leaderboard.filter((c) => c.status === 'active');
+    const byVotes = [...active].sort((a, b) => (b.votes || 0) - (a.votes || 0));
     const idx = byVotes.findIndex((c) => c.id === entry.contestant.id);
     if (idx === -1) return null;
     return { current: idx + 1, total: byVotes.length };
@@ -322,7 +326,11 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
               gap in the stack. */}
           {entry.role && (
             <div style={{ display: 'flex' }}>
-              <RoleBadge role={entry.role} subLabel={entry.eliminatedRoundLabel} />
+              <RoleBadge
+                role={entry.role}
+                subLabel={entry.eliminatedRoundLabel}
+                contestantLabel={rankStats ? `Top ${rankStats.total} Contestant` : undefined}
+              />
             </div>
           )}
 
