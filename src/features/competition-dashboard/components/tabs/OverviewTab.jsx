@@ -5,7 +5,7 @@ import { colors, spacing, borderRadius, typography } from '../../../../styles/th
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
-import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
+import { generateAchievementCard, getContestantTierTitle } from '../../../achievement-cards/generateAchievementCard';
 import { isLive } from '../../../../utils/competitionPhase';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
@@ -47,8 +47,10 @@ export default function OverviewTab({
   const handleDownloadCard = async (person) => {
     setGeneratingCardId(person.id);
     try {
+      const customTitle = getContestantTierTitle(person, competition?.voting_rounds);
       const blob = await generateAchievementCard({
         achievementType: 'contestant',
+        customTitle,
         name: person.name,
         photoUrl: person.avatarUrl,
         handle: person.instagram,

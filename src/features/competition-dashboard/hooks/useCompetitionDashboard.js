@@ -159,7 +159,7 @@ export function useCompetitionDashboard(competitionId) {
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
             organization:organizations(id, name, slug, logo_url, header_logo_url, website_url),
-            voting_rounds(id, start_date, end_date, round_order, round_type),
+            voting_rounds(id, start_date, end_date, round_order, round_type, contestants_advance),
             nomination_periods(id, start_date, end_date, period_order, title)
           `)
           .eq('id', competitionId)
@@ -221,6 +221,9 @@ export function useCompetitionDashboard(competitionId) {
         avatarUrl: c.avatar_url || c.profile?.avatar_url,
         instagram: c.instagram || c.profile?.instagram,
         userId: c.user_id,
+        eliminatedInRound: c.eliminated_in_round,
+        currentRound: c.current_round,
+        advancementStatus: c.advancement_status,
       }));
 
       // Targeted profile lookup for nominee matching

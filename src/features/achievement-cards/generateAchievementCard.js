@@ -59,6 +59,30 @@ export function getRoundAdvancementTitle(round, nextRound) {
   return 'ADVANCED';
 }
 
+// Compute the tier-aware contestant card title (e.g. "TOP 50 CONTESTANT").
+// Active contestants get credit for the most recently completed round;
+// eliminated contestants get credit for whichever round they survived
+// through (eliminated_in_round - 1). Returns undefined when the tier is
+// unknown so callers can fall back to the default "CONTESTANT" badge.
+export function getContestantTierTitle(contestant, votingRounds) {
+  const rounds = votingRounds || [];
+  let tierRound;
+  if (contestant?.eliminatedInRound) {
+    tierRound = rounds.find((r) => r.round_order === contestant.eliminatedInRound - 1);
+  } else {
+    const now = Date.now();
+    const completed = rounds
+      .filter((r) => r.end_date && new Date(r.end_date).getTime() <= now)
+      .sort((a, b) => (b.round_order || 0) - (a.round_order || 0));
+    tierRound = completed[0];
+  }
+  const tierCount = tierRound?.contestants_advance;
+  if (Number.isFinite(tierCount) && tierCount > 0) {
+    return `TOP ${tierCount} CONTESTANT`;
+  }
+  return undefined;
+}
+
 function formatSeasonLabel(season) {
   if (!season) return null;
   const year = typeof season === 'number' ? season : Number(season);

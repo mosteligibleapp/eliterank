@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
-import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
+import { generateAchievementCard, getContestantTierTitle } from '../../../achievement-cards/generateAchievementCard';
 import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
 import WinnersManager from '../WinnersManager';
@@ -165,8 +165,12 @@ export default function PeopleTab({
   const handleDownloadCard = async (person, type = 'contestant') => {
     setGeneratingCardId(person.id);
     try {
+      const customTitle = type === 'contestant'
+        ? getContestantTierTitle(person, competition?.voting_rounds)
+        : undefined;
       const blob = await generateAchievementCard({
         achievementType: type === 'contestant' ? 'contestant' : 'nominated',
+        customTitle,
         name: person.name,
         photoUrl: person.avatarUrl,
         handle: person.instagram,
