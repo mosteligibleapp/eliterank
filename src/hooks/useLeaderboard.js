@@ -179,19 +179,37 @@ export function useLeaderboard(competitionId, options = {}) {
 
   // Ranked contestants with zone info
   const rankedContestants = useMemo(() => {
-    const total = sortedContestants.length;
-    // Prefer the round's explicit advancing count (e.g. "top 50 move on")
+    // The "at risk of elimination" cohort is computed against contestants
+    // who are still in the running for THIS round — eliminated rows stay
+    // on the leaderboard for display but were already cut in a prior
+    // round, so flagging them as at-risk again would inflate the count
+    // (e.g. 89 total, top-25 advancing → 64 wrongly flagged instead of
+    // the correct 25 = 50 active − 25 advancing).
+    const activeContestants = sortedContestants.filter(
+      (c) => c.status === 'active',
+    );
+    const activeTotal = activeContestants.length;
+
+    // Prefer the round's explicit advancing count (e.g. "top 25 move on")
     // so the danger zone reflects the actual elimination cutoff. Only fall
-    // back to the percentage threshold when no advancing count is supplied.
+    // back to the percentage threshold (over the active roster) when no
+    // advancing count is supplied.
     const dangerZoneStart =
       Number.isFinite(advancingCount) && advancingCount > 0
         ? advancingCount
-        : Math.ceil(total * (1 - eliminationThreshold));
+        : Math.ceil(activeTotal * (1 - eliminationThreshold));
+
+    // Build the at-risk set from the active roster only. Eliminated
+    // contestants are never marked as in-danger again.
+    const atRiskIds = new Set();
+    activeContestants.forEach((c, i) => {
+      if (i + 1 > dangerZoneStart) atRiskIds.add(c.id);
+    });
 
     return sortedContestants.map((contestant, index) => {
       const rank =
         sortBy === 'rank' ? contestant.rank || index + 1 : index + 1;
-      const isInDangerZone = rank > dangerZoneStart;
+      const isInDangerZone = atRiskIds.has(contestant.id);
       const isTop3 = rank <= 3;
 
       return {
