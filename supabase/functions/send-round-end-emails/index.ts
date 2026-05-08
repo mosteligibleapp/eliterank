@@ -100,7 +100,7 @@ serve(async (req) => {
 
     const { data: rounds } = await supabase
       .from('voting_rounds')
-      .select('id, round_order, title, tier_label, start_date, contestants_advance')
+      .select('id, round_order, title, tier_label, start_date, end_date, contestants_advance')
       .eq('competition_id', round.competition_id)
       .order('round_order', { ascending: true })
 
@@ -160,7 +160,8 @@ serve(async (req) => {
           competition_name: competition?.name || 'EliteRank',
           round_label: roundLabel,
           next_round_label: nextRoundLabel,
-          next_round_start: nextRound?.start_date || null,
+          next_round_end: nextRound?.end_date || null,
+          next_round_advance_count: nextRound?.contestants_advance ?? null,
           tier_count: advancerTierCount,
           final_rank: entry.rank,
           profile_url: profileUrl,

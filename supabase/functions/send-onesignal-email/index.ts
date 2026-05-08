@@ -61,7 +61,8 @@ interface EmailRequest {
   // round_advanced / round_eliminated fields
   round_label?: string
   next_round_label?: string | null
-  next_round_start?: string | null
+  next_round_end?: string | null
+  next_round_advance_count?: number | null
   tier_count?: number | null
   final_rank?: number | null
   is_winner?: boolean
@@ -500,20 +501,24 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       const firstName = (req.contestant_name || req.to_name || '').split(' ')[0] || 'Contestant'
       const competitionName = req.competition_name || 'EliteRank'
       const roundLabel = req.round_label || 'this round'
-      const nextRoundLabel = req.next_round_label || 'the next round'
+      const nextRoundLabel = req.next_round_label || null
       const tierCount = req.tier_count
       const finalRank = req.final_rank
       const isWinner = !!req.is_winner
+      const nextAdvance = req.next_round_advance_count
 
-      const formatStartDate = (iso?: string | null) => {
+      const formatEndDate = (iso?: string | null) => {
         if (!iso) return null
         try {
-          return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+          const d = new Date(iso)
+          const date = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+          const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago', timeZoneName: 'short' })
+          return `${date} at ${time}`
         } catch {
           return null
         }
       }
-      const startLine = formatStartDate(req.next_round_start)
+      const endLine = formatEndDate(req.next_round_end)
 
       const headline = isWinner ? 'You won!' : `You advanced!`
       const subhead = isWinner
@@ -530,26 +535,40 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
            </div>`
         : ''
 
-      const nextRoundBlock = !isWinner && startLine
-        ? `<p style="color:#ccc;font-size:14px;margin:16px 0;">${nextRoundLabel} starts <strong style="color:#fff;">${startLine}</strong>. Votes reset for the new round, but bonus votes you've earned carry over.</p>`
-        : !isWinner
-          ? `<p style="color:#ccc;font-size:14px;margin:16px 0;">${nextRoundLabel} is next. Votes reset for the new round, but bonus votes you've earned carry over.</p>`
-          : ''
+      // Next round has already started by the time this email goes out
+      // (lazy round-end pipeline finalizes the prior round and immediately
+      // bumps everyone into the next one). Frame the messaging accordingly:
+      // "voting is now open" rather than "starts in the future".
+      const nextRoundOpenLine = !isWinner && nextRoundLabel
+        ? `<p style="color:#fff;font-size:16px;font-weight:bold;margin:20px 0 4px;">${nextRoundLabel} voting is now open.</p>`
+        : ''
+      const nextRoundEndsLine = !isWinner && endLine
+        ? `<p style="color:#ccc;font-size:14px;margin:4px 0;">This round ends <strong style="color:#fff;">${endLine}</strong>.</p>`
+        : ''
+      const nextAdvanceLine = !isWinner && nextAdvance
+        ? `<p style="color:#ccc;font-size:14px;margin:4px 0;">Top <strong style="color:#d4a843;">${nextAdvance}</strong> will advance.</p>`
+        : ''
+      const carryoverLine = !isWinner
+        ? `<p style="color:#999;font-size:13px;margin:16px 0;">Votes reset for the new round, but bonus votes you've earned carry over.</p>`
+        : ''
 
       const ctaUrl = req.profile_url || req.competition_url
 
       return {
         subject: isWinner
           ? `You won ${competitionName}!`
-          : nextRoundLabel === 'the next round'
-            ? `You advanced!`
-            : `You advanced to ${nextRoundLabel}`,
+          : tierCount
+            ? `You made the Top ${tierCount}`
+            : `You advanced!`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#d4a843;font-size:32px;margin:0 0 8px;">${headline}</h1>
             <p style="color:#ccc;font-size:16px;margin:8px 0;">${subhead}</p>
             ${tierBlock}
-            ${nextRoundBlock}
+            ${nextRoundOpenLine}
+            ${nextRoundEndsLine}
+            ${nextAdvanceLine}
+            ${carryoverLine}
             ${ctaUrl ? goldButton(isWinner ? 'View Your Profile' : 'Share Your Card', ctaUrl) : ''}
             <p style="color:#999;font-size:13px;margin-top:24px;">Tap your profile to download a shareable card showing your tier.</p>
           </div>
