@@ -394,7 +394,7 @@ export default function OverviewTab({
                       Top {listTopN} List
                     </p>
                     <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, lineHeight: 1.5 }}>
-                      {Math.ceil(Math.min(rankedContestants.length, listTopN) / 10)} pages, 10 contestants each — photo + name only, no ranks or votes.
+                      {Math.ceil(Math.min(rankedContestants.length, listTopN) / 6)} pages, 6 contestants each (3 top row + 3 bottom row, brand in the middle) — photo + name only, no ranks or votes.
                     </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>

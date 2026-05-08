@@ -75,28 +75,26 @@ const FORMAT_SPECS = {
     list: {
       topPad: 50,
       bottomPad: 50,
-      photoH: 300,           // 4:5 cell — width = photoH * 4/5 = 240
-      photoVerticalBias: 0.3, // bias crop toward top (preserves faces)
-      nameFontSize: 26,
-      nameGap: 14,
-      rowGap: 18,
-      centerColW: 360,
-      centerGap: 30,
+      sideMargin: 30,
+      colGap: 18,
+      photoVerticalBias: 0.3,
+      nameFontSize: 32,
+      nameGap: 16,
       brand: {
-        logoHeight: 110,
-        logoTitleGap: 26,
-        titleFontSize: 28,
-        titleTracking: '1.5px',
-        titleLineGap: 4,
-        titleRuleGap: 22,
-        ruleWidth: 70,
-        ruleColor: 'primary',  // resolved from brand.colors
-        ruleSubtitleGap: 18,
-        subtitleFontSize: 16,
-        subtitleTracking: '4px',
-        subtitleHeroGap: 18,
-        heroFontSize: 22,
-        heroTracking: '5px',
+        logoHeight: 180,
+        logoTitleGap: 32,
+        titleFontSize: 56,
+        titleTracking: '2px',
+        titleLineGap: 8,
+        titleRuleGap: 32,
+        ruleWidth: 130,
+        ruleColor: 'primary',
+        ruleSubtitleGap: 28,
+        subtitleFontSize: 30,
+        subtitleTracking: '5px',
+        subtitleHeroGap: 26,
+        heroFontSize: 80,
+        heroTracking: '7px',
       },
     },
   },
@@ -133,28 +131,26 @@ const FORMAT_SPECS = {
     list: {
       topPad: 30,
       bottomPad: 30,
-      photoH: 225,           // 4:5 cell — width = 180
+      sideMargin: 30,
+      colGap: 16,
       photoVerticalBias: 0.3,
-      nameFontSize: 18,
-      nameGap: 8,
-      rowGap: 12,
-      centerColW: 360,
-      centerGap: 24,
+      nameFontSize: 24,
+      nameGap: 12,
       brand: {
-        logoHeight: 80,
-        logoTitleGap: 18,
-        titleFontSize: 18,
-        titleTracking: '1px',
-        titleLineGap: 2,
-        titleRuleGap: 16,
-        ruleWidth: 50,
+        logoHeight: 130,
+        logoTitleGap: 24,
+        titleFontSize: 38,
+        titleTracking: '1.5px',
+        titleLineGap: 6,
+        titleRuleGap: 24,
+        ruleWidth: 100,
         ruleColor: 'primary',
-        ruleSubtitleGap: 12,
-        subtitleFontSize: 12,
-        subtitleTracking: '3px',
-        subtitleHeroGap: 12,
-        heroFontSize: 16,
-        heroTracking: '3.5px',
+        ruleSubtitleGap: 20,
+        subtitleFontSize: 22,
+        subtitleTracking: '4px',
+        subtitleHeroGap: 18,
+        heroFontSize: 54,
+        heroTracking: '5px',
       },
     },
   },
@@ -611,11 +607,13 @@ function splitTitle(title) {
 }
 
 /**
- * Draws the brand cluster vertically centered inside the page's middle
- * column. Editorial layout: logo, two-line uppercase title, thin red rule,
- * city·year subtitle, and an oversized "TOP N" hero label.
+ * Draws the brand cluster horizontally centered on the slide and vertically
+ * centered between bandTop and bandBottom. Editorial layout: logo, two-line
+ * uppercase title, thin red rule, city·year subtitle, oversized "TOP N" hero.
  */
-function drawCenterBrand(ctx, brand, logoImg, b, colCenterX, colWidth, bodyTop, bodyBottom, competitionName, cityName, season, topN) {
+function drawBrandBand(ctx, brand, logoImg, b, slideW, bandTop, bandBottom, competitionName, cityName, season, topN) {
+  const colCenterX = slideW / 2;
+  const colWidth = slideW - 80; // generous breathing room left and right
   const titleLines = splitTitle(competitionName).map((l) => l.toUpperCase());
 
   // Auto-shrink title if any line overflows the column width.
@@ -645,7 +643,7 @@ function drawCenterBrand(ctx, brand, logoImg, b, colCenterX, colWidth, bodyTop, 
     b.subtitleHeroGap +
     b.heroFontSize;
 
-  const colCY = (bodyTop + bodyBottom) / 2;
+  const colCY = (bandTop + bandBottom) / 2;
   let yCur = colCY - totalH / 2;
 
   // Logo
@@ -725,45 +723,25 @@ async function renderListPage({
   ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
   enableHQ(ctx);
 
-  // 3-column horizontal layout: side photos | center brand | side photos
-  const sideMargin = 30;
-  const centerColW = m.centerColW;
-  const centerGap = m.centerGap;
-  const sideColW = (SLIDE_W - sideMargin * 2 - centerColW - centerGap * 2) / 2;
-  const leftColX = sideMargin;
-  const centerColX = leftColX + sideColW + centerGap;
-  const rightColX = centerColX + centerColW + centerGap;
+  // Layout: 3 photos in a top row, brand band in the middle of the page,
+  // 3 photos in a bottom row. 6 contestants per page total.
+  const cols = 3;
+  const sideMargin = m.sideMargin;
+  const colGap = m.colGap;
+  const cellW = (SLIDE_W - sideMargin * 2 - colGap * (cols - 1)) / cols;
+  const photoW = Math.floor(cellW);
+  const photoH = Math.round(photoW * 5 / 4); // 4:5 portrait
+  const cellH = photoH + m.nameGap + m.nameFontSize + 4; // photo + name + small bottom slack
 
-  const bodyTop = m.topPad;
-  const bodyBottom = SLIDE_H - m.bottomPad;
-  const bodyHeight = bodyBottom - bodyTop;
+  const topRowY = m.topPad;
+  const bottomRowY = SLIDE_H - m.bottomPad - cellH;
 
-  // 5 rows; each row has one photo on the left and one on the right.
-  const rows = 5;
-  const cellH = (bodyHeight - m.rowGap * (rows - 1)) / rows;
-
-  for (let i = 0; i < contestants.length; i++) {
-    const c = contestants[i];
-    if (!c) continue;
-
-    const isLeft = (i % 2 === 0);
-    const row = Math.floor(i / 2);
-    const cellX = isLeft ? leftColX : rightColX;
-    const cellY = bodyTop + row * (cellH + m.rowGap);
-    const cellCX = cellX + sideColW / 2;
-
-    // Photo cell is 4:5 portrait (W = H * 4/5) — better preserves vertical
-    // content like full-body shots and headshots than a square crop.
-    const maxPhotoH = cellH - m.nameGap - m.nameFontSize - 6;
-    const targetH = Math.min(m.photoH, Math.floor(maxPhotoH));
-    const targetW = Math.min(Math.floor(targetH * 4 / 5), Math.floor(sideColW - 8));
-    // Recompute height if width was the binding constraint, to keep 4:5.
-    const photoW = targetW;
-    const photoH = Math.round(photoW * 5 / 4);
+  const drawCell = (c, img, cellX, cellY) => {
+    if (!c) return;
+    const cellCX = cellX + cellW / 2;
     const photoX = Math.round(cellCX - photoW / 2);
     const photoY = Math.round(cellY);
-    const photoR = 14;
-    const img = pageContestantImages[i];
+    const photoR = 18;
     if (img) {
       drawRoundedImageWithBorder(
         ctx, img,
@@ -784,32 +762,30 @@ async function renderListPage({
       ctx.fillText((c.name?.charAt(0) || '?').toUpperCase(), cellCX, photoY + photoH / 2);
     }
 
-    // Name below photo, centered in side column, truncated to fit
     const nameY = photoY + photoH + m.nameGap;
     ctx.font = `${brand.font.weights.bold} ${m.nameFontSize}px ${brand.font.family}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillStyle = brand.colors.white;
-    const nameMaxW = sideColW - 12;
+    const nameMaxW = cellW - 12;
     ctx.fillText(truncate(ctx, c.name || 'Contestant', nameMaxW), cellCX, nameY);
+  };
+
+  for (let i = 0; i < contestants.length && i < 6; i++) {
+    const col = i % cols;
+    const isTopRow = i < cols;
+    const cellX = sideMargin + col * (cellW + colGap);
+    const cellY = isTopRow ? topRowY : bottomRowY;
+    drawCell(contestants[i], pageContestantImages[i], cellX, cellY);
   }
 
-  // Brand cluster — logo + competition title + city/year/top-N — drawn last
-  // so it visually sits on top of (and centered within) the empty middle column.
-  const centerColCenterX = centerColX + centerColW / 2;
-  drawCenterBrand(
-    ctx,
-    brand,
-    logoImg,
-    m.brand,
-    centerColCenterX,
-    centerColW,
-    bodyTop,
-    bodyBottom,
-    competitionName,
-    cityName,
-    season,
-    topN
+  // Brand band fills the vertical space between the two photo rows.
+  const bandTop = topRowY + cellH;
+  const bandBottom = bottomRowY;
+  drawBrandBand(
+    ctx, brand, logoImg, m.brand,
+    SLIDE_W, bandTop, bandBottom,
+    competitionName, cityName, season, topN
   );
 
   return new Promise((resolve) => {
@@ -857,7 +833,7 @@ function computeDisplayRanks(contestants) {
  *        'story' → 1080×1920 (9:16). 'grid' → 1080×1350 (4:5).
  * @param {'spotlight'|'list'} [params.variant='spotlight']
  * @param {number}   [params.topN]          List variant: total contestants to render. Default 50.
- * @param {number}   [params.pageSize=10]   List variant: contestants per page.
+ * @param {number}   [params.pageSize]      List variant: contestants per page (default 6: 3 top row + 3 bottom row).
  * @param {Object}   [params.brand=DEFAULT_BRAND]  Brand config — see DEFAULT_BRAND shape.
  *
  * @returns {Promise<Array<{ filename: string, blob: Blob }>>}
@@ -872,9 +848,11 @@ export async function generateRankingsCarousel({
   format = 'story',
   variant = 'spotlight',
   topN,
-  pageSize = 10,
+  pageSize,
   brand = DEFAULT_BRAND,
 }) {
+  // List variant defaults to 6/page (3 top row + 3 bottom row); spotlight ignores pageSize.
+  const effectivePageSize = pageSize || (variant === 'list' ? 6 : 10);
   const spec = FORMAT_SPECS[format] || FORMAT_SPECS.story;
   if (contestants.length === 0) return [];
 
@@ -890,7 +868,7 @@ export async function generateRankingsCarousel({
   if (variant === 'list') {
     const limit = Math.min(contestants.length, topN || 50);
     const all = contestants.slice(0, limit);
-    const totalPages = Math.max(1, Math.ceil(limit / pageSize));
+    const totalPages = Math.max(1, Math.ceil(limit / effectivePageSize));
 
     // Preload all photos in parallel — prefer photoUrl over avatarUrl for bigger crops.
     const photos = await Promise.all(
@@ -902,9 +880,9 @@ export async function generateRankingsCarousel({
 
     const out = [];
     for (let p = 0; p < totalPages; p++) {
-      const start = p * pageSize;
-      const pageContestants = all.slice(start, start + pageSize);
-      const pageImages = photos.slice(start, start + pageSize);
+      const start = p * effectivePageSize;
+      const pageContestants = all.slice(start, start + effectivePageSize);
+      const pageImages = photos.slice(start, start + effectivePageSize);
       const blob = await renderListPage({
         spec,
         contestants: pageContestants,
