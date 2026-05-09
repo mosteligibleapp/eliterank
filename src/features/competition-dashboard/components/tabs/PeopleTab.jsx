@@ -86,6 +86,7 @@ export default function PeopleTab({
   const [resentId, setResentId] = useState(null);
   const [generatingCardId, setGeneratingCardId] = useState(null);
   const [uploadingAvatarId, setUploadingAvatarId] = useState(null);
+  const [bulkPhotoProgress, setBulkPhotoProgress] = useState(null);
   const [nominators, setNominators] = useState([]);
   const [voters, setVoters] = useState([]);
   const [nominatorsLoaded, setNominatorsLoaded] = useState(false);
@@ -193,6 +194,78 @@ export default function PeopleTab({
     } finally {
       setGeneratingCardId(null);
     }
+  };
+
+  const triggerBlobDownload = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const photoFilename = (person, blob) => {
+    const safeName = person.name.replace(/\s+/g, '-').toLowerCase();
+    const mime = blob.type || '';
+    let ext = mime.split('/')[1]?.split('+')[0];
+    if (!ext) {
+      const fromUrl = person.avatarUrl?.split('?')[0]?.split('.').pop()?.toLowerCase();
+      ext = fromUrl && fromUrl.length <= 5 ? fromUrl : 'jpg';
+    }
+    if (ext === 'jpeg') ext = 'jpg';
+    return `${safeName}-photo.${ext}`;
+  };
+
+  const handleDownloadPhoto = async (person) => {
+    if (!person.avatarUrl) {
+      alert('No profile photo on file for this contestant.');
+      return;
+    }
+    setGeneratingCardId(person.id);
+    try {
+      const response = await fetch(person.avatarUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      triggerBlobDownload(blob, photoFilename(person, blob));
+    } catch (err) {
+      console.error('Photo download failed:', err);
+      alert('Failed to download photo. Please try again.');
+    } finally {
+      setGeneratingCardId(null);
+    }
+  };
+
+  const handleDownloadAllPhotos = async () => {
+    const withPhotos = contestants.filter(c => c.avatarUrl);
+    if (!withPhotos.length) {
+      alert('No contestants have a profile photo yet.');
+      return;
+    }
+    const skipped = contestants.length - withPhotos.length;
+    const msg = skipped
+      ? `Download ${withPhotos.length} of ${contestants.length} contestant photos? (${skipped} without photos will be skipped)\n\nYour browser may ask permission to download multiple files.`
+      : `Download photos for all ${withPhotos.length} contestants?\n\nYour browser may ask permission to download multiple files.`;
+    if (!confirm(msg)) return;
+    let failed = 0;
+    for (let i = 0; i < withPhotos.length; i++) {
+      const c = withPhotos[i];
+      setBulkPhotoProgress({ current: i + 1, total: withPhotos.length });
+      try {
+        const response = await fetch(c.avatarUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        triggerBlobDownload(blob, photoFilename(c, blob));
+        await new Promise(r => setTimeout(r, 250));
+      } catch (err) {
+        console.error(`Failed to download photo for ${c.name}:`, err);
+        failed++;
+      }
+    }
+    setBulkPhotoProgress(null);
+    if (failed) alert(`Done. ${withPhotos.length - failed} downloaded, ${failed} failed.`);
   };
 
   const handleCopyClaimLink = async (nominee) => {
@@ -584,6 +657,26 @@ export default function PeopleTab({
                 onMouseLeave={e => e.target.style.background = 'none'}
               >
                 Nominated Card
+              </button>
+              <button
+                onClick={() => { setMenuOpen(false); handleDownloadPhoto(person); }}
+                disabled={!person.avatarUrl}
+                title={person.avatarUrl ? 'Download original profile photo' : 'No profile photo on file'}
+                style={{
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  background: 'none',
+                  border: 'none',
+                  color: person.avatarUrl ? colors.text.primary : colors.text.muted,
+                  cursor: person.avatarUrl ? 'pointer' : 'not-allowed',
+                  borderRadius: borderRadius.sm,
+                  textAlign: 'left',
+                  fontSize: typography.fontSize.sm,
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => { if (person.avatarUrl) e.target.style.background = 'rgba(255,255,255,0.05)'; }}
+                onMouseLeave={e => e.target.style.background = 'none'}
+              >
+                Profile Photo
               </button>
             </div>
           </>
@@ -1011,9 +1104,23 @@ export default function PeopleTab({
         collapsible
         defaultCollapsed
         action={
-          <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
-            Add
-          </Button>
+          <div style={{ display: 'flex', gap: spacing.xs, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+            {contestants.some(c => c.avatarUrl) && (
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={bulkPhotoProgress ? Loader : Download}
+                disabled={!!bulkPhotoProgress}
+                onClick={handleDownloadAllPhotos}
+                title="Download all contestant profile photos"
+              >
+                {bulkPhotoProgress ? `${bulkPhotoProgress.current}/${bulkPhotoProgress.total}` : 'Photos'}
+              </Button>
+            )}
+            <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
+              Add
+            </Button>
+          </div>
         }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
