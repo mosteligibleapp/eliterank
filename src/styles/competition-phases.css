@@ -5870,8 +5870,18 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 }
 
 /* =====================
-   COMING SOON — HERO
+   COMING SOON — BACKDROP
+   ----------------------
+   Mobile: backdrop is confined to the hero section so the rest of the
+   page stays on the solid dark background. Desktop: backdrop spans the
+   full viewport via fixed pseudo-elements on the page wrapper.
    ===================== */
+.phase-coming-soon {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Hero-bounded backdrop (mobile default) */
 .phase-coming-soon-hero {
   position: relative;
   margin: calc(var(--spacing-xl) * -1) calc(var(--spacing-lg) * -1) var(--spacing-2xl);
@@ -5920,6 +5930,48 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   display: flex;
   justify-content: center;
   width: 100%;
+}
+
+/* Full-page fixed backdrop (desktop) — hero loses its own backdrop */
+@media (min-width: 768px) {
+  .phase-coming-soon::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: var(--hero-image);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    opacity: 0.22;
+    z-index: -2;
+    pointer-events: none;
+  }
+
+  .phase-coming-soon::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 12, 0.45) 0%,
+      rgba(10, 10, 12, 0.75) 100%
+    );
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .phase-coming-soon-hero {
+    margin: 0 0 var(--spacing-2xl);
+    padding: var(--spacing-lg) 0 0;
+    border-radius: 0;
+    overflow: visible;
+    isolation: auto;
+  }
+
+  .phase-coming-soon-hero::before,
+  .phase-coming-soon-hero::after {
+    display: none;
+  }
 }
 
 /* =====================
