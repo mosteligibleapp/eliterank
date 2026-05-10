@@ -100,9 +100,6 @@ export function ComingSoonPhase() {
         </section>
       )}
 
-      {/* Trust transfer — real platform numbers */}
-      <PoweredByEliteRank />
-
       {/* Judges credibility */}
       {hasJudges && (
         <section className="phase-section">
@@ -131,6 +128,9 @@ export function ComingSoonPhase() {
           </section>
         </>
       )}
+
+      {/* Attribution */}
+      <PoweredByEliteRank />
 
       {/* Interest Modals */}
       {activeModal && (

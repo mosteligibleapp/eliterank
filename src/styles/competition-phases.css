@@ -6032,86 +6032,28 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
    POWERED BY ELITERANK
    ===================== */
 .powered-by-eliterank {
-  margin: var(--spacing-2xl) 0;
-  padding: var(--spacing-xl);
-  background: linear-gradient(
-    135deg,
-    rgba(var(--color-primary-rgb), 0.08) 0%,
-    rgba(var(--color-primary-rgb), 0.02) 100%
-  );
-  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
-  border-radius: var(--radius-lg);
-  text-align: center;
-}
-
-.powered-by-eliterank-header {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
-}
-
-.powered-by-eliterank-crown {
-  color: var(--color-primary);
-}
-
-.powered-by-eliterank-label {
+  gap: var(--spacing-xs);
+  margin: var(--spacing-2xl) auto 0;
+  padding: var(--spacing-xs) var(--spacing-md);
+  width: fit-content;
+  border-radius: var(--radius-lg);
   font-size: var(--font-size-xs);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
-}
-
-.powered-by-eliterank-tagline {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin: 0 auto var(--spacing-lg);
-  max-width: 480px;
-  line-height: 1.5;
-}
-
-.powered-by-eliterank-stats {
-  display: flex;
-  justify-content: center;
-  gap: var(--spacing-2xl);
-  flex-wrap: wrap;
-}
-
-.powered-by-eliterank-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.powered-by-eliterank-value {
-  font-family: var(--font-display);
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  line-height: 1;
-}
-
-.powered-by-eliterank-stat-label {
-  font-size: var(--font-size-xs);
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
-@media (max-width: 480px) {
-  .phase-cta-primary {
-    min-width: 0;
-    width: 100%;
-    padding: var(--spacing-md) var(--spacing-lg);
-  }
+.powered-by-eliterank-crown {
+  color: var(--color-primary);
+  opacity: 0.7;
+}
 
-  .powered-by-eliterank-stats {
-    gap: var(--spacing-xl);
-  }
+.powered-by-eliterank-label {
+  font-weight: var(--font-weight-semibold);
+}
 
-  .powered-by-eliterank-value {
-    font-size: var(--font-size-2xl);
-  }
+.phase-coming-soon .powered-by-eliterank {
+  display: flex;
 }
