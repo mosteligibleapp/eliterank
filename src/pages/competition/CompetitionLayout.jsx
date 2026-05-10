@@ -67,18 +67,21 @@ function CompetitionLayoutInner() {
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
 
   // Performance stats — surfaced inside the profile dropdown when the
-  // current user is a contestant in this competition.
+  // current user is a contestant in this competition. We have the data on
+  // hand here, so skip the extra round-trip the global hook would make.
   const myContestant = isAuthenticated && user?.id
     ? contestants?.find((c) => c.user_id === user.id) || null
     : null;
   const performance = myContestant
-    ? {
+    ? [{
+        competitionId: competition?.id,
+        competitionName: competition?.name || 'Competition',
         totalVotes: myContestant.lifetime_votes ?? 0,
         roundVotes: myContestant.votes ?? 0,
         rank: myContestant.rank ?? myContestant.displayRank ?? null,
         roundLabel: phase?.currentRound?.title
           || (phase?.roundNumber ? `Round ${phase.roundNumber} votes` : 'This round'),
-      }
+      }]
     : null;
 
   // Navigation handlers for profile icon

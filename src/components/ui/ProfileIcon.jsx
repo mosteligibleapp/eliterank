@@ -172,6 +172,16 @@ function ProfileIcon({
     fontVariantNumeric: 'tabular-nums',
   };
 
+  const performanceCompNameStyle = {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  };
+
   const menuItemStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -233,38 +243,56 @@ function ProfileIcon({
             )}
           </div>
 
-          {/* Performance stats — shown when the current user is a contestant
-              in the active competition. Surfaces lifetime votes, in-round
-              votes, and current rank without leaving the page. */}
-          {performance && (
+          {/* Performance stats — accepts either a single { totalVotes,
+              roundVotes, rank, roundLabel } object or an array of such
+              entries (one per competition the user is competing in). */}
+          {performance && (Array.isArray(performance) ? performance : [performance]).length > 0 && (
             <div style={performanceSectionStyle}>
               <div style={performanceHeaderStyle}>
                 <TrendingUp size={12} color={colors.gold.primary} />
                 <span>My Performance</span>
               </div>
-              <div style={performanceRowStyle}>
-                <Heart size={14} color={colors.gold.primary} />
-                <span style={performanceLabelStyle}>Total votes</span>
-                <span style={performanceValueStyle}>
-                  {Number(performance.totalVotes ?? 0).toLocaleString()}
-                </span>
-              </div>
-              <div style={performanceRowStyle}>
-                <Award size={14} color={colors.gold.primary} />
-                <span style={performanceLabelStyle}>
-                  {performance.roundLabel || 'This round'}
-                </span>
-                <span style={performanceValueStyle}>
-                  {Number(performance.roundVotes ?? 0).toLocaleString()}
-                </span>
-              </div>
-              <div style={{ ...performanceRowStyle, marginBottom: 0 }}>
-                <Trophy size={14} color={colors.gold.primary} />
-                <span style={performanceLabelStyle}>Current rank</span>
-                <span style={performanceValueStyle}>
-                  {performance.rank ? `#${performance.rank}` : '—'}
-                </span>
-              </div>
+              {(Array.isArray(performance) ? performance : [performance]).map((perf, idx, arr) => (
+                <div
+                  key={perf.competitionId || idx}
+                  style={{
+                    marginBottom: idx < arr.length - 1 ? spacing.md : 0,
+                    paddingBottom: idx < arr.length - 1 ? spacing.md : 0,
+                    borderBottom: idx < arr.length - 1
+                      ? `1px solid ${colors.border.secondary}`
+                      : 'none',
+                  }}
+                >
+                  {arr.length > 1 && perf.competitionName && (
+                    <div style={performanceCompNameStyle}>
+                      {perf.competitionName}
+                    </div>
+                  )}
+                  <div style={performanceRowStyle}>
+                    <Heart size={14} color={colors.gold.primary} />
+                    <span style={performanceLabelStyle}>Total votes</span>
+                    <span style={performanceValueStyle}>
+                      {Number(perf.totalVotes ?? 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div style={performanceRowStyle}>
+                    <Award size={14} color={colors.gold.primary} />
+                    <span style={performanceLabelStyle}>
+                      {perf.roundLabel || 'This round'}
+                    </span>
+                    <span style={performanceValueStyle}>
+                      {Number(perf.roundVotes ?? 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div style={{ ...performanceRowStyle, marginBottom: 0 }}>
+                    <Trophy size={14} color={colors.gold.primary} />
+                    <span style={performanceLabelStyle}>Current rank</span>
+                    <span style={performanceValueStyle}>
+                      {perf.rank ? `#${perf.rank}` : '—'}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
