@@ -50,6 +50,7 @@ export function useLeaderboard(competitionId, options = {}) {
           instagram,
           status,
           votes,
+          lifetime_votes,
           rank,
           trend,
           city,

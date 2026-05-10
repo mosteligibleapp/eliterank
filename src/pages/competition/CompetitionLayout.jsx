@@ -24,6 +24,7 @@ const ContestantView = lazy(() => import('./views/ContestantView'));
 
 // Shared components
 import { CompetitionHeader } from './components/CompetitionHeader';
+import ContestantPerformanceDropdown from './components/ContestantPerformanceDropdown';
 import VoteModal from '../../features/public-site/components/VoteModal';
 
 // Entry flow (lazy loaded)
@@ -65,6 +66,14 @@ function CompetitionLayoutInner() {
 
   // Check if user has dashboard access
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
+
+  // Find the current user's contestant entry in this competition (if any).
+  // The Performance dropdown is only rendered when this exists.
+  const myContestant = isAuthenticated && user?.id
+    ? contestants?.find((c) => c.user_id === user.id) || null
+    : null;
+  const roundLabel = phase?.currentRound?.title
+    || (phase?.roundNumber ? `Round ${phase.roundNumber}` : 'Current round');
 
   // Navigation handlers for profile icon
   const handleLogin = () => {
@@ -190,6 +199,13 @@ function CompetitionLayoutInner() {
       {/* Floating Profile & Notification Icons - hidden when modal open */}
       {!isModalOpen && (
         <div className="competition-profile-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {myContestant && (
+            <ContestantPerformanceDropdown
+              contestant={myContestant}
+              roundLabel={roundLabel}
+              size={40}
+            />
+          )}
           {isAuthenticated && <NotificationBell size={40} />}
           <ProfileIcon
             isAuthenticated={isAuthenticated}
