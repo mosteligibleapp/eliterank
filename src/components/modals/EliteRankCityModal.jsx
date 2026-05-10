@@ -114,7 +114,10 @@ export default function EliteRankCityModal({
     const fetchData = async () => {
       try {
         const [compsResult, votingRoundsResult, nominationPeriodsResult] = await Promise.all([
-          supabase.from('competitions').select('*').order('created_at', { ascending: false }),
+          supabase
+            .from('competitions')
+            .select('*, host:profiles!competitions_host_id_fkey(id, first_name, last_name, email, avatar_url)')
+            .order('created_at', { ascending: false }),
           supabase.from('voting_rounds').select('*').order('round_order'),
           supabase.from('nomination_periods').select('*').order('period_order'),
         ]);
@@ -188,7 +191,7 @@ export default function EliteRankCityModal({
       const cityFromLookup = citiesMap[comp.city_id];
       // Prioritize city lookup by city_id over potentially stale comp.city string
       const cityName = cityFromLookup?.name || comp.city || 'Unknown City';
-      const hostProfile = comp.host_id ? profilesMap[comp.host_id] : null;
+      const hostProfile = comp.host || (comp.host_id ? profilesMap[comp.host_id] : null);
       const org = organizations.find(o => o.id === comp.organization_id);
 
       return {

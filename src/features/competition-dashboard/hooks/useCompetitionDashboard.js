@@ -1515,21 +1515,12 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
-      // Update competition with new host
-      const { error: compError } = await supabase
-        .from('competitions')
-        .update({ host_id: userId })
-        .eq('id', competitionId);
+      const { error } = await supabase.rpc('assign_competition_host', {
+        p_competition_id: competitionId,
+        p_user_id: userId,
+      });
 
-      if (compError) throw compError;
-
-      // Set is_host on the user's profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ is_host: true })
-        .eq('id', userId);
-
-      if (profileError) throw profileError;
+      if (error) throw error;
 
       await fetchDashboardData();
       return { success: true };
@@ -1543,10 +1534,9 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
-      const { error } = await supabase
-        .from('competitions')
-        .update({ host_id: null })
-        .eq('id', competitionId);
+      const { error } = await supabase.rpc('remove_competition_host', {
+        p_competition_id: competitionId,
+      });
 
       if (error) throw error;
       await fetchDashboardData();

@@ -488,17 +488,17 @@ export default function CompetitionsManager({ onViewDashboard }) {
   const handleAssignHost = async (hostId) => {
     if (!selectedCompetition) return;
     try {
-      const { error } = await supabase
-        .from('competitions')
-        .update({ host_id: hostId, updated_at: new Date().toISOString() })
-        .eq('id', selectedCompetition.id);
+      const { error } = await supabase.rpc('assign_competition_host', {
+        p_competition_id: selectedCompetition.id,
+        p_user_id: hostId,
+      });
       if (error) throw error;
       toast.success('Host assigned successfully');
       setShowAssignHostModal(false);
       setSelectedCompetition(null);
       fetchData();
-    } catch {
-      toast.error('Failed to assign host');
+    } catch (err) {
+      toast.error(`Failed to assign host: ${err.message || 'Unknown error'}`);
     }
   };
 
