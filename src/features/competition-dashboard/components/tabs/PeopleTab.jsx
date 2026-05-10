@@ -9,6 +9,7 @@ import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
+import { getContestantCardTiers } from '../../../achievement-cards/contestantCardTiers';
 import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
 import WinnersManager from '../WinnersManager';
@@ -163,11 +164,14 @@ export default function PeopleTab({
     navigate(`/profile/${profileId}`);
   };
 
-  const handleDownloadCard = async (person, type = 'contestant') => {
+  const handleDownloadCard = async (person, type = 'contestant', tier = null) => {
     setGeneratingCardId(person.id);
     try {
+      const baseType = type === 'contestant' ? 'contestant' : 'nominated';
+      const achievementType = tier ? 'advanced' : baseType;
       const blob = await generateAchievementCard({
-        achievementType: type === 'contestant' ? 'contestant' : 'nominated',
+        achievementType,
+        customTitle: tier?.customTitle,
         name: person.name,
         photoUrl: person.avatarUrl,
         handle: person.instagram,
@@ -183,8 +187,10 @@ export default function PeopleTab({
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
+      const safeName = person.name.replace(/\s+/g, '-').toLowerCase();
+      const suffix = tier?.filenameSuffix || type;
       a.href = url;
-      a.download = `${person.name.replace(/\s+/g, '-').toLowerCase()}-${type}-card.png`;
+      a.download = `${safeName}-${suffix}-card.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -545,6 +551,9 @@ export default function PeopleTab({
   const CardDownloadButton = ({ person, type }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const isContestant = type === 'contestant';
+    const tierCards = isContestant
+      ? getContestantCardTiers(person, competition?.voting_rounds || [])
+      : [];
 
     if (!isContestant) {
       return (
@@ -640,6 +649,27 @@ export default function PeopleTab({
               >
                 Contestant Card
               </button>
+              {tierCards.map(tier => (
+                <button
+                  key={tier.roundId || tier.roundOrder}
+                  onClick={() => { setMenuOpen(false); handleDownloadCard(person, 'contestant', tier); }}
+                  style={{
+                    padding: `${spacing.xs} ${spacing.sm}`,
+                    background: 'none',
+                    border: 'none',
+                    color: colors.text.primary,
+                    cursor: 'pointer',
+                    borderRadius: borderRadius.sm,
+                    textAlign: 'left',
+                    fontSize: typography.fontSize.sm,
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseLeave={e => e.target.style.background = 'none'}
+                >
+                  {tier.menuLabel}
+                </button>
+              ))}
               <button
                 onClick={() => { setMenuOpen(false); handleDownloadCard(person, 'nominee'); }}
                 style={{
