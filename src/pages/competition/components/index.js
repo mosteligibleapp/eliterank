@@ -11,3 +11,4 @@ export { DailyVoteStatus } from './DailyVoteStatus';
 export { WinnersPodium } from './WinnersPodium';
 export { InterestModal } from './InterestModal';
 export { default as ContestantBonusVotes } from './ContestantBonusVotes';
+export { PoweredByEliteRank } from './PoweredByEliteRank';
