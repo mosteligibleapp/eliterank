@@ -35,7 +35,7 @@ const INITIAL_FORM = {
   name: '',
   season: new Date().getFullYear() + 1,
   number_of_winners: 5,
-  minimum_prize: 1000,
+  minimum_prize: '',
   eligibility_radius: 100,
   min_contestants: 40,
   max_contestants: '',
@@ -313,13 +313,14 @@ export default function CompetitionCreateWizard({
             </FormField>
           </FormGrid>
 
-          <FormField label="Minimum Prize" required description="Host must fund at least this amount">
+          <FormField label="Minimum Prize (optional)" description="Host must fund at least this amount, if set">
             <TextInput
               type="number"
               value={formData.minimum_prize}
-              onChange={(e) => updateField('minimum_prize', Math.max(1000, parseInt(e.target.value) || 1000))}
-              min={1000}
+              onChange={(e) => updateField('minimum_prize', e.target.value)}
+              min={0}
               step={100}
+              placeholder="Leave blank for no minimum"
               style={{ paddingLeft: '28px' }}
             />
           </FormField>

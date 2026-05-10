@@ -59,7 +59,7 @@ export default function CompetitionEditModal({
     name: '',
     season: new Date().getFullYear() + 1,
     number_of_winners: 5,
-    minimum_prize: 1000,
+    minimum_prize: '',
     eligibility_radius: 100,
     min_contestants: 40,
     max_contestants: '',
@@ -77,7 +77,7 @@ export default function CompetitionEditModal({
         name: competition.name || '',
         season: competition.season,
         number_of_winners: competition.number_of_winners,
-        minimum_prize: competition.minimum_prize_cents ? competition.minimum_prize_cents / 100 : 1000,
+        minimum_prize: competition.minimum_prize_cents != null ? competition.minimum_prize_cents / 100 : '',
         eligibility_radius: competition.eligibility_radius_miles ?? 100,
         min_contestants: competition.min_contestants ?? 40,
         max_contestants: competition.max_contestants || '',
@@ -292,12 +292,13 @@ export default function CompetitionEditModal({
       {/* Tab 3: Settings */}
       {activeTab === 'settings' && (
         <FormSection title="Competition Settings" divider={false}>
-          <FormField label="Minimum Prize" description="Host must fund at least this amount">
+          <FormField label="Minimum Prize (optional)" description="Host must fund at least this amount, if set">
             <TextInput
               type="number"
               value={formData.minimum_prize}
-              onChange={(e) => updateField('minimum_prize', parseInt(e.target.value) || 0)}
-              style={{ maxWidth: '160px' }}
+              onChange={(e) => updateField('minimum_prize', e.target.value)}
+              placeholder="Leave blank for no minimum"
+              style={{ maxWidth: '220px' }}
             />
           </FormField>
           <FormField label="Eligibility Radius" description="Contestants must confirm they meet this requirement">
