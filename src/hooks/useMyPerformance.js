@@ -82,7 +82,29 @@ export function useMyPerformance(userId) {
         }
       });
 
-      const shaped = eligible.map((r) => {
+      // Compute rank per competition. The contestants.rank column is
+      // populated only at round finalization (see migration 053), so for
+      // live competitions we derive Olympic rank from "active contestants
+      // with more votes than me, plus one". Eliminated entries get no rank.
+      const ranks = await Promise.all(
+        eligible.map(async (r) => {
+          if (r.status !== 'active') return null;
+          const myVotes = r.votes ?? 0;
+          const { count, error: countError } = await supabase
+            .from('contestants')
+            .select('id', { count: 'exact', head: true })
+            .eq('competition_id', r.competition_id)
+            .eq('status', 'active')
+            .gt('votes', myVotes);
+          if (countError) {
+            console.error('rank lookup failed:', countError);
+            return null;
+          }
+          return (count ?? 0) + 1;
+        }),
+      );
+
+      const shaped = eligible.map((r, idx) => {
         const rnd = roundByCompetition.get(r.competition_id);
         return {
           competitionId: r.competition_id,
@@ -91,7 +113,7 @@ export function useMyPerformance(userId) {
           competitionSlug: r.competition.slug || null,
           totalVotes: r.lifetime_votes ?? 0,
           roundVotes: r.votes ?? 0,
-          rank: r.rank ?? null,
+          rank: ranks[idx],
           roundLabel: rnd?.title || 'Current round',
         };
       });
