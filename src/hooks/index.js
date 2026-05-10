@@ -23,3 +23,4 @@ export { default as useBonusVotes } from './useBonusVotes';
 // Zustand bridge hooks
 export { default as useAuthWithZustand } from './useAuthWithZustand';
 export { default as useFingerprint } from './useFingerprint';
+export { default as useMyPerformance } from './useMyPerformance';

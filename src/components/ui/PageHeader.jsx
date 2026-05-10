@@ -2,6 +2,7 @@ import React, { memo, useState, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuthStore, useUserRole, ROLES } from '../../stores';
+import { useMyPerformance } from '../../hooks';
 import ProfileIcon from './ProfileIcon';
 import NotificationBell from './NotificationBell';
 import './PageHeader.css';
@@ -41,6 +42,11 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
 
   const hasDashboardAccess = userRole === ROLES.HOST || userRole === ROLES.SUPER_ADMIN;
 
+  // Surface contestant performance in the profile dropdown across pages.
+  // Hook short-circuits when there's no user, so the network call only fires
+  // for authenticated users.
+  const { performances } = useMyPerformance(user?.id);
+
   return (
     <>
       <header className="page-header">
@@ -74,6 +80,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             onHowToCompete={handleHowToCompete}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
+            performance={performances}
             size={40}
           />
         </div>
