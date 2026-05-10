@@ -3,6 +3,7 @@ import { Users, UserCheck, Clock, Eye, Trash2, Check, X, Plus, AlertTriangle } f
 import { colors, spacing, borderRadius, typography } from '@shared/styles/theme';
 import { Button } from '@shared/components/ui';
 import { supabase } from '@shared/lib/supabase';
+import { useToast } from '@shared/contexts/ToastContext';
 import StatRow from '../../../components/StatRow';
 import FilterBar from '../../../components/FilterBar';
 import DataTable from '../../../components/DataTable';
@@ -11,6 +12,7 @@ import FormModal from '../../../components/FormModal';
 import { FormField, TextInput } from '../../../components/FormField';
 
 export default function HostsManager() {
+  const toast = useToast();
   const [hosts, setHosts] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -163,6 +165,19 @@ export default function HostsManager() {
     if (!supabase || !hostToRemove) return;
     setRemoveSubmitting(true);
     try {
+      const { count, error: countError } = await supabase
+        .from('competitions')
+        .select('id', { count: 'exact', head: true })
+        .eq('host_id', hostToRemove.id);
+      if (countError) throw countError;
+
+      if ((count || 0) > 0) {
+        toast.error(
+          `Cannot demote: still hosting ${count} competition${count === 1 ? '' : 's'}. Remove or reassign first.`
+        );
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({ is_host: false })
@@ -172,6 +187,7 @@ export default function HostsManager() {
       setHostToRemove(null);
     } catch (err) {
       console.error('Error removing host:', err);
+      toast.error(`Failed to demote host: ${err.message || 'Unknown error'}`);
     } finally {
       setRemoveSubmitting(false);
     }
