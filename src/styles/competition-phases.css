@@ -5870,39 +5870,45 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 }
 
 /* =====================
-   COMING SOON — HERO
+   COMING SOON — PAGE BACKDROP
    ===================== */
-.phase-coming-soon-hero {
+.phase-coming-soon {
   position: relative;
-  margin: calc(var(--spacing-xl) * -1) calc(var(--spacing-lg) * -1) var(--spacing-2xl);
-  padding: var(--spacing-2xl) var(--spacing-lg);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  overflow: hidden;
   isolation: isolate;
 }
 
-.phase-coming-soon-hero::before {
+.phase-coming-soon::before {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   background-image: var(--hero-image);
   background-size: cover;
   background-position: center;
-  opacity: 0.28;
+  background-attachment: fixed;
+  opacity: 0.22;
   z-index: -2;
+  pointer-events: none;
 }
 
-.phase-coming-soon-hero::after {
+.phase-coming-soon::after {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(10, 10, 12, 0.55) 0%,
-    rgba(10, 10, 12, 0.85) 70%,
-    var(--color-bg-primary) 100%
+    rgba(10, 10, 12, 0.45) 0%,
+    rgba(10, 10, 12, 0.75) 100%
   );
   z-index: -1;
+  pointer-events: none;
+}
+
+/* =====================
+   COMING SOON — HERO
+   ===================== */
+.phase-coming-soon-hero {
+  padding-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .phase-coming-soon-hero-inner {
