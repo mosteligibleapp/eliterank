@@ -150,7 +150,7 @@ export function useCompetitionDashboard(competitionId) {
           .eq('competition_id', competitionId)
           .order('date'),
 
-        // Get competition info with category, demographic, city, and organization joins
+        // Get competition info with category, demographic, city, organization, and host joins
         supabase
           .from('competitions')
           .select(`
@@ -159,6 +159,7 @@ export function useCompetitionDashboard(competitionId) {
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
             organization:organizations(id, name, slug, logo_url, header_logo_url, website_url),
+            host:profiles!competitions_host_id_fkey(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery),
             voting_rounds(id, start_date, end_date, round_order, round_type),
             nomination_periods(id, start_date, end_date, period_order, title)
           `)
@@ -189,11 +190,12 @@ export function useCompetitionDashboard(competitionId) {
         setError(errors[0]?.message || 'Error fetching data');
       }
 
-      // Get host profile if exists
+      // Get host profile if exists — prefer the joined record so we don't
+      // depend on the bulk profile cache (which is capped by PostgREST).
       const competition = competitionResult.data;
       let host = null;
-      if (competition?.host_id && profilesById.has(competition.host_id)) {
-        const hostProfile = profilesById.get(competition.host_id);
+      const hostProfile = competition?.host || (competition?.host_id ? profilesById.get(competition.host_id) : null);
+      if (hostProfile) {
         host = {
           id: hostProfile.id,
           name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || hostProfile.email,
