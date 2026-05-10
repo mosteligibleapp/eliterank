@@ -81,7 +81,6 @@ export default function EliteRankCityModal({
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [statusFilter, setStatusFilter] = useState('active'); // Default to Live competitions
-  const [cityFilter, setCityFilter] = useState('all');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Use cached hooks for static data (cities, organizations, profiles)
@@ -260,16 +259,9 @@ export default function EliteRankCityModal({
     }
   }, [activeTab, eventsFetched, announcementsFetched, competitions]);
 
-  // Memoized values
-  const availableCities = useMemo(() =>
-    cities.filter(city => competitions.some(c => c.visible && c.cityId === city.id)),
-    [cities, competitions]
-  );
-
   const visibleCompetitions = useMemo(() => {
     return competitions.filter(c => {
       if (!c.visible) return false;
-      if (cityFilter !== 'all' && c.cityId !== cityFilter) return false;
       if (statusFilter === 'active') {
         return isLive(c.status) && ['nomination', 'voting', 'judging', 'between'].includes(c.phase);
       }
@@ -277,7 +269,7 @@ export default function EliteRankCityModal({
       if (statusFilter === 'complete') return isCompleted(c.status) || c.phase === 'completed';
       return true;
     });
-  }, [competitions, cityFilter, statusFilter]);
+  }, [competitions, statusFilter]);
 
   // Competition counts for header stats
   const competitionStats = useMemo(() => {
@@ -535,30 +527,6 @@ export default function EliteRankCityModal({
           </button>
         ))}
       </div>
-
-      {/* City Filter */}
-      {availableCities.length > 1 && (
-        <select
-          value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
-          style={{
-            padding: `${spacing.sm} ${spacing.lg}`,
-            background: colors.background.card,
-            border: `1px solid ${colors.border.primary}`,
-            borderRadius: borderRadius.lg,
-            color: colors.text.primary,
-            fontSize: typography.fontSize.sm,
-            cursor: 'pointer',
-            outline: 'none',
-            minWidth: '140px',
-          }}
-        >
-          <option value="all">All Cities</option>
-          {availableCities.map(city => (
-            <option key={city.id} value={city.id}>{city.name}</option>
-          ))}
-        </select>
-      )}
     </div>
   );
 
@@ -916,8 +884,8 @@ export default function EliteRankCityModal({
                 <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
                   Try adjusting your filters or check back soon.
                 </p>
-                {cityFilter !== 'all' && (
-                  <Button variant="outline" size="sm" onClick={() => { setStatusFilter('active'); setCityFilter('all'); }}>
+                {statusFilter !== 'active' && (
+                  <Button variant="outline" size="sm" onClick={() => setStatusFilter('active')}>
                     Clear Filters
                   </Button>
                 )}
