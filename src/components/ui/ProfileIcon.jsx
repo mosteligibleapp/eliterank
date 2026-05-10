@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Trophy, Settings } from 'lucide-react';
+import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Trophy, Settings, TrendingUp, Heart, Award } from 'lucide-react';
 import { colors, borderRadius, spacing, typography, shadows, transitions } from '../../styles/theme';
 import Avatar from './Avatar';
 import { SkeletonPulse } from '../common/Skeleton';
@@ -21,6 +21,7 @@ function ProfileIcon({
   onAccountSettings,
   onHowToCompete,
   hasDashboardAccess = false,
+  performance = null,
   size = 36,
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -130,6 +131,47 @@ function ProfileIcon({
     padding: spacing.sm,
   };
 
+  const performanceSectionStyle = {
+    padding: `${spacing.md} ${spacing.lg}`,
+    borderBottom: `1px solid ${colors.border.primary}`,
+    background: 'linear-gradient(135deg, rgba(212,175,55,0.06), transparent)',
+  };
+
+  const performanceHeaderStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.gold.primary,
+    textTransform: 'uppercase',
+    letterSpacing: typography.letterSpacing.wider,
+    marginBottom: spacing.sm,
+  };
+
+  const performanceRowStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  };
+
+  const performanceLabelStyle = {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  };
+
+  const performanceValueStyle = {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.gold.primary,
+    fontVariantNumeric: 'tabular-nums',
+  };
+
   const menuItemStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -190,6 +232,41 @@ function ProfileIcon({
               </>
             )}
           </div>
+
+          {/* Performance stats — shown when the current user is a contestant
+              in the active competition. Surfaces lifetime votes, in-round
+              votes, and current rank without leaving the page. */}
+          {performance && (
+            <div style={performanceSectionStyle}>
+              <div style={performanceHeaderStyle}>
+                <TrendingUp size={12} color={colors.gold.primary} />
+                <span>My Performance</span>
+              </div>
+              <div style={performanceRowStyle}>
+                <Heart size={14} color={colors.gold.primary} />
+                <span style={performanceLabelStyle}>Total votes</span>
+                <span style={performanceValueStyle}>
+                  {Number(performance.totalVotes ?? 0).toLocaleString()}
+                </span>
+              </div>
+              <div style={performanceRowStyle}>
+                <Award size={14} color={colors.gold.primary} />
+                <span style={performanceLabelStyle}>
+                  {performance.roundLabel || 'This round'}
+                </span>
+                <span style={performanceValueStyle}>
+                  {Number(performance.roundVotes ?? 0).toLocaleString()}
+                </span>
+              </div>
+              <div style={{ ...performanceRowStyle, marginBottom: 0 }}>
+                <Trophy size={14} color={colors.gold.primary} />
+                <span style={performanceLabelStyle}>Current rank</span>
+                <span style={performanceValueStyle}>
+                  {performance.rank ? `#${performance.rank}` : '—'}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Menu items */}
           <div style={menuStyle}>
