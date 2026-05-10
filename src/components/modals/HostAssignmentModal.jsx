@@ -11,53 +11,52 @@ export default function HostAssignmentModal({
   currentHostId,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [profiles, setProfiles] = useState([]);
   const [filteredProfiles, setFilteredProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [assigning, setAssigning] = useState(false);
 
-  // Fetch profiles on mount
   useEffect(() => {
     if (!isOpen) return;
+
+    let cancelled = false;
+    const trimmed = searchQuery.trim();
+    // Strip PostgREST `or` syntax characters from user input
+    const safe = trimmed.replace(/[(),%]/g, '');
 
     const fetchProfiles = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('profiles')
           .select('id, email, first_name, last_name, avatar_url, is_host')
-          .order('first_name')
+          .order('first_name', { nullsFirst: false })
           .limit(100);
 
+        if (safe.length > 0) {
+          const pattern = `%${safe}%`;
+          query = query.or(
+            `email.ilike.${pattern},first_name.ilike.${pattern},last_name.ilike.${pattern}`
+          );
+        }
+
+        const { data, error } = await query;
+        if (cancelled) return;
         if (error) throw error;
-        setProfiles(data || []);
         setFilteredProfiles(data || []);
       } catch (err) {
-        console.error('Error fetching profiles:', err);
+        if (!cancelled) console.error('Error fetching profiles:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchProfiles();
-  }, [isOpen]);
-
-  // Filter profiles based on search
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredProfiles(profiles);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase();
-    const filtered = profiles.filter(p => {
-      const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
-      const email = (p.email || '').toLowerCase();
-      return fullName.includes(query) || email.includes(query);
-    });
-    setFilteredProfiles(filtered);
-  }, [searchQuery, profiles]);
+    const handle = setTimeout(fetchProfiles, trimmed ? 200 : 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [isOpen, searchQuery]);
 
   const handleAssign = async () => {
     if (!selectedProfile || !onAssign) return;

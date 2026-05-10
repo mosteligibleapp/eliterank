@@ -261,10 +261,6 @@ export default function CompetitionsManager({ onViewDashboard }) {
       toast.error('Organization, city, category, and demographic are required');
       return;
     }
-    if (formData.minimum_prize < 1000) {
-      toast.error('Minimum prize must be at least $1,000');
-      return;
-    }
     if (formData.min_contestants < 10) {
       toast.error('Minimum contestants must be at least 10');
       return;
@@ -325,7 +321,9 @@ export default function CompetitionsManager({ onViewDashboard }) {
           selection_criteria: 'votes',
           host_id: formData.host_id || null,
           description: formData.description || '',
-          minimum_prize_cents: formData.minimum_prize * 100,
+          minimum_prize_cents: formData.minimum_prize === '' || formData.minimum_prize === null
+            ? null
+            : Math.round(Number(formData.minimum_prize) * 100),
           eligibility_radius_miles: formData.eligibility_radius,
           min_contestants: formData.min_contestants,
           max_contestants: maxContestants,
@@ -441,10 +439,6 @@ export default function CompetitionsManager({ onViewDashboard }) {
   const handleUpdate = async (formData) => {
     if (!selectedCompetition) return;
 
-    if (formData.minimum_prize < 1000) {
-      toast.error('Minimum prize must be at least $1,000');
-      return;
-    }
     if (formData.min_contestants < 10) {
       toast.error('Minimum contestants must be at least 10');
       return;
@@ -468,7 +462,9 @@ export default function CompetitionsManager({ onViewDashboard }) {
           price_per_vote: formData.price_per_vote,
           use_price_bundler: formData.use_price_bundler,
           allow_manual_votes: formData.allow_manual_votes,
-          minimum_prize_cents: formData.minimum_prize * 100,
+          minimum_prize_cents: formData.minimum_prize === '' || formData.minimum_prize === null
+            ? null
+            : Math.round(Number(formData.minimum_prize) * 100),
           eligibility_radius_miles: formData.eligibility_radius,
           min_contestants: formData.min_contestants,
           max_contestants: maxContestants,

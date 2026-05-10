@@ -454,7 +454,7 @@ export default function SetupTab({
               />
               <ViewOnlyField
                 label="Minimum Prize"
-                value={formatCurrency(competition?.minimumPrizeCents)}
+                value={competition?.minimumPrizeCents != null ? formatCurrency(competition.minimumPrizeCents) : 'Not set'}
                 icon={DollarSign}
               />
               <ViewOnlyField
