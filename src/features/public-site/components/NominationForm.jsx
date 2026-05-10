@@ -9,7 +9,9 @@ import { supabase } from '../../../lib/supabase';
  * - No photos, no accounts, no emails
  * - Just collect info and save to database
  */
-export default function NominationForm({ city, competitionId, onClose }) {
+export default function NominationForm({ city, competitionId, competitionName, organizationName, season, onClose }) {
+  const compTitle = competitionName || `${organizationName || ''} ${city}`.trim();
+  const seasonLabel = season ? `Season ${season}` : '';
   const [step, setStep] = useState('choose'); // 'choose' | 'self' | 'other' | 'success-self' | 'success-other'
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -251,7 +253,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
 
   const handleShareTwitter = () => {
     const nomineeName = getNomineeName();
-    const text = `${nomineeName} has been nominated for Most Eligible ${city} Season 2026! Vote at eliterank.co`;
+    const text = `${nomineeName} has been nominated for ${compTitle}${seasonLabel ? ` ${seasonLabel}` : ''}! Vote at eliterank.co`;
     const url = getShareUrl();
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
   };
@@ -259,7 +261,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
   const handleShareInstagram = () => {
     // Instagram doesn't have a direct share URL, so we'll copy the message
     const nomineeName = getNomineeName();
-    const text = `${nomineeName} has been nominated for Most Eligible ${city} Season 2026! Vote at eliterank.co`;
+    const text = `${nomineeName} has been nominated for ${compTitle}${seasonLabel ? ` ${seasonLabel}` : ''}! Vote at eliterank.co`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -268,8 +270,8 @@ export default function NominationForm({ city, competitionId, onClose }) {
   const handleNativeShare = async () => {
     const nomineeName = getNomineeName();
     const shareData = {
-      title: `Most Eligible ${city}`,
-      text: `${nomineeName} has been nominated for Most Eligible ${city} Season 2026! Vote at eliterank.co`,
+      title: compTitle,
+      text: `${nomineeName} has been nominated for ${compTitle}${seasonLabel ? ` ${seasonLabel}` : ''}! Vote at eliterank.co`,
       url: getShareUrl(),
     };
     if (navigator.share) {
@@ -291,11 +293,11 @@ export default function NominationForm({ city, competitionId, onClose }) {
       ? `${window.location.origin}/claim/${nomineeInviteToken}`
       : getShareUrl();
 
-    const message = `Hey ${nomineeName}! ${nominatorName} nominated you for Most Eligible ${city} Season 2026 on EliteRank! Claim your nomination and build your card here: ${claimUrl}`;
+    const message = `Hey ${nomineeName}! ${nominatorName} nominated you for ${compTitle}${seasonLabel ? ` ${seasonLabel}` : ''} on EliteRank! Claim your nomination and build your card here: ${claimUrl}`;
 
     if (otherData.nomineeEmail) {
       const email = otherData.nomineeEmail.trim();
-      const subject = `You've been nominated for Most Eligible ${city}!`;
+      const subject = `You've been nominated for ${compTitle}!`;
       window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     } else {
       // Fallback: copy message to clipboard
@@ -371,7 +373,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
     return (
       <div style={{ padding: spacing.lg, maxWidth: '450px', margin: '0 auto' }}>
         <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, textAlign: 'center', marginBottom: spacing.xl }}>
-          Apply for Most Eligible {city} 2026
+          Apply for {compTitle}{season ? ` ${season}` : ''}
         </h3>
 
         {/* Name */}
@@ -693,14 +695,14 @@ export default function NominationForm({ city, competitionId, onClose }) {
           color: colors.text.primary,
           marginBottom: spacing.xs,
         }}>
-          Most Eligible {city}
+          {compTitle}
         </p>
         <p style={{
           fontSize: typography.fontSize.md,
           color: colors.text.secondary,
           marginBottom: spacing.xl,
         }}>
-          Season 2026
+          {seasonLabel}
         </p>
 
         <p style={{
@@ -892,14 +894,14 @@ export default function NominationForm({ city, competitionId, onClose }) {
           color: colors.text.primary,
           marginBottom: spacing.xs,
         }}>
-          Most Eligible {city}
+          {compTitle}
         </p>
         <p style={{
           fontSize: typography.fontSize.md,
           color: colors.text.secondary,
           marginBottom: spacing.lg,
         }}>
-          Season 2026
+          {seasonLabel}
         </p>
 
         <p style={{

@@ -37,7 +37,8 @@ export default function HomePage({
   const userName = useUserName();
 
   const handleOpenCompetition = useCallback((competition) => {
-    const orgSlug = competition?.organization?.slug || competition?.orgSlug || 'most-eligible';
+    const orgSlug = competition?.organization?.slug || competition?.orgSlug;
+    if (!orgSlug) return;
 
     // Priority 1: Use database slug directly (preferred)
     if (competition?.slug) {

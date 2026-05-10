@@ -65,7 +65,7 @@ export default function ApproveNomineeModal({
         </div>
         <p style={{ color: colors.text.light, fontSize: typography.fontSize.md, lineHeight: '1.6' }}>
           <strong style={{ color: '#fff' }}>{nominee.nominatorName}</strong> has nominated{' '}
-          <strong style={{ color: '#fff' }}>{nominee.name}</strong> to compete in New York Most Eligible 2025.
+          <strong style={{ color: '#fff' }}>{nominee.name}</strong> to compete.
         </p>
       </div>
 

@@ -74,8 +74,8 @@ export function generateCompetitionSlug({ name, citySlug, season, demographicSlu
  * @returns {string} URL path (e.g., "/most-eligible/elite-single-women-chicago-2026")
  */
 export function getCompetitionUrl(orgSlug, competitionSlug) {
-  const org = orgSlug || 'most-eligible';
-  return `/${org}/${competitionSlug}`;
+  if (!orgSlug) return null;
+  return `/${orgSlug}/${competitionSlug}`;
 }
 
 /**
@@ -86,8 +86,8 @@ export function getCompetitionUrl(orgSlug, competitionSlug) {
  * @returns {string} URL path (e.g., "/most-eligible/id/abc-123")
  */
 export function getCompetitionUrlById(orgSlug, competitionId) {
-  const org = orgSlug || 'most-eligible';
-  return `/${org}/id/${competitionId}`;
+  if (!orgSlug) return null;
+  return `/${orgSlug}/id/${competitionId}`;
 }
 
 /**

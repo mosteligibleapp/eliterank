@@ -12,7 +12,7 @@ export default function ConvertNomineeModal({
   if (!nominee) return null;
 
   const benefits = [
-    { text: <><strong style={{ color: '#fff' }}>Send notification</strong> via email that they have been accepted to compete in New York Most Eligible 2025</> },
+    { text: <><strong style={{ color: '#fff' }}>Send notification</strong> via email that they have been accepted to compete</> },
     { text: <><strong style={{ color: '#fff' }}>Create public profile</strong> automatically visible on the Contestants page</> },
     { text: <><strong style={{ color: '#fff' }}>Enable voting</strong> so fans can immediately start casting votes</> },
     { text: <><strong style={{ color: '#fff' }}>Add to leaderboard</strong> and begin tracking their vote rankings</> },

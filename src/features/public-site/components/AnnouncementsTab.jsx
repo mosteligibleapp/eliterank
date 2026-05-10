@@ -98,7 +98,7 @@ function parseArticleContent(content) {
 
 /* ─── Organization Byline ─── */
 function OrgByline({ competition, size = 'md' }) {
-  const orgName = competition?.organization?.name || 'Most Eligible';
+  const orgName = competition?.organization?.name || '';
   const orgLogo = competition?.organization?.logo_url;
   const logoSize = size === 'sm' ? 20 : 28;
 
@@ -429,7 +429,7 @@ function HeadlineCard({ post, onClick, isMobile, competition }) {
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
           <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-            {competition?.organization?.name || 'Most Eligible'}
+            {competition?.organization?.name || ''}
           </span>
           <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, opacity: 0.4 }}>·</span>
           <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
@@ -473,8 +473,6 @@ export default function AnnouncementsTab({ announcements = [], city = 'Your City
     if (!a.pinned && b.pinned) return 1;
     return new Date(b.date) - new Date(a.date);
   });
-
-  const competitionName = season ? `Most Eligible ${city} ${season}` : `Most Eligible ${city}`;
 
   // If an article is selected, show the full detail view
   if (selectedPost) {

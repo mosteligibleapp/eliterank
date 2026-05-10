@@ -13,20 +13,15 @@ import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 import ErrorState from '../components/common/ErrorState';
 
 /**
- * Build competition display name from city and season
+ * Build competition display name from competition data
  */
 function buildCompetitionName(competition) {
   if (!competition) return 'Unknown Competition';
+  if (competition.name) return competition.name;
 
   const city = competition.city || 'Unknown';
   const season = competition.season || new Date().getFullYear();
-
-  // If city already includes "Most Eligible", use as-is
-  if (city.toLowerCase().includes('most eligible')) {
-    return city;
-  }
-
-  return `${city} Most Eligible ${season}`.trim();
+  return `${city} ${season}`.trim();
 }
 
 /**
@@ -101,7 +96,8 @@ export default function DashboardPage() {
   const handleViewPublicSite = useCallback(() => {
     if (!hostCompetition) return;
 
-    const orgSlug = hostCompetition?.organization?.slug || 'most-eligible';
+    const orgSlug = hostCompetition?.organization?.slug;
+    if (!orgSlug) return;
     const cityName = hostCompetition?.city?.name || hostCompetition?.city || 'competition';
     const citySlug = cityName.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '');
     const year = hostCompetition?.season || new Date().getFullYear();

@@ -4,7 +4,9 @@ import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import NominationForm from './NominationForm';
 
-export default function NominationTab({ city, competitionId, onNominationSubmit, isAuthenticated = false, onLogin, userEmail, userInstagram, formConfig }) {
+export default function NominationTab({ city, competitionId, competitionName, organizationName, season, onNominationSubmit, isAuthenticated = false, onLogin, userEmail, userInstagram, formConfig }) {
+  const orgName = organizationName || 'Most Eligible';
+  const headlineAccent = orgName === 'Most Eligible' ? 'Most Eligible?' : (competitionName || orgName);
   const [showForm, setShowForm] = useState(false);
 
   // Handle "Start Your Nomination" click
@@ -22,6 +24,9 @@ export default function NominationTab({ city, competitionId, onNominationSubmit,
         <NominationForm
           city={city}
           competitionId={competitionId}
+          competitionName={competitionName}
+          organizationName={organizationName}
+          season={season}
           onSubmit={onNominationSubmit}
           onClose={() => setShowForm(false)}
           userEmail={userEmail}
@@ -66,7 +71,7 @@ export default function NominationTab({ city, competitionId, onNominationSubmit,
           lineHeight: 1.1,
         }}>
           Are You {city}'s
-          <span style={{ display: 'block', color: colors.gold.primary }}>Most Eligible?</span>
+          <span style={{ display: 'block', color: colors.gold.primary }}>{headlineAccent}</span>
         </h1>
 
         <p style={{
@@ -77,7 +82,7 @@ export default function NominationTab({ city, competitionId, onNominationSubmit,
           marginBottom: spacing.xxl,
           lineHeight: 1.6,
         }}>
-          Nominate yourself or someone you know to compete for the title of Most Eligible in {city}. Join an exclusive community of ambitious professionals.
+          Nominate yourself or someone you know to compete in {competitionName || `${orgName} ${city}`}. Join an exclusive community of ambitious professionals.
         </p>
 
         {!isAuthenticated ? (

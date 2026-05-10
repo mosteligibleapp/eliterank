@@ -190,7 +190,7 @@ export default function NomineeProfileCompletionPage({
           }}>
             You're almost in! Complete your profile to finalize your entry for
             <span style={{ color: colors.gold.primary, fontWeight: typography.fontWeight.semibold }}>
-              {' '}Most Eligible {competition?.city} {competition?.season}
+              {' '}{competition?.name || `${competition?.city || ''} ${competition?.season || ''}`.trim()}
             </span>
           </p>
         </div>
@@ -354,7 +354,7 @@ export default function NomineeProfileCompletionPage({
             <Textarea
               value={formData.bio}
               onChange={(e) => handleFieldChange('bio', e.target.value)}
-              placeholder="Tell us about yourself... What makes you Most Eligible material?"
+              placeholder="Tell us about yourself... What makes you stand out?"
               maxLength={500}
               showCount
               rows={4}

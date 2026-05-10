@@ -83,7 +83,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
         competitionName: comp?.name,
         cityName: city,
         season: comp?.season?.toString(),
-        orgName: org?.name || 'Most Eligible',
+        orgName: org?.name || '',
         orgLogoUrl: org?.logo_url,
         slug: comp?.slug,
       });

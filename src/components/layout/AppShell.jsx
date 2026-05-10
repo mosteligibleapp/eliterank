@@ -58,7 +58,7 @@ function PendingNominationsModal({ nominations, onSelect, onClose }) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white font-semibold mb-1">
-                    Most Eligible {nom.competition?.city?.name || nom.competition?.city} {nom.competition?.season}
+                    {nom.competition?.name || `${nom.competition?.city?.name || nom.competition?.city || ''} ${nom.competition?.season || ''}`.trim()}
                   </p>
                   <p className="text-gray-400 text-[0.85rem]">
                     {nom.competition?.organization?.name || 'EliteRank'}

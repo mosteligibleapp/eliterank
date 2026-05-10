@@ -33,6 +33,7 @@ export default function VoteModal({
   isAuthenticated = false,
   onLogin,
   competitionId,
+  competition,
   user,
   onVoteSuccess,
   currentRound,
@@ -694,7 +695,7 @@ export default function VoteModal({
           {/* Share card */}
           <VoteShareCard
             contestant={contestant}
-            competition={{ name: 'Most Eligible' }}
+            competition={competition || {}}
             voteCount={votesAdded}
           />
 

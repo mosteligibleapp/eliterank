@@ -4,7 +4,10 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { supabase } from '../../../lib/supabase';
 import { SkeletonPulse, SkeletonCircle } from '../../../components/common/Skeleton';
 
-export default function WinnersTab({ city, season, winners = [], competitionId, onViewProfile }) {
+export default function WinnersTab({ city, season, winners = [], competitionId, competitionName, organizationName, onViewProfile }) {
+  const headlineAccent = (organizationName === 'Most Eligible' || !organizationName)
+    ? `${city}'s Most Eligible!`
+    : `${competitionName || `${organizationName} ${city}`}!`;
   const [loadedWinners, setLoadedWinners] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -126,7 +129,7 @@ export default function WinnersTab({ city, season, winners = [], competitionId, 
           lineHeight: 1.1,
         }}>
           Congratulations to
-          <span style={{ display: 'block', color: colors.gold.primary }}>{city}'s Most Eligible!</span>
+          <span style={{ display: 'block', color: colors.gold.primary }}>{headlineAccent}</span>
         </h1>
 
         <p style={{

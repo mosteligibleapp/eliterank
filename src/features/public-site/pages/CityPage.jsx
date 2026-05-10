@@ -71,8 +71,11 @@ export default function CityPage() {
   };
 
   const handleCompetitionClick = (comp) => {
-    // Use the actual slug from the database
-    const orgSlug = comp.organization?.slug || 'most-eligible';
+    const orgSlug = comp.organization?.slug;
+    if (!orgSlug) {
+      console.warn('[CityPage] Competition missing organization slug:', comp.name || comp.id);
+      return;
+    }
     if (comp.slug) {
       navigate(`/${orgSlug}/${comp.slug}`);
     } else {

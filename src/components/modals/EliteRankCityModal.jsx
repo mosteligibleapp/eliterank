@@ -193,7 +193,7 @@ export default function EliteRankCityModal({
 
       return {
         id: comp.id,
-        name: comp.name || `Most Eligible ${cityName}`,
+        name: comp.name || `${org?.name || ''} ${cityName}`.trim(),
         slug: comp.slug,
         city: cityName,
         cityState: cityFromLookup?.state || '',

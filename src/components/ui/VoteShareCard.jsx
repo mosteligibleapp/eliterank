@@ -28,7 +28,7 @@ export default function VoteShareCard({
 
   const contestantName = contestant?.name || 'Contestant';
   const photoUrl = contestant?.avatar_url || contestant?.avatarUrl;
-  const competitionName = competition?.name || 'Most Eligible';
+  const competitionName = competition?.name || competition?.organization?.name || '';
   const effectiveLogoUrl = organizationLogoUrl || competition?.organization?.logo_url;
 
   // Generate the card on mount

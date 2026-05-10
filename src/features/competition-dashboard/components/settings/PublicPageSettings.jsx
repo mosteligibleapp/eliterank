@@ -16,8 +16,8 @@ import { isLive, isCompleted } from '../../../../utils/competitionPhase';
  */
 export function PublicPageSettings({ competition, organization, onSave }) {
   // Build public page URL
-  const publicUrl = competition
-    ? `/c/${organization?.slug || 'most-eligible'}/${competition.city?.toLowerCase()}${
+  const publicUrl = competition && organization?.slug
+    ? `/c/${organization.slug}/${competition.city?.toLowerCase()}${
         competition.season ? `/${competition.season}` : ''
       }`
     : null;

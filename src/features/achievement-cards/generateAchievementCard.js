@@ -151,7 +151,7 @@ export async function generateAchievementCard({
   competitionName,
   cityName: rawCityName,
   season,
-  organizationName = 'Most Eligible',
+  organizationName = '',
   organizationLogoUrl,
   accentColor = GOLD,
   voteUrl,

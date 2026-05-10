@@ -271,7 +271,7 @@ export default function VotePaymentReturnHandler() {
 
         <VoteShareCard
           contestant={contestant}
-          competition={competition || { name: 'Most Eligible' }}
+          competition={competition || {}}
           voteCount={votesAdded}
         />
 

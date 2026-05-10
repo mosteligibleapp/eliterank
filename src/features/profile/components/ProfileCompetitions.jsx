@@ -54,7 +54,8 @@ function synthesizePreviewRound(competition) {
 }
 
 function getCompetitionLink(competition) {
-  const orgSlug = competition?.organization?.slug || 'most-eligible';
+  const orgSlug = competition?.organization?.slug;
+  if (!orgSlug) return null;
   if (competition?.slug) {
     return getCompetitionUrl(orgSlug, competition.slug);
   }
@@ -293,7 +294,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
       onMouseLeave={() => setIsHovered(false)}
     >
       <a
-        href={url}
+        href={url || '#'}
         style={{
           textDecoration: 'none',
           color: 'inherit',

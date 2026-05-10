@@ -94,10 +94,10 @@ export default function ViewPublicProfilePage() {
           // Build back URL from their competition (prefer contestant, fallback to nominee)
           const comp = contestantResult?.data?.competition || nomineeResult?.data?.competition;
           if (comp) {
-            const orgSlug = comp.organization?.slug || 'most-eligible';
-            if (comp.slug) {
+            const orgSlug = comp.organization?.slug;
+            if (orgSlug && comp.slug) {
               setBackUrl(getCompetitionUrl(orgSlug, comp.slug));
-            } else if (comp.id) {
+            } else if (orgSlug && comp.id) {
               setBackUrl(getCompetitionUrlById(orgSlug, comp.id));
             }
           }

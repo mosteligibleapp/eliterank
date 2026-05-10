@@ -4,7 +4,7 @@ import { Avatar, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
 
-export default function AboutTab({ judges, sponsors, host, city = 'New York', competition, onViewProfile }) {
+export default function AboutTab({ judges, sponsors, host, city = 'New York', competition, organization, onViewProfile }) {
   const { isMobile } = useResponsive();
   const platinumSponsor = sponsors.find((s) => s.tier === 'Platinum');
   const otherSponsors = sponsors.filter((s) => s.tier !== 'Platinum');
@@ -49,7 +49,7 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
     <div>
       <div style={{ textAlign: 'center', marginBottom: spacing.xxxl }}>
         <h1 style={{ fontSize: typography.fontSize.hero, fontWeight: typography.fontWeight.bold, marginBottom: spacing.md }}>
-          About Most Eligible {city}
+          About {competition?.name || `${organization?.name || ''} ${city}`.trim()}
         </h1>
         <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg, maxWidth: '600px', margin: '0 auto' }}>
           The premier competition celebrating {city}'s most outstanding singles
@@ -522,7 +522,8 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
         </div>
       </div>
 
-      {/* Advance to USA Section */}
+      {/* Advance to USA Section — Most Eligible only */}
+      {organization?.slug === 'most-eligible' && (
       <div
         style={{
           background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(139,92,246,0.1), rgba(212,175,55,0.1))',
@@ -571,6 +572,7 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }

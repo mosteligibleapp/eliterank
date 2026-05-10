@@ -601,6 +601,8 @@ export default function PublicSitePage({
                   season={season}
                   winners={winners}
                   competitionId={competition?.id}
+                  competitionName={competition?.name}
+                  organizationName={competition?.organization?.name}
                   onViewProfile={(profile) => handleViewProfile(profile, 'winner')}
                 />
               )}
@@ -608,6 +610,9 @@ export default function PublicSitePage({
                 <NominationTab
                   city={city}
                   competitionId={competition?.id}
+                  competitionName={competition?.name}
+                  organizationName={competition?.organization?.name}
+                  season={competition?.season}
                   onNominationSubmit={onClose}
                   isAuthenticated={isAuthenticated}
                   onLogin={onLogin}
@@ -717,6 +722,7 @@ export default function PublicSitePage({
             city={city}
             season={season}
             phase={phase}
+            competitionName={competition?.name}
             canEdit={canEditEvents}
             onEditEvent={onEditEvent}
             onAddEvent={onAddEvent}
@@ -729,6 +735,7 @@ export default function PublicSitePage({
             host={displayHost}
             city={city}
             competition={competition}
+            organization={competition?.organization}
             onViewProfile={handleViewProfile}
           />
         )}
@@ -795,6 +802,7 @@ export default function PublicSitePage({
         isAuthenticated={isAuthenticated}
         onLogin={onLogin}
         competitionId={competition?.id}
+        competition={competition}
         user={user}
         onVoteSuccess={handleVoteSuccess}
         currentRound={currentRound}

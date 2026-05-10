@@ -9,10 +9,12 @@ export default function EventsTab({
   city = 'New York',
   season = '2026',
   phase = 'voting',
+  competitionName,
   canEdit = false,
   onEditEvent,
   onAddEvent,
 }) {
+  const eventsLabel = competitionName || city;
   // Filter to only show public/visible events
   const visibleEvents = events.filter(e => e.publicVisible !== false);
 
@@ -26,7 +28,7 @@ export default function EventsTab({
               Events
             </h1>
             <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg }}>
-              Exclusive Most Eligible {city} events
+              Exclusive {eventsLabel} events
             </p>
           </div>
           {canEdit && onAddEvent && (
@@ -112,8 +114,8 @@ export default function EventsTab({
           </h1>
           <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.lg }}>
             {phase === 'completed'
-              ? `Past events from Most Eligible ${city} Season ${season}`
-              : `Don't miss our exclusive Most Eligible ${city} events`
+              ? `Past events from ${eventsLabel} Season ${season}`
+              : `Don't miss our exclusive ${eventsLabel} events`
             }
           </p>
         </div>

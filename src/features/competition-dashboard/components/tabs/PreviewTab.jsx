@@ -52,7 +52,7 @@ export default function PreviewTab({ competition, contestants = [] }) {
   // don't get a cramped 600px frame that scrolls awkwardly.
   const iframeHeight = isMobile ? '70vh' : '600px';
 
-  const orgSlug = competition?.organization?.slug || 'most-eligible';
+  const orgSlug = competition?.organization?.slug;
   const competitionId = competition?.id;
 
   const currentPhaseKey = useMemo(() => {
@@ -61,7 +61,7 @@ export default function PreviewTab({ competition, contestants = [] }) {
   }, [competition]);
 
   const buildPreviewUrl = (phaseKey) =>
-    competitionId
+    competitionId && orgSlug
       ? `/${orgSlug}/id/${competitionId}?preview=${phaseKey}`
       : null;
 

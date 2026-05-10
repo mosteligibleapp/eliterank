@@ -890,7 +890,7 @@ export default function LoginPage({ onLogin, onBack }) {
                 fontWeight: typography.fontWeight.semibold,
                 color: colors.text.primary,
               }}>
-                Most Eligible {nomineeData.competition?.city} {nomineeData.competition?.season}
+                {nomineeData.competition?.name || `${nomineeData.competition?.city || ''} ${nomineeData.competition?.season || ''}`.trim()}
               </p>
             </div>
 

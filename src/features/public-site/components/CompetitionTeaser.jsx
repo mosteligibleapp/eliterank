@@ -18,6 +18,8 @@ export default function CompetitionTeaser({
   onLogin,
   user,
 }) {
+  const orgName = competition?.organization?.name || 'Most Eligible';
+  const compTitle = competition?.name || `${orgName} ${competition?.city || ''}`.trim();
   const { profile } = useAuthContextSafe();
   const [activeForm, setActiveForm] = useState(null); // 'host', 'sponsor', 'compete', or 'judge'
   const [formData, setFormData] = useState({});
@@ -260,7 +262,7 @@ export default function CompetitionTeaser({
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
               <Crown size={28} style={{ color: colors.gold.primary }} />
               <span style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#fff' }}>
-                Most Eligible <span style={{ color: colors.gold.primary }}>{competition?.city}</span>
+                {orgName} <span style={{ color: colors.gold.primary }}>{competition?.city}</span>
               </span>
             </div>
             <Button variant="secondary" onClick={onClose} icon={X}>
@@ -352,7 +354,7 @@ export default function CompetitionTeaser({
               color: '#fff',
               marginBottom: spacing.md,
             }}>
-              Host Most Eligible {competition?.city}
+              Host {compTitle}
             </h1>
             <p style={{ color: colors.text.secondary, lineHeight: 1.6 }}>
               Become the face of your city's most exciting social competition. Hosts lead events, engage with contestants, and build an amazing community.
@@ -500,7 +502,7 @@ export default function CompetitionTeaser({
               color: '#fff',
               marginBottom: spacing.md,
             }}>
-              Sponsor Most Eligible {competition?.city}
+              Sponsor {compTitle}
             </h1>
             <p style={{ color: colors.text.secondary, lineHeight: 1.6 }}>
               Partner with us to reach an engaged audience of ambitious professionals. Sponsors receive prominent branding, event presence, and exclusive networking opportunities.
@@ -664,7 +666,7 @@ export default function CompetitionTeaser({
               color: '#fff',
               marginBottom: spacing.md,
             }}>
-              Compete in Most Eligible {competition?.city}
+              Compete in {compTitle}
             </h1>
             <p style={{ color: colors.text.secondary, lineHeight: 1.6 }}>
               Be notified when nominations open and get first access to compete in the most exciting social competition in your city.
@@ -789,7 +791,7 @@ export default function CompetitionTeaser({
               color: '#fff',
               marginBottom: spacing.md,
             }}>
-              Judge Most Eligible {competition?.city}
+              Judge {compTitle}
             </h1>
             <p style={{ color: colors.text.secondary, lineHeight: 1.6 }}>
               Join our panel of judges and help evaluate the most eligible contestants in {competition?.city}. We're looking for individuals with diverse backgrounds and expertise.
@@ -911,7 +913,7 @@ export default function CompetitionTeaser({
               </div>
               <div>
                 <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  Most Eligible
+                  {orgName}
                 </p>
                 <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#fff' }}>
                   {competition?.city}
@@ -943,7 +945,7 @@ export default function CompetitionTeaser({
           marginBottom: spacing.lg,
           lineHeight: 1.1,
         }}>
-          Most Eligible
+          {orgName}
           <span style={{ display: 'block', color: colors.gold.primary }}>{competition?.city}</span>
         </h1>
 
@@ -1025,7 +1027,7 @@ export default function CompetitionTeaser({
                 marginBottom: spacing.xl,
                 lineHeight: 1.6,
               }}>
-                Become the face of Most Eligible {competition?.city}. Lead events, engage with contestants, and build an amazing community.
+                Become the face of {compTitle}. Lead events, engage with contestants, and build an amazing community.
               </p>
 
               <Button onClick={() => setActiveForm('host')} style={{ width: '100%' }}>

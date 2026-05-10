@@ -23,13 +23,16 @@ async function sendFanConfirmationEmail({ email, contestantId, fanId }) {
 
   if (!contestant) return;
 
-  const orgSlug = contestant.competition?.organization?.slug || 'most-eligible';
+  const orgSlug = contestant.competition?.organization?.slug;
   const competitionSlug = contestant.competition?.slug;
-  const competitionUrl = competitionSlug
-    ? `${window.location.origin}${getCompetitionUrl(orgSlug, competitionSlug)}`
-    : contestant.competition?.id
-      ? `${window.location.origin}${getCompetitionUrlById(orgSlug, contestant.competition.id)}`
-      : undefined;
+  const compUrlPath = orgSlug
+    ? competitionSlug
+      ? getCompetitionUrl(orgSlug, competitionSlug)
+      : contestant.competition?.id
+        ? getCompetitionUrlById(orgSlug, contestant.competition.id)
+        : null
+    : null;
+  const competitionUrl = compUrlPath ? `${window.location.origin}${compUrlPath}` : undefined;
   const profileUrl = contestant.user_id
     ? `${window.location.origin}/profile/${contestant.user_id}`
     : undefined;
