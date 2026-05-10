@@ -36,12 +36,12 @@ export function ComingSoonPhase() {
   const heroImage = competition?.cover_image || getCityImage(competition?.city, competition?.name);
 
   return (
-    <div className="phase-view phase-coming-soon">
-      {/* Hero — backdrop image + header + countdown */}
-      <section
-        className="phase-coming-soon-hero"
-        style={heroImage ? { '--hero-image': `url("${heroImage}")` } : undefined}
-      >
+    <div
+      className="phase-view phase-coming-soon"
+      style={heroImage ? { '--hero-image': `url("${heroImage}")` } : undefined}
+    >
+      {/* Hero — header + countdown over the page-wide backdrop */}
+      <section className="phase-coming-soon-hero">
         <div className="phase-coming-soon-hero-inner">
           <CompetitionHeader badge="Coming Soon" badgeVariant="default" />
           {hasCountdown && (
