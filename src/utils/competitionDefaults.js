@@ -71,6 +71,7 @@ const AGE_RANGE_BY_DEMOGRAPHIC = {
   'men-40-plus': '40+',
   'lgbtq-plus-21-39': '21-39',
   'lgbtq-plus-40-plus': '40+',
+  'all-genders-29-45': '29-45',
   'open': 'All Ages',
   default: '21+',
 };
