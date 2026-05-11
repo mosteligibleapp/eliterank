@@ -285,6 +285,15 @@
   margin-bottom: var(--spacing-2xl);
 }
 
+/* Hide wrappers whose only child rendered null (e.g. PrizePool or Timeline
+   with no data). Without this, an empty <section>/<div> still consumes
+   margin-bottom and column space in the surrounding grid. */
+.phase-section:empty,
+.activity-section:empty,
+.phase-grid-2 > div:empty {
+  display: none;
+}
+
 /* ====================================================================
    Contestant profile page (/:…/e/:contestantSlug) — shareable view
    rendered inline on the competition route.

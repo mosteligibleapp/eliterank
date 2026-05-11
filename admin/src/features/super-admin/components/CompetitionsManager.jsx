@@ -321,9 +321,9 @@ export default function CompetitionsManager({ onViewDashboard }) {
           selection_criteria: 'votes',
           host_id: formData.host_id || null,
           description: formData.description || '',
-          minimum_prize_cents: formData.minimum_prize === '' || formData.minimum_prize === null
+          prize_pool_minimum: formData.minimum_prize === '' || formData.minimum_prize === null
             ? null
-            : Math.round(Number(formData.minimum_prize) * 100),
+            : Number(formData.minimum_prize),
           eligibility_radius_miles: formData.eligibility_radius,
           min_contestants: formData.min_contestants,
           max_contestants: maxContestants,
@@ -383,7 +383,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
           has_events: false,
           number_of_winners: contestants.length || formData.number_of_winners,
           selection_criteria: 'votes',
-          minimum_prize_cents: 0,
+          prize_pool_minimum: 0,
           eligibility_radius_miles: 100,
           min_contestants: 10,
           max_contestants: null,
@@ -462,9 +462,9 @@ export default function CompetitionsManager({ onViewDashboard }) {
           price_per_vote: formData.price_per_vote,
           use_price_bundler: formData.use_price_bundler,
           allow_manual_votes: formData.allow_manual_votes,
-          minimum_prize_cents: formData.minimum_prize === '' || formData.minimum_prize === null
+          prize_pool_minimum: formData.minimum_prize === '' || formData.minimum_prize === null
             ? null
-            : Math.round(Number(formData.minimum_prize) * 100),
+            : Number(formData.minimum_prize),
           eligibility_radius_miles: formData.eligibility_radius,
           min_contestants: formData.min_contestants,
           max_contestants: maxContestants,

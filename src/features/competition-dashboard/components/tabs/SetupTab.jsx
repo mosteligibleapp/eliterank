@@ -27,10 +27,8 @@ function todayInTimezone(timezone) {
   }
 }
 
-// Helper to format currency from cents
-const formatCurrency = (cents) => {
-  const dollars = (cents || 0) / 100;
-  return dollars.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 });
+const formatCurrency = (dollars) => {
+  return (dollars || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 });
 };
 
 // Helper to format radius display
@@ -454,7 +452,7 @@ export default function SetupTab({
               />
               <ViewOnlyField
                 label="Minimum Prize"
-                value={competition?.minimumPrizeCents != null ? formatCurrency(competition.minimumPrizeCents) : 'Not set'}
+                value={competition?.minimumPrize != null ? formatCurrency(competition.minimumPrize) : 'Not set'}
                 icon={DollarSign}
               />
               <ViewOnlyField

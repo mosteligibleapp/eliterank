@@ -20,7 +20,7 @@ export function PrizePoolSettings({ competition, onSave }) {
   const status = competition?.status || 'draft';
 
   // Form state
-  const [minimum, setMinimum] = useState(1000);
+  const [minimum, setMinimum] = useState(0);
 
   // UI state
   const [saving, setSaving] = useState(false);
@@ -28,7 +28,7 @@ export function PrizePoolSettings({ competition, onSave }) {
 
   // Initialize
   useEffect(() => {
-    if (competition?.prize_pool_minimum) {
+    if (competition?.prize_pool_minimum != null) {
       setMinimum(competition.prize_pool_minimum);
     }
   }, [competition]);
@@ -39,11 +39,11 @@ export function PrizePoolSettings({ competition, onSave }) {
   }, [minimum]);
 
   // Validate minimum
-  const minError = minimum < 1000 ? 'Minimum prize pool is $1,000' : null;
+  const minError = minimum < 0 ? 'Prize pool cannot be negative' : null;
 
   // Check for changes
   const hasChanges = () => {
-    return minimum !== (competition?.prize_pool_minimum || 1000);
+    return minimum !== (competition?.prize_pool_minimum ?? 0);
   };
 
   // Save changes
@@ -328,7 +328,7 @@ export function PrizePoolSettings({ competition, onSave }) {
               </span>
               <input
                 type="number"
-                min={1000}
+                min={0}
                 step={100}
                 value={minimum}
                 onChange={(e) => setMinimum(Number(e.target.value))}
@@ -336,7 +336,7 @@ export function PrizePoolSettings({ competition, onSave }) {
               />
             </div>
             {minError && <span style={errorStyle}>{minError}</span>}
-            <span style={hintStyle}>Minimum $1,000 required</span>
+            <span style={hintStyle}>Set to $0 to hide the prize pool</span>
           </div>
         </FieldLockIndicator>
 
