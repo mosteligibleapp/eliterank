@@ -15,6 +15,7 @@ export function PrizePool({ compact = false, collapsible = false, showLiveBadge 
   const [expanded, setExpanded] = useState(false);
 
   if (!prizePool) return null;
+  if (!Number(prizePool.totalPrizePool)) return null;
 
   const isPreVoting = phase?.phase === 'coming-soon' || phase?.phase === 'nominations';
   const isComplete = phase?.phase === 'results';

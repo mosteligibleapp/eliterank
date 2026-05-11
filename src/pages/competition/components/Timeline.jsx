@@ -71,22 +71,7 @@ export function Timeline() {
   const [sectionOpen, setSectionOpen] = useState(false);
 
   if (phases.length === 0) {
-    return (
-      <div className="timeline">
-        <button className="timeline-header timeline-header-mobile" onClick={() => setSectionOpen(!sectionOpen)}>
-          <h4 className="section-label">Timeline</h4>
-          <ChevronDown size={18} className={`timeline-header-chevron ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
-        </button>
-        <div className="timeline-header-desktop">
-          <h4 className="section-label">Timeline</h4>
-        </div>
-        {sectionOpen && (
-          <div className="timeline-empty">
-            <p>Timeline coming soon</p>
-          </div>
-        )}
-      </div>
-    );
+    return null;
   }
 
   const activePhase = phases.find(p => p.status === 'active');
