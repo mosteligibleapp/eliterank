@@ -219,8 +219,8 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
   // Compute prize pool
   const prizePool = useMemo(() => {
     const minimum =
-      competition?.prize_pool_minimum ||
-      organization?.default_prize_minimum ||
+      competition?.prize_pool_minimum ??
+      organization?.default_prize_minimum ??
       1000;
     const voteRevenue =
       phase.isVoting || phase.phase === 'results'

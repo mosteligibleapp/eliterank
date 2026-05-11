@@ -13,7 +13,11 @@
  * @returns {object} Prize pool breakdown
  */
 export function calculatePrizePool(prizePoolMinimum = 1000, voteRevenue = 0) {
-  const hostMinimum = Number(prizePoolMinimum) || 1000;
+  const parsedMinimum =
+    prizePoolMinimum == null || prizePoolMinimum === ''
+      ? 1000
+      : Number(prizePoolMinimum);
+  const hostMinimum = Number.isFinite(parsedMinimum) ? parsedMinimum : 1000;
   const revenue = Number(voteRevenue) || 0;
 
   // Preserves the historical total: 100% of host minimum + 50% of the
