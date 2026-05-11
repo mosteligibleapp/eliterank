@@ -294,6 +294,13 @@
   display: none;
 }
 
+/* When a phase-grid-2 column is empty, collapse the grid to a single column
+   so the surviving child takes the full row width instead of being pinned to
+   one half with a blank gap where the hidden cell used to sit. */
+.phase-grid-2:has(> div:empty) {
+  grid-template-columns: 1fr;
+}
+
 /* ====================================================================
    Contestant profile page (/:…/e/:contestantSlug) — shareable view
    rendered inline on the competition route.
