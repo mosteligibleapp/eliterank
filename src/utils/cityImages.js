@@ -52,6 +52,9 @@ const CITY_IMAGES = {
   'baltimore': 'https://images.unsplash.com/photo-1569761316261-9a8696fa2ca3?w=800&q=80',
   'washington': 'https://images.unsplash.com/photo-1501466044931-62695aada8e9?w=800&q=80',
   'dc': 'https://images.unsplash.com/photo-1501466044931-62695aada8e9?w=800&q=80',
+
+  // Canadian Cities
+  'toronto': 'https://plus.unsplash.com/premium_photo-1694475481348-7cbe417be129?w=800&q=80&auto=format&fit=crop',
 };
 
 // Default fallback image
