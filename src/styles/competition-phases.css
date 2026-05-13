@@ -4059,6 +4059,15 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   text-align: left;
   width: 100%;
   color: inherit;
+  text-decoration: none;
+}
+
+.host-card-content-static {
+  cursor: default;
+}
+
+.host-card-content-static:hover .host-card-name {
+  color: inherit;
 }
 
 .host-card-content:hover .host-card-name {

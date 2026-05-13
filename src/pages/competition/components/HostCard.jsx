@@ -16,6 +16,64 @@ export function HostCard({ variant = 'compact' }) {
   if (!host) return null;
 
   const isFeatured = variant === 'featured';
+  const instagramUrl = host.instagram ? `https://instagram.com/${host.instagram}` : null;
+
+  const cardInner = (
+    <>
+      <div className="host-card-avatar">
+        {host.avatar_url ? (
+          <img src={host.avatar_url} alt={hostName} />
+        ) : (
+          <div className="host-card-avatar-placeholder">
+            <User size={isFeatured ? 48 : 28} />
+          </div>
+        )}
+      </div>
+      <div className="host-card-info">
+        <span className="host-card-name">{hostName || 'Competition Host'}</span>
+        {host.bio && (
+          <span className="host-card-bio">
+            {host.bio}
+          </span>
+        )}
+        {host.city && (
+          <span className="host-card-location">
+            <MapPin size={12} />
+            {host.city}
+          </span>
+        )}
+      </div>
+    </>
+  );
+
+  // Featured variant on the teaser: clicking the whole card jumps straight to
+  // Instagram (when set). Compact variant keeps the modal-on-click behaviour
+  // so users can still see the bio + other socials.
+  const renderCardBody = () => {
+    if (isFeatured) {
+      if (instagramUrl) {
+        return (
+          <a
+            className="host-card-content"
+            href={instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {cardInner}
+          </a>
+        );
+      }
+      return <div className="host-card-content host-card-content-static">{cardInner}</div>;
+    }
+    return (
+      <button
+        className="host-card-content"
+        onClick={() => setShowHostModal(true)}
+      >
+        {cardInner}
+      </button>
+    );
+  };
 
   return (
     <>
@@ -25,38 +83,11 @@ export function HostCard({ variant = 'compact' }) {
           <span>Your Host</span>
         </div>
 
-        <button
-          className="host-card-content"
-          onClick={() => setShowHostModal(true)}
-        >
-          <div className="host-card-avatar">
-            {host.avatar_url ? (
-              <img src={host.avatar_url} alt={hostName} />
-            ) : (
-              <div className="host-card-avatar-placeholder">
-                <User size={isFeatured ? 48 : 28} />
-              </div>
-            )}
-          </div>
-          <div className="host-card-info">
-            <span className="host-card-name">{hostName || 'Competition Host'}</span>
-            {host.bio && (
-              <span className="host-card-bio">
-                {host.bio}
-              </span>
-            )}
-            {host.city && (
-              <span className="host-card-location">
-                <MapPin size={12} />
-                {host.city}
-              </span>
-            )}
-          </div>
-        </button>
+        {renderCardBody()}
 
         {!isFeatured && host.instagram && (
           <a
-            href={`https://instagram.com/${host.instagram}`}
+            href={instagramUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="host-card-social"
