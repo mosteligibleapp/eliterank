@@ -6025,6 +6025,49 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   width: 100%;
 }
 
+/* Featured host card — centered vertical layout used on the teaser */
+.host-sidebar-card-featured {
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.host-sidebar-card-featured .sidebar-card-header {
+  justify-content: center;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.host-sidebar-card-featured .host-card-content {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  text-align: center;
+}
+
+.host-sidebar-card-featured .host-card-avatar img,
+.host-sidebar-card-featured .host-card-avatar-placeholder {
+  width: 120px;
+  height: 120px;
+}
+
+.host-sidebar-card-featured .host-card-info {
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.host-sidebar-card-featured .host-card-name {
+  font-size: var(--font-size-xl);
+}
+
+.host-sidebar-card-featured .host-card-bio {
+  -webkit-line-clamp: 3;
+  max-width: 380px;
+}
+
+.host-sidebar-card-featured .host-card-location {
+  justify-content: center;
+}
+
 /* =====================
    COMING SOON — STAKES (Timeline + Prize)
    ===================== */
