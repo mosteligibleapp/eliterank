@@ -6029,6 +6029,10 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 .host-sidebar-card-featured {
   padding: var(--spacing-xl);
   text-align: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .host-sidebar-card-featured .sidebar-card-header {
