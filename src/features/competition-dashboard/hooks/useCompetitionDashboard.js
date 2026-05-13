@@ -449,6 +449,13 @@ export function useCompetitionDashboard(competitionId) {
           description: competition.description,
           winners: competition.winners || [],
           nominationFormConfig: competition.nomination_form_config,
+          // About section (read by AboutSectionEditor in the Content tab,
+          // which compares form state against these raw snake_case fields).
+          about_tagline: competition.about_tagline ?? null,
+          about_description: competition.about_description ?? null,
+          about_traits: competition.about_traits ?? null,
+          about_age_range: competition.about_age_range ?? null,
+          about_requirement: competition.about_requirement ?? null,
           // Category & Demographic (joined)
           categoryId: competition.category_id,
           categoryName: competition.category?.name || null,
