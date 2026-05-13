@@ -20,7 +20,10 @@ import { getCityImage } from '../../../utils/cityImages';
  * Shows before nominations open
  */
 export function ComingSoonPhase() {
-  const { competition, sponsors, judges, prizePool, countdown } = usePublicCompetition();
+  const {
+    competition, sponsors, judges, prizePool, countdown,
+    nominationPeriods, votingRounds,
+  } = usePublicCompetition();
   const [activeModal, setActiveModal] = useState(null);
 
   const openModal = (type) => setActiveModal(type);
@@ -29,9 +32,18 @@ export function ComingSoonPhase() {
   const hasSponsors = sponsors && sponsors.length > 0;
   const hasHost = Boolean(competition?.host);
   const hasJudges = judges && judges.length > 0;
-  const hasPrize = Boolean(prizePool);
+  const hasPrize = Boolean(prizePool) && Number(prizePool?.totalPrizePool) > 0;
   const hasCountdown = Boolean(countdown && !countdown.isExpired);
   const hasCharity = Boolean(competition?.charity_name);
+
+  // Timeline renders nothing unless at least one phase has dates.
+  const hasTimeline = Boolean(
+    nominationPeriods?.some(p => p.start_date || p.end_date)
+    || votingRounds?.some(r => r.start_date || r.end_date)
+    || competition?.nomination_start
+    || competition?.nomination_end
+    || competition?.finals_date,
+  );
 
   const heroImage = competition?.cover_image || getCityImage(competition?.city, competition?.name);
 
@@ -87,11 +99,13 @@ export function ComingSoonPhase() {
       )}
 
       {/* Journey + Prize side-by-side on desktop, stacked on mobile */}
-      {(hasPrize || competition?.nomination_start || competition?.finals_date) && (
+      {(hasTimeline || hasPrize) && (
         <section className="phase-coming-soon-stakes">
-          <div className="phase-coming-soon-stakes-timeline">
-            <Timeline />
-          </div>
+          {hasTimeline && (
+            <div className="phase-coming-soon-stakes-timeline">
+              <Timeline />
+            </div>
+          )}
           {hasPrize && (
             <div className="phase-coming-soon-stakes-prize">
               <PrizePool showLiveBadge={false} />
