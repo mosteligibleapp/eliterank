@@ -24,6 +24,7 @@ const ContestantView = lazy(() => import('./views/ContestantView'));
 
 // Shared components
 import { CompetitionHeader } from './components/CompetitionHeader';
+import { CompetitionFooter } from './components/CompetitionFooter';
 import VoteModal from '../../features/public-site/components/VoteModal';
 
 // Entry flow (lazy loaded)
@@ -264,6 +265,7 @@ function CompetitionLayoutInner() {
             <PhaseContent phase={phase} />
           )}
         </Suspense>
+        <CompetitionFooter />
       </main>
 
       {/* Modals rendered at layout level */}

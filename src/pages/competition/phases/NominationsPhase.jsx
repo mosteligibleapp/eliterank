@@ -10,7 +10,6 @@ import { RulesAccordion } from '../components/RulesAccordion';
 import { HostCard } from '../components/HostCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
-import { CompetitionFooter } from '../components/CompetitionFooter';
 import { CharityHighlight } from '../components/CharityHighlight';
 import { JudgesSection } from '../components/JudgesSection';
 
@@ -122,9 +121,6 @@ export function NominationsPhase() {
           <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
         </div>
       </section>
-
-      {/* Footer */}
-      <CompetitionFooter />
     </div>
   );
 }
