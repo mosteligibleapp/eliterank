@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Bell, Crown, Users, Briefcase } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
 import { HostSection } from '../components/HostSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
@@ -73,22 +73,6 @@ export function ComingSoonPhase() {
           <Bell size={20} />
           <span className="phase-cta-primary-label">Get notified when nominations open</span>
         </button>
-        <div className="phase-cta-secondary">
-          <button className="phase-cta-secondary-btn" onClick={() => openModal(INTEREST_TYPE.COMPETING)}>
-            <Crown size={16} />
-            <span>Compete</span>
-          </button>
-          {hasHost ? null : (
-            <button className="phase-cta-secondary-btn" onClick={() => openModal(INTEREST_TYPE.HOSTING)}>
-              <Users size={16} />
-              <span>Host</span>
-            </button>
-          )}
-          <button className="phase-cta-secondary-btn" onClick={() => openModal(INTEREST_TYPE.SPONSORING)}>
-            <Briefcase size={16} />
-            <span>Sponsor</span>
-          </button>
-        </div>
       </section>
 
       {/* Host credibility — full card variant */}
