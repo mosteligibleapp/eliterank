@@ -77,7 +77,7 @@ export default function CompetitionEditModal({
         name: competition.name || '',
         season: competition.season,
         number_of_winners: competition.number_of_winners,
-        minimum_prize: competition.minimum_prize_cents != null ? competition.minimum_prize_cents / 100 : '',
+        minimum_prize: competition.prize_pool_minimum != null ? competition.prize_pool_minimum : '',
         eligibility_radius: competition.eligibility_radius_miles ?? 100,
         min_contestants: competition.min_contestants ?? 40,
         max_contestants: competition.max_contestants || '',
