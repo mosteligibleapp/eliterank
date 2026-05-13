@@ -3,10 +3,10 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { User, MapPin, Instagram, Twitter, Linkedin, Crown, X } from 'lucide-react';
 
 /**
- * Host profile card for sidebar
- * Compact card showing host info with modal for full profile
+ * Host profile card. Defaults to a compact horizontal card; pass
+ * variant="featured" for the centered vertical teaser layout.
  */
-export function HostCard() {
+export function HostCard({ variant = 'compact' }) {
   const { competition } = usePublicCompetition();
   const [showHostModal, setShowHostModal] = useState(false);
 
@@ -15,11 +15,13 @@ export function HostCard() {
 
   if (!host) return null;
 
+  const isFeatured = variant === 'featured';
+
   return (
     <>
-      <div className="sidebar-card host-sidebar-card">
+      <div className={`sidebar-card host-sidebar-card${isFeatured ? ' host-sidebar-card-featured' : ''}`}>
         <div className="sidebar-card-header">
-          <Crown size={16} />
+          {!isFeatured && <Crown size={16} />}
           <span>Your Host</span>
         </div>
 
@@ -32,7 +34,7 @@ export function HostCard() {
               <img src={host.avatar_url} alt={hostName} />
             ) : (
               <div className="host-card-avatar-placeholder">
-                <User size={28} />
+                <User size={isFeatured ? 48 : 28} />
               </div>
             )}
           </div>
@@ -52,7 +54,7 @@ export function HostCard() {
           </div>
         </button>
 
-        {host.instagram && (
+        {!isFeatured && host.instagram && (
           <a
             href={`https://instagram.com/${host.instagram}`}
             target="_blank"

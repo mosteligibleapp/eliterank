@@ -78,7 +78,7 @@ export function ComingSoonPhase() {
       {/* Host credibility — full card variant */}
       {hasHost && (
         <section className="phase-section phase-coming-soon-host">
-          <HostCard />
+          <HostCard variant="featured" />
         </section>
       )}
 
