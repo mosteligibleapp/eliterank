@@ -458,7 +458,9 @@ export function useCompetitionDashboard(competitionId) {
           demographicSlug: competition.demographic?.slug || null,
           // Economics & Settings (admin-controlled)
           pricePerVote: parseFloat(competition.price_per_vote) || 1.00,
-          minimumPrizeCents: competition.minimum_prize_cents ?? null,
+          minimumPrizeCents: competition.prize_pool_minimum != null
+            ? Math.round(Number(competition.prize_pool_minimum) * 100)
+            : null,
           eligibilityRadiusMiles: competition.eligibility_radius_miles || 100,
           minContestants: competition.min_contestants || 40,
           maxContestants: competition.max_contestants || null,

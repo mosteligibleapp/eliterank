@@ -304,33 +304,35 @@ export default function CompetitionsManager({ onViewDashboard }) {
         demographicSlug: selectedDemographic?.slug,
       });
 
+      const insertPayload = {
+        organization_id: formData.organization_id,
+        city_id: formData.city_id,
+        category_id: formData.category_id,
+        demographic_id: formData.demographic_id,
+        name: formData.name || null,
+        slug: competitionSlug,
+        season: formData.season,
+        status: COMPETITION_STATUS.DRAFT,
+        entry_type: 'nominations',
+        has_events: true,
+        number_of_winners: formData.number_of_winners,
+        selection_criteria: 'votes',
+        host_id: formData.host_id || null,
+        description: formData.description || '',
+        eligibility_radius_miles: formData.eligibility_radius,
+        min_contestants: formData.min_contestants,
+        max_contestants: maxContestants,
+        price_per_vote: 1.00,
+        use_price_bundler: false,
+        allow_manual_votes: false,
+      };
+      if (formData.minimum_prize !== '' && formData.minimum_prize !== null) {
+        insertPayload.prize_pool_minimum = Number(formData.minimum_prize);
+      }
+
       const { error } = await supabase
         .from('competitions')
-        .insert({
-          organization_id: formData.organization_id,
-          city_id: formData.city_id,
-          category_id: formData.category_id,
-          demographic_id: formData.demographic_id,
-          name: formData.name || null,
-          slug: competitionSlug,
-          season: formData.season,
-          status: COMPETITION_STATUS.DRAFT,
-          entry_type: 'nominations',
-          has_events: true,
-          number_of_winners: formData.number_of_winners,
-          selection_criteria: 'votes',
-          host_id: formData.host_id || null,
-          description: formData.description || '',
-          minimum_prize_cents: formData.minimum_prize === '' || formData.minimum_prize === null
-            ? null
-            : Math.round(Number(formData.minimum_prize) * 100),
-          eligibility_radius_miles: formData.eligibility_radius,
-          min_contestants: formData.min_contestants,
-          max_contestants: maxContestants,
-          price_per_vote: 1.00,
-          use_price_bundler: false,
-          allow_manual_votes: false,
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
@@ -383,7 +385,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
           has_events: false,
           number_of_winners: contestants.length || formData.number_of_winners,
           selection_criteria: 'votes',
-          minimum_prize_cents: 0,
+          prize_pool_minimum: 0,
           eligibility_radius_miles: 100,
           min_contestants: 10,
           max_contestants: null,
@@ -451,25 +453,27 @@ export default function CompetitionsManager({ onViewDashboard }) {
 
     setIsSubmitting(true);
     try {
+      const updatePayload = {
+        name: formData.name || null,
+        season: formData.season,
+        number_of_winners: formData.number_of_winners,
+        host_id: formData.host_id || null,
+        description: formData.description || '',
+        price_per_vote: formData.price_per_vote,
+        use_price_bundler: formData.use_price_bundler,
+        allow_manual_votes: formData.allow_manual_votes,
+        eligibility_radius_miles: formData.eligibility_radius,
+        min_contestants: formData.min_contestants,
+        max_contestants: maxContestants,
+        updated_at: new Date().toISOString(),
+      };
+      if (formData.minimum_prize !== '' && formData.minimum_prize !== null) {
+        updatePayload.prize_pool_minimum = Number(formData.minimum_prize);
+      }
+
       const { error } = await supabase
         .from('competitions')
-        .update({
-          name: formData.name || null,
-          season: formData.season,
-          number_of_winners: formData.number_of_winners,
-          host_id: formData.host_id || null,
-          description: formData.description || '',
-          price_per_vote: formData.price_per_vote,
-          use_price_bundler: formData.use_price_bundler,
-          allow_manual_votes: formData.allow_manual_votes,
-          minimum_prize_cents: formData.minimum_prize === '' || formData.minimum_prize === null
-            ? null
-            : Math.round(Number(formData.minimum_prize) * 100),
-          eligibility_radius_miles: formData.eligibility_radius,
-          min_contestants: formData.min_contestants,
-          max_contestants: maxContestants,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', selectedCompetition.id);
 
       if (error) throw error;
