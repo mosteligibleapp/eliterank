@@ -224,16 +224,23 @@ export default function PublicSitePage({
           filter: `competition_id=eq.${competitionId}`,
         },
         (payload) => {
-          // Update the specific contestant in state with new vote count
+          // Round finalization flips status / advancement_status / current_round
+          // on the contestant row, so merge the full payload (not just votes)
+          // to keep eliminated state in sync without a hard reload.
           setFetchedData((prev) => {
             const updatedContestants = prev.contestants
               .map((c) =>
                 c.id === payload.new.id
-                  ? { ...c, votes: payload.new.votes }
+                  ? {
+                      ...c,
+                      ...payload.new,
+                      avatarUrl: payload.new.avatar_url || c.avatarUrl,
+                      avatar_url: payload.new.avatar_url || c.avatar_url,
+                    }
                   : c
               )
-              .sort((a, b) => (b.votes || 0) - (a.votes || 0)) // Re-sort by votes
-              .map((c, idx) => ({ ...c, rank: idx + 1 })); // Update ranks
+              .sort((a, b) => (b.votes || 0) - (a.votes || 0))
+              .map((c, idx) => ({ ...c, rank: idx + 1 }));
 
             return {
               ...prev,
