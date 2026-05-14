@@ -1,5 +1,5 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Check, MapPin, Users, Heart, Calendar } from 'lucide-react';
+import { Check, MapPin, Users, Calendar } from 'lucide-react';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 
 /**
@@ -27,7 +27,6 @@ export function WhoCompetes() {
   const requirements = [
     { icon: Calendar, label: 'Age', value: about.ageRange || '21+' },
     { icon: Users, label: 'Gender', value: getGender() },
-    { icon: Heart, label: 'Status', value: 'Single' },
     { icon: MapPin, label: 'Location', value: city },
   ];
 
