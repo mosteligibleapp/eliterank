@@ -1,5 +1,5 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Check, MapPin, Users, Calendar } from 'lucide-react';
+import { Check, MapPin, Users, Cake } from 'lucide-react';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 
 /**
@@ -25,12 +25,12 @@ export function WhoCompetes() {
 
   // Build requirements array to match traits count
   const requirements = [
-    { icon: Calendar, label: 'Age', value: about.ageRange || '21+' },
+    { icon: Cake, label: 'Age', value: about.ageRange || '21+' },
     { icon: Users, label: 'Gender', value: getGender() },
     { icon: MapPin, label: 'Location', value: city },
   ];
 
-  // Take only as many requirements as there are traits (usually 4 each)
+  // Take only as many requirements as there are traits (usually 3 each)
   const rowCount = Math.min(about.traits.length, requirements.length);
 
   return (

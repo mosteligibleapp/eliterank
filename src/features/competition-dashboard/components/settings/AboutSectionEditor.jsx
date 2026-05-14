@@ -27,7 +27,7 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
   // Form state
   const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
-  const [traits, setTraits] = useState(['', '', '', '']);
+  const [traits, setTraits] = useState(['', '', '']);
   const [ageRange, setAgeRange] = useState('');
   const [requirement, setRequirement] = useState('');
 
@@ -44,8 +44,8 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
       setDescription(competition.about_description || '');
       setTraits(
         competition.about_traits?.length
-          ? [...competition.about_traits, '', '', '', ''].slice(0, 4)
-          : organization?.default_about_traits || ['', '', '', '']
+          ? [...competition.about_traits, '', '', ''].slice(0, 3)
+          : (organization?.default_about_traits || ['', '', '']).slice(0, 3)
       );
       setAgeRange(competition.about_age_range || organization?.default_age_range || '');
       setRequirement(competition.about_requirement || organization?.default_requirement || '');
@@ -72,7 +72,7 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
   const resetToDefaults = () => {
     setTagline(organization?.default_about_tagline || defaults.tagline);
     setDescription(organization?.default_about_description || defaults.description);
-    setTraits(organization?.default_about_traits || defaults.traits);
+    setTraits((organization?.default_about_traits || defaults.traits).slice(0, 3));
     setAgeRange(organization?.default_age_range || defaults.ageRange);
     setRequirement(organization?.default_requirement || defaults.requirement);
   };
@@ -380,7 +380,7 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
                 </div>
               ))}
             </div>
-            <span style={hintStyle}>4 traits that describe your ideal contestants</span>
+            <span style={hintStyle}>3 traits that describe your ideal contestants</span>
           </div>
         </FieldLockIndicator>
 
