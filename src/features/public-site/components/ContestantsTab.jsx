@@ -12,10 +12,23 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
   const timeLeft = useCountdown(roundEndDate);
   const hasActiveRound = currentRound?.isActive && roundEndDate;
 
-  // Handle vote button click - require authentication
+  // After a round finalization, advancers' vote totals reset to bonus-vote
+  // carry-over while eliminated rows keep their pre-reset totals. Without a
+  // tier-aware sort, eliminated contestants would render above advancers in
+  // the grid. Mirrors the host-dashboard pattern in useLeaderboard.js.
+  const sortedContestants = React.useMemo(() => {
+    const tier = (c) => (c.status === 'eliminated' ? 1 : 0);
+    return [...contestants].sort((a, b) => {
+      const t = tier(a) - tier(b);
+      if (t !== 0) return t;
+      return (b.votes || 0) - (a.votes || 0);
+    });
+  }, [contestants]);
+
   const handleVoteClick = (contestant) => {
-    if (isJudgingPhase) return; // Voting disabled during judging
-    if (!hasActiveRound) return; // Voting disabled when no active round
+    if (isJudgingPhase) return;
+    if (!hasActiveRound) return;
+    if (contestant.status === 'eliminated') return;
     if (!isAuthenticated && onLogin) {
       onLogin();
     } else {
@@ -187,69 +200,80 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
 
       {/* Contestant Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: spacing.xl }}>
-        {contestants.map((contestant, index) => (
+        {sortedContestants.map((contestant, index) => {
+          const isEliminated = contestant.status === 'eliminated';
+          const isTop3 = !isEliminated && index < 3;
+          return (
           <div
             key={contestant.id}
-            onClick={() => onViewProfile?.(contestant)}
+            onClick={() => { if (!isEliminated) onViewProfile?.(contestant); }}
             style={{
               background: colors.background.card,
-              border: index < 3 ? `2px solid rgba(212,175,55,0.4)` : `1px solid ${colors.border.light}`,
+              border: isTop3 ? `2px solid rgba(212,175,55,0.4)` : `1px solid ${colors.border.light}`,
               borderRadius: borderRadius.xxl,
               overflow: 'hidden',
-              cursor: 'pointer',
+              cursor: isEliminated ? 'default' : 'pointer',
               transition: 'all 0.3s',
               position: 'relative',
+              opacity: isEliminated ? 0.55 : 1,
             }}
             onMouseEnter={(e) => {
+              if (isEliminated) return;
               e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = index < 3
+              e.currentTarget.style.boxShadow = isTop3
                 ? '0 12px 40px rgba(212,175,55,0.3)'
                 : '0 8px 24px rgba(0,0,0,0.4)';
             }}
             onMouseLeave={(e) => {
+              if (isEliminated) return;
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            {/* Rank Badge */}
-            <div
-              style={{
-                position: 'absolute',
-                top: spacing.md,
-                left: spacing.md,
-                width: '32px',
-                height: '32px',
-                borderRadius: borderRadius.md,
-                background:
-                  index === 0
-                    ? 'linear-gradient(135deg, #d4af37, #f4d03f)'
-                    : index === 1
-                      ? 'linear-gradient(135deg, #c0c0c0, #e8e8e8)'
-                      : index === 2
-                        ? 'linear-gradient(135deg, #cd7f32, #daa06d)'
-                        : 'rgba(0,0,0,0.7)',
-                backdropFilter: 'blur(8px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: typography.fontSize.md,
-                fontWeight: typography.fontWeight.bold,
-                color: index < 3 ? '#0a0a0f' : '#fff',
-                zIndex: 2,
-              }}
-            >
-              {index + 1}
-            </div>
+            {/* Rank Badge - hidden for eliminated contestants */}
+            {!isEliminated && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: spacing.md,
+                  left: spacing.md,
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: borderRadius.md,
+                  background:
+                    index === 0
+                      ? 'linear-gradient(135deg, #d4af37, #f4d03f)'
+                      : index === 1
+                        ? 'linear-gradient(135deg, #c0c0c0, #e8e8e8)'
+                        : index === 2
+                          ? 'linear-gradient(135deg, #cd7f32, #daa06d)'
+                          : 'rgba(0,0,0,0.7)',
+                  backdropFilter: 'blur(8px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: typography.fontSize.md,
+                  fontWeight: typography.fontWeight.bold,
+                  color: isTop3 ? '#0a0a0f' : '#fff',
+                  zIndex: 2,
+                }}
+              >
+                {index + 1}
+              </div>
+            )}
 
-            {/* Trend Badge */}
-            <div style={{ position: 'absolute', top: spacing.md, right: spacing.md, ...getTrendStyle(contestant.trend) }}>
-              {contestant.trend === 'up' ? '↑' : contestant.trend === 'down' ? '↓' : '—'}
-            </div>
+            {/* Trend Badge - hidden for eliminated contestants */}
+            {!isEliminated && (
+              <div style={{ position: 'absolute', top: spacing.md, right: spacing.md, ...getTrendStyle(contestant.trend) }}>
+                {contestant.trend === 'up' ? '↑' : contestant.trend === 'down' ? '↓' : '—'}
+              </div>
+            )}
 
             {/* Profile Image */}
             <ContestantImage
               src={contestant.avatarUrl || contestant.avatar_url || CONTESTANT_IMAGES[index] || CONTESTANT_IMAGES[0]}
               name={contestant.name}
+              isEliminated={isEliminated}
             >
               <div
                 style={{
@@ -281,14 +305,18 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
               }}
             >
               <div>
-                <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: index < 3 ? colors.gold.primary : '#fff' }}>
+                <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: isTop3 ? colors.gold.primary : '#fff' }}>
                   {formatNumber(contestant.votes)}
                 </p>
                 <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Votes
                 </p>
               </div>
-              {isJudgingPhase ? (
+              {isEliminated ? (
+                <Badge variant="secondary" size="md">
+                  Eliminated
+                </Badge>
+              ) : isJudgingPhase ? (
                 <Badge variant="info" size="md">
                   <Award size={12} /> Judging
                 </Badge>
@@ -321,13 +349,14 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function ContestantImage({ src, name, children }) {
+function ContestantImage({ src, name, children, isEliminated = false }) {
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleError = useCallback(() => setImgFailed(true), []);
@@ -372,6 +401,7 @@ function ContestantImage({ src, name, children }) {
             height: '100%',
             objectFit: 'cover',
             opacity: imgLoaded ? 1 : 0,
+            filter: isEliminated ? 'grayscale(1)' : 'none',
             transition: 'opacity 0.3s ease',
           }}
           onLoad={handleLoad}
