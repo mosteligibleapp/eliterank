@@ -20,6 +20,7 @@ import {
   Gift,
   Clock,
 } from 'lucide-react';
+import { formatDate } from '../../utils/formatters';
 import './ContestantGuide.css';
 
 /**
@@ -280,6 +281,31 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
   }
   howItWorksPoints.push(`${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
 
+  // Build the voting schedule from voting rounds + finale, in chronological order.
+  // Only shown when at least one round has a date or a finale date is set.
+  const schedulePoints = [];
+  sorted.forEach((round, idx) => {
+    if (!round.start_date && !round.end_date) return;
+    const baseTitle = round.title || `Round ${round.round_order ?? idx + 1}`;
+    const label = round.round_type === 'judging' ? `${baseTitle} (judging)` : baseTitle;
+    const start = round.start_date ? formatDate(round.start_date) : null;
+    const end = round.end_date ? formatDate(round.end_date) : null;
+    let range;
+    if (start && end && start !== end) range = `${start} – ${end}`;
+    else range = start || end;
+    schedulePoints.push(`${label}: ${range}`);
+  });
+  if (competition?.finals_date) {
+    schedulePoints.push(`Finale: ${formatDate(competition.finals_date)}`);
+  }
+  const scheduleSection = schedulePoints.length > 0 ? {
+    icon: <Calendar size={48} className="guide-icon guide-icon--gold" />,
+    title: 'Voting Schedule',
+    subtitle: 'When each round opens and closes',
+    points: schedulePoints,
+    tip: 'Votes reset at the start of every round — rally your supporters before each one!',
+  } : null;
+
   const sections = [
     // Section 1: How It Works
     {
@@ -290,7 +316,10 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
       tip: 'The more votes you get, the higher you rank!',
     },
 
-    // Section 2: Voting
+    // Section 2: Voting Schedule (only if we have dated rounds or a finale)
+    scheduleSection,
+
+    // Section 3: Voting
     {
       icon: <Vote size={48} className="guide-icon guide-icon--pink" />,
       title: 'Voting',
@@ -354,7 +383,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
       ],
       tip: `Current cash prize: $${currentPrize.toLocaleString()}+`,
     },
-  ];
+  ].filter(Boolean);
 
   // Quick facts for page mode
   const quickFacts = [
