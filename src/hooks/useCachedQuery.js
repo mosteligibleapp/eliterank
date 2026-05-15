@@ -258,18 +258,6 @@ export function useCompetitionRules(competitionId) {
 }
 
 /**
- * Hook for fetching all profiles (cached for 2 minutes)
- * Useful for admin dashboards
- */
-export function useProfiles() {
-  return useCachedQuery({
-    table: 'profiles',
-    select: 'id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery, onboarded_at',
-    ttl: 120000, // 2 minutes
-  });
-}
-
-/**
  * Hook for fetching a single profile by ID (cached for 2 minutes)
  */
 export function useProfile(profileId) {
