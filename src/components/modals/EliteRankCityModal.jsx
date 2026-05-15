@@ -13,7 +13,6 @@ import { supabase } from '../../lib/supabase';
 import {
   useCities,
   useOrganizations,
-  useProfiles,
   useVotingRounds,
 } from '../../hooks/useCachedQuery';
 import {
@@ -83,10 +82,9 @@ export default function EliteRankCityModal({
   const [statusFilter, setStatusFilter] = useState('active'); // Default to Live competitions
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  // Use cached hooks for static data (cities, organizations, profiles)
+  // Use cached hooks for static data (cities, organizations)
   const { data: cachedCities, loading: citiesLoading } = useCities();
   const { data: cachedOrganizations, loading: orgsLoading } = useOrganizations();
-  const { data: cachedProfiles, loading: profilesLoading } = useProfiles();
 
   // Fetch Hall of Winners settings
   const { data: hallOfWinnersData } = useAppSettings('hall_of_winners');
@@ -94,9 +92,6 @@ export default function EliteRankCityModal({
   // Memoize maps for quick lookups
   const cities = cachedCities || [];
   const organizations = cachedOrganizations || [];
-  const profilesMap = useMemo(() => {
-    return (cachedProfiles || []).reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
-  }, [cachedProfiles]);
   const citiesMap = useMemo(() => {
     return cities.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
   }, [cities]);
@@ -190,7 +185,7 @@ export default function EliteRankCityModal({
       const cityFromLookup = citiesMap[comp.city_id];
       // Prioritize city lookup by city_id over potentially stale comp.city string
       const cityName = cityFromLookup?.name || comp.city || 'Unknown City';
-      const hostProfile = comp.host || (comp.host_id ? profilesMap[comp.host_id] : null);
+      const hostProfile = comp.host || null;
       const org = organizations.find(o => o.id === comp.organization_id);
 
       return {
@@ -225,11 +220,11 @@ export default function EliteRankCityModal({
         nomination_periods: compWithSettings.nomination_periods,
       };
     });
-  }, [rawCompetitions, votingRoundsMap, nominationPeriodsMap, citiesMap, profilesMap, organizations]);
+  }, [rawCompetitions, votingRoundsMap, nominationPeriodsMap, citiesMap, organizations]);
 
   // Skeleton while competitions are in flight OR any static source is still
   // loading — otherwise cards would flash "Unknown City" then correct city.
-  const loading = rawCompetitions === null || citiesLoading || orgsLoading || profilesLoading;
+  const loading = rawCompetitions === null || citiesLoading || orgsLoading;
 
   // Lazy-fetch events and announcements when their tabs are first selected
   const [eventsFetched, setEventsFetched] = useState(false);

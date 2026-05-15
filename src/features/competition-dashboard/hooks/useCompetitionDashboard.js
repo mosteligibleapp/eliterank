@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { useProfiles } from '../../../hooks/useCachedQuery';
 import { getCached, setCache, dedupeRequest } from '../../../lib/queryCache';
 import { checkAndAwardProfileBonuses, awardNomineeActionBonuses, setupDefaultBonusTasks } from '../../../lib/bonusVotes';
 
@@ -29,9 +28,6 @@ function fetchCompetitionRevenue(competitionId) {
  * Provides CRUD operations for all entities
  */
 export function useCompetitionDashboard(competitionId) {
-  // Use cached profiles to avoid refetching on every dashboard load
-  const { data: cachedProfiles, loading: profilesLoading } = useProfiles();
-
   const [data, setData] = useState({
     contestants: [],
     nominees: [],
@@ -49,22 +45,9 @@ export function useCompetitionDashboard(competitionId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Memoize profile maps for quick lookups
-  const { emailToProfileMap, profilesById } = useMemo(() => {
-    const emailToProfileMap = new Map();
-    const profilesById = new Map();
-    (cachedProfiles || []).forEach((profile) => {
-      profilesById.set(profile.id, profile);
-      if (profile.email) {
-        emailToProfileMap.set(profile.email.toLowerCase(), profile.id);
-      }
-    });
-    return { emailToProfileMap, profilesById };
-  }, [cachedProfiles]);
-
   const fetchDashboardData = useCallback(async () => {
-    if (!competitionId || profilesLoading) {
-      if (!competitionId) setLoading(false);
+    if (!competitionId) {
+      setLoading(false);
       return;
     }
 
@@ -190,11 +173,9 @@ export function useCompetitionDashboard(competitionId) {
         setError(errors[0]?.message || 'Error fetching data');
       }
 
-      // Get host profile if exists — prefer the joined record so we don't
-      // depend on the bulk profile cache (which is capped by PostgREST).
       const competition = competitionResult.data;
       let host = null;
-      const hostProfile = competition?.host || (competition?.host_id ? profilesById.get(competition.host_id) : null);
+      const hostProfile = competition?.host || null;
       if (hostProfile) {
         host = {
           id: hostProfile.id,
@@ -274,7 +255,7 @@ export function useCompetitionDashboard(competitionId) {
         // Match by user_id first (set when nominee claims their nomination)
         if (n.user_id) {
           matchedProfileId = n.user_id;
-          matchedProfile = nomineeProfilesById.get(n.user_id) || profilesById.get(n.user_id) || null;
+          matchedProfile = nomineeProfilesById.get(n.user_id) || null;
           // Count as "has profile" if the user has completed onboarding or
           // has a real profile (matched profile with onboarded_at, or avatar).
           // claimed_at alone is NOT sufficient — it can be set when the nominee
@@ -497,14 +478,11 @@ export function useCompetitionDashboard(competitionId) {
     } finally {
       setLoading(false);
     }
-  }, [competitionId, profilesLoading, emailToProfileMap, profilesById]);
+  }, [competitionId]);
 
-  // Initial fetch - wait for profiles to be loaded
   useEffect(() => {
-    if (!profilesLoading) {
-      fetchDashboardData();
-    }
-  }, [fetchDashboardData, profilesLoading]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   // Refresh function for manual refetch
   const refresh = useCallback(() => {
