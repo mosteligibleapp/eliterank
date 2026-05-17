@@ -43,7 +43,7 @@ serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, serviceKey)
 
-    const { round_id } = await req.json()
+    const { round_id, verify_only } = await req.json()
     if (!round_id) {
       return new Response(JSON.stringify({ error: 'round_id required' }), {
         status: 400,
@@ -71,7 +71,7 @@ serve(async (req) => {
       })
     }
 
-    if (round.round_end_emails_sent_at) {
+    if (round.round_end_emails_sent_at && !verify_only) {
       return new Response(JSON.stringify({ ok: true, already_sent: true }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -80,11 +80,13 @@ serve(async (req) => {
 
     const snapshot = (round.finalized_snapshot || []) as SnapshotEntry[]
     if (!Array.isArray(snapshot) || snapshot.length === 0) {
-      // Empty snapshot is a terminal state — mark as sent so cron stops.
-      await supabase
-        .from('voting_rounds')
-        .update({ round_end_emails_sent_at: new Date().toISOString() })
-        .eq('id', round_id)
+      if (!verify_only) {
+        // Empty snapshot is a terminal state — mark as sent so cron stops.
+        await supabase
+          .from('voting_rounds')
+          .update({ round_end_emails_sent_at: new Date().toISOString() })
+          .eq('id', round_id)
+      }
       return new Response(JSON.stringify({ ok: true, sent: 0, reason: 'empty snapshot' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -127,6 +129,22 @@ serve(async (req) => {
     for (const c of contestants || []) byId.set(c.id, c)
 
     const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
+
+    // Pull the current service-role key from vault rather than trusting the
+    // injected env key. The May 17 incident: the runtime SUPABASE_SERVICE_ROLE_KEY
+    // env was stale and rejected by verify_jwt on the sibling send-onesignal-email
+    // call, silently dropping all 50 round-end emails. Vault stays in sync; env can
+    // drift across rotations.
+    const { data: vaultKey, error: keyErr } = await supabase.rpc('get_email_service_key')
+    if (keyErr || !vaultKey) {
+      console.error('get_email_service_key failed', keyErr)
+      return new Response(JSON.stringify({ error: 'service key fetch failed', detail: keyErr?.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const emailFnUrl = `${supabaseUrl}/functions/v1/send-onesignal-email`
+    const emailAuthHeader = `Bearer ${vaultKey}`
 
     let sent = 0
     let skipped = 0
@@ -183,17 +201,26 @@ serve(async (req) => {
         continue
       }
 
+      if (verify_only) {
+        // Dry-run path: exercises auth + payload-building without actually
+        // sending. Useful for verifying the vault-key wiring after the
+        // May 17 stale-env-key incident.
+        sent++
+        continue
+      }
+
       try {
-        // Explicit Authorization header — supabase.functions.invoke() from
-        // inside an edge function does not auto-attach the service-role JWT,
-        // and send-onesignal-email has verify_jwt: true. Without this the
-        // call returns 401 before reaching any handler logic.
-        const { error: invokeErr } = await supabase.functions.invoke('send-onesignal-email', {
-          body: payload,
-          headers: { Authorization: `Bearer ${serviceKey}` },
+        const res = await fetch(emailFnUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: emailAuthHeader,
+          },
+          body: JSON.stringify(payload),
         })
-        if (invokeErr) {
-          console.error('send-onesignal-email failed for contestant', entry.contestant_id, invokeErr)
+        if (!res.ok) {
+          const text = await res.text().catch(() => '')
+          console.error('send-onesignal-email failed for contestant', entry.contestant_id, res.status, text)
           failed++
         } else {
           sent++
@@ -213,7 +240,7 @@ serve(async (req) => {
     // the contestants who already received their email; the `failed`
     // count is logged above for manual follow-up.
     const allFailed = failed > 0 && sent === 0
-    if (!allFailed) {
+    if (!verify_only && !allFailed) {
       await supabase
         .from('voting_rounds')
         .update({ round_end_emails_sent_at: new Date().toISOString() })
@@ -229,7 +256,8 @@ serve(async (req) => {
         sent,
         skipped,
         failed,
-        stamped: !allFailed,
+        stamped: !verify_only && !allFailed,
+        verify_only: !!verify_only,
       }),
       { status: allFailed ? 500 : 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
