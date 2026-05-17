@@ -1,4 +1,5 @@
 import React from 'react';
+import { getAvatarUrl } from '../../utils/imageTransform';
 
 /**
  * Avatar Component
@@ -34,12 +35,12 @@ const Avatar = ({
   
   // Size configurations
   const sizes = {
-    xs: { container: 'w-6 h-6', text: 'text-[10px]', status: 'w-1.5 h-1.5', rank: 'w-3 h-3 text-[8px]' },
-    sm: { container: 'w-8 h-8', text: 'text-xs', status: 'w-2 h-2', rank: 'w-4 h-4 text-[9px]' },
-    md: { container: 'w-10 h-10', text: 'text-sm', status: 'w-2.5 h-2.5', rank: 'w-5 h-5 text-[10px]' },
-    lg: { container: 'w-12 h-12', text: 'text-base', status: 'w-3 h-3', rank: 'w-6 h-6 text-xs' },
-    xl: { container: 'w-16 h-16', text: 'text-lg', status: 'w-3.5 h-3.5', rank: 'w-7 h-7 text-sm' },
-    '2xl': { container: 'w-20 h-20', text: 'text-xl', status: 'w-4 h-4', rank: 'w-8 h-8 text-base' },
+    xs: { container: 'w-6 h-6', text: 'text-[10px]', status: 'w-1.5 h-1.5', rank: 'w-3 h-3 text-[8px]', pixels: 24 },
+    sm: { container: 'w-8 h-8', text: 'text-xs', status: 'w-2 h-2', rank: 'w-4 h-4 text-[9px]', pixels: 32 },
+    md: { container: 'w-10 h-10', text: 'text-sm', status: 'w-2.5 h-2.5', rank: 'w-5 h-5 text-[10px]', pixels: 40 },
+    lg: { container: 'w-12 h-12', text: 'text-base', status: 'w-3 h-3', rank: 'w-6 h-6 text-xs', pixels: 48 },
+    xl: { container: 'w-16 h-16', text: 'text-lg', status: 'w-3.5 h-3.5', rank: 'w-7 h-7 text-sm', pixels: 64 },
+    '2xl': { container: 'w-20 h-20', text: 'text-xl', status: 'w-4 h-4', rank: 'w-8 h-8 text-base', pixels: 80 },
   };
   
   // Status colors
@@ -71,6 +72,12 @@ const Avatar = ({
   const sizeConfig = sizes[size];
   const showImage = src && !imgError;
   
+  // Optimize Supabase storage URLs for the display size
+  const optimizedSrc = React.useMemo(() => {
+    if (!src) return src;
+    return getAvatarUrl(src, sizeConfig.pixels);
+  }, [src, sizeConfig.pixels]);
+  
   return (
     <div 
       className={`
@@ -99,7 +106,7 @@ const Avatar = ({
               <div className="absolute inset-0 bg-bg-elevated animate-pulse" />
             )}
             <img 
-              src={src}
+              src={optimizedSrc}
               alt={alt || name || ''}
               className={`
                 w-full h-full object-cover

@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState, useCallback } from 'react';
+import { getAvatarUrl } from '../../utils/imageTransform';
 
 function Avatar({
   name,
@@ -25,6 +26,12 @@ function Avatar({
   const handleLoad = useCallback(() => setImgStatus('loaded'), []);
   const handleError = useCallback(() => setImgStatus('error'), []);
 
+  // Optimize Supabase storage URLs for the display size
+  const optimizedSrc = useMemo(() => {
+    if (!src) return src;
+    return getAvatarUrl(src, size);
+  }, [src, size]);
+
   return (
     <div 
       className={`rounded-full bg-gradient-to-br from-gold/30 to-gold/10 flex items-center justify-center font-semibold text-gold overflow-hidden shrink-0 relative ${fontSizeClass} ${className}`}
@@ -34,7 +41,7 @@ function Avatar({
       {imgStatus !== 'loaded' && initials}
       {src && imgStatus !== 'error' && (
         <img
-          src={src}
+          src={optimizedSrc}
           alt={name || 'Avatar'}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${imgStatus === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
           onLoad={handleLoad}
