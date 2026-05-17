@@ -106,9 +106,10 @@ serve(async (req) => {
     const nextRound = (rounds || []).find((r) => r.round_order === round.round_order + 1)
     const prevRound = (rounds || []).find((r) => r.round_order === round.round_order - 1)
 
-    const roundLabel = round.tier_label || round.title || `Round ${round.round_order}`
-    // Prefer title over tier_label for the next round so user-facing copy
-    // reads "Top 50" rather than the internal "Round 1" tier label.
+    // Prefer title over tier_label so user-facing copy reads "Top 50"
+    // rather than the internal "Round 1" tier label. Applies to both the
+    // current and next round.
+    const roundLabel = round.title || round.tier_label || `Round ${round.round_order}`
     const nextRoundLabel = nextRound
       ? (nextRound.title || nextRound.tier_label || `Round ${nextRound.round_order}`)
       : null
