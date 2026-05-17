@@ -283,20 +283,23 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
 
   // Build the voting schedule from voting rounds + finale, in chronological order.
   // Only shown when at least one round has a date or a finale date is set.
+  // Dates are formatted in the competition's local timezone so "Apr 24 01:00 UTC"
+  // doesn't render as "Apr 23" for users in earlier US timezones.
+  const tzOpt = competition?.timezone ? { timeZone: competition.timezone } : {};
   const schedulePoints = [];
   sorted.forEach((round, idx) => {
     if (!round.start_date && !round.end_date) return;
     const baseTitle = round.title || `Round ${round.round_order ?? idx + 1}`;
     const label = round.round_type === 'judging' ? `${baseTitle} (judging)` : baseTitle;
-    const start = round.start_date ? formatDate(round.start_date) : null;
-    const end = round.end_date ? formatDate(round.end_date) : null;
+    const start = round.start_date ? formatDate(round.start_date, tzOpt) : null;
+    const end = round.end_date ? formatDate(round.end_date, tzOpt) : null;
     let range;
     if (start && end && start !== end) range = `${start} – ${end}`;
     else range = start || end;
     schedulePoints.push(`${label}: ${range}`);
   });
   if (competition?.finals_date) {
-    schedulePoints.push(`Finale: ${formatDate(competition.finals_date)}`);
+    schedulePoints.push(`Finale: ${formatDate(competition.finals_date, tzOpt)}`);
   }
   const scheduleSection = schedulePoints.length > 0 ? {
     icon: <Calendar size={48} className="guide-icon guide-icon--gold" />,
