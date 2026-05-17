@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
-import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
+import { generateAchievementCard, getAdvancementTitle } from '../../../achievement-cards/generateAchievementCard';
 import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
 import WinnersManager from '../WinnersManager';
@@ -61,6 +61,7 @@ const InstagramLink = ({ instagram, iconOnly = false }) => {
  */
 export default function PeopleTab({
   competition,
+  votingRounds = [],
   nominees,
   contestants,
   host,
@@ -163,11 +164,15 @@ export default function PeopleTab({
     navigate(`/profile/${profileId}`);
   };
 
-  const handleDownloadCard = async (person, type = 'contestant') => {
+  const handleDownloadCard = async (person, type = 'contestant', options = {}) => {
     setGeneratingCardId(person.id);
     try {
+      const isAdvancement = type === 'advanced';
       const blob = await generateAchievementCard({
-        achievementType: type === 'contestant' ? 'contestant' : 'nominated',
+        achievementType: isAdvancement
+          ? 'advanced'
+          : type === 'contestant' ? 'contestant' : 'nominated',
+        customTitle: options.customTitle,
         name: person.name,
         photoUrl: person.avatarUrl,
         handle: person.instagram,
@@ -181,10 +186,11 @@ export default function PeopleTab({
         votingStartDate: competition?.votingStart,
       });
 
+      const fileSuffix = options.fileSuffix || type;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${person.name.replace(/\s+/g, '-').toLowerCase()}-${type}-card.png`;
+      a.download = `${person.name.replace(/\s+/g, '-').toLowerCase()}-${fileSuffix}-card.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -194,6 +200,21 @@ export default function PeopleTab({
     } finally {
       setGeneratingCardId(null);
     }
+  };
+
+  // Compute the "TOP N" advancement card available for a contestant based on
+  // the round they've advanced into. Returns null when they haven't advanced
+  // or the round has no contestants_advance value configured.
+  const getAdvancementCardForContestant = (person) => {
+    const currentRound = person?.currentRound;
+    if (!currentRound || currentRound <= 1) return null;
+    const round = votingRounds.find((r) => r.round_order === currentRound);
+    const advanceCount = round?.contestants_advance;
+    if (!advanceCount) return null;
+    return {
+      title: getAdvancementTitle(advanceCount),
+      advanceCount,
+    };
   };
 
   const triggerBlobDownload = (blob, filename) => {
@@ -545,6 +566,7 @@ export default function PeopleTab({
   const CardDownloadButton = ({ person, type }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const isContestant = type === 'contestant';
+    const advancement = isContestant ? getAdvancementCardForContestant(person) : null;
 
     if (!isContestant) {
       return (
@@ -640,6 +662,32 @@ export default function PeopleTab({
               >
                 Contestant Card
               </button>
+              {advancement && (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleDownloadCard(person, 'advanced', {
+                      customTitle: advancement.title,
+                      fileSuffix: `top-${advancement.advanceCount}`,
+                    });
+                  }}
+                  style={{
+                    padding: `${spacing.xs} ${spacing.sm}`,
+                    background: 'none',
+                    border: 'none',
+                    color: colors.text.primary,
+                    cursor: 'pointer',
+                    borderRadius: borderRadius.sm,
+                    textAlign: 'left',
+                    fontSize: typography.fontSize.sm,
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseLeave={e => e.target.style.background = 'none'}
+                >
+                  {advancement.title} Card
+                </button>
+              )}
               <button
                 onClick={() => { setMenuOpen(false); handleDownloadCard(person, 'nominee'); }}
                 style={{
