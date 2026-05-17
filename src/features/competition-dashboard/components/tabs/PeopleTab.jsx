@@ -199,32 +199,35 @@ export default function PeopleTab({
     }
   };
 
-  // Compute the "TOP N CONTESTANT" tier this contestant has earned. Mirrors
-  // the logic in ProfileView.jsx: active contestants get credit for the most
-  // recently completed round; eliminated contestants get credit for the round
-  // they survived (eliminated_in_round - 1). Returns null when no tier has
-  // been earned yet (e.g. eliminated in the first round, or no rounds ended).
-  const getAdvancementCardForContestant = (person) => {
-    if (!person) return null;
-    let tierRound;
+  // Compute every "TOP N CONTESTANT" tier this contestant has earned.
+  // Mirrors ProfileView.jsx's tier logic but returns ALL surviving rounds,
+  // not just the highest — so a Top-25 contestant gets both a Top-50 and a
+  // Top-25 card (one per round they made the cut for). Active contestants
+  // earn credit for every completed round; eliminated contestants earn
+  // credit for every round strictly before eliminated_in_round.
+  const getAdvancementCardsForContestant = (person) => {
+    if (!person) return [];
+    let earnedRounds;
     if (person.status === 'eliminated' && person.eliminatedInRound) {
-      tierRound = votingRounds.find(
-        (r) => r.round_order === person.eliminatedInRound - 1,
+      earnedRounds = votingRounds.filter(
+        (r) => (r.round_order || 0) < person.eliminatedInRound,
       );
     } else {
       const now = Date.now();
-      const completed = votingRounds
-        .filter((r) => r.end_date && new Date(r.end_date).getTime() <= now)
-        .sort((a, b) => (b.round_order || 0) - (a.round_order || 0));
-      tierRound = completed[0];
+      earnedRounds = votingRounds.filter(
+        (r) => r.end_date && new Date(r.end_date).getTime() <= now,
+      );
     }
-    const advanceCount = tierRound?.contestants_advance;
-    if (!Number.isFinite(advanceCount) || advanceCount <= 0) return null;
-    return {
-      title: `TOP ${advanceCount} CONTESTANT`,
-      menuLabel: `${getAdvancementTitle(advanceCount)} Contestant Card`,
-      advanceCount,
-    };
+    return earnedRounds
+      .filter((r) => Number.isFinite(r.contestants_advance) && r.contestants_advance > 0)
+      // Largest cohort first (Top 50 before Top 25) — matches how the
+      // contestant progressed through the funnel.
+      .sort((a, b) => (b.contestants_advance || 0) - (a.contestants_advance || 0))
+      .map((r) => ({
+        title: `TOP ${r.contestants_advance} CONTESTANT`,
+        menuLabel: `${getAdvancementTitle(r.contestants_advance)} Contestant Card`,
+        advanceCount: r.contestants_advance,
+      }));
   };
 
   const triggerBlobDownload = (blob, filename) => {
@@ -576,7 +579,7 @@ export default function PeopleTab({
   const CardDownloadButton = ({ person, type }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const isContestant = type === 'contestant';
-    const advancement = isContestant ? getAdvancementCardForContestant(person) : null;
+    const advancementCards = isContestant ? getAdvancementCardsForContestant(person) : [];
 
     if (!isContestant) {
       return (
@@ -672,8 +675,9 @@ export default function PeopleTab({
               >
                 Contestant Card
               </button>
-              {advancement && (
+              {advancementCards.map((advancement) => (
                 <button
+                  key={advancement.advanceCount}
                   onClick={() => {
                     setMenuOpen(false);
                     handleDownloadCard(person, 'contestant', {
@@ -697,7 +701,7 @@ export default function PeopleTab({
                 >
                   {advancement.menuLabel}
                 </button>
-              )}
+              ))}
               <button
                 onClick={() => { setMenuOpen(false); handleDownloadCard(person, 'nominee'); }}
                 style={{
