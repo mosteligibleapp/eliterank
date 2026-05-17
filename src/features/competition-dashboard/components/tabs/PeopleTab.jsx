@@ -167,11 +167,8 @@ export default function PeopleTab({
   const handleDownloadCard = async (person, type = 'contestant', options = {}) => {
     setGeneratingCardId(person.id);
     try {
-      const isAdvancement = type === 'advanced';
       const blob = await generateAchievementCard({
-        achievementType: isAdvancement
-          ? 'advanced'
-          : type === 'contestant' ? 'contestant' : 'nominated',
+        achievementType: type === 'contestant' ? 'contestant' : 'nominated',
         customTitle: options.customTitle,
         name: person.name,
         photoUrl: person.avatarUrl,
@@ -202,17 +199,30 @@ export default function PeopleTab({
     }
   };
 
-  // Compute the "TOP N" advancement card available for a contestant based on
-  // the round they've advanced into. Returns null when they haven't advanced
-  // or the round has no contestants_advance value configured.
+  // Compute the "TOP N CONTESTANT" tier this contestant has earned. Mirrors
+  // the logic in ProfileView.jsx: active contestants get credit for the most
+  // recently completed round; eliminated contestants get credit for the round
+  // they survived (eliminated_in_round - 1). Returns null when no tier has
+  // been earned yet (e.g. eliminated in the first round, or no rounds ended).
   const getAdvancementCardForContestant = (person) => {
-    const currentRound = person?.currentRound;
-    if (!currentRound || currentRound <= 1) return null;
-    const round = votingRounds.find((r) => r.round_order === currentRound);
-    const advanceCount = round?.contestants_advance;
-    if (!advanceCount) return null;
+    if (!person) return null;
+    let tierRound;
+    if (person.status === 'eliminated' && person.eliminatedInRound) {
+      tierRound = votingRounds.find(
+        (r) => r.round_order === person.eliminatedInRound - 1,
+      );
+    } else {
+      const now = Date.now();
+      const completed = votingRounds
+        .filter((r) => r.end_date && new Date(r.end_date).getTime() <= now)
+        .sort((a, b) => (b.round_order || 0) - (a.round_order || 0));
+      tierRound = completed[0];
+    }
+    const advanceCount = tierRound?.contestants_advance;
+    if (!Number.isFinite(advanceCount) || advanceCount <= 0) return null;
     return {
-      title: getAdvancementTitle(advanceCount),
+      title: `TOP ${advanceCount} CONTESTANT`,
+      menuLabel: `${getAdvancementTitle(advanceCount)} Contestant Card`,
       advanceCount,
     };
   };
@@ -666,7 +676,7 @@ export default function PeopleTab({
                 <button
                   onClick={() => {
                     setMenuOpen(false);
-                    handleDownloadCard(person, 'advanced', {
+                    handleDownloadCard(person, 'contestant', {
                       customTitle: advancement.title,
                       fileSuffix: `top-${advancement.advanceCount}`,
                     });
@@ -685,7 +695,7 @@ export default function PeopleTab({
                   onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
                   onMouseLeave={e => e.target.style.background = 'none'}
                 >
-                  {advancement.title} Card
+                  {advancement.menuLabel}
                 </button>
               )}
               <button

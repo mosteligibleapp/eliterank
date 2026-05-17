@@ -206,6 +206,7 @@ export function useCompetitionDashboard(competitionId) {
         userId: c.user_id,
         currentRound: c.current_round,
         advancementStatus: c.advancement_status,
+        eliminatedInRound: c.eliminated_in_round,
       }));
 
       // Targeted profile lookup for nominee matching
