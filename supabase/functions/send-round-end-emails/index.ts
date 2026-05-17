@@ -183,8 +183,13 @@ serve(async (req) => {
       }
 
       try {
+        // Explicit Authorization header — supabase.functions.invoke() from
+        // inside an edge function does not auto-attach the service-role JWT,
+        // and send-onesignal-email has verify_jwt: true. Without this the
+        // call returns 401 before reaching any handler logic.
         const { error: invokeErr } = await supabase.functions.invoke('send-onesignal-email', {
           body: payload,
+          headers: { Authorization: `Bearer ${serviceKey}` },
         })
         if (invokeErr) {
           console.error('send-onesignal-email failed for contestant', entry.contestant_id, invokeErr)
