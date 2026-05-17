@@ -526,26 +526,10 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
       const endLine = formatEndDate(req.next_round_end)
 
-      // Compose the "made it to X" phrase. "Top 50" labels take an article
-      // and an explicit "Round" suffix ("the Top 50 Round"); generic
-      // "Round 2" / "Round 3" labels stand alone; everything else takes
-      // a plain article ("the Final Round").
-      const nextRoundPhrase = nextRoundLabel
-        ? /^Top\s+\d/i.test(nextRoundLabel)
-          ? `to the ${nextRoundLabel} Round`
-          : /^Round\s+\d/i.test(nextRoundLabel)
-            ? `to ${nextRoundLabel}`
-            : `to the ${nextRoundLabel}`
-        : null
-
       const headline = isWinner ? 'You won!' : `You advanced!`
       const subhead = isWinner
         ? `${firstName}, you took the crown in ${competitionName}.`
-        : nextRoundPhrase
-          ? `${firstName}, you survived ${roundLabel} and made it ${nextRoundPhrase}.`
-          : tierCount
-            ? `${firstName}, you survived ${roundLabel} and made the Top ${tierCount}.`
-            : `${firstName}, you survived ${roundLabel} and are moving on.`
+        : `${firstName}, you survived the ${roundLabel} round of ${competitionName}.`
 
       const tierBlock = tierCount && !isWinner
         ? `<div style="display:inline-block;padding:16px 28px;background:#1a1a1a;border:1px solid #d4a843;border-radius:12px;margin:20px 0;">
