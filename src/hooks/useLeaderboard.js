@@ -62,7 +62,7 @@ export function useLeaderboard(competitionId, options = {}) {
           current_round,
           created_at,
           updated_at,
-          profile:profiles!user_id(avatar_url)
+          profile:profiles!user_id(avatar_url, first_name, last_name)
         `
         )
         .eq('competition_id', competitionId)
@@ -74,11 +74,17 @@ export function useLeaderboard(competitionId, options = {}) {
       if (fetchError) throw fetchError;
 
       // Fall back to the linked profile's avatar when the contestant row
-      // doesn't have its own uploaded photo.
-      const merged = (data || []).map((c) => ({
-        ...c,
-        avatar_url: c.avatar_url || c.profile?.avatar_url || null,
-      }));
+      // doesn't have its own uploaded photo. Prefer the live profile name
+      // over the denormalized contestants.name, which is frozen at entry
+      // time and goes stale when the user edits their profile.
+      const merged = (data || []).map((c) => {
+        const profileName = `${c.profile?.first_name || ''} ${c.profile?.last_name || ''}`.trim();
+        return {
+          ...c,
+          name: profileName || c.name,
+          avatar_url: c.avatar_url || c.profile?.avatar_url || null,
+        };
+      });
 
       setContestants(merged);
     } catch (err) {
@@ -117,14 +123,16 @@ export function useLeaderboard(competitionId, options = {}) {
             }
           } else if (payload.eventType === 'UPDATE') {
             // Realtime payloads don't include the joined profile row, so
-            // preserve the previously-resolved avatar_url when the update
-            // doesn't carry a new one.
+            // preserve the previously-resolved avatar_url and profile-derived
+            // name when the update doesn't carry a new one.
             setContestants((prev) =>
               prev.map((c) => {
                 if (c.id !== payload.new.id) return c;
+                const profileName = `${c.profile?.first_name || ''} ${c.profile?.last_name || ''}`.trim();
                 return {
                   ...c,
                   ...payload.new,
+                  name: profileName || payload.new.name || c.name,
                   avatar_url: payload.new.avatar_url || c.avatar_url,
                 };
               })
