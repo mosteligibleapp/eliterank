@@ -191,20 +191,25 @@ export function useCompetitionDashboard(competitionId) {
         };
       }
 
-      // Transform contestants for leaderboard
-      const contestants = (contestantsResult.data || []).map((c, index) => ({
-        id: c.id,
-        name: c.name,
-        age: c.age,
-        email: c.email || c.profile?.email || null,
-        votes: c.votes || 0,
-        status: c.status,
-        trend: c.trend || 'same',
-        rank: index + 1,
-        avatarUrl: c.avatar_url || c.profile?.avatar_url,
-        instagram: c.instagram || c.profile?.instagram,
-        userId: c.user_id,
-      }));
+      // Transform contestants for leaderboard. Prefer the live profile name
+      // over the denormalized contestants.name, which is frozen at entry time
+      // and goes stale when the user edits their profile.
+      const contestants = (contestantsResult.data || []).map((c, index) => {
+        const profileName = `${c.profile?.first_name || ''} ${c.profile?.last_name || ''}`.trim();
+        return {
+          id: c.id,
+          name: profileName || c.name,
+          age: c.age,
+          email: c.email || c.profile?.email || null,
+          votes: c.votes || 0,
+          status: c.status,
+          trend: c.trend || 'same',
+          rank: index + 1,
+          avatarUrl: c.avatar_url || c.profile?.avatar_url,
+          instagram: c.instagram || c.profile?.instagram,
+          userId: c.user_id,
+        };
+      });
 
       // Targeted profile lookup for nominee matching
       // This bypasses the cached profiles (which can be truncated by Supabase's
