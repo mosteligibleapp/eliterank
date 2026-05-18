@@ -149,10 +149,11 @@ export default function PublicSitePage({
           contestants: (contestantsResult.data || []).map((c, idx) => {
             // Merge profile data with contestant data (profile has more fields like city, twitter, linkedin, gallery)
             const profile = c.profile || {};
+            const profileName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
             return {
               ...c, // Pass through all contestant fields
               id: c.id,
-              name: c.name,
+              name: profileName || c.name,
               age: c.age || profile.age,
               occupation: c.occupation || profile.occupation,
               bio: c.bio || profile.bio,
