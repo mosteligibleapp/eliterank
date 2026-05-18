@@ -3,6 +3,7 @@ import { Award, Trophy, Building, Crown, Star, Instagram, Linkedin, Twitter, Use
 import { Avatar, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 export default function AboutTab({ judges, sponsors, host, city = 'New York', competition, onViewProfile }) {
   const { isMobile } = useResponsive();
@@ -112,7 +113,7 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
               overflow: 'hidden',
             }}>
               {host.avatar ? (
-                <img src={host.avatar} alt={host.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={transformSupabaseImage(host.avatar, { width: 280, height: 280 })} alt={host.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 <span style={{ fontSize: '48px', fontWeight: typography.fontWeight.bold, color: '#fff' }}>
                   {host.name?.charAt(0) || 'H'}

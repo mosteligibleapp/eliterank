@@ -1,5 +1,6 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { EliteRankCrown } from '../../../components/ui/icons';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
  * Competition page footer showing organization and EliteRank branding
@@ -14,7 +15,7 @@ export function CompetitionFooter() {
         {organization?.logo_url && (
           <div className="competition-footer-item">
             <div className="competition-footer-logo">
-              <img src={organization.logo_url} alt={organization.name} />
+              <img src={transformSupabaseImage(organization.logo_url, { width: 150, height: 60 })} alt={organization.name} />
             </div>
             <div className="competition-footer-text">
               <span className="competition-footer-label">Presented by</span>

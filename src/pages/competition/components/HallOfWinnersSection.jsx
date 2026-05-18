@@ -4,6 +4,7 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import useAppSettings from '../../../hooks/useAppSettings';
 import { EliteRankCrown } from '../../../components/ui/icons';
 import { supabase } from '../../../lib/supabase';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
  * Hall of Winners section for competition pages
@@ -77,7 +78,7 @@ export function HallOfWinnersSection() {
               <div className="hall-of-winners-rank">{index + 1}</div>
               <div className="hall-of-winners-avatar">
                 {winner.imageUrl ? (
-                  <img src={winner.imageUrl} alt={winner.name} />
+                  <img src={transformSupabaseImage(winner.imageUrl, { width: 150, height: 150 })} alt={winner.name} />
                 ) : (
                   <User size={32} />
                 )}

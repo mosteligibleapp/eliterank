@@ -3,6 +3,7 @@ import { X, MapPin, Star, FileText, Heart, Camera, Globe, Trophy, Crown, Award, 
 import { Button, Badge, InterestTag } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { formatNumber } from '../../../utils/formatters';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 // Profile images for variety
 const PROFILE_IMAGES = [
@@ -203,7 +204,7 @@ export default function ProfileModal({
             >
               {profileImage ? (
                 <img
-                  src={profileImage}
+                  src={transformSupabaseImage(profileImage, { width: 280, height: 280 })}
                   alt={profile.name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
@@ -320,7 +321,7 @@ export default function ProfileModal({
                     style={{
                       aspectRatio: '1',
                       background: i === 0 && profileImage
-                        ? `url(${profileImage}) center/cover`
+                        ? `url(${transformSupabaseImage(profileImage, { width: 300, height: 300 })}) center/cover`
                         : type === 'host'
                           ? 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.05))'
                           : 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.1))',

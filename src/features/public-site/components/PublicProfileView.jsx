@@ -3,6 +3,7 @@ import { MapPin, FileText, Heart, Camera, Globe, Trophy, Crown, Award, Star, Ins
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, styleHelpers } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 // Role display configuration
 const ROLE_CONFIG = {
@@ -150,7 +151,7 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
             height: isMobile ? '120px' : '150px',
             borderRadius: borderRadius.full,
             background: avatarUrl
-              ? `url(${avatarUrl}) center/cover`
+              ? `url(${transformSupabaseImage(avatarUrl, { width: 300, height: 300 })}) center/cover`
               : `linear-gradient(135deg, ${roleConfig.color}60, ${roleConfig.color}30)`,
             border: `4px solid ${roleConfig.color}`,
             margin: '0 auto',
@@ -335,7 +336,7 @@ export default function PublicProfileView({ profile, role = 'fan', onBack }) {
                   key={index}
                   style={{
                     aspectRatio: '1',
-                    background: `url(${imageUrl}) center/cover`,
+                    background: `url(${transformSupabaseImage(imageUrl, { width: 300, height: 300 })}) center/cover`,
                     borderRadius: borderRadius.lg,
                   }}
                 />

@@ -1,5 +1,6 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Award } from 'lucide-react';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
  * Judges section - displays competition judges in a responsive grid
@@ -29,7 +30,7 @@ export function JudgesSection() {
             <div key={judge.id} className="judge-card">
               <div className="judge-avatar">
                 {judge.avatar_url ? (
-                  <img src={judge.avatar_url} alt={judge.name} />
+                  <img src={transformSupabaseImage(judge.avatar_url, { width: 150, height: 150 })} alt={judge.name} />
                 ) : (
                   <span>{judge.name?.charAt(0)}</span>
                 )}

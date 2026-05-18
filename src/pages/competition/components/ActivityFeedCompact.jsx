@@ -12,6 +12,7 @@ import {
   Info,
   Heart
 } from 'lucide-react';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 const iconMap = {
   'vote': Heart,
@@ -86,7 +87,7 @@ export function ActivityFeedCompact({ limit = 5 }) {
               {/* User avatar or icon */}
               {contestant?.avatar_url ? (
                 <div className="activity-avatar">
-                  <img src={contestant.avatar_url} alt="" />
+                  <img src={transformSupabaseImage(contestant.avatar_url, { width: 64, height: 64 })} alt="" />
                 </div>
               ) : (
                 <div className="activity-icon-wrap">

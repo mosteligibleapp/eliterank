@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { User, MapPin, Instagram, Twitter, Linkedin, Crown, X } from 'lucide-react';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
  * Host profile card. Defaults to a compact horizontal card; pass
@@ -22,7 +23,7 @@ export function HostCard({ variant = 'compact' }) {
     <>
       <div className="host-card-avatar">
         {host.avatar_url ? (
-          <img src={host.avatar_url} alt={hostName} />
+          <img src={transformSupabaseImage(host.avatar_url, { width: 150, height: 150 })} alt={hostName} />
         ) : (
           <div className="host-card-avatar-placeholder">
             <User size={isFeatured ? 48 : 28} />
@@ -108,7 +109,7 @@ export function HostCard({ variant = 'compact' }) {
             <div className="host-profile-modal">
               <div className="host-profile-header">
                 {host.avatar_url ? (
-                  <img src={host.avatar_url} alt={hostName} className="host-modal-avatar" />
+                  <img src={transformSupabaseImage(host.avatar_url, { width: 200, height: 200 })} alt={hostName} className="host-modal-avatar" />
                 ) : (
                   <div className="host-modal-avatar-placeholder">
                     <User size={48} />

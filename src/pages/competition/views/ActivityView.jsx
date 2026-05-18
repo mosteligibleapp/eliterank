@@ -16,6 +16,7 @@ import {
   Info,
   Heart,
 } from 'lucide-react';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 // Map icon names to components
 const iconComponents = {
@@ -140,7 +141,7 @@ export function ActivityView() {
                   >
                     {contestant?.avatar_url ? (
                       <div className="activity-avatar">
-                        <img src={contestant.avatar_url} alt="" />
+                        <img src={transformSupabaseImage(contestant.avatar_url, { width: 64, height: 64 })} alt="" />
                       </div>
                     ) : (
                       <div className="activity-icon-wrap">

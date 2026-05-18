@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Trophy } from 'lucide-react';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
  * Winners podium for results phase
@@ -70,7 +71,7 @@ export function WinnersPodium() {
 
           <div className="winner-avatar winner-avatar-large">
             {winner.avatar_url ? (
-              <img src={winner.avatar_url} alt={winner.name} />
+              <img src={transformSupabaseImage(winner.avatar_url, { width: 300, height: 300 })} alt={winner.name} />
             ) : (
               <span>{winner.name?.charAt(0)}</span>
             )}
@@ -111,7 +112,7 @@ function LegacyContestantsGrid({ contestants, onSelect, year }) {
           >
             <div className={`legacy-winner-avatar-wrap ${isFirst(index) ? 'legacy-winner-avatar-wrap-first' : ''}`}>
               {contestant.avatar_url ? (
-                <img src={contestant.avatar_url} alt={contestant.name} className="legacy-winner-avatar-img" />
+                <img src={transformSupabaseImage(contestant.avatar_url, { width: 200, height: 200 })} alt={contestant.name} className="legacy-winner-avatar-img" />
               ) : (
                 <span className="legacy-winner-avatar-fallback">{contestant.name?.charAt(0)}</span>
               )}

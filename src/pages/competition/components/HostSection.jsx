@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { User, MapPin, Instagram, Twitter, Linkedin, X } from 'lucide-react';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
  * Host information section
@@ -29,7 +30,7 @@ export function HostSection() {
             onClick={() => setShowHostModal(true)}
           >
             {host.avatar_url ? (
-              <img src={host.avatar_url} alt={hostName} className="host-avatar" />
+              <img src={transformSupabaseImage(host.avatar_url, { width: 150, height: 150 })} alt={hostName} className="host-avatar" />
             ) : (
               <div className="host-avatar-placeholder">
                 <User size={48} />
@@ -59,7 +60,7 @@ export function HostSection() {
             <div className="host-profile-modal">
               <div className="host-profile-header">
                 {host.avatar_url ? (
-                  <img src={host.avatar_url} alt={hostName} className="host-modal-avatar" />
+                  <img src={transformSupabaseImage(host.avatar_url, { width: 200, height: 200 })} alt={hostName} className="host-modal-avatar" />
                 ) : (
                   <div className="host-modal-avatar-placeholder">
                     <User size={48} />
@@ -131,7 +132,7 @@ export function HostSection() {
                 className={`sponsor-item sponsor-tier-${sponsor.tier?.toLowerCase()}`}
               >
                 {sponsor.logo_url ? (
-                  <img src={sponsor.logo_url} alt={sponsor.name} className="sponsor-logo" />
+                  <img src={transformSupabaseImage(sponsor.logo_url, { width: 200, height: 100 })} alt={sponsor.name} className="sponsor-logo" />
                 ) : (
                   <span className="sponsor-name">{sponsor.name}</span>
                 )}

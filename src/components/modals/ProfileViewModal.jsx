@@ -4,6 +4,7 @@ import { Badge } from '../ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { SkeletonPulse, SkeletonCircle, SkeletonText } from '../common/Skeleton';
+import { transformSupabaseImage } from '../../lib/storageImage';
 
 // Role display configuration
 const ROLE_CONFIG = {
@@ -319,7 +320,7 @@ export default function ProfileViewModal({
                         style={{
                           aspectRatio: '1',
                           borderRadius: borderRadius.lg,
-                          background: `url(${image}) center/cover`,
+                          background: `url(${transformSupabaseImage(image, { width: 300, height: 300 })}) center/cover`,
                           border: `1px solid ${colors.border.light}`,
                         }}
                       />

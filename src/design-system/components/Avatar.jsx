@@ -1,4 +1,5 @@
 import React from 'react';
+import { transformSupabaseImage } from '../../lib/storageImage';
 
 /**
  * Avatar Component
@@ -41,6 +42,9 @@ const Avatar = ({
     xl: { container: 'w-16 h-16', text: 'text-lg', status: 'w-3.5 h-3.5', rank: 'w-7 h-7 text-sm' },
     '2xl': { container: 'w-20 h-20', text: 'text-xl', status: 'w-4 h-4', rank: 'w-8 h-8 text-base' },
   };
+  
+  // Size to pixels mapping (2x for retina)
+  const sizePixels = { xs: 48, sm: 64, md: 80, lg: 96, xl: 128, '2xl': 160 };
   
   // Status colors
   const statusColors = {
@@ -99,7 +103,7 @@ const Avatar = ({
               <div className="absolute inset-0 bg-bg-elevated animate-pulse" />
             )}
             <img 
-              src={src}
+              src={transformSupabaseImage(src, { width: sizePixels[size] || 80, height: sizePixels[size] || 80 })}
               alt={alt || name || ''}
               className={`
                 w-full h-full object-cover
