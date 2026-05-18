@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Crown, Sparkles, LogIn, Award } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { formatNumber } from '../../../utils/formatters';
 import { useCountdown } from '../../../hooks';
 import { CONTESTANT_IMAGES } from '../../../constants';
+import { transformSupabaseImage } from '../../../lib/storageImage';
 
 export default function ContestantsTab({ contestants, events, forceDoubleVoteDay, onVote, isAuthenticated = false, onLogin, isJudgingPhase = false, onViewProfile, currentRound }) {
   // Use currentRound end date if available, otherwise show no countdown
@@ -362,6 +363,12 @@ function ContestantImage({ src, name, children, isEliminated = false }) {
   const handleError = useCallback(() => setImgFailed(true), []);
   const handleLoad = useCallback(() => setImgLoaded(true), []);
 
+  // Optimize Supabase images: serve 400px wide for card display (covers 2x retina)
+  const optimizedSrc = useMemo(() => {
+    if (!src) return src;
+    return transformSupabaseImage(src, { width: 400, quality: 80 });
+  }, [src]);
+
   const initial = name?.split(' ').pop()?.charAt(0) || '?';
 
   return (
@@ -394,8 +401,10 @@ function ContestantImage({ src, name, children, isEliminated = false }) {
       )}
       {src && !imgFailed && (
         <img
-          src={src}
+          src={optimizedSrc}
           alt={name}
+          loading="lazy"
+          decoding="async"
           style={{
             width: '100%',
             height: '100%',

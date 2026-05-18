@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { DollarSign, Sparkles, LogIn, Check, Clock, Loader, Share2, Twitter, Facebook, Link2, CheckCircle, CreditCard, X, AlertCircle, RefreshCw } from 'lucide-react';
 import * as Sentry from '@sentry/react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -12,6 +12,7 @@ import { hasUsedFreeVoteToday, submitFreeVote, getTodaysVote, getTimeUntilReset,
 import { useToast } from '../../../contexts/ToastContext';
 import { useIsPreview } from '../../../contexts/PublicCompetitionContext';
 import { getStripe, isStripeConfigured } from '../../../lib/stripe';
+import { avatarUrl } from '../../../lib/storageImage';
 
 // Show $10 for round totals and $9.90 for fractional bundler prices. The
 // shared formatCurrency truncates to whole dollars, which hides the discount.
@@ -601,7 +602,7 @@ export default function VoteModal({
             >
               {contestant.avatar_url || contestant.avatarUrl ? (
                 <img
-                  src={contestant.avatar_url || contestant.avatarUrl}
+                  src={avatarUrl(contestant.avatar_url || contestant.avatarUrl, 90)}
                   alt={contestant.name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
