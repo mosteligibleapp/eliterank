@@ -264,7 +264,7 @@ export function PortraitCard({
       </div>
       <div className="portrait-info">
         <span className="portrait-name">{contestant.name?.split(' ')[0]}</span>
-        {!hideVotes && (
+        {!hideVotes && !isEliminated && (
           <span className="portrait-votes">{contestant.votes ? contestant.votes.toLocaleString() : '0'}</span>
         )}
       </div>
