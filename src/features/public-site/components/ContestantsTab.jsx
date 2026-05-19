@@ -305,14 +305,18 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
                 background: colors.background.cardHover,
               }}
             >
-              <div>
-                <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: isTop3 ? colors.gold.primary : '#fff' }}>
-                  {formatNumber(contestant.votes)}
-                </p>
-                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Votes
-                </p>
-              </div>
+              {isEliminated ? (
+                <div />
+              ) : (
+                <div>
+                  <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: isTop3 ? colors.gold.primary : '#fff' }}>
+                    {formatNumber(contestant.votes)}
+                  </p>
+                  <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Votes
+                  </p>
+                </div>
+              )}
               {isEliminated ? (
                 <Badge variant="secondary" size="md">
                   Eliminated
