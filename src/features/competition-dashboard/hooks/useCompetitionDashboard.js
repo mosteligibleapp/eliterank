@@ -205,7 +205,7 @@ export function useCompetitionDashboard(competitionId) {
           status: c.status,
           trend: c.trend || 'same',
           rank: index + 1,
-          avatarUrl: c.avatar_url || c.profile?.avatar_url,
+          avatarUrl: c.profile?.avatar_url || c.avatar_url,
           instagram: c.instagram || c.profile?.instagram,
           userId: c.user_id,
         };

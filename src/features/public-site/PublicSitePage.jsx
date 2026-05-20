@@ -159,8 +159,8 @@ export default function PublicSitePage({
               bio: c.bio || profile.bio,
               votes: c.votes || 0,
               rank: idx + 1,
-              avatarUrl: c.avatar_url || profile.avatar_url,
-              avatar_url: c.avatar_url || profile.avatar_url,
+              avatarUrl: profile.avatar_url || c.avatar_url,
+              avatar_url: profile.avatar_url || c.avatar_url,
               instagram: c.instagram || profile.instagram,
               twitter: c.twitter || profile.twitter,
               linkedin: c.linkedin || profile.linkedin,
@@ -305,17 +305,18 @@ export default function PublicSitePage({
           ...prev,
           contestants: contestantsData.map((c, idx) => {
             const profile = c.profile || {};
+            const profileName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
             return {
               ...c,
               id: c.id,
-              name: c.name,
+              name: profileName || c.name,
               age: c.age || profile.age,
               occupation: c.occupation || profile.occupation,
               bio: c.bio || profile.bio,
               votes: c.votes || 0,
               rank: idx + 1,
-              avatarUrl: c.avatar_url || profile.avatar_url,
-              avatar_url: c.avatar_url || profile.avatar_url,
+              avatarUrl: profile.avatar_url || c.avatar_url,
+              avatar_url: profile.avatar_url || c.avatar_url,
               instagram: c.instagram || profile.instagram,
               twitter: c.twitter || profile.twitter,
               linkedin: c.linkedin || profile.linkedin,

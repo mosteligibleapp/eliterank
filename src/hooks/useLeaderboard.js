@@ -73,16 +73,19 @@ export function useLeaderboard(competitionId, options = {}) {
 
       if (fetchError) throw fetchError;
 
-      // Fall back to the linked profile's avatar when the contestant row
-      // doesn't have its own uploaded photo. Prefer the live profile name
-      // over the denormalized contestants.name, which is frozen at entry
-      // time and goes stale when the user edits their profile.
+      // Prefer the live profile name and avatar over the denormalized
+      // contestants columns, which are frozen at entry time and go stale
+      // when the user edits their profile. A DB trigger keeps these in
+      // sync, but preferring profile here is defense in depth against
+      // brief stale-cache windows and any direct writes that bypass the
+      // trigger. For unlinked contestants we fall back to the contestant
+      // row's own column as the canonical source.
       const merged = (data || []).map((c) => {
         const profileName = `${c.profile?.first_name || ''} ${c.profile?.last_name || ''}`.trim();
         return {
           ...c,
           name: profileName || c.name,
-          avatar_url: c.avatar_url || c.profile?.avatar_url || null,
+          avatar_url: c.profile?.avatar_url || c.avatar_url || null,
         };
       });
 
@@ -133,7 +136,7 @@ export function useLeaderboard(competitionId, options = {}) {
                   ...c,
                   ...payload.new,
                   name: profileName || payload.new.name || c.name,
-                  avatar_url: payload.new.avatar_url || c.avatar_url,
+                  avatar_url: c.profile?.avatar_url || payload.new.avatar_url || c.avatar_url,
                 };
               })
             );
