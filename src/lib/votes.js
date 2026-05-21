@@ -513,3 +513,64 @@ export async function recordPaidVote({
     return { success: false, error: 'An unexpected error occurred' };
   }
 }
+
+/**
+ * Add votes to a contestant manually (host/admin action from the dashboard).
+ *
+ * Writes a row to `manual_votes`. The on_manual_vote_insert trigger folds it
+ * into contestants.votes and competitions.total_votes, so the contestant's
+ * public leaderboard total updates immediately. The row itself records who
+ * added the votes and why for the audit trail.
+ *
+ * The `votes` ledger can't be used for this: validate_free_vote_count()
+ * (migration 051) rejects any client insert whose vote_count is not 1 or 2.
+ *
+ * @param {Object} params
+ * @param {string} params.competitionId
+ * @param {string} params.contestantId
+ * @param {number} params.voteCount - whole number, 1 to 100000
+ * @param {string} [params.reason] - optional note for the audit trail
+ * @returns {Promise<{success: boolean, error?: string, votesAdded?: number}>}
+ */
+export async function addManualVotes({ competitionId, contestantId, voteCount, reason }) {
+  if (!supabase) {
+    return { success: false, error: 'Database not configured' };
+  }
+
+  const count = Number(voteCount);
+  if (!competitionId || !contestantId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+  if (!Number.isInteger(count) || count < 1 || count > 100000) {
+    return { success: false, error: 'Enter a whole number of votes between 1 and 100,000' };
+  }
+
+  try {
+    const { data: { user } = {} } = await supabase.auth.getUser();
+
+    // The on_manual_vote_insert trigger increments contestants.votes and
+    // competitions.total_votes from this row.
+    const { error } = await supabase
+      .from('manual_votes')
+      .insert({
+        competition_id: competitionId,
+        contestant_id: contestantId,
+        vote_count: count,
+        reason: reason?.trim() || null,
+        added_by: user?.id || null,
+      });
+
+    if (error) {
+      console.error('Manual vote insert error:', error);
+      if (/eliminated/i.test(error.message || '')) {
+        return { success: false, error: 'This contestant has been eliminated and cannot receive votes.' };
+      }
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, votesAdded: count };
+  } catch (err) {
+    console.error('Error adding manual votes:', err);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
