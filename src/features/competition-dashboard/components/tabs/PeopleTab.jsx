@@ -1119,7 +1119,7 @@ export default function PeopleTab({
                 {bulkPhotoProgress ? `${bulkPhotoProgress.current}/${bulkPhotoProgress.total}` : 'Photos'}
               </Button>
             )}
-            {contestants.length > 0 && (
+            {competition?.allowManualVotes && contestants.length > 0 && (
               <Button
                 size="sm"
                 variant="secondary"

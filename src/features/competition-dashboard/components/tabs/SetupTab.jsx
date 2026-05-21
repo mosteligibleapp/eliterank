@@ -80,6 +80,7 @@ export default function SetupTab({
   onAddDoubleDay,
   onDeleteDoubleDay,
   onUpdateTimezone,
+  onUpdateAllowManualVotes,
   onOpenJudgeModal,
   onOpenSponsorModal,
   onOpenCharityModal,
@@ -126,6 +127,11 @@ export default function SetupTab({
   const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [timezoneError, setTimezoneError] = useState('');
 
+  // Manual votes setting state
+  const [manualVotesSaving, setManualVotesSaving] = useState(false);
+  const [manualVotesError, setManualVotesError] = useState('');
+  const manualVotesEnabled = !!competition?.allowManualVotes;
+
   const competitionTimezone = competition?.timezone || 'UTC';
   const timezoneGroups = React.useMemo(() => getTimezoneOptionGroups(), []);
 
@@ -155,6 +161,17 @@ export default function SetupTab({
     setTimezoneSaving(false);
     if (!result?.success) {
       setTimezoneError(result?.error || 'Could not update timezone.');
+    }
+  };
+
+  const handleToggleManualVotes = async () => {
+    if (!onUpdateAllowManualVotes || manualVotesSaving) return;
+    setManualVotesError('');
+    setManualVotesSaving(true);
+    const result = await onUpdateAllowManualVotes(!manualVotesEnabled);
+    setManualVotesSaving(false);
+    if (!result?.success) {
+      setManualVotesError(result?.error || 'Could not update this setting.');
     }
   };
 
@@ -955,6 +972,59 @@ export default function SetupTab({
                 );
               })}
             </div>
+          )}
+        </div>
+      </Panel>
+
+      {/* Manual Votes Section */}
+      <Panel
+        title="Manual Votes"
+        icon={Star}
+        collapsible
+        defaultCollapsed
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+            <button
+              onClick={handleToggleManualVotes}
+              disabled={manualVotesSaving}
+              aria-pressed={manualVotesEnabled}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: borderRadius.md,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: manualVotesEnabled ? 'rgba(34,197,94,0.15)' : 'rgba(100,100,100,0.15)',
+                border: 'none',
+                cursor: manualVotesSaving ? 'wait' : 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {manualVotesEnabled ? (
+                <CheckCircle size={18} style={{ color: colors.status.success }} />
+              ) : (
+                <XCircle size={18} style={{ color: colors.text.muted }} />
+              )}
+            </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontWeight: typography.fontWeight.medium }}>
+                Allow manually adding votes
+              </p>
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
+                Shows an "Add Votes" button on the People tab so you can credit votes to a contestant. They count toward the public leaderboard immediately.
+              </p>
+            </div>
+          </div>
+          {manualVotesError && (
+            <p style={{
+              color: colors.status.error,
+              fontSize: typography.fontSize.sm,
+              marginTop: spacing.md,
+            }}>
+              {manualVotesError}
+            </p>
           )}
         </div>
       </Panel>

@@ -466,6 +466,8 @@ export function useCompetitionDashboard(competitionId) {
           // IANA timezone for double-vote-day scheduling. Default 'UTC'
           // matches the column default; hosts opt in via SetupTab.
           timezone: competition.timezone || 'UTC',
+          // Host-controlled gate for the manual "Add Votes" dashboard action.
+          allowManualVotes: competition.allow_manual_votes ?? false,
           // Timeline arrays — pass through so computeCompetitionPhase can
           // detect between-rounds vs. nominations correctly.
           nomination_periods: competition.nomination_periods || [],
@@ -1213,6 +1215,24 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  const updateAllowManualVotes = useCallback(async (enabled) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({ allow_manual_votes: !!enabled })
+        .eq('id', competitionId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating manual votes setting:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   // ============================================================================
   // ANNOUNCEMENT OPERATIONS
   // ============================================================================
@@ -1616,6 +1636,7 @@ export function useCompetitionDashboard(competitionId) {
     addDoubleDay,
     deleteDoubleDay,
     updateCompetitionTimezone,
+    updateAllowManualVotes,
     // Announcement operations
     addAnnouncement,
     updateAnnouncement,
