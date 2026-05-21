@@ -513,3 +513,77 @@ export async function recordPaidVote({
     return { success: false, error: 'An unexpected error occurred' };
   }
 }
+
+/**
+ * Add votes to a contestant manually (host/admin action from the dashboard).
+ *
+ * Writes a normal row into the shared `votes` ledger (amount_paid 0, no
+ * voter_id) so the existing on_vote_insert trigger increments
+ * contestants.votes and competitions.total_votes — the contestant shows the
+ * new total on the public leaderboard immediately, and the vote survives
+ * round reconciliation because it lives in the same ledger as every other
+ * vote. A companion row in `manual_votes` records who added the votes and why.
+ *
+ * @param {Object} params
+ * @param {string} params.competitionId
+ * @param {string} params.contestantId
+ * @param {number} params.voteCount - whole number, 1 to 100000
+ * @param {string} [params.reason] - optional note for the audit trail
+ * @returns {Promise<{success: boolean, error?: string, votesAdded?: number}>}
+ */
+export async function addManualVotes({ competitionId, contestantId, voteCount, reason }) {
+  if (!supabase) {
+    return { success: false, error: 'Database not configured' };
+  }
+
+  const count = Number(voteCount);
+  if (!competitionId || !contestantId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+  if (!Number.isInteger(count) || count < 1 || count > 100000) {
+    return { success: false, error: 'Enter a whole number of votes between 1 and 100,000' };
+  }
+
+  try {
+    // The on_vote_insert trigger increments contestants.votes and
+    // competitions.total_votes from this row.
+    const { error: voteError } = await supabase
+      .from('votes')
+      .insert({
+        competition_id: competitionId,
+        contestant_id: contestantId,
+        vote_count: count,
+        amount_paid: 0,
+        is_double_vote: false,
+      });
+
+    if (voteError) {
+      console.error('Manual vote insert error:', voteError);
+      // reject_votes_for_eliminated raises a check_violation (SQLSTATE 23514)
+      if (voteError.code === '23514') {
+        return { success: false, error: 'This contestant has been eliminated and cannot receive votes.' };
+      }
+      return { success: false, error: voteError.message };
+    }
+
+    // Audit record — never block the vote itself if this fails.
+    const { data: { user } = {} } = await supabase.auth.getUser();
+    const { error: auditError } = await supabase
+      .from('manual_votes')
+      .insert({
+        competition_id: competitionId,
+        contestant_id: contestantId,
+        vote_count: count,
+        reason: reason?.trim() || null,
+        added_by: user?.id || null,
+      });
+    if (auditError) {
+      console.warn('Manual vote audit record failed (vote still counted):', auditError.message);
+    }
+
+    return { success: true, votesAdded: count };
+  } catch (err) {
+    console.error('Error adding manual votes:', err);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
