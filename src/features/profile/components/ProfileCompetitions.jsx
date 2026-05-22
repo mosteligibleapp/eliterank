@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Star, Award, ArrowRight, ChevronRight, Clock } from 'lucide-react';
+import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -170,11 +170,11 @@ function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
       );
     case 'eliminated':
       // Framed as an achievement, not a loss — the badge shows the tier
-      // the contestant reached (e.g. "Top 50", "Entry Round") instead of
-      // calling out their elimination.
+      // the contestant reached (e.g. "Top 25 Contestant", "Entry Round")
+      // instead of calling out their elimination.
       return (
         <Badge variant="gold" size={size} pill>
-          <Star size={10} style={{ marginRight: '4px' }} />
+          <Crown size={10} style={{ marginRight: '4px' }} />
           {subLabel || 'Contestant'}
         </Badge>
       );
@@ -189,9 +189,10 @@ function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
  *
  * The cohort competing in round R is whoever advanced out of round R-1,
  * so an eliminated contestant reached the tier sized by the prior round's
- * `contestants_advance` ("Top 50"). The first round has no prior tier and
- * reads as the "Entry Round". The host's `tier_label` / `title` are used
- * only as a fallback, and never when they're a generic "Round N".
+ * `contestants_advance` ("Top 50 Contestant"). The first round has no
+ * prior tier and reads as the "Entry Round". The host's `tier_label` /
+ * `title` are used only as a fallback, and never when they're a generic
+ * "Round N".
  */
 function getReachedTierLabel(competition, eliminatedInRound) {
   if (!eliminatedInRound) return null;
@@ -200,7 +201,7 @@ function getReachedTierLabel(competition, eliminatedInRound) {
   const rounds = competition?.voting_rounds || [];
   const prior = rounds.find((r) => r.round_order === eliminatedInRound - 1);
   const advance = prior?.contestants_advance;
-  if (Number.isFinite(advance) && advance > 0) return `Top ${advance}`;
+  if (Number.isFinite(advance) && advance > 0) return `Top ${advance} Contestant`;
 
   const isGeneric = (label) => !label || /^round\s*\d+$/i.test(label.trim());
   const round = rounds.find((r) => r.round_order === eliminatedInRound);
