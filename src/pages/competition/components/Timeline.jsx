@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Check, Circle, ChevronDown, Trophy } from 'lucide-react';
+import { Check, Trophy } from 'lucide-react';
 import { formatDate } from '../../../utils/formatters';
 
 /**
@@ -8,7 +7,7 @@ import { formatDate } from '../../../utils/formatters';
  * Entry Period | Voting Period | Finale
  */
 export function Timeline() {
-  const { competition, votingRounds, nominationPeriods, phase } = usePublicCompetition();
+  const { competition, votingRounds, nominationPeriods } = usePublicCompetition();
 
   // --- Build 3 high-level phases ---
 
@@ -67,37 +66,16 @@ export function Timeline() {
     } : null,
   ].filter(Boolean);
 
-  // Mobile collapsible state
-  const [sectionOpen, setSectionOpen] = useState(false);
-
   if (phases.length === 0) {
     return null;
   }
 
-  const activePhase = phases.find(p => p.status === 'active');
-
   return (
-    <div className={`timeline ${sectionOpen ? 'timeline-open' : ''}`}>
-      {/* Mobile-only collapsible header */}
-      <button className="timeline-header timeline-header-mobile" onClick={() => setSectionOpen(!sectionOpen)}>
-        <div className="timeline-header-left">
-          <h4 className="section-label">Timeline</h4>
-          {!sectionOpen && activePhase && (
-            <span className="timeline-summary">
-              <Circle size={8} className="timeline-summary-dot" />
-              {activePhase.title}
-            </span>
-          )}
-        </div>
-        <ChevronDown size={18} className={`timeline-header-chevron ${sectionOpen ? 'timeline-header-chevron-open' : ''}`} />
-      </button>
-
-      {/* Desktop always-visible header */}
-      <div className="timeline-header-desktop">
+    <div className="timeline">
+      <div className="timeline-header">
         <h4 className="section-label">Timeline</h4>
       </div>
 
-      {/* Desktop: always visible, Mobile: collapsible */}
       <div className="timeline-body">
         <div className="timeline-list">
           {phases.map((item, index) => (
