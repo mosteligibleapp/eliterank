@@ -10,6 +10,7 @@ import { getCompetitionDefaults } from '../utils/competitionDefaults';
 // Shared select query for competition data
 const COMPETITION_SELECT = `
   *,
+  organization:organizations(*),
   city:cities(*),
   category:categories(*),
   demographic:demographics(*),
@@ -98,8 +99,6 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       if (orgError) throw orgError;
       if (!orgData) throw new Error('Organization not found');
 
-      setOrganization(orgData);
-
       let compData = null;
       let compError = null;
 
@@ -145,6 +144,12 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       if (compError || !compData) {
         throw new Error('Competition not found');
       }
+
+      // Branding (logo, theme, about defaults) always follows the
+      // competition's own organization. On the /:orgSlug/id/:competitionId
+      // route the URL slug can point at a different org, so trust the
+      // organization joined onto the competition rather than the URL slug.
+      setOrganization(compData.organization || orgData);
 
       // Normalize city to string for rendering, keep full object as cityData
       const cityObj = compData.city;
