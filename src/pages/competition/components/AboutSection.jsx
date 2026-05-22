@@ -1,24 +1,16 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 
 /**
- * About section with tagline and description
+ * About section with description
  */
 export function AboutSection() {
   const { about } = usePublicCompetition();
 
-  if (!about?.tagline && !about?.description) return null;
+  if (!about?.description) return null;
 
   return (
     <div className="about-section">
-      {about.tagline && (
-        <blockquote className="about-tagline">
-          "{about.tagline}"
-        </blockquote>
-      )}
-
-      {about.description && (
-        <p className="about-description">{about.description}</p>
-      )}
+      <p className="about-description">{about.description}</p>
     </div>
   );
 }
