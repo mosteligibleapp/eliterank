@@ -226,8 +226,8 @@ function IdleView({ poll, winner, busy, onOpen }) {
       >
         Opening a resurrection vote puts every eliminated contestant who finished in the
         top 25 of their round onto a public ballot. When you close the vote, the
-        contestant with the most public votes returns to the competition with a clean
-        vote count.
+        contestant with the most public votes returns to the competition, keeping the
+        bonus and manual votes they had already earned.
       </p>
 
       <Button icon={Sparkles} onClick={onOpen} disabled={busy}>

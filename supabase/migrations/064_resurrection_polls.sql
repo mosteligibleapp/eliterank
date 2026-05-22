@@ -371,14 +371,24 @@ BEGIN
   ORDER BY COUNT(rv.id) DESC, cand.eliminated_at_rank ASC NULLS LAST
   LIMIT 1;
 
-  -- Resurrect the winner with a clean vote slate so they re-enter the
-  -- current round on equal footing rather than carrying a stale total.
+  -- Resurrect the winner. Paid/free votes start fresh, but the contestant
+  -- keeps their earned bonus votes and any host-added manual votes — the same
+  -- carry-over finalize_voting_round() applies on a per-round vote reset, so a
+  -- resurrected contestant isn't penalised for work they already completed.
   IF v_winner IS NOT NULL THEN
     UPDATE contestants
     SET status = 'active',
         advancement_status = 'advanced',
         eliminated_in_round = NULL,
-        votes = 0,
+        votes = COALESCE((
+          SELECT SUM(bvc.votes_awarded)
+          FROM bonus_vote_completions bvc
+          WHERE bvc.contestant_id = v_winner
+        ), 0) + COALESCE((
+          SELECT SUM(mv.vote_count)
+          FROM manual_votes mv
+          WHERE mv.contestant_id = v_winner
+        ), 0),
         trend = 'same',
         updated_at = NOW()
     WHERE id = v_winner;
@@ -403,17 +413,22 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Grants
 -- ---------------------------------------------------------------------------
+-- Supabase's default privileges auto-grant EXECUTE on new public functions to
+-- anon + authenticated. The privileged functions are explicitly revoked from
+-- anon so the REST surface denies unauthenticated callers outright (their
+-- bodies reject them too — this is defence in depth). Only get_resurrection_poll
+-- stays open to anon, for the public competition page.
 
-REVOKE ALL ON FUNCTION is_resurrection_admin(UUID) FROM PUBLIC;
-REVOKE ALL ON FUNCTION open_resurrection_poll(UUID, INTEGER) FROM PUBLIC;
-REVOKE ALL ON FUNCTION cast_resurrection_vote(UUID, UUID) FROM PUBLIC;
-REVOKE ALL ON FUNCTION close_resurrection_poll(UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION is_resurrection_admin(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION open_resurrection_poll(UUID, INTEGER) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION cast_resurrection_vote(UUID, UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION close_resurrection_poll(UUID) FROM PUBLIC, anon;
 
 GRANT EXECUTE ON FUNCTION is_resurrection_admin(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION open_resurrection_poll(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION cast_resurrection_vote(UUID, UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION get_resurrection_poll(UUID) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION close_resurrection_poll(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_resurrection_poll(UUID) TO authenticated, anon;
 
 -- ---------------------------------------------------------------------------
 -- Realtime — the public competition page reacts to a poll opening / closing.
