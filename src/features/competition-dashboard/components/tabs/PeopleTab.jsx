@@ -13,6 +13,7 @@ import { generateAchievementCard } from '../../../achievement-cards/generateAchi
 import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
 import WinnersManager from '../WinnersManager';
+import ResurrectionManager from '../ResurrectionManager';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
 const parseInstagram = (raw) => {
@@ -1237,6 +1238,9 @@ export default function PeopleTab({
           })()}
         </div>
       </Panel>
+
+      {/* Resurrection by the public */}
+      <ResurrectionManager competition={competition} onUpdate={onRefresh} />
 
       {/* Ready to Approve */}
       <Panel

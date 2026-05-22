@@ -1,6 +1,7 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Trophy } from 'lucide-react';
 import { LeaderboardCompact } from '../components/LeaderboardCompact';
+import { ResurrectionPoll } from '../components/ResurrectionPoll';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CharityHighlight } from '../components/CharityHighlight';
@@ -29,6 +30,9 @@ export function BetweenRoundsPhase() {
           <CountdownDisplay label="" large />
         </div>
       </section>
+
+      {/* Resurrection poll - renders only when an admin has opened one */}
+      <ResurrectionPoll />
 
       {/* Leaderboard */}
       <section className="phase-section">

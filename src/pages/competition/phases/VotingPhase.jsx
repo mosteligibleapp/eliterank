@@ -1,6 +1,7 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import { LeaderboardCompact } from '../components/LeaderboardCompact';
+import { ResurrectionPoll } from '../components/ResurrectionPoll';
 import { ActivityFeedCompact } from '../components/ActivityFeedCompact';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
@@ -58,6 +59,9 @@ export function VotingPhase() {
       <section className="voting-countdown-section">
         <CountdownDisplay label="Round ends in" large />
       </section>
+
+      {/* Resurrection poll - renders only when an admin has opened one */}
+      <ResurrectionPoll />
 
       {/* Bonus Votes Checklist - shown to contestants */}
       {currentContestant && competition?.id && (
