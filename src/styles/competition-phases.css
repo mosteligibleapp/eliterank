@@ -3520,61 +3520,15 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   padding: var(--spacing-lg);
 }
 
-/* Mobile-only collapsible header */
-.timeline-header-mobile {
-  display: none;
-}
-
-/* Desktop always-visible header */
-.timeline-header-desktop {
+.timeline-header {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-md);
 }
 
-.timeline-header-desktop .section-label {
+.timeline-header .section-label {
   margin: 0;
-}
-
-/* Mobile collapsed summary */
-.timeline-header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  min-width: 0;
-}
-
-.timeline-header-left .section-label {
-  margin: 0;
-  flex-shrink: 0;
-}
-
-.timeline-summary {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.timeline-summary-dot {
-  color: var(--color-primary);
-  fill: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.timeline-header-chevron {
-  color: var(--color-text-muted);
-  transition: transform 0.3s ease;
-  flex-shrink: 0;
-}
-
-.timeline-header-chevron-open {
-  transform: rotate(180deg);
 }
 
 /* Body */
@@ -3704,47 +3658,8 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   color: var(--color-text-secondary);
 }
 
-/* Mobile: collapsible */
+/* Mobile */
 @media (max-width: 768px) {
-  .timeline {
-    padding: var(--spacing-md) var(--spacing-lg);
-    transition: padding 0.3s ease;
-  }
-
-  .timeline.timeline-open {
-    padding: var(--spacing-lg);
-  }
-
-  .timeline-header-desktop {
-    display: none;
-  }
-
-  .timeline-header-mobile {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: inherit;
-  }
-
-  .timeline-body {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.35s ease;
-  }
-
-  .timeline.timeline-open .timeline-body {
-    max-height: 500px;
-  }
-
-  .timeline-list {
-    padding-top: var(--spacing-md);
-  }
-
   .timeline-step {
     width: 24px;
     height: 24px;
