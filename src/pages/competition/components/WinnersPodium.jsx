@@ -81,7 +81,9 @@ export function WinnersPodium() {
 
           <div className="winner-stats">
             <span className="winner-votes">{winner.votes?.toLocaleString()} votes</span>
-            <span className="winner-prize">{prizePool?.formatted?.firstPrize}</span>
+            {prizePool && (
+              <span className="winner-prize">{prizePool.formatted.firstPrize}</span>
+            )}
           </div>
         </div>
       </div>

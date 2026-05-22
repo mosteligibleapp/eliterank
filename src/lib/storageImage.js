@@ -28,10 +28,11 @@ export function transformSupabaseImage(url, { width, height, quality = 75, resiz
     return url;
   }
 
-  // Default to `cover` only when both dimensions are given. With a single
-  // dimension `cover` would force a square crop and chop off heads/bodies;
-  // letting the param default to undefined keeps proportional scaling and
-  // lets CSS object-fit handle the visual framing.
+  // Resize mode. Two dimensions default to `cover` (square/fixed-ratio
+  // crops, e.g. avatars). With a single dimension Supabase STILL defaults
+  // to `cover` server-side and crops a strip using the source's other
+  // dimension — it does not scale proportionally. Pass `resize: 'contain'`
+  // explicitly when proportional, uncropped output is needed (e.g. logos).
   const effectiveResize = resize ?? (width && height ? 'cover' : undefined);
 
   const params = new URLSearchParams();
