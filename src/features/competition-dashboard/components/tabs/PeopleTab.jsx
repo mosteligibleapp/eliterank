@@ -950,9 +950,6 @@ export default function PeopleTab({
             <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
               Add Nominee
             </Button>
-            <Button size="sm" variant="secondary" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
-              Add Contestant
-            </Button>
           </div>
         </div>
       )}
@@ -1192,9 +1189,6 @@ export default function PeopleTab({
                 Add Votes
               </Button>
             )}
-            <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
-              Add
-            </Button>
           </div>
         }
       >
@@ -1203,12 +1197,9 @@ export default function PeopleTab({
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <Crown size={40} style={{ marginBottom: spacing.md, opacity: 0.4, color: colors.gold.primary }} />
               <p style={{ marginBottom: spacing.md, fontSize: typography.fontSize.sm }}>No contestants yet</p>
-              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.lg }}>
-                Approve nominees or add people manually to build your lineup.
+              <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+                Approve nominees to build your lineup.
               </p>
-              <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
-                Add Contestant
-              </Button>
             </div>
           ) : (() => {
             const sortedContestants = showReorder
