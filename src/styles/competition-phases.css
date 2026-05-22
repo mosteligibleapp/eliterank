@@ -6118,6 +6118,17 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   padding: var(--spacing-lg);
 }
 
+/* When only one stake is filled in, center it instead of leaving it
+   stranded in a half-width grid column. */
+.phase-coming-soon-stakes-timeline:only-child,
+.phase-coming-soon-stakes-prize:only-child {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* =====================
    POWERED BY ELITERANK
    ===================== */
