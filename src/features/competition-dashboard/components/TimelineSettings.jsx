@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Calendar, Vote, Plus, Trash2, AlertTriangle, Save,
-  Clock, Activity, Trophy, Archive, FileEdit, Lock, Info
+  Activity, Trophy, Lock, Info, Globe
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -17,168 +17,30 @@ import {
 } from '../../../types/competition';
 import {
   computeCompetitionPhase,
-  TIMELINE_PHASES,
   getPhaseDisplayConfig,
 } from '../../../utils/competitionPhase';
 import {
   getStatusChangeRestriction,
   getNextAutoTransition,
 } from '../../../utils/competitionStatusEngine';
-import { SkeletonPulse, SkeletonText } from '../../../components/common/Skeleton';
-
-/**
- * Parse a typed date string into an ISO date string
- * Supports formats like:
- * - "Jan 15, 2025 6:00 PM"
- * - "1/15/2025 6pm"
- * - "2025-01-15 18:00"
- * - "January 15 2025 6:00pm"
- */
-function parseTypedDate(input) {
-  if (!input || !input.trim()) return null;
-
-  const str = input.trim();
-
-  // Try direct ISO parse first
-  let date = new Date(str);
-  if (!isNaN(date.getTime())) {
-    return date.toISOString();
-  }
-
-  // Normalize common patterns
-  let normalized = str
-    .replace(/\s+/g, ' ')
-    .replace(/,/g, '')
-    .toLowerCase();
-
-  // Month name mappings
-  const months = {
-    jan: 0, january: 0,
-    feb: 1, february: 1,
-    mar: 2, march: 2,
-    apr: 3, april: 3,
-    may: 4,
-    jun: 5, june: 5,
-    jul: 6, july: 6,
-    aug: 7, august: 7,
-    sep: 8, sept: 8, september: 8,
-    oct: 9, october: 9,
-    nov: 10, november: 10,
-    dec: 11, december: 11,
-  };
-
-  // Pattern: "Jan 15 2025 6:00 PM" or "January 15 2025 6pm"
-  const monthNamePattern = /^(\w+)\s+(\d{1,2})\s+(\d{4})\s*(.*)$/;
-  let match = normalized.match(monthNamePattern);
-  if (match) {
-    const monthStr = match[1];
-    const day = parseInt(match[2], 10);
-    const year = parseInt(match[3], 10);
-    const timeStr = match[4];
-    const month = months[monthStr];
-
-    if (month !== undefined && day >= 1 && day <= 31) {
-      const { hours, minutes } = parseTime(timeStr);
-      date = new Date(year, month, day, hours, minutes);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString();
-      }
-    }
-  }
-
-  // Pattern: "1/15/2025 6:00 PM" or "01/15/2025 6pm"
-  const slashPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(.*)$/;
-  match = normalized.match(slashPattern);
-  if (match) {
-    const month = parseInt(match[1], 10) - 1;
-    const day = parseInt(match[2], 10);
-    const year = parseInt(match[3], 10);
-    const timeStr = match[4];
-
-    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
-      const { hours, minutes } = parseTime(timeStr);
-      date = new Date(year, month, day, hours, minutes);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString();
-      }
-    }
-  }
-
-  // Pattern: "2025-01-15 6:00 PM"
-  const dashPattern = /^(\d{4})-(\d{1,2})-(\d{1,2})\s*(.*)$/;
-  match = normalized.match(dashPattern);
-  if (match) {
-    const year = parseInt(match[1], 10);
-    const month = parseInt(match[2], 10) - 1;
-    const day = parseInt(match[3], 10);
-    const timeStr = match[4];
-
-    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
-      const { hours, minutes } = parseTime(timeStr);
-      date = new Date(year, month, day, hours, minutes);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString();
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Parse time string like "6pm", "6:00 PM", "18:00"
- */
-function parseTime(timeStr) {
-  if (!timeStr || !timeStr.trim()) {
-    return { hours: 0, minutes: 0 };
-  }
-
-  const str = timeStr.trim().toLowerCase();
-
-  // Check for AM/PM
-  const isPM = str.includes('pm');
-  const isAM = str.includes('am');
-  const cleanTime = str.replace(/[ap]m/g, '').trim();
-
-  // Parse hours:minutes or just hours
-  const timeParts = cleanTime.split(':');
-  let hours = parseInt(timeParts[0], 10) || 0;
-  const minutes = parseInt(timeParts[1], 10) || 0;
-
-  // Convert to 24-hour format
-  if (isPM && hours < 12) hours += 12;
-  if (isAM && hours === 12) hours = 0;
-
-  return { hours, minutes };
-}
-
-/**
- * Format an ISO date for display
- */
-function formatDateForDisplay(isoDate) {
-  if (!isoDate) return '';
-
-  const date = new Date(isoDate);
-  if (isNaN(date.getTime())) return '';
-
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = months[date.getMonth()];
-  const day = date.getDate();
-  const year = date.getFullYear();
-
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-
-  const minuteStr = minutes.toString().padStart(2, '0');
-
-  return `${month} ${day}, ${year} ${hours}:${minuteStr} ${ampm}`;
-}
+import {
+  getTimezoneOptionGroups,
+  isoToZonedInputValue,
+  zonedInputValueToIso,
+  reinterpretIsoInZone,
+  formatInTimeZone,
+  getTimeZoneAbbreviation,
+} from '../../../lib/timezones';
+import { SkeletonPulse } from '../../../components/common/Skeleton';
 
 /**
  * TimelineSettings - Manages competition status, timeline dates, and voting rounds
  * Used by both Host and SuperAdmin dashboards
+ *
+ * All dates are entered and displayed as wall-clock time in the competition's
+ * timezone, then stored as UTC. The timezone control lives at the top of this
+ * panel so a host setting up (e.g.) a Toronto competition from Chicago picks
+ * the right zone instead of silently using their own browser's.
  *
  * @param {object} competition - Competition object
  * @param {function} onSave - Callback when save completes
@@ -190,23 +52,23 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // True when the initial fetch failed — blocks saving so an empty form
+  // can't wipe the competition's timeline.
+  const [loadError, setLoadError] = useState(false);
+
   // Settings state (stores ISO strings for DB)
   const [settings, setSettings] = useState({
     finals_date: '',
   });
 
-  // Display values (what user sees/types)
-  const [displayValues, setDisplayValues] = useState({
-    finals_date: '',
-  });
+  // Timezone all dates in this panel are interpreted in.
+  const [timezone, setTimezone] = useState(competition?.timezone || 'UTC');
 
   // Nomination periods state (replaces single nomination_start/nomination_end)
   const [nominationPeriods, setNominationPeriods] = useState([]);
-  const [nominationDisplayValues, setNominationDisplayValues] = useState([]);
 
   // Voting/Judging rounds state
   const [votingRounds, setVotingRounds] = useState([]);
-  const [roundDisplayValues, setRoundDisplayValues] = useState([]);
 
   // Status state
   const [status, setStatus] = useState(competition?.status || COMPETITION_STATUS.DRAFT);
@@ -214,8 +76,13 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Validation errors
   const [errors, setErrors] = useState([]);
 
-  // Parse error indicators
-  const [parseErrors, setParseErrors] = useState({});
+  // IDs present in the DB at load time — diffed against the form on save so
+  // only genuinely-removed rows get deleted (no delete-everything window).
+  const originalRoundIdsRef = useRef(new Set());
+  const originalPeriodIdsRef = useRef(new Set());
+
+  const timezoneGroups = useMemo(() => getTimezoneOptionGroups(), []);
+  const tzAbbreviation = getTimeZoneAbbreviation(timezone);
 
   // Fetch settings on mount
   useEffect(() => {
@@ -228,12 +95,13 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     if (!supabase || !competition?.id) return;
 
     setLoading(true);
+    setLoadError(false);
     try {
       const [compResult, roundsResult, periodsResult] = await Promise.all([
-        // finals_date is now on the competitions table directly
+        // finals_date and timezone live on the competitions table directly
         supabase
           .from('competitions')
-          .select('finals_date')
+          .select('finals_date, timezone')
           .eq('id', competition.id)
           .single(),
         supabase
@@ -251,7 +119,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       if (compResult.error && compResult.error.code !== 'PGRST116') {
         throw compResult.error;
       }
-
       if (roundsResult.error) throw roundsResult.error;
       if (periodsResult.error) throw periodsResult.error;
 
@@ -259,29 +126,21 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         setSettings({
           finals_date: compResult.data.finals_date || '',
         });
-        setDisplayValues({
-          finals_date: formatDateForDisplay(compResult.data.finals_date),
-        });
+        setTimezone(compResult.data.timezone || 'UTC');
       }
 
-      // Load nomination periods
       const periods = periodsResult.data || [];
       setNominationPeriods(periods);
-      setNominationDisplayValues(periods.map(p => ({
-        start_date: formatDateForDisplay(p.start_date),
-        end_date: formatDateForDisplay(p.end_date),
-      })));
+      originalPeriodIdsRef.current = new Set(periods.map((p) => p.id).filter(Boolean));
 
-      // Load voting/judging rounds
       const rounds = roundsResult.data || [];
       setVotingRounds(rounds);
-      setRoundDisplayValues(rounds.map(r => ({
-        start_date: formatDateForDisplay(r.start_date),
-        end_date: formatDateForDisplay(r.end_date),
-      })));
+      originalRoundIdsRef.current = new Set(rounds.map((r) => r.id).filter(Boolean));
+
       setStatus(competition.status);
     } catch (err) {
       console.error('Error fetching settings:', err);
+      setLoadError(true);
       toast.error('Failed to load settings');
     } finally {
       setLoading(false);
@@ -301,12 +160,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Validate dates
   const validateDates = () => {
     const validationErrors = [];
-
-    // Check for parse errors
-    const hasParseErrors = Object.values(parseErrors).some(Boolean);
-    if (hasParseErrors) {
-      validationErrors.push('Please fix invalid date formats before saving');
-    }
 
     const finale = settings.finals_date ? new Date(settings.finals_date) : null;
 
@@ -338,11 +191,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         validationErrors.push(`${roundType} Round ${index + 1}: End date must be after start date`);
       }
 
-      // Only warn if strictly before (allow overlap for flexibility)
-      if (prevRoundEnd && roundStart && roundStart < prevRoundEnd) {
-        // This is now just a warning, not an error - allow overlapping rounds
-      }
-
       prevRoundEnd = roundEnd;
     });
 
@@ -367,6 +215,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
   // Save settings
   const handleSave = async () => {
+    if (loadError) {
+      toast.error('Settings failed to load. Refresh the page before saving to avoid data loss.');
+      return;
+    }
     if (!validateDates()) {
       toast.error('Please fix the validation errors before saving');
       return;
@@ -374,19 +226,20 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
     setSaving(true);
     try {
-      // Derive flat nomination fields from nomination_periods for backward compatibility
-      // This ensures display components (AboutTab, CompetitionTeaser, etc.) show correct dates
+      // Derive flat nomination fields for backward compatibility so display
+      // components (AboutTab, CompetitionTeaser, etc.) show correct dates.
       const sortedPeriods = [...nominationPeriods].sort(
         (a, b) => (a.period_order || 0) - (b.period_order || 0)
       );
       const firstPeriodStart = sortedPeriods[0]?.start_date || null;
       const lastPeriodEnd = sortedPeriods[sortedPeriods.length - 1]?.end_date || null;
 
-      // Update competition status, finals_date, and synced nomination fields
+      // Update competition status, timezone, finals_date, and synced fields
       const { error: compError } = await supabase
         .from('competitions')
         .update({
           status,
+          timezone,
           finals_date: settings.finals_date || null,
           nomination_start: firstPeriodStart,
           nomination_end: lastPeriodEnd,
@@ -396,54 +249,75 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
       if (compError) throw compError;
 
-      // Delete existing nomination periods and re-insert
-      await supabase
-        .from('nomination_periods')
-        .delete()
-        .eq('competition_id', competition.id);
+      // Nomination periods — upsert what's present, then delete only the
+      // rows that were removed in the UI. No window where all rows are gone.
+      const periodRows = nominationPeriods.map((period, index) => ({
+        id: period.id,
+        competition_id: competition.id,
+        title: period.title || `Period ${index + 1}`,
+        period_order: index + 1,
+        start_date: period.start_date || null,
+        end_date: period.end_date || null,
+        max_submissions: period.max_submissions || null,
+      }));
 
-      if (nominationPeriods.length > 0) {
-        const periodsToInsert = nominationPeriods.map((period, index) => ({
-          competition_id: competition.id,
-          title: period.title || `Period ${index + 1}`,
-          period_order: index + 1,
-          start_date: period.start_date || null,
-          end_date: period.end_date || null,
-          max_submissions: period.max_submissions || null,
-        }));
-
+      if (periodRows.length > 0) {
         const { error: periodsError } = await supabase
           .from('nomination_periods')
-          .insert(periodsToInsert);
-
+          .upsert(periodRows);
         if (periodsError) throw periodsError;
       }
 
-      // Delete existing voting/judging rounds and re-insert
-      await supabase
-        .from('voting_rounds')
-        .delete()
-        .eq('competition_id', competition.id);
+      const keptPeriodIds = new Set(periodRows.map((r) => r.id));
+      const removedPeriodIds = [...originalPeriodIdsRef.current].filter(
+        (id) => !keptPeriodIds.has(id)
+      );
+      if (removedPeriodIds.length > 0) {
+        const { error: delPeriodsError } = await supabase
+          .from('nomination_periods')
+          .delete()
+          .in('id', removedPeriodIds);
+        if (delPeriodsError) throw delPeriodsError;
+      }
 
-      if (votingRounds.length > 0) {
-        const roundsToInsert = votingRounds.map((round, index) => ({
-          competition_id: competition.id,
-          title: round.title || `Round ${index + 1}`,
-          round_order: index + 1,
-          round_type: round.round_type || 'voting',
-          start_date: round.start_date || null,
-          end_date: round.end_date || null,
-          contestants_advance: round.contestants_advance || 10,
-          tier_label: round.tier_label?.trim() || null,
-          votes_reset_at_start: !!round.votes_reset_at_start,
-        }));
+      // Voting/judging rounds — same upsert + targeted delete. The round
+      // title doubles as the public headline (tier_label), so they stay synced.
+      const roundRows = votingRounds.map((round, index) => ({
+        id: round.id,
+        competition_id: competition.id,
+        title: round.title || `Round ${index + 1}`,
+        round_order: index + 1,
+        round_type: round.round_type || 'voting',
+        start_date: round.start_date || null,
+        end_date: round.end_date || null,
+        contestants_advance: round.contestants_advance || 10,
+        tier_label: round.title?.trim() || null,
+        votes_reset_at_start: !!round.votes_reset_at_start,
+      }));
 
+      if (roundRows.length > 0) {
         const { error: roundsError } = await supabase
           .from('voting_rounds')
-          .insert(roundsToInsert);
-
+          .upsert(roundRows);
         if (roundsError) throw roundsError;
       }
+
+      const keptRoundIds = new Set(roundRows.map((r) => r.id));
+      const removedRoundIds = [...originalRoundIdsRef.current].filter(
+        (id) => !keptRoundIds.has(id)
+      );
+      if (removedRoundIds.length > 0) {
+        const { error: delRoundsError } = await supabase
+          .from('voting_rounds')
+          .delete()
+          .in('id', removedRoundIds);
+        if (delRoundsError) throw delRoundsError;
+      }
+
+      // Refs now reflect what's persisted so a second save this session
+      // diffs correctly.
+      originalPeriodIdsRef.current = keptPeriodIds;
+      originalRoundIdsRef.current = keptRoundIds;
 
       toast.success('Timeline settings saved');
       if (onSave) onSave();
@@ -455,130 +329,78 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     }
   };
 
+  // When the timezone changes, keep the wall-clock readings the user already
+  // entered and re-derive the stored instants — so picking the right zone
+  // after typing dates doesn't shift every time on screen.
+  const handleTimezoneChange = (newTz) => {
+    if (!newTz || newTz === timezone) return;
+    setVotingRounds((prev) =>
+      prev.map((r) => ({
+        ...r,
+        start_date: reinterpretIsoInZone(r.start_date, timezone, newTz),
+        end_date: reinterpretIsoInZone(r.end_date, timezone, newTz),
+      }))
+    );
+    setNominationPeriods((prev) =>
+      prev.map((p) => ({
+        ...p,
+        start_date: reinterpretIsoInZone(p.start_date, timezone, newTz),
+        end_date: reinterpretIsoInZone(p.end_date, timezone, newTz),
+      }))
+    );
+    setSettings((prev) => ({
+      ...prev,
+      finals_date: reinterpretIsoInZone(prev.finals_date, timezone, newTz),
+    }));
+    setTimezone(newTz);
+  };
+
   // Nomination period management
   const addNominationPeriod = () => {
-    setNominationPeriods(prev => [
+    setNominationPeriods((prev) => [
       ...prev,
       {
         ...DEFAULT_NOMINATION_PERIOD,
+        id: crypto.randomUUID(),
         title: prev.length === 0 ? 'Open Nominations' : `Period ${prev.length + 1}`,
         period_order: prev.length + 1,
-      }
+      },
     ]);
-    setNominationDisplayValues(prev => [...prev, { start_date: '', end_date: '' }]);
   };
 
   const removeNominationPeriod = (index) => {
-    setNominationPeriods(prev => prev.filter((_, i) => i !== index));
-    setNominationDisplayValues(prev => prev.filter((_, i) => i !== index));
+    setNominationPeriods((prev) => prev.filter((_, i) => i !== index));
   };
 
   const updateNominationPeriod = (index, field, value) => {
-    setNominationPeriods(prev =>
-      prev.map((period, i) =>
-        i === index ? { ...period, [field]: value } : period
-      )
+    setNominationPeriods((prev) =>
+      prev.map((period, i) => (i === index ? { ...period, [field]: value } : period))
     );
-  };
-
-  const updateNominationDisplayValue = (index, field, value) => {
-    setNominationDisplayValues(prev =>
-      prev.map((disp, i) =>
-        i === index ? { ...disp, [field]: value } : disp
-      )
-    );
-  };
-
-  // Handle nomination period date blur
-  const handleNominationDateBlur = (index, field, displayValue) => {
-    const errorKey = `nom_${index}_${field}`;
-    if (!displayValue.trim()) {
-      updateNominationPeriod(index, field, '');
-      setParseErrors(prev => ({ ...prev, [errorKey]: false }));
-      return;
-    }
-
-    const parsed = parseTypedDate(displayValue);
-    if (parsed) {
-      updateNominationPeriod(index, field, parsed);
-      updateNominationDisplayValue(index, field, formatDateForDisplay(parsed));
-      setParseErrors(prev => ({ ...prev, [errorKey]: false }));
-    } else {
-      setParseErrors(prev => ({ ...prev, [errorKey]: true }));
-    }
   };
 
   // Voting/Judging round management
   const addVotingRound = (roundType = 'voting') => {
     const typeLabel = roundType === 'judging' ? 'Judging' : 'Voting';
-    setVotingRounds(prev => [
+    setVotingRounds((prev) => [
       ...prev,
       {
         ...DEFAULT_VOTING_ROUND,
-        title: `${typeLabel} Round ${prev.filter(r => r.round_type === roundType).length + 1}`,
+        id: crypto.randomUUID(),
+        title: `${typeLabel} Round ${prev.filter((r) => r.round_type === roundType).length + 1}`,
         round_order: prev.length + 1,
         round_type: roundType,
-      }
+      },
     ]);
-    setRoundDisplayValues(prev => [...prev, { start_date: '', end_date: '' }]);
   };
 
   const removeVotingRound = (index) => {
-    setVotingRounds(prev => prev.filter((_, i) => i !== index));
-    setRoundDisplayValues(prev => prev.filter((_, i) => i !== index));
+    setVotingRounds((prev) => prev.filter((_, i) => i !== index));
   };
 
   const updateVotingRound = (index, field, value) => {
-    setVotingRounds(prev =>
-      prev.map((round, i) =>
-        i === index ? { ...round, [field]: value } : round
-      )
+    setVotingRounds((prev) =>
+      prev.map((round, i) => (i === index ? { ...round, [field]: value } : round))
     );
-  };
-
-  const updateRoundDisplayValue = (index, field, value) => {
-    setRoundDisplayValues(prev =>
-      prev.map((disp, i) =>
-        i === index ? { ...disp, [field]: value } : disp
-      )
-    );
-  };
-
-  // Handle date input blur - parse and validate
-  const handleDateBlur = (field, displayValue) => {
-    if (!displayValue.trim()) {
-      setSettings(prev => ({ ...prev, [field]: '' }));
-      setParseErrors(prev => ({ ...prev, [field]: false }));
-      return;
-    }
-
-    const parsed = parseTypedDate(displayValue);
-    if (parsed) {
-      setSettings(prev => ({ ...prev, [field]: parsed }));
-      setDisplayValues(prev => ({ ...prev, [field]: formatDateForDisplay(parsed) }));
-      setParseErrors(prev => ({ ...prev, [field]: false }));
-    } else {
-      setParseErrors(prev => ({ ...prev, [field]: true }));
-    }
-  };
-
-  // Handle voting round date blur
-  const handleRoundDateBlur = (index, field, displayValue) => {
-    const errorKey = `round_${index}_${field}`;
-    if (!displayValue.trim()) {
-      updateVotingRound(index, field, '');
-      setParseErrors(prev => ({ ...prev, [errorKey]: false }));
-      return;
-    }
-
-    const parsed = parseTypedDate(displayValue);
-    if (parsed) {
-      updateVotingRound(index, field, parsed);
-      updateRoundDisplayValue(index, field, formatDateForDisplay(parsed));
-      setParseErrors(prev => ({ ...prev, [errorKey]: false }));
-    } else {
-      setParseErrors(prev => ({ ...prev, [errorKey]: true }));
-    }
   };
 
   // Styles
@@ -608,6 +430,14 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     outline: 'none',
   };
 
+  // datetime-local picker — `colorScheme: dark` themes the native popup.
+  const dateInputStyle = {
+    ...inputStyle,
+    fontSize: '16px', // Prevents iOS zoom
+    minHeight: '44px',
+    colorScheme: 'dark',
+  };
+
   if (loading) {
     return (
       <div style={{ padding: spacing.lg }}>
@@ -624,6 +454,26 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
   return (
     <div>
+      {/* Load error — saving is blocked to prevent wiping the timeline */}
+      {loadError && (
+        <div style={{
+          background: 'rgba(239,68,68,0.1)',
+          border: '1px solid rgba(239,68,68,0.3)',
+          borderRadius: borderRadius.lg,
+          padding: spacing.md,
+          marginBottom: spacing.lg,
+          display: 'flex',
+          alignItems: 'center',
+          gap: spacing.sm,
+        }}>
+          <AlertTriangle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
+          <span style={{ color: '#ef4444', fontSize: typography.fontSize.sm }}>
+            Settings failed to load. Refresh the page before editing — saving is
+            disabled so an empty form can&apos;t overwrite your timeline.
+          </span>
+        </div>
+      )}
+
       {/* Validation Errors */}
       {errors.length > 0 && (
         <div style={{
@@ -770,7 +620,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                         {nextTransition.description}
                       </p>
                       <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                        Scheduled: {formatDateForDisplay(nextTransition.triggerDate.toISOString())}
+                        Scheduled: {formatInTimeZone(nextTransition.triggerDate.toISOString(), timezone)} ({tzAbbreviation})
                       </p>
                     </div>
                   </div>
@@ -781,6 +631,36 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
             })()}
           </div>
         )}
+      </div>
+
+      {/* Timezone */}
+      <div style={sectionStyle}>
+        <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+          <Globe size={18} />
+          Timezone
+        </h4>
+        <select
+          value={timezone}
+          onChange={(e) => handleTimezoneChange(e.target.value)}
+          style={{
+            ...inputStyle,
+            maxWidth: '360px',
+            cursor: 'pointer',
+            colorScheme: 'dark',
+          }}
+        >
+          {timezoneGroups.map(([groupName, zones]) => (
+            <optgroup key={groupName} label={groupName}>
+              {zones.map((zone) => (
+                <option key={zone} value={zone}>{zone}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+          Every date in this panel — prospecting periods, rounds, and the finals
+          date — is entered and shown in this timezone{tzAbbreviation ? ` (${tzAbbreviation})` : ''}.
+        </p>
       </div>
 
       {/* Contestant Prospecting Periods */}
@@ -795,7 +675,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           </Button>
         </div>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
-          Define periods when nominations/applications are accepted. Enter dates like: Jan 15, 2025 6:00 PM
+          Define periods when nominations/applications are accepted.
         </p>
 
         {nominationPeriods.length === 0 ? (
@@ -814,7 +694,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
             {nominationPeriods.map((period, index) => (
               <div
-                key={index}
+                key={period.id || index}
                 style={{
                   background: colors.background.card,
                   borderRadius: borderRadius.md,
@@ -860,42 +740,28 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
                     <input
-                      type="text"
-                      placeholder="Jan 15, 2025 12:00 AM"
-                      value={nominationDisplayValues[index]?.start_date || ''}
-                      onChange={(e) => updateNominationDisplayValue(index, 'start_date', e.target.value)}
-                      onBlur={(e) => handleNominationDateBlur(index, 'start_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`nom_${index}_start_date`] ? '#ef4444' : colors.border.light,
-                      }}
+                      type="datetime-local"
+                      value={isoToZonedInputValue(period.start_date, timezone)}
+                      onChange={(e) => updateNominationPeriod(
+                        index,
+                        'start_date',
+                        e.target.value ? zonedInputValueToIso(e.target.value, timezone) : null
+                      )}
+                      style={dateInputStyle}
                     />
-                    {parseErrors[`nom_${index}_start_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
                   </div>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>End</label>
                     <input
-                      type="text"
-                      placeholder="Jan 31, 2025 11:59 PM"
-                      value={nominationDisplayValues[index]?.end_date || ''}
-                      onChange={(e) => updateNominationDisplayValue(index, 'end_date', e.target.value)}
-                      onBlur={(e) => handleNominationDateBlur(index, 'end_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`nom_${index}_end_date`] ? '#ef4444' : colors.border.light,
-                      }}
+                      type="datetime-local"
+                      value={isoToZonedInputValue(period.end_date, timezone)}
+                      onChange={(e) => updateNominationPeriod(
+                        index,
+                        'end_date',
+                        e.target.value ? zonedInputValueToIso(e.target.value, timezone) : null
+                      )}
+                      style={dateInputStyle}
                     />
-                    {parseErrors[`nom_${index}_end_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -922,6 +788,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </div>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
           Competitions can have voting rounds (public votes), judging rounds (judge scores), or both.
+          The round title is also the public headline shown during that round.
         </p>
 
         {votingRounds.length === 0 ? (
@@ -942,7 +809,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
               const roundConfig = ROUND_TYPE_CONFIG[round.round_type] || ROUND_TYPE_CONFIG.voting;
               return (
               <div
-                key={index}
+                key={round.id || index}
                 style={{
                   background: colors.background.card,
                   borderRadius: borderRadius.md,
@@ -1009,42 +876,28 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
                     <input
-                      type="text"
-                      placeholder="Feb 1, 2025 12:00 AM"
-                      value={roundDisplayValues[index]?.start_date || ''}
-                      onChange={(e) => updateRoundDisplayValue(index, 'start_date', e.target.value)}
-                      onBlur={(e) => handleRoundDateBlur(index, 'start_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`round_${index}_start_date`] ? '#ef4444' : colors.border.light,
-                      }}
+                      type="datetime-local"
+                      value={isoToZonedInputValue(round.start_date, timezone)}
+                      onChange={(e) => updateVotingRound(
+                        index,
+                        'start_date',
+                        e.target.value ? zonedInputValueToIso(e.target.value, timezone) : null
+                      )}
+                      style={dateInputStyle}
                     />
-                    {parseErrors[`round_${index}_start_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
                   </div>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>End</label>
                     <input
-                      type="text"
-                      placeholder="Feb 14, 2025 11:59 PM"
-                      value={roundDisplayValues[index]?.end_date || ''}
-                      onChange={(e) => updateRoundDisplayValue(index, 'end_date', e.target.value)}
-                      onBlur={(e) => handleRoundDateBlur(index, 'end_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`round_${index}_end_date`] ? '#ef4444' : colors.border.light,
-                      }}
+                      type="datetime-local"
+                      value={isoToZonedInputValue(round.end_date, timezone)}
+                      onChange={(e) => updateVotingRound(
+                        index,
+                        'end_date',
+                        e.target.value ? zonedInputValueToIso(e.target.value, timezone) : null
+                      )}
+                      style={dateInputStyle}
                     />
-                    {parseErrors[`round_${index}_end_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
                   </div>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Top # Advance</label>
@@ -1066,60 +919,33 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                   </div>
                 </div>
 
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                  gap: spacing.sm,
-                  marginTop: spacing.sm,
-                }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
-                      Tier label
-                    </label>
+                <div style={{ marginTop: spacing.sm }}>
+                  <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
+                    Vote behavior
+                  </label>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    minHeight: '44px',
+                    padding: spacing.md,
+                    background: colors.background.secondary,
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.sm,
+                    cursor: 'pointer',
+                  }}>
                     <input
-                      type="text"
-                      placeholder="Top 50, Quarterfinals, Finale…"
-                      value={round.tier_label || ''}
-                      onChange={(e) => updateVotingRound(index, 'tier_label', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px',
-                        padding: spacing.md,
-                        minHeight: '44px',
-                      }}
+                      type="checkbox"
+                      checked={!!round.votes_reset_at_start}
+                      onChange={(e) => updateVotingRound(index, 'votes_reset_at_start', e.target.checked)}
                     />
-                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      Public headline shown during this round. Falls back to the round title.
-                    </p>
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
-                      Vote behavior
-                    </label>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      minHeight: '44px',
-                      padding: spacing.md,
-                      background: colors.background.secondary,
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.sm,
-                      cursor: 'pointer',
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={!!round.votes_reset_at_start}
-                        onChange={(e) => updateVotingRound(index, 'votes_reset_at_start', e.target.checked)}
-                      />
-                      <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
-                        Reset votes at start of this round
-                      </span>
-                    </label>
-                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      Off (default) = cumulative across rounds. On = surviving contestants restart at zero.
-                    </p>
-                  </div>
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
+                      Reset votes at start of this round
+                    </span>
+                  </label>
+                  <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+                    Off (default) = cumulative across rounds. On = surviving contestants restart at zero.
+                  </p>
                 </div>
               </div>
               );
@@ -1136,31 +962,23 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </h4>
         <div>
           <input
-            type="text"
-            placeholder="Mar 15, 2025 7:00 PM"
-            value={displayValues.finals_date}
-            onChange={(e) => setDisplayValues(prev => ({ ...prev, finals_date: e.target.value }))}
-            onBlur={(e) => handleDateBlur('finals_date', e.target.value)}
-            style={{
-              ...inputStyle,
-              maxWidth: '300px',
-              borderColor: parseErrors.finals_date ? '#ef4444' : colors.border.light,
-            }}
+            type="datetime-local"
+            value={isoToZonedInputValue(settings.finals_date, timezone)}
+            onChange={(e) => setSettings((prev) => ({
+              ...prev,
+              finals_date: e.target.value ? zonedInputValueToIso(e.target.value, timezone) : '',
+            }))}
+            style={{ ...dateInputStyle, maxWidth: '300px' }}
           />
-          {parseErrors.finals_date && (
-            <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.xs }}>
-              Invalid date format
-            </p>
-          )}
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
-            Competition will transition to completed after this date
+            Competition will transition to completed after this date.
           </p>
         </div>
       </div>
 
       {/* Save Button */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: spacing.xl }}>
-        <Button icon={Save} onClick={handleSave} disabled={saving}>
+        <Button icon={Save} onClick={handleSave} disabled={saving || loadError}>
           {saving ? 'Saving...' : 'Save Timeline Settings'}
         </Button>
       </div>

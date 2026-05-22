@@ -62,3 +62,98 @@ export function getTimezoneOptionGroups() {
   }
   return result;
 }
+
+/**
+ * Offset (in ms) between a timezone's wall clock and UTC at a given instant.
+ * Positive when the zone is ahead of UTC, negative when behind.
+ * DST-aware because it asks Intl for the wall clock at that specific instant.
+ */
+export function getTimeZoneOffsetMs(timeZone, date = new Date()) {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: timeZone || 'UTC',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+  const parts = {};
+  for (const p of dtf.formatToParts(date)) parts[p.type] = p.value;
+  const hour = parts.hour === '24' ? '00' : parts.hour;
+  const asUTC = Date.UTC(
+    Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+    Number(hour), Number(parts.minute), Number(parts.second),
+  );
+  return asUTC - date.getTime();
+}
+
+/**
+ * Convert a stored UTC ISO timestamp into the `YYYY-MM-DDTHH:mm` value an
+ * <input type="datetime-local"> expects, expressed as wall-clock time in
+ * the given timezone.
+ */
+export function isoToZonedInputValue(iso, timeZone) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const dtf = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timeZone || 'UTC',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const parts = {};
+  for (const p of dtf.formatToParts(d)) parts[p.type] = p.value;
+  const hour = parts.hour === '24' ? '00' : parts.hour;
+  return `${parts.year}-${parts.month}-${parts.day}T${hour}:${parts.minute}`;
+}
+
+/**
+ * Convert a `YYYY-MM-DDTHH:mm` wall-clock value (interpreted in the given
+ * timezone) into a UTC ISO timestamp for storage.
+ */
+export function zonedInputValueToIso(value, timeZone) {
+  if (!value) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+  if (!m) return null;
+  const [, y, mo, d, h, mi] = m;
+  const wallAsUTC = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
+  const offset = getTimeZoneOffsetMs(timeZone, new Date(wallAsUTC));
+  return new Date(wallAsUTC - offset).toISOString();
+}
+
+/**
+ * Re-interpret an instant so its wall-clock reading stays the same while the
+ * timezone changes (e.g. host fixes the zone after typing dates). Returns a
+ * new UTC ISO timestamp.
+ */
+export function reinterpretIsoInZone(iso, fromTimeZone, toTimeZone) {
+  if (!iso) return iso;
+  return zonedInputValueToIso(isoToZonedInputValue(iso, fromTimeZone), toTimeZone);
+}
+
+/**
+ * Human-readable rendering of a UTC ISO timestamp in the given timezone,
+ * e.g. "Aug 20, 2026, 12:00 AM".
+ */
+export function formatInTimeZone(iso, timeZone) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: timeZone || 'UTC',
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  }).format(d);
+}
+
+/**
+ * Short timezone abbreviation for a given instant, e.g. "EDT" / "CST".
+ */
+export function getTimeZoneAbbreviation(timeZone, date = new Date()) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timeZone || 'UTC', timeZoneName: 'short',
+    }).formatToParts(date);
+    return parts.find((p) => p.type === 'timeZoneName')?.value || '';
+  } catch {
+    return '';
+  }
+}
