@@ -28,7 +28,6 @@ const FIELD_RULES = {
   max_contestants: { draft: false, publish: false, live: false, completed: false },
 
   // About/Marketing - mostly editable
-  about_tagline: { draft: true, publish: true, live: true, completed: false },
   about_description: { draft: true, publish: true, live: true, completed: false },
   about_traits: { draft: true, publish: true, live: 'warn', completed: false },
   about_age_range: { draft: true, publish: true, live: false, completed: false },

@@ -11,7 +11,7 @@ import { useToast } from '../../../../contexts/ToastContext';
 
 /**
  * About section editor for host dashboard
- * Edits tagline, description, traits, age range, requirement
+ * Edits description, traits, age range, requirement
  *
  * @param {object} competition - Competition object
  * @param {object} organization - Organization object with defaults
@@ -25,7 +25,6 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
   const defaults = useMemo(() => getCompetitionDefaults(competition), [competition]);
 
   // Form state
-  const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
   const [traits, setTraits] = useState(['', '', '', '']);
   const [ageRange, setAgeRange] = useState('');
@@ -40,7 +39,6 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
   // Initialize form with competition data or org defaults
   useEffect(() => {
     if (competition) {
-      setTagline(competition.about_tagline || '');
       setDescription(competition.about_description || '');
       setTraits(
         competition.about_traits?.length
@@ -60,7 +58,6 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
     const originalTraits = competition.about_traits || [];
 
     return (
-      tagline !== (competition.about_tagline || '') ||
       description !== (competition.about_description || '') ||
       JSON.stringify(currentTraits) !== JSON.stringify(originalTraits) ||
       ageRange !== (competition.about_age_range || organization?.default_age_range || '') ||
@@ -70,7 +67,6 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
 
   // Reset to organization defaults or computed template defaults
   const resetToDefaults = () => {
-    setTagline(organization?.default_about_tagline || defaults.tagline);
     setDescription(organization?.default_about_description || defaults.description);
     setTraits(organization?.default_about_traits || defaults.traits);
     setAgeRange(organization?.default_age_range || defaults.ageRange);
@@ -92,10 +88,6 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
     const updates = {};
     const changedFields = [];
 
-    if (tagline !== (competition.about_tagline || '')) {
-      updates.about_tagline = tagline || null;
-      changedFields.push('about_tagline');
-    }
     if (description !== (competition.about_description || '')) {
       updates.about_description = description || null;
       changedFields.push('about_description');
@@ -175,8 +167,6 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
   // Get placeholder from org defaults or computed template defaults
   const getPlaceholder = (field) => {
     switch (field) {
-      case 'tagline':
-        return organization?.default_about_tagline || defaults.tagline;
       case 'description':
         return organization?.default_about_description || defaults.description;
       case 'ageRange':
@@ -316,26 +306,6 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
           Customize how your competition appears on the public page. Leave fields blank to use
           organization defaults.
         </p>
-
-        {/* Tagline */}
-        <FieldLockIndicator fieldName="about_tagline" status={status}>
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>
-              Tagline
-              <LockIcon fieldName="about_tagline" status={status} />
-            </label>
-            <input
-              type="text"
-              value={tagline}
-              onChange={(e) => setTagline(e.target.value)}
-              placeholder={getPlaceholder('tagline')}
-              maxLength={100}
-              disabled={isFieldEditable('about_tagline', status) === false}
-              style={inputStyle}
-            />
-            <span style={hintStyle}>Short, compelling hook (max 100 characters)</span>
-          </div>
-        </FieldLockIndicator>
 
         {/* Description */}
         <FieldLockIndicator fieldName="about_description" status={status}>

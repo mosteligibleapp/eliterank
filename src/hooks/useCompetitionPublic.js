@@ -242,7 +242,6 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
     const hasCategory = Boolean(competition?.category_id || competition?.category);
 
     return {
-      tagline: competition?.about_tagline || organization?.default_about_tagline || defaults.tagline,
       description: competition?.about_description || organization?.default_about_description || defaults.description,
       traits: competition?.about_traits?.length
         ? competition.about_traits

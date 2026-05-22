@@ -3324,15 +3324,6 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   text-align: center;
 }
 
-.about-tagline {
-  font-size: var(--font-size-xl);
-  font-style: italic;
-  color: var(--color-text-secondary);
-  margin: 0 0 var(--spacing-lg);
-  border-left: none;
-  padding: 0;
-}
-
 .about-description {
   color: var(--color-text-secondary);
   margin: 0 0 var(--spacing-lg);
