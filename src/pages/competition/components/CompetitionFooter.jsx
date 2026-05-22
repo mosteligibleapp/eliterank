@@ -15,7 +15,12 @@ export function CompetitionFooter() {
         {organization?.logo_url && (
           <div className="competition-footer-item">
             <div className="competition-footer-logo">
-              <img src={transformSupabaseImage(organization.logo_url, { width: 150, height: 60 })} alt={organization.name} />
+              <img
+                src={transformSupabaseImage(organization.logo_url, { width: 300 })}
+                alt={organization.name}
+                decoding="async"
+                loading="lazy"
+              />
             </div>
             <div className="competition-footer-text">
               <span className="competition-footer-label">Presented by</span>
