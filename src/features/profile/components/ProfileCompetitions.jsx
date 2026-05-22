@@ -169,13 +169,13 @@ function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
         </Badge>
       );
     case 'eliminated':
-      // Framed as an achievement, not a loss — the badge celebrates the
-      // furthest round the contestant reached rather than calling out
-      // their elimination.
+      // Framed as an achievement, not a loss — the badge shows the tier
+      // the contestant reached (e.g. "Top 50", "Entry Round") instead of
+      // calling out their elimination.
       return (
         <Badge variant="gold" size={size} pill>
           <Star size={10} style={{ marginRight: '4px' }} />
-          {subLabel ? `Reached ${subLabel}` : 'Contestant'}
+          {subLabel || 'Contestant'}
         </Badge>
       );
     default:
@@ -184,15 +184,29 @@ function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
 }
 
 /**
- * Resolve a human-readable round label from the competition's voting_rounds
- * by round_order. Falls back to "Round N" when the row isn't joined.
+ * Resolve the public-facing tier a contestant reached, given the round
+ * they were eliminated in.
+ *
+ * The cohort competing in round R is whoever advanced out of round R-1,
+ * so an eliminated contestant reached the tier sized by the prior round's
+ * `contestants_advance` ("Top 50"). The first round has no prior tier and
+ * reads as the "Entry Round". The host's `tier_label` / `title` are used
+ * only as a fallback, and never when they're a generic "Round N".
  */
-function getRoundLabel(competition, roundOrder) {
-  if (!roundOrder) return null;
-  const round = (competition?.voting_rounds || []).find(
-    (r) => r.round_order === roundOrder,
-  );
-  return round?.tier_label || round?.title || `Round ${roundOrder}`;
+function getReachedTierLabel(competition, eliminatedInRound) {
+  if (!eliminatedInRound) return null;
+  if (eliminatedInRound === 1) return 'Entry Round';
+
+  const rounds = competition?.voting_rounds || [];
+  const prior = rounds.find((r) => r.round_order === eliminatedInRound - 1);
+  const advance = prior?.contestants_advance;
+  if (Number.isFinite(advance) && advance > 0) return `Top ${advance}`;
+
+  const isGeneric = (label) => !label || /^round\s*\d+$/i.test(label.trim());
+  const round = rounds.find((r) => r.round_order === eliminatedInRound);
+  if (!isGeneric(round?.tier_label)) return round.tier_label;
+  if (!isGeneric(round?.title)) return round.title;
+  return `Round ${eliminatedInRound}`;
 }
 
 function getVotingStartDate(competition) {
@@ -348,7 +362,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             <div style={{ display: 'flex' }}>
               <RoleBadge
                 role={entry.role}
-                subLabel={entry.eliminatedRoundLabel}
+                subLabel={entry.reachedTierLabel}
                 contestantLabel={tierCount ? `Top ${tierCount} Contestant` : undefined}
               />
             </div>
@@ -587,7 +601,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
       name: comp?.name || `${comp?.city?.name || comp?.city || 'Competition'} ${comp?.season || ''}`.trim(),
       url: getCompetitionLink(comp),
       role: isWinner ? 'winner' : (isEliminated ? 'eliminated' : 'contestant'),
-      eliminatedRoundLabel: isEliminated ? getRoundLabel(comp, entry.eliminated_in_round) : null,
+      reachedTierLabel: isEliminated ? getReachedTierLabel(comp, entry.eliminated_in_round) : null,
       status: comp?.status,
       competition: comp,
       votes: entry.votes || 0,
