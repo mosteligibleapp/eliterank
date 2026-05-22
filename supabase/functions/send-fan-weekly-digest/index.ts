@@ -285,6 +285,7 @@ serve(async (req) => {
         type: 'fan_weekly_digest',
         contestant_name: contestant.name,
         competition_name: competition.name || 'Most Eligible',
+        competition_id: contestant.competition_id,
         competition_url: competitionUrl,
         profile_url: profileUrl,
         rank: contestant.rank,

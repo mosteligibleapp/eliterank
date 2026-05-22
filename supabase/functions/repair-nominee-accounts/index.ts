@@ -305,6 +305,7 @@ serve(async (req) => {
                   to_name: nominee.name,
                   nominee_name: nominee.name,
                   competition_name: competitionName,
+                  competition_id: nominee.competition_id,
                   reset_password_url: recoveryLink,
                 }
 

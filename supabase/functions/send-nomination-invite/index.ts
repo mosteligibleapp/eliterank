@@ -372,6 +372,7 @@ serve(async (req) => {
       nominee_name: nomineeData.name,
       nominator_name: nomineeData.nominator_anonymous ? null : nomineeData.nominator_name,
       competition_name: competitionName,
+      competition_id: competition.id,
       city_name: cityName,
       claim_url: nomineeCtaUrl,
       reason: nomineeData.nomination_reason,
@@ -419,6 +420,7 @@ serve(async (req) => {
         nominee_email: nomineeEmail || undefined,
         nominator_name: nomineeData.nominator_name,
         competition_name: competitionName,
+        competition_id: competition.id,
         city_name: cityName,
         competition_url: competitionUrl,
       })
