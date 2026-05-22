@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, DollarSign, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, Zap } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, Zap } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -26,12 +26,6 @@ function todayInTimezone(timezone) {
     return new Date().toISOString().split('T')[0];
   }
 }
-
-// Helper to format currency from cents
-const formatCurrency = (cents) => {
-  const dollars = (cents || 0) / 100;
-  return dollars.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 });
-};
 
 // Helper to format radius display
 const formatRadius = (miles) => {
@@ -463,17 +457,6 @@ export default function SetupTab({
                 icon={Calendar}
               />
 
-              {/* Economics Fields */}
-              <ViewOnlyField
-                label="Price per Vote"
-                value={competition?.pricePerVote ? `$${competition.pricePerVote.toFixed(2)}` : '$1.00'}
-                icon={DollarSign}
-              />
-              <ViewOnlyField
-                label="Minimum Prize"
-                value={competition?.minimumPrizeCents != null ? formatCurrency(competition.minimumPrizeCents) : 'Not set'}
-                icon={DollarSign}
-              />
               <ViewOnlyField
                 label="Number of Winners"
                 value={competition?.numberOfWinners}
