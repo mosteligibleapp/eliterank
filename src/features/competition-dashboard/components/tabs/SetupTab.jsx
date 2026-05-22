@@ -64,14 +64,16 @@ const SECTION_ORDER = [
 const grayOutButtonStyle = {
   display: 'flex',
   alignItems: 'center',
-  justifyContent: 'center',
-  width: '32px',
-  height: '32px',
+  gap: spacing.xs,
+  padding: `${spacing.xs} ${spacing.sm}`,
   background: 'transparent',
   border: `1px solid ${colors.border.primary}`,
   borderRadius: borderRadius.md,
   color: colors.text.muted,
   cursor: 'pointer',
+  fontSize: typography.fontSize.xs,
+  fontWeight: typography.fontWeight.medium,
+  whiteSpace: 'nowrap',
   flexShrink: 0,
 };
 
@@ -216,10 +218,10 @@ export default function SetupTab({
           <button
             onClick={(e) => { e.stopPropagation(); toggleSection(id); }}
             style={grayOutButtonStyle}
-            title="Gray out — hide this section"
-            aria-label="Gray out this section"
+            title="Not using this section? Gray it out and move it to the bottom."
+            aria-label="Gray out this section — mark as not using"
           >
-            <EyeOff size={14} />
+            <EyeOff size={13} /> Not using
           </button>
         </>
       )}
