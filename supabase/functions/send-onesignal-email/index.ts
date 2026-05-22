@@ -17,6 +17,8 @@ const corsHeaders = {
  *   - fan_confirmation:     "You're now a fan of X" — sent when a user becomes a fan
  *   - fan_weekly_digest:    Weekly performance update sent to fans and to the contestant themselves
  *   - vote_receipt:         "Thanks for voting!" receipt for paid voters with current rank
+ *   - round_advanced:       "You advanced!" result email sent after a round is finalized
+ *   - round_eliminated:     "Thanks for competing" result email sent after a round is finalized
  *
  * Required Supabase secrets:
  *   ONESIGNAL_APP_ID     — OneSignal App ID
@@ -25,7 +27,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'round_advanced' | 'round_eliminated'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -58,6 +60,14 @@ interface EmailRequest {
   was_doubled?: boolean
   signup_url?: string
   is_anonymous?: boolean
+  // round_advanced / round_eliminated fields
+  round_label?: string
+  next_round_label?: string | null
+  next_round_end?: string | null
+  next_round_advance_count?: number | null
+  tier_count?: number | null
+  final_rank?: number | null
+  is_winner?: boolean
 }
 
 /**
@@ -484,6 +494,109 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${roundEndLine}
             ${ctaUrl ? goldButton(`View ${firstName}'s Profile`, ctaUrl) : ''}
             ${fanPrompt}
+          </div>
+        `),
+      }
+    }
+
+    case 'round_advanced': {
+      const firstName = (req.contestant_name || req.to_name || '').split(' ')[0] || 'Contestant'
+      const competitionName = req.competition_name || 'EliteRank'
+      const roundLabel = req.round_label || 'this round'
+      const nextRoundLabel = req.next_round_label || null
+      const tierCount = req.tier_count
+      const finalRank = req.final_rank
+      const isWinner = !!req.is_winner
+      const nextAdvance = req.next_round_advance_count
+
+      const formatEndDate = (iso?: string | null) => {
+        if (!iso) return null
+        try {
+          const d = new Date(iso)
+          const date = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago' })
+          const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago', timeZoneName: 'short' })
+          return `${date} at ${time}`
+        } catch {
+          return null
+        }
+      }
+      const endLine = formatEndDate(req.next_round_end)
+
+      const headline = isWinner ? 'You won!' : `You advanced!`
+      const subhead = isWinner
+        ? `${firstName}, you took the crown in ${competitionName}.`
+        : `${firstName}, you survived the ${roundLabel} round of ${competitionName}.`
+
+      const tierBlock = tierCount && !isWinner
+        ? `<div style="display:inline-block;padding:16px 28px;background:#1a1a1a;border:1px solid #d4a843;border-radius:12px;margin:20px 0;">
+             <div style="color:#999;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;">You're now</div>
+             <div style="color:#d4a843;font-size:36px;font-weight:bold;line-height:1.1;margin-top:6px;">TOP ${tierCount}</div>
+             ${finalRank ? `<div style="color:#999;font-size:12px;margin-top:6px;">Finished ${roundLabel} at #${finalRank}</div>` : ''}
+           </div>`
+        : ''
+
+      const nextRoundOpenLine = !isWinner && nextRoundLabel
+        ? `<p style="color:#fff;font-size:16px;font-weight:bold;margin:20px 0 4px;">${nextRoundLabel} voting is now open.</p>`
+        : ''
+      const nextRoundEndsLine = !isWinner && endLine
+        ? `<p style="color:#ccc;font-size:14px;margin:4px 0;">This round ends <strong style="color:#fff;">${endLine}</strong>.</p>`
+        : ''
+      const nextAdvanceLine = !isWinner && nextAdvance
+        ? `<p style="color:#ccc;font-size:14px;margin:4px 0;">Top <strong style="color:#d4a843;">${nextAdvance}</strong> will advance.</p>`
+        : ''
+
+      const ctaUrl = req.profile_url || req.competition_url
+
+      return {
+        subject: isWinner
+          ? `You won ${competitionName}!`
+          : nextRoundLabel
+            ? `You made it to ${nextRoundLabel}`
+            : tierCount
+              ? `You made the Top ${tierCount}`
+              : `You advanced!`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:32px;margin:0 0 8px;">${headline}</h1>
+            <p style="color:#ccc;font-size:16px;margin:8px 0;">${subhead}</p>
+            ${tierBlock}
+            ${nextRoundOpenLine}
+            ${nextRoundEndsLine}
+            ${nextAdvanceLine}
+            ${ctaUrl ? goldButton(isWinner ? 'View Your Profile' : 'Tell your fans you made it', ctaUrl) : ''}
+          </div>
+        `),
+      }
+    }
+
+    case 'round_eliminated': {
+      const firstName = (req.contestant_name || req.to_name || '').split(' ')[0] || 'Contestant'
+      const baseCompetitionName = req.competition_name || 'EliteRank'
+      const competitionName = `${baseCompetitionName} 2026`
+      const roundLabel = req.round_label || 'this round'
+      const tierCount = req.tier_count
+      const finalRank = req.final_rank
+
+      const roundLabelWithArticle = /^Round\s+\d/.test(roundLabel) ? roundLabel : `the ${roundLabel}`
+
+      const tierLine = tierCount
+        ? `<p style="color:#ccc;font-size:15px;margin:12px 0;">
+             You finished as a <strong style="color:#d4a843;">Top ${tierCount} contestant</strong> in ${competitionName}.${finalRank ? ` Final rank in ${roundLabel}: <strong style="color:#fff;">#${finalRank}</strong>.` : ''}
+           </p>`
+        : `<p style="color:#ccc;font-size:15px;margin:12px 0;">
+             You competed in ${competitionName}${finalRank ? ` and finished ${roundLabel} at <strong style="color:#fff;">#${finalRank}</strong>` : ''}. Thank you for being part of this season.
+           </p>`
+
+      return {
+        subject: `Thanks for competing in ${competitionName}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Thanks, ${firstName}.</h1>
+            <p style="color:#fff;font-size:16px;margin:8px 0 4px;">Your contestant journey ended in ${roundLabelWithArticle}.</p>
+            <p style="color:#ccc;font-size:15px;margin:0 0 12px;">You made it farther than most!</p>
+            ${tierLine}
+            <p style="color:#ccc;font-size:14px;margin:16px 0;">We hope that you will consider competing again next year and attend the upcoming events.</p>
+            ${req.competition_url ? `<p style="margin-top:24px;"><a href="${req.competition_url}" style="color:#d4a843;font-size:14px;text-decoration:none;font-weight:bold;">Watch the rest of the competition →</a></p>` : ''}
           </div>
         `),
       }
