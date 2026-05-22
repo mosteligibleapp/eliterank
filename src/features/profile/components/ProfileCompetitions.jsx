@@ -169,9 +169,13 @@ function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
         </Badge>
       );
     case 'eliminated':
+      // Framed as an achievement, not a loss — the badge celebrates the
+      // furthest round the contestant reached rather than calling out
+      // their elimination.
       return (
-        <Badge variant="outline" size={size} pill>
-          {subLabel ? `Eliminated — ${subLabel}` : 'Eliminated'}
+        <Badge variant="gold" size={size} pill>
+          <Star size={10} style={{ marginRight: '4px' }} />
+          {subLabel ? `Reached ${subLabel}` : 'Contestant'}
         </Badge>
       );
     default:
