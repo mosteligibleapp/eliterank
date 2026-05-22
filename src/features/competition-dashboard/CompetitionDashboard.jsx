@@ -422,6 +422,7 @@ export default function CompetitionDashboard({
         return (
           <PeopleTab
             competition={competition}
+            votingRounds={competition?.voting_rounds || []}
             nominees={data.nominees}
             contestants={data.contestants}
             host={data.host}
