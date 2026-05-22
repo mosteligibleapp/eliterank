@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, Zap } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, EyeOff, RotateCcw, Zap } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -54,6 +54,42 @@ const getEventStatus = (event) => {
   return 'upcoming';
 };
 
+// Grayable Setup sections, in their natural top-to-bottom order. Grayed-out
+// sections render dimmed and sort below the visible ones.
+const SECTION_ORDER = [
+  'judges', 'sponsors', 'charity', 'events', 'doubleVoteDays',
+  'manualVotes', 'winnerPrize', 'contestantRewards', 'bonusVotes', 'videoPrompts',
+];
+
+const grayOutButtonStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
+  background: 'transparent',
+  border: `1px solid ${colors.border.primary}`,
+  borderRadius: borderRadius.md,
+  color: colors.text.muted,
+  cursor: 'pointer',
+  flexShrink: 0,
+};
+
+const restoreButtonStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: spacing.xs,
+  padding: `${spacing.xs} ${spacing.sm}`,
+  background: colors.gold.muted,
+  border: `1px solid ${colors.gold.primary}`,
+  borderRadius: borderRadius.md,
+  color: colors.gold.primary,
+  cursor: 'pointer',
+  fontSize: typography.fontSize.xs,
+  fontWeight: typography.fontWeight.medium,
+  whiteSpace: 'nowrap',
+};
+
 /**
  * SetupTab - Configuration settings tab
  * Contains competition details, timeline, judges, sponsors, and events
@@ -75,6 +111,7 @@ export default function SetupTab({
   onDeleteDoubleDay,
   onUpdateTimezone,
   onUpdateAllowManualVotes,
+  onUpdateHiddenSections,
   onOpenJudgeModal,
   onOpenSponsorModal,
   onOpenCharityModal,
@@ -125,6 +162,69 @@ export default function SetupTab({
   const [manualVotesSaving, setManualVotesSaving] = useState(false);
   const [manualVotesError, setManualVotesError] = useState('');
   const manualVotesEnabled = !!competition?.allowManualVotes;
+
+  // ---- Grayed-out Setup sections ----
+  // Hosts can gray out sections they aren't using; grayed sections render
+  // dimmed and sort to the bottom. Mirrored locally for an instant toggle,
+  // then persisted on the competition row.
+  const [hiddenSections, setHiddenSections] = useState(
+    () => competition?.hiddenSetupSections || []
+  );
+
+  useEffect(() => {
+    setHiddenSections(competition?.hiddenSetupSections || []);
+  }, [competition?.hiddenSetupSections]);
+
+  const isHidden = (id) => hiddenSections.includes(id);
+
+  const toggleSection = async (id) => {
+    const prev = hiddenSections;
+    const next = isHidden(id)
+      ? prev.filter((s) => s !== id)
+      : [...prev, id];
+    setHiddenSections(next);
+    const result = await onUpdateHiddenSections?.(next);
+    if (result && !result.success) {
+      setHiddenSections(prev);
+      toast?.error?.(result.error || 'Could not update this section.');
+    }
+  };
+
+  const sectionStyle = (id) => {
+    const idx = SECTION_ORDER.indexOf(id);
+    return {
+      order: isHidden(id) ? 100 + idx : 1 + idx,
+      opacity: isHidden(id) ? 0.5 : 1,
+    };
+  };
+
+  // Panel header action: the section's own action plus a gray-out control,
+  // or a Restore button when the section is already grayed.
+  const sectionAction = (id, ownAction) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+      {isHidden(id) ? (
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleSection(id); }}
+          style={restoreButtonStyle}
+          title="Restore this section"
+        >
+          <RotateCcw size={13} /> Restore
+        </button>
+      ) : (
+        <>
+          {ownAction}
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleSection(id); }}
+            style={grayOutButtonStyle}
+            title="Gray out — hide this section"
+            aria-label="Gray out this section"
+          >
+            <EyeOff size={14} />
+          </button>
+        </>
+      )}
+    </div>
+  );
 
   const competitionTimezone = competition?.timezone || 'UTC';
   const timezoneGroups = React.useMemo(() => getTimezoneOptionGroups(), []);
@@ -396,7 +496,7 @@ export default function SetupTab({
   );
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Competition Details - View Only (Admin Controlled) - Open by default */}
       <Panel
         title="Competition Details"
@@ -503,11 +603,13 @@ export default function SetupTab({
 
       {/* Judges Section */}
       <Panel
+        key={`section-judges-${isHidden('judges')}`}
         title={`Judges (${judges.length})`}
         icon={User}
-        action={<Button size="sm" icon={Plus} onClick={() => onOpenJudgeModal(null)}>Add Judge</Button>}
+        action={sectionAction('judges', <Button size="sm" icon={Plus} onClick={() => onOpenJudgeModal(null)}>Add Judge</Button>)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('judges')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {judges.length === 0 ? (
@@ -580,11 +682,13 @@ export default function SetupTab({
 
       {/* Sponsors Section */}
       <Panel
+        key={`section-sponsors-${isHidden('sponsors')}`}
         title={`Sponsors (${sponsors.length})`}
         icon={Star}
-        action={<Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>}
+        action={sectionAction('sponsors', <Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('sponsors')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {sponsors.length === 0 ? (
@@ -644,15 +748,17 @@ export default function SetupTab({
 
       {/* Charity Section */}
       <Panel
+        key={`section-charity-${isHidden('charity')}`}
         title="Charity Partner"
         icon={Gift}
-        action={
+        action={sectionAction('charity',
           <Button size="sm" icon={competition?.charityName ? Edit2 : Plus} onClick={onOpenCharityModal}>
             {competition?.charityName ? 'Edit' : 'Add Charity'}
           </Button>
-        }
+        )}
         collapsible
         defaultCollapsed
+        style={sectionStyle('charity')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {!competition?.charityName ? (
@@ -700,11 +806,13 @@ export default function SetupTab({
 
       {/* Events Section */}
       <Panel
+        key={`section-events-${isHidden('events')}`}
         title={`Events (${events.length})`}
         icon={Calendar}
-        action={<Button size="sm" icon={Plus} onClick={() => onOpenEventModal(null)}>Add Event</Button>}
+        action={sectionAction('events', <Button size="sm" icon={Plus} onClick={() => onOpenEventModal(null)}>Add Event</Button>)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('events')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {events.length === 0 ? (
@@ -794,10 +902,13 @@ export default function SetupTab({
 
       {/* Double Vote Days Section */}
       <Panel
+        key={`section-doubleVoteDays-${isHidden('doubleVoteDays')}`}
         title={`Double Vote Days (${doubleDays.length})`}
         icon={Zap}
+        action={sectionAction('doubleVoteDays', null)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('doubleVoteDays')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
@@ -961,10 +1072,13 @@ export default function SetupTab({
 
       {/* Manual Votes Section */}
       <Panel
+        key={`section-manualVotes-${isHidden('manualVotes')}`}
         title="Manual Votes"
         icon={Star}
+        action={sectionAction('manualVotes', null)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('manualVotes')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
@@ -1017,11 +1131,13 @@ export default function SetupTab({
         const winnerPrizes = prizes.filter(p => (p.prizeType || 'winner') === 'winner');
         return (
           <Panel
+            key={`section-winnerPrize-${isHidden('winnerPrize')}`}
             title={`Winner's Prize Package (${winnerPrizes.length})`}
             icon={Trophy}
-            action={<Button size="sm" icon={Plus} onClick={() => onOpenPrizeModal(null, 'winner')}>Add Prize</Button>}
+            action={sectionAction('winnerPrize', <Button size="sm" icon={Plus} onClick={() => onOpenPrizeModal(null, 'winner')}>Add Prize</Button>)}
             collapsible
             defaultCollapsed
+            style={sectionStyle('winnerPrize')}
           >
             <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
               {winnerPrizes.length === 0 ? (
@@ -1111,11 +1227,13 @@ export default function SetupTab({
         const contestantRewards = prizes.filter(p => p.prizeType === 'contestant');
         return (
           <Panel
+            key={`section-contestantRewards-${isHidden('contestantRewards')}`}
             title={`Contestant Rewards (${contestantRewards.length})`}
             icon={Gift}
-            action={<Button size="sm" icon={Plus} onClick={() => onOpenPrizeModal(null, 'contestant')}>Add Reward</Button>}
+            action={sectionAction('contestantRewards', <Button size="sm" icon={Plus} onClick={() => onOpenPrizeModal(null, 'contestant')}>Add Reward</Button>)}
             collapsible
             defaultCollapsed
+            style={sectionStyle('contestantRewards')}
           >
             <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
               {contestantRewards.length === 0 ? (
@@ -1202,10 +1320,13 @@ export default function SetupTab({
 
       {/* Bonus Votes Section */}
       <Panel
+        key={`section-bonusVotes-${isHidden('bonusVotes')}`}
         title="Bonus Votes"
         icon={Gift}
+        action={sectionAction('bonusVotes', null)}
         collapsible
-        defaultCollapsed={false}
+        defaultCollapsed={isHidden('bonusVotes')}
+        style={sectionStyle('bonusVotes')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {bonusLoading ? (
@@ -1742,10 +1863,13 @@ export default function SetupTab({
 
       {/* Video Prompts Section */}
       <Panel
+        key={`section-videoPrompts-${isHidden('videoPrompts')}`}
         title="Video Prompts"
         icon={Upload}
-        action={<Button size="sm" icon={Plus} onClick={() => setShowVideoPromptModal(true)}>Add Prompt</Button>}
+        action={sectionAction('videoPrompts', <Button size="sm" icon={Plus} onClick={() => setShowVideoPromptModal(true)}>Add Prompt</Button>)}
         collapsible
+        defaultCollapsed={isHidden('videoPrompts')}
+        style={sectionStyle('videoPrompts')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {videoPrompts.length === 0 ? (

@@ -464,6 +464,8 @@ export function useCompetitionDashboard(competitionId) {
           timezone: competition.timezone || 'UTC',
           // Host-controlled gate for the manual "Add Votes" dashboard action.
           allowManualVotes: competition.allow_manual_votes ?? false,
+          // Setup-tab section ids the host has grayed out.
+          hiddenSetupSections: competition.hidden_setup_sections || [],
           // Timeline arrays — pass through so computeCompetitionPhase can
           // detect between-rounds vs. nominations correctly.
           nomination_periods: competition.nomination_periods || [],
@@ -1229,6 +1231,24 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  const updateHiddenSetupSections = useCallback(async (sections) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({ hidden_setup_sections: Array.isArray(sections) ? sections : [] })
+        .eq('id', competitionId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating hidden setup sections:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   // ============================================================================
   // ANNOUNCEMENT OPERATIONS
   // ============================================================================
@@ -1633,6 +1653,7 @@ export function useCompetitionDashboard(competitionId) {
     deleteDoubleDay,
     updateCompetitionTimezone,
     updateAllowManualVotes,
+    updateHiddenSetupSections,
     // Announcement operations
     addAnnouncement,
     updateAnnouncement,
