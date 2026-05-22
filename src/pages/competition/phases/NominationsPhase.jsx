@@ -25,11 +25,30 @@ import { JudgesSection } from '../components/JudgesSection';
  * - ?apply=true  - Auto-redirects to entry flow
  */
 export function NominationsPhase() {
-  const { competition, orgSlug, competitionSlug, votingRounds, about, events, isPreview } = usePublicCompetition();
+  const {
+    competition, orgSlug, competitionSlug, votingRounds, nominationPeriods,
+    about, events, contestants, isPreview,
+  } = usePublicCompetition();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const entryPath = `/${orgSlug}/${competitionSlug}/enter`;
+
+  // Real entry count — the stat card only appears once entries exist.
+  const entryCount = contestants?.length || 0;
+  const hasEntries = entryCount > 0;
+
+  // The timeline column (Timeline + Charity) only renders once a host has
+  // added at least one date or a charity; otherwise the page drops to a
+  // single column so the layout never goes lopsided.
+  const hasTimelineData = Boolean(
+    nominationPeriods?.some(p => p.start_date || p.end_date)
+    || votingRounds?.some(r => r.start_date || r.end_date)
+    || competition?.nomination_start
+    || competition?.nomination_end
+    || competition?.finals_date,
+  );
+  const hasTimelineColumn = hasTimelineData || Boolean(competition?.charity_name);
 
   // Auto-redirect if ?apply param is present (skipped in preview so hosts
   // don't get kicked out of the preview by a stray query param).
@@ -72,7 +91,7 @@ export function NominationsPhase() {
       </section>
 
       {/* Stats Row - Centered below CTA */}
-      <section className="phase-stats phase-stats-centered">
+      <section className={`phase-stats ${hasEntries ? 'phase-stats-centered' : 'phase-stats-solo'}`}>
         <div className="stat-card stat-card-urgent">
           <div className="stat-icon-wrap">
             <Clock size={20} className="stat-icon" />
@@ -80,13 +99,15 @@ export function NominationsPhase() {
           <CountdownDisplay label="" />
           <span className="stat-label">Nominations Close</span>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon-wrap">
-            <Users size={20} className="stat-icon" />
+        {hasEntries && (
+          <div className="stat-card">
+            <div className="stat-icon-wrap">
+              <Users size={20} className="stat-icon" />
+            </div>
+            <span className="stat-value">{entryCount.toLocaleString()}</span>
+            <span className="stat-label">Entries</span>
           </div>
-          <span className="stat-value">200+</span>
-          <span className="stat-label">Entries</span>
-        </div>
+        )}
       </section>
 
       {/* Who Competes */}
@@ -111,17 +132,25 @@ export function NominationsPhase() {
 
       <hr className="phase-divider" />
 
-      {/* Timeline & Host + Rules */}
-      <section className="phase-grid phase-grid-2">
-        <div>
-          <Timeline />
-          <CharityHighlight />
-        </div>
-        <div className="sidebar-stack">
+      {/* Timeline & Host + Rules — two columns once the host has added
+          timeline/charity content, otherwise a single stacked column. */}
+      {hasTimelineColumn ? (
+        <section className="phase-grid phase-grid-2">
+          <div>
+            <Timeline />
+            <CharityHighlight />
+          </div>
+          <div className="sidebar-stack">
+            <HostCard />
+            <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
+          </div>
+        </section>
+      ) : (
+        <section className="sidebar-stack">
           <HostCard />
           <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Footer */}
       <CompetitionFooter />

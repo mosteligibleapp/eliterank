@@ -285,6 +285,12 @@
   margin-bottom: var(--spacing-2xl);
 }
 
+/* Collapse section wrappers whose content rendered nothing, so a page hosts
+   have only partly filled in shows no empty vertical gaps. */
+.phase-section:empty {
+  display: none;
+}
+
 /* ====================================================================
    Contestant profile page (/:…/e/:contestantSlug) — shareable view
    rendered inline on the competition route.
@@ -734,6 +740,12 @@
   max-width: 500px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* A lone stat card (e.g. before the first entry arrives) stays centered. */
+.phase-stats-solo {
+  grid-template-columns: minmax(0, 260px);
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
@@ -6104,6 +6116,17 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
+}
+
+/* When only one stake is filled in, center it instead of leaving it
+   stranded in a half-width grid column. */
+.phase-coming-soon-stakes-timeline:only-child,
+.phase-coming-soon-stakes-prize:only-child {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* =====================
