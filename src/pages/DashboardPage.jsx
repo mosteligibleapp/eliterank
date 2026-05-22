@@ -11,6 +11,7 @@ import { useAuthStore } from '../stores';
 import { CompetitionDashboard } from '../features/competition-dashboard';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 import ErrorState from '../components/common/ErrorState';
+import { getCompetitionUrl, generateCompetitionSlug, slugify } from '../utils/slugs';
 
 /**
  * Build competition display name from city and season
@@ -102,11 +103,27 @@ export default function DashboardPage() {
     if (!hostCompetition) return;
 
     const orgSlug = hostCompetition?.organization?.slug || 'most-eligible';
-    const cityName = hostCompetition?.city?.name || hostCompetition?.city || 'competition';
-    const citySlug = cityName.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '');
-    const year = hostCompetition?.season || new Date().getFullYear();
-    const path = `/${orgSlug}/${citySlug}-${year}`;
-    window.open(path, '_blank');
+
+    // Priority 1: Use the database slug directly (preferred)
+    if (hostCompetition?.slug) {
+      window.open(getCompetitionUrl(orgSlug, hostCompetition.slug), '_blank');
+      return;
+    }
+
+    // Priority 2: Use the competition ID — the most reliable lookup
+    if (hostCompetition?.id) {
+      window.open(`/${orgSlug}/id/${hostCompetition.id}`, '_blank');
+      return;
+    }
+
+    // Priority 3: Generate the slug from competition data
+    const cityName = hostCompetition?.city?.name || hostCompetition?.city || '';
+    const generatedSlug = generateCompetitionSlug({
+      name: hostCompetition?.name,
+      citySlug: slugify(cityName),
+      season: hostCompetition?.season,
+    });
+    window.open(getCompetitionUrl(orgSlug, generatedSlug), '_blank');
   }, [hostCompetition]);
 
 
