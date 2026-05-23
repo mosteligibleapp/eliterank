@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
   Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, Bell,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
@@ -67,6 +67,7 @@ export default function PeopleTab({
   contestants,
   host,
   coHosts = [],
+  subscribers = [],
   isSuperAdmin = false,
   onRefresh,
   onApproveNominee,
@@ -1179,6 +1180,57 @@ export default function PeopleTab({
           </div>
         </Panel>
       )}
+
+      {/* Subscribers — users who opted in to "Notify me when nominations open" */}
+      <Panel
+        title={`Subscribers (${subscribers.length})`}
+        icon={Bell}
+        collapsible
+        defaultOpen={subscribers.length > 0}
+      >
+        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+          {subscribers.length === 0 ? (
+            <p style={{ color: colors.text.secondary, textAlign: 'center', padding: spacing.lg }}>
+              No one has subscribed yet. They'll appear here when visitors opt in from the coming-soon page.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {subscribers.map((sub) => (
+                <div
+                  key={sub.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    padding: spacing.md,
+                    background: 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.md,
+                  }}
+                >
+                  <Avatar name={sub.name} src={sub.avatar} size={40} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: typography.fontWeight.medium }}>{sub.name}</p>
+                    <p style={{
+                      color: colors.text.secondary,
+                      fontSize: typography.fontSize.sm,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {sub.email}
+                    </p>
+                  </div>
+                  {sub.subscribedAt && (
+                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs }}>
+                      {new Date(sub.subscribedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Panel>
 
       {/* Stats Row - hide when all zeros */}
       {!isNewHost && <div style={{

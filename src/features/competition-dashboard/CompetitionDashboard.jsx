@@ -432,6 +432,7 @@ export default function CompetitionDashboard({
             contestants={data.contestants}
             host={data.host}
             coHosts={data.coHosts || []}
+            subscribers={data.subscribers || []}
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onApproveNominee={approveNominee}
