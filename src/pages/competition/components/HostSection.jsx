@@ -3,87 +3,119 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { User, MapPin, Instagram, Twitter, Linkedin, X } from 'lucide-react';
 import { transformSupabaseImage } from '../../../lib/storageImage';
 
+function buildHostList(competition) {
+  const list = [];
+  if (competition?.host) list.push(competition.host);
+  const coHostRows = competition?.competition_co_hosts || [];
+  for (const row of coHostRows) {
+    if (row?.profile) list.push(row.profile);
+  }
+  return list;
+}
+
+function getHostName(host) {
+  return `${host.first_name || ''} ${host.last_name || ''}`.trim();
+}
+
 /**
- * Host information section
+ * Host information section (sidebar). Renders the primary host plus any
+ * co-hosts side-by-side in a responsive grid.
  */
 export function HostSection() {
   const { competition, sponsors } = usePublicCompetition();
-  const [showHostModal, setShowHostModal] = useState(false);
+  const [modalHost, setModalHost] = useState(null);
 
-  // Host data comes from profiles table join
-  const host = competition?.host;
-  const hostName = host ? `${host.first_name || ''} ${host.last_name || ''}`.trim() : null;
+  const hosts = buildHostList(competition);
+  const isPlural = hosts.length > 1;
 
-  // Don't render anything if no host AND no sponsors
-  if (!host && (!sponsors || sponsors.length === 0)) {
+  // Don't render anything if no hosts AND no sponsors
+  if (hosts.length === 0 && (!sponsors || sponsors.length === 0)) {
     return null;
   }
 
   return (
     <div className="host-section">
-      {/* Host Card - only show if host is assigned */}
-      {host && (
+      {hosts.length > 0 && (
         <div className="host-card">
-          <h4 className="section-label">Your Host</h4>
-          <button
-            className="host-info host-info-clickable"
-            onClick={() => setShowHostModal(true)}
+          <h4 className="section-label">{isPlural ? 'Your Hosts' : 'Your Host'}</h4>
+          <div
+            className="host-info-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isPlural ? 'repeat(auto-fit, minmax(200px, 1fr))' : '1fr',
+              gap: '0.75rem',
+            }}
           >
-            {host.avatar_url ? (
-              <img src={transformSupabaseImage(host.avatar_url, { width: 150, height: 150 })} alt={hostName} className="host-avatar" />
-            ) : (
-              <div className="host-avatar-placeholder">
-                <User size={48} />
-              </div>
-            )}
-            <div className="host-details">
-              <span className="host-name">{hostName || 'Competition Host'}</span>
-              {host.bio && <span className="host-title">{host.bio.length > 100 ? host.bio.substring(0, 100) + '...' : host.bio}</span>}
-              {host.city && (
-                <span className="host-location">
-                  <MapPin size={12} />
-                  {host.city}
-                </span>
-              )}
-            </div>
-          </button>
+            {hosts.map((host) => {
+              const hostName = getHostName(host);
+              return (
+                <button
+                  key={host.id}
+                  className="host-info host-info-clickable"
+                  onClick={() => setModalHost(host)}
+                >
+                  {host.avatar_url ? (
+                    <img src={transformSupabaseImage(host.avatar_url, { width: 150, height: 150 })} alt={hostName} className="host-avatar" />
+                  ) : (
+                    <div className="host-avatar-placeholder">
+                      <User size={48} />
+                    </div>
+                  )}
+                  <div className="host-details">
+                    <span className="host-name">{hostName || 'Competition Host'}</span>
+                    {host.bio && (
+                      <span className="host-title">
+                        {host.bio.length > 100 ? host.bio.substring(0, 100) + '...' : host.bio}
+                      </span>
+                    )}
+                    {host.city && (
+                      <span className="host-location">
+                        <MapPin size={12} />
+                        {host.city}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Host Profile Modal */}
-      {showHostModal && host && (
-        <div className="modal-overlay" onClick={() => setShowHostModal(false)}>
+      {modalHost && (
+        <div className="modal-overlay" onClick={() => setModalHost(null)}>
           <div className="modal-container modal-host" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowHostModal(false)}>
+            <button className="modal-close" onClick={() => setModalHost(null)}>
               <X size={18} />
             </button>
             <div className="host-profile-modal">
               <div className="host-profile-header">
-                {host.avatar_url ? (
-                  <img src={transformSupabaseImage(host.avatar_url, { width: 200, height: 200 })} alt={hostName} className="host-modal-avatar" />
+                {modalHost.avatar_url ? (
+                  <img src={transformSupabaseImage(modalHost.avatar_url, { width: 200, height: 200 })} alt={getHostName(modalHost)} className="host-modal-avatar" />
                 ) : (
                   <div className="host-modal-avatar-placeholder">
                     <User size={48} />
                   </div>
                 )}
-                <h2>{hostName}</h2>
-                {host.city && (
+                <h2>{getHostName(modalHost)}</h2>
+                {modalHost.city && (
                   <p className="host-modal-location">
                     <MapPin size={14} />
-                    {host.city}
+                    {modalHost.city}
                   </p>
                 )}
               </div>
-              {host.bio && (
+              {modalHost.bio && (
                 <div className="host-modal-bio">
-                  <p>{host.bio}</p>
+                  <p>{modalHost.bio}</p>
                 </div>
               )}
-              {(host.instagram || host.twitter || host.linkedin) && (
+              {(modalHost.instagram || modalHost.twitter || modalHost.linkedin) && (
                 <div className="host-modal-socials">
-                  {host.instagram && (
+                  {modalHost.instagram && (
                     <a
-                      href={`https://instagram.com/${host.instagram}`}
+                      href={`https://instagram.com/${modalHost.instagram}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="social-link"
@@ -91,9 +123,9 @@ export function HostSection() {
                       <Instagram size={20} />
                     </a>
                   )}
-                  {host.twitter && (
+                  {modalHost.twitter && (
                     <a
-                      href={`https://twitter.com/${host.twitter}`}
+                      href={`https://twitter.com/${modalHost.twitter}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="social-link"
@@ -101,9 +133,9 @@ export function HostSection() {
                       <Twitter size={20} />
                     </a>
                   )}
-                  {host.linkedin && (
+                  {modalHost.linkedin && (
                     <a
-                      href={`https://linkedin.com/in/${host.linkedin}`}
+                      href={`https://linkedin.com/in/${modalHost.linkedin}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="social-link"
