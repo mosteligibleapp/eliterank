@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown } from 'lucide-react';
 import { isDoubleVoteDayForCompetition } from '../../../lib/doubleVoteDay';
-import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
  * Consistent competition header across all phases
@@ -58,7 +57,7 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
   const websiteUrl = organization?.website_url;
 
   const logoContent = headerLogo ? (
-    <img src={transformSupabaseImage(headerLogo, { width: 600 })} alt={organization.name} />
+    <img src={headerLogo} alt={organization.name} />
   ) : (
     <Crown size={40} />
   );
