@@ -39,6 +39,7 @@ export function useCompetitionDashboard(competitionId) {
     prizes: [],
     doubleDays: [],
     host: null,
+    coHosts: [],
     competition: null,
     voteRevenue: 0,
   });
@@ -68,6 +69,7 @@ export function useCompetitionDashboard(competitionId) {
         doubleDaysResult,
         competitionResult,
         paidVotesResult,
+        coHostsResult,
       ] = await Promise.all([
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
         supabase
@@ -151,6 +153,13 @@ export function useCompetitionDashboard(competitionId) {
 
         // Paid-vote revenue — server-side SUM via RPC, cached for 60s
         fetchCompetitionRevenue(competitionId),
+
+        // Co-hosts (additional hosts beyond the primary host_id)
+        supabase
+          .from('competition_co_hosts')
+          .select('user_id, created_at, profile:profiles!user_id(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery)')
+          .eq('competition_id', competitionId)
+          .order('created_at', { ascending: true }),
       ]);
 
       // Check for errors
@@ -166,6 +175,7 @@ export function useCompetitionDashboard(competitionId) {
         doubleDaysResult.error,
         competitionResult.error,
         paidVotesResult.error,
+        coHostsResult.error,
       ].filter(Boolean);
 
       if (errors.length > 0) {
@@ -190,6 +200,23 @@ export function useCompetitionDashboard(competitionId) {
           gallery: hostProfile.gallery || [],
         };
       }
+
+      const coHosts = (coHostsResult.data || [])
+        .map((row) => {
+          const p = row.profile;
+          if (!p) return null;
+          return {
+            id: p.id,
+            name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email,
+            firstName: p.first_name,
+            lastName: p.last_name,
+            email: p.email,
+            avatar: p.avatar_url,
+            city: p.city,
+            addedAt: row.created_at,
+          };
+        })
+        .filter(Boolean);
 
       // Transform contestants for leaderboard
       const contestants = (contestantsResult.data || []).map((c, index) => ({
@@ -402,6 +429,7 @@ export function useCompetitionDashboard(competitionId) {
         prizes,
         doubleDays,
         host,
+        coHosts,
         voteRevenue,
         competition: competition ? {
           id: competition.id,
@@ -1570,6 +1598,42 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  const addCoHost = useCallback(async (userId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase.rpc('add_competition_co_host', {
+        p_competition_id: competitionId,
+        p_user_id: userId,
+      });
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding co-host:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  const removeCoHost = useCallback(async (userId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase.rpc('remove_competition_co_host', {
+        p_competition_id: competitionId,
+        p_user_id: userId,
+      });
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error removing co-host:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   // ============================================================================
   // NOMINEE ACCOUNT REPAIR OPERATIONS
   // ============================================================================
@@ -1672,6 +1736,8 @@ export function useCompetitionDashboard(competitionId) {
     updateWinners,
     assignHost,
     removeHost,
+    addCoHost,
+    removeCoHost,
   };
 }
 

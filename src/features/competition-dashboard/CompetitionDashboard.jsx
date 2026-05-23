@@ -34,6 +34,7 @@ export default function CompetitionDashboard({
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showHostAssignment, setShowHostAssignment] = useState(false);
+  const [showAddCoHost, setShowAddCoHost] = useState(false);
   const isSuperAdmin = role === 'superadmin';
   const { isMobile } = useResponsive();
 
@@ -79,6 +80,8 @@ export default function CompetitionDashboard({
     deletePrize,
     assignHost,
     removeHost,
+    addCoHost,
+    removeCoHost,
     repairNomineeAccount,
     repairAllNomineeAccounts,
   } = dashboard;
@@ -427,6 +430,7 @@ export default function CompetitionDashboard({
             nominees={data.nominees}
             contestants={data.contestants}
             host={data.host}
+            coHosts={data.coHosts || []}
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onApproveNominee={approveNominee}
@@ -436,6 +440,8 @@ export default function CompetitionDashboard({
             onOpenAddPersonModal={openAddPersonModal}
             onShowHostAssignment={() => setShowHostAssignment(true)}
             onRemoveHost={removeHost}
+            onShowAddCoHost={() => setShowAddCoHost(true)}
+            onRemoveCoHost={removeCoHost}
             onResendInvite={resendInvite}
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
@@ -518,6 +524,18 @@ export default function CompetitionDashboard({
           setShowHostAssignment(false);
         }}
         currentHostId={data.host?.id}
+      />
+      <HostAssignmentModal
+        isOpen={showAddCoHost}
+        onClose={() => setShowAddCoHost(false)}
+        onAssign={async (userId) => {
+          await addCoHost(userId);
+          setShowAddCoHost(false);
+        }}
+        currentHostId={data.host?.id}
+        excludeIds={(data.coHosts || []).map((c) => c.id)}
+        title="Add Co-Host"
+        assignLabel="Add Co-Host"
       />
       <JudgeModal
         isOpen={judgeModal.isOpen}
