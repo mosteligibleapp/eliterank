@@ -20,6 +20,8 @@ const corsHeaders = {
  *   - vote_receipt:         "Thanks for voting!" receipt for paid voters with current rank
  *   - nominations_open_subscriber: "Nominations are open!" blast to users who
  *                          subscribed on the competition's coming-soon page
+ *   - subscriber_confirmation: "You're on the list" instant confirmation when
+ *                          a user opts in on the coming-soon page
  *
  * Required Supabase secrets:
  *   ONESIGNAL_APP_ID     — OneSignal App ID
@@ -28,7 +30,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'nominations_open_subscriber'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'nominations_open_subscriber' | 'subscriber_confirmation'
   to_email: string
   to_name?: string
   // When set, the send is recorded in email_logs so the host of this
@@ -43,6 +45,7 @@ interface EmailRequest {
   reason?: string
   gender?: string | null
   nomination_end?: string | null
+  nomination_start?: string | null
   nominee_email?: string
   reset_password_url?: string
   contestant_name?: string
@@ -490,6 +493,34 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${roundEndLine}
             ${ctaUrl ? goldButton(`View ${firstName}'s Profile`, ctaUrl) : ''}
             ${fanPrompt}
+          </div>
+        `),
+      }
+    }
+
+    case 'subscriber_confirmation': {
+      const competitionName = req.competition_name || 'Most Eligible'
+      const cityLine = req.city_name
+        ? `<p style="color:#ccc;font-size:15px;margin-top:8px;">${req.city_name}</p>`
+        : ''
+      const greeting = req.to_name ? `Hi ${req.to_name.split(' ')[0]},` : 'Hi,'
+      const ctaUrl = req.competition_url || appUrl
+      const openLine = req.nomination_start
+        ? `<p style="color:#ccc;font-size:14px;margin:8px 0;">Nominations open <strong style="color:#fff;">${new Date(req.nomination_start).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</strong>.</p>`
+        : ''
+      return {
+        subject: `You're on the list: ${competitionName}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You're on the list</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${competitionName}</p>
+            ${cityLine}
+            <p style="color:#ccc;font-size:15px;margin-top:20px;text-align:left;">${greeting}</p>
+            <p style="color:#ccc;font-size:15px;text-align:left;">
+              Thanks for signing up. We'll email you the moment nominations open so you have first dibs to nominate someone — or put yourself forward.
+            </p>
+            ${openLine}
+            ${goldButton('View Competition', ctaUrl)}
           </div>
         `),
       }
