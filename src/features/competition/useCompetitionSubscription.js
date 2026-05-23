@@ -55,6 +55,15 @@ export function useCompetitionSubscription(competitionId) {
       return false;
     }
     setIsSubscribed(true);
+
+    // Fire-and-forget confirmation email. Failure should never block the UI
+    // — the subscription itself already succeeded.
+    supabase.functions
+      .invoke('send-subscription-confirmation', { body: { competition_id: competitionId } })
+      .catch((err) => {
+        console.warn('Subscription confirmation email failed (non-fatal):', err);
+      });
+
     return true;
   }, [isAuthenticated, user?.id, competitionId]);
 
