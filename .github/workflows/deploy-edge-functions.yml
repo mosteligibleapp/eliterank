@@ -59,10 +59,18 @@ jobs:
           # public-callable functions here, otherwise Supabase will 401 every
           # request before it reaches the function code.
           #
-          #   stripe-webhook    — Stripe sends webhooks signed with stripe-signature
-          #   fan-unsubscribe   — HMAC token in the email link, no session
-          #   accept-nomination — invite token / magic link, no session
-          NO_JWT_FUNCTIONS=("stripe-webhook" "fan-unsubscribe" "accept-nomination")
+          #   stripe-webhook         — Stripe sends webhooks signed with stripe-signature
+          #   fan-unsubscribe        — HMAC token in the email link, no session
+          #   subscriber-unsubscribe — HMAC token in the email link, no session
+          #   accept-nomination      — invite token / magic link, no session
+          #   send-onesignal-email   — called server-to-server from other edge
+          #                            functions (send-subscription-confirmation,
+          #                            send-nomination-invite, etc.) with the
+          #                            service-role key; verify_jwt:true breaks
+          #                            those internal fetch() calls at the gateway
+          #   send-notification      — internal helper invoked from other functions
+          #   lucky-photobooth       — booth hardware POSTs without a Supabase JWT
+          NO_JWT_FUNCTIONS=("stripe-webhook" "fan-unsubscribe" "subscriber-unsubscribe" "accept-nomination" "send-onesignal-email" "send-notification" "lucky-photobooth")
 
           deployed=0
           for dir in supabase/functions/*/; do
