@@ -51,6 +51,7 @@ interface EmailRequest {
   contestant_name?: string
   profile_url?: string
   fan_id?: string
+  subscriber_id?: string
   unsubscribe_url?: string
   // fan_weekly_digest fields
   rank?: number | null
@@ -113,6 +114,23 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       <a href="${url}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#d4a843,#f4d03f);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;font-family:Arial,sans-serif;">
         ${text}
       </a>
+    </div>
+  `
+
+  // Compliance footer for emails sent to coming-soon-page subscribers.
+  // CAN-SPAM (US), CASL (Canada), and ePrivacy (EU) all require unsubscribe
+  // + sender identity + physical postal address on commercial-adjacent mail.
+  const subscriberLegalFooter = (unsubscribeUrl?: string) => `
+    <div style="text-align:center;padding:16px 0 0;margin-top:24px;">
+      ${unsubscribeUrl
+        ? `<p style="color:#666;font-size:11px;margin:0 0 8px;font-family:Arial,sans-serif;line-height:1.5;">
+             You signed up for updates about this competition.
+             <a href="${unsubscribeUrl}" style="color:#999;text-decoration:underline;">Unsubscribe</a>.
+           </p>`
+        : ''}
+      <p style="color:#555;font-size:11px;margin:0;font-family:Arial,sans-serif;line-height:1.5;">
+        Most Eligible LLC &middot; 1 W Old State Cap Plz, Ste 805, Springfield, IL 62701
+      </p>
     </div>
   `
 
@@ -522,6 +540,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${openLine}
             ${goldButton('View Competition', ctaUrl)}
           </div>
+          ${subscriberLegalFooter(req.unsubscribe_url)}
         `),
       }
     }
@@ -550,6 +569,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${goldButton('Nominate Now', ctaUrl)}
             ${deadlineLine}
           </div>
+          ${subscriberLegalFooter(req.unsubscribe_url)}
         `),
       }
     }
@@ -746,6 +766,24 @@ serve(async (req) => {
         body.unsubscribe_url = `${supabaseUrl}/functions/v1/fan-unsubscribe?token=${encodeURIComponent(token)}`
       } else {
         console.warn(`${body.type}: missing FAN_UNSUBSCRIBE_SECRET or SUPABASE_URL — unsubscribe link will not be included`)
+      }
+    }
+
+    // Same idea for subscriber emails — the recipient signed up on a
+    // competition's coming-soon page and is identified by competition_subscribers.id.
+    // Required for CAN-SPAM / CASL / GDPR compliance: every commercial-ish
+    // message must offer a one-click unsubscribe.
+    const needsSubscriberUnsubLink =
+      (body.type === 'subscriber_confirmation' || body.type === 'nominations_open_subscriber') &&
+      body.subscriber_id && !body.unsubscribe_url
+    if (needsSubscriberUnsubLink) {
+      const unsubSecret = Deno.env.get('SUBSCRIBER_UNSUBSCRIBE_SECRET') || Deno.env.get('FAN_UNSUBSCRIBE_SECRET')
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      if (unsubSecret && supabaseUrl) {
+        const token = await signFanToken(body.subscriber_id!, unsubSecret)
+        body.unsubscribe_url = `${supabaseUrl}/functions/v1/subscriber-unsubscribe?token=${encodeURIComponent(token)}`
+      } else {
+        console.warn(`${body.type}: missing unsubscribe secret or SUPABASE_URL — unsubscribe link will not be included`)
       }
     }
 
