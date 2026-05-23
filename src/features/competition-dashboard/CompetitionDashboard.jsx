@@ -622,6 +622,7 @@ export default function CompetitionDashboard({
         onClose={closeAddPersonModal}
         onAdd={handleAddPerson}
         type={addPersonModal.type}
+        competitionId={competitionId}
       />
     </>
   );
