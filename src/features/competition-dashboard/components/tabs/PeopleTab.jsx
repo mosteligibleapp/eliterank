@@ -66,6 +66,7 @@ export default function PeopleTab({
   nominees,
   contestants,
   host,
+  coHosts = [],
   isSuperAdmin = false,
   onRefresh,
   onApproveNominee,
@@ -74,6 +75,8 @@ export default function PeopleTab({
   onOpenAddPersonModal,
   onShowHostAssignment,
   onRemoveHost,
+  onShowAddCoHost,
+  onRemoveCoHost,
   onResendInvite,
   onRemoveContestant,
   onRepairNomineeAccount,
@@ -1115,6 +1118,67 @@ export default function PeopleTab({
       {/* Winners Manager */}
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
       </div>
+
+      {/* Co-Hosts */}
+      {(isSuperAdmin || coHosts.length > 0) && (
+        <Panel
+          title="Co-Hosts"
+          icon={UserPlus}
+          action={
+            isSuperAdmin ? (
+              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowAddCoHost?.(); }}>
+                Add Co-Host
+              </Button>
+            ) : null
+          }
+        >
+          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+            {coHosts.length === 0 ? (
+              <p style={{ color: colors.text.secondary, textAlign: 'center', padding: spacing.lg }}>
+                No additional hosts. Co-hosts have the same capabilities as the primary host.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+                {coHosts.map((coHost) => (
+                  <div
+                    key={coHost.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.md,
+                      padding: spacing.md,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: borderRadius.md,
+                    }}
+                  >
+                    <Avatar name={coHost.name} src={coHost.avatar} size={44} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: typography.fontWeight.medium }}>{coHost.name}</p>
+                      <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {coHost.email}
+                      </p>
+                    </div>
+                    <Badge variant="gold" size="sm">
+                      <Star size={12} style={{ marginRight: spacing.xs }} /> Co-Host
+                    </Badge>
+                    {isSuperAdmin && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                        onClick={() => onRemoveCoHost?.(coHost.id)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Panel>
+      )}
 
       {/* Stats Row - hide when all zeros */}
       {!isNewHost && <div style={{
