@@ -112,6 +112,7 @@ serve(async (req) => {
         type: 'subscriber_confirmation',
         to_email: profile.email,
         to_name: toName,
+        competition_id: competitionId,
         competition_name: compAny.name || 'Most Eligible',
         city_name: compAny.city?.name || null,
         competition_url: competitionUrl,

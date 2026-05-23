@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
   Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
-  ChevronUp, ChevronDown, Bell,
+  ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
@@ -67,8 +67,6 @@ export default function PeopleTab({
   contestants,
   host,
   coHosts = [],
-  subscribers = [],
-  onRemoveSubscriber,
   isSuperAdmin = false,
   onRefresh,
   onApproveNominee,
@@ -1181,90 +1179,6 @@ export default function PeopleTab({
           </div>
         </Panel>
       )}
-
-      {/* Subscribers — users who opted in to "Notify me when nominations open" */}
-      <Panel
-        title={`Subscribers (${subscribers.length})`}
-        icon={Bell}
-        collapsible
-        defaultOpen={subscribers.length > 0}
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {subscribers.length === 0 ? (
-            <p style={{ color: colors.text.secondary, textAlign: 'center', padding: spacing.lg }}>
-              No one has subscribed yet. They'll appear here when visitors opt in from the coming-soon page.
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {subscribers.map((sub) => (
-                <div
-                  key={sub.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.md,
-                    padding: spacing.md,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${colors.border.light}`,
-                    borderRadius: borderRadius.md,
-                  }}
-                >
-                  <Avatar name={sub.name} src={sub.avatar} size={40} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: typography.fontWeight.medium }}>{sub.name}</p>
-                    <p style={{
-                      color: colors.text.secondary,
-                      fontSize: typography.fontSize.sm,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}>
-                      {sub.email}
-                    </p>
-                  </div>
-                  {sub.subscribedAt && (
-                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs }}>
-                      {new Date(sub.subscribedAt).toLocaleDateString()}
-                    </p>
-                  )}
-                  {onRemoveSubscriber && (
-                    <button
-                      onClick={async () => {
-                        if (!confirm(`Remove ${sub.name} from this competition's subscriber list? They won't be notified when nominations open.`)) return;
-                        addProcessing(sub.id);
-                        try {
-                          const result = await onRemoveSubscriber(sub.id);
-                          if (!result?.success) {
-                            alert(`Failed to remove subscriber: ${result?.error || 'Unknown error'}`);
-                          }
-                        } finally {
-                          removeProcessing(sub.id);
-                        }
-                      }}
-                      disabled={processingIds.has(sub.id)}
-                      title="Remove from subscriber list"
-                      style={{
-                        padding: spacing.xs,
-                        background: 'rgba(239,68,68,0.1)',
-                        border: 'none',
-                        borderRadius: borderRadius.sm,
-                        cursor: processingIds.has(sub.id) ? 'not-allowed' : 'pointer',
-                        color: '#ef4444',
-                        minWidth: '32px',
-                        minHeight: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <XCircle size={16} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Panel>
 
       {/* Stats Row - hide when all zeros */}
       {!isNewHost && <div style={{

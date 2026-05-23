@@ -433,7 +433,6 @@ export default function CompetitionDashboard({
             contestants={data.contestants}
             host={data.host}
             coHosts={data.coHosts || []}
-            subscribers={data.subscribers || []}
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onApproveNominee={approveNominee}
@@ -445,14 +444,19 @@ export default function CompetitionDashboard({
             onRemoveHost={removeHost}
             onShowAddCoHost={() => setShowAddCoHost(true)}
             onRemoveCoHost={removeCoHost}
-            onRemoveSubscriber={removeSubscriber}
             onResendInvite={resendInvite}
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
           />
         );
       case 'emails':
-        return <EmailActivityTab competitionId={competitionId} />;
+        return (
+          <EmailActivityTab
+            competitionId={competitionId}
+            subscribers={data.subscribers || []}
+            onRemoveSubscriber={removeSubscriber}
+          />
+        );
       case 'content':
         return (
           <ContentTab
