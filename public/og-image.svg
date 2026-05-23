@@ -1,20 +1,89 @@
-<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1200" height="630" fill="#0a0a0c"/>
-  <rect width="1200" height="630" fill="url(#grad)" opacity="0.3"/>
-  <!-- Crown -->
-  <text x="600" y="240" text-anchor="middle" font-size="96" fill="#d4af37">👑</text>
-  <!-- Title -->
-  <text x="600" y="340" text-anchor="middle" font-family="Inter, SF Pro Display, system-ui, sans-serif" font-size="64" font-weight="700" fill="#ffffff">EliteRank</text>
-  <!-- Subtitle -->
-  <text x="600" y="400" text-anchor="middle" font-family="Inter, SF Pro Display, system-ui, sans-serif" font-size="28" font-weight="400" fill="#a1a1aa">Most Eligible Competition</text>
-  <!-- Gold line -->
-  <rect x="450" y="430" width="300" height="3" rx="1.5" fill="#d4af37"/>
-  <!-- Tagline -->
-  <text x="600" y="480" text-anchor="middle" font-family="Inter, SF Pro Display, system-ui, sans-serif" font-size="20" font-weight="400" fill="#71717a">Compete · Vote · Rise to the Top</text>
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="grad" cx="0.3" cy="0.3" r="0.7">
-      <stop offset="0%" stop-color="#d4af37" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+    <!-- Background gradient: deep dark with a faint warm glow centered -->
+    <radialGradient id="bg-glow" cx="50%" cy="55%" r="60%">
+      <stop offset="0%" stop-color="#1a1410" stop-opacity="1"/>
+      <stop offset="55%" stop-color="#0d0c10" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#070608" stop-opacity="1"/>
+    </radialGradient>
+
+    <!-- Gold gradient for headline + crown -->
+    <linearGradient id="gold-text" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f5d485"/>
+      <stop offset="50%" stop-color="#e6c558"/>
+      <stop offset="100%" stop-color="#c9a13e"/>
+    </linearGradient>
+
+    <linearGradient id="gold-crown" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5d485"/>
+      <stop offset="50%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#a8893a"/>
+    </linearGradient>
+
+    <!-- Subtle grid pattern -->
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#d4af37" stroke-width="0.4" stroke-opacity="0.06"/>
+    </pattern>
+
+    <!-- Soft glow for the crown -->
+    <radialGradient id="crown-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#d4af37" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#d4af37" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#d4af37" stop-opacity="0"/>
     </radialGradient>
   </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg-glow)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Top gold accent line -->
+  <rect x="0" y="0" width="1200" height="2" fill="url(#gold-text)" opacity="0.6"/>
+
+  <!-- Corner brackets -->
+  <g stroke="#d4af37" stroke-width="2" fill="none" stroke-opacity="0.55">
+    <path d="M 40 80 L 40 40 L 80 40"/>
+    <path d="M 1120 40 L 1160 40 L 1160 80"/>
+    <path d="M 40 550 L 40 590 L 80 590"/>
+    <path d="M 1120 590 L 1160 590 L 1160 550"/>
+  </g>
+
+  <!-- Crown glow halo -->
+  <circle cx="600" cy="200" r="135" fill="url(#crown-glow)"/>
+
+  <!-- EliteRank crown icon (path from src/components/ui/icons/EliteRankCrown.jsx, 24x24 viewBox, scaled 6x and centered) -->
+  <g transform="translate(528, 140) scale(6)">
+    <path d="M12 2L16 9L22 6.5L19 15H5L2 6.5L8 9L12 2Z" fill="url(#gold-crown)"/>
+    <rect x="4.5" y="16" width="15" height="3" rx="0.5" fill="url(#gold-crown)"/>
+    <rect x="4.5" y="17.5" width="15" height="0.5" fill="#ffffff" fill-opacity="0.25"/>
+  </g>
+
+  <!-- Main headline: "Where the Best Get Recognized" -->
+  <text x="600" y="385" text-anchor="middle"
+        font-family="'Liberation Sans', 'DejaVu Sans', 'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"
+        font-size="56" font-weight="bold" fill="url(#gold-text)"
+        letter-spacing="-1">
+    Where the Best Get Recognized
+  </text>
+
+  <!-- Divider line -->
+  <rect x="540" y="420" width="120" height="2" rx="1" fill="#d4af37" opacity="0.55"/>
+
+  <!-- Action line: "Enter · Compete · Win" (separate text elements so dots stay gold) -->
+  <g font-family="'Liberation Sans', 'DejaVu Sans', 'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"
+     font-size="34" font-weight="bold" letter-spacing="1.5">
+    <text x="385" y="490" fill="#ffffff">Enter</text>
+    <text x="500" y="490" fill="#d4af37">·</text>
+    <text x="535" y="490" fill="#ffffff">Compete</text>
+    <text x="715" y="490" fill="#d4af37">·</text>
+    <text x="750" y="490" fill="#ffffff">Win</text>
+  </g>
+
+  <!-- Domain in bottom-right -->
+  <text x="1135" y="565" text-anchor="end"
+        font-family="'Liberation Sans', 'DejaVu Sans', 'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"
+        font-size="18" font-weight="500" fill="#d4af37" fill-opacity="0.75"
+        letter-spacing="2">
+    ELITERANK.CO
+  </text>
 </svg>

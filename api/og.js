@@ -13,9 +13,9 @@ import { indexHtml } from './_index-template.mjs';
 export const config = { runtime: 'edge' };
 
 const SITE_URL = 'https://eliterank.co';
-const DEFAULT_TITLE = 'EliteRank — Most Eligible Competition';
+const DEFAULT_TITLE = 'EliteRank — Where the Best Get Recognized';
 const DEFAULT_DESCRIPTION =
-  'Compete, vote, and rise to the top. Join the most prestigious social competition platform.';
+  'Enter · Compete · Win. The most prestigious social competition platform.';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
