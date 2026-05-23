@@ -71,8 +71,8 @@
 
 .org-logo {
   width: 100%;
-  max-width: 280px;
-  height: 64px;
+  max-width: 320px;
+  height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
