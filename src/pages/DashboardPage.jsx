@@ -54,6 +54,16 @@ export default function DashboardPage() {
       }
 
       try {
+        const { data: coHostRows } = await supabase
+          .from('competition_co_hosts')
+          .select('competition_id')
+          .eq('user_id', user.id);
+
+        const coHostIds = (coHostRows ?? []).map((r) => r.competition_id);
+        const filter = coHostIds.length > 0
+          ? `host_id.eq.${user.id},id.in.(${coHostIds.join(',')})`
+          : `host_id.eq.${user.id}`;
+
         const { data, error } = await supabase
           .from('competitions')
           .select(`
@@ -62,7 +72,7 @@ export default function DashboardPage() {
             nomination_periods:nomination_periods(*),
             organization:organizations(slug, name)
           `)
-          .eq('host_id', user.id)
+          .or(filter)
           .limit(1);
 
         if (error) {
