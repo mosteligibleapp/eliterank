@@ -14,6 +14,20 @@
       "source": "/admin/(.*)",
       "destination": "/admin/index.html"
     },
+
+    { "source": "/profile/:profileId", "destination": "/api/og?type=profile&profileId=:profileId&path=/profile/:profileId" },
+
+    { "source": "/c/:orgSlug/:citySlug/:year/:rest*", "destination": "/api/og?type=competition-legacy&orgSlug=:orgSlug&slug=:citySlug&path=/c/:orgSlug/:citySlug/:year/:rest*" },
+    { "source": "/c/:orgSlug/:citySlug/:year", "destination": "/api/og?type=competition-legacy&orgSlug=:orgSlug&slug=:citySlug&path=/c/:orgSlug/:citySlug/:year" },
+    { "source": "/c/:orgSlug/:citySlug/:rest*", "destination": "/api/og?type=competition-legacy&orgSlug=:orgSlug&slug=:citySlug&path=/c/:orgSlug/:citySlug/:rest*" },
+    { "source": "/c/:orgSlug/:citySlug", "destination": "/api/og?type=competition-legacy&orgSlug=:orgSlug&slug=:citySlug&path=/c/:orgSlug/:citySlug" },
+
+    { "source": "/:orgSlug/id/:competitionId/:rest*", "destination": "/api/og?type=competition-id&orgSlug=:orgSlug&competitionId=:competitionId&path=/:orgSlug/id/:competitionId/:rest*" },
+    { "source": "/:orgSlug/id/:competitionId", "destination": "/api/og?type=competition-id&orgSlug=:orgSlug&competitionId=:competitionId&path=/:orgSlug/id/:competitionId" },
+
+    { "source": "/:orgSlug/:slug/:rest*", "destination": "/api/og?type=competition-slug&orgSlug=:orgSlug&slug=:slug&path=/:orgSlug/:slug/:rest*" },
+    { "source": "/:orgSlug/:slug", "destination": "/api/og?type=competition-slug&orgSlug=:orgSlug&slug=:slug&path=/:orgSlug/:slug" },
+
     {
       "source": "/((?!admin/)(?!api/).*)",
       "destination": "/index.html"
