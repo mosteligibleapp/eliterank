@@ -79,11 +79,11 @@
     <text x="750" y="490" fill="#ffffff">Win</text>
   </g>
 
-  <!-- Domain in bottom-right -->
-  <text x="1135" y="565" text-anchor="end"
+  <!-- Domain centered beneath the action line -->
+  <text x="600" y="545" text-anchor="middle"
         font-family="'Liberation Sans', 'DejaVu Sans', 'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"
-        font-size="18" font-weight="500" fill="#d4af37" fill-opacity="0.75"
-        letter-spacing="2">
-    ELITERANK.CO
+        font-size="24" font-weight="500" fill="#ffffff"
+        letter-spacing="1">
+    www.eliterank.co
   </text>
 </svg>
