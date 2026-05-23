@@ -106,8 +106,23 @@ async function supabaseRest(pathWithQuery) {
   }
 }
 
-function dynamicImageUrl(type, id) {
-  return `${SITE_URL}/api/og-image?type=${type}&id=${encodeURIComponent(id)}`;
+/**
+ * Cheap deterministic hash (DJB2 mod 36) — used only as a cache-buster suffix
+ * on the dynamic og:image URL so iMessage/Instagram refetch when the
+ * underlying photo changes.
+ */
+function shortHash(value) {
+  if (!value) return '0';
+  let hash = 5381;
+  for (let i = 0; i < value.length; i++) {
+    hash = ((hash << 5) + hash + value.charCodeAt(i)) & 0xffffffff;
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function dynamicImageUrl(type, id, version) {
+  const v = version ? `&v=${encodeURIComponent(version)}` : '';
+  return `${SITE_URL}/api/og-image?type=${type}&id=${encodeURIComponent(id)}${v}`;
 }
 
 async function fetchProfileMeta(profileId, canonicalUrl) {
@@ -125,8 +140,10 @@ async function fetchProfileMeta(profileId, canonicalUrl) {
 
   // Use the dynamic share card when there's a real photo to composite; fall
   // back to the brand image otherwise.
-  const hasPhoto = Boolean(profile.cover_image || profile.avatar_url);
-  const image = hasPhoto ? dynamicImageUrl('profile', profile.id) : DEFAULT_IMAGE;
+  const photoUrl = profile.cover_image || profile.avatar_url;
+  const image = photoUrl
+    ? dynamicImageUrl('profile', profile.id, shortHash(photoUrl))
+    : DEFAULT_IMAGE;
 
   return {
     title: `${displayName}${cityPart} | EliteRank`,
@@ -155,7 +172,7 @@ function formatCompetitionMeta(competition, canonicalUrl) {
       : `Vote in ${name}${city ? ` in ${city}` : ''}.`);
 
   const image = competition.cover_image
-    ? dynamicImageUrl('competition', competition.id)
+    ? dynamicImageUrl('competition', competition.id, shortHash(competition.cover_image))
     : DEFAULT_IMAGE;
 
   return {
