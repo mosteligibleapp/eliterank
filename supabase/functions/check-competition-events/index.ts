@@ -136,10 +136,11 @@ async function sendNominationsOpenBlast(
   }
   if (!reserved) return
 
-  // Load subscribers with profile email + name
+  // Load subscribers with profile email + name. id is needed so each
+  // recipient gets a signed one-click unsubscribe link in their footer.
   const { data: subscribers, error: subsError } = await supabase
     .from('competition_subscribers')
-    .select('user_id, profile:profiles!user_id(email, first_name, last_name)')
+    .select('id, user_id, profile:profiles!user_id(email, first_name, last_name)')
     .eq('competition_id', competition.id)
 
   if (subsError) {
@@ -184,6 +185,7 @@ async function sendNominationsOpenBlast(
           city_name: cityName,
           competition_url: competitionUrl,
           nomination_end: compDetails?.nomination_end || competition.nomination_end || null,
+          subscriber_id: row.id,
         }),
       })
       if (resp.ok) {

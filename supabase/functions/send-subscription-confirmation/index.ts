@@ -92,6 +92,16 @@ serve(async (req) => {
 
     const toName = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || undefined
 
+    // The subscriber row id is what gets signed into the unsubscribe link.
+    // The row was just created by the client's upsert before this function
+    // ran, so it must exist.
+    const { data: subRow } = await admin
+      .from('competition_subscribers')
+      .select('id')
+      .eq('competition_id', competitionId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
     const resp = await fetch(`${supabaseUrl}/functions/v1/send-onesignal-email`, {
       method: 'POST',
       headers: {
@@ -106,6 +116,7 @@ serve(async (req) => {
         city_name: compAny.city?.name || null,
         competition_url: competitionUrl,
         nomination_start: compAny.nomination_start || null,
+        subscriber_id: subRow?.id || null,
       }),
     })
 
