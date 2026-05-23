@@ -17,6 +17,7 @@ import CreatePasswordStep from './components/CreatePasswordStep';
 import NomineeInfoStep from './components/NomineeInfoStep';
 import WhyNominateStep from './components/WhyNominateStep';
 import NominatorInfoStep from './components/NominatorInfoStep';
+import CustomQuestionsStep from './components/CustomQuestionsStep';
 import CardReveal from './components/CardReveal';
 
 import './EntryFlow.css';
@@ -39,10 +40,11 @@ export default function EntryFlow() {
     votingRounds,
     prizePool,
     about,
+    isPreview,
   } = usePublicCompetition();
   const { profile } = useSupabaseAuth();
 
-  const flow = useEntryFlow(competition, profile);
+  const flow = useEntryFlow(competition, profile, { isPreview });
   const flowRef = useRef(null);
 
   const competitionTitle = getCompetitionTitle(competition);
@@ -134,6 +136,13 @@ export default function EntryFlow() {
 
   return (
     <div className="entry-flow" ref={flowRef}>
+      {/* Preview banner — visible to hosts walking the form from preview */}
+      {isPreview && (
+        <div className="entry-preview-banner">
+          Preview mode — submissions are simulated and not saved.
+        </div>
+      )}
+
       {/* Header with back button and progress */}
       {flow.currentStep !== 'card' && (
         <header className="entry-header">
@@ -234,10 +243,22 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
         <SelfPitchStep
           bio={flow.selfData.bio}
           onChange={(bio) => flow.updateSelfData({ bio })}
-          onSubmit={flow.submitSelfEntry}
+          onSubmit={flow.hasCustomQuestions ? flow.next : flow.submitSelfEntry}
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
           competition={competition}
+        />
+      );
+
+    case 'custom':
+      return (
+        <CustomQuestionsStep
+          questions={flow.customQuestions}
+          answers={flow.customAnswers}
+          onChange={flow.setCustomAnswer}
+          onSubmit={flow.mode === 'self' ? flow.submitSelfEntry : flow.next}
+          isSubmitting={flow.isSubmitting}
+          error={flow.submitError}
         />
       );
 
