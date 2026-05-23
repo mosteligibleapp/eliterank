@@ -32,7 +32,16 @@ export function NominationsPhase() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const entryPath = `/${orgSlug}/${competitionSlug}/enter`;
+  // Honor whichever URL scheme the user landed on: slug-based URLs build a
+  // slug-based entry path; the ID-based route (used by the dashboard's
+  // preview iframe) doesn't expose a slug, so we fall back to the ID route.
+  // Without this the iframe's Nominate button would navigate to
+  // "/<org>/null/enter" and bounce to the home page.
+  const entryPath = competitionSlug
+    ? `/${orgSlug}/${competitionSlug}/enter`
+    : competition?.id
+      ? `/${orgSlug}/id/${competition.id}/enter`
+      : null;
 
   // Real entry count — the stat card only appears once entries exist.
   const entryCount = contestants?.length || 0;
@@ -54,6 +63,7 @@ export function NominationsPhase() {
   // don't get kicked out of the preview by a stray query param).
   useEffect(() => {
     if (isPreview) return;
+    if (!entryPath) return;
     const applyParam = searchParams.get('apply');
     if (applyParam) {
       searchParams.delete('apply');
@@ -63,6 +73,7 @@ export function NominationsPhase() {
   }, [searchParams, setSearchParams, navigate, entryPath, isPreview]);
 
   const handleEnter = () => {
+    if (!entryPath) return;
     // In preview, navigate to the entry flow with the preview param preserved
     // so EntryFlow knows to stub submissions and not create a real nominee.
     if (isPreview) {

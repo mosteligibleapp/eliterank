@@ -58,17 +58,30 @@ export default function EntryFlow() {
     }
   }, [flow.currentStep]);
 
+  // Compute the URL of the parent competition page using whichever scheme the
+  // user landed on. The dashboard's preview iframe arrives via the ID-based
+  // route which doesn't carry a slug, so we fall back to /id/<id>.
+  const competitionPath = competitionSlug
+    ? `/${orgSlug}/${competitionSlug}`
+    : competition?.id
+      ? `/${orgSlug}/id/${competition.id}`
+      : '/';
+  // Preserve preview mode when bouncing back so hosts don't lose the preview.
+  const competitionPathWithPreview = isPreview
+    ? `${competitionPath}?preview=nominations`
+    : competitionPath;
+
   // Handle back to competition page
   const handleBack = () => {
     if (flow.currentStep !== 'mode' && flow.currentStep !== 'card') {
       flow.back();
     } else {
-      navigate(`/${orgSlug}/${competitionSlug}`);
+      navigate(competitionPathWithPreview);
     }
   };
 
   const handleDone = () => {
-    navigate(`/${orgSlug}/${competitionSlug}`);
+    navigate(competitionPathWithPreview);
   };
 
   // Early persist after details step for self-entry
@@ -121,7 +134,7 @@ export default function EntryFlow() {
           <p>Nominations for {competitionTitle} are no longer open.</p>
           <button
             className="entry-btn-primary"
-            onClick={() => navigate(`/${orgSlug}/${competitionSlug}`)}
+            onClick={() => navigate(competitionPathWithPreview)}
           >
             View Competition
           </button>
