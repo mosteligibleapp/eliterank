@@ -17,6 +17,8 @@ const corsHeaders = {
  *   - fan_confirmation:     "You're now a fan of X" — sent when a user becomes a fan
  *   - fan_weekly_digest:    Weekly performance update sent to fans and to the contestant themselves
  *   - vote_receipt:         "Thanks for voting!" receipt for paid voters with current rank
+ *   - nominations_open_subscriber: "Nominations are open!" blast to users who
+ *                          subscribed on the competition's coming-soon page
  *
  * Required Supabase secrets:
  *   ONESIGNAL_APP_ID     — OneSignal App ID
@@ -25,7 +27,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'nominations_open_subscriber'
   to_email: string
   to_name?: string
   nominee_name?: string
@@ -484,6 +486,34 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${roundEndLine}
             ${ctaUrl ? goldButton(`View ${firstName}'s Profile`, ctaUrl) : ''}
             ${fanPrompt}
+          </div>
+        `),
+      }
+    }
+
+    case 'nominations_open_subscriber': {
+      const competitionName = req.competition_name || 'Most Eligible'
+      const cityLine = req.city_name
+        ? `<p style="color:#ccc;font-size:15px;margin-top:8px;">${req.city_name}</p>`
+        : ''
+      const greeting = req.to_name ? `Hi ${req.to_name.split(' ')[0]},` : 'Hi,'
+      const ctaUrl = req.competition_url || appUrl
+      const deadlineLine = req.nomination_end
+        ? `<p style="color:#999;font-size:13px;margin-top:12px;">Nominations close ${new Date(req.nomination_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.</p>`
+        : ''
+      return {
+        subject: `Nominations are open: ${competitionName}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Nominations are open</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${competitionName}</p>
+            ${cityLine}
+            <p style="color:#ccc;font-size:15px;margin-top:20px;text-align:left;">${greeting}</p>
+            <p style="color:#ccc;font-size:15px;text-align:left;">
+              You asked us to let you know — nominations just opened. Nominate someone you think deserves it, or put yourself forward.
+            </p>
+            ${goldButton('Nominate Now', ctaUrl)}
+            ${deadlineLine}
           </div>
         `),
       }

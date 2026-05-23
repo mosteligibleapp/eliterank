@@ -104,6 +104,108 @@ const EVENT_CHECKS: EventCheck[] = [
   },
 ]
 
+async function sendNominationsOpenBlast(
+  supabase: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  competition: Competition,
+) {
+  const EVENT_TYPE = 'nominations_open'
+
+  // Reserve the blast first via upsert with onConflict do-nothing semantics.
+  // If a row already exists for (competition_id, event_type), insert is a
+  // no-op and we bail out — guarantees at-most-once delivery even across
+  // overlapping cron runs.
+  const { data: reserved, error: reserveError } = await supabase
+    .from('subscriber_blast_events')
+    .insert({
+      competition_id: competition.id,
+      event_type: EVENT_TYPE,
+      recipients: 0,
+    })
+    .select('id')
+    .maybeSingle()
+
+  if (reserveError) {
+    // Unique violation = already sent. Anything else is a real error.
+    if (reserveError.code === '23505') {
+      console.log(`Subscriber blast already sent for competition ${competition.id}/${EVENT_TYPE}`)
+      return
+    }
+    throw reserveError
+  }
+  if (!reserved) return
+
+  // Load subscribers with profile email + name
+  const { data: subscribers, error: subsError } = await supabase
+    .from('competition_subscribers')
+    .select('user_id, profile:profiles!user_id(email, first_name, last_name)')
+    .eq('competition_id', competition.id)
+
+  if (subsError) {
+    console.error(`Failed to load subscribers for ${competition.id}:`, subsError)
+    return
+  }
+
+  // Look up competition + organization details for the email subject and CTA URL
+  const { data: compDetails } = await supabase
+    .from('competitions')
+    .select('name, slug, nomination_end, organization:organizations(slug), city:cities(name)')
+    .eq('id', competition.id)
+    .single()
+
+  const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
+  const orgSlug = compDetails?.organization?.slug
+  const competitionUrl = orgSlug
+    ? `${appUrl}/${orgSlug}/${compDetails?.slug || `id/${competition.id}`}`
+    : `${appUrl}/c/${competition.id}`
+
+  const competitionName = compDetails?.name || `Most Eligible ${competition.city || ''}`.trim()
+  const cityName = compDetails?.city?.name || competition.city || null
+
+  let sent = 0
+  for (const row of subscribers || []) {
+    const profile = row.profile as { email?: string; first_name?: string; last_name?: string } | null
+    if (!profile?.email) continue
+    const toName = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || undefined
+
+    try {
+      const resp = await fetch(`${supabaseUrl}/functions/v1/send-onesignal-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          type: 'nominations_open_subscriber',
+          to_email: profile.email,
+          to_name: toName,
+          competition_name: competitionName,
+          city_name: cityName,
+          competition_url: competitionUrl,
+          nomination_end: compDetails?.nomination_end || competition.nomination_end || null,
+        }),
+      })
+      if (resp.ok) {
+        sent += 1
+      } else {
+        const text = await resp.text()
+        console.error(`Failed to send blast to ${profile.email}:`, text)
+      }
+    } catch (err) {
+      console.error(`Error sending blast to ${profile.email}:`, err)
+    }
+  }
+
+  // Update the ledger row with the actual delivered count
+  await supabase
+    .from('subscriber_blast_events')
+    .update({ recipients: sent })
+    .eq('id', reserved.id)
+
+  console.log(`Subscriber blast for ${competition.id}/${EVENT_TYPE}: sent=${sent} of ${(subscribers || []).length}`)
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -252,6 +354,15 @@ serve(async (req) => {
 
           if (notifError) {
             console.error(`Failed to create notifications for ${eventKey}:`, notifError)
+          }
+
+          // Email blast to coming-soon subscribers — currently only fires on
+          // nominations_open. Dedup'd via subscriber_blast_events so a single
+          // competition + event sends at most once.
+          if (check.eventType === 'nominations_open') {
+            await sendNominationsOpenBlast(supabase, supabaseUrl, supabaseServiceKey, competition).catch((err) => {
+              console.error(`Subscriber blast failed for ${eventKey}:`, err)
+            })
           }
 
           results.push({

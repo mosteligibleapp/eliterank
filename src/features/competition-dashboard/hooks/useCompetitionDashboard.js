@@ -40,6 +40,7 @@ export function useCompetitionDashboard(competitionId) {
     doubleDays: [],
     host: null,
     coHosts: [],
+    subscribers: [],
     competition: null,
     voteRevenue: 0,
   });
@@ -70,6 +71,7 @@ export function useCompetitionDashboard(competitionId) {
         competitionResult,
         paidVotesResult,
         coHostsResult,
+        subscribersResult,
       ] = await Promise.all([
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
         supabase
@@ -160,6 +162,13 @@ export function useCompetitionDashboard(competitionId) {
           .select('user_id, created_at, profile:profiles!user_id(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery)')
           .eq('competition_id', competitionId)
           .order('created_at', { ascending: true }),
+
+        // Subscribers (users who opted in to "notify me when nominations open")
+        supabase
+          .from('competition_subscribers')
+          .select('user_id, created_at, profile:profiles!user_id(id, email, first_name, last_name, avatar_url, city)')
+          .eq('competition_id', competitionId)
+          .order('created_at', { ascending: false }),
       ]);
 
       // Check for errors
@@ -176,6 +185,7 @@ export function useCompetitionDashboard(competitionId) {
         competitionResult.error,
         paidVotesResult.error,
         coHostsResult.error,
+        subscribersResult.error,
       ].filter(Boolean);
 
       if (errors.length > 0) {
@@ -214,6 +224,21 @@ export function useCompetitionDashboard(competitionId) {
             avatar: p.avatar_url,
             city: p.city,
             addedAt: row.created_at,
+          };
+        })
+        .filter(Boolean);
+
+      const subscribers = (subscribersResult.data || [])
+        .map((row) => {
+          const p = row.profile;
+          if (!p) return null;
+          return {
+            id: p.id,
+            name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email,
+            email: p.email,
+            avatar: p.avatar_url,
+            city: p.city,
+            subscribedAt: row.created_at,
           };
         })
         .filter(Boolean);
@@ -430,6 +455,7 @@ export function useCompetitionDashboard(competitionId) {
         doubleDays,
         host,
         coHosts,
+        subscribers,
         voteRevenue,
         competition: competition ? {
           id: competition.id,
