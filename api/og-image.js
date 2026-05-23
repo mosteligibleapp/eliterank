@@ -416,11 +416,16 @@ function profileCard(profile) {
 // Entry point
 // ----------------------------------------------------------------------------
 
+// The dynamic URL emitted by api/og.js carries `v=<hash-of-cover-or-photo>`
+// — when the underlying photo changes, the version segment changes, so the
+// crawler hits a fresh URL. That lets us tell the CDN this response is
+// content-addressed and never needs revalidation: render once per version,
+// serve forever from cache.
 const RESPONSE_OPTS = {
   width: 1200,
   height: 630,
   headers: {
-    'cache-control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400',
+    'cache-control': 'public, max-age=31536000, s-maxage=31536000, immutable',
   },
 };
 
