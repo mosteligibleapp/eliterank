@@ -1414,11 +1414,6 @@ export default function PeopleTab({
         style={{ marginBottom: 0 }}
         collapsible
         defaultCollapsed
-        action={
-          <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
-            Add
-          </Button>
-        }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {nomineesWithProfile.length === 0 ? (
@@ -1454,6 +1449,11 @@ export default function PeopleTab({
         style={{ marginBottom: 0 }}
         collapsible
         defaultCollapsed
+        action={
+          <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
+            Add
+          </Button>
+        }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {externalNominees.length > 0 && (
