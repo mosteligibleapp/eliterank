@@ -18,6 +18,13 @@ const COMPETITION_SELECT = `
     id, first_name, last_name, bio, avatar_url, city,
     instagram, twitter, linkedin
   ),
+  competition_co_hosts (
+    created_at,
+    profile:profiles!user_id (
+      id, first_name, last_name, bio, avatar_url, city,
+      instagram, twitter, linkedin
+    )
+  ),
   contestants (
     id, user_id, name, email, age, bio, avatar_url, instagram,
     status, votes, rank, trend, city, slug, profile_views,
