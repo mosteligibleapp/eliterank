@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +29,9 @@ interface EmailRequest {
   type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt'
   to_email: string
   to_name?: string
+  // When set, the send is recorded in email_logs so the host of this
+  // competition can see deliverability in the dashboard's Email Activity tab.
+  competition_id?: string
   nominee_name?: string
   nominator_name?: string
   competition_name?: string
@@ -599,6 +603,45 @@ async function ensureEmailSubscription(
   }
 }
 
+/**
+ * Best-effort write of a send attempt to the email_logs table. Never throws —
+ * deliverability logging must not block or fail the actual email send.
+ */
+async function logEmailSend(params: {
+  body: EmailRequest
+  status: 'sent' | 'failed'
+  onesignalId?: string | null
+  recipients?: number | null
+  deliveryMethod?: string | null
+  error?: string | null
+}): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !serviceKey) {
+      console.warn('email_logs: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY — skipping log')
+      return
+    }
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    const { error } = await supabase.from('email_logs').insert({
+      competition_id: params.body.competition_id ?? null,
+      email_type: params.body.type,
+      to_email: params.body.to_email,
+      to_name: params.body.to_name ?? null,
+      status: params.status,
+      onesignal_id: params.onesignalId ?? null,
+      recipients: params.recipients ?? null,
+      delivery_method: params.deliveryMethod ?? null,
+      error: params.error ? String(params.error).slice(0, 1000) : null,
+    })
+    if (error) console.warn('email_logs insert failed (non-blocking):', error.message)
+  } catch (err) {
+    console.warn('email_logs logging error (non-blocking):', err)
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -731,6 +774,13 @@ serve(async (req) => {
         }))
 
         if (fallbackRes.ok && fallbackResult?.recipients > 0) {
+          await logEmailSend({
+            body,
+            status: 'sent',
+            onesignalId: fallbackResult.id,
+            recipients: fallbackResult.recipients,
+            deliveryMethod: 'email_token_fallback',
+          })
           return new Response(
             JSON.stringify({ success: true, onesignal_id: fallbackResult.id, recipients: fallbackResult.recipients, method: 'email_token_fallback' }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -738,6 +788,12 @@ serve(async (req) => {
         }
       }
 
+      await logEmailSend({
+        body,
+        status: 'failed',
+        recipients: osResult?.recipients ?? 0,
+        error: JSON.stringify(osResult),
+      })
       return new Response(
         JSON.stringify({ error: 'OneSignal email delivery failed', details: osResult, subscription_id: subscriptionId }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -745,6 +801,14 @@ serve(async (req) => {
     }
 
     console.log('OneSignal email sent successfully:', JSON.stringify({ id: osResult.id, recipients: osResult.recipients }))
+
+    await logEmailSend({
+      body,
+      status: 'sent',
+      onesignalId: osResult.id,
+      recipients: osResult.recipients,
+      deliveryMethod: subscriptionId ? 'subscription_id' : 'email_token',
+    })
 
     return new Response(
       JSON.stringify({ success: true, onesignal_id: osResult.id, recipients: osResult.recipients }),

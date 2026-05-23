@@ -104,6 +104,7 @@ serve(async (req) => {
       nominee_name: nominee.name,
       nominator_name: nominee.nominator_name,
       competition_name: competitionName,
+      competition_id: competition?.id,
       city_name: cityName,
       competition_url: competitionUrl,
     }

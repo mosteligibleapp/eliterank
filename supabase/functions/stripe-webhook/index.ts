@@ -83,6 +83,7 @@ async function sendVoteReceiptEmail(
     to_email: voterEmail,
     contestant_name: contestant.name,
     competition_name: competition?.name || 'Most Eligible',
+    competition_id: competition?.id,
     competition_url: competitionUrl,
     profile_url: profileUrl,
     rank: contestant.rank,

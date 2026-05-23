@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle
+  Eye, AlertCircle, Mail
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -12,12 +12,13 @@ import { useCompetitionDashboard } from './hooks/useCompetitionDashboard';
 import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
-import { OverviewTab, PeopleTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
+import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
 
 // Consolidated tab navigation
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
+  { id: 'emails', label: 'Emails', shortLabel: 'Emails', icon: Mail },
   { id: 'content', label: 'Content', shortLabel: 'Content', icon: FileText },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
   { id: 'preview', label: 'Preview', shortLabel: 'Preview', icon: Eye },
@@ -447,6 +448,8 @@ export default function CompetitionDashboard({
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
           />
         );
+      case 'emails':
+        return <EmailActivityTab competitionId={competitionId} />;
       case 'content':
         return (
           <ContentTab
