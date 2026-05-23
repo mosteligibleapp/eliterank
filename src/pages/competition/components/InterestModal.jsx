@@ -59,7 +59,6 @@ export function InterestModal({ type, competition, onClose }) {
           email: formData.email.trim(),
           phone: formData.phone.trim() || null,
           message: formData.message.trim() || null,
-          city: competition?.city || null,
           status: 'pending',
         });
 
@@ -163,30 +162,28 @@ export function InterestModal({ type, competition, onClose }) {
               </div>
             )}
 
-            {/* Message - only for hosting/sponsoring/competing */}
-            {type !== INTEREST_TYPE.FAN && (
-              <div className="form-group">
-                <label className="form-label">
-                  <MessageSquare size={14} />
-                  Tell us about yourself (optional)
-                </label>
-                <textarea
-                  value={formData.message}
-                  onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-                  placeholder={
-                    type === INTEREST_TYPE.COMPETING
-                      ? "Why do you think you're the most eligible?"
-                      : type === INTEREST_TYPE.HOSTING
-                      ? "Tell us about your experience with events..."
-                      : type === INTEREST_TYPE.SPONSORING
-                      ? "Tell us about your business or brand..."
-                      : "Any questions or comments?"
-                  }
-                  rows={3}
-                  className="form-input form-textarea"
-                />
-              </div>
-            )}
+            {/* Message - all interest types take an optional intro */}
+            <div className="form-group">
+              <label className="form-label">
+                <MessageSquare size={14} />
+                Tell us about yourself (optional)
+              </label>
+              <textarea
+                value={formData.message}
+                onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                placeholder={
+                  type === INTEREST_TYPE.COMPETING
+                    ? "Why do you think you're the most eligible?"
+                    : type === INTEREST_TYPE.HOSTING
+                    ? "Tell us about your experience with events..."
+                    : type === INTEREST_TYPE.SPONSORING
+                    ? "Tell us about your business or brand..."
+                    : "Any questions or comments?"
+                }
+                rows={3}
+                className="form-input form-textarea"
+              />
+            </div>
 
             {/* Error Message */}
             {error && (
