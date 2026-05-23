@@ -46,24 +46,29 @@ function truncate(text, limit) {
 
 function buildMetaBlock({ title, description, image, url }) {
   const t = escapeHtml(title || DEFAULT_TITLE);
-  const d = escapeHtml(truncate(description || DEFAULT_DESCRIPTION, 200));
   const img = escapeHtml(image || DEFAULT_IMAGE);
   const u = escapeHtml(url || SITE_URL);
-  return [
+  // description === null means "omit the description tags entirely" (used for
+  // profile shares). Anything else (undefined, '', etc.) falls back to default.
+  const includeDescription = description !== null;
+  const d = includeDescription ? escapeHtml(truncate(description || DEFAULT_DESCRIPTION, 200)) : '';
+
+  const tags = [
     `<title>${t}</title>`,
-    `<meta name="description" content="${d}" />`,
+    includeDescription && `<meta name="description" content="${d}" />`,
     `<meta property="og:url" content="${u}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:title" content="${t}" />`,
-    `<meta property="og:description" content="${d}" />`,
+    includeDescription && `<meta property="og:description" content="${d}" />`,
     `<meta property="og:image" content="${img}" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${t}" />`,
-    `<meta name="twitter:description" content="${d}" />`,
+    includeDescription && `<meta name="twitter:description" content="${d}" />`,
     `<meta name="twitter:image" content="${img}" />`,
-  ].join('\n    ');
+  ];
+  return tags.filter(Boolean).join('\n    ');
 }
 
 function injectMeta(html, metaBlock) {
@@ -105,7 +110,7 @@ async function fetchProfileMeta(profileId, canonicalUrl) {
   if (!UUID_RE.test(profileId)) return null;
   const rows = await supabaseRest(
     `/profiles?id=eq.${encodeURIComponent(profileId)}` +
-      `&select=first_name,last_name,headline,bio,city,avatar_url,cover_image&limit=1`,
+      `&select=first_name,last_name,city,avatar_url,cover_image&limit=1`,
   );
   const profile = Array.isArray(rows) ? rows[0] : null;
   if (!profile) return null;
@@ -113,14 +118,10 @@ async function fetchProfileMeta(profileId, canonicalUrl) {
   const name = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim();
   const displayName = name || 'EliteRank Member';
   const cityPart = profile.city ? ` · ${profile.city}` : '';
-  const tagline =
-    profile.headline?.trim() ||
-    (profile.bio ? truncate(profile.bio, 180) : '') ||
-    `${displayName} is competing on EliteRank.`;
 
   return {
     title: `${displayName}${cityPart} | EliteRank`,
-    description: tagline,
+    description: null,
     image: profile.cover_image || profile.avatar_url || DEFAULT_IMAGE,
     url: canonicalUrl,
   };
@@ -139,8 +140,6 @@ function formatCompetitionMeta(competition, canonicalUrl) {
   const title = `${titleParts.join(' · ')} | EliteRank`;
 
   const description =
-    competition.about_tagline?.trim() ||
-    competition.about_description?.trim() ||
     competition.description?.trim() ||
     (orgName
       ? `Vote in ${name}${city ? ` in ${city}` : ''}, hosted by ${orgName}.`
@@ -158,7 +157,7 @@ async function fetchCompetitionByIdMeta(competitionId, canonicalUrl) {
   if (!UUID_RE.test(competitionId)) return null;
   const rows = await supabaseRest(
     `/competitions?id=eq.${encodeURIComponent(competitionId)}` +
-      `&select=name,city,season,description,about_tagline,about_description,organization:organizations(name,slug)&limit=1`,
+      `&select=name,city,season,description,organization:organizations(name,slug)&limit=1`,
   );
   return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl);
 }
@@ -167,7 +166,7 @@ async function fetchCompetitionBySlugMeta(orgSlug, slug, canonicalUrl) {
   const rows = await supabaseRest(
     `/competitions?slug=eq.${encodeURIComponent(slug)}` +
       `&organization.slug=eq.${encodeURIComponent(orgSlug)}` +
-      `&select=name,city,season,description,about_tagline,about_description,organization:organizations!inner(name,slug)&limit=1`,
+      `&select=name,city,season,description,organization:organizations!inner(name,slug)&limit=1`,
   );
   return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl);
 }
