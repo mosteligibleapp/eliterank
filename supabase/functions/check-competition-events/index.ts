@@ -181,6 +181,7 @@ async function sendNominationsOpenBlast(
           type: 'nominations_open_subscriber',
           to_email: profile.email,
           to_name: toName,
+          competition_id: competition.id,
           competition_name: competitionName,
           city_name: cityName,
           competition_url: competitionUrl,
