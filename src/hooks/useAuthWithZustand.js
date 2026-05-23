@@ -37,7 +37,7 @@ export default function useAuthWithZustand() {
     if (!supabase || !userId) return null;
 
     try {
-      const [profileResult, hostResult, contestantResult, nomineeResult] = await Promise.all([
+      const [profileResult, hostResult, coHostResult, contestantResult, nomineeResult] = await Promise.all([
         supabase
           .from('profiles')
           .select('*')
@@ -47,6 +47,11 @@ export default function useAuthWithZustand() {
           .from('competitions')
           .select('id')
           .eq('host_id', userId)
+          .limit(1),
+        supabase
+          .from('competition_co_hosts')
+          .select('competition_id')
+          .eq('user_id', userId)
           .limit(1),
         supabase
           .from('contestants')
@@ -67,7 +72,9 @@ export default function useAuthWithZustand() {
 
       return {
         ...profileResult.data,
-        is_host: (hostResult.data?.length ?? 0) > 0,
+        is_host:
+          (hostResult.data?.length ?? 0) > 0 ||
+          (coHostResult.data?.length ?? 0) > 0,
         is_nominee_or_contestant:
           (contestantResult.data?.length ?? 0) > 0 ||
           (nomineeResult.data?.length ?? 0) > 0,
