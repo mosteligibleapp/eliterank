@@ -68,6 +68,7 @@ export default function PeopleTab({
   host,
   coHosts = [],
   subscribers = [],
+  onRemoveSubscriber,
   isSuperAdmin = false,
   onRefresh,
   onApproveNominee,
@@ -1224,6 +1225,39 @@ export default function PeopleTab({
                     <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs }}>
                       {new Date(sub.subscribedAt).toLocaleDateString()}
                     </p>
+                  )}
+                  {onRemoveSubscriber && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Remove ${sub.name} from this competition's subscriber list? They won't be notified when nominations open.`)) return;
+                        addProcessing(sub.id);
+                        try {
+                          const result = await onRemoveSubscriber(sub.id);
+                          if (!result?.success) {
+                            alert(`Failed to remove subscriber: ${result?.error || 'Unknown error'}`);
+                          }
+                        } finally {
+                          removeProcessing(sub.id);
+                        }
+                      }}
+                      disabled={processingIds.has(sub.id)}
+                      title="Remove from subscriber list"
+                      style={{
+                        padding: spacing.xs,
+                        background: 'rgba(239,68,68,0.1)',
+                        border: 'none',
+                        borderRadius: borderRadius.sm,
+                        cursor: processingIds.has(sub.id) ? 'not-allowed' : 'pointer',
+                        color: '#ef4444',
+                        minWidth: '32px',
+                        minHeight: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <XCircle size={16} />
+                    </button>
                   )}
                 </div>
               ))}

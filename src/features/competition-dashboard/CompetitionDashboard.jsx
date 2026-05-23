@@ -83,6 +83,7 @@ export default function CompetitionDashboard({
     removeHost,
     addCoHost,
     removeCoHost,
+    removeSubscriber,
     repairNomineeAccount,
     repairAllNomineeAccounts,
   } = dashboard;
@@ -444,6 +445,7 @@ export default function CompetitionDashboard({
             onRemoveHost={removeHost}
             onShowAddCoHost={() => setShowAddCoHost(true)}
             onRemoveCoHost={removeCoHost}
+            onRemoveSubscriber={removeSubscriber}
             onResendInvite={resendInvite}
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}

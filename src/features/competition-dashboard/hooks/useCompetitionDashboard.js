@@ -1660,6 +1660,25 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  const removeSubscriber = useCallback(async (userId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competition_subscribers')
+        .delete()
+        .eq('competition_id', competitionId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error removing subscriber:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   // ============================================================================
   // NOMINEE ACCOUNT REPAIR OPERATIONS
   // ============================================================================
@@ -1764,6 +1783,7 @@ export function useCompetitionDashboard(competitionId) {
     removeHost,
     addCoHost,
     removeCoHost,
+    removeSubscriber,
   };
 }
 
