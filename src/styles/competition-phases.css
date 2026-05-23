@@ -70,26 +70,21 @@
 }
 
 .org-logo {
-  width: 100%;
-  max-width: 320px;
-  height: 96px;
+  width: 280px;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .org-logo a {
-  display: block;
-  width: 100%;
-  height: 100%;
+  display: flex;
 }
 
 .org-logo img {
-  display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: center;
   mix-blend-mode: lighten;
 }
 

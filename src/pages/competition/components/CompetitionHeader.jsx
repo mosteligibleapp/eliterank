@@ -58,13 +58,7 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
   const websiteUrl = organization?.website_url;
 
   const logoContent = headerLogo ? (
-    <img
-      src={transformSupabaseImage(headerLogo, { width: 600 })}
-      alt={organization.name}
-      fetchpriority="high"
-      decoding="async"
-      loading="eager"
-    />
+    <img src={transformSupabaseImage(headerLogo, { width: 600 })} alt={organization.name} />
   ) : (
     <Crown size={40} />
   );
