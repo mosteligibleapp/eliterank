@@ -106,11 +106,15 @@ async function supabaseRest(pathWithQuery) {
   }
 }
 
+function dynamicImageUrl(type, id) {
+  return `${SITE_URL}/api/og-image?type=${type}&id=${encodeURIComponent(id)}`;
+}
+
 async function fetchProfileMeta(profileId, canonicalUrl) {
   if (!UUID_RE.test(profileId)) return null;
   const rows = await supabaseRest(
     `/profiles?id=eq.${encodeURIComponent(profileId)}` +
-      `&select=first_name,last_name,city,avatar_url,cover_image&limit=1`,
+      `&select=id,first_name,last_name,city,avatar_url,cover_image&limit=1`,
   );
   const profile = Array.isArray(rows) ? rows[0] : null;
   if (!profile) return null;
@@ -119,10 +123,15 @@ async function fetchProfileMeta(profileId, canonicalUrl) {
   const displayName = name || 'EliteRank Member';
   const cityPart = profile.city ? ` · ${profile.city}` : '';
 
+  // Use the dynamic share card when there's a real photo to composite; fall
+  // back to the brand image otherwise.
+  const hasPhoto = Boolean(profile.cover_image || profile.avatar_url);
+  const image = hasPhoto ? dynamicImageUrl('profile', profile.id) : DEFAULT_IMAGE;
+
   return {
     title: `${displayName}${cityPart} | EliteRank`,
     description: null,
-    image: profile.cover_image || profile.avatar_url || DEFAULT_IMAGE,
+    image,
     url: canonicalUrl,
   };
 }
@@ -145,10 +154,14 @@ function formatCompetitionMeta(competition, canonicalUrl) {
       ? `Vote in ${name}${city ? ` in ${city}` : ''}, hosted by ${orgName}.`
       : `Vote in ${name}${city ? ` in ${city}` : ''}.`);
 
+  const image = competition.cover_image
+    ? dynamicImageUrl('competition', competition.id)
+    : DEFAULT_IMAGE;
+
   return {
     title,
     description,
-    image: DEFAULT_IMAGE,
+    image,
     url: canonicalUrl,
   };
 }
@@ -157,7 +170,7 @@ async function fetchCompetitionByIdMeta(competitionId, canonicalUrl) {
   if (!UUID_RE.test(competitionId)) return null;
   const rows = await supabaseRest(
     `/competitions?id=eq.${encodeURIComponent(competitionId)}` +
-      `&select=name,city,season,description,organization:organizations(name,slug)&limit=1`,
+      `&select=id,name,city,season,description,cover_image,organization:organizations(name,slug)&limit=1`,
   );
   return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl);
 }
@@ -166,7 +179,7 @@ async function fetchCompetitionBySlugMeta(orgSlug, slug, canonicalUrl) {
   const rows = await supabaseRest(
     `/competitions?slug=eq.${encodeURIComponent(slug)}` +
       `&organization.slug=eq.${encodeURIComponent(orgSlug)}` +
-      `&select=name,city,season,description,organization:organizations!inner(name,slug)&limit=1`,
+      `&select=id,name,city,season,description,cover_image,organization:organizations!inner(name,slug)&limit=1`,
   );
   return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl);
 }
