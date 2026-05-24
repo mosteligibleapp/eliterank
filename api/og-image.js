@@ -459,6 +459,7 @@ export default async function handler(req) {
     console.error('[og-image] render error:', err);
   }
 
-  // Nothing renderable — defer to the static brand image.
-  return Response.redirect(`${SITE_URL}/og-image.png`, 302);
+  // Nothing renderable — defer to the static brand image on the same
+  // deployment (so preview deploys serve their own brand image, not prod's).
+  return Response.redirect(`${url.origin}/og-image.png`, 302);
 }

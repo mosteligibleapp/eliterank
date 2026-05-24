@@ -120,12 +120,12 @@ function shortHash(value) {
   return (hash >>> 0).toString(36);
 }
 
-function dynamicImageUrl(type, id, version) {
+function dynamicImageUrl(origin, type, id, version) {
   const v = version ? `&v=${encodeURIComponent(version)}` : '';
-  return `${SITE_URL}/api/og-image?type=${type}&id=${encodeURIComponent(id)}${v}`;
+  return `${origin}/api/og-image?type=${type}&id=${encodeURIComponent(id)}${v}`;
 }
 
-async function fetchProfileMeta(profileId, canonicalUrl) {
+async function fetchProfileMeta(profileId, canonicalUrl, origin) {
   if (!UUID_RE.test(profileId)) return null;
   const rows = await supabaseRest(
     `/profiles?id=eq.${encodeURIComponent(profileId)}` +
@@ -142,7 +142,7 @@ async function fetchProfileMeta(profileId, canonicalUrl) {
   // back to the brand image otherwise.
   const photoUrl = profile.cover_image || profile.avatar_url;
   const image = photoUrl
-    ? dynamicImageUrl('profile', profile.id, shortHash(photoUrl))
+    ? dynamicImageUrl(origin, 'profile', profile.id, shortHash(photoUrl))
     : DEFAULT_IMAGE;
 
   return {
@@ -153,7 +153,7 @@ async function fetchProfileMeta(profileId, canonicalUrl) {
   };
 }
 
-function formatCompetitionMeta(competition, canonicalUrl) {
+function formatCompetitionMeta(competition, canonicalUrl, origin) {
   if (!competition) return null;
   const name = competition.name?.trim() || 'EliteRank Competition';
   const city = competition.city?.trim();
@@ -177,7 +177,7 @@ function formatCompetitionMeta(competition, canonicalUrl) {
   // set) or the city name so the URL changes when either does, busting the
   // CDN cache.
   const versionKey = competition.cover_image || `city:${(city || 'default').toLowerCase()}`;
-  const image = dynamicImageUrl('competition', competition.id, shortHash(versionKey));
+  const image = dynamicImageUrl(origin, 'competition', competition.id, shortHash(versionKey));
 
   return {
     title,
@@ -187,22 +187,22 @@ function formatCompetitionMeta(competition, canonicalUrl) {
   };
 }
 
-async function fetchCompetitionByIdMeta(competitionId, canonicalUrl) {
+async function fetchCompetitionByIdMeta(competitionId, canonicalUrl, origin) {
   if (!UUID_RE.test(competitionId)) return null;
   const rows = await supabaseRest(
     `/competitions?id=eq.${encodeURIComponent(competitionId)}` +
       `&select=id,name,city,season,description,cover_image,organization:organizations(name,slug)&limit=1`,
   );
-  return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl);
+  return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl, origin);
 }
 
-async function fetchCompetitionBySlugMeta(orgSlug, slug, canonicalUrl) {
+async function fetchCompetitionBySlugMeta(orgSlug, slug, canonicalUrl, origin) {
   const rows = await supabaseRest(
     `/competitions?slug=eq.${encodeURIComponent(slug)}` +
       `&organization.slug=eq.${encodeURIComponent(orgSlug)}` +
       `&select=id,name,city,season,description,cover_image,organization:organizations!inner(name,slug)&limit=1`,
   );
-  return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl);
+  return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl, origin);
 }
 
 function getQueryParam(url, name) {
@@ -219,26 +219,31 @@ export default async function handler(req) {
   const pathParam = getQueryParam(url, 'path');
 
   const canonicalPath = pathParam && pathParam.startsWith('/') ? pathParam : '/';
+  // og:url stays on the production canonical so social platforms attribute
+  // shares to the real domain. og:image gets the request origin so preview
+  // deploys (vercel.app) render against themselves instead of pulling from
+  // production.
   const canonicalUrl = `${SITE_URL}${canonicalPath}`;
+  const origin = url.origin;
 
   let meta = null;
   try {
     if (type === 'profile' && profileId) {
-      meta = await fetchProfileMeta(profileId, canonicalUrl);
+      meta = await fetchProfileMeta(profileId, canonicalUrl, origin);
     } else if (
       type === 'competition-id' &&
       orgSlug &&
       competitionId &&
       !RESERVED_FIRST_SEGMENTS.has(orgSlug.toLowerCase())
     ) {
-      meta = await fetchCompetitionByIdMeta(competitionId, canonicalUrl);
+      meta = await fetchCompetitionByIdMeta(competitionId, canonicalUrl, origin);
     } else if (
       (type === 'competition-slug' || type === 'competition-legacy') &&
       orgSlug &&
       slug &&
       !RESERVED_FIRST_SEGMENTS.has(orgSlug.toLowerCase())
     ) {
-      meta = await fetchCompetitionBySlugMeta(orgSlug, slug, canonicalUrl);
+      meta = await fetchCompetitionBySlugMeta(orgSlug, slug, canonicalUrl, origin);
     }
   } catch (err) {
     console.error('[og] handler error:', err);
