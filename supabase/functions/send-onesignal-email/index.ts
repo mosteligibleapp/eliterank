@@ -30,7 +30,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'nominations_open_subscriber' | 'subscriber_confirmation'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'nominations_open_subscriber' | 'subscriber_confirmation' | 'judge_invite'
   to_email: string
   to_name?: string
   // When set, the send is recorded in email_logs so the host of this
@@ -231,6 +231,28 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${goldButton('Finish My Entry', req.claim_url || appUrl)}
             <p style="color:#666;font-size:12px;">
               Your profile must be complete before you can be approved as a contestant.
+            </p>
+          </div>
+        `),
+      }
+    }
+
+    case 'judge_invite': {
+      return {
+        subject: `You've been invited to judge ${req.competition_name || 'Most Eligible'}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You've Been Invited to Judge</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            <p style="color:#ccc;font-size:15px;">
+              You've been selected as a judge${req.city_name ? ` for ${req.city_name}` : ''}. Your scores will help decide who advances and who wins.
+            </p>
+            <p style="color:#999;font-size:14px;margin-top:16px;">
+              Set up your account and you'll be able to score contestants when the judging round opens.
+            </p>
+            ${goldButton('Accept Judging Invite', req.claim_url || appUrl)}
+            <p style="color:#666;font-size:12px;">
+              If you weren't expecting this, you can ignore the email.
             </p>
           </div>
         `),

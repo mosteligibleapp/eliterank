@@ -56,6 +56,11 @@ export default function CompetitionDashboard({
     addJudge,
     updateJudge,
     deleteJudge,
+    sendJudgeInvite,
+    addCriterion,
+    updateCriterion,
+    deleteCriterion,
+    updateRoundJudgeWeight,
     updateCharity,
     removeCharity,
     addSponsor,
@@ -479,6 +484,9 @@ export default function CompetitionDashboard({
           <SetupTab
             competition={competition}
             judges={data.judges}
+            judgingCriteria={data.judgingCriteria}
+            judgeScores={data.judgeScores}
+            contestants={data.contestants}
             sponsors={data.sponsors}
             events={data.events}
             prizes={data.prizes}
@@ -486,6 +494,11 @@ export default function CompetitionDashboard({
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onDeleteJudge={deleteJudge}
+            onSendJudgeInvite={sendJudgeInvite}
+            onAddCriterion={addCriterion}
+            onUpdateCriterion={updateCriterion}
+            onDeleteCriterion={deleteCriterion}
+            onUpdateRoundJudgeWeight={updateRoundJudgeWeight}
             onDeleteSponsor={deleteSponsor}
             onDeleteEvent={deleteEvent}
             onDeletePrize={deletePrize}

@@ -8,6 +8,7 @@ import { AlertCircle, Eye, Loader, X, ArrowLeft } from 'lucide-react';
 import CompetitionSkeleton from '../../components/skeletons/CompetitionSkeleton';
 import { useAuthStore } from '../../stores';
 import { ProfileIcon, NotificationBell } from '../../components/ui';
+import { useIsJudge } from '../../hooks';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
 // Phase view components (lazy-loaded — only the active phase is needed)
@@ -65,6 +66,7 @@ function CompetitionLayoutInner() {
 
   // Check if user has dashboard access
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
+  const isJudge = useIsJudge();
 
   // Performance stats — surfaced inside the profile dropdown when the
   // current user is a contestant in this competition. We have the data on
@@ -95,6 +97,10 @@ function CompetitionLayoutInner() {
 
   const handleDashboard = () => {
     navigate('/dashboard');
+  };
+
+  const handleJudge = () => {
+    navigate('/judge');
   };
 
   const handleRewards = () => {
@@ -222,6 +228,8 @@ function CompetitionLayoutInner() {
             onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
+            onJudge={isJudge ? handleJudge : null}
+            isJudge={isJudge}
             performance={performance}
             size={40}
           />

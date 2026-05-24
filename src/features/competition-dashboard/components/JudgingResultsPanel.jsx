@@ -1,0 +1,229 @@
+import React, { useMemo, useState, useEffect } from 'react';
+import { BarChart3, Crown } from 'lucide-react';
+import { Avatar, Panel } from '../../../components/ui';
+import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+
+/**
+ * JudgingResultsPanel — host-side view of how contestants are doing in
+ * judging-enabled rounds.
+ *
+ * Aggregation per round:
+ *  - judgeTotal(c)        = avg across submitted judges of Σ(score × weight)
+ *  - normJudges(c)        = judgeTotal(c) / max(judgeTotal)
+ *  - normVotes(c)         = votes(c)      / max(votes)
+ *  - finalScore(c)        = (jw/100) · normJudges + ((100-jw)/100) · normVotes
+ *  - Sort desc, top `contestants_advance` advance.
+ *
+ * Only counts judge_scores rows that have `submitted_at` set, so draft scores
+ * never affect the leaderboard.
+ */
+export default function JudgingResultsPanel({
+  contestants = [],
+  judges = [],
+  judgingCriteria = [],
+  judgeScores = [],
+  votingRounds = [],
+}) {
+  // Restrict to rounds with judges enabled
+  const judgingRounds = useMemo(() => (
+    [...votingRounds]
+      .filter(r => (r.judge_weight || 0) > 0)
+      .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
+  ), [votingRounds]);
+
+  const [activeRoundId, setActiveRoundId] = useState(judgingRounds[0]?.id || null);
+
+  // Sync default when rounds load
+  useEffect(() => {
+    if (!activeRoundId && judgingRounds.length > 0) {
+      setActiveRoundId(judgingRounds[0].id);
+    }
+  }, [judgingRounds, activeRoundId]);
+
+  const round = judgingRounds.find(r => r.id === activeRoundId) || judgingRounds[0] || null;
+  const roundId = round?.id || null;
+  const judgeWeight = round?.judge_weight || 0;
+
+  // Build judge × contestant totals using only submitted rows.
+  // judgeTotalByContestant[contestantId] = [judgeTotal, judgeTotal, …]
+  const judgeTotalsByContestant = useMemo(() => {
+    if (!roundId) return {};
+    const out = {};
+    const criterionWeight = new Map(judgingCriteria.map(c => [c.id, c.weight || 1]));
+    const submittedScoresForRound = judgeScores.filter(s => s.votingRoundId === roundId && s.submittedAt);
+    const byJudge = new Map();
+    for (const s of submittedScoresForRound) {
+      if (!byJudge.has(s.judgeId)) byJudge.set(s.judgeId, new Map());
+      const perContestant = byJudge.get(s.judgeId);
+      if (!perContestant.has(s.contestantId)) perContestant.set(s.contestantId, 0);
+      perContestant.set(s.contestantId, perContestant.get(s.contestantId) + s.score * (criterionWeight.get(s.criterionId) || 1));
+    }
+    for (const [, perContestant] of byJudge.entries()) {
+      for (const [cid, total] of perContestant.entries()) {
+        if (!out[cid]) out[cid] = [];
+        out[cid].push(total);
+      }
+    }
+    return out;
+  }, [judgeScores, judgingCriteria, roundId]);
+
+  const submittedJudgeCount = useMemo(() => {
+    if (!roundId) return 0;
+    const set = new Set();
+    judgeScores.forEach(s => {
+      if (s.votingRoundId === roundId && s.submittedAt) set.add(s.judgeId);
+    });
+    return set.size;
+  }, [judgeScores, roundId]);
+
+  const leaderboard = useMemo(() => {
+    const judgeAvg = {};
+    let maxJudge = 0;
+    let maxVotes = 0;
+    for (const c of contestants) {
+      const arr = judgeTotalsByContestant[c.id] || [];
+      const avg = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+      judgeAvg[c.id] = avg;
+      if (avg > maxJudge) maxJudge = avg;
+      const v = c.votes || 0;
+      if (v > maxVotes) maxVotes = v;
+    }
+    const jw = judgeWeight / 100;
+    const vw = (100 - judgeWeight) / 100;
+    return contestants
+      .map((c) => {
+        const normJ = maxJudge > 0 ? judgeAvg[c.id] / maxJudge : 0;
+        const normV = maxVotes > 0 ? (c.votes || 0) / maxVotes : 0;
+        const final = jw * normJ + vw * normV;
+        return {
+          contestant: c,
+          judgeAvg: judgeAvg[c.id],
+          votes: c.votes || 0,
+          normJudges: normJ,
+          normVotes: normV,
+          final,
+        };
+      })
+      .sort((a, b) => b.final - a.final);
+  }, [contestants, judgeTotalsByContestant, judgeWeight]);
+
+  if (judgingRounds.length === 0 || !round) {
+    return null;
+  }
+
+  const advanceCount = round.contestants_advance || 0;
+
+  return (
+    <Panel
+      title="Judging Results"
+      icon={BarChart3}
+    >
+      <div style={{ padding: spacing.xl }}>
+        {/* Round tabs */}
+        <div style={{ display: 'flex', gap: spacing.xs, marginBottom: spacing.lg, flexWrap: 'wrap' }}>
+          {judgingRounds.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => setActiveRoundId(r.id)}
+              style={{
+                padding: `${spacing.xs} ${spacing.md}`,
+                borderRadius: borderRadius.full,
+                border: `1px solid ${activeRoundId === r.id ? colors.gold.primary : colors.border.primary}`,
+                background: activeRoundId === r.id ? 'rgba(212,175,55,0.12)' : 'transparent',
+                color: activeRoundId === r.id ? colors.gold.primary : colors.text.secondary,
+                fontSize: typography.fontSize.sm,
+                cursor: 'pointer',
+              }}
+            >
+              {r.title || `Round ${r.round_order || ''}`}
+            </button>
+          ))}
+        </div>
+
+        <div style={{
+          fontSize: typography.fontSize.sm,
+          color: colors.text.secondary,
+          marginBottom: spacing.md,
+        }}>
+          {judgeWeight === 100
+            ? 'Judges decide who advances this round.'
+            : judgeWeight === 0
+            ? 'Votes decide this round (no judging weight set).'
+            : `Blended: ${judgeWeight}% judges + ${100 - judgeWeight}% votes`}
+          {' · '}
+          {submittedJudgeCount} of {judges.length} judges have submitted
+          {advanceCount > 0 && ` · top ${advanceCount} advance (highlighted below)`}
+        </div>
+
+        {/* Leaderboard */}
+        <div style={{
+          overflowX: 'auto',
+          background: colors.background.card,
+          border: `1px solid ${colors.border.primary}`,
+          borderRadius: borderRadius.md,
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: typography.fontSize.sm }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${colors.border.primary}`, color: colors.text.muted, textAlign: 'left' }}>
+                <th style={{ padding: spacing.sm, textAlign: 'center', width: 50 }}>#</th>
+                <th style={{ padding: spacing.sm }}>Contestant</th>
+                <th style={{ padding: spacing.sm, textAlign: 'right' }}>Judge avg</th>
+                <th style={{ padding: spacing.sm, textAlign: 'right' }}>Votes</th>
+                <th style={{ padding: spacing.sm, textAlign: 'right' }}>Final</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaderboard.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ padding: spacing.xl, textAlign: 'center', color: colors.text.muted }}>
+                    No contestants yet.
+                  </td>
+                </tr>
+              )}
+              {leaderboard.map((row, idx) => {
+                const advancing = advanceCount > 0 && idx < advanceCount;
+                return (
+                  <tr
+                    key={row.contestant.id}
+                    style={{
+                      borderTop: idx === 0 ? 'none' : `1px solid ${colors.border.secondary}`,
+                      background: advancing ? 'rgba(212,175,55,0.06)' : 'transparent',
+                    }}
+                  >
+                    <td style={{ padding: spacing.sm, textAlign: 'center', color: advancing ? colors.gold.primary : colors.text.muted, fontWeight: typography.fontWeight.semibold }}>
+                      {advancing ? <Crown size={14} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} /> : ''}
+                      {idx + 1}
+                    </td>
+                    <td style={{ padding: spacing.sm }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                        <Avatar name={row.contestant.name} src={row.contestant.avatarUrl} size={28} />
+                        <span style={{ fontWeight: advancing ? typography.fontWeight.semibold : typography.fontWeight.regular }}>
+                          {row.contestant.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td style={{ padding: spacing.sm, textAlign: 'right', color: colors.text.secondary }}>
+                      {row.judgeAvg > 0 ? row.judgeAvg.toFixed(1) : '—'}
+                    </td>
+                    <td style={{ padding: spacing.sm, textAlign: 'right', color: colors.text.secondary }}>
+                      {row.votes}
+                    </td>
+                    <td style={{ padding: spacing.sm, textAlign: 'right', color: advancing ? colors.gold.primary : colors.text.primary, fontWeight: typography.fontWeight.semibold }}>
+                      {row.final > 0 ? row.final.toFixed(3) : '—'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {submittedJudgeCount === 0 && (
+          <p style={{ marginTop: spacing.md, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+            No judges have submitted scores yet. Results show 0 until at least one judge submits.
+          </p>
+        )}
+      </div>
+    </Panel>
+  );
+}
