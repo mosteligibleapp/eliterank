@@ -5,11 +5,12 @@
  * Uses Unsplash for free, high-quality city images.
  */
 
-// Competition-specific images (takes priority over city images)
-// Key format: lowercase competition name or partial match
-// Using Supabase image transformation API for optimized delivery
+// Competition-specific images (takes priority over city images).
+// Used only as a fallback when a competition has no cover_image in the DB —
+// the public competition card reads `competition.cover_image || getCityImage(...)`.
+// Going forward, hosts upload covers via the admin app (admin/CompetitionsManager).
 const COMPETITION_IMAGES = {
-  'most eligible bachelorettes': 'https://jioblcflgpqcfdmzjnto.supabase.co/storage/v1/object/public/competition-images/chicago-women-2026.jpg',
+  'most eligible bachelorettes': '/covers/chicago-women-2026.jpg',
 };
 
 // City name to image URL mapping (lowercase for easier matching)

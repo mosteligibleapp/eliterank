@@ -1,4 +1,9 @@
-<!doctype html>
+// Kept in sync with index.html so the OG handler renders sensible meta when
+// running locally without a prior `vite build`. In prod,
+// scripts/inline-index-template.mjs overwrites this with the real shell
+// produced by Vite (hashed bundle script tags, etc.) before deploy. If you
+// change index.html, update this stub too.
+export const indexHtml = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -21,14 +26,8 @@
     <meta name="twitter:title" content="EliteRank — Where the Best Get Recognized" />
     <meta name="twitter:description" content="Enter · Compete · Win. The most prestigious social competition platform." />
     <meta name="twitter:image" content="https://eliterank.co/og-image.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
   </body>
-</html>
-
-
+</html>`;

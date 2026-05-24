@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:admin": "vite --config admin/vite.config.js",
-    "build": "vite build && vite build --config admin/vite.config.js && cp -r admin/dist dist/admin",
+    "build": "vite build && vite build --config admin/vite.config.js && cp -r admin/dist dist/admin && node scripts/inline-index-template.mjs",
     "build:web": "vite build",
     "build:admin": "vite build --config admin/vite.config.js",
     "lint": "eslint .",
@@ -21,6 +21,7 @@
     "@stripe/stripe-js": "^8.6.1",
     "@supabase/supabase-js": "^2.47.10",
     "@vercel/blob": "^2.0.0",
+    "@vercel/og": "^0.11.1",
     "@vercel/speed-insights": "^2.0.0",
     "lucide-react": "^0.263.1",
     "react": "^18.3.1",

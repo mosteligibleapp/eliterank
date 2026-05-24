@@ -459,6 +459,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
         number_of_winners: formData.number_of_winners,
         host_id: formData.host_id || null,
         description: formData.description || '',
+        cover_image: formData.cover_image || null,
         price_per_vote: formData.price_per_vote,
         use_price_bundler: formData.use_price_bundler,
         allow_manual_votes: formData.allow_manual_votes,

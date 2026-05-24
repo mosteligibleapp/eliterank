@@ -1,9 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  DollarSign, Lock, ChevronUp, ChevronDown,
+  DollarSign, Lock, ChevronUp, ChevronDown, Upload, Loader, Image as ImageIcon, X,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, transitions } from '@shared/styles/theme';
 import { PRICE_BUNDLER_TIERS } from '@shared/types/competition';
+import { supabase } from '@shared/lib/supabase';
+import { useToast } from '@shared/contexts/ToastContext';
 import FormModal from '../../../components/FormModal';
 import {
   FormField, TextInput, TextArea, SelectInput, FormGrid, FormSection, ToggleSwitch,
@@ -54,6 +56,9 @@ export default function CompetitionEditModal({
 }) {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [showPriceBundlerTiers, setShowPriceBundlerTiers] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverInputRef = useRef(null);
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -65,6 +70,7 @@ export default function CompetitionEditModal({
     max_contestants: '',
     host_id: '',
     description: '',
+    cover_image: '',
     price_per_vote: 1.00,
     use_price_bundler: false,
     allow_manual_votes: false,
@@ -83,6 +89,7 @@ export default function CompetitionEditModal({
         max_contestants: competition.max_contestants || '',
         host_id: competition.host_id || '',
         description: competition.description || '',
+        cover_image: competition.cover_image || '',
         price_per_vote: competition.price_per_vote ?? 1.00,
         use_price_bundler: competition.use_price_bundler ?? false,
         allow_manual_votes: competition.allow_manual_votes ?? false,
@@ -91,6 +98,41 @@ export default function CompetitionEditModal({
       setShowPriceBundlerTiers(false);
     }
   }, [competition, isOpen, defaultTab]);
+
+  const handleCoverUpload = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Cover image must be less than 5MB');
+      return;
+    }
+    setUploadingCover(true);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `covers/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('competition-images')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage
+        .from('competition-images')
+        .getPublicUrl(fileName);
+      setFormData(prev => ({ ...prev, cover_image: urlData.publicUrl }));
+      toast.success('Cover image uploaded');
+    } catch (err) {
+      console.error('Cover upload error:', err);
+      toast.error(`Cover upload failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleCoverClear = () => {
+    setFormData(prev => ({ ...prev, cover_image: '' }));
+  };
 
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -199,6 +241,58 @@ export default function CompetitionEditModal({
                 placeholder="Competition description..."
                 rows={3}
               />
+            </FormField>
+            <FormField
+              label="Cover Image"
+              description="Used as the competition card hero and the image shown when this competition is shared (iMessage, Instagram, etc.). Recommended 1200×630."
+            >
+              <div style={styles.coverRow}>
+                <div
+                  onClick={() => !uploadingCover && coverInputRef.current?.click()}
+                  style={{
+                    ...styles.coverZone,
+                    backgroundImage: formData.cover_image ? `url(${formData.cover_image})` : 'none',
+                    cursor: uploadingCover ? 'wait' : 'pointer',
+                  }}
+                  role="button"
+                  aria-label="Upload cover image"
+                >
+                  {uploadingCover ? (
+                    <Loader size={24} style={{ animation: 'spin 1s linear infinite', color: colors.gold.primary }} />
+                  ) : !formData.cover_image && (
+                    <>
+                      <Upload size={20} style={{ color: colors.text.muted }} />
+                      <span style={styles.coverHint}>Click to upload</span>
+                    </>
+                  )}
+                </div>
+                {formData.cover_image && !uploadingCover && (
+                  <div style={styles.coverActions}>
+                    <button
+                      type="button"
+                      onClick={() => coverInputRef.current?.click()}
+                      style={styles.coverActionBtn}
+                    >
+                      <ImageIcon size={14} /> Replace
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCoverClear}
+                      style={{ ...styles.coverActionBtn, color: colors.status.error }}
+                    >
+                      <X size={14} /> Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleCoverUpload(e.target.files?.[0])}
+                style={{ display: 'none' }}
+              />
+              <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             </FormField>
           </FormSection>
         </>
@@ -430,5 +524,50 @@ const styles = {
   tierTd: {
     padding: spacing.sm,
     color: colors.text.primary,
+  },
+  coverRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  coverZone: {
+    width: 240,
+    height: 126,
+    border: `1px dashed ${colors.border.primary}`,
+    borderRadius: borderRadius.md,
+    background: colors.background.tertiary,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
+    flex: '0 0 auto',
+    transition: transitions.colors,
+  },
+  coverHint: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+  },
+  coverActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.sm,
+    paddingTop: spacing[1],
+  },
+  coverActionBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: spacing[1],
+    padding: `${spacing[1]} ${spacing.sm}`,
+    background: 'none',
+    border: `1px solid ${colors.border.secondary}`,
+    borderRadius: borderRadius.sm,
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.xs,
+    cursor: 'pointer',
+    fontFamily: typography.fontFamily.sans,
+    transition: transitions.colors,
   },
 };
