@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { BarChart3, Crown } from 'lucide-react';
+import { BarChart3, Crown, Lock, AlertTriangle, Clock } from 'lucide-react';
 import { Avatar, Panel } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 
@@ -167,6 +167,63 @@ export default function JudgingResultsPanel({
           {submittedJudgeCount} of {judges.length} judges have submitted
           {advanceCount > 0 && ` · top ${advanceCount} advance (highlighted below)`}
         </div>
+
+        {/* Finalization banner — set automatically by ensure_round_state()
+            after end_date passes and the next visitor hits the public page. */}
+        {(() => {
+          const now = Date.now();
+          const endTime = round.end_date ? new Date(round.end_date).getTime() : null;
+          const finalized = !!round.finalized_at;
+          const ended = endTime !== null && endTime <= now;
+          const judgesMissing = submittedJudgeCount < judges.length;
+          if (finalized) {
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: spacing.sm,
+                padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.md,
+                background: 'rgba(34,197,94,0.08)',
+                border: `1px solid rgba(34,197,94,0.3)`,
+                color: colors.status.success,
+                fontSize: typography.fontSize.sm,
+              }}>
+                <Lock size={16} />
+                Round finalized {new Date(round.finalized_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.
+                Advance / elimination decisions are locked in below.
+              </div>
+            );
+          }
+          if (ended && !finalized) {
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: spacing.sm,
+                padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.md,
+                background: 'rgba(245,158,11,0.08)',
+                border: `1px solid rgba(245,158,11,0.3)`,
+                color: colors.status.warning,
+                fontSize: typography.fontSize.sm,
+              }}>
+                <Clock size={16} />
+                Round ended. Finalization runs automatically on the next public-page visit or vote — refresh the page in a moment.
+              </div>
+            );
+          }
+          if (!ended && judgesMissing) {
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: spacing.sm,
+                padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.md,
+                background: 'rgba(245,158,11,0.05)',
+                border: `1px solid rgba(245,158,11,0.2)`,
+                color: colors.status.warning,
+                fontSize: typography.fontSize.sm,
+              }}>
+                <AlertTriangle size={16} />
+                {judges.length - submittedJudgeCount} judge{judges.length - submittedJudgeCount === 1 ? '' : 's'} haven&rsquo;t submitted yet. Drafts don&rsquo;t count toward the final score — chase them down before {round.end_date ? new Date(round.end_date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'the round ends'}.
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {/* Leaderboard */}
         <div style={{

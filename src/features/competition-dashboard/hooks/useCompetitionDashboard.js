@@ -165,7 +165,7 @@ export function useCompetitionDashboard(competitionId) {
             city:cities(id, name, state, slug),
             organization:organizations(id, name, slug, logo_url, header_logo_url, website_url),
             host:profiles!competitions_host_id_fkey(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery),
-            voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance, judge_weight),
+            voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance, judge_weight, finalized_at, finalized_snapshot),
             nomination_periods(id, start_date, end_date, period_order, title)
           `)
           .eq('id', competitionId)
