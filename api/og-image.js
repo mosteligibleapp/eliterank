@@ -19,7 +19,6 @@ export const config = { runtime: 'edge' };
 
 const h = React.createElement;
 
-const SITE_URL = 'https://eliterank.co';
 const GOLD = '#d4af37';
 const GOLD_LIGHT = '#f5d485';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -88,7 +87,7 @@ async function fetchCompetition(id) {
   if (!UUID_RE.test(id)) return null;
   const rows = await supabaseRest(
     `/competitions?id=eq.${encodeURIComponent(id)}` +
-      `&select=name,city,season,cover_image,organization:organizations(name,logo_url)&limit=1`,
+      `&select=name,season,cover_image,city:cities(name),organization:organizations(name,logo_url)&limit=1`,
   );
   return Array.isArray(rows) ? rows[0] : null;
 }
@@ -184,7 +183,8 @@ function bottomFade(height) {
 
 function competitionCard(competition) {
   const name = competition.name?.trim() || 'EliteRank Competition';
-  const city = competition.city?.trim() || '';
+  // `city` is a PostgREST embed (`city:cities(name)`), not a column.
+  const city = competition.city?.name?.trim() || '';
   const season = competition.season ? String(competition.season) : '';
   const orgLogo = competition.organization?.logo_url
     ? resizeImage(competition.organization.logo_url, { width: 144, height: 144 })

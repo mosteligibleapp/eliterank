@@ -156,7 +156,9 @@ async function fetchProfileMeta(profileId, canonicalUrl, origin) {
 function formatCompetitionMeta(competition, canonicalUrl, origin) {
   if (!competition) return null;
   const name = competition.name?.trim() || 'EliteRank Competition';
-  const city = competition.city?.trim();
+  // `city` is a PostgREST embed (`city:cities(name)`), not a column on
+  // competitions — there's no text `city` column on the table.
+  const city = competition.city?.name?.trim();
   const orgName = competition.organization?.name?.trim();
   const season = competition.season;
 
@@ -191,7 +193,7 @@ async function fetchCompetitionByIdMeta(competitionId, canonicalUrl, origin) {
   if (!UUID_RE.test(competitionId)) return null;
   const rows = await supabaseRest(
     `/competitions?id=eq.${encodeURIComponent(competitionId)}` +
-      `&select=id,name,city,season,description,cover_image,organization:organizations(name,slug)&limit=1`,
+      `&select=id,name,season,description,cover_image,city:cities(name),organization:organizations(name,slug)&limit=1`,
   );
   return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl, origin);
 }
@@ -200,7 +202,7 @@ async function fetchCompetitionBySlugMeta(orgSlug, slug, canonicalUrl, origin) {
   const rows = await supabaseRest(
     `/competitions?slug=eq.${encodeURIComponent(slug)}` +
       `&organization.slug=eq.${encodeURIComponent(orgSlug)}` +
-      `&select=id,name,city,season,description,cover_image,organization:organizations!inner(name,slug)&limit=1`,
+      `&select=id,name,season,description,cover_image,city:cities(name),organization:organizations!inner(name,slug)&limit=1`,
   );
   return formatCompetitionMeta(Array.isArray(rows) ? rows[0] : null, canonicalUrl, origin);
 }
