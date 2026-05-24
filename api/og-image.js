@@ -13,6 +13,7 @@
 
 import { ImageResponse } from '@vercel/og';
 import React from 'react';
+import { getCityImage } from '../src/utils/cityImages.js';
 
 export const config = { runtime: 'edge' };
 
@@ -185,9 +186,14 @@ function competitionCard(competition) {
   const name = competition.name?.trim() || 'EliteRank Competition';
   const city = competition.city?.trim() || '';
   const season = competition.season ? String(competition.season) : '';
-  const orgLogo = resizeImage(competition.organization?.logo_url, { width: 144, height: 144 }) ||
-    competition.organization?.logo_url || null;
-  const cover = resizeImage(competition.cover_image, { width: 1200, height: 630, quality: 82 });
+  const orgLogo = competition.organization?.logo_url
+    ? resizeImage(competition.organization.logo_url, { width: 144, height: 144 })
+    : null;
+  // Prefer host-uploaded cover; otherwise fall back to the city skyline used
+  // on the public competition card so the share preview matches what visitors
+  // see on-site instead of a generic brand placeholder.
+  const rawCover = competition.cover_image || getCityImage(city, name);
+  const cover = resizeImage(rawCover, { width: 1200, height: 630, quality: 82 }) || rawCover;
 
   return h(
     'div',
@@ -437,7 +443,10 @@ export default async function handler(req) {
   try {
     if (type === 'competition' && id) {
       const competition = await fetchCompetition(id);
-      if (competition?.cover_image) {
+      if (competition) {
+        // Always render — the card falls back to the city skyline when there
+        // is no host-uploaded cover, so every real competition gets a
+        // distinct preview.
         return new ImageResponse(competitionCard(competition), RESPONSE_OPTS);
       }
     } else if (type === 'profile' && id) {

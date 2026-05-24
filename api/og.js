@@ -171,9 +171,13 @@ function formatCompetitionMeta(competition, canonicalUrl) {
       ? `Vote in ${name}${city ? ` in ${city}` : ''}, hosted by ${orgName}.`
       : `Vote in ${name}${city ? ` in ${city}` : ''}.`);
 
-  const image = competition.cover_image
-    ? dynamicImageUrl('competition', competition.id, shortHash(competition.cover_image))
-    : DEFAULT_IMAGE;
+  // The og-image function always has something to render — host-uploaded
+  // cover when present, city skyline (from cityImages.js) otherwise — so we
+  // always point at the dynamic endpoint. Hash includes the cover URL (when
+  // set) or the city name so the URL changes when either does, busting the
+  // CDN cache.
+  const versionKey = competition.cover_image || `city:${(city || 'default').toLowerCase()}`;
+  const image = dynamicImageUrl('competition', competition.id, shortHash(versionKey));
 
   return {
     title,
