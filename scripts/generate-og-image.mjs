@@ -168,7 +168,7 @@ const html = `<!DOCTYPE html>
     </svg>
 
     <div class="title">EliteRank</div>
-    <div class="subtitle">Most Eligible Competition</div>
+    <div class="subtitle">Competition Management Platform &amp; Voting Software</div>
     <div class="divider"></div>
     <div class="tagline">Compete &middot; Vote &middot; Rise</div>
   </div>

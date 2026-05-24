@@ -13,7 +13,7 @@ import { indexHtml } from './_index-template.mjs';
 export const config = { runtime: 'edge' };
 
 const SITE_URL = 'https://eliterank.co';
-const DEFAULT_TITLE = 'EliteRank — Where the Best Get Recognized';
+const DEFAULT_TITLE = 'Competition Management Platform & Voting Software | EliteRank';
 const DEFAULT_DESCRIPTION =
   'Enter · Compete · Win. The most prestigious social competition platform.';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
