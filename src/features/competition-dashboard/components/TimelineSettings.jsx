@@ -177,6 +177,81 @@ function formatDateForDisplay(isoDate) {
 }
 
 /**
+ * reconcileOrderedRows
+ *
+ * UPSERTs an ordered child collection (nomination_periods / voting_rounds)
+ * against the desired in-memory state — preserving row identity (and every
+ * FK referencing it) instead of the historical delete-and-reinsert pattern
+ * which wiped judge_scores, finalization snapshots, and vote-reset state.
+ *
+ * Algorithm (single-table):
+ *   1. Read the current ids in the DB for this competition.
+ *   2. DELETE any DB row whose id is no longer in `desired`.
+ *   3. Move every surviving row to a negative temporary order (frees up
+ *      the unique (competition_id, orderField) namespace so we can rewrite
+ *      orders without colliding).
+ *   4. For each row in `desired`:
+ *        - If it has an id that still exists, UPDATE in place with the new
+ *          payload + final orderField = index + 1.
+ *        - Otherwise INSERT a new row with competition_id + orderField.
+ */
+async function reconcileOrderedRows({
+  table,
+  competitionId,
+  desired,
+  orderField,
+  buildPayload,
+}) {
+  const { data: existing, error: fetchError } = await supabase
+    .from(table)
+    .select('id')
+    .eq('competition_id', competitionId);
+  if (fetchError) throw fetchError;
+
+  const existingIds = new Set((existing || []).map(r => r.id));
+  const desiredIds = new Set((desired || []).filter(r => r.id).map(r => r.id));
+
+  // 1) Delete rows the host removed.
+  const toDelete = [...existingIds].filter(id => !desiredIds.has(id));
+  if (toDelete.length > 0) {
+    const { error: delError } = await supabase
+      .from(table)
+      .delete()
+      .in('id', toDelete);
+    if (delError) throw delError;
+  }
+
+  // 2) Park survivors in negative order space to avoid unique-constraint
+  //    collisions when shuffling.
+  const survivors = (desired || []).filter(r => r.id && existingIds.has(r.id));
+  for (let i = 0; i < survivors.length; i++) {
+    const { error } = await supabase
+      .from(table)
+      .update({ [orderField]: -(i + 1) })
+      .eq('id', survivors[i].id);
+    if (error) throw error;
+  }
+
+  // 3) Update existing rows in place, insert new ones, with final ordering.
+  for (let i = 0; i < (desired || []).length; i++) {
+    const row = desired[i];
+    const payload = { ...buildPayload(row, i), [orderField]: i + 1 };
+    if (row.id && existingIds.has(row.id)) {
+      const { error } = await supabase
+        .from(table)
+        .update(payload)
+        .eq('id', row.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from(table)
+        .insert({ ...payload, competition_id: competitionId });
+      if (error) throw error;
+    }
+  }
+}
+
+/**
  * TimelineSettings - Manages competition status, timeline dates, and voting rounds
  * Used by both Host and SuperAdmin dashboards
  *
@@ -396,54 +471,52 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
       if (compError) throw compError;
 
-      // Delete existing nomination periods and re-insert
-      await supabase
-        .from('nomination_periods')
-        .delete()
-        .eq('competition_id', competition.id);
+      // ────────────────────────────────────────────────────────────────────
+      // Reconcile nomination_periods and voting_rounds in place.
+      //
+      // The previous implementation deleted every row and re-inserted with
+      // fresh UUIDs. That destroyed FK references — judge_scores
+      // (ON DELETE CASCADE on voting_round_id), votes_at_round_start
+      // snapshots keyed by round id, and finalized_at / finalized_snapshot.
+      // Re-inserted rounds had finalized_at = NULL, so ensure_round_state()
+      // re-ran finalization on already-past rounds, which could re-trigger
+      // vote resets — that's the bug that zeroed votes prematurely.
+      //
+      // The fix: UPDATE rows that have an id (preserves identity + scores +
+      // finalization), INSERT only truly new rows, DELETE only rows the host
+      // removed. Two-phase round_order update sidesteps the
+      // UNIQUE (competition_id, round_order) constraint when rows are
+      // reordered.
+      // ────────────────────────────────────────────────────────────────────
 
-      if (nominationPeriods.length > 0) {
-        const periodsToInsert = nominationPeriods.map((period, index) => ({
-          competition_id: competition.id,
+      await reconcileOrderedRows({
+        table: 'nomination_periods',
+        competitionId: competition.id,
+        desired: nominationPeriods,
+        orderField: 'period_order',
+        buildPayload: (period, index) => ({
           title: period.title || `Period ${index + 1}`,
-          period_order: index + 1,
           start_date: period.start_date || null,
           end_date: period.end_date || null,
           max_submissions: period.max_submissions || null,
-        }));
+        }),
+      });
 
-        const { error: periodsError } = await supabase
-          .from('nomination_periods')
-          .insert(periodsToInsert);
-
-        if (periodsError) throw periodsError;
-      }
-
-      // Delete existing voting/judging rounds and re-insert
-      await supabase
-        .from('voting_rounds')
-        .delete()
-        .eq('competition_id', competition.id);
-
-      if (votingRounds.length > 0) {
-        const roundsToInsert = votingRounds.map((round, index) => ({
-          competition_id: competition.id,
+      await reconcileOrderedRows({
+        table: 'voting_rounds',
+        competitionId: competition.id,
+        desired: votingRounds,
+        orderField: 'round_order',
+        buildPayload: (round, index) => ({
           title: round.title || `Round ${index + 1}`,
-          round_order: index + 1,
           round_type: round.round_type || 'voting',
           start_date: round.start_date || null,
           end_date: round.end_date || null,
           contestants_advance: round.contestants_advance || 10,
           tier_label: round.tier_label?.trim() || null,
           votes_reset_at_start: !!round.votes_reset_at_start,
-        }));
-
-        const { error: roundsError } = await supabase
-          .from('voting_rounds')
-          .insert(roundsToInsert);
-
-        if (roundsError) throw roundsError;
-      }
+        }),
+      });
 
       toast.success('Timeline settings saved');
       if (onSave) onSave();
