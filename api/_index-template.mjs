@@ -10,12 +10,12 @@ export const indexHtml = `<!doctype html>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="twilio-domain-verification" content="238e93cf6750f98e751ac834f9bb7a1f" />
-    <title>Competition Management Platform &amp; Voting Software | EliteRank</title>
+    <title>EliteRank</title>
 
     <!-- Open Graph / Social Sharing -->
     <meta property="og:url" content="https://eliterank.co" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Competition Management Platform &amp; Voting Software | EliteRank" />
+    <meta property="og:title" content="EliteRank" />
     <meta property="og:description" content="Enter · Compete · Win. The most prestigious social competition platform." />
     <meta property="og:image" content="https://eliterank.co/og-image.png" />
     <meta property="og:image:width" content="1200" />
@@ -23,7 +23,7 @@ export const indexHtml = `<!doctype html>
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Competition Management Platform &amp; Voting Software | EliteRank" />
+    <meta name="twitter:title" content="EliteRank" />
     <meta name="twitter:description" content="Enter · Compete · Win. The most prestigious social competition platform." />
     <meta name="twitter:image" content="https://eliterank.co/og-image.png" />
   </head>

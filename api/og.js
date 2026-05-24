@@ -13,10 +13,13 @@ import { indexHtml } from './_index-template.mjs';
 export const config = { runtime: 'edge' };
 
 const SITE_URL = 'https://eliterank.co';
-const DEFAULT_TITLE = 'Competition Management Platform & Voting Software | EliteRank';
+const DEFAULT_TITLE = 'EliteRank';
 const DEFAULT_DESCRIPTION =
   'Enter · Compete · Win. The most prestigious social competition platform.';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
+// SEO/marketing title used only on the public homepage (eliterank.co), not on
+// authed routes like /dashboard or /admin which fall through to index.html.
+const HOME_TITLE = 'Competition Management Platform & Voting Software | EliteRank';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Mirrors RESERVED_PATHS from src/utils/slugs.js — keep in sync.
@@ -230,7 +233,9 @@ export default async function handler(req) {
 
   let meta = null;
   try {
-    if (type === 'profile' && profileId) {
+    if (type === 'home') {
+      meta = { title: HOME_TITLE, url: canonicalUrl };
+    } else if (type === 'profile' && profileId) {
       meta = await fetchProfileMeta(profileId, canonicalUrl, origin);
     } else if (
       type === 'competition-id' &&
