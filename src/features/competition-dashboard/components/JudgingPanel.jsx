@@ -228,13 +228,15 @@ export default function JudgingPanel({
 
       {/* Round Weights */}
       <Panel
-        title="Round Weights"
+        title="Judging Round"
         icon={Sliders}
       >
         <div style={{ padding: spacing.xl, display: 'flex', flexDirection: 'column', gap: spacing.md }}>
           <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginTop: -spacing.sm }}>
-            Set how much judges count toward each round&rsquo;s advancement. 0% means votes decide; 100% means judges decide; anything between is a blend (e.g. 60% judges + 40% votes).
+            Pick the single round judges score, and how much their scores count toward who advances. 0% means votes decide that round; 100% means judges decide; anything between is a blend (e.g. 60% judges + 40% votes). Only one round can be a judging round at a time.
           </p>
+
+          <JudgingRoundSummary votingRounds={votingRounds} />
 
           {votingRounds.length === 0 ? (
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
@@ -247,6 +249,7 @@ export default function JudgingPanel({
                 <RoundWeightRow
                   key={r.id}
                   round={r}
+                  votingRounds={votingRounds}
                   onUpdate={onUpdateRoundJudgeWeight}
                 />
               ))
@@ -257,12 +260,59 @@ export default function JudgingPanel({
   );
 }
 
-function RoundWeightRow({ round, onUpdate }) {
+function JudgingRoundSummary({ votingRounds }) {
+  const active = (votingRounds || []).find(r => (r.judge_weight || 0) > 0);
+  const label = active
+    ? `${active.title || `Round ${active.round_order || ''}`} — ${active.judge_weight}% judges${active.judge_weight < 100 ? ` · ${100 - active.judge_weight}% votes` : ''}`
+    : 'No judging round selected. All rounds are decided by votes.';
+  return (
+    <div style={{
+      padding: spacing.md,
+      background: active ? 'rgba(212,175,55,0.08)' : 'rgba(255,255,255,0.03)',
+      border: `1px solid ${active ? 'rgba(212,175,55,0.3)' : colors.border.primary}`,
+      borderRadius: borderRadius.md,
+      fontSize: typography.fontSize.sm,
+      color: active ? colors.gold.primary : colors.text.secondary,
+      fontWeight: typography.fontWeight.medium,
+    }}>
+      <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, letterSpacing: '0.1em', textTransform: 'uppercase', marginRight: spacing.sm }}>
+        Judging round:
+      </span>
+      {label}
+    </div>
+  );
+}
+
+function RoundWeightRow({ round, votingRounds, onUpdate }) {
   const [weight, setWeight] = useState(round.judge_weight ?? 0);
   const [saving, setSaving] = useState(false);
   const dirty = weight !== (round.judge_weight ?? 0);
 
   const save = async () => {
+    // Enforce: only one round can have judge_weight > 0 at a time.
+    // If the host is turning judging ON for this round and another round
+    // already has it, confirm the switch and zero out the other one first.
+    if (weight > 0) {
+      const other = (votingRounds || []).find(
+        r => r.id !== round.id && (r.judge_weight || 0) > 0
+      );
+      if (other) {
+        const otherName = other.title || `Round ${other.round_order || ''}`;
+        const thisName = round.title || `Round ${round.round_order || ''}`;
+        const ok = window.confirm(
+          `${otherName} is currently the judging round (${other.judge_weight}% judges).\n\nOnly one round can be judged at a time. Move judging to ${thisName} instead?`
+        );
+        if (!ok) return;
+        setSaving(true);
+        try {
+          await onUpdate?.(other.id, 0);
+          await onUpdate?.(round.id, weight);
+        } finally {
+          setSaving(false);
+        }
+        return;
+      }
+    }
     setSaving(true);
     try {
       await onUpdate?.(round.id, weight);

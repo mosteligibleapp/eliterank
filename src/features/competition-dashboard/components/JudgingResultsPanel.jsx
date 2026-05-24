@@ -119,26 +119,39 @@ export default function JudgingResultsPanel({
       icon={BarChart3}
     >
       <div style={{ padding: spacing.xl }}>
-        {/* Round tabs */}
-        <div style={{ display: 'flex', gap: spacing.xs, marginBottom: spacing.lg, flexWrap: 'wrap' }}>
-          {judgingRounds.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => setActiveRoundId(r.id)}
-              style={{
-                padding: `${spacing.xs} ${spacing.md}`,
-                borderRadius: borderRadius.full,
-                border: `1px solid ${activeRoundId === r.id ? colors.gold.primary : colors.border.primary}`,
-                background: activeRoundId === r.id ? 'rgba(212,175,55,0.12)' : 'transparent',
-                color: activeRoundId === r.id ? colors.gold.primary : colors.text.secondary,
-                fontSize: typography.fontSize.sm,
-                cursor: 'pointer',
-              }}
-            >
-              {r.title || `Round ${r.round_order || ''}`}
-            </button>
-          ))}
-        </div>
+        {/* Round tabs — hidden when only one judging round exists */}
+        {judgingRounds.length > 1 && (
+          <div style={{ display: 'flex', gap: spacing.xs, marginBottom: spacing.lg, flexWrap: 'wrap' }}>
+            {judgingRounds.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setActiveRoundId(r.id)}
+                style={{
+                  padding: `${spacing.xs} ${spacing.md}`,
+                  borderRadius: borderRadius.full,
+                  border: `1px solid ${activeRoundId === r.id ? colors.gold.primary : colors.border.primary}`,
+                  background: activeRoundId === r.id ? 'rgba(212,175,55,0.12)' : 'transparent',
+                  color: activeRoundId === r.id ? colors.gold.primary : colors.text.secondary,
+                  fontSize: typography.fontSize.sm,
+                  cursor: 'pointer',
+                }}
+              >
+                {r.title || `Round ${r.round_order || ''}`}
+              </button>
+            ))}
+          </div>
+        )}
+        {judgingRounds.length === 1 && (
+          <div style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.text.muted,
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            marginBottom: spacing.sm,
+          }}>
+            Judging round: {round.title || `Round ${round.round_order || ''}`}
+          </div>
+        )}
 
         <div style={{
           fontSize: typography.fontSize.sm,
