@@ -11,8 +11,6 @@ import {
   FormField, TextInput, TextArea, SelectInput, FormGrid, FormSection, ToggleSwitch,
 } from '../../../components/FormField';
 
-const WINNER_OPTIONS = [1, 3, 5, 10, 15, 20].map(n => ({ value: String(n), label: String(n) }));
-
 const RADIUS_OPTIONS = [
   { value: '0', label: 'Must reside in city' },
   { value: '10', label: 'Within 10 miles' },
@@ -220,10 +218,11 @@ export default function CompetitionEditModal({
                 />
               </FormField>
               <FormField label="Number of Winners">
-                <SelectInput
-                  value={String(formData.number_of_winners)}
-                  onChange={(e) => updateField('number_of_winners', parseInt(e.target.value))}
-                  options={WINNER_OPTIONS}
+                <TextInput
+                  type="number"
+                  min="1"
+                  value={formData.number_of_winners}
+                  onChange={(e) => updateField('number_of_winners', parseInt(e.target.value) || 1)}
                 />
               </FormField>
             </FormGrid>
