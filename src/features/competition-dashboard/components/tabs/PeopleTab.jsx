@@ -1009,8 +1009,33 @@ export default function PeopleTab({
                     padding: spacing.md,
                   }}>
                     <Avatar name={host.name} src={host.avatar} size={44} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: typography.fontWeight.medium }}>{host.name}</p>
+                    <button
+                      onClick={() => handleViewProfile(host.id)}
+                      disabled={!host.id}
+                      title={host.id ? 'View host profile' : undefined}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        textAlign: 'left',
+                        cursor: host.id ? 'pointer' : 'default',
+                        color: 'inherit',
+                      }}
+                    >
+                      <p style={{
+                        fontWeight: typography.fontWeight.medium,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.xs,
+                        color: '#fff',
+                      }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {host.name}
+                        </span>
+                        {host.id && <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />}
+                      </p>
                       <p style={{
                         color: colors.text.secondary,
                         fontSize: typography.fontSize.sm,
@@ -1020,7 +1045,7 @@ export default function PeopleTab({
                       }}>
                         {host.city || ''}
                       </p>
-                    </div>
+                    </button>
                     <Badge variant="gold" size="sm">
                       <Star size={12} style={{ marginRight: spacing.xs }} /> Host
                     </Badge>
@@ -1165,8 +1190,33 @@ export default function PeopleTab({
                   }}
                 >
                   <Avatar name={coHost.name} src={coHost.avatar} size={44} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: typography.fontWeight.medium }}>{coHost.name}</p>
+                  <button
+                    onClick={() => handleViewProfile(coHost.id)}
+                    disabled={!coHost.id}
+                    title={coHost.id ? 'View co-host profile' : undefined}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      textAlign: 'left',
+                      cursor: coHost.id ? 'pointer' : 'default',
+                      color: 'inherit',
+                    }}
+                  >
+                    <p style={{
+                      fontWeight: typography.fontWeight.medium,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                      color: '#fff',
+                    }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {coHost.name}
+                      </span>
+                      {coHost.id && <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />}
+                    </p>
                     <p style={{
                       color: colors.text.secondary,
                       fontSize: typography.fontSize.sm,
@@ -1176,7 +1226,7 @@ export default function PeopleTab({
                     }}>
                       {coHost.email}
                     </p>
-                  </div>
+                  </button>
                   <Badge variant="gold" size="sm">
                     <Star size={12} style={{ marginRight: spacing.xs }} /> Co-Host
                   </Badge>
