@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
+  Plus, User, Star, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
   ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -100,7 +100,6 @@ export default function PeopleTab({
   const avatarUploadTarget = useRef(null);
   const [reordering, setReordering] = useState(false);
   const [showAddVotes, setShowAddVotes] = useState(false);
-  const [showHostDetails, setShowHostDetails] = useState(false);
 
   const isLegacy = competition?.is_legacy;
   const isCompleted = competition?.status === 'completed';
@@ -997,17 +996,15 @@ export default function PeopleTab({
               {host && (
                 <div
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    padding: spacing.md,
                     background: 'rgba(255,255,255,0.03)',
                     border: `1px solid ${colors.border.light}`,
                     borderRadius: borderRadius.md,
                   }}
                 >
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.md,
-                    padding: spacing.md,
-                  }}>
                     <Avatar name={host.name} src={host.avatar} size={44} />
                     <button
                       onClick={() => handleViewProfile(host.id)}
@@ -1064,115 +1061,6 @@ export default function PeopleTab({
                         </Button>
                       </>
                     )}
-                    {(host.bio || host.instagram || (host.gallery && host.gallery.length > 0)) && (
-                      <button
-                        onClick={() => setShowHostDetails(!showHostDetails)}
-                        title={showHostDetails ? 'Hide details' : 'Show details'}
-                        aria-label={showHostDetails ? 'Hide host details' : 'Show host details'}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: colors.text.secondary,
-                          padding: spacing.xs,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {showHostDetails ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                      </button>
-                    )}
-                  </div>
-
-                  {showHostDetails && (
-                    <div style={{
-                      padding: `0 ${spacing.md} ${spacing.md}`,
-                      borderTop: `1px solid ${colors.border.light}`,
-                      paddingTop: spacing.md,
-                    }}>
-                      {host.bio && (
-                        <div style={{ marginBottom: spacing.lg }}>
-                          <h3 style={{
-                            fontSize: typography.fontSize.sm,
-                            fontWeight: typography.fontWeight.semibold,
-                            marginBottom: spacing.sm,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: spacing.sm,
-                            color: colors.text.secondary,
-                          }}>
-                            <FileText size={14} /> About
-                          </h3>
-                          <p style={{ color: colors.text.secondary, lineHeight: 1.6, fontSize: typography.fontSize.sm }}>{host.bio}</p>
-                        </div>
-                      )}
-
-                      {host.instagram && (
-                        <div style={{ marginBottom: spacing.lg }}>
-                          <h3 style={{
-                            fontSize: typography.fontSize.sm,
-                            fontWeight: typography.fontWeight.semibold,
-                            marginBottom: spacing.sm,
-                            color: colors.text.secondary,
-                          }}>
-                            Social
-                          </h3>
-                          <a
-                            href={`https://instagram.com/${host.instagram.replace('@', '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: spacing.sm,
-                              padding: `${spacing.xs} ${spacing.md}`,
-                              background: 'rgba(255,255,255,0.05)',
-                              border: `1px solid ${colors.border.light}`,
-                              borderRadius: borderRadius.md,
-                              color: colors.text.primary,
-                              textDecoration: 'none',
-                              fontSize: typography.fontSize.sm,
-                            }}
-                          >
-                            @{host.instagram.replace('@', '')}
-                          </a>
-                        </div>
-                      )}
-
-                      {host.gallery && host.gallery.length > 0 && (
-                        <div>
-                          <h3 style={{
-                            fontSize: typography.fontSize.sm,
-                            fontWeight: typography.fontWeight.semibold,
-                            marginBottom: spacing.sm,
-                            color: colors.text.secondary,
-                          }}>
-                            Gallery
-                          </h3>
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                            gap: spacing.sm,
-                          }}>
-                            {host.gallery.filter(Boolean).map((img, i) => (
-                              <img
-                                key={i}
-                                src={typeof img === 'string' ? img : img?.url}
-                                alt={`Gallery ${i + 1}`}
-                                style={{
-                                  width: '100%',
-                                  aspectRatio: '1',
-                                  objectFit: 'cover',
-                                  borderRadius: borderRadius.md,
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
 
