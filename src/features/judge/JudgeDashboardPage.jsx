@@ -282,6 +282,17 @@ export default function JudgeDashboardPage() {
                     const blocked = phase === 'upcoming';
                     const canScore = phase !== 'upcoming' && !submitted;
 
+                    // The round whose advancement feeds THIS round (e.g. Top 15 → Top 10)
+                    const prevRound = (comp.voting_rounds || []).find(
+                      vr => vr.round_order === (r.round_order || 0) - 1
+                    );
+                    const incomingTitle =
+                      r.title ||
+                      (prevRound?.contestants_advance > 0
+                        ? `Top ${prevRound.contestants_advance}`
+                        : `${contestants.length} contestants`);
+                    const prevTitle = prevRound?.title || (prevRound ? `Round ${prevRound.round_order}` : null);
+
                     return (
                       <div key={r.id}>
                         <div
@@ -385,9 +396,11 @@ export default function JudgeDashboardPage() {
 
                           <div style={styles.sectionLabel}>
                             <Users size={12} />
-                            {phase === 'upcoming'
-                              ? ` Who you'll judge (currently ${contestants.length} active — top ${r.contestants_advance} from the previous round advance here)`
-                              : ` Who you're judging (${contestants.length})`}
+                            {phase === 'upcoming' && prevTitle
+                              ? ` Who you'll judge (${incomingTitle} contestants — ${prevTitle} are currently active)`
+                              : phase === 'upcoming'
+                              ? ` Who you'll judge (currently ${contestants.length} active)`
+                              : ` Who you're judging (${incomingTitle})`}
                           </div>
                           {contestants.length === 0 ? (
                             <p style={styles.emptyHint}>No active contestants yet.</p>
