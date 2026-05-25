@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Trophy, Settings, TrendingUp, Heart, Award } from 'lucide-react';
+import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Trophy, Settings, TrendingUp, Heart, Award, Gavel } from 'lucide-react';
 import { colors, borderRadius, spacing, typography, shadows, transitions } from '../../styles/theme';
 import Avatar from './Avatar';
 import { SkeletonPulse } from '../common/Skeleton';
@@ -18,9 +18,11 @@ function ProfileIcon({
   onRewards,
   onAchievements,
   onDashboard,
+  onJudge,
   onAccountSettings,
   onHowToCompete,
   hasDashboardAccess = false,
+  isJudge = false,
   performance = null,
   size = 36,
 }) {
@@ -385,6 +387,24 @@ function ProfileIcon({
               >
                 <LayoutDashboard size={16} />
                 Dashboard
+              </button>
+            )}
+
+            {isJudge && onJudge && (
+              <button
+                onClick={() => handleMenuClick(onJudge)}
+                style={menuItemStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.interactive.hover;
+                  e.currentTarget.style.color = colors.text.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = colors.text.secondary;
+                }}
+              >
+                <Gavel size={16} />
+                Judge Dashboard
               </button>
             )}
 

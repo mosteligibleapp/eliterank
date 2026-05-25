@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, EyeOff, RotateCcw, Zap } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, EyeOff, RotateCcw, Zap, Send, Link2, Mail } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
+import JudgingPanel from '../JudgingPanel';
+import JudgingResultsPanel from '../JudgingResultsPanel';
 import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission, getHostManagedTaskContestants, awardHostManagedTask, revokeHostManagedTask } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
 import { useAuthStore } from '../../../../stores';
@@ -99,6 +101,9 @@ const restoreButtonStyle = {
 export default function SetupTab({
   competition,
   judges,
+  judgingCriteria = [],
+  judgeScores = [],
+  contestants = [],
   sponsors,
   events,
   prizes = [],
@@ -106,6 +111,11 @@ export default function SetupTab({
   isSuperAdmin = false,
   onRefresh,
   onDeleteJudge,
+  onSendJudgeInvite,
+  onAddCriterion,
+  onUpdateCriterion,
+  onDeleteCriterion,
+  onUpdateRoundJudgeWeight,
   onDeleteSponsor,
   onDeleteEvent,
   onDeletePrize,
@@ -126,6 +136,49 @@ export default function SetupTab({
   const authStoreUser = useAuthStore(s => s.user);
   const reviewerId = currentUser?.id || authStoreUser?.id;
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
+
+  // Judge invite UI state
+  const [judgeBusy, setJudgeBusy] = useState(new Set());
+  const [judgeCopied, setJudgeCopied] = useState(null);
+  const [judgeSent, setJudgeSent] = useState(null);
+
+  const handleSendJudgeInvite = async (judge) => {
+    if (!onSendJudgeInvite || !judge?.id) return;
+    if (!judge.email) {
+      toast?.error?.('Add an email for this judge first');
+      return;
+    }
+    setJudgeBusy(prev => new Set(prev).add(judge.id));
+    try {
+      const result = await onSendJudgeInvite(judge.id, { forceResend: !!judge.inviteSentAt });
+      if (result?.success) {
+        setJudgeSent(judge.id);
+        setTimeout(() => setJudgeSent(null), 2000);
+        toast?.success?.(judge.inviteSentAt ? 'Reminder sent' : 'Invite sent');
+      } else {
+        toast?.error?.(result?.error || 'Failed to send invite');
+      }
+    } finally {
+      setJudgeBusy(prev => { const next = new Set(prev); next.delete(judge.id); return next; });
+    }
+  };
+
+  const handleCopyJudgeLink = async (judge) => {
+    if (!judge?.inviteToken) return;
+    const url = `${window.location.origin}/claim-judge/${judge.inviteToken}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    setJudgeCopied(judge.id);
+    setTimeout(() => setJudgeCopied(null), 2000);
+  };
 
   // Bonus votes state
   const [bonusTasks, setBonusTasks] = useState([]);
@@ -621,66 +674,164 @@ export default function SetupTab({
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: spacing.lg }}>
-              {judges.map((judge) => (
-                <div key={judge.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md,
-                  padding: spacing.lg,
-                  background: colors.background.secondary,
-                  borderRadius: borderRadius.lg,
-                  overflow: 'hidden',
-                  minWidth: 0,
-                }}>
-                  <Avatar name={judge.name} size={isMobile ? 40 : 48} src={judge.avatarUrl} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: typography.fontWeight.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.name}</p>
-                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.title}</p>
+              {judges.map((judge) => {
+                const isBusy = judgeBusy.has(judge.id);
+                const isCopied = judgeCopied === judge.id;
+                const isSent = judgeSent === judge.id;
+                let statusLabel = 'No email';
+                let statusColor = colors.text.muted;
+                if (judge.email) {
+                  if (judge.claimedAt) {
+                    statusLabel = 'Accepted';
+                    statusColor = colors.status.success;
+                  } else if (judge.inviteSentAt) {
+                    statusLabel = 'Invited';
+                    statusColor = colors.status.warning;
+                  } else {
+                    statusLabel = 'Not invited';
+                    statusColor = colors.text.secondary;
+                  }
+                }
+                return (
+                  <div key={judge.id} style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: spacing.md,
+                    padding: spacing.lg,
+                    background: colors.background.secondary,
+                    borderRadius: borderRadius.lg,
+                    overflow: 'hidden',
+                    minWidth: 0,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                      <Avatar name={judge.name} size={isMobile ? 40 : 48} src={judge.avatarUrl} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: typography.fontWeight.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.name}</p>
+                        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.title}</p>
+                        {judge.email && (
+                          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                            <Mail size={11} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />{judge.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' }}>
+                      <span style={{
+                        fontSize: typography.fontSize.xs,
+                        padding: `2px ${spacing.sm}`,
+                        borderRadius: borderRadius.sm,
+                        background: `${statusColor}1f`,
+                        color: statusColor,
+                      }}>
+                        {statusLabel}
+                      </span>
+                      <div style={{ flex: 1 }} />
+                      {judge.inviteToken && (
+                        <button
+                          onClick={() => handleCopyJudgeLink(judge)}
+                          title={isCopied ? 'Copied!' : 'Copy claim link'}
+                          style={{
+                            padding: spacing.sm,
+                            background: isCopied ? 'rgba(34,197,94,0.1)' : 'transparent',
+                            border: `1px solid ${isCopied ? colors.status.success : colors.border.primary}`,
+                            borderRadius: borderRadius.md,
+                            color: isCopied ? colors.status.success : colors.text.secondary,
+                            cursor: 'pointer',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {isCopied ? <Check size={14} /> : <Link2 size={14} />}
+                        </button>
+                      )}
+                      {judge.email && (
+                        <button
+                          onClick={() => handleSendJudgeInvite(judge)}
+                          disabled={isBusy}
+                          title={isSent ? 'Sent!' : judge.inviteSentAt ? 'Resend invite' : 'Send invite'}
+                          style={{
+                            padding: spacing.sm,
+                            background: isSent ? 'rgba(34,197,94,0.1)' : 'transparent',
+                            border: `1px solid ${isSent ? colors.status.success : colors.border.primary}`,
+                            borderRadius: borderRadius.md,
+                            color: isSent ? colors.status.success : colors.gold.primary,
+                            cursor: isBusy ? 'wait' : 'pointer',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {isSent ? <Check size={14} /> : <Send size={14} />}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onOpenJudgeModal(judge)}
+                        style={{
+                          padding: spacing.sm,
+                          background: 'transparent',
+                          border: `1px solid ${colors.border.primary}`,
+                          borderRadius: borderRadius.md,
+                          color: colors.text.secondary,
+                          cursor: 'pointer',
+                          minWidth: '36px',
+                          minHeight: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => onDeleteJudge(judge.id)}
+                        style={{
+                          padding: spacing.sm,
+                          background: 'transparent',
+                          border: `1px solid rgba(239,68,68,0.3)`,
+                          borderRadius: borderRadius.md,
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          minWidth: '36px',
+                          minHeight: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0 }}>
-                    <button
-                      onClick={() => onOpenJudgeModal(judge)}
-                      style={{
-                        padding: spacing.sm,
-                        background: 'transparent',
-                        border: `1px solid ${colors.border.primary}`,
-                        borderRadius: borderRadius.md,
-                        color: colors.text.secondary,
-                        cursor: 'pointer',
-                        minWidth: '36px',
-                        minHeight: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => onDeleteJudge(judge.id)}
-                      style={{
-                        padding: spacing.sm,
-                        background: 'transparent',
-                        border: `1px solid rgba(239,68,68,0.3)`,
-                        borderRadius: borderRadius.md,
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        minWidth: '36px',
-                        minHeight: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </Panel>
+
+      {/* Judging criteria + per-round judge weight */}
+      <JudgingPanel
+        criteria={judgingCriteria}
+        votingRounds={competition?.voting_rounds || []}
+        onAddCriterion={onAddCriterion}
+        onUpdateCriterion={onUpdateCriterion}
+        onDeleteCriterion={onDeleteCriterion}
+        onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
+      />
+
+      {/* Judging results — blended judge + vote leaderboard per round */}
+      <JudgingResultsPanel
+        contestants={contestants}
+        judges={judges}
+        judgingCriteria={judgingCriteria}
+        judgeScores={judgeScores}
+        votingRounds={competition?.voting_rounds || []}
+      />
 
       {/* Sponsors Section */}
       <Panel

@@ -39,6 +39,9 @@ const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
 const PhotoBoothPage = lazy(() => import('../pages/PhotoBoothPage'));
 const AccountSettingsPage = lazy(() => import('../pages/AccountSettingsPage'));
+const JudgeClaimPage = lazy(() => import('../features/judge/JudgeClaimPage'));
+const JudgeDashboardPage = lazy(() => import('../features/judge/JudgeDashboardPage'));
+const JudgeScoringPage = lazy(() => import('../features/judge/JudgeScoringPage'));
 
 const darkVoid = <div style={{ minHeight: '100vh', background: '#0a0a0c' }} />;
 
@@ -212,6 +215,38 @@ export default function AppRoutes() {
           <SuspenseWrapper>
             <ClaimPage />
           </SuspenseWrapper>
+        }
+      />
+
+      {/* Judge invite claim flow — public; sets password and signs the judge in */}
+      <Route
+        path="/claim-judge/:token"
+        element={
+          <SuspenseWrapper>
+            <JudgeClaimPage />
+          </SuspenseWrapper>
+        }
+      />
+
+      {/* Judge dashboard — assignments and rounds */}
+      <Route
+        path="/judge"
+        element={
+          <ProtectedRoute>
+            <SuspenseWrapper>
+              <JudgeDashboardPage />
+            </SuspenseWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/judge/:competitionId/round/:roundId"
+        element={
+          <ProtectedRoute>
+            <SuspenseWrapper>
+              <JudgeScoringPage />
+            </SuspenseWrapper>
+          </ProtectedRoute>
         }
       />
 

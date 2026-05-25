@@ -132,6 +132,8 @@ export const RESERVED_PATHS = [
   'org',      // Organization routes
   'login',    // Auth
   'claim',    // Claim nomination
+  'claim-judge', // Claim judge invite
+  'judge',    // Judge dashboard / scoring
   'admin',    // Admin panel
   'profile',  // User profile
   'api',      // API routes

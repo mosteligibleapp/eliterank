@@ -32,6 +32,8 @@ export function useCompetitionDashboard(competitionId) {
     contestants: [],
     nominees: [],
     judges: [],
+    judgingCriteria: [],
+    judgeScores: [],
     sponsors: [],
     events: [],
     announcements: [],
@@ -62,6 +64,8 @@ export function useCompetitionDashboard(competitionId) {
         contestantsResult,
         nomineesResult,
         judgesResult,
+        criteriaResult,
+        scoresResult,
         sponsorsResult,
         eventsResult,
         announcementsResult,
@@ -93,6 +97,20 @@ export function useCompetitionDashboard(competitionId) {
           .select('*, profile:profiles!user_id(*)')
           .eq('competition_id', competitionId)
           .order('sort_order'),
+
+        // Judging criteria (host-defined qualities for this competition)
+        supabase
+          .from('judging_criteria')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('sort_order'),
+
+        // All judge scores for this competition — used to render results.
+        // RLS lets the host read every score; judges only see their own.
+        supabase
+          .from('judge_scores')
+          .select('id, voting_round_id, judge_id, contestant_id, criterion_id, score, submitted_at')
+          .eq('competition_id', competitionId),
 
         // Sponsors ordered by tier and sort_order
         supabase
@@ -147,7 +165,7 @@ export function useCompetitionDashboard(competitionId) {
             city:cities(id, name, state, slug),
             organization:organizations(id, name, slug, logo_url, header_logo_url, website_url),
             host:profiles!competitions_host_id_fkey(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery),
-            voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance),
+            voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance, judge_weight, finalized_at, finalized_snapshot),
             nomination_periods(id, start_date, end_date, period_order, title)
           `)
           .eq('id', competitionId)
@@ -176,6 +194,8 @@ export function useCompetitionDashboard(competitionId) {
         contestantsResult.error,
         nomineesResult.error,
         judgesResult.error,
+        criteriaResult.error,
+        scoresResult.error,
         sponsorsResult.error,
         eventsResult.error,
         announcementsResult.error,
@@ -372,6 +392,31 @@ export function useCompetitionDashboard(competitionId) {
         avatarUrl: j.avatar_url,
         instagram: j.instagram,
         sortOrder: j.sort_order,
+        email: j.email || j.profile?.email || null,
+        inviteToken: j.invite_token,
+        inviteSentAt: j.invite_sent_at,
+        claimedAt: j.claimed_at,
+      }));
+
+      // Transform judging criteria (host-defined qualities)
+      const judgingCriteria = (criteriaResult.data || []).map((c) => ({
+        id: c.id,
+        label: c.label,
+        description: c.description,
+        weight: parseFloat(c.weight) || 1,
+        sortOrder: c.sort_order,
+      }));
+
+      // Transform judge scores (raw rows — aggregation happens in the UI
+      // because the formula depends on per-round judge_weight and vote totals).
+      const judgeScores = (scoresResult.data || []).map((s) => ({
+        id: s.id,
+        votingRoundId: s.voting_round_id,
+        judgeId: s.judge_id,
+        contestantId: s.contestant_id,
+        criterionId: s.criterion_id,
+        score: s.score,
+        submittedAt: s.submitted_at,
       }));
 
       // Transform sponsors
@@ -447,6 +492,8 @@ export function useCompetitionDashboard(competitionId) {
         contestants,
         nominees,
         judges,
+        judgingCriteria,
+        judgeScores,
         sponsors,
         events,
         announcements,
@@ -925,7 +972,7 @@ export function useCompetitionDashboard(competitionId) {
 
     try {
       const maxSort = data.judges.length > 0 ? Math.max(...data.judges.map(j => j.sortOrder || 0)) : 0;
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('judges')
         .insert({
           competition_id: competitionId,
@@ -935,12 +982,15 @@ export function useCompetitionDashboard(competitionId) {
           avatar_url: judgeData.avatarUrl,
           user_id: judgeData.userId,
           instagram: judgeData.instagram || null,
+          email: judgeData.email ? judgeData.email.trim() : null,
           sort_order: maxSort + 1,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
       await fetchDashboardData();
-      return { success: true };
+      return { success: true, judgeId: inserted?.id };
     } catch (err) {
       console.error('Error adding judge:', err);
       return { success: false, error: err.message };
@@ -959,6 +1009,7 @@ export function useCompetitionDashboard(competitionId) {
           bio: judgeData.bio,
           avatar_url: judgeData.avatarUrl,
           instagram: judgeData.instagram || null,
+          email: judgeData.email ? judgeData.email.trim() : null,
         })
         .eq('id', judgeId);
 
@@ -985,6 +1036,102 @@ export function useCompetitionDashboard(competitionId) {
       return { success: true };
     } catch (err) {
       console.error('Error deleting judge:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  const sendJudgeInvite = useCallback(async (judgeId, { forceResend = false } = {}) => {
+    try {
+      const { data: result, error } = await supabase.functions.invoke('send-judge-invite', {
+        body: { judge_id: judgeId, force_resend: forceResend },
+      });
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true, data: result };
+    } catch (err) {
+      console.error('Error sending judge invite:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  // ============================================================================
+  // JUDGING CRITERIA OPERATIONS
+  // ============================================================================
+
+  const addCriterion = useCallback(async (criterion) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+    try {
+      const maxSort = data.judgingCriteria.length > 0
+        ? Math.max(...data.judgingCriteria.map(c => c.sortOrder || 0))
+        : 0;
+      const { error } = await supabase.from('judging_criteria').insert({
+        competition_id: competitionId,
+        label: criterion.label,
+        description: criterion.description || null,
+        weight: criterion.weight ?? 1,
+        sort_order: maxSort + 1,
+      });
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding criterion:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, data.judgingCriteria, fetchDashboardData]);
+
+  const updateCriterion = useCallback(async (criterionId, updates) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+    try {
+      const { error } = await supabase
+        .from('judging_criteria')
+        .update({
+          label: updates.label,
+          description: updates.description || null,
+          weight: updates.weight ?? 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', criterionId);
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating criterion:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  const deleteCriterion = useCallback(async (criterionId) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+    try {
+      const { error } = await supabase
+        .from('judging_criteria')
+        .delete()
+        .eq('id', criterionId);
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error deleting criterion:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  // Update a voting round's judge_weight (0–100). Affects how judge scores
+  // blend with vote counts when determining who advances.
+  const updateRoundJudgeWeight = useCallback(async (roundId, weight) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+    const clamped = Math.max(0, Math.min(100, Math.round(weight || 0)));
+    try {
+      const { error } = await supabase
+        .from('voting_rounds')
+        .update({ judge_weight: clamped })
+        .eq('id', roundId);
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating round judge weight:', err);
       return { success: false, error: err.message };
     }
   }, [fetchDashboardData]);
@@ -1746,6 +1893,13 @@ export function useCompetitionDashboard(competitionId) {
     addJudge,
     updateJudge,
     deleteJudge,
+    sendJudgeInvite,
+    // Judging criteria
+    addCriterion,
+    updateCriterion,
+    deleteCriterion,
+    // Per-round judge weight (0–100 blend with votes)
+    updateRoundJudgeWeight,
     // Charity operations
     updateCharity,
     removeCharity,
