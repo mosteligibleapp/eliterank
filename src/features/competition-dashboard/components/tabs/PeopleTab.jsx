@@ -27,6 +27,34 @@ const parseInstagram = (raw) => {
   return { url: `https://instagram.com/${clean}`, handle: clean };
 };
 
+// Small status pill used in the Nominators/Voters lists.
+const STATUS_PILL_PALETTE = {
+  success: { bg: 'rgba(34,197,94,0.15)', fg: colors.status.success },
+  error: { bg: 'rgba(239,68,68,0.15)', fg: colors.status.error },
+  neutral: { bg: 'rgba(255,255,255,0.05)', fg: colors.text.muted },
+  gold: { bg: 'rgba(212,175,55,0.12)', fg: colors.gold.primary },
+};
+const StatusPill = ({ tone = 'neutral', children, title }) => {
+  const p = STATUS_PILL_PALETTE[tone] || STATUS_PILL_PALETTE.neutral;
+  return (
+    <span
+      title={title}
+      style={{
+        fontSize: typography.fontSize.xs,
+        fontWeight: typography.fontWeight.medium,
+        color: p.fg,
+        background: p.bg,
+        padding: `2px ${spacing.sm}`,
+        borderRadius: borderRadius.sm,
+        whiteSpace: 'nowrap',
+        lineHeight: 1.4,
+      }}
+    >
+      {children}
+    </span>
+  );
+};
+
 const InstagramLink = ({ instagram, iconOnly = false }) => {
   const ig = parseInstagram(instagram);
   if (!ig) return null;
@@ -868,34 +896,97 @@ export default function PeopleTab({
 
   const loadNominators = async () => {
     if (nominatorsLoaded || !competition?.id) return;
-    const { data } = await supabase
-      .from('nominees')
-      .select('nominator_name, nominator_email, nominated_by, nomination_reason, created_at')
-      .eq('competition_id', competition.id)
-      .eq('nominated_by', 'third_party')
-      .not('nominator_email', 'is', null)
-      .order('created_at', { ascending: false });
-    setNominators(data || []);
+    const [nomsRes, logsRes] = await Promise.all([
+      supabase
+        .from('nominees')
+        .select('nominator_name, nominator_email, nominator_wants_updates, nominated_by, nomination_reason, created_at')
+        .eq('competition_id', competition.id)
+        .eq('nominated_by', 'third_party')
+        .not('nominator_email', 'is', null)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('email_logs')
+        .select('to_email, status, created_at')
+        .eq('competition_id', competition.id)
+        .order('created_at', { ascending: false }),
+    ]);
+    const latestStatusByEmail = {};
+    (logsRes.data || []).forEach(l => {
+      const key = (l.to_email || '').toLowerCase();
+      if (key && !latestStatusByEmail[key]) latestStatusByEmail[key] = l.status;
+    });
+    setNominators((nomsRes.data || []).map(n => ({
+      ...n,
+      deliveryStatus: latestStatusByEmail[(n.nominator_email || '').toLowerCase()] || null,
+    })));
     setNominatorsLoaded(true);
   };
 
   const loadVoters = async () => {
     if (votersLoaded || !competition?.id) return;
-    const { data } = await supabase
-      .from('votes')
-      .select('voter_email, vote_count, amount_paid, created_at')
-      .eq('competition_id', competition.id)
-      .order('created_at', { ascending: false });
+    const [votesRes, logsRes] = await Promise.all([
+      supabase
+        .from('votes')
+        .select('voter_email, vote_count, amount_paid, created_at')
+        .eq('competition_id', competition.id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('email_logs')
+        .select('to_email, status, created_at')
+        .eq('competition_id', competition.id)
+        .order('created_at', { ascending: false }),
+    ]);
     // Aggregate by email
     const byEmail = {};
-    (data || []).forEach(v => {
+    (votesRes.data || []).forEach(v => {
       const email = v.voter_email || 'Anonymous';
       if (!byEmail[email]) byEmail[email] = { email, totalVotes: 0, totalPaid: 0, count: 0 };
       byEmail[email].totalVotes += v.vote_count || 1;
       byEmail[email].totalPaid += parseFloat(v.amount_paid) || 0;
       byEmail[email].count++;
     });
-    setVoters(Object.values(byEmail).sort((a, b) => b.totalVotes - a.totalVotes));
+    const aggregated = Object.values(byEmail).sort((a, b) => b.totalVotes - a.totalVotes);
+
+    const latestStatusByEmail = {};
+    (logsRes.data || []).forEach(l => {
+      const key = (l.to_email || '').toLowerCase();
+      if (key && !latestStatusByEmail[key]) latestStatusByEmail[key] = l.status;
+    });
+
+    // Voters → subscriber lookup: join votes.voter_email → profiles.email → competition_subscribers.user_id.
+    // Anonymous payers without accounts won't match — that's expected.
+    const realEmails = aggregated
+      .map(v => (v.email || '').toLowerCase())
+      .filter(e => e && e !== 'anonymous');
+    const subscribedEmails = new Set();
+    if (realEmails.length) {
+      const { data: profileRows } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .in('email', realEmails);
+      const userIdToEmail = {};
+      (profileRows || []).forEach(p => {
+        if (p.email) userIdToEmail[p.id] = p.email.toLowerCase();
+      });
+      const userIds = Object.keys(userIdToEmail);
+      if (userIds.length) {
+        const { data: subs } = await supabase
+          .from('competition_subscribers')
+          .select('user_id')
+          .eq('competition_id', competition.id)
+          .in('user_id', userIds);
+        (subs || []).forEach(s => {
+          const email = userIdToEmail[s.user_id];
+          if (email) subscribedEmails.add(email);
+        });
+      }
+    }
+
+    setVoters(aggregated.map(v => ({
+      ...v,
+      deliveryStatus: latestStatusByEmail[(v.email || '').toLowerCase()] || null,
+      isSubscriber: subscribedEmails.has((v.email || '').toLowerCase()),
+    })));
     setVotersLoaded(true);
   };
 
@@ -1607,6 +1698,8 @@ export default function PeopleTab({
             downloadCSV(nominators.map(n => ({
               name: n.nominator_name || '',
               email: n.nominator_email || '',
+              delivery: n.deliveryStatus === 'sent' ? 'delivered' : n.deliveryStatus === 'failed' ? 'failed' : 'not_sent',
+              wants_updates: n.nominator_wants_updates ? 'yes' : 'no',
               reason: n.nomination_reason || '',
               date: n.created_at ? new Date(n.created_at).toLocaleDateString() : '',
             })), 'nominators.csv');
@@ -1639,6 +1732,17 @@ export default function PeopleTab({
                     <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {n.nominator_email}
                     </p>
+                    <div style={{ display: 'flex', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
+                      <StatusPill
+                        tone={n.deliveryStatus === 'sent' ? 'success' : n.deliveryStatus === 'failed' ? 'error' : 'neutral'}
+                        title={n.deliveryStatus === 'failed' ? 'Last invite email failed to send' : n.deliveryStatus === 'sent' ? 'Invite email handed off to OneSignal' : 'No invite email sent yet'}
+                      >
+                        {n.deliveryStatus === 'sent' ? 'Delivered' : n.deliveryStatus === 'failed' ? 'Failed' : 'No email sent'}
+                      </StatusPill>
+                      {n.nominator_wants_updates && (
+                        <StatusPill tone="gold" title="Opted in to competition updates">Subscribed</StatusPill>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1662,6 +1766,8 @@ export default function PeopleTab({
               total_votes: v.totalVotes,
               total_paid: v.totalPaid > 0 ? `$${v.totalPaid.toFixed(2)}` : '$0',
               transactions: v.count,
+              delivery: v.deliveryStatus === 'sent' ? 'delivered' : v.deliveryStatus === 'failed' ? 'failed' : 'not_sent',
+              subscribed: v.isSubscriber ? 'yes' : 'no',
             })), 'voters.csv');
           }}>
             Export
@@ -1693,6 +1799,19 @@ export default function PeopleTab({
                       {v.totalVotes} {v.totalVotes === 1 ? 'vote' : 'votes'}
                       {v.totalPaid > 0 && ` · $${v.totalPaid.toFixed(2)} spent`}
                     </p>
+                    {v.email !== 'Anonymous' && (
+                      <div style={{ display: 'flex', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
+                        <StatusPill
+                          tone={v.deliveryStatus === 'sent' ? 'success' : v.deliveryStatus === 'failed' ? 'error' : 'neutral'}
+                          title={v.deliveryStatus === 'failed' ? 'Last receipt email failed to send' : v.deliveryStatus === 'sent' ? 'Receipt email handed off to OneSignal' : 'No email sent to this voter yet'}
+                        >
+                          {v.deliveryStatus === 'sent' ? 'Delivered' : v.deliveryStatus === 'failed' ? 'Failed' : 'No email sent'}
+                        </StatusPill>
+                        {v.isSubscriber && (
+                          <StatusPill tone="gold" title="Subscribed to this competition's updates">Subscribed</StatusPill>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <span style={{
                     fontSize: typography.fontSize.xs,
