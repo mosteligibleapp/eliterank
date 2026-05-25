@@ -18,6 +18,7 @@ export default function AddPersonModal({
   onClose,
   onAdd,
   type = 'nominee', // 'nominee' or 'contestant'
+  competitionId,
 }) {
   const [mode, setMode] = useState('search'); // 'search' | 'manual'
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,9 +48,11 @@ export default function AddPersonModal({
     }
   }, [isOpen]);
 
-  // Debounced search (same pattern as WinnersManager)
+  // Scope the search to people who subscribed to this competition's notify list.
+  // Hosts shouldn't be able to add nominees from the entire platform — they
+  // should pick from their own audience.
   const searchProfiles = useCallback(async (query) => {
-    if (!query.trim() || !supabase) {
+    if (!query.trim() || !supabase || !competitionId) {
       setSearchResults([]);
       return;
     }
@@ -60,9 +63,10 @@ export default function AddPersonModal({
       const searchTerm = query.toLowerCase().trim();
 
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email, first_name, last_name, avatar_url, instagram, city')
-        .limit(100);
+        .from('competition_subscribers')
+        .select('profiles!inner(id, email, first_name, last_name, avatar_url, instagram, city)')
+        .eq('competition_id', competitionId)
+        .limit(500);
 
       if (error) {
         console.error('Search error:', error);
@@ -70,8 +74,10 @@ export default function AddPersonModal({
         return;
       }
 
+      const profiles = (data || []).map(row => row.profiles).filter(Boolean);
+
       // Client-side filtering
-      const filtered = (data || []).filter(p => {
+      const filtered = profiles.filter(p => {
         const email = (p.email || '').toLowerCase();
         const firstName = (p.first_name || '').toLowerCase();
         const lastName = (p.last_name || '').toLowerCase();
@@ -93,7 +99,7 @@ export default function AddPersonModal({
     } finally {
       setSearching(false);
     }
-  }, []);
+  }, [competitionId]);
 
   // Debounce search input
   useEffect(() => {
@@ -303,7 +309,7 @@ export default function AddPersonModal({
           <Search size={18} style={{ color: colors.text.muted }} />
           <input
             type="text"
-            placeholder="Search by name, email, or Instagram..."
+            placeholder="Search your subscribers by name, email, or Instagram..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -397,7 +403,10 @@ export default function AddPersonModal({
             fontSize: typography.fontSize.sm,
           }}>
             <User size={24} style={{ marginBottom: spacing.sm, opacity: 0.5 }} />
-            <p>No profiles found matching "{searchQuery}"</p>
+            <p>No subscribers found matching "{searchQuery}"</p>
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+              Use "Enter manually" to invite someone who hasn't subscribed.
+            </p>
           </div>
         )}
       </div>
@@ -431,7 +440,10 @@ export default function AddPersonModal({
           color: colors.text.secondary,
         }}>
           <User size={48} style={{ marginBottom: spacing.md, opacity: 0.3 }} />
-          <p>Search and select a user profile above</p>
+          <p>Search your subscribers above</p>
+          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+            Only people who subscribed to this competition are searchable here.
+          </p>
         </div>
       )}
 

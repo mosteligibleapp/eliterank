@@ -39,14 +39,21 @@ export function NominationFormEditor({ competition, onSave }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // The dashboard hook normalizes the competition row and exposes the JSONB
+  // column as camelCase `nominationFormConfig`; the raw DB row uses snake_case
+  // `nomination_form_config`. Accept either so the editor works regardless of
+  // which shape the parent passes.
+  const storedConfig =
+    competition?.nominationFormConfig ?? competition?.nomination_form_config;
+
   useEffect(() => {
-    const resolved = resolveNominationFormConfig(competition?.nomination_form_config);
+    const resolved = resolveNominationFormConfig(storedConfig);
     setCustomQuestions(resolved.custom_questions);
-  }, [competition?.nomination_form_config]);
+  }, [storedConfig]);
 
   const hasChanges = () => {
     const stored = JSON.stringify(
-      resolveNominationFormConfig(competition?.nomination_form_config).custom_questions
+      resolveNominationFormConfig(storedConfig).custom_questions
     );
     const current = JSON.stringify(
       resolveNominationFormConfig({ custom_questions: customQuestions }).custom_questions

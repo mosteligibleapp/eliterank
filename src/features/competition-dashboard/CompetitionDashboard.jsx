@@ -83,6 +83,7 @@ export default function CompetitionDashboard({
     removeHost,
     addCoHost,
     removeCoHost,
+    removeSubscriber,
     repairNomineeAccount,
     repairAllNomineeAccounts,
   } = dashboard;
@@ -449,7 +450,13 @@ export default function CompetitionDashboard({
           />
         );
       case 'emails':
-        return <EmailActivityTab competitionId={competitionId} />;
+        return (
+          <EmailActivityTab
+            competitionId={competitionId}
+            subscribers={data.subscribers || []}
+            onRemoveSubscriber={removeSubscriber}
+          />
+        );
       case 'content':
         return (
           <ContentTab
@@ -621,6 +628,7 @@ export default function CompetitionDashboard({
         onClose={closeAddPersonModal}
         onAdd={handleAddPerson}
         type={addPersonModal.type}
+        competitionId={competitionId}
       />
     </>
   );

@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { User, MapPin, Instagram, Twitter, Linkedin, X } from 'lucide-react';
+import { User, MapPin } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { transformSupabaseImage } from '../../../lib/storageImage';
 
 function buildHostList(competition) {
@@ -23,7 +23,8 @@ function getHostName(host) {
  */
 export function HostSection() {
   const { competition, sponsors } = usePublicCompetition();
-  const [modalHost, setModalHost] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const hosts = buildHostList(competition);
   const isPlural = hosts.length > 1;
@@ -52,7 +53,7 @@ export function HostSection() {
                 <button
                   key={host.id}
                   className="host-info host-info-clickable"
-                  onClick={() => setModalHost(host)}
+                  onClick={() => navigate(`/profile/${host.id}${location.search || ''}`)}
                 >
                   {host.avatar_url ? (
                     <img src={transformSupabaseImage(host.avatar_url, { width: 150, height: 150 })} alt={hostName} className="host-avatar" />
@@ -78,74 +79,6 @@ export function HostSection() {
                 </button>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Host Profile Modal */}
-      {modalHost && (
-        <div className="modal-overlay" onClick={() => setModalHost(null)}>
-          <div className="modal-container modal-host" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setModalHost(null)}>
-              <X size={18} />
-            </button>
-            <div className="host-profile-modal">
-              <div className="host-profile-header">
-                {modalHost.avatar_url ? (
-                  <img src={transformSupabaseImage(modalHost.avatar_url, { width: 200, height: 200 })} alt={getHostName(modalHost)} className="host-modal-avatar" />
-                ) : (
-                  <div className="host-modal-avatar-placeholder">
-                    <User size={48} />
-                  </div>
-                )}
-                <h2>{getHostName(modalHost)}</h2>
-                {modalHost.city && (
-                  <p className="host-modal-location">
-                    <MapPin size={14} />
-                    {modalHost.city}
-                  </p>
-                )}
-              </div>
-              {modalHost.bio && (
-                <div className="host-modal-bio">
-                  <p>{modalHost.bio}</p>
-                </div>
-              )}
-              {(modalHost.instagram || modalHost.twitter || modalHost.linkedin) && (
-                <div className="host-modal-socials">
-                  {modalHost.instagram && (
-                    <a
-                      href={`https://instagram.com/${modalHost.instagram}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="social-link"
-                    >
-                      <Instagram size={20} />
-                    </a>
-                  )}
-                  {modalHost.twitter && (
-                    <a
-                      href={`https://twitter.com/${modalHost.twitter}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="social-link"
-                    >
-                      <Twitter size={20} />
-                    </a>
-                  )}
-                  {modalHost.linkedin && (
-                    <a
-                      href={`https://linkedin.com/in/${modalHost.linkedin}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="social-link"
-                    >
-                      <Linkedin size={20} />
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}

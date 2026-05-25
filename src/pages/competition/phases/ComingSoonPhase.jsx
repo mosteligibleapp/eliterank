@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Bell } from 'lucide-react';
+import { Bell, Check, Loader } from 'lucide-react';
 import { HallOfWinnersSection } from '../components/HallOfWinnersSection';
 import { HostSection } from '../components/HostSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
-import { InterestModal } from '../components/InterestModal';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
 import { PrizePool } from '../components/PrizePool';
@@ -12,8 +12,9 @@ import { JudgesSection } from '../components/JudgesSection';
 import { CharityHighlight } from '../components/CharityHighlight';
 import { HostCard } from '../components/HostCard';
 import { PoweredByEliteRank } from '../components/PoweredByEliteRank';
-import { INTEREST_TYPE } from '../../../types/competition';
 import { getCityImage } from '../../../utils/cityImages';
+import { useAuthStore } from '../../../stores';
+import { useCompetitionSubscription } from '../../../features/competition/useCompetitionSubscription';
 
 /**
  * Coming Soon phase view
@@ -24,10 +25,40 @@ export function ComingSoonPhase() {
     competition, sponsors, judges, prizePool, countdown,
     nominationPeriods, votingRounds,
   } = usePublicCompetition();
-  const [activeModal, setActiveModal] = useState(null);
 
-  const openModal = (type) => setActiveModal(type);
-  const closeModal = () => setActiveModal(null);
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  const {
+    isSubscribed, loading: subLoading, error: subError, subscribe,
+  } = useCompetitionSubscription(competition?.id);
+
+  // If the user just came back from /login with ?subscribe=1, auto-subscribe
+  // once their auth state is known and the competition is loaded.
+  const autoSubscribedRef = useRef(false);
+  useEffect(() => {
+    if (autoSubscribedRef.current) return;
+    if (searchParams.get('subscribe') !== '1') return;
+    if (!competition?.id) return;
+    if (!isAuthenticated) return;
+    autoSubscribedRef.current = true;
+    subscribe().finally(() => {
+      const next = new URLSearchParams(searchParams);
+      next.delete('subscribe');
+      setSearchParams(next, { replace: true });
+    });
+  }, [isAuthenticated, competition?.id, searchParams, setSearchParams, subscribe]);
+
+  const handleSubscribeClick = useCallback(() => {
+    if (subLoading || isSubscribed) return;
+    if (!isAuthenticated) {
+      const returnTo = `${window.location.pathname}?subscribe=1`;
+      navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+    subscribe();
+  }, [isAuthenticated, isSubscribed, subLoading, navigate, subscribe]);
 
   const hasSponsors = sponsors && sponsors.length > 0;
   const hasHost = Boolean(competition?.host);
@@ -64,15 +95,34 @@ export function ComingSoonPhase() {
         </div>
       </section>
 
-      {/* Primary CTA — email capture */}
+      {/* Primary CTA — subscribe to nomination-open notification */}
       <section className="phase-coming-soon-cta">
         <button
           className="phase-cta-primary"
-          onClick={() => openModal(INTEREST_TYPE.FAN)}
+          onClick={handleSubscribeClick}
+          disabled={subLoading || isSubscribed}
+          aria-pressed={isSubscribed}
         >
-          <Bell size={20} />
-          <span className="phase-cta-primary-label">Get notified when nominations open</span>
+          {isSubscribed ? (
+            <>
+              <Check size={20} />
+              <span className="phase-cta-primary-label">You'll be notified when nominations open</span>
+            </>
+          ) : subLoading ? (
+            <>
+              <Loader size={20} className="loading-spinner" />
+              <span className="phase-cta-primary-label">Working…</span>
+            </>
+          ) : (
+            <>
+              <Bell size={20} />
+              <span className="phase-cta-primary-label">Get notified when nominations open</span>
+            </>
+          )}
         </button>
+        {subError && (
+          <p className="phase-coming-soon-cta-error" role="alert">{subError}</p>
+        )}
       </section>
 
       {/* Host credibility — full card variant */}
@@ -129,15 +179,6 @@ export function ComingSoonPhase() {
 
       {/* Attribution */}
       <PoweredByEliteRank />
-
-      {/* Interest Modals */}
-      {activeModal && (
-        <InterestModal
-          type={activeModal}
-          competition={competition}
-          onClose={closeModal}
-        />
-      )}
     </div>
   );
 }
