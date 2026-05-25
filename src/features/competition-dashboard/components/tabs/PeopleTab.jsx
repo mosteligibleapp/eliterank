@@ -1698,7 +1698,7 @@ export default function PeopleTab({
             downloadCSV(nominators.map(n => ({
               name: n.nominator_name || '',
               email: n.nominator_email || '',
-              delivery: n.deliveryStatus === 'sent' ? 'delivered' : n.deliveryStatus === 'failed' ? 'failed' : 'not_sent',
+              delivery: n.deliveryStatus === 'sent' ? 'sent' : n.deliveryStatus === 'failed' ? 'failed' : 'not_sent',
               wants_updates: n.nominator_wants_updates ? 'yes' : 'no',
               reason: n.nomination_reason || '',
               date: n.created_at ? new Date(n.created_at).toLocaleDateString() : '',
@@ -1735,9 +1735,9 @@ export default function PeopleTab({
                     <div style={{ display: 'flex', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
                       <StatusPill
                         tone={n.deliveryStatus === 'sent' ? 'success' : n.deliveryStatus === 'failed' ? 'error' : 'neutral'}
-                        title={n.deliveryStatus === 'failed' ? 'Last invite email failed to send' : n.deliveryStatus === 'sent' ? 'Invite email handed off to OneSignal' : 'No invite email sent yet'}
+                        title={n.deliveryStatus === 'failed' ? 'Last invite email failed to send' : n.deliveryStatus === 'sent' ? 'Invite email sent' : 'No invite email sent yet'}
                       >
-                        {n.deliveryStatus === 'sent' ? 'Delivered' : n.deliveryStatus === 'failed' ? 'Failed' : 'No email sent'}
+                        {n.deliveryStatus === 'sent' ? 'Sent' : n.deliveryStatus === 'failed' ? 'Failed' : 'No email sent'}
                       </StatusPill>
                       {n.nominator_wants_updates && (
                         <StatusPill tone="gold" title="Opted in to competition updates">Subscribed</StatusPill>
@@ -1766,7 +1766,7 @@ export default function PeopleTab({
               total_votes: v.totalVotes,
               total_paid: v.totalPaid > 0 ? `$${v.totalPaid.toFixed(2)}` : '$0',
               transactions: v.count,
-              delivery: v.deliveryStatus === 'sent' ? 'delivered' : v.deliveryStatus === 'failed' ? 'failed' : 'not_sent',
+              delivery: v.deliveryStatus === 'sent' ? 'sent' : v.deliveryStatus === 'failed' ? 'failed' : 'not_sent',
               subscribed: v.isSubscriber ? 'yes' : 'no',
             })), 'voters.csv');
           }}>
@@ -1803,9 +1803,9 @@ export default function PeopleTab({
                       <div style={{ display: 'flex', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
                         <StatusPill
                           tone={v.deliveryStatus === 'sent' ? 'success' : v.deliveryStatus === 'failed' ? 'error' : 'neutral'}
-                          title={v.deliveryStatus === 'failed' ? 'Last receipt email failed to send' : v.deliveryStatus === 'sent' ? 'Receipt email handed off to OneSignal' : 'No email sent to this voter yet'}
+                          title={v.deliveryStatus === 'failed' ? 'Last receipt email failed to send' : v.deliveryStatus === 'sent' ? 'Receipt email sent' : 'No email sent to this voter yet'}
                         >
-                          {v.deliveryStatus === 'sent' ? 'Delivered' : v.deliveryStatus === 'failed' ? 'Failed' : 'No email sent'}
+                          {v.deliveryStatus === 'sent' ? 'Sent' : v.deliveryStatus === 'failed' ? 'Failed' : 'No email sent'}
                         </StatusPill>
                         {v.isSubscriber && (
                           <StatusPill tone="gold" title="Subscribed to this competition's updates">Subscribed</StatusPill>
