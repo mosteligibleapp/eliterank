@@ -674,7 +674,6 @@ const hintStyle = {
   fontSize: typography.fontSize.xs,
   color: colors.text.secondary,
   marginBottom: spacing.sm,
-  marginTop: -spacing.xs,
 };
 
 const clearBtnStyle = {
