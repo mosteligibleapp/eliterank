@@ -894,12 +894,40 @@ export default function PeopleTab({
   const totalPeople = activeNominees.length + contestants.length;
   const isNewHost = totalPeople === 0;
 
+  // Returns a Set of lowercased emails that match competition_subscribers for this competition.
+  // Maps email → profiles.id → competition_subscribers.user_id, so anyone who never made an
+  // account (or whose account email doesn't match the one they used to vote/nominate) won't match.
+  const lookupSubscribedEmails = async (emails) => {
+    const subscribedEmails = new Set();
+    if (!emails.length || !competition?.id) return subscribedEmails;
+    const { data: profileRows } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .in('email', emails);
+    const userIdToEmail = {};
+    (profileRows || []).forEach(p => {
+      if (p.email) userIdToEmail[p.id] = p.email.toLowerCase();
+    });
+    const userIds = Object.keys(userIdToEmail);
+    if (!userIds.length) return subscribedEmails;
+    const { data: subs } = await supabase
+      .from('competition_subscribers')
+      .select('user_id')
+      .eq('competition_id', competition.id)
+      .in('user_id', userIds);
+    (subs || []).forEach(s => {
+      const email = userIdToEmail[s.user_id];
+      if (email) subscribedEmails.add(email);
+    });
+    return subscribedEmails;
+  };
+
   const loadNominators = async () => {
     if (nominatorsLoaded || !competition?.id) return;
     const [nomsRes, logsRes] = await Promise.all([
       supabase
         .from('nominees')
-        .select('nominator_name, nominator_email, nominator_wants_updates, nominated_by, nomination_reason, created_at')
+        .select('nominator_name, nominator_email, nominated_by, nomination_reason, created_at')
         .eq('competition_id', competition.id)
         .eq('nominated_by', 'third_party')
         .not('nominator_email', 'is', null)
@@ -910,14 +938,18 @@ export default function PeopleTab({
         .eq('competition_id', competition.id)
         .order('created_at', { ascending: false }),
     ]);
+    const list = nomsRes.data || [];
     const latestStatusByEmail = {};
     (logsRes.data || []).forEach(l => {
       const key = (l.to_email || '').toLowerCase();
       if (key && !latestStatusByEmail[key]) latestStatusByEmail[key] = l.status;
     });
-    setNominators((nomsRes.data || []).map(n => ({
+    const nominatorEmails = [...new Set(list.map(n => (n.nominator_email || '').toLowerCase()).filter(Boolean))];
+    const subscribedEmails = await lookupSubscribedEmails(nominatorEmails);
+    setNominators(list.map(n => ({
       ...n,
       deliveryStatus: latestStatusByEmail[(n.nominator_email || '').toLowerCase()] || null,
+      isSubscriber: subscribedEmails.has((n.nominator_email || '').toLowerCase()),
     })));
     setNominatorsLoaded(true);
   };
@@ -953,34 +985,10 @@ export default function PeopleTab({
       if (key && !latestStatusByEmail[key]) latestStatusByEmail[key] = l.status;
     });
 
-    // Voters → subscriber lookup: join votes.voter_email → profiles.email → competition_subscribers.user_id.
-    // Anonymous payers without accounts won't match — that's expected.
     const realEmails = aggregated
       .map(v => (v.email || '').toLowerCase())
       .filter(e => e && e !== 'anonymous');
-    const subscribedEmails = new Set();
-    if (realEmails.length) {
-      const { data: profileRows } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .in('email', realEmails);
-      const userIdToEmail = {};
-      (profileRows || []).forEach(p => {
-        if (p.email) userIdToEmail[p.id] = p.email.toLowerCase();
-      });
-      const userIds = Object.keys(userIdToEmail);
-      if (userIds.length) {
-        const { data: subs } = await supabase
-          .from('competition_subscribers')
-          .select('user_id')
-          .eq('competition_id', competition.id)
-          .in('user_id', userIds);
-        (subs || []).forEach(s => {
-          const email = userIdToEmail[s.user_id];
-          if (email) subscribedEmails.add(email);
-        });
-      }
-    }
+    const subscribedEmails = await lookupSubscribedEmails(realEmails);
 
     setVoters(aggregated.map(v => ({
       ...v,
@@ -1699,7 +1707,7 @@ export default function PeopleTab({
               name: n.nominator_name || '',
               email: n.nominator_email || '',
               delivery: n.deliveryStatus === 'sent' ? 'sent' : n.deliveryStatus === 'failed' ? 'failed' : 'not_sent',
-              wants_updates: n.nominator_wants_updates ? 'yes' : 'no',
+              subscribed: n.isSubscriber ? 'yes' : 'no',
               reason: n.nomination_reason || '',
               date: n.created_at ? new Date(n.created_at).toLocaleDateString() : '',
             })), 'nominators.csv');
@@ -1739,8 +1747,8 @@ export default function PeopleTab({
                       >
                         {n.deliveryStatus === 'sent' ? 'Sent' : n.deliveryStatus === 'failed' ? 'Failed' : 'No email sent'}
                       </StatusPill>
-                      {n.nominator_wants_updates && (
-                        <StatusPill tone="gold" title="Opted in to competition updates">Subscribed</StatusPill>
+                      {n.isSubscriber && (
+                        <StatusPill tone="gold" title="Subscribed to this competition's updates">Subscribed</StatusPill>
                       )}
                     </div>
                   </div>
