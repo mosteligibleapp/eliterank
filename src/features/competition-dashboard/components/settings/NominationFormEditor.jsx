@@ -84,15 +84,22 @@ export function NominationFormEditor({ competition, onSave }) {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      // .select() forces the response to include the updated row(s). Without
+      // it, an RLS denial (e.g. non-host viewer) returns { error: null } with
+      // zero rows touched — the save looks successful but nothing was written.
+      const { data, error } = await supabase
         .from('competitions')
         .update({
           nomination_form_config: { custom_questions: customQuestions },
           updated_at: new Date().toISOString(),
         })
-        .eq('id', competition.id);
+        .eq('id', competition.id)
+        .select('id');
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("You don't have permission to edit this competition.");
+      }
 
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
