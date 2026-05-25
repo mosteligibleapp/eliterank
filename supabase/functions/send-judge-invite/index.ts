@@ -28,6 +28,7 @@ interface JudgeData {
     id: string
     name: string | null
     season: number | null
+    host_id: string | null
     city: { name: string } | null
     organization: { slug: string } | null
   }
@@ -51,7 +52,31 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
+
+    // Identify the caller from the JWT. Refuse anonymous callers.
+    const authHeader = req.headers.get('Authorization') || ''
+    const jwt = authHeader.replace(/^Bearer\s+/i, '')
+    if (!jwt) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${jwt}` } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    const { data: userData, error: userError } = await userClient.auth.getUser()
+    if (userError || !userData?.user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid session' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    const callerId = userData.user.id
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -67,7 +92,7 @@ serve(async (req) => {
         invite_token,
         invite_sent_at,
         claimed_at,
-        competition:competitions(id, name, season, city:cities(name), organization:organizations(slug))
+        competition:competitions(id, name, season, host_id, city:cities(name), organization:organizations(slug))
       `)
       .eq('id', judge_id)
       .single()
@@ -77,6 +102,36 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Judge not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Authorize: caller must be the host, a co-host, or a super-admin.
+    const competition = judgeRow.competition as unknown as {
+      id: string
+      host_id: string | null
+    }
+    let authorized = competition?.host_id === callerId
+    if (!authorized) {
+      const { data: cohost } = await supabase
+        .from('competition_co_hosts')
+        .select('user_id')
+        .eq('competition_id', competition.id)
+        .eq('user_id', callerId)
+        .maybeSingle()
+      authorized = !!cohost
+    }
+    if (!authorized) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('id', callerId)
+        .maybeSingle()
+      authorized = profile?.is_super_admin === true
+    }
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ error: 'Only the host of this competition can send judge invites.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 

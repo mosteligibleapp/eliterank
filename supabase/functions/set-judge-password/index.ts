@@ -10,11 +10,17 @@ const corsHeaders = {
  * set-judge-password
  *
  * Sets a password for a judge's auth account. The judge arrives at
- * /claim-judge/:token, enters their email + a password, and this function
- * creates (or updates) the auth user and links it to the judge row.
+ * /claim-judge/:token, enters a password, and this function creates (or
+ * updates) the auth user for the email already on the judge row.
  *
- * Accepts: { invite_token: string, password: string, email?: string }
- * Returns: { success: true, user_id }
+ * Accepts: { invite_token: string, password: string }
+ * Returns: { success: true, user_id, email }
+ *
+ * Security: we deliberately do NOT accept a client-supplied email. The email
+ * is always read from judges.email (set by the host when inviting). Allowing
+ * the client to pass an arbitrary email enables account hijack — an attacker
+ * with any valid invite_token could pass a victim's email and overwrite that
+ * victim's auth password via auth.admin.updateUserById.
  */
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -22,7 +28,7 @@ serve(async (req) => {
   }
 
   try {
-    const { invite_token, password, email: clientEmail } = await req.json()
+    const { invite_token, password } = await req.json()
 
     if (!invite_token) {
       return new Response(
@@ -30,9 +36,9 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-    if (!password || password.length < 6) {
+    if (!password || password.length < 8) {
       return new Response(
-        JSON.stringify({ error: 'Password must be at least 6 characters' }),
+        JSON.stringify({ error: 'Password must be at least 8 characters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -57,17 +63,14 @@ serve(async (req) => {
       )
     }
 
-    // Prefer the email the user typed (clientEmail) — that's the email they
-    // will sign in with. Backfill to judges.email so the rows stay in sync.
-    const email = (clientEmail || judge.email || '').trim()
+    const email = (judge.email || '').trim()
     if (!email) {
       return new Response(
-        JSON.stringify({ error: 'Email address required' }),
+        JSON.stringify({
+          error: 'This judge has no email on file. Ask the host to add an email to the invite before claiming.',
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
-    }
-    if (email.toLowerCase() !== (judge.email || '').toLowerCase()) {
-      await supabase.from('judges').update({ email }).eq('id', judge.id)
     }
 
     // ── Find existing auth user ──
@@ -89,7 +92,6 @@ serve(async (req) => {
         if (!error && data?.user) {
           authUserId = data.user.id
         } else {
-          // Orphan profile — drop it so createUser won't conflict
           await supabase.from('profiles').delete().eq('id', profile.id)
         }
       }
@@ -124,8 +126,6 @@ serve(async (req) => {
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || ''
 
-      // Pre-clean any orphan profiles with this email to avoid the
-      // handle_new_user trigger crashing on the unique constraint.
       const { data: orphans } = await supabase
         .from('profiles')
         .select('id')
@@ -153,13 +153,11 @@ serve(async (req) => {
       authUserId = newUser.user.id
     }
 
-    // ── Link judge row + stamp claimed_at ──
     await supabase
       .from('judges')
       .update({ user_id: authUserId, claimed_at: new Date().toISOString() })
       .eq('id', judge.id)
 
-    // Ensure profile exists (handle_new_user may not have fired)
     await supabase.from('profiles').upsert(
       {
         id: authUserId,
@@ -172,7 +170,7 @@ serve(async (req) => {
     )
 
     return new Response(
-      JSON.stringify({ success: true, user_id: authUserId }),
+      JSON.stringify({ success: true, user_id: authUserId, email }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

@@ -108,21 +108,21 @@ export default function JudgeClaimPage() {
       }
       try {
         const { data, error: err } = await supabase
-          .from('judges')
-          .select(`
-            id, name, email, claimed_at,
-            competition:competitions(id, name, season, city:cities(name))
-          `)
-          .eq('invite_token', token)
-          .maybeSingle();
+          .rpc('get_judge_invite', { p_token: token });
 
         if (cancelled) return;
-        if (err || !data) {
+        const row = Array.isArray(data) ? data[0] : data;
+        if (err || !row) {
           setError("This invite link is invalid or has expired.");
         } else {
-          setJudge(data);
-          setCompetition(data.competition);
-          setEmail(data.email || '');
+          setJudge({ id: row.id, name: row.name, email: row.email, claimed_at: row.claimed_at });
+          setCompetition({
+            id: row.competition_id,
+            name: row.competition_name,
+            season: row.competition_season,
+            city: row.city_name ? { name: row.city_name } : null,
+          });
+          setEmail(row.email || '');
         }
       } catch (e) {
         if (!cancelled) setError(e.message || 'Failed to load invite');
@@ -145,24 +145,25 @@ export default function JudgeClaimPage() {
     setError(null);
 
     if (!email.trim()) {
-      setError('Email is required');
+      setError('No email on file for this invite. Ask the host to add one.');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
     setSubmitting(true);
     try {
       const { data: result, error: fnError } = await supabase.functions.invoke('set-judge-password', {
-        body: { invite_token: token, email: email.trim(), password },
+        body: { invite_token: token, password },
       });
       if (fnError) throw fnError;
       if (result?.error) throw new Error(result.error);
 
+      const signInEmail = result?.email || email.trim();
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: signInEmail,
         password,
       });
       if (signInError) throw signInError;
@@ -231,9 +232,8 @@ export default function JudgeClaimPage() {
           type="email"
           icon={Mail}
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
           placeholder="judge@example.com"
-          disabled={submitting || done}
+          disabled
         />
         <Input
           label="Password"
@@ -241,13 +241,13 @@ export default function JudgeClaimPage() {
           icon={Lock}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="At least 6 characters"
+          placeholder="At least 8 characters"
           disabled={submitting || done}
         />
 
         <Button
           type="submit"
-          disabled={submitting || done || !email.trim() || password.length < 6}
+          disabled={submitting || done || !email.trim() || password.length < 8}
           style={{ width: '100%', marginTop: spacing.lg }}
         >
           {submitting ? 'Setting up…' : done ? 'Done' : 'Accept & continue'}

@@ -1,0 +1,366 @@
+-- =============================================================================
+-- 072_judging_security_and_manual_votes_hotfix.sql
+--
+-- Three fixes needed before Round 4 (Top 15) finalizes 2026-05-28:
+--
+-- 1. finalize_voting_round() lost the manual_votes carry-over from migration
+--    062_manual_votes_survive_round_reset when 071_judging_round_finalization
+--    replaced the function. Restore the manual_votes sum on round reset so
+--    host-credited votes survive the 5/28 transition into Round 5 (Top 10).
+--
+-- 2. judges.invite_token was world-readable via judges_select USING(true).
+--    Drop that policy. Expose the claim flow and public listing through narrow
+--    SECURITY DEFINER functions that hide sensitive columns. Authenticated
+--    hosts continue to see full rows via judges_manage / co_hosts_manage_judges.
+--
+-- 3. judging_criteria management policy only checked competitions.host_id,
+--    excluding co-hosts. Replace with a policy that mirrors judges_manage.
+-- =============================================================================
+
+-- ── 1. Restore manual_votes carry-over to finalize_voting_round() ──
+CREATE OR REPLACE FUNCTION finalize_voting_round(p_round_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_round            voting_rounds%ROWTYPE;
+  v_next_round       voting_rounds%ROWTYPE;
+  v_advance_count    INTEGER;
+  v_total_active     INTEGER;
+  v_snapshot         JSONB;
+  v_winner_ids       UUID[];
+  v_advanced_ids     UUID[];
+  v_eliminated_ids   UUID[];
+  v_jw               INTEGER;
+  v_max_judge        NUMERIC;
+  v_max_votes        BIGINT;
+BEGIN
+  SELECT * INTO v_round FROM voting_rounds WHERE id = p_round_id FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'voting_round % not found', p_round_id;
+  END IF;
+
+  IF v_round.finalized_at IS NOT NULL THEN
+    RETURN jsonb_build_object('skipped', true, 'reason', 'already_finalized');
+  END IF;
+
+  IF v_round.end_date IS NULL OR v_round.end_date > NOW() THEN
+    RETURN jsonb_build_object('skipped', true, 'reason', 'not_yet_ended');
+  END IF;
+
+  v_jw            := COALESCE(v_round.judge_weight, 0);
+  v_advance_count := COALESCE(v_round.contestants_advance, 0);
+
+  WITH per_judge AS (
+    SELECT
+      js.contestant_id,
+      js.judge_id,
+      SUM(js.score * COALESCE(jc.weight, 1)) AS judge_total
+    FROM judge_scores js
+    JOIN judging_criteria jc ON jc.id = js.criterion_id
+    WHERE js.voting_round_id = p_round_id
+      AND js.submitted_at IS NOT NULL
+    GROUP BY js.contestant_id, js.judge_id
+  ),
+  judge_avg AS (
+    SELECT contestant_id, AVG(judge_total)::NUMERIC AS avg_total
+    FROM per_judge
+    GROUP BY contestant_id
+  )
+  SELECT COALESCE(MAX(avg_total), 0) INTO v_max_judge FROM judge_avg;
+
+  SELECT COALESCE(MAX(votes), 0) INTO v_max_votes
+  FROM contestants
+  WHERE competition_id = v_round.competition_id
+    AND status = 'active';
+
+  WITH per_judge AS (
+    SELECT
+      js.contestant_id,
+      js.judge_id,
+      SUM(js.score * COALESCE(jc.weight, 1)) AS judge_total
+    FROM judge_scores js
+    JOIN judging_criteria jc ON jc.id = js.criterion_id
+    WHERE js.voting_round_id = p_round_id
+      AND js.submitted_at IS NOT NULL
+    GROUP BY js.contestant_id, js.judge_id
+  ),
+  judge_avg AS (
+    SELECT contestant_id, AVG(judge_total)::NUMERIC AS avg_total
+    FROM per_judge
+    GROUP BY contestant_id
+  ),
+  scored AS (
+    SELECT
+      c.id,
+      c.votes,
+      c.created_at,
+      COALESCE(ja.avg_total, 0) AS judge_avg,
+      CASE
+        WHEN v_jw > 0 THEN
+          (v_jw::NUMERIC / 100.0) *
+            (CASE WHEN v_max_judge > 0 THEN COALESCE(ja.avg_total, 0) / v_max_judge ELSE 0 END)
+          + ((100 - v_jw)::NUMERIC / 100.0) *
+            (CASE WHEN v_max_votes > 0 THEN c.votes::NUMERIC / v_max_votes ELSE 0 END)
+        ELSE c.votes::NUMERIC
+      END AS final_score
+    FROM contestants c
+    LEFT JOIN judge_avg ja ON ja.contestant_id = c.id
+    WHERE c.competition_id = v_round.competition_id
+      AND c.status = 'active'
+  ),
+  ranked AS (
+    SELECT
+      id, votes, judge_avg, final_score,
+      ROW_NUMBER() OVER (
+        ORDER BY final_score DESC NULLS LAST, votes DESC NULLS LAST, created_at ASC
+      ) AS rank
+    FROM scored
+  )
+  SELECT
+    jsonb_agg(
+      jsonb_build_object(
+        'contestant_id', id,
+        'votes', votes,
+        'judge_avg', judge_avg,
+        'final_score', final_score,
+        'judge_weight', v_jw,
+        'rank', rank,
+        'status', CASE
+          WHEN v_round.round_type = 'finale' AND rank <= v_advance_count THEN 'winner'
+          WHEN v_round.round_type = 'finale' THEN 'runner_up'
+          WHEN rank <= v_advance_count THEN 'advanced'
+          ELSE 'eliminated'
+        END
+      )
+      ORDER BY rank
+    ),
+    COUNT(*)
+  INTO v_snapshot, v_total_active
+  FROM ranked;
+
+  IF v_snapshot IS NULL THEN
+    v_snapshot := '[]'::jsonb;
+  END IF;
+
+  IF v_round.round_type = 'finale' THEN
+    SELECT array_agg((elem->>'contestant_id')::uuid)
+    INTO v_winner_ids
+    FROM jsonb_array_elements(v_snapshot) AS elem
+    WHERE elem->>'status' = 'winner';
+
+    IF v_winner_ids IS NOT NULL THEN
+      UPDATE contestants
+      SET status = 'winner',
+          advancement_status = 'winner'
+      WHERE id = ANY(v_winner_ids);
+
+      UPDATE competitions
+      SET winners = v_winner_ids,
+          status = 'completed',
+          updated_at = NOW()
+      WHERE id = v_round.competition_id;
+    END IF;
+  ELSE
+    SELECT array_agg((elem->>'contestant_id')::uuid)
+    INTO v_advanced_ids
+    FROM jsonb_array_elements(v_snapshot) AS elem
+    WHERE elem->>'status' = 'advanced';
+
+    SELECT array_agg((elem->>'contestant_id')::uuid)
+    INTO v_eliminated_ids
+    FROM jsonb_array_elements(v_snapshot) AS elem
+    WHERE elem->>'status' = 'eliminated';
+
+    IF v_advanced_ids IS NOT NULL THEN
+      UPDATE contestants
+      SET advancement_status = 'advanced',
+          current_round = v_round.round_order + 1
+      WHERE id = ANY(v_advanced_ids);
+    END IF;
+
+    IF v_eliminated_ids IS NOT NULL THEN
+      UPDATE contestants
+      SET status = 'eliminated',
+          advancement_status = 'eliminated',
+          eliminated_in_round = v_round.round_order
+      WHERE id = ANY(v_eliminated_ids);
+    END IF;
+
+    SELECT * INTO v_next_round
+    FROM voting_rounds
+    WHERE competition_id = v_round.competition_id
+      AND round_order = v_round.round_order + 1;
+
+    -- Vote reset for next round. Bonus votes AND manual votes both carry over
+    -- across resets (per 056 and 062 originals).
+    IF FOUND AND v_next_round.votes_reset_at_start AND v_advanced_ids IS NOT NULL THEN
+      UPDATE contestants c
+      SET votes_at_round_start = c.votes_at_round_start
+            || jsonb_build_object(v_next_round.id::text, c.votes),
+          votes = COALESCE((
+            SELECT SUM(bvc.votes_awarded)
+            FROM bonus_vote_completions bvc
+            WHERE bvc.contestant_id = c.id
+          ), 0)
+          + COALESCE((
+            SELECT SUM(mv.vote_count)
+            FROM manual_votes mv
+            WHERE mv.contestant_id = c.id
+          ), 0)
+      WHERE c.id = ANY(v_advanced_ids);
+    END IF;
+  END IF;
+
+  UPDATE voting_rounds
+  SET finalized_at = NOW(),
+      finalized_snapshot = v_snapshot
+  WHERE id = p_round_id;
+
+  RETURN jsonb_build_object(
+    'finalized', true,
+    'round_id', p_round_id,
+    'round_type', v_round.round_type,
+    'judge_weight', v_jw,
+    'total_active', v_total_active,
+    'advanced_count', COALESCE(array_length(v_advanced_ids, 1), 0),
+    'eliminated_count', COALESCE(array_length(v_eliminated_ids, 1), 0),
+    'winner_count', COALESCE(array_length(v_winner_ids, 1), 0)
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION finalize_voting_round(UUID) IS
+  'Idempotently finalize a voting round. When judge_weight > 0, ranks by (jw/100)·normalized_judge_avg + ((100-jw)/100)·normalized_votes; otherwise by raw votes. On vote reset, carries forward both bonus_vote_completions AND manual_votes for advancing contestants.';
+
+-- ── 2. Lock down judges read access ──
+DROP POLICY IF EXISTS "judges_select" ON public.judges;
+
+-- Public claim flow: look up a judge row by invite_token without exposing
+-- the token itself. Returns the safe fields the claim page needs.
+CREATE OR REPLACE FUNCTION public.get_judge_invite(p_token UUID)
+RETURNS TABLE (
+  id UUID,
+  name TEXT,
+  email TEXT,
+  claimed_at TIMESTAMPTZ,
+  competition_id UUID,
+  competition_name TEXT,
+  competition_season INTEGER,
+  city_name TEXT
+)
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT
+    j.id,
+    j.name,
+    j.email,
+    j.claimed_at,
+    c.id AS competition_id,
+    c.name AS competition_name,
+    c.season AS competition_season,
+    ci.name AS city_name
+  FROM judges j
+  JOIN competitions c ON c.id = j.competition_id
+  LEFT JOIN cities ci ON ci.id = c.city_id
+  WHERE j.invite_token = p_token
+  LIMIT 1;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_judge_invite(UUID) TO anon, authenticated;
+
+COMMENT ON FUNCTION public.get_judge_invite(UUID) IS
+  'Public lookup for the judge-invite claim flow. Returns judge name, email, claim status, and basic competition info given a valid invite_token, without exposing the token to other rows.';
+
+-- Public site listing: show judges (with linked profile data) for a competition
+-- without exposing email, invite_token, invite_sent_at, or claimed_at.
+CREATE OR REPLACE FUNCTION public.get_competition_judges(p_competition_id UUID)
+RETURNS TABLE (
+  id UUID,
+  competition_id UUID,
+  user_id UUID,
+  name TEXT,
+  title TEXT,
+  bio TEXT,
+  avatar_url TEXT,
+  instagram TEXT,
+  sort_order INTEGER,
+  created_at TIMESTAMPTZ,
+  profile JSONB
+)
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT
+    j.id,
+    j.competition_id,
+    j.user_id,
+    j.name,
+    j.title,
+    j.bio,
+    j.avatar_url,
+    j.instagram,
+    j.sort_order,
+    j.created_at,
+    CASE
+      WHEN j.user_id IS NULL THEN NULL
+      ELSE (
+        SELECT jsonb_build_object(
+          'id', p.id,
+          'first_name', p.first_name,
+          'last_name', p.last_name,
+          'avatar_url', p.avatar_url,
+          'bio', p.bio,
+          'occupation', p.occupation,
+          'city', p.city,
+          'instagram', p.instagram,
+          'twitter', p.twitter,
+          'linkedin', p.linkedin,
+          'interests', p.interests,
+          'gallery', p.gallery
+        )
+        FROM profiles p
+        WHERE p.id = j.user_id
+      )
+    END AS profile
+  FROM judges j
+  WHERE j.competition_id = p_competition_id
+  ORDER BY j.sort_order NULLS LAST, j.created_at;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_competition_judges(UUID) TO anon, authenticated;
+
+COMMENT ON FUNCTION public.get_competition_judges(UUID) IS
+  'Public listing of judges for a competition, returning only display-safe fields plus linked profile info. Hides email, invite_token, invite_sent_at, claimed_at.';
+
+-- ── 3. Co-host coverage for judging_criteria ──
+DROP POLICY IF EXISTS "Hosts can manage judging criteria" ON public.judging_criteria;
+
+CREATE POLICY "judging_criteria_manage" ON public.judging_criteria
+  FOR ALL
+  USING (
+    is_competition_host(competition_id)
+    OR is_super_admin()
+    OR EXISTS (
+      SELECT 1 FROM competition_co_hosts cch
+      WHERE cch.competition_id = judging_criteria.competition_id
+        AND cch.user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    is_competition_host(competition_id)
+    OR is_super_admin()
+    OR EXISTS (
+      SELECT 1 FROM competition_co_hosts cch
+      WHERE cch.competition_id = judging_criteria.competition_id
+        AND cch.user_id = auth.uid()
+    )
+  );

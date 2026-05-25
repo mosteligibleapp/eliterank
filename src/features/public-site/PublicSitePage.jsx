@@ -141,7 +141,7 @@ export default function PublicSitePage({
           supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
-          supabase.from('judges').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('sort_order'),
+          supabase.rpc('get_competition_judges', { p_competition_id: competitionId }),
           supabase.rpc('is_double_vote_day', { p_competition_id: competitionId }),
         ]);
 
