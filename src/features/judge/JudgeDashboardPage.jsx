@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Award, ChevronRight, Calendar, Lock, CheckCircle, Users } from 'lucide-react';
+import { Award, ChevronRight, Calendar, Lock, CheckCircle, Users, Sliders, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
-import { PageHeader } from '../../components/ui';
+import { PageHeader, Avatar } from '../../components/ui';
 
 /**
  * JudgeDashboardPage — entered via /judge
  *
- * Lists every competition the logged-in user is a judge for, and inside each
- * competition lists the upcoming and active judging rounds (`judge_weight > 0`).
- * Past rounds where the judge already submitted are surfaced as read-only.
+ * Lists every competition the logged-in user is a judge for. For each
+ * judging round we show the criteria the judge will score on, the
+ * contestants they'll be judging, and a short "how it works" preview so
+ * upcoming rounds aren't a black box.
  */
 
 const styles = {
@@ -64,6 +65,57 @@ const styles = {
     color,
     fontWeight: typography.fontWeight.medium,
   }),
+  previewBlock: {
+    padding: `${spacing.md} ${spacing.lg} ${spacing.lg}`,
+    borderTop: `1px solid ${colors.border.secondary}`,
+    background: 'rgba(0,0,0,0.15)',
+  },
+  sectionLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color: colors.text.muted,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  criterionRow: {
+    padding: spacing.sm,
+    border: `1px solid ${colors.border.secondary}`,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.xs,
+  },
+  contestantsRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  contestantChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    padding: `${spacing.xs} ${spacing.sm} ${spacing.xs} ${spacing.xs}`,
+    background: colors.background.primary,
+    border: `1px solid ${colors.border.secondary}`,
+    borderRadius: borderRadius.full,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+  },
+  howItWorksList: {
+    margin: 0,
+    paddingLeft: spacing.lg,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    lineHeight: 1.6,
+  },
+  emptyHint: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+    fontStyle: 'italic',
+  },
 };
 
 function formatDateRange(start, end) {
@@ -72,6 +124,11 @@ function formatDateRange(start, end) {
   if (start) return `Starts ${fmt(start)}`;
   if (end) return `Ends ${fmt(end)}`;
   return 'TBD';
+}
+
+function formatLongDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 }
 
 function roundPhaseOf(round) {
@@ -90,6 +147,9 @@ export default function JudgeDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [assignments, setAssignments] = useState([]);
   const [submittedRoundIds, setSubmittedRoundIds] = useState(new Set());
+  // Keyed by competition_id
+  const [criteriaByComp, setCriteriaByComp] = useState({});
+  const [contestantsByComp, setContestantsByComp] = useState({});
 
   useEffect(() => {
     if (!user?.id) return;
@@ -97,7 +157,6 @@ export default function JudgeDashboardPage() {
     (async () => {
       setLoading(true);
       try {
-        // 1. Find judge rows for this user
         const { data: judgeRows, error: judgeErr } = await supabase
           .from('judges')
           .select(`
@@ -114,19 +173,53 @@ export default function JudgeDashboardPage() {
         if (cancelled) return;
 
         const judgeIds = (judgeRows || []).map(j => j.id);
+        const competitionIds = Array.from(new Set((judgeRows || [])
+          .map(j => j.competition?.id)
+          .filter(Boolean)));
 
-        // 2. Find which (round × judge) pairs have submitted scores
-        if (judgeIds.length) {
-          const { data: scoreRows } = await supabase
-            .from('judge_scores')
-            .select('voting_round_id, submitted_at')
-            .in('judge_id', judgeIds)
-            .not('submitted_at', 'is', null);
-          const submitted = new Set((scoreRows || []).map(s => s.voting_round_id));
-          if (!cancelled) setSubmittedRoundIds(submitted);
+        const [scoresRes, criteriaRes, contestantsRes] = await Promise.all([
+          judgeIds.length
+            ? supabase
+                .from('judge_scores')
+                .select('voting_round_id, submitted_at')
+                .in('judge_id', judgeIds)
+                .not('submitted_at', 'is', null)
+            : Promise.resolve({ data: [] }),
+          competitionIds.length
+            ? supabase
+                .from('judging_criteria')
+                .select('id, competition_id, label, description, weight, sort_order')
+                .in('competition_id', competitionIds)
+                .order('sort_order')
+            : Promise.resolve({ data: [] }),
+          competitionIds.length
+            ? supabase
+                .from('contestants')
+                .select('id, competition_id, name, avatar_url, status')
+                .in('competition_id', competitionIds)
+                .eq('status', 'active')
+                .order('name')
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        if (cancelled) return;
+
+        const submitted = new Set((scoresRes.data || []).map(s => s.voting_round_id));
+        setSubmittedRoundIds(submitted);
+
+        const cmap = {};
+        for (const c of criteriaRes.data || []) {
+          (cmap[c.competition_id] ||= []).push(c);
         }
+        setCriteriaByComp(cmap);
 
-        if (!cancelled) setAssignments(judgeRows || []);
+        const tmap = {};
+        for (const ct of contestantsRes.data || []) {
+          (tmap[ct.competition_id] ||= []).push(ct);
+        }
+        setContestantsByComp(tmap);
+
+        setAssignments(judgeRows || []);
       } catch (e) {
         console.error('Failed to load judge assignments:', e);
       } finally {
@@ -163,6 +256,9 @@ export default function JudgeDashboardPage() {
               .filter(r => (r.judge_weight || 0) > 0)
               .sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
 
+            const criteria = criteriaByComp[comp.id] || [];
+            const contestants = contestantsByComp[comp.id] || [];
+
             return (
               <div key={row.id} style={styles.competition}>
                 <div style={styles.competitionHeader}>
@@ -187,36 +283,124 @@ export default function JudgeDashboardPage() {
                     const canScore = phase !== 'upcoming' && !submitted;
 
                     return (
-                      <div
-                        key={r.id}
-                        style={{ ...styles.roundRow, opacity: blocked ? 0.55 : 1, cursor: blocked ? 'not-allowed' : 'pointer' }}
-                        onClick={() => { if (!blocked) navigate(`/judge/${comp.id}/round/${r.id}`); }}
-                        onMouseEnter={(e) => { if (!blocked) e.currentTarget.style.background = colors.background.cardHover; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        <div>
-                          <p style={{ fontWeight: typography.fontWeight.semibold, marginBottom: 2 }}>
-                            {r.title || `Round ${r.round_order || ''}`}
-                          </p>
-                          <div style={styles.meta}>
-                            <span><Calendar size={12} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />
-                              {formatDateRange(r.start_date, r.end_date)}
-                            </span>
-                            <span>{r.judge_weight}% judges{r.judge_weight < 100 ? ` · ${100 - r.judge_weight}% votes` : ''}</span>
-                            {r.contestants_advance > 0 && <span>Top {r.contestants_advance} advance</span>}
+                      <div key={r.id}>
+                        <div
+                          style={{ ...styles.roundRow, opacity: blocked ? 0.7 : 1, cursor: blocked ? 'not-allowed' : 'pointer' }}
+                          onClick={() => { if (!blocked) navigate(`/judge/${comp.id}/round/${r.id}`); }}
+                          onMouseEnter={(e) => { if (!blocked) e.currentTarget.style.background = colors.background.cardHover; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <div>
+                            <p style={{ fontWeight: typography.fontWeight.semibold, marginBottom: 2 }}>
+                              {r.title || `Round ${r.round_order || ''}`}
+                            </p>
+                            <div style={styles.meta}>
+                              <span><Calendar size={12} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />
+                                {formatDateRange(r.start_date, r.end_date)}
+                              </span>
+                              <span>{r.judge_weight}% judges{r.judge_weight < 100 ? ` · ${100 - r.judge_weight}% votes` : ''}</span>
+                              {r.contestants_advance > 0 && <span>Top {r.contestants_advance} advance</span>}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                            {submitted ? (
+                              <span style={styles.pill(colors.status.success)}><CheckCircle size={12} /> Submitted</span>
+                            ) : phase === 'upcoming' ? (
+                              <span style={styles.pill(colors.text.muted)}><Lock size={12} /> Upcoming</span>
+                            ) : phase === 'closed' ? (
+                              <span style={styles.pill(colors.status.warning)}>Closed</span>
+                            ) : (
+                              <span style={styles.pill(colors.gold.primary)}>Open</span>
+                            )}
+                            {canScore && <ChevronRight size={16} color={colors.text.muted} />}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                          {submitted ? (
-                            <span style={styles.pill(colors.status.success)}><CheckCircle size={12} /> Submitted</span>
-                          ) : phase === 'upcoming' ? (
-                            <span style={styles.pill(colors.text.muted)}><Lock size={12} /> Upcoming</span>
-                          ) : phase === 'closed' ? (
-                            <span style={styles.pill(colors.status.warning)}>Closed</span>
+
+                        {/* Preview block — always shown so the judge knows what's coming */}
+                        <div style={styles.previewBlock}>
+                          <div style={styles.sectionLabel}>
+                            <Info size={12} /> How it works
+                          </div>
+                          <ol style={styles.howItWorksList}>
+                            <li>
+                              {phase === 'upcoming'
+                                ? `Scoring opens ${formatLongDate(r.start_date)}. `
+                                : phase === 'active'
+                                ? `Scoring is open — closes ${formatLongDate(r.end_date)}. `
+                                : 'Scoring window has closed. '}
+                              You&rsquo;ll see every contestant on one page.
+                            </li>
+                            <li>Score each contestant 1–10 on every criterion. Your scores autosave as you click.</li>
+                            <li>Click <strong>Submit Final</strong> when you&rsquo;re done — that locks your scores for the round.</li>
+                            <li>
+                              Final ranking blends judges and votes:{' '}
+                              <strong style={{ color: colors.text.primary }}>{r.judge_weight}% judges</strong>
+                              {r.judge_weight < 100 && (
+                                <> + <strong style={{ color: colors.text.primary }}>{100 - r.judge_weight}% votes</strong></>
+                              )}
+                              . Top {r.contestants_advance} advance.
+                            </li>
+                          </ol>
+
+                          <div style={styles.sectionLabel}>
+                            <Sliders size={12} /> Criteria you&rsquo;ll score ({criteria.length})
+                          </div>
+                          {criteria.length === 0 ? (
+                            <p style={styles.emptyHint}>
+                              The host hasn&rsquo;t added criteria yet. They&rsquo;ll appear here once added.
+                            </p>
                           ) : (
-                            <span style={styles.pill(colors.gold.primary)}>Open</span>
+                            criteria.map((c) => (
+                              <div key={c.id} style={styles.criterionRow}>
+                                <div style={{
+                                  fontSize: typography.fontSize.sm,
+                                  fontWeight: typography.fontWeight.medium,
+                                  color: colors.text.primary,
+                                }}>
+                                  {c.label}
+                                  {c.weight && c.weight !== 1 && (
+                                    <span style={{
+                                      marginLeft: spacing.xs,
+                                      color: colors.gold.primary,
+                                      fontWeight: typography.fontWeight.regular,
+                                      fontSize: typography.fontSize.xs,
+                                    }}>
+                                      ×{c.weight}
+                                    </span>
+                                  )}
+                                </div>
+                                {c.description && (
+                                  <p style={{
+                                    margin: `${spacing.xs} 0 0`,
+                                    fontSize: typography.fontSize.xs,
+                                    color: colors.text.muted,
+                                    lineHeight: 1.5,
+                                  }}>
+                                    {c.description}
+                                  </p>
+                                )}
+                              </div>
+                            ))
                           )}
-                          {canScore && <ChevronRight size={16} color={colors.text.muted} />}
+
+                          <div style={styles.sectionLabel}>
+                            <Users size={12} />
+                            {phase === 'upcoming'
+                              ? ` Who you'll judge (currently ${contestants.length} active — top ${r.contestants_advance} from the previous round advance here)`
+                              : ` Who you're judging (${contestants.length})`}
+                          </div>
+                          {contestants.length === 0 ? (
+                            <p style={styles.emptyHint}>No active contestants yet.</p>
+                          ) : (
+                            <div style={styles.contestantsRow}>
+                              {contestants.map((ct) => (
+                                <span key={ct.id} style={styles.contestantChip}>
+                                  <Avatar name={ct.name} size={22} src={ct.avatar_url} />
+                                  {ct.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
