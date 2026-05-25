@@ -276,7 +276,7 @@ export default function EmailActivityTab({ competitionId, subscribers = [], onRe
         </div>
       </Panel>
 
-      <Panel title="Email Activity" icon={Mail}>
+      <Panel title="Email Activity" icon={Mail} collapsible defaultCollapsed>
         {/* Filters */}
         <div style={styles.controls}>
           <div style={styles.searchWrap}>
