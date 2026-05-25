@@ -174,12 +174,16 @@ export default function CompetitionCardVoting({
   const stopPropagation = (e) => { e.stopPropagation(); };
 
   // Current + projected rank for the "Moves X up N spots" preview.
+  // Filters to active contestants only so this matches the rank shown
+  // in the stat card (ProfileCompetitions.jsx rankStats).
   const rankProjection = useMemo(() => {
     const addedVotes = Number(selectedCount) || 0;
     if (!leaderboard?.length || !contestantId || addedVotes < 1) return null;
 
+    const active = leaderboard.filter((c) => c.status === 'active');
+
     // Current rank: sort by votes desc, find this contestant's slot.
-    const byVotes = [...leaderboard].sort(
+    const byVotes = [...active].sort(
       (a, b) => (b.votes || 0) - (a.votes || 0)
     );
     const currentIndex = byVotes.findIndex((c) => c.id === contestantId);
@@ -187,7 +191,7 @@ export default function CompetitionCardVoting({
 
     // Projected rank: same sort, but with addedVotes applied to this
     // contestant only.
-    const projected = leaderboard.map((c) =>
+    const projected = active.map((c) =>
       c.id === contestantId
         ? { ...c, votes: (c.votes || 0) + addedVotes }
         : c
