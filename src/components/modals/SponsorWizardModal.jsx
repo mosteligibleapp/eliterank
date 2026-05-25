@@ -31,7 +31,6 @@ const INITIAL_STATE = {
   websiteUrl: '',
   sponsorshipType: '',
   value: '',
-  isPubliclyFeatured: false,
   visibilityTier: '',
   providesContestantRewards: false,
   recipient: '',
@@ -95,17 +94,20 @@ export default function SponsorWizardModal({
     }
   };
 
+  const isInKind = form.sponsorshipType === 'in_kind';
   const step1Valid = form.name.trim().length > 0;
   const step2Valid =
     form.sponsorshipType &&
     form.value !== '' &&
-    (!form.isPubliclyFeatured || !!form.visibilityTier);
-  const step3Valid =
-    !form.providesContestantRewards ||
-    (form.recipient &&
+    (form.sponsorshipType !== 'paid' || !!form.visibilityTier);
+  // In-kind sponsors must provide at least one prize (it's the only way they show up publicly).
+  const mustProvideRewards = isInKind || form.providesContestantRewards;
+  const step3Valid = mustProvideRewards
+    ? form.recipient &&
       (form.recipient !== 'top_x' || parseInt(form.topXCount, 10) > 0) &&
       form.prizes.length > 0 &&
-      form.prizes.every((p) => p.title.trim().length > 0));
+      form.prizes.every((p) => p.title.trim().length > 0)
+    : true;
 
   const canAdvance = step === 1 ? step1Valid : step === 2 ? step2Valid : step3Valid;
 
@@ -187,6 +189,7 @@ export default function SponsorWizardModal({
           prizeInputRef={prizeInputRef}
           uploadingPrizeId={uploadingPrizeId}
           handlePrizeImageUpload={handlePrizeImageUpload}
+          isInKind={form.sponsorshipType === 'in_kind'}
         />
       )}
 
@@ -323,15 +326,15 @@ function Step2Deal({ form, updateField, tierAvailability }) {
         <div style={{ display: 'flex', gap: spacing.md }}>
           <PillButton
             active={isInKind}
-            onClick={() => updateField('sponsorshipType', 'in_kind')}
+            onClick={() => { updateField('sponsorshipType', 'in_kind'); updateField('visibilityTier', ''); }}
             title="In-kind"
-            subtitle="Goods or services"
+            subtitle="Provides prizes only"
           />
           <PillButton
             active={isPaid}
             onClick={() => updateField('sponsorshipType', 'paid')}
             title="Paid"
-            subtitle="Cash sponsorship"
+            subtitle="Cash + featured logo"
           />
         </div>
       </div>
@@ -347,74 +350,52 @@ function Step2Deal({ form, updateField, tierAvailability }) {
       )}
 
       {isPaid && (
-        <>
-          <div>
-            <label style={labelStyle}>Featured placement?</label>
-            <p style={hintStyle}>
-              Featured sponsors appear in a "Sponsored by" strip above the host section on the
-              competition page.
-            </p>
-            <div style={{ display: 'flex', gap: spacing.md, marginTop: spacing.sm }}>
-              <PillButton
-                active={!form.isPubliclyFeatured}
-                onClick={() => { updateField('isPubliclyFeatured', false); updateField('visibilityTier', ''); }}
-                title="No"
-                subtitle="Listed on sponsors section only"
-              />
-              <PillButton
-                active={form.isPubliclyFeatured}
-                onClick={() => updateField('isPubliclyFeatured', true)}
-                title="Yes"
-                subtitle="Always visible on competition page"
-              />
-            </div>
+        <div>
+          <label style={labelStyle}>Visibility tier *</label>
+          <p style={hintStyle}>
+            Paid sponsors appear in a "Sponsored by" strip above the host section on the
+            competition page, ordered by tier.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+            {VISIBILITY_TIERS.map((tier) => {
+              const remaining = tierAvailability[tier.key] ?? 0;
+              const isCurrent = form.visibilityTier === tier.key;
+              const disabled = remaining <= 0 && !isCurrent;
+              return (
+                <button
+                  key={tier.key}
+                  onClick={() => !disabled && updateField('visibilityTier', tier.key)}
+                  disabled={disabled}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: spacing.md,
+                    borderRadius: borderRadius.md,
+                    background: isCurrent ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${isCurrent ? colors.gold.primary : colors.border.light}`,
+                    color: disabled ? colors.text.secondary : colors.text.primary,
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: disabled ? 0.5 : 1,
+                    textAlign: 'left',
+                  }}
+                >
+                  <div>
+                    <div style={{ color: tier.color, fontWeight: typography.fontWeight.semibold }}>
+                      {tier.label}
+                    </div>
+                    <div style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>
+                      Cap: {tier.cap} per competition
+                    </div>
+                  </div>
+                  <div style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                    {remaining} of {tier.cap} available
+                  </div>
+                </button>
+              );
+            })}
           </div>
-
-          {form.isPubliclyFeatured && (
-            <div>
-              <label style={labelStyle}>Visibility tier *</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-                {VISIBILITY_TIERS.map((tier) => {
-                  const remaining = tierAvailability[tier.key] ?? 0;
-                  const isCurrent = form.visibilityTier === tier.key;
-                  const disabled = remaining <= 0 && !isCurrent;
-                  return (
-                    <button
-                      key={tier.key}
-                      onClick={() => !disabled && updateField('visibilityTier', tier.key)}
-                      disabled={disabled}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: spacing.md,
-                        borderRadius: borderRadius.md,
-                        background: isCurrent ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${isCurrent ? colors.gold.primary : colors.border.light}`,
-                        color: disabled ? colors.text.secondary : colors.text.primary,
-                        cursor: disabled ? 'not-allowed' : 'pointer',
-                        opacity: disabled ? 0.5 : 1,
-                        textAlign: 'left',
-                      }}
-                    >
-                      <div>
-                        <div style={{ color: tier.color, fontWeight: typography.fontWeight.semibold }}>
-                          {tier.label}
-                        </div>
-                        <div style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>
-                          Cap: {tier.cap} per competition
-                        </div>
-                      </div>
-                      <div style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                        {remaining} of {tier.cap} available
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </>
+        </div>
       )}
     </div>
   );
@@ -430,13 +411,24 @@ function Step3Rewards({
   prizeInputRef,
   uploadingPrizeId,
   handlePrizeImageUpload,
+  isInKind,
 }) {
   const [activePrizeId, setActivePrizeId] = useState(null);
+
+  // In-kind sponsors must provide prizes — seed one row on entry.
+  React.useEffect(() => {
+    if (isInKind && form.prizes.length === 0) {
+      updateField('prizes', [emptyPrize()]);
+      updateField('providesContestantRewards', true);
+    }
+  }, [isInKind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const triggerUpload = (prizeId) => {
     setActivePrizeId(prizeId);
     prizeInputRef.current?.click();
   };
+
+  const showRewardsForm = isInKind || form.providesContestantRewards;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
@@ -448,33 +440,49 @@ function Step3Rewards({
         style={{ display: 'none' }}
       />
 
-      <div>
-        <label style={labelStyle}>Providing anything to contestants?</label>
-        <div style={{ display: 'flex', gap: spacing.md }}>
-          <PillButton
-            active={!form.providesContestantRewards}
-            onClick={() => {
-              updateField('providesContestantRewards', false);
-              updateField('recipient', '');
-              updateField('topXCount', '');
-              updateField('prizes', []);
-            }}
-            title="No"
-            subtitle="Cash/visibility only"
-          />
-          <PillButton
-            active={form.providesContestantRewards}
-            onClick={() => {
-              updateField('providesContestantRewards', true);
-              if (form.prizes.length === 0) updateField('prizes', [emptyPrize()]);
-            }}
-            title="Yes"
-            subtitle="Adds prizes to competition"
-          />
+      {isInKind ? (
+        <div
+          style={{
+            padding: spacing.md,
+            background: 'rgba(212,175,55,0.08)',
+            border: `1px solid ${colors.gold.primary}`,
+            borderRadius: borderRadius.md,
+            fontSize: typography.fontSize.sm,
+            color: colors.text.primary,
+          }}
+        >
+          In-kind sponsors are shown publicly through the prize(s) they contribute. Add at least
+          one prize below.
         </div>
-      </div>
+      ) : (
+        <div>
+          <label style={labelStyle}>Providing anything to contestants?</label>
+          <div style={{ display: 'flex', gap: spacing.md }}>
+            <PillButton
+              active={!form.providesContestantRewards}
+              onClick={() => {
+                updateField('providesContestantRewards', false);
+                updateField('recipient', '');
+                updateField('topXCount', '');
+                updateField('prizes', []);
+              }}
+              title="No"
+              subtitle="Logo placement only"
+            />
+            <PillButton
+              active={form.providesContestantRewards}
+              onClick={() => {
+                updateField('providesContestantRewards', true);
+                if (form.prizes.length === 0) updateField('prizes', [emptyPrize()]);
+              }}
+              title="Yes"
+              subtitle="Adds prizes to competition"
+            />
+          </div>
+        </div>
+      )}
 
-      {form.providesContestantRewards && (
+      {showRewardsForm && (
         <>
           <div>
             <label style={labelStyle}>Who receives? *</label>
