@@ -968,6 +968,8 @@ export default function PeopleTab({
         title="Host Profile"
         icon={User}
         style={{ marginBottom: 0 }}
+        collapsible
+        defaultCollapsed
         action={
           host && isSuperAdmin ? (
             <div style={{ display: 'flex', gap: spacing.sm }}>
