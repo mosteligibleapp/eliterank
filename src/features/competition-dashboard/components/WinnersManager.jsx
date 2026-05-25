@@ -16,15 +16,17 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [autofilled, setAutofilled] = useState(false);
 
   const maxWinners = competition?.number_of_winners || 5;
   const isCompleted = competition?.status === COMPETITION_STATUS.COMPLETED;
   // Allow editing if explicitly allowed or if competition is completed
   const canEdit = allowEdit || isCompleted;
 
-  // Load existing winners on mount
+  // Load existing winners on mount (will auto-prefill from leaderboard if empty)
   useEffect(() => {
     loadWinners();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [competition?.id]);
 
   const loadWinners = async () => {
@@ -64,7 +66,15 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
 
         setWinners(orderedWinners);
       } else {
-        setWinners([]);
+        // No winners saved yet — auto-prefill top N from the leaderboard so the
+        // host starts with the vote-derived result instead of a blank list.
+        // The host can still edit before/after this; we save the prefill so
+        // refreshes don't keep re-suggesting the same names.
+        if (canEdit) {
+          await autofillFromLeaderboard();
+        } else {
+          setWinners([]);
+        }
       }
     } catch (err) {
       console.error('Error loading winners:', err);
@@ -72,6 +82,54 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
     } finally {
       setLoading(false);
     }
+  };
+
+  // Pull the top contestants by lifetime votes and seed the winners list.
+  // Tie-breakers: more paid votes wins, then earlier created_at.
+  const autofillFromLeaderboard = async () => {
+    if (!competition?.id || !supabase) return;
+
+    const { data: contestants, error: fetchError } = await supabase
+      .from('contestants')
+      .select(`
+        user_id,
+        lifetime_votes,
+        lifetime_paid_votes,
+        created_at,
+        profile:profiles!user_id(id, email, first_name, last_name, avatar_url)
+      `)
+      .eq('competition_id', competition.id)
+      .neq('status', 'removed')
+      .not('user_id', 'is', null);
+
+    if (fetchError) {
+      console.error('Auto-fill failed:', fetchError);
+      setWinners([]);
+      return;
+    }
+
+    const ranked = (contestants || [])
+      .filter(c => c.profile)
+      .sort((a, b) => {
+        const va = a.lifetime_votes || 0;
+        const vb = b.lifetime_votes || 0;
+        if (vb !== va) return vb - va;
+        const pa = a.lifetime_paid_votes || 0;
+        const pb = b.lifetime_paid_votes || 0;
+        if (pb !== pa) return pb - pa;
+        return new Date(a.created_at) - new Date(b.created_at);
+      })
+      .slice(0, maxWinners)
+      .map(c => c.profile);
+
+    if (ranked.length === 0) {
+      setWinners([]);
+      return;
+    }
+
+    setWinners(ranked);
+    setAutofilled(true);
+    await saveWinners(ranked);
   };
 
   // Debounced search
@@ -87,12 +145,13 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
     try {
       const searchTerm = query.toLowerCase().trim();
 
-      // Fetch profiles and filter client-side for more reliable search
-      // This works around RLS and query syntax issues
+      // Only contestants of this competition are eligible to win.
       const { data, error: fetchError } = await supabase
-        .from('profiles')
-        .select('id, email, first_name, last_name, avatar_url')
-        .limit(100);
+        .from('contestants')
+        .select('user_id, profile:profiles!user_id(id, email, first_name, last_name, avatar_url)')
+        .eq('competition_id', competition.id)
+        .neq('status', 'removed')
+        .not('user_id', 'is', null);
 
       if (fetchError) {
         console.error('Supabase error:', fetchError);
@@ -101,20 +160,23 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
         return;
       }
 
-      if (!data || data.length === 0) {
+      const profiles = (data || [])
+        .map(c => c.profile)
+        .filter(Boolean);
+
+      if (profiles.length === 0) {
         setSearchResults([]);
         return;
       }
 
-      // Filter out already selected winners
       const winnerIds = winners.map(w => w.id);
+      const seen = new Set();
 
-      // Client-side search filtering
-      const filtered = data.filter(p => {
-        // Skip already selected winners
+      const filtered = profiles.filter(p => {
         if (winnerIds.includes(p.id)) return false;
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
 
-        // Search across multiple fields
         const email = (p.email || '').toLowerCase();
         const firstName = (p.first_name || '').toLowerCase();
         const lastName = (p.last_name || '').toLowerCase();
@@ -135,7 +197,7 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
     } finally {
       setSearching(false);
     }
-  }, [winners]);
+  }, [winners, competition?.id]);
 
   // Debounce search input
   useEffect(() => {
@@ -156,6 +218,7 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
     setWinners(newWinners);
     setSearchQuery('');
     setSearchResults([]);
+    setAutofilled(false);
 
     // Save to database
     await saveWinners(newWinners);
@@ -164,6 +227,7 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
   const removeWinner = async (profileId) => {
     const newWinners = winners.filter(w => w.id !== profileId);
     setWinners(newWinners);
+    setAutofilled(false);
 
     // Save to database
     await saveWinners(newWinners);
@@ -287,6 +351,11 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
             </h3>
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
               {winners.length} of {maxWinners} winners selected
+              {autofilled && winners.length > 0 && (
+                <span style={{ color: colors.gold.primary }}>
+                  {' '}— auto-filled from leaderboard
+                </span>
+              )}
             </p>
           </div>
         </div>
