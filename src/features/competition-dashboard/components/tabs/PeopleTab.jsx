@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
+  Plus, User, Star, FileText, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
   ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -966,173 +966,232 @@ export default function PeopleTab({
         alignItems: 'start',
       }}>
       <Panel
-        title="Host Profile"
+        title={`Hosts${host ? ` (${1 + coHosts.length})` : coHosts.length ? ` (${coHosts.length})` : ''}`}
         icon={User}
         style={{ marginBottom: 0 }}
         action={
-          <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
-            {host && isSuperAdmin && (
-              <>
-                <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
-                  Reassign
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                  onClick={(e) => { e.stopPropagation(); onRemoveHost(); }}
-                >
-                  Remove
-                </Button>
-              </>
-            )}
-            {!host && isSuperAdmin && (
+          isSuperAdmin ? (
+            host ? (
+              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowAddCoHost?.(); }}>
+                Add Co-Host
+              </Button>
+            ) : (
               <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
                 Assign Host
               </Button>
-            )}
-            {host && (host.bio || host.instagram || (host.gallery && host.gallery.length > 0)) && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowHostDetails(!showHostDetails); }}
-                title={showHostDetails ? 'Hide details' : 'Show details'}
-                aria-label={showHostDetails ? 'Hide host details' : 'Show host details'}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: colors.text.secondary,
-                  padding: spacing.xs,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {showHostDetails ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-              </button>
-            )}
-          </div>
+            )
+          ) : null
         }
       >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {!host ? (
+        <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
+          {!host && coHosts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p style={{ marginBottom: spacing.lg }}>No host assigned yet</p>
+              <User size={40} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p style={{ marginBottom: spacing.md, fontSize: typography.fontSize.sm }}>No hosts assigned yet</p>
               {isSuperAdmin && (
                 <Button icon={UserPlus} onClick={onShowHostAssignment}>Assign Host</Button>
               )}
             </div>
           ) : (
-            <div>
-              <div style={{
-                display: 'flex',
-                alignItems: isMobile ? 'flex-start' : 'center',
-                gap: spacing.xl,
-                marginBottom: showHostDetails ? spacing.xl : 0,
-                flexDirection: isMobile ? 'column' : 'row',
-              }}>
-                <Avatar name={host.name} src={host.avatar} size={isMobile ? 80 : 100} />
-                <div style={{ flex: 1 }}>
-                  <h2 style={{
-                    fontSize: isMobile ? typography.fontSize.xl : typography.fontSize.display,
-                    fontWeight: typography.fontWeight.bold,
-                  }}>
-                    {host.name}
-                  </h2>
-                  {host.city && (
-                    <p style={{
-                      color: colors.text.secondary,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      marginTop: spacing.sm,
-                    }}>
-                      <MapPin size={16} /> {host.city}
-                    </p>
-                  )}
-                  <Badge variant="gold" size="md" style={{ marginTop: spacing.md }}>
-                    <Star size={14} style={{ marginRight: spacing.xs }} /> Verified Host
-                  </Badge>
-                </div>
-              </div>
-
-              {showHostDetails && host.bio && (
-                <div style={{ marginBottom: spacing.xl }}>
-                  <h3 style={{
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.semibold,
-                    marginBottom: spacing.md,
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {host && (
+                <div
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.md,
+                  }}
+                >
+                  <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: spacing.sm,
-                  }}>
-                    <FileText size={18} /> About
-                  </h3>
-                  <p style={{ color: colors.text.secondary, lineHeight: 1.6 }}>{host.bio}</p>
-                </div>
-              )}
-
-              {showHostDetails && host.instagram && (
-                <div style={{ marginBottom: spacing.xl }}>
-                  <h3 style={{
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.semibold,
-                    marginBottom: spacing.md,
-                  }}>
-                    Social
-                  </h3>
-                  <a
-                    href={`https://instagram.com/${host.instagram.replace('@', '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      padding: `${spacing.sm} ${spacing.md}`,
-                      background: 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.md,
-                      color: colors.text.primary,
-                      textDecoration: 'none',
-                      minHeight: '44px',
-                    }}
-                  >
-                    @{host.instagram.replace('@', '')}
-                  </a>
-                </div>
-              )}
-
-              {showHostDetails && host.gallery && host.gallery.length > 0 && (
-                <div>
-                  <h3 style={{
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.semibold,
-                    marginBottom: spacing.md,
-                  }}>
-                    Gallery
-                  </h3>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(150px, 1fr))',
                     gap: spacing.md,
+                    padding: spacing.md,
                   }}>
-                    {host.gallery.filter(Boolean).map((img, i) => (
-                      <img
-                        key={i}
-                        src={typeof img === 'string' ? img : img?.url}
-                        alt={`Gallery ${i + 1}`}
+                    <Avatar name={host.name} src={host.avatar} size={44} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: typography.fontWeight.medium }}>{host.name}</p>
+                      <p style={{
+                        color: colors.text.secondary,
+                        fontSize: typography.fontSize.sm,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {host.city || ''}
+                      </p>
+                    </div>
+                    <Badge variant="gold" size="sm">
+                      <Star size={12} style={{ marginRight: spacing.xs }} /> Host
+                    </Badge>
+                    {isSuperAdmin && (
+                      <>
+                        <Button size="sm" variant="secondary" onClick={onShowHostAssignment}>
+                          Reassign
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                          onClick={onRemoveHost}
+                        >
+                          Remove
+                        </Button>
+                      </>
+                    )}
+                    {(host.bio || host.instagram || (host.gallery && host.gallery.length > 0)) && (
+                      <button
+                        onClick={() => setShowHostDetails(!showHostDetails)}
+                        title={showHostDetails ? 'Hide details' : 'Show details'}
+                        aria-label={showHostDetails ? 'Hide host details' : 'Show host details'}
                         style={{
-                          width: '100%',
-                          aspectRatio: '1',
-                          objectFit: 'cover',
-                          borderRadius: borderRadius.lg,
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: colors.text.secondary,
+                          padding: spacing.xs,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
-                      />
-                    ))}
+                      >
+                        {showHostDetails ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </button>
+                    )}
                   </div>
+
+                  {showHostDetails && (
+                    <div style={{
+                      padding: `0 ${spacing.md} ${spacing.md}`,
+                      borderTop: `1px solid ${colors.border.light}`,
+                      paddingTop: spacing.md,
+                    }}>
+                      {host.bio && (
+                        <div style={{ marginBottom: spacing.lg }}>
+                          <h3 style={{
+                            fontSize: typography.fontSize.sm,
+                            fontWeight: typography.fontWeight.semibold,
+                            marginBottom: spacing.sm,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: spacing.sm,
+                            color: colors.text.secondary,
+                          }}>
+                            <FileText size={14} /> About
+                          </h3>
+                          <p style={{ color: colors.text.secondary, lineHeight: 1.6, fontSize: typography.fontSize.sm }}>{host.bio}</p>
+                        </div>
+                      )}
+
+                      {host.instagram && (
+                        <div style={{ marginBottom: spacing.lg }}>
+                          <h3 style={{
+                            fontSize: typography.fontSize.sm,
+                            fontWeight: typography.fontWeight.semibold,
+                            marginBottom: spacing.sm,
+                            color: colors.text.secondary,
+                          }}>
+                            Social
+                          </h3>
+                          <a
+                            href={`https://instagram.com/${host.instagram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: spacing.sm,
+                              padding: `${spacing.xs} ${spacing.md}`,
+                              background: 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${colors.border.light}`,
+                              borderRadius: borderRadius.md,
+                              color: colors.text.primary,
+                              textDecoration: 'none',
+                              fontSize: typography.fontSize.sm,
+                            }}
+                          >
+                            @{host.instagram.replace('@', '')}
+                          </a>
+                        </div>
+                      )}
+
+                      {host.gallery && host.gallery.length > 0 && (
+                        <div>
+                          <h3 style={{
+                            fontSize: typography.fontSize.sm,
+                            fontWeight: typography.fontWeight.semibold,
+                            marginBottom: spacing.sm,
+                            color: colors.text.secondary,
+                          }}>
+                            Gallery
+                          </h3>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                            gap: spacing.sm,
+                          }}>
+                            {host.gallery.filter(Boolean).map((img, i) => (
+                              <img
+                                key={i}
+                                src={typeof img === 'string' ? img : img?.url}
+                                alt={`Gallery ${i + 1}`}
+                                style={{
+                                  width: '100%',
+                                  aspectRatio: '1',
+                                  objectFit: 'cover',
+                                  borderRadius: borderRadius.md,
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
+
+              {coHosts.map((coHost) => (
+                <div
+                  key={coHost.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    padding: spacing.md,
+                    background: 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.md,
+                  }}
+                >
+                  <Avatar name={coHost.name} src={coHost.avatar} size={44} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: typography.fontWeight.medium }}>{coHost.name}</p>
+                    <p style={{
+                      color: colors.text.secondary,
+                      fontSize: typography.fontSize.sm,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {coHost.email}
+                    </p>
+                  </div>
+                  <Badge variant="gold" size="sm">
+                    <Star size={12} style={{ marginRight: spacing.xs }} /> Co-Host
+                  </Badge>
+                  {isSuperAdmin && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                      onClick={() => onRemoveCoHost?.(coHost.id)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -1141,67 +1200,6 @@ export default function PeopleTab({
       {/* Winners Manager */}
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
       </div>
-
-      {/* Co-Hosts */}
-      {(isSuperAdmin || coHosts.length > 0) && (
-        <Panel
-          title="Co-Hosts"
-          icon={UserPlus}
-          action={
-            isSuperAdmin ? (
-              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowAddCoHost?.(); }}>
-                Add Co-Host
-              </Button>
-            ) : null
-          }
-        >
-          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-            {coHosts.length === 0 ? (
-              <p style={{ color: colors.text.secondary, textAlign: 'center', padding: spacing.lg }}>
-                No additional hosts. Co-hosts have the same capabilities as the primary host.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-                {coHosts.map((coHost) => (
-                  <div
-                    key={coHost.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                      padding: spacing.md,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.md,
-                    }}
-                  >
-                    <Avatar name={coHost.name} src={coHost.avatar} size={44} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: typography.fontWeight.medium }}>{coHost.name}</p>
-                      <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {coHost.email}
-                      </p>
-                    </div>
-                    <Badge variant="gold" size="sm">
-                      <Star size={12} style={{ marginRight: spacing.xs }} /> Co-Host
-                    </Badge>
-                    {isSuperAdmin && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                        onClick={() => onRemoveCoHost?.(coHost.id)}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Panel>
-      )}
 
       {/* Stats Row - hide when all zeros */}
       {!isNewHost && <div style={{
