@@ -100,6 +100,7 @@ export default function PeopleTab({
   const avatarUploadTarget = useRef(null);
   const [reordering, setReordering] = useState(false);
   const [showAddVotes, setShowAddVotes] = useState(false);
+  const [showHostDetails, setShowHostDetails] = useState(false);
 
   const isLegacy = competition?.is_legacy;
   const isCompleted = competition?.status === 'completed';
@@ -968,28 +969,48 @@ export default function PeopleTab({
         title="Host Profile"
         icon={User}
         style={{ marginBottom: 0 }}
-        collapsible
-        defaultCollapsed
         action={
-          host && isSuperAdmin ? (
-            <div style={{ display: 'flex', gap: spacing.sm }}>
-              <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
-                Reassign
+          <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
+            {host && isSuperAdmin && (
+              <>
+                <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
+                  Reassign
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                  onClick={(e) => { e.stopPropagation(); onRemoveHost(); }}
+                >
+                  Remove
+                </Button>
+              </>
+            )}
+            {!host && isSuperAdmin && (
+              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
+                Assign Host
               </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                onClick={(e) => { e.stopPropagation(); onRemoveHost(); }}
+            )}
+            {host && (host.bio || host.instagram || (host.gallery && host.gallery.length > 0)) && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowHostDetails(!showHostDetails); }}
+                title={showHostDetails ? 'Hide details' : 'Show details'}
+                aria-label={showHostDetails ? 'Hide host details' : 'Show host details'}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: colors.text.secondary,
+                  padding: spacing.xs,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
-                Remove
-              </Button>
-            </div>
-          ) : isSuperAdmin ? (
-            <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
-              Assign Host
-            </Button>
-          ) : null
+                {showHostDetails ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </button>
+            )}
+          </div>
         }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
@@ -1007,7 +1028,7 @@ export default function PeopleTab({
                 display: 'flex',
                 alignItems: isMobile ? 'flex-start' : 'center',
                 gap: spacing.xl,
-                marginBottom: spacing.xl,
+                marginBottom: showHostDetails ? spacing.xl : 0,
                 flexDirection: isMobile ? 'column' : 'row',
               }}>
                 <Avatar name={host.name} src={host.avatar} size={isMobile ? 80 : 100} />
@@ -1035,7 +1056,7 @@ export default function PeopleTab({
                 </div>
               </div>
 
-              {host.bio && (
+              {showHostDetails && host.bio && (
                 <div style={{ marginBottom: spacing.xl }}>
                   <h3 style={{
                     fontSize: typography.fontSize.lg,
@@ -1051,7 +1072,7 @@ export default function PeopleTab({
                 </div>
               )}
 
-              {host.instagram && (
+              {showHostDetails && host.instagram && (
                 <div style={{ marginBottom: spacing.xl }}>
                   <h3 style={{
                     fontSize: typography.fontSize.lg,
@@ -1082,7 +1103,7 @@ export default function PeopleTab({
                 </div>
               )}
 
-              {host.gallery && host.gallery.length > 0 && (
+              {showHostDetails && host.gallery && host.gallery.length > 0 && (
                 <div>
                   <h3 style={{
                     fontSize: typography.fontSize.lg,
