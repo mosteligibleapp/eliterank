@@ -325,8 +325,12 @@ function profileCard(profile) {
     [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() ||
     'EliteRank Member';
   const city = profile.city || '';
+  // Photo panel is ~660 wide on a 630-tall canvas (slightly portrait), which
+  // keeps faces visible across a wide range of source aspect ratios without
+  // depending on focal-point heuristics.
+  const PHOTO_W = 660;
   const rawPhoto = profile.cover_image || profile.avatar_url;
-  const photo = resizeImage(rawPhoto, { width: 1200, height: 630, quality: 82 }) || rawPhoto;
+  const photo = resizeImage(rawPhoto, { width: PHOTO_W, height: 630, quality: 82 }) || rawPhoto;
 
   return h(
     'div',
@@ -339,39 +343,65 @@ function profileCard(profile) {
         backgroundColor: '#0a0a0c',
       },
     },
+    // Left: photo panel
     photo &&
       h('img', {
         src: photo,
-        width: 1200,
+        width: PHOTO_W,
         height: 630,
         style: {
           position: 'absolute',
           top: 0,
           left: 0,
-          width: 1200,
+          width: PHOTO_W,
           height: 630,
           objectFit: 'cover',
-          objectPosition: 'center 25%',
+          objectPosition: 'center top',
         },
       }),
-    topFade(),
-    bottomFade(320),
+    // Soft fade on the right edge of the photo into the dark panel.
+    h('div', {
+      style: {
+        position: 'absolute',
+        top: 0,
+        left: PHOTO_W - 80,
+        width: 80,
+        height: 630,
+        backgroundImage: 'linear-gradient(to right, rgba(10,10,12,0) 0%, rgba(10,10,12,1) 100%)',
+        display: 'flex',
+      },
+    }),
+
+    // Right: dark brand panel
+    h('div', {
+      style: {
+        position: 'absolute',
+        top: 0,
+        left: PHOTO_W,
+        width: 1200 - PHOTO_W,
+        height: 630,
+        backgroundColor: '#0a0a0c',
+        display: 'flex',
+      },
+    }),
     topAccentBar(),
 
+    // Brand lockup (top-right of dark panel)
     h(
       'div',
-      { style: { position: 'absolute', top: 40, left: 48, display: 'flex' } },
+      { style: { position: 'absolute', top: 40, left: PHOTO_W + 40, display: 'flex' } },
       brandLockup(),
     ),
 
+    // Name + city stacked on the dark panel
     h(
       'div',
       {
         style: {
           position: 'absolute',
-          bottom: 96,
-          left: 60,
-          right: 60,
+          top: 220,
+          left: PHOTO_W + 40,
+          right: 48,
           display: 'flex',
           flexDirection: 'column',
         },
@@ -381,11 +411,10 @@ function profileCard(profile) {
         {
           style: {
             color: '#ffffff',
-            fontSize: 72,
+            fontSize: 56,
             fontWeight: 800,
             lineHeight: 1.05,
-            letterSpacing: -1.5,
-            maxWidth: 1080,
+            letterSpacing: -1.2,
           },
         },
         fullName,
@@ -395,7 +424,7 @@ function profileCard(profile) {
           'div',
           {
             style: {
-              marginTop: 18,
+              marginTop: 20,
               color: '#ffffff',
               fontSize: 28,
               fontWeight: 600,
@@ -408,11 +437,22 @@ function profileCard(profile) {
           h('span', { style: { color: GOLD } }, '📍'),
           h('span', null, city),
         ),
+      // Thin gold divider for a touch of brand chrome
+      h('div', {
+        style: {
+          marginTop: 36,
+          width: 80,
+          height: 3,
+          backgroundColor: GOLD,
+          display: 'flex',
+        },
+      }),
     ),
 
+    // Domain pinned to bottom of the dark panel
     h(
       'div',
-      { style: { position: 'absolute', bottom: 48, right: 60, display: 'flex' } },
+      { style: { position: 'absolute', bottom: 48, left: PHOTO_W + 40, display: 'flex' } },
       domain(),
     ),
   );

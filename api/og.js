@@ -123,8 +123,12 @@ function shortHash(value) {
   return (hash >>> 0).toString(36);
 }
 
+// Bump when the og-image renderer's layout changes so the CDN-cached
+// image URL becomes a new URL and crawlers refetch the new design.
+const LAYOUT_VERSION = '2';
+
 function dynamicImageUrl(origin, type, id, version) {
-  const v = version ? `&v=${encodeURIComponent(version)}` : '';
+  const v = version ? `&v=${encodeURIComponent(version)}-${LAYOUT_VERSION}` : `&v=${LAYOUT_VERSION}`;
   return `${origin}/api/og-image?type=${type}&id=${encodeURIComponent(id)}${v}`;
 }
 
