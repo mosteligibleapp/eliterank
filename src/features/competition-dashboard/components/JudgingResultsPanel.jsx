@@ -91,6 +91,7 @@ export default function JudgingResultsPanel({
     const jw = judgeWeight / 100;
     const vw = (100 - judgeWeight) / 100;
     return contestants
+      .filter((c) => (judgeTotalsByContestant[c.id] || []).length > 0)
       .map((c) => {
         const normJ = maxJudge > 0 ? judgeAvg[c.id] / maxJudge : 0;
         const normV = maxVotes > 0 ? (c.votes || 0) / maxVotes : 0;
@@ -246,7 +247,9 @@ export default function JudgingResultsPanel({
               {leaderboard.length === 0 && (
                 <tr>
                   <td colSpan={5} style={{ padding: spacing.xl, textAlign: 'center', color: colors.text.muted }}>
-                    No contestants yet.
+                    {contestants.length === 0
+                      ? 'No contestants yet.'
+                      : 'No judge scores submitted yet. Results will appear here once judges start submitting.'}
                   </td>
                 </tr>
               )}
@@ -288,11 +291,6 @@ export default function JudgingResultsPanel({
           </table>
         </div>
 
-        {submittedJudgeCount === 0 && (
-          <p style={{ marginTop: spacing.md, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-            No judges have submitted scores yet. Results show 0 until at least one judge submits.
-          </p>
-        )}
       </div>
     </Panel>
   );
