@@ -4,7 +4,22 @@ import { Award, ChevronRight, Calendar, Lock, CheckCircle, Users, Sliders, Info 
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
-import { PageHeader, Avatar } from '../../components/ui';
+import { PageHeader, Avatar, OrganizationLogo } from '../../components/ui';
+import { useResponsive } from '../../hooks/useResponsive';
+import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../utils/slugs';
+
+function getCompetitionLink(competition) {
+  const orgSlug = competition?.organization?.slug || 'most-eligible';
+  if (competition?.slug) return getCompetitionUrl(orgSlug, competition.slug);
+  if (competition?.id) return `/${orgSlug}/id/${competition.id}`;
+  const cityName = competition?.city?.name || competition?.city || '';
+  const generatedSlug = generateCompetitionSlug({
+    name: competition?.name,
+    citySlug: slugify(cityName),
+    season: competition?.season || '',
+  });
+  return getCompetitionUrl(orgSlug, generatedSlug);
+}
 
 /**
  * JudgeDashboardPage — entered via /judge
@@ -34,8 +49,48 @@ const styles = {
     marginBottom: spacing.lg,
   },
   competitionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.md,
     padding: spacing.lg,
     borderBottom: `1px solid ${colors.border.primary}`,
+    background: 'rgba(255,255,255,0.03)',
+    color: 'inherit',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    transition: 'background 0.2s ease',
+  },
+  competitionHeaderHover: {
+    background: 'rgba(255,255,255,0.06)',
+  },
+  competitionHeaderContent: {
+    flex: 1,
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.xs,
+  },
+  competitionTitle: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+    lineHeight: 1.3,
+    margin: 0,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    letterSpacing: typography.letterSpacing?.tight,
+  },
+  competitionMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    whiteSpace: 'nowrap',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   roundRow: {
     display: 'flex',
@@ -151,6 +206,8 @@ function roundPhaseOf(round) {
 export default function JudgeDashboardPage() {
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
+  const { isMobile } = useResponsive();
+  const [hoveredCompId, setHoveredCompId] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [assignments, setAssignments] = useState([]);
@@ -170,8 +227,9 @@ export default function JudgeDashboardPage() {
           .select(`
             id,
             competition:competitions(
-              id, name, season, status,
+              id, name, season, status, slug,
               city:cities(name),
+              organization:organizations(id, name, slug, logo_url),
               voting_rounds(id, title, round_type, round_order, start_date, end_date, judge_weight, contestants_advance)
             )
           `)
@@ -267,19 +325,47 @@ export default function JudgeDashboardPage() {
             const criteria = criteriaByComp[comp.id] || [];
             const contestants = contestantsByComp[comp.id] || [];
 
+            const compUrl = getCompetitionLink(comp);
+            const isHovered = hoveredCompId === comp.id;
+            const org = comp.organization;
+
             return (
               <div key={row.id} style={styles.competition}>
-                <div style={styles.competitionHeader}>
-                  <h2 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, margin: 0 }}>
-                    {compLabel}
-                  </h2>
-                  <div style={styles.meta}>
-                    {cityName && (
-                      <span style={styles.metaItem}><Users size={12} />{cityName}</span>
-                    )}
-                    <span style={styles.metaItem}>{judgingRounds.length} judging round{judgingRounds.length === 1 ? '' : 's'}</span>
+                <a
+                  href={compUrl}
+                  style={{
+                    ...styles.competitionHeader,
+                    ...(isHovered ? styles.competitionHeaderHover : null),
+                  }}
+                  onMouseEnter={() => setHoveredCompId(comp.id)}
+                  onMouseLeave={() => setHoveredCompId(null)}
+                >
+                  {org?.logo_url && (
+                    <OrganizationLogo
+                      logo={org.logo_url}
+                      size={isMobile ? 56 : 72}
+                      alt={org?.name || 'Organization'}
+                    />
+                  )}
+                  <div style={styles.competitionHeaderContent}>
+                    <h2 style={styles.competitionTitle}>{compLabel}</h2>
+                    <div style={styles.competitionMeta}>
+                      {cityName && <span style={{ flexShrink: 0 }}>{cityName}</span>}
+                      {cityName && comp.season && (
+                        <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
+                      )}
+                      {comp.season && <span style={{ flexShrink: 0 }}>{comp.season}</span>}
+                    </div>
                   </div>
-                </div>
+                  <ChevronRight
+                    size={18}
+                    style={{
+                      flexShrink: 0,
+                      color: isHovered ? colors.gold.primary : colors.text.tertiary,
+                      transition: 'color 0.2s ease',
+                    }}
+                  />
+                </a>
 
                 {judgingRounds.length === 0 ? (
                   <div style={{ padding: spacing.lg, color: colors.text.muted, fontSize: typography.fontSize.sm }}>
@@ -313,7 +399,7 @@ export default function JudgeDashboardPage() {
                         >
                           <div>
                             <p style={{ fontWeight: typography.fontWeight.semibold, marginBottom: 2 }}>
-                              {r.title || `Round ${r.round_order || ''}`}
+                              Judging Round: {r.title || `Round ${r.round_order || ''}`}
                             </p>
                             <div style={styles.meta}>
                               <span style={styles.metaItem}>
