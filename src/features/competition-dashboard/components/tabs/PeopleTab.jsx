@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
+  Plus, User, Star, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Instagram,
   ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -25,34 +25,6 @@ const parseInstagram = (raw) => {
     .split(/[/?#]/)[0];
   if (!clean) return null;
   return { url: `https://instagram.com/${clean}`, handle: clean };
-};
-
-// Small status pill used in the Nominators/Voters lists.
-const STATUS_PILL_PALETTE = {
-  success: { bg: 'rgba(34,197,94,0.15)', fg: colors.status.success },
-  error: { bg: 'rgba(239,68,68,0.15)', fg: colors.status.error },
-  neutral: { bg: 'rgba(255,255,255,0.05)', fg: colors.text.muted },
-  gold: { bg: 'rgba(212,175,55,0.12)', fg: colors.gold.primary },
-};
-const StatusPill = ({ tone = 'neutral', children, title }) => {
-  const p = STATUS_PILL_PALETTE[tone] || STATUS_PILL_PALETTE.neutral;
-  return (
-    <span
-      title={title}
-      style={{
-        fontSize: typography.fontSize.xs,
-        fontWeight: typography.fontWeight.medium,
-        color: p.fg,
-        background: p.bg,
-        padding: `2px ${spacing.sm}`,
-        borderRadius: borderRadius.sm,
-        whiteSpace: 'nowrap',
-        lineHeight: 1.4,
-      }}
-    >
-      {children}
-    </span>
-  );
 };
 
 const InstagramLink = ({ instagram, iconOnly = false }) => {
@@ -120,10 +92,6 @@ export default function PeopleTab({
   const [generatingCardId, setGeneratingCardId] = useState(null);
   const [uploadingAvatarId, setUploadingAvatarId] = useState(null);
   const [bulkPhotoProgress, setBulkPhotoProgress] = useState(null);
-  const [nominators, setNominators] = useState([]);
-  const [voters, setVoters] = useState([]);
-  const [nominatorsLoaded, setNominatorsLoaded] = useState(false);
-  const [votersLoaded, setVotersLoaded] = useState(false);
   const avatarFileRef = useRef(null);
   const avatarUploadTarget = useRef(null);
   const [reordering, setReordering] = useState(false);
@@ -894,124 +862,6 @@ export default function PeopleTab({
   const totalPeople = activeNominees.length + contestants.length;
   const isNewHost = totalPeople === 0;
 
-  // Returns a Set of lowercased emails that match competition_subscribers for this competition.
-  // Maps email → profiles.id → competition_subscribers.user_id, so anyone who never made an
-  // account (or whose account email doesn't match the one they used to vote/nominate) won't match.
-  const lookupSubscribedEmails = async (emails) => {
-    const subscribedEmails = new Set();
-    if (!emails.length || !competition?.id) return subscribedEmails;
-    const { data: profileRows } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .in('email', emails);
-    const userIdToEmail = {};
-    (profileRows || []).forEach(p => {
-      if (p.email) userIdToEmail[p.id] = p.email.toLowerCase();
-    });
-    const userIds = Object.keys(userIdToEmail);
-    if (!userIds.length) return subscribedEmails;
-    const { data: subs } = await supabase
-      .from('competition_subscribers')
-      .select('user_id')
-      .eq('competition_id', competition.id)
-      .in('user_id', userIds);
-    (subs || []).forEach(s => {
-      const email = userIdToEmail[s.user_id];
-      if (email) subscribedEmails.add(email);
-    });
-    return subscribedEmails;
-  };
-
-  const loadNominators = async () => {
-    if (nominatorsLoaded || !competition?.id) return;
-    const [nomsRes, logsRes] = await Promise.all([
-      supabase
-        .from('nominees')
-        .select('nominator_name, nominator_email, nominated_by, nomination_reason, created_at')
-        .eq('competition_id', competition.id)
-        .eq('nominated_by', 'third_party')
-        .not('nominator_email', 'is', null)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('email_logs')
-        .select('to_email, status, created_at')
-        .eq('competition_id', competition.id)
-        .order('created_at', { ascending: false }),
-    ]);
-    const list = nomsRes.data || [];
-    const latestStatusByEmail = {};
-    (logsRes.data || []).forEach(l => {
-      const key = (l.to_email || '').toLowerCase();
-      if (key && !latestStatusByEmail[key]) latestStatusByEmail[key] = l.status;
-    });
-    const nominatorEmails = [...new Set(list.map(n => (n.nominator_email || '').toLowerCase()).filter(Boolean))];
-    const subscribedEmails = await lookupSubscribedEmails(nominatorEmails);
-    setNominators(list.map(n => ({
-      ...n,
-      deliveryStatus: latestStatusByEmail[(n.nominator_email || '').toLowerCase()] || null,
-      isSubscriber: subscribedEmails.has((n.nominator_email || '').toLowerCase()),
-    })));
-    setNominatorsLoaded(true);
-  };
-
-  const loadVoters = async () => {
-    if (votersLoaded || !competition?.id) return;
-    const [votesRes, logsRes] = await Promise.all([
-      supabase
-        .from('votes')
-        .select('voter_email, vote_count, amount_paid, created_at')
-        .eq('competition_id', competition.id)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('email_logs')
-        .select('to_email, status, created_at')
-        .eq('competition_id', competition.id)
-        .order('created_at', { ascending: false }),
-    ]);
-    // Aggregate by email
-    const byEmail = {};
-    (votesRes.data || []).forEach(v => {
-      const email = v.voter_email || 'Anonymous';
-      if (!byEmail[email]) byEmail[email] = { email, totalVotes: 0, totalPaid: 0, count: 0 };
-      byEmail[email].totalVotes += v.vote_count || 1;
-      byEmail[email].totalPaid += parseFloat(v.amount_paid) || 0;
-      byEmail[email].count++;
-    });
-    const aggregated = Object.values(byEmail).sort((a, b) => b.totalVotes - a.totalVotes);
-
-    const latestStatusByEmail = {};
-    (logsRes.data || []).forEach(l => {
-      const key = (l.to_email || '').toLowerCase();
-      if (key && !latestStatusByEmail[key]) latestStatusByEmail[key] = l.status;
-    });
-
-    const realEmails = aggregated
-      .map(v => (v.email || '').toLowerCase())
-      .filter(e => e && e !== 'anonymous');
-    const subscribedEmails = await lookupSubscribedEmails(realEmails);
-
-    setVoters(aggregated.map(v => ({
-      ...v,
-      deliveryStatus: latestStatusByEmail[(v.email || '').toLowerCase()] || null,
-      isSubscriber: subscribedEmails.has((v.email || '').toLowerCase()),
-    })));
-    setVotersLoaded(true);
-  };
-
-  const downloadCSV = (rows, filename) => {
-    if (!rows.length) return;
-    const headers = Object.keys(rows[0]);
-    const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${(r[h] ?? '').toString().replace(/"/g, '""')}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
@@ -1692,151 +1542,6 @@ export default function PeopleTab({
           </div>
         </Panel>
       )}
-
-      {/* Nominators */}
-      <Panel
-        title={`Nominators${nominatorsLoaded ? ` (${nominators.length})` : ''}`}
-        icon={Heart}
-        style={{ marginBottom: 0 }}
-        collapsible
-        defaultCollapsed
-        action={nominators.length > 0 && (
-          <Button size="sm" icon={Download} variant="secondary" onClick={(e) => {
-            e.stopPropagation();
-            downloadCSV(nominators.map(n => ({
-              name: n.nominator_name || '',
-              email: n.nominator_email || '',
-              delivery: n.deliveryStatus === 'sent' ? 'sent' : n.deliveryStatus === 'failed' ? 'failed' : 'not_sent',
-              subscribed: n.isSubscriber ? 'yes' : 'no',
-              reason: n.nomination_reason || '',
-              date: n.created_at ? new Date(n.created_at).toLocaleDateString() : '',
-            })), 'nominators.csv');
-          }}>
-            Export
-          </Button>
-        )}
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {!nominatorsLoaded ? (
-            <div style={{ textAlign: 'center', padding: spacing.lg }}>
-              <Button size="sm" variant="secondary" onClick={loadNominators}>Load Nominators</Button>
-            </div>
-          ) : nominators.length === 0 ? (
-            <p style={{ textAlign: 'center', color: colors.text.muted, fontSize: typography.fontSize.sm, padding: spacing.lg }}>
-              No third-party nominations yet
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {nominators.map((n, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: spacing.md,
-                  padding: spacing.md, background: colors.background.secondary, borderRadius: borderRadius.lg,
-                }}>
-                  <Avatar name={n.nominator_name || n.nominator_email} size={36} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.sm }}>
-                      {n.nominator_name || 'Anonymous'}
-                    </p>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {n.nominator_email}
-                    </p>
-                    <div style={{ display: 'flex', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
-                      <StatusPill
-                        tone={n.deliveryStatus === 'sent' ? 'success' : n.deliveryStatus === 'failed' ? 'error' : 'neutral'}
-                        title={n.deliveryStatus === 'failed' ? 'Last invite email failed to send' : n.deliveryStatus === 'sent' ? 'Invite email sent' : 'No invite email sent yet'}
-                      >
-                        {n.deliveryStatus === 'sent' ? 'Sent' : n.deliveryStatus === 'failed' ? 'Failed' : 'No email sent'}
-                      </StatusPill>
-                      {n.isSubscriber && (
-                        <StatusPill tone="gold" title="Subscribed to this competition's updates">Subscribed</StatusPill>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Panel>
-
-      {/* Voters */}
-      <Panel
-        title={`Voters${votersLoaded ? ` (${voters.length})` : ''}`}
-        icon={Star}
-        style={{ marginBottom: 0 }}
-        collapsible
-        defaultCollapsed
-        action={voters.length > 0 && (
-          <Button size="sm" icon={Download} variant="secondary" onClick={(e) => {
-            e.stopPropagation();
-            downloadCSV(voters.map(v => ({
-              email: v.email,
-              total_votes: v.totalVotes,
-              total_paid: v.totalPaid > 0 ? `$${v.totalPaid.toFixed(2)}` : '$0',
-              transactions: v.count,
-              delivery: v.deliveryStatus === 'sent' ? 'sent' : v.deliveryStatus === 'failed' ? 'failed' : 'not_sent',
-              subscribed: v.isSubscriber ? 'yes' : 'no',
-            })), 'voters.csv');
-          }}>
-            Export
-          </Button>
-        )}
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {!votersLoaded ? (
-            <div style={{ textAlign: 'center', padding: spacing.lg }}>
-              <Button size="sm" variant="secondary" onClick={loadVoters}>Load Voters</Button>
-            </div>
-          ) : voters.length === 0 ? (
-            <p style={{ textAlign: 'center', color: colors.text.muted, fontSize: typography.fontSize.sm, padding: spacing.lg }}>
-              No votes yet
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {voters.map((v, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: spacing.md,
-                  padding: spacing.md, background: colors.background.secondary, borderRadius: borderRadius.lg,
-                }}>
-                  <Avatar name={v.email} size={36} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {v.email}
-                    </p>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                      {v.totalVotes} {v.totalVotes === 1 ? 'vote' : 'votes'}
-                      {v.totalPaid > 0 && ` · $${v.totalPaid.toFixed(2)} spent`}
-                    </p>
-                    {v.email !== 'Anonymous' && (
-                      <div style={{ display: 'flex', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
-                        <StatusPill
-                          tone={v.deliveryStatus === 'sent' ? 'success' : v.deliveryStatus === 'failed' ? 'error' : 'neutral'}
-                          title={v.deliveryStatus === 'failed' ? 'Last receipt email failed to send' : v.deliveryStatus === 'sent' ? 'Receipt email sent' : 'No email sent to this voter yet'}
-                        >
-                          {v.deliveryStatus === 'sent' ? 'Sent' : v.deliveryStatus === 'failed' ? 'Failed' : 'No email sent'}
-                        </StatusPill>
-                        {v.isSubscriber && (
-                          <StatusPill tone="gold" title="Subscribed to this competition's updates">Subscribed</StatusPill>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <span style={{
-                    fontSize: typography.fontSize.xs,
-                    fontWeight: typography.fontWeight.semibold,
-                    color: colors.gold.primary,
-                    padding: `${spacing.xs} ${spacing.sm}`,
-                    background: 'rgba(212,175,55,0.1)',
-                    borderRadius: borderRadius.sm,
-                  }}>
-                    {v.totalVotes}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Panel>
 
       <AddVotesModal
         isOpen={showAddVotes}
