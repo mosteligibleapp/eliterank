@@ -53,13 +53,19 @@ const styles = {
     display: 'flex',
     gap: spacing.md,
     flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  metaItem: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
   },
   pill: (color) => ({
     display: 'inline-flex',
     alignItems: 'center',
     gap: spacing.xs,
     padding: `${spacing.xs} ${spacing.sm}`,
-    borderRadius: borderRadius.full,
+    borderRadius: borderRadius.md,
     fontSize: typography.fontSize.xs,
     background: `${color}1f`,
     color,
@@ -88,21 +94,23 @@ const styles = {
     borderRadius: borderRadius.md,
     marginBottom: spacing.xs,
   },
-  contestantsRow: {
-    display: 'flex',
-    flexWrap: 'wrap',
+  contestantsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
     gap: spacing.sm,
   },
-  contestantChip: {
-    display: 'inline-flex',
+  contestantItem: {
+    display: 'flex',
     alignItems: 'center',
-    gap: spacing.xs,
-    padding: `${spacing.xs} ${spacing.sm} ${spacing.xs} ${spacing.xs}`,
-    background: colors.background.primary,
-    border: `1px solid ${colors.border.secondary}`,
-    borderRadius: borderRadius.full,
-    fontSize: typography.fontSize.xs,
+    gap: spacing.sm,
+    minWidth: 0,
+  },
+  contestantName: {
+    fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   howItWorksList: {
     margin: 0,
@@ -266,8 +274,10 @@ export default function JudgeDashboardPage() {
                     {compLabel}
                   </h2>
                   <div style={styles.meta}>
-                    {cityName && <span><Users size={12} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />{cityName}</span>}
-                    <span>{judgingRounds.length} judging round{judgingRounds.length === 1 ? '' : 's'}</span>
+                    {cityName && (
+                      <span style={styles.metaItem}><Users size={12} />{cityName}</span>
+                    )}
+                    <span style={styles.metaItem}>{judgingRounds.length} judging round{judgingRounds.length === 1 ? '' : 's'}</span>
                   </div>
                 </div>
 
@@ -306,11 +316,16 @@ export default function JudgeDashboardPage() {
                               {r.title || `Round ${r.round_order || ''}`}
                             </p>
                             <div style={styles.meta}>
-                              <span><Calendar size={12} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />
+                              <span style={styles.metaItem}>
+                                <Calendar size={12} />
                                 {formatDateRange(r.start_date, r.end_date)}
                               </span>
-                              <span>{r.judge_weight}% judges{r.judge_weight < 100 ? ` · ${100 - r.judge_weight}% votes` : ''}</span>
-                              {r.contestants_advance > 0 && <span>Top {r.contestants_advance} advance</span>}
+                              <span style={styles.metaItem}>
+                                {r.judge_weight}% judges{r.judge_weight < 100 ? ` · ${100 - r.judge_weight}% votes` : ''}
+                              </span>
+                              {r.contestants_advance > 0 && (
+                                <span style={styles.metaItem}>Top {r.contestants_advance} advance</span>
+                              )}
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
@@ -405,12 +420,12 @@ export default function JudgeDashboardPage() {
                           {contestants.length === 0 ? (
                             <p style={styles.emptyHint}>No active contestants yet.</p>
                           ) : (
-                            <div style={styles.contestantsRow}>
+                            <div style={styles.contestantsGrid}>
                               {contestants.map((ct) => (
-                                <span key={ct.id} style={styles.contestantChip}>
-                                  <Avatar name={ct.name} size={22} src={ct.avatar_url} />
-                                  {ct.name}
-                                </span>
+                                <div key={ct.id} style={styles.contestantItem}>
+                                  <Avatar name={ct.name} size={28} src={ct.avatar_url} />
+                                  <span style={styles.contestantName}>{ct.name}</span>
+                                </div>
                               ))}
                             </div>
                           )}
