@@ -88,24 +88,29 @@ export function HostSection() {
         <div className="sponsors-card">
           <h4 className="section-label">Sponsors</h4>
           <div className="sponsors-list">
-            {sponsors.map(sponsor => (
-              <a
-                key={sponsor.id}
-                href={sponsor.website_url || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`sponsor-item sponsor-tier-${sponsor.tier?.toLowerCase()}`}
-              >
-                {sponsor.logo_url ? (
-                  <img src={transformSupabaseImage(sponsor.logo_url, { width: 200, height: 100 })} alt={sponsor.name} className="sponsor-logo" />
-                ) : (
-                  <span className="sponsor-name">{sponsor.name}</span>
-                )}
-                {sponsor.tier && sponsor.tier.toLowerCase() !== 'inkind' && (
-                  <span className="sponsor-tier">{sponsor.tier}</span>
-                )}
-              </a>
-            ))}
+            {sponsors.map(sponsor => {
+              const hasUrl = !!sponsor.website_url;
+              const Wrapper = hasUrl ? 'a' : 'div';
+              const wrapperProps = hasUrl
+                ? { href: sponsor.website_url, target: '_blank', rel: 'noopener noreferrer' }
+                : {};
+              return (
+                <Wrapper
+                  key={sponsor.id}
+                  {...wrapperProps}
+                  className={`sponsor-item sponsor-tier-${sponsor.tier?.toLowerCase()}`}
+                >
+                  {sponsor.logo_url ? (
+                    <img src={transformSupabaseImage(sponsor.logo_url, { width: 200, height: 100 })} alt={sponsor.name} className="sponsor-logo" />
+                  ) : (
+                    <span className="sponsor-name">{sponsor.name}</span>
+                  )}
+                  {sponsor.tier && sponsor.tier.toLowerCase() !== 'inkind' && (
+                    <span className="sponsor-tier">{sponsor.tier}</span>
+                  )}
+                </Wrapper>
+              );
+            })}
           </div>
         </div>
       )}
