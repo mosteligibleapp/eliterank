@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
+import { resolveNominationFormConfig } from '../../../utils/nominationFormDefaults';
 
 // Columns added by 20260213 migration — strip if migration hasn't run yet
 const NEW_COLUMNS = ['city', 'flow_stage'];
@@ -15,9 +16,16 @@ function isSchemaError(error) {
   return error?.message?.includes('schema cache') || error?.code === 'PGRST204';
 }
 
-const SELF_STEPS_AUTH = ['mode', 'eligibility', 'photo', 'details', 'bio', 'card'];
-const SELF_STEPS_ANON = ['mode', 'eligibility', 'photo', 'details', 'bio', 'password', 'card'];
-const NOMINATE_STEPS = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'card'];
+const SELF_STEPS_AUTH_BASE = ['mode', 'eligibility', 'photo', 'details', 'bio', 'card'];
+const SELF_STEPS_ANON_BASE = ['mode', 'eligibility', 'photo', 'details', 'bio', 'password', 'card'];
+const NOMINATE_STEPS_BASE = ['mode', 'eligibility', 'nominee', 'why', 'nominator', 'card'];
+
+// Insert 'custom' immediately before the given anchor step.
+function withCustom(base, anchor) {
+  const idx = base.indexOf(anchor);
+  if (idx === -1) return base;
+  return [...base.slice(0, idx + 1), 'custom', ...base.slice(idx + 1)];
+}
 
 // Map flow_stage values to step names
 const FLOW_STAGE_TO_STEP = {
@@ -32,10 +40,21 @@ const FLOW_STAGE_TO_STEP = {
  *
  * @param {Object} competition - Full competition object with joined relations
  * @param {Object|null} profile - User profile if logged in
+ * @param {Object} [options]
+ * @param {boolean} [options.isPreview] - When true, all DB writes are stubbed
+ *   so hosts can walk the form without creating a real nominee.
  * @returns {Object} Flow state and actions
  */
-export function useEntryFlow(competition, profile) {
+export function useEntryFlow(competition, profile, options = {}) {
   const isLoggedIn = !!profile?.id;
+  const isPreview = !!options.isPreview;
+
+  // Custom questions defined by the host on this competition
+  const customQuestions = useMemo(
+    () => resolveNominationFormConfig(competition?.nomination_form_config).custom_questions,
+    [competition?.nomination_form_config]
+  );
+  const hasCustomQuestions = customQuestions.length > 0;
 
   // Track if we've checked for existing progress
   const hasCheckedProgressRef = useRef(false);
@@ -56,6 +75,12 @@ export function useEntryFlow(competition, profile) {
 
   // Eligibility
   const [eligibilityAnswers, setEligibilityAnswers] = useState({});
+
+  // Host-defined custom question answers. Stored separately so we can validate
+  // and persist them independently, but merged into `eligibility_answers` at
+  // submit time (the same JSONB column on `nominees`). Custom question IDs are
+  // prefixed `cq_` so they never collide with eligibility keys.
+  const [customAnswers, setCustomAnswers] = useState({});
 
   // Self-entry data — now includes location
   const [selfData, setSelfData] = useState({
@@ -89,14 +114,31 @@ export function useEntryFlow(competition, profile) {
     emailOptIn: false,
   });
 
+  // Step lists with the optional 'custom' step inserted when the host has
+  // configured questions. Self-mode inserts it after 'bio' so the nominee's
+  // bio is the last data they write before answering host questions; nominate
+  // mode inserts it after 'why' so the nominator finishes the pitch first.
+  const selfStepsAuth = useMemo(
+    () => (hasCustomQuestions ? withCustom(SELF_STEPS_AUTH_BASE, 'bio') : SELF_STEPS_AUTH_BASE),
+    [hasCustomQuestions]
+  );
+  const selfStepsAnon = useMemo(
+    () => (hasCustomQuestions ? withCustom(SELF_STEPS_ANON_BASE, 'bio') : SELF_STEPS_ANON_BASE),
+    [hasCustomQuestions]
+  );
+  const nominateSteps = useMemo(
+    () => (hasCustomQuestions ? withCustom(NOMINATE_STEPS_BASE, 'why') : NOMINATE_STEPS_BASE),
+    [hasCustomQuestions]
+  );
+
   // Current steps list — frozen once mode is selected so mid-flow auth
   // changes (signUp) can't swap the array and invalidate the step index.
   const steps = useMemo(() => {
     if (frozenStepsRef.current) return frozenStepsRef.current;
-    if (mode === 'nominate') return NOMINATE_STEPS;
-    if (mode === 'self') return isLoggedIn ? SELF_STEPS_AUTH : SELF_STEPS_ANON;
-    return SELF_STEPS_AUTH; // default before mode selected
-  }, [mode, isLoggedIn]);
+    if (mode === 'nominate') return nominateSteps;
+    if (mode === 'self') return isLoggedIn ? selfStepsAuth : selfStepsAnon;
+    return selfStepsAuth; // default before mode selected
+  }, [mode, isLoggedIn, nominateSteps, selfStepsAuth, selfStepsAnon]);
 
   const currentStep = steps[currentStepIndex] || 'mode';
   const totalSteps = steps.length;
@@ -107,6 +149,12 @@ export function useEntryFlow(competition, profile) {
   // This prevents the "loop" bug where users lose progress on page refresh
   useEffect(() => {
     if (hasCheckedProgressRef.current || !competition?.id) return;
+    // In preview mode there is no real nominee to resume from — skip the
+    // lookup so hosts always start at mode select.
+    if (isPreview) {
+      hasCheckedProgressRef.current = true;
+      return;
+    }
     hasCheckedProgressRef.current = true;
 
     const checkExistingProgress = async () => {
@@ -160,7 +208,16 @@ export function useEntryFlow(competition, profile) {
         }));
 
         if (existingNominee.eligibility_answers) {
-          setEligibilityAnswers(existingNominee.eligibility_answers);
+          // Split saved JSONB blob: eligibility yes/no keys vs. host-defined
+          // custom question answers (prefixed `cq_`).
+          const elig = {};
+          const custom = {};
+          Object.entries(existingNominee.eligibility_answers).forEach(([k, v]) => {
+            if (k.startsWith('cq_')) custom[k] = v;
+            else elig[k] = v;
+          });
+          setEligibilityAnswers(elig);
+          if (Object.keys(custom).length > 0) setCustomAnswers(custom);
         }
 
         // Set the nominee ID so updates go to the right record
@@ -168,13 +225,13 @@ export function useEntryFlow(competition, profile) {
 
         // Set mode to self and freeze steps
         setMode('self');
-        frozenStepsRef.current = isLoggedIn ? SELF_STEPS_AUTH : SELF_STEPS_ANON;
+        frozenStepsRef.current = isLoggedIn ? selfStepsAuth : selfStepsAnon;
 
         // Determine which step to resume from
         if (flowStage && FLOW_STAGE_TO_STEP[flowStage]) {
           const resumeStep = FLOW_STAGE_TO_STEP[flowStage];
           // For logged in users, skip password step
-          const targetSteps = isLoggedIn ? SELF_STEPS_AUTH : SELF_STEPS_ANON;
+          const targetSteps = isLoggedIn ? selfStepsAuth : selfStepsAnon;
           let resumeIndex = targetSteps.indexOf(resumeStep);
           
           // If the step doesn't exist (e.g., password for logged-in users), 
@@ -200,7 +257,7 @@ export function useEntryFlow(competition, profile) {
     };
 
     checkExistingProgress();
-  }, [competition?.id, profile?.email, isLoggedIn]);
+  }, [competition?.id, profile?.email, isLoggedIn, isPreview]);
 
   // Select mode
   const selectMode = useCallback((selectedMode) => {
@@ -208,9 +265,9 @@ export function useEntryFlow(competition, profile) {
 
     // Freeze steps based on auth state at the moment mode is chosen
     if (selectedMode === 'nominate') {
-      frozenStepsRef.current = NOMINATE_STEPS;
+      frozenStepsRef.current = nominateSteps;
     } else if (selectedMode === 'self') {
-      frozenStepsRef.current = isLoggedIn ? SELF_STEPS_AUTH : SELF_STEPS_ANON;
+      frozenStepsRef.current = isLoggedIn ? selfStepsAuth : selfStepsAnon;
     }
 
     // Pre-fill self data from profile if available
@@ -229,7 +286,7 @@ export function useEntryFlow(competition, profile) {
     }
 
     setCurrentStepIndex(1); // Move past mode select
-  }, [profile, isLoggedIn]);
+  }, [profile, isLoggedIn, nominateSteps, selfStepsAuth, selfStepsAnon]);
 
   // Navigation
   const next = useCallback(() => {
@@ -254,6 +311,10 @@ export function useEntryFlow(competition, profile) {
     setEligibilityAnswers((prev) => ({ ...prev, [id]: value }));
   }, []);
 
+  const setCustomAnswer = useCallback((id, value) => {
+    setCustomAnswers((prev) => ({ ...prev, [id]: value }));
+  }, []);
+
   const updateSelfData = useCallback((updates) => {
     setSelfData((prev) => ({ ...prev, ...updates }));
   }, []);
@@ -269,6 +330,8 @@ export function useEntryFlow(competition, profile) {
   // ---- Early persistence: save after details step ----
   const persistSelfProgress = useCallback(async (flowStage) => {
     if (!competition?.id) return;
+    // Preview mode: no DB write, just let the flow continue.
+    if (isPreview) return;
     setIsSubmitting(true);
     setSubmitError('');
 
@@ -298,7 +361,7 @@ export function useEntryFlow(competition, profile) {
         avatar_url: avatarUrl || null,
         nominated_by: 'self',
         status: 'pending',
-        eligibility_answers: eligibilityAnswers,
+        eligibility_answers: { ...eligibilityAnswers, ...customAnswers },
         flow_stage: flowStage,
       };
 
@@ -364,13 +427,30 @@ export function useEntryFlow(competition, profile) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [competition, selfData, eligibilityAnswers, profile, nomineeId]);
+  }, [competition, selfData, eligibilityAnswers, customAnswers, profile, nomineeId, isPreview]);
 
   // Submit self-entry
   const submitSelfEntry = useCallback(async () => {
     if (!competition?.id) return;
     setIsSubmitting(true);
     setSubmitError('');
+
+    // Preview mode: short-circuit straight to the password / card step with
+    // synthesized submitted data, no DB write, no photo upload.
+    if (isPreview) {
+      const fullName = `${selfData.firstName} ${selfData.lastName}`.trim() || 'Preview Nominee';
+      setSubmittedData({
+        name: fullName,
+        photoUrl: selfData.photoPreview || null,
+        handle: selfData.instagram,
+        bio: selfData.bio,
+        isNomination: false,
+      });
+      const target = isLoggedIn ? steps.indexOf('card') : steps.indexOf('password');
+      setCurrentStepIndex(target >= 0 ? target : steps.length - 1);
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       // Upload photo if new file selected
@@ -380,6 +460,7 @@ export function useEntryFlow(competition, profile) {
       }
 
       const fullName = `${selfData.firstName} ${selfData.lastName}`.trim();
+      const mergedAnswers = { ...eligibilityAnswers, ...customAnswers };
 
       const record = {
         name: fullName,
@@ -393,6 +474,9 @@ export function useEntryFlow(competition, profile) {
         // Anon users still need the password step — set 'bio' so resume
         // maps to 'password'. Logged-in users skip password, so 'card'.
         flow_stage: isLoggedIn ? 'card' : 'bio',
+        // Always overwrite at submit so custom answers collected after the
+        // early-persisted insert reach the DB.
+        eligibility_answers: mergedAnswers,
       };
 
       if (profile?.id) {
@@ -420,7 +504,6 @@ export function useEntryFlow(competition, profile) {
         record.competition_id = competition.id;
         record.nominated_by = 'self';
         record.status = 'pending';
-        record.eligibility_answers = eligibilityAnswers;
         // claimed_at: already set above for logged-in; anon users get it at createAccount
 
         let { data: inserted, error } = await supabase
@@ -490,7 +573,7 @@ export function useEntryFlow(competition, profile) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [competition, selfData, eligibilityAnswers, profile, steps, isLoggedIn, nomineeId]);
+  }, [competition, selfData, eligibilityAnswers, customAnswers, profile, steps, isLoggedIn, nomineeId, isPreview]);
 
   // ---- Create account for anon self-nominees ----
   //
@@ -502,6 +585,13 @@ export function useEntryFlow(competition, profile) {
   const createAccount = useCallback(async (password) => {
     setIsSubmitting(true);
     setSubmitError('');
+
+    // Preview mode: no account creation, jump to card.
+    if (isPreview) {
+      setCurrentStepIndex(steps.indexOf('card'));
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const email = selfData.email?.trim();
@@ -634,11 +724,11 @@ export function useEntryFlow(competition, profile) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selfData, nomineeId, steps]);
+  }, [selfData, nomineeId, steps, isPreview]);
 
   // ---- Skip password — send magic link so they can claim their account later ----
   const skipPassword = useCallback(() => {
-    if (nomineeId) {
+    if (nomineeId && !isPreview) {
       supabase.functions.invoke('send-nomination-invite', {
         body: { nominee_id: nomineeId, force_resend: true },
       }).catch((err) => {
@@ -646,13 +736,28 @@ export function useEntryFlow(competition, profile) {
       });
     }
     setCurrentStepIndex(steps.indexOf('card'));
-  }, [steps, nomineeId]);
+  }, [steps, nomineeId, isPreview]);
 
-  // Submit nomination (unchanged — this is the nominator's flow, not the nominee's)
+  // Submit nomination (this is the nominator's flow, not the nominee's)
   const submitNomination = useCallback(async () => {
     if (!competition?.id) return;
     setIsSubmitting(true);
     setSubmitError('');
+
+    // Preview mode: skip DB + invite email, jump straight to the card reveal.
+    if (isPreview) {
+      setSubmittedData({
+        name: nomineeData.name || 'Preview Nominee',
+        photoUrl: nomineeData.photoPreview || null,
+        handle: nomineeData.instagram,
+        pitch: nomineeData.reason,
+        isNomination: true,
+        nominatorAnonymous: nominatorData.anonymous,
+      });
+      setCurrentStepIndex(steps.indexOf('card'));
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       // Upload photo if provided
@@ -675,7 +780,7 @@ export function useEntryFlow(competition, profile) {
         nominator_anonymous: nominatorData.anonymous,
         nominator_notify: nominatorData.emailOptIn,
         status: 'pending',
-        eligibility_answers: eligibilityAnswers,
+        eligibility_answers: { ...eligibilityAnswers, ...customAnswers },
       };
 
       // Link nominator if logged in
@@ -720,7 +825,7 @@ export function useEntryFlow(competition, profile) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [competition, nomineeData, nominatorData, eligibilityAnswers, profile, steps]);
+  }, [competition, nomineeData, nominatorData, eligibilityAnswers, customAnswers, profile, steps, isPreview]);
 
   // Reset for nominating another person (keeps nominator info + eligibility)
   const resetForNewNomination = useCallback(() => {
@@ -757,12 +862,16 @@ export function useEntryFlow(competition, profile) {
     selfData,
     nomineeData,
     nominatorData,
+    customQuestions,
+    customAnswers,
+    hasCustomQuestions,
 
     // Actions
     selectMode,
     next,
     back,
     setEligibility,
+    setCustomAnswer,
     updateSelfData,
     updateNomineeData,
     updateNominatorData,

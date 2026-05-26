@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Crown, RotateCcw, ExternalLink, UserCheck, Users, CheckCircle, XCircle,
-  Plus, User, Star, FileText, MapPin, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
+  Plus, User, Star, UserPlus, Link2, Check, Download, Loader, Send, Camera, Wrench, Clock, Heart, Instagram,
   ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -66,6 +66,7 @@ export default function PeopleTab({
   nominees,
   contestants,
   host,
+  coHosts = [],
   isSuperAdmin = false,
   onRefresh,
   onApproveNominee,
@@ -74,6 +75,8 @@ export default function PeopleTab({
   onOpenAddPersonModal,
   onShowHostAssignment,
   onRemoveHost,
+  onShowAddCoHost,
+  onRemoveCoHost,
   onResendInvite,
   onRemoveContestant,
   onRepairNomineeAccount,
@@ -962,151 +965,171 @@ export default function PeopleTab({
         alignItems: 'start',
       }}>
       <Panel
-        title="Host Profile"
+        title={`Hosts${host ? ` (${1 + coHosts.length})` : coHosts.length ? ` (${coHosts.length})` : ''}`}
         icon={User}
         style={{ marginBottom: 0 }}
         action={
-          host && isSuperAdmin ? (
-            <div style={{ display: 'flex', gap: spacing.sm }}>
-              <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
-                Reassign
+          isSuperAdmin ? (
+            host ? (
+              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowAddCoHost?.(); }}>
+                Add Co-Host
               </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                onClick={(e) => { e.stopPropagation(); onRemoveHost(); }}
-              >
-                Remove
+            ) : (
+              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
+                Assign Host
               </Button>
-            </div>
-          ) : isSuperAdmin ? (
-            <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
-              Assign Host
-            </Button>
+            )
           ) : null
         }
       >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {!host ? (
+        <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
+          {!host && coHosts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p style={{ marginBottom: spacing.lg }}>No host assigned yet</p>
+              <User size={40} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+              <p style={{ marginBottom: spacing.md, fontSize: typography.fontSize.sm }}>No hosts assigned yet</p>
               {isSuperAdmin && (
                 <Button icon={UserPlus} onClick={onShowHostAssignment}>Assign Host</Button>
               )}
             </div>
           ) : (
-            <div>
-              <div style={{
-                display: 'flex',
-                alignItems: isMobile ? 'flex-start' : 'center',
-                gap: spacing.xl,
-                marginBottom: spacing.xl,
-                flexDirection: isMobile ? 'column' : 'row',
-              }}>
-                <Avatar name={host.name} src={host.avatar} size={isMobile ? 80 : 100} />
-                <div style={{ flex: 1 }}>
-                  <h2 style={{
-                    fontSize: isMobile ? typography.fontSize.xl : typography.fontSize.display,
-                    fontWeight: typography.fontWeight.bold,
-                  }}>
-                    {host.name}
-                  </h2>
-                  {host.city && (
-                    <p style={{
-                      color: colors.text.secondary,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      marginTop: spacing.sm,
-                    }}>
-                      <MapPin size={16} /> {host.city}
-                    </p>
-                  )}
-                  <Badge variant="gold" size="md" style={{ marginTop: spacing.md }}>
-                    <Star size={14} style={{ marginRight: spacing.xs }} /> Verified Host
-                  </Badge>
-                </div>
-              </div>
-
-              {host.bio && (
-                <div style={{ marginBottom: spacing.xl }}>
-                  <h3 style={{
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.semibold,
-                    marginBottom: spacing.md,
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {host && (
+                <div
+                  style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: spacing.sm,
-                  }}>
-                    <FileText size={18} /> About
-                  </h3>
-                  <p style={{ color: colors.text.secondary, lineHeight: 1.6 }}>{host.bio}</p>
+                    gap: spacing.md,
+                    padding: spacing.md,
+                    background: 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.md,
+                  }}
+                >
+                    <Avatar name={host.name} src={host.avatar} size={44} />
+                    <button
+                      onClick={() => handleViewProfile(host.id)}
+                      disabled={!host.id}
+                      title={host.id ? 'View host profile' : undefined}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        textAlign: 'left',
+                        cursor: host.id ? 'pointer' : 'default',
+                        color: 'inherit',
+                      }}
+                    >
+                      <p style={{
+                        fontWeight: typography.fontWeight.medium,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.xs,
+                        color: '#fff',
+                      }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {host.name}
+                        </span>
+                        {host.id && <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />}
+                      </p>
+                      <p style={{
+                        color: colors.text.secondary,
+                        fontSize: typography.fontSize.sm,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {host.city || ''}
+                      </p>
+                    </button>
+                    <Badge variant="gold" size="sm">
+                      <Star size={12} style={{ marginRight: spacing.xs }} /> Host
+                    </Badge>
+                    {isSuperAdmin && (
+                      <>
+                        <Button size="sm" variant="secondary" onClick={onShowHostAssignment}>
+                          Reassign
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                          onClick={onRemoveHost}
+                        >
+                          Remove
+                        </Button>
+                      </>
+                    )}
                 </div>
               )}
 
-              {host.instagram && (
-                <div style={{ marginBottom: spacing.xl }}>
-                  <h3 style={{
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.semibold,
-                    marginBottom: spacing.md,
-                  }}>
-                    Social
-                  </h3>
-                  <a
-                    href={`https://instagram.com/${host.instagram.replace('@', '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+              {coHosts.map((coHost) => (
+                <div
+                  key={coHost.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    padding: spacing.md,
+                    background: 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${colors.border.light}`,
+                    borderRadius: borderRadius.md,
+                  }}
+                >
+                  <Avatar name={coHost.name} src={coHost.avatar} size={44} />
+                  <button
+                    onClick={() => handleViewProfile(coHost.id)}
+                    disabled={!coHost.id}
+                    title={coHost.id ? 'View co-host profile' : undefined}
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      padding: `${spacing.sm} ${spacing.md}`,
-                      background: 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.md,
-                      color: colors.text.primary,
-                      textDecoration: 'none',
-                      minHeight: '44px',
+                      flex: 1,
+                      minWidth: 0,
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      textAlign: 'left',
+                      cursor: coHost.id ? 'pointer' : 'default',
+                      color: 'inherit',
                     }}
                   >
-                    @{host.instagram.replace('@', '')}
-                  </a>
+                    <p style={{
+                      fontWeight: typography.fontWeight.medium,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                      color: '#fff',
+                    }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {coHost.name}
+                      </span>
+                      {coHost.id && <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />}
+                    </p>
+                    <p style={{
+                      color: colors.text.secondary,
+                      fontSize: typography.fontSize.sm,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {coHost.email}
+                    </p>
+                  </button>
+                  <Badge variant="gold" size="sm">
+                    <Star size={12} style={{ marginRight: spacing.xs }} /> Co-Host
+                  </Badge>
+                  {isSuperAdmin && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                      onClick={() => onRemoveCoHost?.(coHost.id)}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </div>
-              )}
-
-              {host.gallery && host.gallery.length > 0 && (
-                <div>
-                  <h3 style={{
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.semibold,
-                    marginBottom: spacing.md,
-                  }}>
-                    Gallery
-                  </h3>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(150px, 1fr))',
-                    gap: spacing.md,
-                  }}>
-                    {host.gallery.filter(Boolean).map((img, i) => (
-                      <img
-                        key={i}
-                        src={typeof img === 'string' ? img : img?.url}
-                        alt={`Gallery ${i + 1}`}
-                        style={{
-                          width: '100%',
-                          aspectRatio: '1',
-                          objectFit: 'cover',
-                          borderRadius: borderRadius.lg,
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
           )}
         </div>
@@ -1298,11 +1321,6 @@ export default function PeopleTab({
         style={{ marginBottom: 0 }}
         collapsible
         defaultCollapsed
-        action={
-          <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
-            Add
-          </Button>
-        }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {nomineesWithProfile.length === 0 ? (
@@ -1338,6 +1356,11 @@ export default function PeopleTab({
         style={{ marginBottom: 0 }}
         collapsible
         defaultCollapsed
+        action={
+          <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
+            Add
+          </Button>
+        }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {externalNominees.length > 0 && (

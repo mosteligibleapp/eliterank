@@ -1,31 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Crown, User, Users, Mail, Instagram, Check, Share2, Copy, Twitter, MessageCircle } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
+import { resolveNominationFormConfig } from '../../../utils/nominationFormDefaults';
 
 /**
  * Simple Nomination Form
  * - No photos, no accounts, no emails
  * - Just collect info and save to database
+ *
+ * The set of optional fields, eligibility questions, and custom questions is
+ * driven by the host's `nomination_form_config` (passed in as `formConfig`).
+ * When undefined we use the built-in defaults.
  */
-export default function NominationForm({ city, competitionId, onClose }) {
+export default function NominationForm({ city, competitionId, onClose, formConfig }) {
+  const config = useMemo(() => resolveNominationFormConfig(formConfig), [formConfig]);
+  const interpolate = (label) => (label || '').replace(/\{city\}/g, city || 'your city');
+
   const [step, setStep] = useState('choose'); // 'choose' | 'self' | 'other' | 'success-self' | 'success-other'
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [nomineeInviteToken, setNomineeInviteToken] = useState(null);
 
-  // Self nomination form
+  // Self nomination form — eligibility + custom answers live in `answers`
+  // keyed by question id (matches what we persist to nominees.eligibility_answers).
   const [selfData, setSelfData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     instagram: '',
-    livesInCity: null,
-    isSingle: null,
-    isAgeEligible: null,
+    answers: {},
   });
+
+  const setAnswer = (id, value) => {
+    setSelfData((prev) => ({ ...prev, answers: { ...prev.answers, [id]: value } }));
+  };
 
   // Nominate someone else form
   const [otherData, setOtherData] = useState({
@@ -59,9 +70,9 @@ export default function NominationForm({ city, competitionId, onClose }) {
   };
 
   // Yes/No button component
-  const YesNoButtons = ({ value, onChange, label }) => (
+  const YesNoButtons = ({ value, onChange, label, required = false }) => (
     <div style={{ marginBottom: spacing.lg }}>
-      <label style={labelStyle}>{label} *</label>
+      <label style={labelStyle}>{label}{required ? ' *' : ''}</label>
       <div style={{ display: 'flex', gap: spacing.md }}>
         <button
           type="button"
@@ -99,6 +110,94 @@ export default function NominationForm({ city, competitionId, onClose }) {
     </div>
   );
 
+  // Renderer for one custom question (any non-yes/no type)
+  const CustomQuestionField = ({ question, value, onChange }) => {
+    const label = `${interpolate(question.label)}${question.required ? ' *' : ''}`;
+    const helpText = question.help_text ? (
+      <div style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+        {question.help_text}
+      </div>
+    ) : null;
+
+    if (question.type === 'yes_no') {
+      return (
+        <YesNoButtons
+          label={interpolate(question.label)}
+          required={question.required}
+          value={value ?? null}
+          onChange={onChange}
+        />
+      );
+    }
+
+    if (question.type === 'long_text') {
+      return (
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>{label}</label>
+          <textarea
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            style={{ ...inputStyle, minHeight: '90px', resize: 'vertical' }}
+            maxLength={1000}
+          />
+          {helpText}
+        </div>
+      );
+    }
+
+    if (question.type === 'select') {
+      const opts = question.options || [];
+      return (
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>{label}</label>
+          <select
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">— Select —</option>
+            {opts.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          {helpText}
+        </div>
+      );
+    }
+
+    if (question.type === 'checkbox') {
+      return (
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={!!value}
+              onChange={(e) => onChange(e.target.checked)}
+              style={{ width: '18px', height: '18px', accentColor: colors.gold.primary }}
+            />
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>{label}</span>
+          </label>
+          {helpText}
+        </div>
+      );
+    }
+
+    // short_text (default)
+    return (
+      <div style={{ marginBottom: spacing.lg }}>
+        <label style={labelStyle}>{label}</label>
+        <input
+          type="text"
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          style={inputStyle}
+          maxLength={200}
+        />
+        {helpText}
+      </div>
+    );
+  };
+
   // Handle self nomination submit
   const handleSelfSubmit = async () => {
     if (!selfData.firstName.trim() || !selfData.lastName.trim()) {
@@ -109,9 +208,24 @@ export default function NominationForm({ city, competitionId, onClose }) {
       setError('Valid email is required');
       return;
     }
-    if (selfData.livesInCity === null || selfData.isSingle === null || selfData.isAgeEligible === null) {
+    const a = selfData.answers;
+    if (a.lives_in_city === undefined || a.is_single === undefined || a.is_age_eligible === undefined) {
       setError('Please answer all eligibility questions');
       return;
+    }
+
+    // Validate host-defined custom questions that are marked required.
+    for (const q of config.custom_questions.filter((cq) => cq.required)) {
+      const v = a[q.id];
+      const empty =
+        v === undefined ||
+        v === null ||
+        (typeof v === 'string' && !v.trim()) ||
+        (q.type === 'checkbox' && v !== true);
+      if (empty) {
+        setError(`Please answer: ${interpolate(q.label) || 'all required questions'}`);
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -136,11 +250,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
           nominated_by: 'self',
           status: 'pending',
           user_id: existingProfile?.id || null,
-          eligibility_answers: {
-            lives_in_city: selfData.livesInCity,
-            is_single: selfData.isSingle,
-            is_age_eligible: selfData.isAgeEligible,
-          },
+          eligibility_answers: selfData.answers,
         });
 
       if (dbError) {
@@ -428,7 +538,7 @@ export default function NominationForm({ city, competitionId, onClose }) {
           </div>
         </div>
 
-        {/* Eligibility Questions */}
+        {/* Standard eligibility questions */}
         <div style={{
           background: colors.background.secondary,
           padding: spacing.lg,
@@ -441,22 +551,39 @@ export default function NominationForm({ city, competitionId, onClose }) {
 
           <YesNoButtons
             label={`Do you live in ${city}?`}
-            value={selfData.livesInCity}
-            onChange={(val) => setSelfData(prev => ({ ...prev, livesInCity: val }))}
+            required
+            value={selfData.answers.lives_in_city ?? null}
+            onChange={(val) => setAnswer('lives_in_city', val)}
           />
 
           <YesNoButtons
             label="Are you single (not married or engaged)?"
-            value={selfData.isSingle}
-            onChange={(val) => setSelfData(prev => ({ ...prev, isSingle: val }))}
+            required
+            value={selfData.answers.is_single ?? null}
+            onChange={(val) => setAnswer('is_single', val)}
           />
 
           <YesNoButtons
             label="Are you between the ages of 21-39?"
-            value={selfData.isAgeEligible}
-            onChange={(val) => setSelfData(prev => ({ ...prev, isAgeEligible: val }))}
+            required
+            value={selfData.answers.is_age_eligible ?? null}
+            onChange={(val) => setAnswer('is_age_eligible', val)}
           />
         </div>
+
+        {/* Host-defined custom questions */}
+        {config.custom_questions.length > 0 && (
+          <div style={{ marginBottom: spacing.lg }}>
+            {config.custom_questions.map((q) => (
+              <CustomQuestionField
+                key={q.id}
+                question={q}
+                value={selfData.answers[q.id]}
+                onChange={(val) => setAnswer(q.id, val)}
+              />
+            ))}
+          </div>
+        )}
 
         {error && (
           <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md, textAlign: 'center' }}>

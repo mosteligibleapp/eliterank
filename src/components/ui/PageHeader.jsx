@@ -2,7 +2,7 @@ import React, { memo, useState, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuthStore, useUserRole, ROLES } from '../../stores';
-import { useMyPerformance } from '../../hooks';
+import { useMyPerformance, useIsJudge } from '../../hooks';
 import ProfileIcon from './ProfileIcon';
 import NotificationBell from './NotificationBell';
 import './PageHeader.css';
@@ -29,6 +29,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   const handleRewards = () => navigate('/rewards');
   const handleAchievements = () => navigate('/achievements');
   const handleDashboard = () => navigate('/dashboard');
+  const handleJudge = () => navigate('/judge');
   const handleAccountSettings = () => navigate('/account');
   const handleLogout = async () => {
     // Navigate away from protected route FIRST to prevent ProtectedRoute
@@ -41,6 +42,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   const handleHowToCompete = isNomineeOrContestant ? (onHowToCompete || (() => setShowGuide(true))) : undefined;
 
   const hasDashboardAccess = userRole === ROLES.HOST || userRole === ROLES.SUPER_ADMIN;
+  const isJudge = useIsJudge();
 
   // Surface contestant performance in the profile dropdown across pages.
   // Hook short-circuits when there's no user, so the network call only fires
@@ -80,6 +82,8 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             onHowToCompete={handleHowToCompete}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
+            onJudge={isJudge ? handleJudge : null}
+            isJudge={isJudge}
             performance={performances}
             size={40}
           />

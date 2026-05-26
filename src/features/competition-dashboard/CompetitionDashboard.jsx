@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle
+  Eye, AlertCircle, Mail
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -12,12 +12,13 @@ import { useCompetitionDashboard } from './hooks/useCompetitionDashboard';
 import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
-import { OverviewTab, PeopleTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
+import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
 
 // Consolidated tab navigation
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
+  { id: 'emails', label: 'Emails', shortLabel: 'Emails', icon: Mail },
   { id: 'content', label: 'Content', shortLabel: 'Content', icon: FileText },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
   { id: 'preview', label: 'Preview', shortLabel: 'Preview', icon: Eye },
@@ -90,6 +91,7 @@ export default function CompetitionDashboard({
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showHostAssignment, setShowHostAssignment] = useState(false);
+  const [showAddCoHost, setShowAddCoHost] = useState(false);
   const isSuperAdmin = role === 'superadmin';
   const { isMobile } = useResponsive();
 
@@ -110,6 +112,11 @@ export default function CompetitionDashboard({
     addJudge,
     updateJudge,
     deleteJudge,
+    sendJudgeInvite,
+    addCriterion,
+    updateCriterion,
+    deleteCriterion,
+    updateRoundJudgeWeight,
     updateCharity,
     removeCharity,
     addSponsor,
@@ -122,6 +129,7 @@ export default function CompetitionDashboard({
     deleteDoubleDay,
     updateCompetitionTimezone,
     updateAllowManualVotes,
+    updateHiddenSetupSections,
     addAnnouncement,
     updateAnnouncement,
     deleteAnnouncement,
@@ -134,6 +142,9 @@ export default function CompetitionDashboard({
     deletePrize,
     assignHost,
     removeHost,
+    addCoHost,
+    removeCoHost,
+    removeSubscriber,
     repairNomineeAccount,
     repairAllNomineeAccounts,
   } = dashboard;
@@ -482,6 +493,7 @@ export default function CompetitionDashboard({
             nominees={data.nominees}
             contestants={data.contestants}
             host={data.host}
+            coHosts={data.coHosts || []}
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onApproveNominee={approveNominee}
@@ -491,9 +503,19 @@ export default function CompetitionDashboard({
             onOpenAddPersonModal={openAddPersonModal}
             onShowHostAssignment={() => setShowHostAssignment(true)}
             onRemoveHost={removeHost}
+            onShowAddCoHost={() => setShowAddCoHost(true)}
+            onRemoveCoHost={removeCoHost}
             onResendInvite={resendInvite}
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
+          />
+        );
+      case 'emails':
+        return (
+          <EmailActivityTab
+            competitionId={competitionId}
+            subscribers={data.subscribers || []}
+            onRemoveSubscriber={removeSubscriber}
           />
         );
       case 'content':
@@ -518,6 +540,9 @@ export default function CompetitionDashboard({
           <SetupTab
             competition={competition}
             judges={data.judges}
+            judgingCriteria={data.judgingCriteria}
+            judgeScores={data.judgeScores}
+            contestants={data.contestants}
             sponsors={data.sponsors}
             events={data.events}
             prizes={data.prizes}
@@ -525,6 +550,11 @@ export default function CompetitionDashboard({
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
             onDeleteJudge={deleteJudge}
+            onSendJudgeInvite={sendJudgeInvite}
+            onAddCriterion={addCriterion}
+            onUpdateCriterion={updateCriterion}
+            onDeleteCriterion={deleteCriterion}
+            onUpdateRoundJudgeWeight={updateRoundJudgeWeight}
             onDeleteSponsor={deleteSponsor}
             onDeleteEvent={deleteEvent}
             onDeletePrize={deletePrize}
@@ -532,6 +562,7 @@ export default function CompetitionDashboard({
             onDeleteDoubleDay={deleteDoubleDay}
             onUpdateTimezone={updateCompetitionTimezone}
             onUpdateAllowManualVotes={updateAllowManualVotes}
+            onUpdateHiddenSections={updateHiddenSetupSections}
             onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
             onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
@@ -572,6 +603,18 @@ export default function CompetitionDashboard({
           setShowHostAssignment(false);
         }}
         currentHostId={data.host?.id}
+      />
+      <HostAssignmentModal
+        isOpen={showAddCoHost}
+        onClose={() => setShowAddCoHost(false)}
+        onAssign={async (userId) => {
+          await addCoHost(userId);
+          setShowAddCoHost(false);
+        }}
+        currentHostId={data.host?.id}
+        excludeIds={(data.coHosts || []).map((c) => c.id)}
+        title="Add Co-Host"
+        assignLabel="Add Co-Host"
       />
       <JudgeModal
         isOpen={judgeModal.isOpen}
@@ -656,6 +699,7 @@ export default function CompetitionDashboard({
         onClose={closeAddPersonModal}
         onAdd={handleAddPerson}
         type={addPersonModal.type}
+        competitionId={competitionId}
       />
     </>
   );

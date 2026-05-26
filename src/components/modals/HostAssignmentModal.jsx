@@ -9,7 +9,11 @@ export default function HostAssignmentModal({
   onClose,
   onAssign,
   currentHostId,
+  excludeIds = [],
+  title = 'Assign Host',
+  assignLabel = 'Assign Host',
 }) {
+  const excludeSet = new Set(excludeIds);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProfiles, setFilteredProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -81,7 +85,7 @@ export default function HostAssignmentModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Assign Host"
+      title={title}
       maxWidth="500px"
       footer={
         <>
@@ -93,7 +97,7 @@ export default function HostAssignmentModal({
             disabled={!selectedProfile || assigning}
             icon={assigning ? Loader : Check}
           >
-            {assigning ? 'Assigning...' : 'Assign Host'}
+            {assigning ? 'Assigning...' : assignLabel}
           </Button>
         </>
       }
@@ -162,25 +166,27 @@ export default function HostAssignmentModal({
           filteredProfiles.map((profile) => {
             const isSelected = selectedProfile?.id === profile.id;
             const isCurrentHost = profile.id === currentHostId;
+            const isExcluded = excludeSet.has(profile.id);
+            const isDisabled = isCurrentHost || isExcluded;
             const name = getProfileName(profile);
 
             return (
               <div
                 key={profile.id}
-                onClick={() => !isCurrentHost && setSelectedProfile(profile)}
+                onClick={() => !isDisabled && setSelectedProfile(profile)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: spacing.md,
                   padding: spacing.lg,
-                  cursor: isCurrentHost ? 'not-allowed' : 'pointer',
+                  cursor: isDisabled ? 'not-allowed' : 'pointer',
                   background: isSelected ? 'rgba(212,175,55,0.1)' : 'transparent',
                   borderBottom: `1px solid ${colors.border.lighter}`,
-                  opacity: isCurrentHost ? 0.5 : 1,
+                  opacity: isDisabled ? 0.5 : 1,
                   transition: 'background 0.2s',
                 }}
                 onMouseEnter={(e) => {
-                  if (!isCurrentHost && !isSelected) {
+                  if (!isDisabled && !isSelected) {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
                   }
                 }}
@@ -200,7 +206,10 @@ export default function HostAssignmentModal({
                 {isCurrentHost && (
                   <Badge variant="gold" size="sm">Current Host</Badge>
                 )}
-                {profile.is_host && !isCurrentHost && (
+                {isExcluded && !isCurrentHost && (
+                  <Badge variant="gold" size="sm">Co-Host</Badge>
+                )}
+                {profile.is_host && !isCurrentHost && !isExcluded && (
                   <Badge variant="secondary" size="sm">Host</Badge>
                 )}
                 {isSelected && (

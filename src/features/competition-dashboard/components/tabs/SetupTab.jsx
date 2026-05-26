@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, Zap } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, EyeOff, RotateCcw, Zap, Send, Link2, Mail } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
+import JudgingPanel from '../JudgingPanel';
+import JudgingResultsPanel from '../JudgingResultsPanel';
 import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission, getHostManagedTaskContestants, awardHostManagedTask, revokeHostManagedTask } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
 import { useAuthStore } from '../../../../stores';
@@ -54,6 +56,44 @@ const getEventStatus = (event) => {
   return 'upcoming';
 };
 
+// Grayable Setup sections, in their natural top-to-bottom order. Grayed-out
+// sections render dimmed and sort below the visible ones.
+const SECTION_ORDER = [
+  'judges', 'sponsors', 'charity', 'events', 'doubleVoteDays',
+  'manualVotes', 'winnerPrize', 'contestantRewards', 'bonusVotes', 'videoPrompts',
+];
+
+const grayOutButtonStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: spacing.xs,
+  padding: `${spacing.xs} ${spacing.sm}`,
+  background: 'transparent',
+  border: `1px solid ${colors.border.primary}`,
+  borderRadius: borderRadius.md,
+  color: colors.text.muted,
+  cursor: 'pointer',
+  fontSize: typography.fontSize.xs,
+  fontWeight: typography.fontWeight.medium,
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
+};
+
+const restoreButtonStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: spacing.xs,
+  padding: `${spacing.xs} ${spacing.sm}`,
+  background: colors.gold.muted,
+  border: `1px solid ${colors.gold.primary}`,
+  borderRadius: borderRadius.md,
+  color: colors.gold.primary,
+  cursor: 'pointer',
+  fontSize: typography.fontSize.xs,
+  fontWeight: typography.fontWeight.medium,
+  whiteSpace: 'nowrap',
+};
+
 /**
  * SetupTab - Configuration settings tab
  * Contains competition details, timeline, judges, sponsors, and events
@@ -61,6 +101,9 @@ const getEventStatus = (event) => {
 export default function SetupTab({
   competition,
   judges,
+  judgingCriteria = [],
+  judgeScores = [],
+  contestants = [],
   sponsors,
   events,
   prizes = [],
@@ -68,6 +111,11 @@ export default function SetupTab({
   isSuperAdmin = false,
   onRefresh,
   onDeleteJudge,
+  onSendJudgeInvite,
+  onAddCriterion,
+  onUpdateCriterion,
+  onDeleteCriterion,
+  onUpdateRoundJudgeWeight,
   onDeleteSponsor,
   onDeleteEvent,
   onDeletePrize,
@@ -75,6 +123,7 @@ export default function SetupTab({
   onDeleteDoubleDay,
   onUpdateTimezone,
   onUpdateAllowManualVotes,
+  onUpdateHiddenSections,
   onOpenJudgeModal,
   onOpenSponsorModal,
   onOpenCharityModal,
@@ -87,6 +136,49 @@ export default function SetupTab({
   const authStoreUser = useAuthStore(s => s.user);
   const reviewerId = currentUser?.id || authStoreUser?.id;
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
+
+  // Judge invite UI state
+  const [judgeBusy, setJudgeBusy] = useState(new Set());
+  const [judgeCopied, setJudgeCopied] = useState(null);
+  const [judgeSent, setJudgeSent] = useState(null);
+
+  const handleSendJudgeInvite = async (judge) => {
+    if (!onSendJudgeInvite || !judge?.id) return;
+    if (!judge.email) {
+      toast?.error?.('Add an email for this judge first');
+      return;
+    }
+    setJudgeBusy(prev => new Set(prev).add(judge.id));
+    try {
+      const result = await onSendJudgeInvite(judge.id, { forceResend: !!judge.inviteSentAt });
+      if (result?.success) {
+        setJudgeSent(judge.id);
+        setTimeout(() => setJudgeSent(null), 2000);
+        toast?.success?.(judge.inviteSentAt ? 'Reminder sent' : 'Invite sent');
+      } else {
+        toast?.error?.(result?.error || 'Failed to send invite');
+      }
+    } finally {
+      setJudgeBusy(prev => { const next = new Set(prev); next.delete(judge.id); return next; });
+    }
+  };
+
+  const handleCopyJudgeLink = async (judge) => {
+    if (!judge?.inviteToken) return;
+    const url = `${window.location.origin}/claim-judge/${judge.inviteToken}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    setJudgeCopied(judge.id);
+    setTimeout(() => setJudgeCopied(null), 2000);
+  };
 
   // Bonus votes state
   const [bonusTasks, setBonusTasks] = useState([]);
@@ -125,6 +217,69 @@ export default function SetupTab({
   const [manualVotesSaving, setManualVotesSaving] = useState(false);
   const [manualVotesError, setManualVotesError] = useState('');
   const manualVotesEnabled = !!competition?.allowManualVotes;
+
+  // ---- Grayed-out Setup sections ----
+  // Hosts can gray out sections they aren't using; grayed sections render
+  // dimmed and sort to the bottom. Mirrored locally for an instant toggle,
+  // then persisted on the competition row.
+  const [hiddenSections, setHiddenSections] = useState(
+    () => competition?.hiddenSetupSections || []
+  );
+
+  useEffect(() => {
+    setHiddenSections(competition?.hiddenSetupSections || []);
+  }, [competition?.hiddenSetupSections]);
+
+  const isHidden = (id) => hiddenSections.includes(id);
+
+  const toggleSection = async (id) => {
+    const prev = hiddenSections;
+    const next = isHidden(id)
+      ? prev.filter((s) => s !== id)
+      : [...prev, id];
+    setHiddenSections(next);
+    const result = await onUpdateHiddenSections?.(next);
+    if (result && !result.success) {
+      setHiddenSections(prev);
+      toast?.error?.(result.error || 'Could not update this section.');
+    }
+  };
+
+  const sectionStyle = (id) => {
+    const idx = SECTION_ORDER.indexOf(id);
+    return {
+      order: isHidden(id) ? 100 + idx : 1 + idx,
+      opacity: isHidden(id) ? 0.5 : 1,
+    };
+  };
+
+  // Panel header action: the section's own action plus a gray-out control,
+  // or a Restore button when the section is already grayed.
+  const sectionAction = (id, ownAction) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+      {isHidden(id) ? (
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleSection(id); }}
+          style={restoreButtonStyle}
+          title="Restore this section"
+        >
+          <RotateCcw size={13} /> Restore
+        </button>
+      ) : (
+        <>
+          {ownAction}
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleSection(id); }}
+            style={grayOutButtonStyle}
+            title="Not using this section? Gray it out and move it to the bottom."
+            aria-label="Gray out this section — mark as not using"
+          >
+            <EyeOff size={13} /> Not using
+          </button>
+        </>
+      )}
+    </div>
+  );
 
   const competitionTimezone = competition?.timezone || 'UTC';
   const timezoneGroups = React.useMemo(() => getTimezoneOptionGroups(), []);
@@ -396,7 +551,7 @@ export default function SetupTab({
   );
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Competition Details - View Only (Admin Controlled) - Open by default */}
       <Panel
         title="Competition Details"
@@ -503,11 +658,13 @@ export default function SetupTab({
 
       {/* Judges Section */}
       <Panel
+        key={`section-judges-${isHidden('judges')}`}
         title={`Judges (${judges.length})`}
         icon={User}
-        action={<Button size="sm" icon={Plus} onClick={() => onOpenJudgeModal(null)}>Add Judge</Button>}
+        action={sectionAction('judges', <Button size="sm" icon={Plus} onClick={() => onOpenJudgeModal(null)}>Add Judge</Button>)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('judges')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {judges.length === 0 ? (
@@ -517,74 +674,174 @@ export default function SetupTab({
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: spacing.lg }}>
-              {judges.map((judge) => (
-                <div key={judge.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.md,
-                  padding: spacing.lg,
-                  background: colors.background.secondary,
-                  borderRadius: borderRadius.lg,
-                  overflow: 'hidden',
-                  minWidth: 0,
-                }}>
-                  <Avatar name={judge.name} size={isMobile ? 40 : 48} src={judge.avatarUrl} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: typography.fontWeight.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.name}</p>
-                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.title}</p>
+              {judges.map((judge) => {
+                const isBusy = judgeBusy.has(judge.id);
+                const isCopied = judgeCopied === judge.id;
+                const isSent = judgeSent === judge.id;
+                let statusLabel = 'No email';
+                let statusColor = colors.text.muted;
+                if (judge.email) {
+                  if (judge.claimedAt) {
+                    statusLabel = 'Accepted';
+                    statusColor = colors.status.success;
+                  } else if (judge.inviteSentAt) {
+                    statusLabel = 'Invited';
+                    statusColor = colors.status.warning;
+                  } else {
+                    statusLabel = 'Not invited';
+                    statusColor = colors.text.secondary;
+                  }
+                }
+                return (
+                  <div key={judge.id} style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: spacing.md,
+                    padding: spacing.lg,
+                    background: colors.background.secondary,
+                    borderRadius: borderRadius.lg,
+                    overflow: 'hidden',
+                    minWidth: 0,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                      <Avatar name={judge.name} size={isMobile ? 40 : 48} src={judge.avatarUrl} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: typography.fontWeight.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.name}</p>
+                        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.title}</p>
+                        {judge.email && (
+                          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                            <Mail size={11} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />{judge.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' }}>
+                      <span style={{
+                        fontSize: typography.fontSize.xs,
+                        padding: `2px ${spacing.sm}`,
+                        borderRadius: borderRadius.sm,
+                        background: `${statusColor}1f`,
+                        color: statusColor,
+                      }}>
+                        {statusLabel}
+                      </span>
+                      <div style={{ flex: 1 }} />
+                      {judge.inviteToken && (
+                        <button
+                          onClick={() => handleCopyJudgeLink(judge)}
+                          title={isCopied ? 'Copied!' : 'Copy claim link'}
+                          style={{
+                            padding: spacing.sm,
+                            background: isCopied ? 'rgba(34,197,94,0.1)' : 'transparent',
+                            border: `1px solid ${isCopied ? colors.status.success : colors.border.primary}`,
+                            borderRadius: borderRadius.md,
+                            color: isCopied ? colors.status.success : colors.text.secondary,
+                            cursor: 'pointer',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {isCopied ? <Check size={14} /> : <Link2 size={14} />}
+                        </button>
+                      )}
+                      {judge.email && (
+                        <button
+                          onClick={() => handleSendJudgeInvite(judge)}
+                          disabled={isBusy}
+                          title={isSent ? 'Sent!' : judge.inviteSentAt ? 'Resend invite' : 'Send invite'}
+                          style={{
+                            padding: spacing.sm,
+                            background: isSent ? 'rgba(34,197,94,0.1)' : 'transparent',
+                            border: `1px solid ${isSent ? colors.status.success : colors.border.primary}`,
+                            borderRadius: borderRadius.md,
+                            color: isSent ? colors.status.success : colors.gold.primary,
+                            cursor: isBusy ? 'wait' : 'pointer',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {isSent ? <Check size={14} /> : <Send size={14} />}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onOpenJudgeModal(judge)}
+                        style={{
+                          padding: spacing.sm,
+                          background: 'transparent',
+                          border: `1px solid ${colors.border.primary}`,
+                          borderRadius: borderRadius.md,
+                          color: colors.text.secondary,
+                          cursor: 'pointer',
+                          minWidth: '36px',
+                          minHeight: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => onDeleteJudge(judge.id)}
+                        style={{
+                          padding: spacing.sm,
+                          background: 'transparent',
+                          border: `1px solid rgba(239,68,68,0.3)`,
+                          borderRadius: borderRadius.md,
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          minWidth: '36px',
+                          minHeight: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: spacing.xs, flexShrink: 0 }}>
-                    <button
-                      onClick={() => onOpenJudgeModal(judge)}
-                      style={{
-                        padding: spacing.sm,
-                        background: 'transparent',
-                        border: `1px solid ${colors.border.primary}`,
-                        borderRadius: borderRadius.md,
-                        color: colors.text.secondary,
-                        cursor: 'pointer',
-                        minWidth: '36px',
-                        minHeight: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => onDeleteJudge(judge.id)}
-                      style={{
-                        padding: spacing.sm,
-                        background: 'transparent',
-                        border: `1px solid rgba(239,68,68,0.3)`,
-                        borderRadius: borderRadius.md,
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        minWidth: '36px',
-                        minHeight: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </Panel>
 
+      {/* Judging criteria + per-round judge weight */}
+      <JudgingPanel
+        criteria={judgingCriteria}
+        votingRounds={competition?.voting_rounds || []}
+        onAddCriterion={onAddCriterion}
+        onUpdateCriterion={onUpdateCriterion}
+        onDeleteCriterion={onDeleteCriterion}
+        onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
+      />
+
+      {/* Judging results — blended judge + vote leaderboard per round */}
+      <JudgingResultsPanel
+        contestants={contestants}
+        judges={judges}
+        judgingCriteria={judgingCriteria}
+        judgeScores={judgeScores}
+        votingRounds={competition?.voting_rounds || []}
+      />
+
       {/* Sponsors Section */}
       <Panel
+        key={`section-sponsors-${isHidden('sponsors')}`}
         title={`Sponsors (${sponsors.length})`}
         icon={Star}
-        action={<Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>}
+        action={sectionAction('sponsors', <Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('sponsors')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {sponsors.length === 0 ? (
@@ -708,15 +965,17 @@ export default function SetupTab({
 
       {/* Charity Section */}
       <Panel
+        key={`section-charity-${isHidden('charity')}`}
         title="Charity Partner"
         icon={Gift}
-        action={
+        action={sectionAction('charity',
           <Button size="sm" icon={competition?.charityName ? Edit2 : Plus} onClick={onOpenCharityModal}>
             {competition?.charityName ? 'Edit' : 'Add Charity'}
           </Button>
-        }
+        )}
         collapsible
         defaultCollapsed
+        style={sectionStyle('charity')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {!competition?.charityName ? (
@@ -764,11 +1023,13 @@ export default function SetupTab({
 
       {/* Events Section */}
       <Panel
+        key={`section-events-${isHidden('events')}`}
         title={`Events (${events.length})`}
         icon={Calendar}
-        action={<Button size="sm" icon={Plus} onClick={() => onOpenEventModal(null)}>Add Event</Button>}
+        action={sectionAction('events', <Button size="sm" icon={Plus} onClick={() => onOpenEventModal(null)}>Add Event</Button>)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('events')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {events.length === 0 ? (
@@ -858,10 +1119,13 @@ export default function SetupTab({
 
       {/* Double Vote Days Section */}
       <Panel
+        key={`section-doubleVoteDays-${isHidden('doubleVoteDays')}`}
         title={`Double Vote Days (${doubleDays.length})`}
         icon={Zap}
+        action={sectionAction('doubleVoteDays', null)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('doubleVoteDays')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
@@ -1025,10 +1289,13 @@ export default function SetupTab({
 
       {/* Manual Votes Section */}
       <Panel
+        key={`section-manualVotes-${isHidden('manualVotes')}`}
         title="Manual Votes"
         icon={Star}
+        action={sectionAction('manualVotes', null)}
         collapsible
         defaultCollapsed
+        style={sectionStyle('manualVotes')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
@@ -1078,10 +1345,13 @@ export default function SetupTab({
 
       {/* Bonus Votes Section */}
       <Panel
+        key={`section-bonusVotes-${isHidden('bonusVotes')}`}
         title="Bonus Votes"
         icon={Gift}
+        action={sectionAction('bonusVotes', null)}
         collapsible
-        defaultCollapsed={false}
+        defaultCollapsed={isHidden('bonusVotes')}
+        style={sectionStyle('bonusVotes')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {bonusLoading ? (
@@ -1618,10 +1888,13 @@ export default function SetupTab({
 
       {/* Video Prompts Section */}
       <Panel
+        key={`section-videoPrompts-${isHidden('videoPrompts')}`}
         title="Video Prompts"
         icon={Upload}
-        action={<Button size="sm" icon={Plus} onClick={() => setShowVideoPromptModal(true)}>Add Prompt</Button>}
+        action={sectionAction('videoPrompts', <Button size="sm" icon={Plus} onClick={() => setShowVideoPromptModal(true)}>Add Prompt</Button>)}
         collapsible
+        defaultCollapsed={isHidden('videoPrompts')}
+        style={sectionStyle('videoPrompts')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           {videoPrompts.length === 0 ? (

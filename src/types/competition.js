@@ -76,7 +76,6 @@ export const INTEREST_TYPE = {
   SPONSORING: 'sponsoring',
   COMPETING: 'competing',
   JUDGING: 'judging',
-  FAN: 'fan',
 };
 
 export const INTEREST_TYPE_CONFIG = {
@@ -95,10 +94,6 @@ export const INTEREST_TYPE_CONFIG = {
   [INTEREST_TYPE.JUDGING]: {
     label: 'Judging',
     description: 'Help evaluate and score contestants',
-  },
-  [INTEREST_TYPE.FAN]: {
-    label: 'Get Updates',
-    description: 'Stay informed about competition news and events',
   },
 };
 

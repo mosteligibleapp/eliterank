@@ -32,6 +32,8 @@ export function useCompetitionDashboard(competitionId) {
     contestants: [],
     nominees: [],
     judges: [],
+    judgingCriteria: [],
+    judgeScores: [],
     sponsors: [],
     events: [],
     announcements: [],
@@ -39,6 +41,8 @@ export function useCompetitionDashboard(competitionId) {
     prizes: [],
     doubleDays: [],
     host: null,
+    coHosts: [],
+    subscribers: [],
     competition: null,
     voteRevenue: 0,
   });
@@ -60,6 +64,8 @@ export function useCompetitionDashboard(competitionId) {
         contestantsResult,
         nomineesResult,
         judgesResult,
+        criteriaResult,
+        scoresResult,
         sponsorsResult,
         eventsResult,
         announcementsResult,
@@ -68,6 +74,8 @@ export function useCompetitionDashboard(competitionId) {
         doubleDaysResult,
         competitionResult,
         paidVotesResult,
+        coHostsResult,
+        subscribersResult,
       ] = await Promise.all([
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
         supabase
@@ -89,6 +97,20 @@ export function useCompetitionDashboard(competitionId) {
           .select('*, profile:profiles!user_id(*)')
           .eq('competition_id', competitionId)
           .order('sort_order'),
+
+        // Judging criteria (host-defined qualities for this competition)
+        supabase
+          .from('judging_criteria')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('sort_order'),
+
+        // All judge scores for this competition — used to render results.
+        // RLS lets the host read every score; judges only see their own.
+        supabase
+          .from('judge_scores')
+          .select('id, voting_round_id, judge_id, contestant_id, criterion_id, score, submitted_at')
+          .eq('competition_id', competitionId),
 
         // Sponsors ordered by tier and sort_order
         supabase
@@ -143,7 +165,7 @@ export function useCompetitionDashboard(competitionId) {
             city:cities(id, name, state, slug),
             organization:organizations(id, name, slug, logo_url, header_logo_url, website_url),
             host:profiles!competitions_host_id_fkey(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery),
-            voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance),
+            voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance, judge_weight, finalized_at, finalized_snapshot),
             nomination_periods(id, start_date, end_date, period_order, title)
           `)
           .eq('id', competitionId)
@@ -151,6 +173,20 @@ export function useCompetitionDashboard(competitionId) {
 
         // Paid-vote revenue — server-side SUM via RPC, cached for 60s
         fetchCompetitionRevenue(competitionId),
+
+        // Co-hosts (additional hosts beyond the primary host_id)
+        supabase
+          .from('competition_co_hosts')
+          .select('user_id, created_at, profile:profiles!user_id(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery)')
+          .eq('competition_id', competitionId)
+          .order('created_at', { ascending: true }),
+
+        // Subscribers (users who opted in to "notify me when nominations open")
+        supabase
+          .from('competition_subscribers')
+          .select('user_id, created_at, profile:profiles!user_id(id, email, first_name, last_name, avatar_url, city)')
+          .eq('competition_id', competitionId)
+          .order('created_at', { ascending: false }),
       ]);
 
       // Check for errors
@@ -158,6 +194,8 @@ export function useCompetitionDashboard(competitionId) {
         contestantsResult.error,
         nomineesResult.error,
         judgesResult.error,
+        criteriaResult.error,
+        scoresResult.error,
         sponsorsResult.error,
         eventsResult.error,
         announcementsResult.error,
@@ -166,6 +204,8 @@ export function useCompetitionDashboard(competitionId) {
         doubleDaysResult.error,
         competitionResult.error,
         paidVotesResult.error,
+        coHostsResult.error,
+        subscribersResult.error,
       ].filter(Boolean);
 
       if (errors.length > 0) {
@@ -190,6 +230,38 @@ export function useCompetitionDashboard(competitionId) {
           gallery: hostProfile.gallery || [],
         };
       }
+
+      const coHosts = (coHostsResult.data || [])
+        .map((row) => {
+          const p = row.profile;
+          if (!p) return null;
+          return {
+            id: p.id,
+            name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email,
+            firstName: p.first_name,
+            lastName: p.last_name,
+            email: p.email,
+            avatar: p.avatar_url,
+            city: p.city,
+            addedAt: row.created_at,
+          };
+        })
+        .filter(Boolean);
+
+      const subscribers = (subscribersResult.data || [])
+        .map((row) => {
+          const p = row.profile;
+          if (!p) return null;
+          return {
+            id: p.id,
+            name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email,
+            email: p.email,
+            avatar: p.avatar_url,
+            city: p.city,
+            subscribedAt: row.created_at,
+          };
+        })
+        .filter(Boolean);
 
       // Transform contestants for leaderboard
       const contestants = (contestantsResult.data || []).map((c, index) => ({
@@ -320,6 +392,31 @@ export function useCompetitionDashboard(competitionId) {
         avatarUrl: j.avatar_url,
         instagram: j.instagram,
         sortOrder: j.sort_order,
+        email: j.email || j.profile?.email || null,
+        inviteToken: j.invite_token,
+        inviteSentAt: j.invite_sent_at,
+        claimedAt: j.claimed_at,
+      }));
+
+      // Transform judging criteria (host-defined qualities)
+      const judgingCriteria = (criteriaResult.data || []).map((c) => ({
+        id: c.id,
+        label: c.label,
+        description: c.description,
+        weight: parseFloat(c.weight) || 1,
+        sortOrder: c.sort_order,
+      }));
+
+      // Transform judge scores (raw rows — aggregation happens in the UI
+      // because the formula depends on per-round judge_weight and vote totals).
+      const judgeScores = (scoresResult.data || []).map((s) => ({
+        id: s.id,
+        votingRoundId: s.voting_round_id,
+        judgeId: s.judge_id,
+        contestantId: s.contestant_id,
+        criterionId: s.criterion_id,
+        score: s.score,
+        submittedAt: s.submitted_at,
       }));
 
       // Transform sponsors with their child prizes (linked via competition_prizes.sponsor_id)
@@ -411,6 +508,8 @@ export function useCompetitionDashboard(competitionId) {
         contestants,
         nominees,
         judges,
+        judgingCriteria,
+        judgeScores,
         sponsors,
         events,
         announcements,
@@ -418,6 +517,8 @@ export function useCompetitionDashboard(competitionId) {
         prizes,
         doubleDays,
         host,
+        coHosts,
+        subscribers,
         voteRevenue,
         competition: competition ? {
           id: competition.id,
@@ -480,6 +581,8 @@ export function useCompetitionDashboard(competitionId) {
           timezone: competition.timezone || 'UTC',
           // Host-controlled gate for the manual "Add Votes" dashboard action.
           allowManualVotes: competition.allow_manual_votes ?? false,
+          // Setup-tab section ids the host has grayed out.
+          hiddenSetupSections: competition.hidden_setup_sections || [],
           // Timeline arrays — pass through so computeCompetitionPhase can
           // detect between-rounds vs. nominations correctly.
           nomination_periods: competition.nomination_periods || [],
@@ -885,7 +988,7 @@ export function useCompetitionDashboard(competitionId) {
 
     try {
       const maxSort = data.judges.length > 0 ? Math.max(...data.judges.map(j => j.sortOrder || 0)) : 0;
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('judges')
         .insert({
           competition_id: competitionId,
@@ -895,12 +998,15 @@ export function useCompetitionDashboard(competitionId) {
           avatar_url: judgeData.avatarUrl,
           user_id: judgeData.userId,
           instagram: judgeData.instagram || null,
+          email: judgeData.email ? judgeData.email.trim() : null,
           sort_order: maxSort + 1,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
       await fetchDashboardData();
-      return { success: true };
+      return { success: true, judgeId: inserted?.id };
     } catch (err) {
       console.error('Error adding judge:', err);
       return { success: false, error: err.message };
@@ -919,6 +1025,7 @@ export function useCompetitionDashboard(competitionId) {
           bio: judgeData.bio,
           avatar_url: judgeData.avatarUrl,
           instagram: judgeData.instagram || null,
+          email: judgeData.email ? judgeData.email.trim() : null,
         })
         .eq('id', judgeId);
 
@@ -945,6 +1052,102 @@ export function useCompetitionDashboard(competitionId) {
       return { success: true };
     } catch (err) {
       console.error('Error deleting judge:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  const sendJudgeInvite = useCallback(async (judgeId, { forceResend = false } = {}) => {
+    try {
+      const { data: result, error } = await supabase.functions.invoke('send-judge-invite', {
+        body: { judge_id: judgeId, force_resend: forceResend },
+      });
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true, data: result };
+    } catch (err) {
+      console.error('Error sending judge invite:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  // ============================================================================
+  // JUDGING CRITERIA OPERATIONS
+  // ============================================================================
+
+  const addCriterion = useCallback(async (criterion) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+    try {
+      const maxSort = data.judgingCriteria.length > 0
+        ? Math.max(...data.judgingCriteria.map(c => c.sortOrder || 0))
+        : 0;
+      const { error } = await supabase.from('judging_criteria').insert({
+        competition_id: competitionId,
+        label: criterion.label,
+        description: criterion.description || null,
+        weight: criterion.weight ?? 1,
+        sort_order: maxSort + 1,
+      });
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding criterion:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, data.judgingCriteria, fetchDashboardData]);
+
+  const updateCriterion = useCallback(async (criterionId, updates) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+    try {
+      const { error } = await supabase
+        .from('judging_criteria')
+        .update({
+          label: updates.label,
+          description: updates.description || null,
+          weight: updates.weight ?? 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', criterionId);
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating criterion:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  const deleteCriterion = useCallback(async (criterionId) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+    try {
+      const { error } = await supabase
+        .from('judging_criteria')
+        .delete()
+        .eq('id', criterionId);
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error deleting criterion:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  // Update a voting round's judge_weight (0–100). Affects how judge scores
+  // blend with vote counts when determining who advances.
+  const updateRoundJudgeWeight = useCallback(async (roundId, weight) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+    const clamped = Math.max(0, Math.min(100, Math.round(weight || 0)));
+    try {
+      const { error } = await supabase
+        .from('voting_rounds')
+        .update({ judge_weight: clamped })
+        .eq('id', roundId);
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating round judge weight:', err);
       return { success: false, error: err.message };
     }
   }, [fetchDashboardData]);
@@ -1324,6 +1527,24 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  const updateHiddenSetupSections = useCallback(async (sections) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({ hidden_setup_sections: Array.isArray(sections) ? sections : [] })
+        .eq('id', competitionId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating hidden setup sections:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   // ============================================================================
   // ANNOUNCEMENT OPERATIONS
   // ============================================================================
@@ -1645,6 +1866,61 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
+  const addCoHost = useCallback(async (userId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase.rpc('add_competition_co_host', {
+        p_competition_id: competitionId,
+        p_user_id: userId,
+      });
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding co-host:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  const removeCoHost = useCallback(async (userId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase.rpc('remove_competition_co_host', {
+        p_competition_id: competitionId,
+        p_user_id: userId,
+      });
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error removing co-host:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  const removeSubscriber = useCallback(async (userId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competition_subscribers')
+        .delete()
+        .eq('competition_id', competitionId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error removing subscriber:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
   // ============================================================================
   // NOMINEE ACCOUNT REPAIR OPERATIONS
   // ============================================================================
@@ -1712,6 +1988,13 @@ export function useCompetitionDashboard(competitionId) {
     addJudge,
     updateJudge,
     deleteJudge,
+    sendJudgeInvite,
+    // Judging criteria
+    addCriterion,
+    updateCriterion,
+    deleteCriterion,
+    // Per-round judge weight (0–100 blend with votes)
+    updateRoundJudgeWeight,
     // Charity operations
     updateCharity,
     removeCharity,
@@ -1728,6 +2011,7 @@ export function useCompetitionDashboard(competitionId) {
     deleteDoubleDay,
     updateCompetitionTimezone,
     updateAllowManualVotes,
+    updateHiddenSetupSections,
     // Announcement operations
     addAnnouncement,
     updateAnnouncement,
@@ -1746,6 +2030,9 @@ export function useCompetitionDashboard(competitionId) {
     updateWinners,
     assignHost,
     removeHost,
+    addCoHost,
+    removeCoHost,
+    removeSubscriber,
   };
 }
 

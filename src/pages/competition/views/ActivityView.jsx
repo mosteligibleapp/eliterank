@@ -47,6 +47,7 @@ export function ActivityView() {
     competition,
     votingRounds,
     about,
+    prizePool,
   } = usePublicCompetition();
 
   // Find contestant by ID for avatar
@@ -173,9 +174,11 @@ export function ActivityView() {
           </section>
 
           {/* Prize Pool — moved from competition page sidebar */}
-          <section className="activity-section">
-            <PrizePool />
-          </section>
+          {prizePool && (
+            <section className="activity-section">
+              <PrizePool />
+            </section>
+          )}
 
           {/* Timeline — moved from competition page sidebar */}
           <section className="activity-section">

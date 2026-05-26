@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +18,10 @@ const corsHeaders = {
  *   - fan_confirmation:     "You're now a fan of X" — sent when a user becomes a fan
  *   - fan_weekly_digest:    Weekly performance update sent to fans and to the contestant themselves
  *   - vote_receipt:         "Thanks for voting!" receipt for paid voters with current rank
+ *   - nominations_open_subscriber: "Nominations are open!" blast to users who
+ *                          subscribed on the competition's coming-soon page
+ *   - subscriber_confirmation: "You're on the list" instant confirmation when
+ *                          a user opts in on the coming-soon page
  *
  * Required Supabase secrets:
  *   ONESIGNAL_APP_ID     — OneSignal App ID
@@ -25,9 +30,12 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'nominations_open_subscriber' | 'subscriber_confirmation' | 'judge_invite'
   to_email: string
   to_name?: string
+  // When set, the send is recorded in email_logs so the host of this
+  // competition can see deliverability in the dashboard's Email Activity tab.
+  competition_id?: string
   nominee_name?: string
   nominator_name?: string
   competition_name?: string
@@ -37,11 +45,13 @@ interface EmailRequest {
   reason?: string
   gender?: string | null
   nomination_end?: string | null
+  nomination_start?: string | null
   nominee_email?: string
   reset_password_url?: string
   contestant_name?: string
   profile_url?: string
   fan_id?: string
+  subscriber_id?: string
   unsubscribe_url?: string
   // fan_weekly_digest fields
   rank?: number | null
@@ -104,6 +114,23 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       <a href="${url}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#d4a843,#f4d03f);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;font-family:Arial,sans-serif;">
         ${text}
       </a>
+    </div>
+  `
+
+  // Compliance footer for emails sent to coming-soon-page subscribers.
+  // CAN-SPAM (US), CASL (Canada), and ePrivacy (EU) all require unsubscribe
+  // + sender identity + physical postal address on commercial-adjacent mail.
+  const subscriberLegalFooter = (unsubscribeUrl?: string) => `
+    <div style="text-align:center;padding:16px 0 0;margin-top:24px;">
+      ${unsubscribeUrl
+        ? `<p style="color:#666;font-size:11px;margin:0 0 8px;font-family:Arial,sans-serif;line-height:1.5;">
+             You signed up for updates about this competition.
+             <a href="${unsubscribeUrl}" style="color:#999;text-decoration:underline;">Unsubscribe</a>.
+           </p>`
+        : ''}
+      <p style="color:#555;font-size:11px;margin:0;font-family:Arial,sans-serif;line-height:1.5;">
+        Most Eligible LLC &middot; 1 W Old State Cap Plz, Ste 805, Springfield, IL 62701
+      </p>
     </div>
   `
 
@@ -204,6 +231,28 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             ${goldButton('Finish My Entry', req.claim_url || appUrl)}
             <p style="color:#666;font-size:12px;">
               Your profile must be complete before you can be approved as a contestant.
+            </p>
+          </div>
+        `),
+      }
+    }
+
+    case 'judge_invite': {
+      return {
+        subject: `You've been invited to judge ${req.competition_name || 'Most Eligible'}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You've Been Invited to Judge</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            <p style="color:#ccc;font-size:15px;">
+              You've been selected as a judge${req.city_name ? ` for ${req.city_name}` : ''}. Your scores will help decide who advances and who wins.
+            </p>
+            <p style="color:#999;font-size:14px;margin-top:16px;">
+              Set up your account and you'll be able to score contestants when the judging round opens.
+            </p>
+            ${goldButton('Accept Judging Invite', req.claim_url || appUrl)}
+            <p style="color:#666;font-size:12px;">
+              If you weren't expecting this, you can ignore the email.
             </p>
           </div>
         `),
@@ -489,6 +538,64 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
     }
 
+    case 'subscriber_confirmation': {
+      const competitionName = req.competition_name || 'Most Eligible'
+      const cityLine = req.city_name
+        ? `<p style="color:#ccc;font-size:15px;margin-top:8px;">${req.city_name}</p>`
+        : ''
+      const greeting = req.to_name ? `Hi ${req.to_name.split(' ')[0]},` : 'Hi,'
+      const ctaUrl = req.competition_url || appUrl
+      const openLine = req.nomination_start
+        ? `<p style="color:#ccc;font-size:14px;margin:8px 0;">Nominations open <strong style="color:#fff;">${new Date(req.nomination_start).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</strong>.</p>`
+        : ''
+      return {
+        subject: `You're on the list: ${competitionName}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You're on the list</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${competitionName}</p>
+            ${cityLine}
+            <p style="color:#ccc;font-size:15px;margin-top:20px;text-align:left;">${greeting}</p>
+            <p style="color:#ccc;font-size:15px;text-align:left;">
+              Thanks for signing up. We'll email you the moment nominations open so you have first dibs to nominate someone — or put yourself forward.
+            </p>
+            ${openLine}
+            ${goldButton('View Competition', ctaUrl)}
+          </div>
+          ${subscriberLegalFooter(req.unsubscribe_url)}
+        `),
+      }
+    }
+
+    case 'nominations_open_subscriber': {
+      const competitionName = req.competition_name || 'Most Eligible'
+      const cityLine = req.city_name
+        ? `<p style="color:#ccc;font-size:15px;margin-top:8px;">${req.city_name}</p>`
+        : ''
+      const greeting = req.to_name ? `Hi ${req.to_name.split(' ')[0]},` : 'Hi,'
+      const ctaUrl = req.competition_url || appUrl
+      const deadlineLine = req.nomination_end
+        ? `<p style="color:#999;font-size:13px;margin-top:12px;">Nominations close ${new Date(req.nomination_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.</p>`
+        : ''
+      return {
+        subject: `Nominations are open: ${competitionName}`,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Nominations are open</h1>
+            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${competitionName}</p>
+            ${cityLine}
+            <p style="color:#ccc;font-size:15px;margin-top:20px;text-align:left;">${greeting}</p>
+            <p style="color:#ccc;font-size:15px;text-align:left;">
+              You asked us to let you know — nominations just opened. Nominate someone you think deserves it, or put yourself forward.
+            </p>
+            ${goldButton('Nominate Now', ctaUrl)}
+            ${deadlineLine}
+          </div>
+          ${subscriberLegalFooter(req.unsubscribe_url)}
+        `),
+      }
+    }
+
     default:
       return {
         subject: 'EliteRank Notification',
@@ -599,6 +706,45 @@ async function ensureEmailSubscription(
   }
 }
 
+/**
+ * Best-effort write of a send attempt to the email_logs table. Never throws —
+ * deliverability logging must not block or fail the actual email send.
+ */
+async function logEmailSend(params: {
+  body: EmailRequest
+  status: 'sent' | 'failed'
+  onesignalId?: string | null
+  recipients?: number | null
+  deliveryMethod?: string | null
+  error?: string | null
+}): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !serviceKey) {
+      console.warn('email_logs: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY — skipping log')
+      return
+    }
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    const { error } = await supabase.from('email_logs').insert({
+      competition_id: params.body.competition_id ?? null,
+      email_type: params.body.type,
+      to_email: params.body.to_email,
+      to_name: params.body.to_name ?? null,
+      status: params.status,
+      onesignal_id: params.onesignalId ?? null,
+      recipients: params.recipients ?? null,
+      delivery_method: params.deliveryMethod ?? null,
+      error: params.error ? String(params.error).slice(0, 1000) : null,
+    })
+    if (error) console.warn('email_logs insert failed (non-blocking):', error.message)
+  } catch (err) {
+    console.warn('email_logs logging error (non-blocking):', err)
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -642,6 +788,24 @@ serve(async (req) => {
         body.unsubscribe_url = `${supabaseUrl}/functions/v1/fan-unsubscribe?token=${encodeURIComponent(token)}`
       } else {
         console.warn(`${body.type}: missing FAN_UNSUBSCRIBE_SECRET or SUPABASE_URL — unsubscribe link will not be included`)
+      }
+    }
+
+    // Same idea for subscriber emails — the recipient signed up on a
+    // competition's coming-soon page and is identified by competition_subscribers.id.
+    // Required for CAN-SPAM / CASL / GDPR compliance: every commercial-ish
+    // message must offer a one-click unsubscribe.
+    const needsSubscriberUnsubLink =
+      (body.type === 'subscriber_confirmation' || body.type === 'nominations_open_subscriber') &&
+      body.subscriber_id && !body.unsubscribe_url
+    if (needsSubscriberUnsubLink) {
+      const unsubSecret = Deno.env.get('SUBSCRIBER_UNSUBSCRIBE_SECRET') || Deno.env.get('FAN_UNSUBSCRIBE_SECRET')
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      if (unsubSecret && supabaseUrl) {
+        const token = await signFanToken(body.subscriber_id!, unsubSecret)
+        body.unsubscribe_url = `${supabaseUrl}/functions/v1/subscriber-unsubscribe?token=${encodeURIComponent(token)}`
+      } else {
+        console.warn(`${body.type}: missing unsubscribe secret or SUPABASE_URL — unsubscribe link will not be included`)
       }
     }
 
@@ -731,6 +895,13 @@ serve(async (req) => {
         }))
 
         if (fallbackRes.ok && fallbackResult?.recipients > 0) {
+          await logEmailSend({
+            body,
+            status: 'sent',
+            onesignalId: fallbackResult.id,
+            recipients: fallbackResult.recipients,
+            deliveryMethod: 'email_token_fallback',
+          })
           return new Response(
             JSON.stringify({ success: true, onesignal_id: fallbackResult.id, recipients: fallbackResult.recipients, method: 'email_token_fallback' }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -738,6 +909,12 @@ serve(async (req) => {
         }
       }
 
+      await logEmailSend({
+        body,
+        status: 'failed',
+        recipients: osResult?.recipients ?? 0,
+        error: JSON.stringify(osResult),
+      })
       return new Response(
         JSON.stringify({ error: 'OneSignal email delivery failed', details: osResult, subscription_id: subscriptionId }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -745,6 +922,14 @@ serve(async (req) => {
     }
 
     console.log('OneSignal email sent successfully:', JSON.stringify({ id: osResult.id, recipients: osResult.recipients }))
+
+    await logEmailSend({
+      body,
+      status: 'sent',
+      onesignalId: osResult.id,
+      recipients: osResult.recipients,
+      deliveryMethod: subscriptionId ? 'subscription_id' : 'email_token',
+    })
 
     return new Response(
       JSON.stringify({ success: true, onesignal_id: osResult.id, recipients: osResult.recipients }),

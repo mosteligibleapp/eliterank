@@ -88,13 +88,15 @@ export function ResultsPhase() {
       {/* Final Stats - only for non-legacy competitions */}
       {!isLegacy && (
         <section className="phase-stats results-stats">
-          <div className="stat-card stat-card-highlight">
-            <div className="stat-icon-wrap">
-              <Trophy size={20} className="stat-icon" />
+          {prizePool && (
+            <div className="stat-card stat-card-highlight">
+              <div className="stat-icon-wrap">
+                <Trophy size={20} className="stat-icon" />
+              </div>
+              <span className="stat-value">{prizePool.formatted.totalPrizePool}</span>
+              <span className="stat-label">Total Awarded</span>
             </div>
-            <span className="stat-value">{prizePool?.formatted?.totalPrizePool}</span>
-            <span className="stat-label">Total Awarded</span>
-          </div>
+          )}
           <div className="stat-card">
             <div className="stat-icon-wrap">
               <Users size={20} className="stat-icon" />
@@ -109,8 +111,8 @@ export function ResultsPhase() {
         </section>
       )}
 
-      {/* Prize Pool Breakdown - only for non-legacy */}
-      {!isLegacy && (
+      {/* Prize Pool Breakdown - only for non-legacy with a configured prize */}
+      {!isLegacy && prizePool && (
         <section className="phase-section">
           <PrizePool showLiveBadge={false} />
         </section>

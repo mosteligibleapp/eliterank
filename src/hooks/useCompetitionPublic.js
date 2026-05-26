@@ -18,6 +18,13 @@ const COMPETITION_SELECT = `
     id, first_name, last_name, bio, avatar_url, city,
     instagram, twitter, linkedin
   ),
+  competition_co_hosts (
+    created_at,
+    profile:profiles!user_id (
+      id, first_name, last_name, bio, avatar_url, city,
+      instagram, twitter, linkedin
+    )
+  ),
   contestants (
     id, user_id, name, email, age, bio, avatar_url, instagram,
     status, votes, rank, trend, city, slug, profile_views,
@@ -221,12 +228,15 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
     return getCompetitionPhase(competition, votingRounds, nominationPeriods);
   }, [competition, votingRounds, nominationPeriods]);
 
-  // Compute prize pool
+  // Compute prize pool. Only surface a pool when a minimum is explicitly
+  // configured on the competition or its organization — without a real
+  // value, competitions would otherwise advertise a phantom default prize.
   const prizePool = useMemo(() => {
     const minimum =
       competition?.prize_pool_minimum ??
       organization?.default_prize_minimum ??
-      1000;
+      null;
+    if (minimum == null) return null;
     const voteRevenue =
       phase.isVoting || phase.phase === 'results'
         ? calculateVoteRevenue(votes)

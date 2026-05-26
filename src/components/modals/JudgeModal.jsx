@@ -14,7 +14,7 @@ export default function JudgeModal({
   const isEditing = !!judge;
 
   // Form state
-  const [form, setForm] = useState({ name: '', title: '', bio: '', userId: null, avatarUrl: '', instagram: '' });
+  const [form, setForm] = useState({ name: '', title: '', bio: '', userId: null, avatarUrl: '', instagram: '', email: '' });
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,11 +39,12 @@ export default function JudgeModal({
           userId: judge.userId || null,
           avatarUrl: judge.avatarUrl || '',
           instagram: judge.instagram || '',
+          email: judge.email || '',
         });
         setShowSearch(false);
         setSelectedProfile(null);
       } else {
-        setForm({ name: '', title: '', bio: '', userId: null, avatarUrl: '', instagram: '' });
+        setForm({ name: '', title: '', bio: '', userId: null, avatarUrl: '', instagram: '', email: '' });
         setShowSearch(true);
         setSelectedProfile(null);
       }
@@ -107,13 +108,14 @@ export default function JudgeModal({
       userId: profile.id,
       avatarUrl: profile.avatar_url || '',
       instagram: profile.instagram || '',
+      email: profile.email || '',
     });
     setShowSearch(false);
   };
 
   const handleClearSelection = () => {
     setSelectedProfile(null);
-    setForm({ name: '', title: '', bio: '', userId: null, avatarUrl: '', instagram: '' });
+    setForm({ name: '', title: '', bio: '', userId: null, avatarUrl: '', instagram: '', email: '' });
     setShowSearch(true);
   };
 
@@ -141,6 +143,7 @@ export default function JudgeModal({
       userId: form.userId,
       avatarUrl: form.avatarUrl,
       instagram: form.instagram,
+      email: form.email,
     });
   };
 
@@ -408,6 +411,21 @@ export default function JudgeModal({
         onChange={(e) => updateField('name', e.target.value)}
         placeholder="e.g., Victoria Blackwell"
       />
+      <Input
+        label="Email"
+        type="email"
+        value={form.email}
+        onChange={(e) => updateField('email', e.target.value)}
+        placeholder="judge@example.com"
+      />
+      <p style={{
+        marginTop: -spacing.sm,
+        marginBottom: spacing.lg,
+        fontSize: typography.fontSize.xs,
+        color: colors.text.muted,
+      }}>
+        Used to send the judge an invite so they can log in and score contestants.
+      </p>
       <Input
         label="Title / Role"
         value={form.title}
