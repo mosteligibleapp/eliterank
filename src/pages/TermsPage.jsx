@@ -157,8 +157,7 @@ export default function TermsPage() {
             EliteRank is a social competition platform that lets organizations host recognition competitions in which
             individuals are nominated, entered as contestants, voted on by the public and by judges, and awarded
             prizes. The Service includes user profiles, nominations, contestant entries, public and judge voting,
-            leaderboards, prizes, rewards, sponsor pages, and related features. The Service is operated on technology
-            provided by Orbiiit Technology, Inc.
+            leaderboards, prizes, rewards, sponsor pages, and related features.
           </p>
           <p style={styles.p}>
             We may add, change, suspend, or discontinue any feature of the Service, in whole or in part, at any time,
@@ -316,8 +315,8 @@ export default function TermsPage() {
         <section style={styles.section}>
           <h2 style={styles.h2}>12. Indemnification</h2>
           <p style={styles.p}>
-            You agree to defend, indemnify, and hold harmless EliteRank, Most Eligible LLC, Orbiiit Technology, Inc.,
-            their affiliates, and their respective officers, directors, employees, and agents from and against any
+            You agree to defend, indemnify, and hold harmless EliteRank, its affiliates, and their respective
+            officers, directors, employees, and agents from and against any
             claims, liabilities, damages, losses, costs, and expenses (including reasonable attorneys' fees) arising
             out of or related to: (a) your use of the Service; (b) your User Content; (c) your violation of these
             Terms or applicable law; or (d) your violation of any third-party right, including any intellectual
