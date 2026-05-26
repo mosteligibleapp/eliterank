@@ -614,7 +614,7 @@ export default function SetupTab({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: typography.fontWeight.medium }}>{sponsor.name}</p>
                     <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                      {sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)} Tier • ${sponsor.amount.toLocaleString()}
+                      {sponsor.tier === 'inkind' ? 'In-kind' : `${sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)} Tier`} • ${sponsor.amount.toLocaleString()}
                     </p>
                   </div>
                   <button

@@ -4,7 +4,7 @@ import {
   Eye, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
-import { HostAssignmentModal, JudgeModal, SponsorModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
+import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
@@ -22,6 +22,51 @@ const TABS = [
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
   { id: 'preview', label: 'Preview', shortLabel: 'Preview', icon: Eye },
 ];
+
+// SponsorWizardModal collects more fields than the sponsors table currently stores.
+// These adapters bridge wizard <-> DB; richer fields (prizes, recipient, in-kind details)
+// are not yet persisted — see backend follow-up.
+const TIER_CAPS = { platinum: 1, gold: 2, silver: 3 };
+
+function computeTierAvailability(allSponsors, editingSponsor) {
+  const usedByTier = { platinum: 0, gold: 0, silver: 0 };
+  for (const s of allSponsors) {
+    if (editingSponsor && s.id === editingSponsor.id) continue;
+    if (usedByTier[s.tier] !== undefined) usedByTier[s.tier] += 1;
+  }
+  return {
+    platinum: Math.max(0, TIER_CAPS.platinum - usedByTier.platinum),
+    gold: Math.max(0, TIER_CAPS.gold - usedByTier.gold),
+    silver: Math.max(0, TIER_CAPS.silver - usedByTier.silver),
+  };
+}
+
+function sponsorToWizardForm(sponsor) {
+  const isInKind = sponsor.tier === 'inkind';
+  return {
+    name: sponsor.name || '',
+    logoUrl: sponsor.logoUrl || '',
+    websiteUrl: sponsor.websiteUrl || '',
+    sponsorshipType: isInKind ? 'in_kind' : 'paid',
+    value: sponsor.amount ? String(sponsor.amount) : '',
+    visibilityTier: isInKind ? '' : (sponsor.tier || ''),
+    providesContestantRewards: false,
+    recipient: '',
+    topXCount: '',
+    prizes: [],
+  };
+}
+
+function wizardFormToSponsor(form) {
+  const tier = form.sponsorshipType === 'in_kind' ? 'inkind' : form.visibilityTier;
+  return {
+    name: form.name,
+    tier,
+    amount: form.value, // dollars; hook converts to amount_cents
+    logoUrl: form.logoUrl,
+    websiteUrl: form.websiteUrl,
+  };
+}
 
 export default function CompetitionDashboard({
   competitionId,
@@ -530,11 +575,13 @@ export default function CompetitionDashboard({
           setJudgeModal({ isOpen: false, judge: null });
         }}
       />
-      <SponsorModal
+      <SponsorWizardModal
         isOpen={sponsorModal.isOpen}
         onClose={() => setSponsorModal({ isOpen: false, sponsor: null })}
-        sponsor={sponsorModal.sponsor}
-        onSave={async (sponsorData) => {
+        sponsor={sponsorModal.sponsor ? sponsorToWizardForm(sponsorModal.sponsor) : null}
+        tierAvailability={computeTierAvailability(data.sponsors, sponsorModal.sponsor)}
+        onSave={async (wizardData) => {
+          const sponsorData = wizardFormToSponsor(wizardData);
           if (sponsorModal.sponsor) {
             await updateSponsor(sponsorModal.sponsor.id, sponsorData);
           } else {

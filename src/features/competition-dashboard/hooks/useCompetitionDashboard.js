@@ -327,7 +327,7 @@ export function useCompetitionDashboard(competitionId) {
         id: s.id,
         name: s.name,
         tier: s.tier?.toLowerCase() || 'gold',
-        amount: parseFloat(s.amount) || 0,
+        amount: (s.amount_cents || 0) / 100,
         logoUrl: s.logo_url,
         websiteUrl: s.website_url,
         sortOrder: s.sort_order,
@@ -996,9 +996,9 @@ export function useCompetitionDashboard(competitionId) {
           competition_id: competitionId,
           name: sponsorData.name,
           tier: sponsorData.tier,
-          amount: sponsorData.amount,
-          logo_url: sponsorData.logoUrl,
-          website_url: sponsorData.websiteUrl,
+          amount_cents: Math.round((sponsorData.amount || 0) * 100),
+          logo_url: sponsorData.logoUrl || null,
+          website_url: sponsorData.websiteUrl || null,
           sort_order: maxSort + 1,
         });
 
@@ -1020,9 +1020,9 @@ export function useCompetitionDashboard(competitionId) {
         .update({
           name: sponsorData.name,
           tier: sponsorData.tier,
-          amount: sponsorData.amount,
-          logo_url: sponsorData.logoUrl,
-          website_url: sponsorData.websiteUrl,
+          amount_cents: Math.round((sponsorData.amount || 0) * 100),
+          logo_url: sponsorData.logoUrl || null,
+          website_url: sponsorData.websiteUrl || null,
         })
         .eq('id', sponsorId);
 
