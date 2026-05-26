@@ -160,10 +160,10 @@ export default function PrivacyPage() {
             platform provider but is not a controller of your personal information for purposes of this Policy.
           </p>
           <p style={styles.pBold}>
-            EliteRank is offered to residents of the United States. While the Service may be technically accessible
-            from other countries, we do not target or actively market the Service outside the United States. Sections
-            11 (California), 12 (EEA, UK, and Switzerland), and 13 (Canada) provide additional disclosures for
-            individuals who access the Service from those jurisdictions.
+            EliteRank is offered to residents of the United States and the province of Ontario, Canada. While the
+            Service may be technically accessible from other countries, we do not target or actively market the
+            Service outside the United States and Ontario. Sections 11 (California), 12 (EEA, UK, and Switzerland),
+            and 13 (Canada) provide additional disclosures for individuals in those jurisdictions.
           </p>
           <p style={styles.p}>
             By using the Service, you acknowledge that you have read and understood this Policy. If you do not agree,
@@ -380,11 +380,17 @@ export default function PrivacyPage() {
         <section style={styles.section}>
           <h2 style={styles.h2}>13. Notice to Canadian Residents (PIPEDA)</h2>
           <p style={styles.p}>
-            If you access the Service from Canada, you have the right under the Personal Information Protection and
-            Electronic Documents Act ("PIPEDA") and applicable provincial laws to access and request correction of
-            the personal information we hold about you, and to withdraw consent to our collection, use, and
-            disclosure of your personal information (subject to legal or contractual restrictions). Contact us at the
-            address in Section 15.
+            EliteRank offers the Service to residents of the province of Ontario, Canada. If you use the Service from
+            Canada, we collect, use, and disclose your personal information in accordance with the federal Personal
+            Information Protection and Electronic Documents Act ("PIPEDA") and applicable provincial laws, including
+            Ontario's privacy framework.
+          </p>
+          <p style={styles.p}>
+            You have the right to access and request correction of the personal information we hold about you, and
+            to withdraw consent to our collection, use, and disclosure of your personal information (subject to legal
+            or contractual restrictions). To exercise these rights, contact us at the address in Section 15. If you
+            are not satisfied with our response, you may file a complaint with the Office of the Privacy Commissioner
+            of Canada at <span style={styles.strong}>www.priv.gc.ca</span>.
           </p>
         </section>
 

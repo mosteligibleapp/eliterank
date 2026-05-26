@@ -185,9 +185,9 @@ export default function ContestTermsPage() {
           <h2 style={styles.h2}>3. Eligibility</h2>
           <p style={styles.p}>To enter or vote in a competition, you must:</p>
           <ul style={styles.ul}>
-            <li style={styles.li}>be at least <span style={styles.strong}>18 years of age</span> (or the age of majority in your state, whichever is greater) at the time of entry;</li>
-            <li style={styles.li}>be a legal resident of the <span style={styles.strong}>United States</span> (the 50 states and the District of Columbia); and</li>
-            <li style={styles.li}>not be a resident of any state or jurisdiction in which the competition is prohibited by law.</li>
+            <li style={styles.li}>be at least <span style={styles.strong}>18 years of age</span> (or the age of majority in your state or province, whichever is greater) at the time of entry;</li>
+            <li style={styles.li}>be a legal resident of the <span style={styles.strong}>United States</span> (the 50 states and the District of Columbia) or the <span style={styles.strong}>province of Ontario, Canada</span>; and</li>
+            <li style={styles.li}>not be a resident of any state, province, or jurisdiction in which the competition is prohibited by law.</li>
           </ul>
           <p style={styles.p}>
             Employees, officers, directors, and contractors of the Sponsor and of the other Promotion Entities, and
@@ -351,9 +351,20 @@ export default function ContestTermsPage() {
           <ul style={styles.ul}>
             <li style={styles.li}>the Sponsor is unable to verify the potential winner's eligibility or identity;</li>
             <li style={styles.li}>the potential winner fails to respond to a winner notification within five (5) days;</li>
-            <li style={styles.li}>the potential winner declines the prize or fails to complete the Prize Claim Documents within the period requested; or</li>
+            <li style={styles.li}>the potential winner declines the prize or fails to complete the Prize Claim Documents within the period requested;</li>
+            <li style={styles.li}>the potential winner is a Canadian resident and fails to correctly answer the mathematical skill-testing question described below; or</li>
             <li style={styles.li}>the potential winner is found to have violated these Contest Terms, the Terms of Use, or applicable law.</li>
           </ul>
+          <p style={styles.p}>
+            <span style={styles.strong}>Skill-testing question (Canadian residents).</span> To comply with Canadian
+            law, any potential winner who is a resident of Canada must, before any prize is awarded, correctly answer
+            without mechanical or other aid a time-limited mathematical skill-testing question administered by the
+            Sponsor. The question will involve at least three arithmetic operations (such as addition, subtraction,
+            multiplication, and division). The potential winner has one (1) attempt and must respond within the time
+            specified by the Sponsor at the time the question is presented. Failure to correctly answer the
+            skill-testing question within the time allowed will result in disqualification and the selection of an
+            alternate winner, who will be subject to the same requirement.
+          </p>
         </section>
 
         <section style={styles.section}>
@@ -430,6 +441,13 @@ export default function ContestTermsPage() {
             jurisdiction and venue of the state and federal courts located in <span style={styles.strong}>Cook
             County, Illinois</span>. Any claim or cause of action arising out of or related to a competition must
             be filed within one (1) year after such claim or cause of action arose, or be forever barred.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>Canadian residents.</span> Nothing in this Section is intended to limit any
+            mandatory consumer-protection rights of Canadian residents under the laws of their province of
+            residence, including any rights under the federal Competition Act and Criminal Code of Canada governing
+            promotional contests. Where such rights cannot lawfully be waived, those rights apply notwithstanding
+            the choice-of-law and venue provisions above.
           </p>
         </section>
 

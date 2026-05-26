@@ -174,9 +174,9 @@ export default function TermsPage() {
           </p>
           <ul style={styles.ul}>
             <li style={styles.li}>be at least <span style={styles.strong}>18 years of age</span>;</li>
-            <li style={styles.li}>be a resident of the <span style={styles.strong}>United States</span>;</li>
+            <li style={styles.li}>be a resident of the <span style={styles.strong}>United States</span> or the <span style={styles.strong}>province of Ontario, Canada</span>;</li>
             <li style={styles.li}>have the legal capacity to enter into these Terms; and</li>
-            <li style={styles.li}>not be prohibited from receiving the Service under U.S. law or the laws of your state of residence.</li>
+            <li style={styles.li}>not be prohibited from receiving the Service under the law of your country, state, or province of residence.</li>
           </ul>
           <p style={styles.p}>
             If you are acting on behalf of an organization (for example, as a host), you represent that you have
@@ -357,10 +357,10 @@ export default function TermsPage() {
         <section style={styles.section}>
           <h2 style={styles.h2}>15. International Use</h2>
           <p style={styles.p}>
-            The Service is operated from the United States and intended for use by U.S. residents. We make no
-            representation that the Service is appropriate or available in any other location. If you access the
-            Service from outside the United States, you do so on your own initiative and are responsible for
-            compliance with local laws.
+            The Service is operated from the United States and intended for use by residents of the United States
+            and the province of Ontario, Canada. We make no representation that the Service is appropriate or
+            available in any other location. If you access the Service from outside these regions, you do so on your
+            own initiative and are responsible for compliance with local laws.
           </p>
         </section>
 
