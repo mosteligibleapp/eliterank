@@ -128,6 +128,8 @@ export default function JudgingPanel({
       <Panel
         title={`Judging Criteria (${criteria.length})`}
         icon={Award}
+        collapsible
+        defaultCollapsed
         action={
           !adding && !editingId && (
             <Button size="sm" icon={Plus} onClick={(e) => { e.stopPropagation(); startAdd(); }}>
@@ -230,6 +232,8 @@ export default function JudgingPanel({
       <Panel
         title="Judging Round"
         icon={Sliders}
+        collapsible
+        defaultCollapsed
       >
         <div style={{ padding: spacing.xl, display: 'flex', flexDirection: 'column', gap: spacing.md }}>
           <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginTop: -spacing.sm }}>

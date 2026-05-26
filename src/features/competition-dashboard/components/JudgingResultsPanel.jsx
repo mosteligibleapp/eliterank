@@ -118,6 +118,8 @@ export default function JudgingResultsPanel({
     <Panel
       title="Judging Results"
       icon={BarChart3}
+      collapsible
+      defaultCollapsed
     >
       <div style={{ padding: spacing.xl }}>
         {/* Round tabs — hidden when only one judging round exists */}
