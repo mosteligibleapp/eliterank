@@ -5,7 +5,6 @@
  * and PIPEDA (Canada).
  *
  * Operator of record: Most Eligible LLC (Illinois, USA).
- * EliteRank runs on technology provided by Orbiiit Technology, Inc.
  */
 
 import React from 'react';
@@ -155,10 +154,6 @@ export default function PrivacyPage() {
             information about you when you access or use the EliteRank website at eliterank.co, our mobile-optimized
             web app, and any related features, content, communications, and services (collectively, the "Service").
           </p>
-          <p style={styles.p}>
-            The Service is operated on technology provided by Orbiiit Technology, Inc., which acts as our hosting and
-            platform provider but is not a controller of your personal information for purposes of this Policy.
-          </p>
           <p style={styles.pBold}>
             EliteRank is offered to residents of the United States and the province of Ontario, Canada. While the
             Service may be technically accessible from other countries, we do not target or actively market the
@@ -246,7 +241,6 @@ export default function PrivacyPage() {
                 <li style={styles.li}>OneSignal &mdash; email and push notification delivery</li>
                 <li style={styles.li}>Sentry &mdash; error and performance monitoring</li>
                 <li style={styles.li}>FingerprintJS &mdash; browser fingerprinting for fraud prevention</li>
-                <li style={styles.li}>Orbiiit Technology, Inc. &mdash; underlying platform technology</li>
               </ul>
               These providers are contractually bound to use information only to deliver services to us.
             </li>

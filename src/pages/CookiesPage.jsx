@@ -1,8 +1,8 @@
 /**
  * CookiesPage - Cookie Policy
  *
- * Mirrors Orbiiit's cookie policy structure and lists the actual cookies / local
- * storage / fingerprint identifiers EliteRank uses today.
+ * Lists the actual cookies / local storage / fingerprint identifiers EliteRank
+ * uses today.
  *
  * A consent banner / preferences UI is not currently shipped. When one lands,
  * re-introduce the "Manage cookie preferences" button here (calling
