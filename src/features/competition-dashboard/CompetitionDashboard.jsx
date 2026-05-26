@@ -23,9 +23,8 @@ const TABS = [
   { id: 'preview', label: 'Preview', shortLabel: 'Preview', icon: Eye },
 ];
 
-// SponsorWizardModal collects more fields than the sponsors table currently stores.
-// These adapters bridge wizard <-> DB; richer fields (prizes, recipient, in-kind details)
-// are not yet persisted — see backend follow-up.
+// SponsorWizardModal collects sponsor + child prizes. The dashboard hook persists prizes
+// into competition_prizes (linked by sponsor_id), so they appear on the public Prizes page.
 const TIER_CAPS = { platinum: 1, gold: 2, silver: 3 };
 
 function computeTierAvailability(allSponsors, editingSponsor) {
@@ -43,6 +42,16 @@ function computeTierAvailability(allSponsors, editingSponsor) {
 
 function sponsorToWizardForm(sponsor) {
   const isInKind = sponsor.tier === 'inkind';
+  const prizes = (sponsor.prizes || []).map((p) => ({
+    id: p.id,
+    title: p.title || '',
+    description: p.description || '',
+    value: p.value ? String(p.value) : '',
+    imageUrl: p.imageUrl || '',
+  }));
+  // Recipient isn't stored explicitly — infer from prize_type of the first child prize.
+  const firstPrizeType = sponsor.prizes?.[0]?.prizeType;
+  const inferredRecipient = firstPrizeType === 'winner' ? 'winners' : (prizes.length > 0 ? 'all' : '');
   return {
     name: sponsor.name || '',
     logoUrl: sponsor.logoUrl || '',
@@ -50,10 +59,10 @@ function sponsorToWizardForm(sponsor) {
     sponsorshipType: isInKind ? 'in_kind' : 'paid',
     value: sponsor.amount ? String(sponsor.amount) : '',
     visibilityTier: isInKind ? '' : (sponsor.tier || ''),
-    providesContestantRewards: false,
-    recipient: '',
+    providesContestantRewards: prizes.length > 0,
+    recipient: inferredRecipient,
     topXCount: '',
-    prizes: [],
+    prizes,
   };
 }
 
@@ -62,9 +71,11 @@ function wizardFormToSponsor(form) {
   return {
     name: form.name,
     tier,
-    amount: form.value, // dollars; hook converts to amount_cents
+    amount: form.value,
     logoUrl: form.logoUrl,
     websiteUrl: form.websiteUrl,
+    recipient: form.recipient,
+    prizes: form.prizes || [],
   };
 }
 
