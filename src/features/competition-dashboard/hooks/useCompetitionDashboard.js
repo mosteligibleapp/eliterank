@@ -419,7 +419,22 @@ export function useCompetitionDashboard(competitionId) {
         submittedAt: s.submitted_at,
       }));
 
-      // Transform sponsors
+      // Transform sponsors with their child prizes (linked via competition_prizes.sponsor_id)
+      const prizesBySponsorId = new Map();
+      (prizesResult.data || []).forEach((p) => {
+        if (!p.sponsor_id) return;
+        const list = prizesBySponsorId.get(p.sponsor_id) || [];
+        list.push({
+          id: p.id,
+          title: p.title || '',
+          description: p.description || '',
+          value: p.value || '',
+          imageUrl: p.image_url || '',
+          prizeType: p.prize_type || 'contestant',
+          sortOrder: p.sort_order || 0,
+        });
+        prizesBySponsorId.set(p.sponsor_id, list);
+      });
       const sponsors = (sponsorsResult.data || []).map((s) => ({
         id: s.id,
         name: s.name,
@@ -428,6 +443,7 @@ export function useCompetitionDashboard(competitionId) {
         logoUrl: s.logo_url,
         websiteUrl: s.website_url,
         sortOrder: s.sort_order,
+        prizes: (prizesBySponsorId.get(s.id) || []).sort((a, b) => a.sortOrder - b.sortOrder),
       }));
 
       // Transform events
@@ -1188,24 +1204,49 @@ export function useCompetitionDashboard(competitionId) {
   // SPONSOR OPERATIONS
   // ============================================================================
 
+  // Default prize_type for NEW prizes (no existing id): winners → 'winner', else 'contestant'.
+  const defaultPrizeTypeFromRecipient = (recipient) =>
+    recipient === 'winners' ? 'winner' : 'contestant';
+
   const addSponsor = useCallback(async (sponsorData) => {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
       const maxSort = data.sponsors.length > 0 ? Math.max(...data.sponsors.map(s => s.sortOrder || 0)) : 0;
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('sponsors')
         .insert({
           competition_id: competitionId,
           name: sponsorData.name,
           tier: sponsorData.tier,
-          amount: sponsorData.amount,
-          logo_url: sponsorData.logoUrl,
-          website_url: sponsorData.websiteUrl,
+          amount: sponsorData.amount || 0,
+          logo_url: sponsorData.logoUrl || null,
+          website_url: sponsorData.websiteUrl || null,
           sort_order: maxSort + 1,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      const prizes = (sponsorData.prizes || []).filter((p) => (p.title || '').trim().length > 0);
+      if (prizes.length > 0) {
+        const prizeType = defaultPrizeTypeFromRecipient(sponsorData.recipient);
+        const prizeRows = prizes.map((p, idx) => ({
+          competition_id: competitionId,
+          sponsor_id: inserted.id,
+          sponsor_name: sponsorData.name || null,
+          title: p.title.trim(),
+          description: p.description || null,
+          value: p.value ? String(p.value) : null,
+          image_url: p.imageUrl || null,
+          prize_type: prizeType,
+          sort_order: idx,
+        }));
+        const { error: prizeError } = await supabase.from('competition_prizes').insert(prizeRows);
+        if (prizeError) throw prizeError;
+      }
+
       await fetchDashboardData();
       return { success: true };
     } catch (err) {
@@ -1223,20 +1264,74 @@ export function useCompetitionDashboard(competitionId) {
         .update({
           name: sponsorData.name,
           tier: sponsorData.tier,
-          amount: sponsorData.amount,
-          logo_url: sponsorData.logoUrl,
-          website_url: sponsorData.websiteUrl,
+          amount: sponsorData.amount || 0,
+          logo_url: sponsorData.logoUrl || null,
+          website_url: sponsorData.websiteUrl || null,
         })
         .eq('id', sponsorId);
 
       if (error) throw error;
+
+      // Diff-based prize sync. Preserves external_url, voting_round_id, and per-prize
+      // prize_type on existing rows — the wizard doesn't model those fields, so blindly
+      // re-inserting would silently wipe them.
+      const { data: existing, error: readError } = await supabase
+        .from('competition_prizes')
+        .select('id')
+        .eq('sponsor_id', sponsorId);
+      if (readError) throw readError;
+
+      const existingIds = new Set((existing || []).map((p) => p.id));
+      const submitted = (sponsorData.prizes || []).filter((p) => (p.title || '').trim().length > 0);
+      const submittedIds = new Set(submitted.filter((p) => p.id).map((p) => p.id));
+
+      const toDelete = [...existingIds].filter((id) => !submittedIds.has(id));
+      if (toDelete.length > 0) {
+        const { error: delErr } = await supabase
+          .from('competition_prizes')
+          .delete()
+          .in('id', toDelete);
+        if (delErr) throw delErr;
+      }
+
+      const newPrizeType = defaultPrizeTypeFromRecipient(sponsorData.recipient);
+      for (let i = 0; i < submitted.length; i++) {
+        const p = submitted[i];
+        const sharedFields = {
+          sponsor_name: sponsorData.name || null,
+          title: p.title.trim(),
+          description: p.description || null,
+          value: p.value ? String(p.value) : null,
+          image_url: p.imageUrl || null,
+          sort_order: i,
+        };
+
+        if (p.id && existingIds.has(p.id)) {
+          const { error: updErr } = await supabase
+            .from('competition_prizes')
+            .update(sharedFields)
+            .eq('id', p.id);
+          if (updErr) throw updErr;
+        } else {
+          const { error: insErr } = await supabase
+            .from('competition_prizes')
+            .insert({
+              competition_id: competitionId,
+              sponsor_id: sponsorId,
+              prize_type: newPrizeType,
+              ...sharedFields,
+            });
+          if (insErr) throw insErr;
+        }
+      }
+
       await fetchDashboardData();
       return { success: true };
     } catch (err) {
       console.error('Error updating sponsor:', err);
       return { success: false, error: err.message };
     }
-  }, [fetchDashboardData]);
+  }, [competitionId, fetchDashboardData]);
 
   const deleteSponsor = useCallback(async (sponsorId) => {
     if (!supabase) return { success: false, error: 'Missing configuration' };

@@ -101,7 +101,9 @@ export function HostSection() {
                 ) : (
                   <span className="sponsor-name">{sponsor.name}</span>
                 )}
-                <span className="sponsor-tier">{sponsor.tier}</span>
+                {sponsor.tier && sponsor.tier.toLowerCase() !== 'inkind' && (
+                  <span className="sponsor-tier">{sponsor.tier}</span>
+                )}
               </a>
             ))}
           </div>
