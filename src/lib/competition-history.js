@@ -77,23 +77,60 @@ export async function getNominationsForUser(userId, userEmail) {
 }
 
 /**
- * Get competitions hosted by a user
+ * Get competitions hosted by a user — includes both primary host (host_id)
+ * and co-hosts (competition_co_hosts).
  */
 export async function getHostedCompetitions(userId) {
   if (!supabase || !userId) return [];
 
   try {
-    const { data, error } = await supabase
-      .from('competitions')
-      .select('*, city:cities(name), organization:organizations(name, slug, logo_url)')
-      .eq('host_id', userId)
-      .order('created_at', { ascending: false });
+    const [primaryResult, coHostIdsResult] = await Promise.all([
+      supabase
+        .from('competitions')
+        .select('*, city:cities(name), organization:organizations(name, slug, logo_url)')
+        .eq('host_id', userId)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('competition_co_hosts')
+        .select('competition_id')
+        .eq('user_id', userId),
+    ]);
 
-    if (error) {
-      console.error('Error fetching hosted competitions:', error);
-      return [];
+    if (primaryResult.error) {
+      console.error('Error fetching hosted competitions:', primaryResult.error);
     }
-    return data || [];
+    if (coHostIdsResult.error) {
+      console.error('Error fetching co-hosted competition ids:', coHostIdsResult.error);
+    }
+
+    const byId = new Map();
+    for (const row of primaryResult.data || []) {
+      if (row?.id) byId.set(row.id, row);
+    }
+
+    const coHostIds = (coHostIdsResult.data || [])
+      .map(row => row?.competition_id)
+      .filter(id => id && !byId.has(id));
+
+    if (coHostIds.length) {
+      const { data: coHostComps, error: coHostCompsError } = await supabase
+        .from('competitions')
+        .select('*, city:cities(name), organization:organizations(name, slug, logo_url)')
+        .in('id', coHostIds);
+
+      if (coHostCompsError) {
+        console.error('Error fetching co-hosted competitions:', coHostCompsError);
+      }
+      for (const row of coHostComps || []) {
+        if (row?.id) byId.set(row.id, row);
+      }
+    }
+
+    return [...byId.values()].sort((a, b) => {
+      const aTime = a?.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0;
+      return bTime - aTime;
+    });
   } catch (err) {
     console.error('Error in getHostedCompetitions:', err);
     return [];
