@@ -1,10 +1,15 @@
 /**
  * ContestTermsPage - Contest Terms & Conditions
  *
- * Mirrors Orbiiit's contest framework adapted for a US-only audience operated by
- * Most Eligible LLC under Illinois law. Each competition's contest page may
- * supplement these terms with rules specific to that competition (eligibility
- * details, sponsor, prizes, dates, charity allocation, etc.).
+ * Structured as a contest of skill (pageant model). Each competition publishes
+ * its own scoring formula (judges, weighted public support, or both); the
+ * Sponsor identified on the contest page is responsible for that competition.
+ *
+ * Intentionally does NOT include sweepstakes / AMOE / "no purchase necessary"
+ * language because the platform awards prizes only to contestants and only on
+ * the basis of the published scoring criteria. Voters do not enter any drawing
+ * and do not receive prizes. If a voter-drawing feature is added later, the
+ * sweepstakes framework will need to be re-added.
  */
 
 import React from 'react';
@@ -238,86 +243,67 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>5. Format and Selection of Winners</h2>
+          <h2 style={styles.h2}>5. Contest of Skill: Format and Selection of Winners</h2>
+          <div style={styles.callout}>
+            <p style={{ ...styles.p, marginBottom: 0 }}>
+              Each competition on the Platform is structured as a <span style={styles.strong}>contest of skill</span>.
+              Winners are determined by published criteria evaluated by qualified judges and/or by an aggregated
+              measure of public support, as specified on the contest page. No prize is awarded by random drawing.
+            </p>
+          </div>
 
           <h3 style={styles.h3}>5.1 Competition Rounds</h3>
           <p style={styles.p}>
-            Each competition may consist of one or more rounds, including a nomination round, contestant round,
-            preliminary judging round, public voting round(s), final round, and/or a winner announcement event. The
-            structure, dates, and judging criteria for each competition are set out on the contest page.
+            A competition may consist of one or more rounds, including a nomination round, contestant round,
+            preliminary judging round, public-support round(s), final round, and/or a winner-announcement event.
+            The structure, dates, and scoring formula for each competition are published on the contest page.
           </p>
 
-          <h3 style={styles.h3}>5.2 Public Voting</h3>
+          <h3 style={styles.h3}>5.2 Scoring Formula</h3>
           <p style={styles.p}>
-            Where the competition includes public voting, each voter receives at least one free vote credit per
-            competition. Voters may also purchase additional vote credits through the Platform's payment processor
-            (Stripe). All free and purchased votes are recorded in the contestant's vote tally and, where the
-            competition offers a Voter Prize (see Section 6), entered into the applicable drawing.
-          </p>
-          <p style={styles.p}>
-            Votes purchased through the Platform are final and non-refundable once a vote is recorded, except as
-            required by law or as expressly provided on the contest page.
+            The Sponsor publishes the scoring formula for each competition on the contest page. The formula may
+            include judge scoring on stated criteria (such as talent, presentation, community impact, or other
+            attributes), aggregated public support measured through the Platform's voting feature, bonus-task
+            completion, or any combination of these. Where multiple inputs are used, the contest page identifies
+            the weighting that applies.
           </p>
 
           <h3 style={styles.h3}>5.3 Judging</h3>
           <p style={styles.p}>
-            Where the competition includes judging, designated judges score contestants according to the criteria
-            published on the contest page. Judges' decisions are final.
+            Where the competition includes judges, the Sponsor selects judges qualified to evaluate contestants
+            against the published criteria. Judges' scores are recorded on the Platform and, where applicable,
+            combined with other scoring inputs in accordance with the published formula. Judges' decisions, and the
+            Sponsor's final tally, are final and binding.
           </p>
 
-          <h3 style={styles.h3}>5.4 Prohibited Voting</h3>
+          <h3 style={styles.h3}>5.4 Public Support / Voting</h3>
+          <p style={styles.p}>
+            Where the competition includes a public-support component, voters may show support by casting votes for
+            a contestant. Each voter receives at least one free vote credit per competition; voters may also
+            purchase additional vote credits through the Platform's payment processor (Stripe). Votes are recorded
+            in the contestant's tally and, where the contest page so specifies, factor into the contestant's final
+            score under the published scoring formula.
+          </p>
+          <p style={styles.p}>
+            Votes are a measure of public support for a contestant and are <span style={styles.strong}>not</span>{' '}
+            entries in any drawing. Voters do not receive any prize, reward, or chance of winning by voting, and
+            purchasing votes does not entitle the voter to anything other than additional voting capacity. Votes
+            purchased through the Platform are final and non-refundable once recorded, except as required by law or
+            as expressly provided on the contest page.
+          </p>
+
+          <h3 style={styles.h3}>5.5 Prohibited Voting and Fraud</h3>
           <p style={styles.p}>
             Votes generated by automated means (bots, scripts), through fraudulent payment instruments, through
-            chargebacks, through multiple accounts or false identities, or in any other manner not expressly
-            permitted are prohibited and will be discarded. The Sponsor and EliteRank may disqualify any contestant
-            or voter who participates in or benefits from prohibited voting.
+            chargebacks, through multiple accounts or false identities, through coordinated vote-buying outside the
+            Platform's official vote-purchase flow, or in any other manner not expressly permitted are prohibited
+            and will be discarded. The Sponsor and EliteRank may disqualify any contestant who benefits from
+            prohibited voting and may suspend or ban any voter who engages in it.
           </p>
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>6. Voter Prizes (When Offered)</h2>
-          <div style={styles.callout}>
-            <p style={{ ...styles.p, marginBottom: 0 }}>
-              <span style={styles.strong}>No purchase necessary to enter or win a Voter Prize.</span> A purchase
-              does not improve your chances of winning a Voter Prize. Where a Voter Prize is offered, an alternate
-              free method of entry is provided below.
-            </p>
-          </div>
-          <p style={styles.p}>
-            Some competitions offer a separate "Voter Prize" awarded to one or more voters by random drawing. Where
-            a Voter Prize is offered:
-          </p>
-          <ul style={styles.ul}>
-            <li style={styles.li}>each voter receives at least one free vote credit per competition;</li>
-            <li style={styles.li}>each free or purchased vote entered during the voting period qualifies as one entry into the Voter Prize drawing (unless the contest page states a different ratio);</li>
-            <li style={styles.li}>purchased votes do not increase your chances of winning the Voter Prize relative to free votes on a per-entry basis;</li>
-            <li style={styles.li}>winners will be selected at random from all eligible entries received during the voting period;</li>
-            <li style={styles.li}>odds of winning depend on the number of eligible entries received.</li>
-          </ul>
-          <p style={styles.p}>
-            <span style={styles.strong}>Alternate Free Method of Entry (AMOE):</span> to enter a Voter Prize drawing
-            without purchasing votes, hand-print your full name, complete mailing address (including city, state,
-            and ZIP code), phone number, email address, the name of the contest, and the name of the contestant
-            you wish to support on a 3" x 5" card and mail it in a #10 envelope with sufficient postage to:
-          </p>
-          <div style={styles.contactBox}>
-            <p style={{ ...styles.p, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing[1] }}>Most Eligible LLC &mdash; Voter Prize AMOE</p>
-            <p style={{ ...styles.p, marginBottom: 0 }}>[mailing address to be posted on each contest page]</p>
-          </div>
-          <p style={styles.p}>
-            Each valid mail-in entry counts as one (1) entry. There is no limit to the number of mail-in entries you
-            may submit, but each entry must be mailed separately in its own envelope and must be received no later
-            than three (3) business days after the close of the relevant voting period. Mechanically reproduced
-            entries will be void.
-          </p>
-          <p style={styles.p}>
-            Where required by applicable state law, the Voter Prize winner may be required to correctly answer,
-            unaided, a time-limited mathematical skill-testing question before being awarded the prize.
-          </p>
-        </section>
-
-        <section style={styles.section}>
-          <h2 style={styles.h2}>7. Prizes</h2>
+          <h2 style={styles.h2}>6. Prizes</h2>
           <ul style={styles.ul}>
             <li style={styles.li}>Prizes are as described in the Additional Rules on the contest page. Winners may be featured on the Platform and in related marketing materials.</li>
             <li style={styles.li}>Prizes are not transferable, assignable, or for resale, and have no cash equivalent unless explicitly stated. The Sponsor reserves the right, in its sole discretion, to substitute a prize or any component of a prize with one of equal or greater retail value (or with a cash equivalent) without liability if the original prize becomes unavailable.</li>
@@ -329,7 +315,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>8. Charity Allocation (When Applicable)</h2>
+          <h2 style={styles.h2}>7. Charity Allocation (When Applicable)</h2>
           <p style={styles.p}>
             Some competitions designate a charitable beneficiary on the contest page. Where a charitable allocation
             is designated, up to twenty percent (20%) of net proceeds from purchased votes for that competition will
@@ -344,7 +330,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>9. Winner Verification and Prize Claim</h2>
+          <h2 style={styles.h2}>8. Winner Verification and Prize Claim</h2>
           <p style={styles.p}>
             All potential winners are subject to verification of eligibility and compliance with these Contest
             Terms. Winners may be required to execute and return an Affidavit of Eligibility, Liability Release, and
@@ -361,7 +347,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>10. Privacy</h2>
+          <h2 style={styles.h2}>9. Privacy</h2>
           <p style={styles.p}>
             Information you provide in connection with a competition is collected and used in accordance with our{' '}
             <a onClick={() => navigate('/privacy')} style={styles.link}>Privacy Policy</a>.
@@ -369,7 +355,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>11. Publicity</h2>
+          <h2 style={styles.h2}>10. Publicity</h2>
           <p style={styles.p}>
             Except where prohibited by law, by entering or voting in a competition, each winner consents to the
             Promotion Entities' use of their first name, last initial (or user name, where appropriate), city,
@@ -380,7 +366,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>12. Disclaimer and Release of Liability</h2>
+          <h2 style={styles.h2}>11. Disclaimer and Release of Liability</h2>
           <p style={styles.pAllCaps}>
             All entrants, voters, and winners release, defend, indemnify, and hold harmless the Promotion Entities
             from and against any and all liability arising out of, or in any way related to, the competition; the
@@ -403,7 +389,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>13. Release of Third Parties (Social Media)</h2>
+          <h2 style={styles.h2}>12. Release of Third Parties (Social Media)</h2>
           <p style={styles.p}>
             A competition is not sponsored, endorsed, or administered by, or associated with, Instagram, Facebook,
             TikTok, X (Twitter), YouTube, Apple, Google, or any other third-party platform unless explicitly stated
@@ -413,7 +399,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>14. Force Majeure and Sponsor Rights</h2>
+          <h2 style={styles.h2}>13. Force Majeure and Sponsor Rights</h2>
           <p style={styles.p}>
             The Sponsor reserves the right to cancel, terminate, modify, or suspend in whole or in part any
             competition at any time, without prior notice, for any reason, in its sole discretion &mdash; including
@@ -425,7 +411,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>15. Governing Law and Venue</h2>
+          <h2 style={styles.h2}>14. Governing Law and Venue</h2>
           <p style={styles.p}>
             All issues and questions concerning the construction, validity, interpretation, and enforceability of
             these Contest Terms, or otherwise in connection with any competition, are governed by, and construed in
@@ -438,7 +424,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>16. Severability and Entire Agreement</h2>
+          <h2 style={styles.h2}>15. Severability and Entire Agreement</h2>
           <p style={styles.p}>
             If any provision of these Contest Terms is held invalid, illegal, or unenforceable, that provision will
             be enforced to the maximum extent permitted by law, and the remaining provisions will remain in full
@@ -450,7 +436,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>17. Winners List</h2>
+          <h2 style={styles.h2}>16. Winners List</h2>
           <p style={styles.p}>
             To request the name of the winner(s) of a competition, send a written request within six (6) months
             after the close of the competition to the contact address below. The Sponsor reserves the right to
@@ -459,7 +445,7 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>18. Contact</h2>
+          <h2 style={styles.h2}>17. Contact</h2>
           <p style={styles.p}>Questions about a competition or these Contest Terms?</p>
           <div style={styles.contactBox}>
             <p style={{ ...styles.p, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing[1] }}>Most Eligible LLC</p>
