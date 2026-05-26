@@ -376,9 +376,10 @@ function Step2Deal({ form, updateField, tierAvailability }) {
       {form.sponsorshipType && (
         <Field label={isPaid ? 'Cash amount ($) *' : 'Estimated value ($) *'}>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={form.value}
-            onChange={(e) => updateField('value', e.target.value)}
+            onChange={(e) => updateField('value', e.target.value.replace(/[^0-9.]/g, ''))}
             placeholder={isPaid ? 'e.g., 25000' : 'e.g., 5000'}
             style={inputStyle}
           />
@@ -561,9 +562,11 @@ function Step3Rewards({
           {form.recipient === 'top_x' && (
             <Field label="How many contestants? *">
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={form.topXCount}
-                onChange={(e) => updateField('topXCount', e.target.value)}
+                onChange={(e) => updateField('topXCount', e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="e.g., 5"
                 style={inputStyle}
               />
@@ -684,9 +687,10 @@ function PrizeCard({ prize, index, canRemove, onRemove, onChange, onUploadClick,
           </Field>
           <Field label="Value ($)" compact>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={prize.value}
-              onChange={(e) => onChange('value', e.target.value)}
+              onChange={(e) => onChange('value', e.target.value.replace(/[^0-9.]/g, ''))}
               placeholder="e.g., 500"
               style={inputStyle}
             />
