@@ -1,8 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { Check, Camera, Loader, X, ArrowLeft, ArrowRight, Plus, Trash2 } from 'lucide-react';
-import { Modal, Button, Input } from '../ui';
-import { Textarea } from '../ui/Input';
-import { colors, spacing, borderRadius, typography } from '../../styles/theme';
+import { Check, Camera, Loader, X, Plus, Trash2, Briefcase, Gift } from 'lucide-react';
+import { Modal, Button } from '../ui';
+import { colors, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { uploadPhoto } from '../../features/entry/utils/uploadPhoto';
 
 const VISIBILITY_TIERS = [
@@ -100,7 +99,6 @@ export default function SponsorWizardModal({
     form.sponsorshipType &&
     form.value !== '' &&
     (form.sponsorshipType !== 'paid' || !!form.visibilityTier);
-  // In-kind sponsors must provide at least one prize (it's the only way they show up publicly).
   const mustProvideRewards = isInKind || form.providesContestantRewards;
   const step3Valid = mustProvideRewards
     ? form.recipient &&
@@ -128,40 +126,29 @@ export default function SponsorWizardModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Sponsor' : 'Add a Sponsor'}
-      maxWidth="560px"
+      maxWidth="520px"
       footer={
-        <>
-          {step > 1 ? (
-            <Button
-              variant="secondary"
-              onClick={() => setStep((s) => s - 1)}
-              icon={ArrowLeft}
-              style={{ width: 'auto' }}
-            >
-              Back
-            </Button>
-          ) : (
-            <Button variant="secondary" onClick={onClose} style={{ width: 'auto' }}>
-              Cancel
-            </Button>
-          )}
+        <div style={{ display: 'flex', gap: spacing.md, width: '100%' }}>
+          <Button
+            variant="secondary"
+            onClick={() => (step > 1 ? setStep((s) => s - 1) : onClose())}
+            style={{ flex: 1 }}
+          >
+            {step > 1 ? 'Back' : 'Cancel'}
+          </Button>
           {step < 3 ? (
-            <Button
-              onClick={() => setStep((s) => s + 1)}
-              icon={ArrowRight}
-              disabled={!canAdvance}
-            >
-              Next
+            <Button onClick={() => setStep((s) => s + 1)} disabled={!canAdvance} style={{ flex: 1 }}>
+              Continue
             </Button>
           ) : (
-            <Button onClick={handleSave} icon={Check} disabled={!canAdvance}>
+            <Button onClick={handleSave} disabled={!canAdvance} style={{ flex: 1 }}>
               {isEditing ? 'Save Changes' : 'Add Sponsor'}
             </Button>
           )}
-        </>
+        </div>
       }
     >
-      <StepIndicator step={step} />
+      <Stepper step={step} />
 
       {step === 1 && (
         <Step1Identity
@@ -173,11 +160,7 @@ export default function SponsorWizardModal({
         />
       )}
       {step === 2 && (
-        <Step2Deal
-          form={form}
-          updateField={updateField}
-          tierAvailability={tierAvailability}
-        />
+        <Step2Deal form={form} updateField={updateField} tierAvailability={tierAvailability} />
       )}
       {step === 3 && (
         <Step3Rewards
@@ -189,7 +172,6 @@ export default function SponsorWizardModal({
           prizeInputRef={prizeInputRef}
           uploadingPrizeId={uploadingPrizeId}
           handlePrizeImageUpload={handlePrizeImageUpload}
-          isInKind={form.sponsorshipType === 'in_kind'}
         />
       )}
 
@@ -200,36 +182,68 @@ export default function SponsorWizardModal({
   );
 }
 
-// ---------- Step indicator ----------
-function StepIndicator({ step }) {
+// ---------- Step indicator (numbered circles + connector) ----------
+function Stepper({ step }) {
   const labels = ['Identity', 'Deal', 'Rewards'];
   return (
-    <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.xl }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.xs,
+        marginBottom: spacing.xl,
+      }}
+    >
       {labels.map((label, i) => {
         const n = i + 1;
-        const active = n === step;
-        const done = n < step;
+        const isActive = n === step;
+        const isDone = n < step;
+        const isUpcoming = n > step;
         return (
-          <div
-            key={label}
-            style={{
-              flex: 1,
-              padding: `${spacing.sm} ${spacing.md}`,
-              borderRadius: borderRadius.md,
-              background: active
-                ? 'rgba(212,175,55,0.15)'
-                : done
-                  ? 'rgba(255,255,255,0.04)'
-                  : 'transparent',
-              border: `1px solid ${active ? colors.gold.primary : colors.border.light}`,
-              color: active ? colors.gold.primary : done ? colors.text.primary : colors.text.secondary,
-              fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.medium,
-              textAlign: 'center',
-            }}
-          >
-            {n}. {label}
-          </div>
+          <React.Fragment key={label}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: borderRadius.full,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: isActive || isDone ? colors.gold.primary : 'transparent',
+                  border: `1px solid ${isUpcoming ? colors.border.primary : colors.gold.primary}`,
+                  color: isActive || isDone ? colors.text.inverse : colors.text.tertiary,
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.semibold,
+                  transition: transitions.colors,
+                }}
+              >
+                {isDone ? <Check size={14} /> : n}
+              </div>
+              <span
+                style={{
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: isActive ? typography.fontWeight.semibold : typography.fontWeight.medium,
+                  color: isActive ? colors.text.primary : colors.text.tertiary,
+                  transition: transitions.colors,
+                }}
+              >
+                {label}
+              </span>
+            </div>
+            {i < labels.length - 1 && (
+              <div
+                style={{
+                  width: '24px',
+                  height: '1px',
+                  background: n < step ? colors.gold.primary : colors.border.primary,
+                  margin: `0 ${spacing.xs}`,
+                  transition: transitions.colors,
+                }}
+              />
+            )}
+          </React.Fragment>
         );
       })}
     </div>
@@ -247,69 +261,85 @@ function Step1Identity({ form, updateField, uploadingLogo, logoInputRef, handleL
         onChange={handleLogoUpload}
         style={{ display: 'none' }}
       />
-      <div>
-        <label style={labelStyle}>Brand Logo</label>
-        <div style={{ display: 'flex', gap: spacing.md, alignItems: 'flex-start' }}>
-          <div
-            onClick={() => !uploadingLogo && logoInputRef.current?.click()}
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.sm }}>
+        <button
+          type="button"
+          onClick={() => !uploadingLogo && logoInputRef.current?.click()}
+          style={{
+            ...cleanButtonStyle,
+            width: '96px',
+            height: '96px',
+            borderRadius: borderRadius.full,
+            background: form.logoUrl
+              ? `url(${form.logoUrl}) center/cover no-repeat ${colors.background.secondary}`
+              : colors.background.secondary,
+            border: `1px solid ${colors.border.primary}`,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: uploadingLogo ? 'wait' : 'pointer',
+            position: 'relative',
+          }}
+        >
+          {uploadingLogo ? (
+            <Loader size={20} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+          ) : form.logoUrl ? null : (
+            <>
+              <Camera size={20} style={{ color: colors.text.muted }} />
+              <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
+                Logo
+              </span>
+            </>
+          )}
+        </button>
+        {form.logoUrl && (
+          <button
+            type="button"
+            onClick={() => updateField('logoUrl', '')}
             style={{
-              width: '100px',
-              height: '100px',
-              borderRadius: borderRadius.lg,
-              background: form.logoUrl
-                ? `url(${form.logoUrl}) center/contain no-repeat ${colors.background.secondary}`
-                : colors.background.secondary,
-              border: `2px dashed ${colors.border.light}`,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: uploadingLogo ? 'wait' : 'pointer',
-              position: 'relative',
-              flexShrink: 0,
+              ...cleanButtonStyle,
+              fontSize: typography.fontSize.xs,
+              color: colors.text.muted,
+              cursor: 'pointer',
+              padding: spacing.xs,
             }}
           >
-            {uploadingLogo ? (
-              <Loader size={20} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
-            ) : form.logoUrl ? (
-              <button
-                onClick={(e) => { e.stopPropagation(); updateField('logoUrl', ''); }}
-                style={clearBtnStyle}
-              >
-                <X size={14} />
-              </button>
-            ) : (
-              <>
-                <Camera size={20} style={{ color: colors.text.secondary }} />
-                <span style={{ fontSize: '10px', color: colors.text.secondary, marginTop: spacing.xs }}>
-                  Upload
-                </span>
-              </>
-            )}
-          </div>
-          <div style={{ flex: 1 }}>
-            <Input
-              label="Or paste logo URL"
-              value={form.logoUrl}
-              onChange={(e) => updateField('logoUrl', e.target.value)}
-              placeholder="https://..."
-            />
-          </div>
-        </div>
+            Remove logo
+          </button>
+        )}
       </div>
 
-      <Input
-        label="Brand / Company Name *"
-        value={form.name}
-        onChange={(e) => updateField('name', e.target.value)}
-        placeholder="e.g., Luxe Hotels"
-      />
-      <Input
-        label="Website URL"
-        value={form.websiteUrl}
-        onChange={(e) => updateField('websiteUrl', e.target.value)}
-        placeholder="https://..."
-      />
+      <Field label="Brand / Company Name *">
+        <input
+          type="text"
+          value={form.name}
+          onChange={(e) => updateField('name', e.target.value)}
+          placeholder="e.g., Luxe Hotels"
+          style={inputStyle}
+        />
+      </Field>
+
+      <Field label="Website URL">
+        <input
+          type="url"
+          value={form.websiteUrl}
+          onChange={(e) => updateField('websiteUrl', e.target.value)}
+          placeholder="https://..."
+          style={inputStyle}
+        />
+      </Field>
+
+      <Field label="Or paste logo URL">
+        <input
+          type="url"
+          value={form.logoUrl}
+          onChange={(e) => updateField('logoUrl', e.target.value)}
+          placeholder="https://..."
+          style={inputStyle}
+        />
+      </Field>
     </div>
   );
 }
@@ -321,41 +351,50 @@ function Step2Deal({ form, updateField, tierAvailability }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
-      <div>
-        <label style={labelStyle}>Sponsorship Type *</label>
+      <Field label="Sponsorship Type *">
         <div style={{ display: 'flex', gap: spacing.md }}>
-          <PillButton
+          <ChoiceCard
             active={isInKind}
-            onClick={() => { updateField('sponsorshipType', 'in_kind'); updateField('visibilityTier', ''); }}
+            onClick={() => {
+              updateField('sponsorshipType', 'in_kind');
+              updateField('visibilityTier', '');
+            }}
+            icon={Gift}
             title="In-kind"
-            subtitle="Provides prizes only"
+            subtitle="Provides prizes"
           />
-          <PillButton
+          <ChoiceCard
             active={isPaid}
             onClick={() => updateField('sponsorshipType', 'paid')}
+            icon={Briefcase}
             title="Paid"
-            subtitle="Cash + featured logo"
+            subtitle="Cash + logo placement"
           />
         </div>
-      </div>
+      </Field>
 
       {form.sponsorshipType && (
-        <Input
-          label={isPaid ? 'Cash amount ($) *' : 'Estimated value ($) *'}
-          type="number"
-          value={form.value}
-          onChange={(e) => updateField('value', e.target.value)}
-          placeholder={isPaid ? 'e.g., 25000' : 'e.g., 5000'}
-        />
+        <Field label={isPaid ? 'Cash amount ($) *' : 'Estimated value ($) *'}>
+          <input
+            type="number"
+            value={form.value}
+            onChange={(e) => updateField('value', e.target.value)}
+            placeholder={isPaid ? 'e.g., 25000' : 'e.g., 5000'}
+            style={inputStyle}
+          />
+        </Field>
       )}
 
       {isPaid && (
-        <div>
-          <label style={labelStyle}>Visibility tier *</label>
-          <p style={hintStyle}>
-            Paid sponsors appear in a "Sponsored by" strip above the host section on the
-            competition page, ordered by tier.
-          </p>
+        <SectionPanel>
+          <div style={{ marginBottom: spacing.md }}>
+            <div style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs }}>
+              Visibility tier *
+            </div>
+            <div style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+              Paid sponsors appear in a "Sponsored by" strip on the competition page, ordered by tier.
+            </div>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
             {VISIBILITY_TIERS.map((tier) => {
               const remaining = tierAvailability[tier.key] ?? 0;
@@ -364,38 +403,41 @@ function Step2Deal({ form, updateField, tierAvailability }) {
               return (
                 <button
                   key={tier.key}
+                  type="button"
                   onClick={() => !disabled && updateField('visibilityTier', tier.key)}
                   disabled={disabled}
                   style={{
+                    ...cleanButtonStyle,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: spacing.md,
-                    borderRadius: borderRadius.md,
-                    background: isCurrent ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${isCurrent ? colors.gold.primary : colors.border.light}`,
-                    color: disabled ? colors.text.secondary : colors.text.primary,
+                    borderRadius: borderRadius.lg,
+                    background: isCurrent ? colors.gold.muted : colors.background.tertiary,
+                    border: `1px solid ${isCurrent ? colors.gold.primary : colors.border.primary}`,
+                    color: disabled ? colors.text.muted : colors.text.primary,
                     cursor: disabled ? 'not-allowed' : 'pointer',
                     opacity: disabled ? 0.5 : 1,
                     textAlign: 'left',
+                    transition: transitions.all,
                   }}
                 >
                   <div>
-                    <div style={{ color: tier.color, fontWeight: typography.fontWeight.semibold }}>
+                    <div style={{ color: tier.color, fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.md }}>
                       {tier.label}
                     </div>
-                    <div style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>
+                    <div style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: '2px' }}>
                       Cap: {tier.cap} per competition
                     </div>
                   </div>
-                  <div style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                    {remaining} of {tier.cap} available
+                  <div style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>
+                    {remaining} of {tier.cap} left
                   </div>
                 </button>
               );
             })}
           </div>
-        </div>
+        </SectionPanel>
       )}
     </div>
   );
@@ -411,11 +453,10 @@ function Step3Rewards({
   prizeInputRef,
   uploadingPrizeId,
   handlePrizeImageUpload,
-  isInKind,
 }) {
+  const isInKind = form.sponsorshipType === 'in_kind';
   const [activePrizeId, setActivePrizeId] = useState(null);
 
-  // In-kind sponsors must provide prizes — seed one row on entry.
   React.useEffect(() => {
     if (isInKind && form.prizes.length === 0) {
       updateField('prizes', [emptyPrize()]);
@@ -444,92 +485,110 @@ function Step3Rewards({
         <div
           style={{
             padding: spacing.md,
-            background: 'rgba(212,175,55,0.08)',
-            border: `1px solid ${colors.gold.primary}`,
-            borderRadius: borderRadius.md,
+            background: colors.gold.muted,
+            border: `1px solid ${colors.border.focus}`,
+            borderRadius: borderRadius.lg,
             fontSize: typography.fontSize.sm,
             color: colors.text.primary,
+            lineHeight: 1.5,
           }}
         >
-          In-kind sponsors are shown publicly through the prize(s) they contribute. Add at least
-          one prize below.
+          In-kind sponsors appear publicly through the prizes they contribute. Add at least one prize below.
         </div>
       ) : (
-        <div>
-          <label style={labelStyle}>Providing anything to contestants?</label>
+        <Field label="Providing anything to contestants?">
           <div style={{ display: 'flex', gap: spacing.md }}>
-            <PillButton
+            <YesNoButton
               active={!form.providesContestantRewards}
+              variant="no"
               onClick={() => {
                 updateField('providesContestantRewards', false);
                 updateField('recipient', '');
                 updateField('topXCount', '');
                 updateField('prizes', []);
               }}
-              title="No"
-              subtitle="Logo placement only"
-            />
-            <PillButton
+            >
+              No, logo only
+            </YesNoButton>
+            <YesNoButton
               active={form.providesContestantRewards}
+              variant="yes"
               onClick={() => {
                 updateField('providesContestantRewards', true);
                 if (form.prizes.length === 0) updateField('prizes', [emptyPrize()]);
               }}
-              title="Yes"
-              subtitle="Adds prizes to competition"
-            />
+            >
+              Yes, add prizes
+            </YesNoButton>
           </div>
-        </div>
+        </Field>
       )}
 
       {showRewardsForm && (
         <>
-          <div>
-            <label style={labelStyle}>Who receives? *</label>
+          <Field label="Who receives? *">
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {RECIPIENT_OPTIONS.map((opt) => {
                 const active = form.recipient === opt.key;
                 return (
                   <button
                     key={opt.key}
+                    type="button"
                     onClick={() => updateField('recipient', opt.key)}
                     style={{
+                      ...cleanButtonStyle,
                       padding: spacing.md,
-                      borderRadius: borderRadius.md,
-                      background: active ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${active ? colors.gold.primary : colors.border.light}`,
+                      borderRadius: borderRadius.lg,
+                      background: active ? colors.gold.muted : colors.background.secondary,
+                      border: `1px solid ${active ? colors.gold.primary : colors.border.primary}`,
                       cursor: 'pointer',
                       textAlign: 'left',
+                      transition: transitions.all,
                     }}
                   >
-                    <div style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>
+                    <div style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.md }}>
                       {opt.label}
                     </div>
-                    <div style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>
+                    <div style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: '2px' }}>
                       {opt.hint}
                     </div>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </Field>
 
           {form.recipient === 'top_x' && (
-            <Input
-              label="How many contestants? *"
-              type="number"
-              value={form.topXCount}
-              onChange={(e) => updateField('topXCount', e.target.value)}
-              placeholder="e.g., 5"
-            />
+            <Field label="How many contestants? *">
+              <input
+                type="number"
+                value={form.topXCount}
+                onChange={(e) => updateField('topXCount', e.target.value)}
+                placeholder="e.g., 5"
+                style={inputStyle}
+              />
+            </Field>
           )}
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }}>Prize details *</label>
-              <Button size="sm" variant="secondary" icon={Plus} onClick={addPrize} style={{ width: 'auto' }}>
-                Add another
-              </Button>
+              <label style={labelStyle}>Prize details *</label>
+              <button
+                type="button"
+                onClick={addPrize}
+                style={{
+                  ...cleanButtonStyle,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.xs,
+                  fontSize: typography.fontSize.sm,
+                  color: colors.gold.primary,
+                  cursor: 'pointer',
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                }}
+              >
+                <Plus size={14} /> Add another
+              </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
               {form.prizes.map((prize, idx) => (
@@ -554,30 +613,21 @@ function Step3Rewards({
 
 function PrizeCard({ prize, index, canRemove, onRemove, onChange, onUploadClick, uploading }) {
   return (
-    <div
-      style={{
-        padding: spacing.md,
-        background: colors.background.secondary,
-        border: `1px solid ${colors.border.light}`,
-        borderRadius: borderRadius.lg,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: spacing.md,
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+    <SectionPanel>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+        <span style={{ fontSize: typography.fontSize.sm, color: colors.text.muted, fontWeight: typography.fontWeight.medium }}>
           Prize {index + 1}
         </span>
         {canRemove && (
           <button
+            type="button"
             onClick={onRemove}
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: colors.text.secondary,
+              ...cleanButtonStyle,
+              color: colors.text.muted,
               cursor: 'pointer',
               padding: spacing.xs,
+              display: 'flex',
             }}
             aria-label="Remove prize"
           >
@@ -585,17 +635,20 @@ function PrizeCard({ prize, index, canRemove, onRemove, onChange, onUploadClick,
           </button>
         )}
       </div>
-      <div style={{ display: 'flex', gap: spacing.md, alignItems: 'flex-start' }}>
-        <div
+
+      <div style={{ display: 'flex', gap: spacing.md, alignItems: 'flex-start', marginBottom: spacing.md }}>
+        <button
+          type="button"
           onClick={() => !uploading && onUploadClick()}
           style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: borderRadius.md,
+            ...cleanButtonStyle,
+            width: '72px',
+            height: '72px',
+            borderRadius: borderRadius.lg,
             background: prize.imageUrl
               ? `url(${prize.imageUrl}) center/cover`
-              : 'rgba(255,255,255,0.04)',
-            border: `2px dashed ${colors.border.light}`,
+              : colors.background.tertiary,
+            border: `1px solid ${colors.border.primary}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -607,92 +660,180 @@ function PrizeCard({ prize, index, canRemove, onRemove, onChange, onUploadClick,
           {uploading ? (
             <Loader size={16} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
           ) : prize.imageUrl ? (
-            <button
+            <span
               onClick={(e) => { e.stopPropagation(); onChange('imageUrl', ''); }}
               style={clearBtnStyle}
+              role="button"
+              aria-label="Remove image"
             >
               <X size={12} />
-            </button>
+            </span>
           ) : (
-            <Camera size={18} style={{ color: colors.text.secondary }} />
+            <Camera size={18} style={{ color: colors.text.muted }} />
           )}
-        </div>
+        </button>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-          <Input
-            label="What is it? *"
-            value={prize.title}
-            onChange={(e) => onChange('title', e.target.value)}
-            placeholder="e.g., Diamond Necklace"
-          />
-          <Input
-            label="Value ($)"
-            type="number"
-            value={prize.value}
-            onChange={(e) => onChange('value', e.target.value)}
-            placeholder="e.g., 500"
-          />
+          <Field label="What is it? *" compact>
+            <input
+              type="text"
+              value={prize.title}
+              onChange={(e) => onChange('title', e.target.value)}
+              placeholder="e.g., Diamond Necklace"
+              style={inputStyle}
+            />
+          </Field>
+          <Field label="Value ($)" compact>
+            <input
+              type="number"
+              value={prize.value}
+              onChange={(e) => onChange('value', e.target.value)}
+              placeholder="e.g., 500"
+              style={inputStyle}
+            />
+          </Field>
         </div>
       </div>
-      <Textarea
-        label="Description"
-        value={prize.description}
-        onChange={(e) => onChange('description', e.target.value)}
-        placeholder="Optional details about the prize..."
-        rows={2}
-      />
-    </div>
+
+      <Field label="Description" compact>
+        <textarea
+          value={prize.description}
+          onChange={(e) => onChange('description', e.target.value)}
+          placeholder="Optional details about the prize..."
+          rows={2}
+          style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+        />
+      </Field>
+    </SectionPanel>
   );
 }
 
 // ---------- Reusable bits ----------
-function PillButton({ active, onClick, title, subtitle }) {
+function Field({ label, compact, children }) {
   return (
-    <button
-      onClick={onClick}
+    <div>
+      <label style={{ ...labelStyle, marginBottom: compact ? spacing.xs : spacing.xs }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function SectionPanel({ children }) {
+  return (
+    <div
       style={{
-        flex: 1,
-        padding: spacing.md,
-        borderRadius: borderRadius.md,
-        background: active ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${active ? colors.gold.primary : colors.border.light}`,
-        color: colors.text.primary,
-        cursor: 'pointer',
-        textAlign: 'left',
-        transition: 'all 0.2s',
+        background: colors.background.secondary,
+        border: `1px solid ${colors.border.primary}`,
+        borderRadius: borderRadius.xl,
+        padding: spacing.lg,
       }}
     >
-      <div style={{ fontWeight: typography.fontWeight.semibold, marginBottom: '2px' }}>
+      {children}
+    </div>
+  );
+}
+
+function ChoiceCard({ active, onClick, icon: Icon, title, subtitle }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        ...cleanButtonStyle,
+        flex: 1,
+        padding: spacing.lg,
+        borderRadius: borderRadius.xl,
+        background: active ? colors.gold.muted : colors.background.secondary,
+        border: `1px solid ${active ? colors.gold.primary : colors.border.primary}`,
+        color: colors.text.primary,
+        cursor: 'pointer',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: spacing.sm,
+        transition: transitions.all,
+      }}
+    >
+      <Icon size={24} style={{ color: active ? colors.gold.primary : colors.text.secondary }} />
+      <div style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.md }}>
         {title}
       </div>
-      <div style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary }}>
+      <div style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
         {subtitle}
       </div>
     </button>
   );
 }
 
-const labelStyle = {
-  display: 'block',
-  fontSize: typography.fontSize.base,
-  color: colors.text.secondary,
-  marginBottom: spacing.sm,
+function YesNoButton({ active, variant, onClick, children }) {
+  const isYes = variant === 'yes';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        ...cleanButtonStyle,
+        flex: 1,
+        padding: spacing.md,
+        background: active
+          ? (isYes ? colors.gold.primary : colors.background.tertiary)
+          : colors.background.secondary,
+        color: active && isYes ? colors.text.inverse : colors.text.primary,
+        border: `1px solid ${active ? (isYes ? colors.gold.primary : colors.text.muted) : colors.border.primary}`,
+        borderRadius: borderRadius.lg,
+        cursor: 'pointer',
+        fontWeight: typography.fontWeight.medium,
+        fontSize: typography.fontSize.md,
+        transition: transitions.all,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: spacing.md,
+  background: colors.background.secondary,
+  border: `1px solid ${colors.border.primary}`,
+  borderRadius: borderRadius.lg,
+  color: colors.text.primary,
+  fontSize: typography.fontSize.md,
+  outline: 'none',
+  boxSizing: 'border-box',
+  fontFamily: 'inherit',
 };
 
-const hintStyle = {
-  fontSize: typography.fontSize.xs,
+const labelStyle = {
+  display: 'block',
+  fontSize: typography.fontSize.sm,
+  fontWeight: typography.fontWeight.medium,
   color: colors.text.secondary,
-  marginBottom: spacing.sm,
+  marginBottom: spacing.xs,
+};
+
+// Resets browser defaults so clicked buttons don't retain focus rings / tap highlights.
+const cleanButtonStyle = {
+  outline: 'none',
+  WebkitTapHighlightColor: 'transparent',
+  fontFamily: 'inherit',
+  appearance: 'none',
+  WebkitAppearance: 'none',
+  background: 'none',
+  border: 'none',
+  padding: 0,
+  margin: 0,
 };
 
 const clearBtnStyle = {
   position: 'absolute',
-  top: '-8px',
-  right: '-8px',
-  width: '22px',
-  height: '22px',
-  background: 'rgba(239, 68, 68, 0.9)',
-  border: 'none',
-  borderRadius: '50%',
+  top: '-6px',
+  right: '-6px',
+  width: '20px',
+  height: '20px',
+  background: colors.status.error,
+  borderRadius: borderRadius.full,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
