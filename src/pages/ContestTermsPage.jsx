@@ -3,7 +3,7 @@
  *
  * Structured as a contest of skill (pageant model). Each competition publishes
  * its own scoring formula (judges, weighted public support, or both); the
- * Sponsor identified on the contest page is responsible for that competition.
+ * Host identified on the contest page is responsible for that competition.
  *
  * Intentionally does NOT include sweepstakes / AMOE / "no purchase necessary"
  * language because the platform awards prizes only to contestants and only on
@@ -159,25 +159,24 @@ export default function ContestTermsPage() {
             to the affected competition.
           </p>
           <p style={styles.p}>
-            All decisions of the Sponsor (defined below) and of EliteRank in administering a competition are final
+            All decisions of the Host (defined below) and of EliteRank in administering a competition are final
             and binding in all respects and are not subject to appeal, except where applicable law provides
-            otherwise. Any violation of these Contest Terms may, in the Sponsor's sole discretion, result in
+            otherwise. Any violation of these Contest Terms may, in the Host's sole discretion, result in
             disqualification.
           </p>
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>2. Sponsor and Promotion Entities</h2>
+          <h2 style={styles.h2}>2. Host and Promotion Entities</h2>
           <p style={styles.p}>
-            Each competition has a designated <span style={styles.strong}>Sponsor</span>, identified on the relevant
-            contest page. The Sponsor is the organization responsible for the competition, including selecting
+            Each competition has a designated <span style={styles.strong}>Host</span>, identified on the relevant
+            contest page. The Host is the organization responsible for the competition, including selecting
             winners, awarding prizes, and complying with applicable law. EliteRank acts as the platform provider and
-            administrator unless explicitly identified as the Sponsor.
+            administrator unless explicitly identified as the Host.
           </p>
           <p style={styles.p}>
-            "Promotion Entities" means the Sponsor, EliteRank, Most Eligible LLC, Orbiiit Technology, Inc., their
-            respective affiliates, and their officers, directors, employees, agents, contractors, judges, and
-            sponsors of the competition.
+            "Promotion Entities" means the Host, EliteRank, their respective affiliates, and their officers,
+            directors, employees, agents, contractors, judges, and sponsors of the competition.
           </p>
         </section>
 
@@ -190,7 +189,7 @@ export default function ContestTermsPage() {
             <li style={styles.li}>not be a resident of any state, province, or jurisdiction in which the competition is prohibited by law.</li>
           </ul>
           <p style={styles.p}>
-            Employees, officers, directors, and contractors of the Sponsor and of the other Promotion Entities, and
+            Employees, officers, directors, and contractors of the Host and of the other Promotion Entities, and
             their immediate family members (spouse, parents, siblings, children) and members of their households,
             are not eligible to win prizes in any competition they administer.
           </p>
@@ -260,7 +259,7 @@ export default function ContestTermsPage() {
 
           <h3 style={styles.h3}>5.2 Scoring Formula</h3>
           <p style={styles.p}>
-            The Sponsor publishes the scoring formula for each competition on the contest page. The formula may
+            The Host publishes the scoring formula for each competition on the contest page. The formula may
             include judge scoring on stated criteria (such as talent, presentation, community impact, or other
             attributes), aggregated public support measured through the Platform's voting feature, bonus-task
             completion, or any combination of these. Where multiple inputs are used, the contest page identifies
@@ -269,10 +268,10 @@ export default function ContestTermsPage() {
 
           <h3 style={styles.h3}>5.3 Judging</h3>
           <p style={styles.p}>
-            Where the competition includes judges, the Sponsor selects judges qualified to evaluate contestants
+            Where the competition includes judges, the Host selects judges qualified to evaluate contestants
             against the published criteria. Judges' scores are recorded on the Platform and, where applicable,
             combined with other scoring inputs in accordance with the published formula. Judges' decisions, and the
-            Sponsor's final tally, are final and binding.
+            Host's final tally, are final and binding.
           </p>
 
           <h3 style={styles.h3}>5.4 Public Support / Voting</h3>
@@ -305,7 +304,7 @@ export default function ContestTermsPage() {
             <li style={styles.li}>any other manner of casting or acquiring votes not expressly permitted by these Contest Terms.</li>
           </ul>
           <p style={styles.p}>
-            EliteRank and the Sponsor may, at their sole discretion and without notice, void votes, reverse rankings,
+            EliteRank and the Host may, at their sole discretion and without notice, void votes, reverse rankings,
             withhold prizes, suspend accounts, and disqualify contestants found to have benefited from any prohibited
             activity. Detection methods include payment-instrument matching, device fingerprinting, account linkage
             analysis, and review of Stripe receipts.
@@ -316,10 +315,10 @@ export default function ContestTermsPage() {
           <h2 style={styles.h2}>6. Prizes</h2>
           <ul style={styles.ul}>
             <li style={styles.li}>Prizes are as described in the Additional Rules on the contest page. Winners may be featured on the Platform and in related marketing materials.</li>
-            <li style={styles.li}>Prizes are not transferable, assignable, or for resale, and have no cash equivalent unless explicitly stated. The Sponsor reserves the right, in its sole discretion, to substitute a prize or any component of a prize with one of equal or greater retail value (or with a cash equivalent) without liability if the original prize becomes unavailable.</li>
+            <li style={styles.li}>Prizes are not transferable, assignable, or for resale, and have no cash equivalent unless explicitly stated. The Host reserves the right, in its sole discretion, to substitute a prize or any component of a prize with one of equal or greater retail value (or with a cash equivalent) without liability if the original prize becomes unavailable.</li>
             <li style={styles.li}>Prizes will be distributed to winners as soon as practical after winner verification (typically within two to six months). Delays may occur where scheduling with celebrities, sponsors, or third parties is required.</li>
-            <li style={styles.li}>The Sponsor is responsible only for its portion of any prize and is not liable for any portion of a prize provided (or not provided) by a third party.</li>
-            <li style={styles.li}><span style={styles.strong}>Taxes:</span> All federal, state, and local taxes, withholdings, and other charges associated with the receipt or use of a prize are the sole responsibility of the winner. Where the retail value of a prize requires it (currently $600 or more in aggregate per calendar year for U.S. recipients), the Sponsor will issue an IRS Form 1099-MISC or 1099-NEC to the winner and will require the winner to provide a completed IRS Form W-9 (or equivalent) before the prize is released.</li>
+            <li style={styles.li}>The Host is responsible only for its portion of any prize and is not liable for any portion of a prize provided (or not provided) by a third party.</li>
+            <li style={styles.li}><span style={styles.strong}>Taxes:</span> All federal, state, and local taxes, withholdings, and other charges associated with the receipt or use of a prize are the sole responsibility of the winner. Where the retail value of a prize requires it (currently $600 or more in aggregate per calendar year for U.S. recipients), the Host will issue an IRS Form 1099-MISC or 1099-NEC to the winner and will require the winner to provide a completed IRS Form W-9 (or equivalent) before the prize is released.</li>
             <li style={styles.li}>The Promotion Entities are not liable for any injury, loss, or damages that may result from acceptance or use of a prize, and are not liable for any shipping delays.</li>
           </ul>
         </section>
@@ -330,7 +329,7 @@ export default function ContestTermsPage() {
             Some competitions designate a charitable beneficiary on the contest page. Where a charitable allocation
             is designated, up to twenty percent (20%) of net proceeds from purchased votes for that competition will
             typically be donated to the designated charity (or such other percentage as stated on the contest page).
-            If the designated charity is unable or unwilling to accept the donation, the Sponsor may donate the
+            If the designated charity is unable or unwilling to accept the donation, the Host may donate the
             charity portion to an alternate charity of similar mission in its reasonable discretion.
           </p>
           <p style={styles.p}>
@@ -349,7 +348,7 @@ export default function ContestTermsPage() {
             selected if:
           </p>
           <ul style={styles.ul}>
-            <li style={styles.li}>the Sponsor is unable to verify the potential winner's eligibility or identity;</li>
+            <li style={styles.li}>the Host is unable to verify the potential winner's eligibility or identity;</li>
             <li style={styles.li}>the potential winner fails to respond to a winner notification within five (5) days;</li>
             <li style={styles.li}>the potential winner declines the prize or fails to complete the Prize Claim Documents within the period requested;</li>
             <li style={styles.li}>the potential winner is a Canadian resident and fails to correctly answer the mathematical skill-testing question described below; or</li>
@@ -359,9 +358,9 @@ export default function ContestTermsPage() {
             <span style={styles.strong}>Skill-testing question (Canadian residents).</span> To comply with Canadian
             law, any potential winner who is a resident of Canada must, before any prize is awarded, correctly answer
             without mechanical or other aid a time-limited mathematical skill-testing question administered by the
-            Sponsor. The question will involve at least three arithmetic operations (such as addition, subtraction,
+            Host. The question will involve at least three arithmetic operations (such as addition, subtraction,
             multiplication, and division). The potential winner has one (1) attempt and must respond within the time
-            specified by the Sponsor at the time the question is presented. Failure to correctly answer the
+            specified by the Host at the time the question is presented. Failure to correctly answer the
             skill-testing question within the time allowed will result in disqualification and the selection of an
             alternate winner, who will be subject to the same requirement.
           </p>
@@ -420,13 +419,13 @@ export default function ContestTermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>13. Force Majeure and Sponsor Rights</h2>
+          <h2 style={styles.h2}>13. Force Majeure and Host Rights</h2>
           <p style={styles.p}>
-            The Sponsor reserves the right to cancel, terminate, modify, or suspend in whole or in part any
+            The Host reserves the right to cancel, terminate, modify, or suspend in whole or in part any
             competition at any time, without prior notice, for any reason, in its sole discretion &mdash; including
             in the event of fraud, technical difficulties, or any other factor beyond the reasonable control of the
-            Sponsor (such as natural disasters, epidemics, public-health emergencies, labour disputes, equipment
-            failures, civil disturbances, acts of terrorism, war, or government order). The Sponsor will not be
+            Host (such as natural disasters, epidemics, public-health emergencies, labour disputes, equipment
+            failures, civil disturbances, acts of terrorism, war, or government order). The Host will not be
             liable for any such cancellation, termination, modification, or suspension.
           </p>
         </section>
@@ -467,7 +466,7 @@ export default function ContestTermsPage() {
           <h2 style={styles.h2}>16. Winners List</h2>
           <p style={styles.p}>
             To request the name of the winner(s) of a competition, send a written request within six (6) months
-            after the close of the competition to the contact address below. The Sponsor reserves the right to
+            after the close of the competition to the contact address below. The Host reserves the right to
             withhold or limit information it is not required by law to disclose.
           </p>
         </section>
