@@ -18,6 +18,8 @@ import { ErrorBoundary } from '../common';
 
 const AcceptNominationModal = lazy(() => import('../modals/AcceptNominationModal'));
 const VotePaymentReturnHandler = lazy(() => import('../VotePaymentReturnHandler'));
+const GlobalFooter = lazy(() => import('./GlobalFooter'));
+const CookieConsentBanner = lazy(() => import('../CookieConsentBanner'));
 
 /**
  * PendingNominationsModal - Shows when user has multiple pending nominations
@@ -238,6 +240,14 @@ export default function AppShell({ children }) {
   return (
     <ErrorBoundary>
       {children}
+
+      <Suspense fallback={null}>
+        <GlobalFooter />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <CookieConsentBanner />
+      </Suspense>
 
       {/* Stripe redirect-back handler — Cash App Pay / Amazon Pay etc. send the
           buyer off-site, so the in-page VoteModal is gone by the time they
