@@ -192,7 +192,7 @@ function Stepper({ step }) {
         alignItems: 'center',
         justifyContent: 'center',
         gap: spacing.xs,
-        marginBottom: spacing.xl,
+        marginBottom: spacing.xxl,
       }}
     >
       {labels.map((label, i) => {
