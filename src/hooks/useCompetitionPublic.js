@@ -32,7 +32,6 @@ const COMPETITION_SELECT = `
     current_round, created_at, updated_at
   ),
   sponsors (id, name, tier, amount, logo_url, website_url, sort_order),
-  judges (id, name, title, bio, avatar_url, user_id, instagram, sort_order),
   events (*),
   competition_prizes (id, title, description, image_url, value, sponsor_name, external_url, sort_order, prize_type),
   competition_rules (id, section_title, section_content, sort_order),
@@ -172,9 +171,19 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       setSponsors(
         (compData.sponsors || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       );
-      setJudges(
-        (compData.judges || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+
+      // Judges have no public RLS SELECT policy (migration 072 locked it down);
+      // fetch via the SECURITY DEFINER RPC that returns display-safe fields only.
+      const { data: judgesData, error: judgesError } = await supabase.rpc(
+        'get_competition_judges',
+        { p_competition_id: compData.id }
       );
+      if (judgesError) {
+        console.error('Failed to fetch judges:', judgesError);
+        setJudges([]);
+      } else {
+        setJudges(judgesData || []);
+      }
       setEvents(
         (compData.events || [])
           .filter((e) => e.public_visible !== false)
