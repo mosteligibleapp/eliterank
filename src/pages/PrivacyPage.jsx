@@ -437,8 +437,10 @@ export default function PrivacyPage() {
           </p>
           <div style={styles.contactBox}>
             <p style={{ ...styles.p, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing[1] }}>Most Eligible LLC</p>
-            <p style={{ ...styles.p, marginBottom: spacing[1] }}>Attn: Privacy</p>
-            <p style={{ ...styles.p, marginBottom: spacing[1] }}>Email: privacy@eliterank.co</p>
+            <p style={{ ...styles.p, marginBottom: spacing[1] }}>c/o Registered Agent</p>
+            <p style={{ ...styles.p, marginBottom: spacing[1] }}>1 W Old State Capitol Plaza, Suite 805</p>
+            <p style={{ ...styles.p, marginBottom: spacing[1] }}>Springfield, IL 62701</p>
+            <p style={{ ...styles.p, marginBottom: spacing[1] }}>Email: <a href="mailto:info@eliterank.co" style={styles.link}>info@eliterank.co</a></p>
             <p style={{ ...styles.p, marginBottom: 0 }}>
               Website: <a href="https://eliterank.co" style={styles.link}>eliterank.co</a>
             </p>
