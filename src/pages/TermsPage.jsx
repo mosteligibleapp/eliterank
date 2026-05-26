@@ -157,8 +157,7 @@ export default function TermsPage() {
             EliteRank is a social competition platform that lets organizations host recognition competitions in which
             individuals are nominated, entered as contestants, voted on by the public and by judges, and awarded
             prizes. The Service includes user profiles, nominations, contestant entries, public and judge voting,
-            leaderboards, prizes, rewards, sponsor pages, and related features. The Service is operated on technology
-            provided by Orbiiit Technology, Inc.
+            leaderboards, prizes, rewards, sponsor pages, and related features.
           </p>
           <p style={styles.p}>
             We may add, change, suspend, or discontinue any feature of the Service, in whole or in part, at any time,
