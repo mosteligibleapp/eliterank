@@ -7,8 +7,12 @@ import { transformSupabaseImage } from '../../../lib/storageImage';
 
 export default function AboutTab({ judges, sponsors, host, city = 'New York', competition, onViewProfile }) {
   const { isMobile } = useResponsive();
-  const platinumSponsor = sponsors.find((s) => s.tier === 'Platinum');
-  const otherSponsors = sponsors.filter((s) => s.tier !== 'Platinum');
+  // In-kind sponsors are attributed via prize badges on the Prizes page; the public
+  // Sponsors grid only shows paid tiers. Tier values are lowercase from the hook transform.
+  const paidSponsors = sponsors.filter((s) => s.tier !== 'inkind');
+  const platinumSponsor = paidSponsors.find((s) => s.tier === 'platinum');
+  const otherSponsors = paidSponsors.filter((s) => s.tier !== 'platinum');
+  const tierLabel = (tier) => (tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : '');
 
   // Helper to format dates for display
   const formatKeyDate = (dateStr) => {
@@ -498,7 +502,7 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
               key={sponsor.id}
               style={{
                 background: colors.background.card,
-                border: `1px solid ${sponsor.tier === 'Gold' ? 'rgba(212,175,55,0.2)' : 'rgba(139,92,246,0.2)'}`,
+                border: `1px solid ${sponsor.tier === 'gold' ? 'rgba(212,175,55,0.2)' : 'rgba(139,92,246,0.2)'}`,
                 borderRadius: borderRadius.xl,
                 padding: spacing.xxl,
                 textAlign: 'center',
@@ -510,10 +514,10 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
                   fontWeight: typography.fontWeight.semibold,
                   textTransform: 'uppercase',
                   letterSpacing: '1px',
-                  color: sponsor.tier === 'Gold' ? colors.tier.gold : colors.tier.silver,
+                  color: sponsor.tier === 'gold' ? colors.tier.gold : colors.tier.silver,
                 }}
               >
-                {sponsor.tier} Sponsor
+                {tierLabel(sponsor.tier)} Sponsor
               </span>
               <h4 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginTop: spacing.sm, color: '#fff' }}>
                 {sponsor.name}
