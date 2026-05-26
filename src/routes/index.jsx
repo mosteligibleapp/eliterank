@@ -37,6 +37,8 @@ const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
 const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLayout'));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
+const CookiesPage = lazy(() => import('../pages/CookiesPage'));
+const ContestTermsPage = lazy(() => import('../pages/ContestTermsPage'));
 const PhotoBoothPage = lazy(() => import('../pages/PhotoBoothPage'));
 const AccountSettingsPage = lazy(() => import('../pages/AccountSettingsPage'));
 const JudgeClaimPage = lazy(() => import('../features/judge/JudgeClaimPage'));
@@ -186,6 +188,22 @@ export default function AppRoutes() {
         element={
           <SuspenseWrapper>
             <TermsPage />
+          </SuspenseWrapper>
+        }
+      />
+      <Route
+        path="/cookies"
+        element={
+          <SuspenseWrapper>
+            <CookiesPage />
+          </SuspenseWrapper>
+        }
+      />
+      <Route
+        path="/contest-terms"
+        element={
+          <SuspenseWrapper>
+            <ContestTermsPage />
           </SuspenseWrapper>
         }
       />
