@@ -4,8 +4,6 @@
  * Operator of record: Most Eligible LLC (Illinois, USA).
  * Governing law: Illinois, USA. Defensive carve-outs for users accessing
  * from outside the United States.
- *
- * Preserves TCPA / Twilio A2P 10DLC SMS terms required for our messaging program.
  */
 
 import React from 'react';
@@ -156,10 +154,11 @@ export default function TermsPage() {
         <section style={styles.section}>
           <h2 style={styles.h2}>2. The Service</h2>
           <p style={styles.p}>
-            EliteRank is a social competition platform that lets organizations host "Most Eligible" and similar
-            recognition competitions. The Service includes user profiles, nominations, contestant entries, public and
-            judge voting, leaderboards, prizes, rewards, sponsor pages, and related features. The Service is operated
-            on technology provided by Orbiiit Technology, Inc.
+            EliteRank is a social competition platform that lets organizations host recognition competitions in which
+            individuals are nominated, entered as contestants, voted on by the public and by judges, and awarded
+            prizes. The Service includes user profiles, nominations, contestant entries, public and judge voting,
+            leaderboards, prizes, rewards, sponsor pages, and related features. The Service is operated on technology
+            provided by Orbiiit Technology, Inc.
           </p>
           <p style={styles.p}>
             We may add, change, suspend, or discontinue any feature of the Service, in whole or in part, at any time,
@@ -262,97 +261,19 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>8. SMS / Text Messaging Terms</h2>
-
-          <div style={styles.subsection}>
-            <h3 style={styles.h3}>8.1 Program Description</h3>
-            <p style={styles.p}>
-              EliteRank operates an SMS messaging program to deliver account notifications including: vote alerts,
-              nomination invitations, competition round advancement notices, voting window reminders, event
-              reminders, voting receipts, reward notifications, and winner announcements. Our SMS short code /
-              long-code is +1 (866) 620-3168.
-            </p>
-          </div>
-
-          <div style={styles.subsection}>
-            <h3 style={styles.h3}>8.2 Consent</h3>
-            <p style={styles.p}>
-              By providing your mobile phone number and opting in to SMS notifications, you expressly consent to
-              receive recurring automated text messages from EliteRank at the mobile number you provided, including
-              messages sent using an automatic telephone dialing system. Consent is not a condition of purchase,
-              registration, or use of our Service &mdash; you may use EliteRank without opting in to SMS.
-            </p>
-          </div>
-
-          <div style={styles.subsection}>
-            <h3 style={styles.h3}>8.3 Message Frequency</h3>
-            <p style={styles.p}>
-              Message frequency varies based on your account activity and competition schedules. During active
-              competition periods, you may receive up to 15 messages per month. Outside active periods, frequency is
-              significantly lower.
-            </p>
-          </div>
-
-          <div style={styles.subsection}>
-            <h3 style={styles.h3}>8.4 Message and Data Rates</h3>
-            <p style={styles.p}>
-              Message and data rates may apply. Check with your mobile carrier for details. EliteRank is not
-              responsible for fees charged by your wireless carrier.
-            </p>
-          </div>
-
-          <div style={styles.subsection}>
-            <h3 style={styles.h3}>8.5 Opt-Out</h3>
-            <p style={styles.p}>
-              You can opt out at any time by replying <span style={styles.strong}>STOP</span> to any message. After
-              you send STOP you will receive one final confirmation message and no further messages will be sent
-              unless you re-enroll. You may also opt out by updating your notification preferences in account
-              settings or by contacting us at info@eliterank.co.
-            </p>
-          </div>
-
-          <div style={styles.subsection}>
-            <h3 style={styles.h3}>8.6 Help and Support</h3>
-            <p style={styles.p}>
-              Reply <span style={styles.strong}>HELP</span> to any message for assistance, or contact us at
-              info@eliterank.co.
-            </p>
-          </div>
-
-          <div style={styles.subsection}>
-            <h3 style={styles.h3}>8.7 Carrier Disclaimer</h3>
-            <p style={styles.p}>
-              T-Mobile, AT&amp;T, Verizon, and other carriers are not liable for delayed or undelivered messages.
-              EliteRank is not responsible for delays, failures in delivery, or other issues related to the
-              transmission or receipt of text messages that are outside our control.
-            </p>
-          </div>
-
-          <div style={styles.subsection}>
-            <h3 style={styles.h3}>8.8 Privacy</h3>
-            <p style={styles.p}>
-              Please review our{' '}
-              <a onClick={() => navigate('/privacy')} style={styles.link}>Privacy Policy</a> for information on how
-              we collect, use, and protect your data. We do not sell, share, or rent your mobile phone number or SMS
-              opt-in data to third parties for marketing or promotional purposes.
-            </p>
-          </div>
-        </section>
-
-        <section style={styles.section}>
-          <h2 style={styles.h2}>9. Intellectual Property</h2>
+          <h2 style={styles.h2}>8. Intellectual Property</h2>
           <p style={styles.p}>
-            The EliteRank name, logo, the "Most Eligible" mark, the Service's design, software, code, graphics, and
-            all other content and materials provided by us are owned by Most Eligible LLC or its licensors and are
-            protected by U.S. and international copyright, trademark, and other intellectual-property laws. Except
-            for the limited license to use the Service granted in these Terms, no rights are granted to you, by
-            implication or otherwise. You may not copy, modify, distribute, sell, lease, or create derivative works
-            based on the Service without our express written permission.
+            The EliteRank name, logo, the Service's design, software, code, graphics, and all other content and
+            materials provided by us are owned by Most Eligible LLC or its licensors and are protected by U.S. and
+            international copyright, trademark, and other intellectual-property laws. Except for the limited license
+            to use the Service granted in these Terms, no rights are granted to you, by implication or otherwise.
+            You may not copy, modify, distribute, sell, lease, or create derivative works based on the Service
+            without our express written permission.
           </p>
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>10. Third-Party Services and Links</h2>
+          <h2 style={styles.h2}>9. Third-Party Services and Links</h2>
           <p style={styles.p}>
             The Service may contain links to or integrate with third-party websites and services that are not
             controlled by us. We are not responsible for the content, policies, or practices of any third-party
@@ -361,7 +282,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>11. Disclaimer of Warranties</h2>
+          <h2 style={styles.h2}>10. Disclaimer of Warranties</h2>
           <p style={styles.pAllCaps}>
             The Service is provided "as is" and "as available," without warranties of any kind, whether express,
             implied, statutory, or otherwise. To the maximum extent permitted by law, EliteRank disclaims all
@@ -373,7 +294,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>12. Limitation of Liability</h2>
+          <h2 style={styles.h2}>11. Limitation of Liability</h2>
           <p style={styles.pAllCaps}>
             To the maximum extent permitted by applicable law, in no event shall EliteRank, its affiliates, or their
             officers, directors, employees, agents, or licensors be liable for any indirect, incidental, special,
@@ -393,7 +314,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>13. Indemnification</h2>
+          <h2 style={styles.h2}>12. Indemnification</h2>
           <p style={styles.p}>
             You agree to defend, indemnify, and hold harmless EliteRank, Most Eligible LLC, Orbiiit Technology, Inc.,
             their affiliates, and their respective officers, directors, employees, and agents from and against any
@@ -405,7 +326,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>14. Termination</h2>
+          <h2 style={styles.h2}>13. Termination</h2>
           <p style={styles.p}>
             You may stop using the Service and close your account at any time. We may suspend or terminate your
             access to the Service at any time, with or without notice, including for violation of these Terms.
@@ -415,7 +336,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>15. Governing Law and Dispute Resolution</h2>
+          <h2 style={styles.h2}>14. Governing Law and Dispute Resolution</h2>
           <p style={styles.p}>
             These Terms and any dispute or claim arising out of or relating to them or the Service are governed by
             the laws of the <span style={styles.strong}>State of Illinois</span>, United States, and applicable U.S.
@@ -434,7 +355,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>16. International Use</h2>
+          <h2 style={styles.h2}>15. International Use</h2>
           <p style={styles.p}>
             The Service is operated from the United States and intended for use by U.S. residents. We make no
             representation that the Service is appropriate or available in any other location. If you access the
@@ -444,7 +365,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>17. Severability and Entire Agreement</h2>
+          <h2 style={styles.h2}>16. Severability and Entire Agreement</h2>
           <p style={styles.p}>
             If any provision of these Terms is held to be unlawful, void, or unenforceable, that provision will be
             severed to the minimum extent necessary, and the remaining provisions will remain in full force and
@@ -455,7 +376,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>18. Contact</h2>
+          <h2 style={styles.h2}>17. Contact</h2>
           <p style={styles.p}>
             Questions about these Terms? Contact us:
           </p>

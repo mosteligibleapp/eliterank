@@ -142,9 +142,8 @@ export default function ContestTermsPage() {
           <h2 style={styles.h2}>1. About These Terms</h2>
           <p style={styles.p}>
             EliteRank, operated by <span style={styles.strong}>Most Eligible LLC</span>, an Illinois limited
-            liability company ("EliteRank," "we," "us"), offers online "Most Eligible" and related recognition
-            competitions in which individuals may be nominated, entered as contestants, voted on by the public and
-            by judges, and awarded prizes.
+            liability company ("EliteRank," "we," "us"), offers online recognition competitions in which individuals
+            may be nominated, entered as contestants, voted on by the public and by judges, and awarded prizes.
           </p>
           <p style={styles.p}>
             By entering, participating, voting, or otherwise taking part in any competition offered through

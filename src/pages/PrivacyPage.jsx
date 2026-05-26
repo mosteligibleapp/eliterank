@@ -2,7 +2,7 @@
  * PrivacyPage - Privacy Policy
  *
  * US-led policy with defensive coverage for GDPR (EU/UK), CCPA/CPRA (California),
- * and PIPEDA (Canada). Preserves TCPA / Twilio A2P 10DLC SMS carve-outs.
+ * and PIPEDA (Canada).
  *
  * Operator of record: Most Eligible LLC (Illinois, USA).
  * EliteRank runs on technology provided by Orbiiit Technology, Inc.
@@ -162,7 +162,7 @@ export default function PrivacyPage() {
           <p style={styles.pBold}>
             EliteRank is offered to residents of the United States. While the Service may be technically accessible
             from other countries, we do not target or actively market the Service outside the United States. Sections
-            12 (California), 13 (EEA, UK, and Switzerland), and 14 (Canada) provide additional disclosures for
+            11 (California), 12 (EEA, UK, and Switzerland), and 13 (Canada) provide additional disclosures for
             individuals who access the Service from those jurisdictions.
           </p>
           <p style={styles.p}>
@@ -180,7 +180,7 @@ export default function PrivacyPage() {
             <li style={styles.li}><span style={styles.strong}>Competition data:</span> nominations you submit or receive, votes cast, contestant entries, judge scores, bonus task submissions, and competition participation history.</li>
             <li style={styles.li}><span style={styles.strong}>User content:</span> photos, videos, captions, comments, and other materials you upload to or share through the Service.</li>
             <li style={styles.li}><span style={styles.strong}>Payment information:</span> when you purchase votes or other paid features, payment-card details are collected and processed directly by our payment processor (Stripe). EliteRank receives only a transaction confirmation and the last four digits of the card.</li>
-            <li style={styles.li}><span style={styles.strong}>Communications:</span> messages you send to us (support requests, feedback) and your communication preferences, including SMS opt-in consent and message delivery interactions.</li>
+            <li style={styles.li}><span style={styles.strong}>Communications:</span> messages you send to us (support requests, feedback), your communication preferences, and delivery / interaction data for emails, push notifications, and in-app notifications we send to you.</li>
             <li style={styles.li}><span style={styles.strong}>Identity verification:</span> for prize claims, we may collect government-issued identification, mailing address, and tax-reporting information as required by law.</li>
           </ul>
 
@@ -207,7 +207,7 @@ export default function PrivacyPage() {
             <li style={styles.li}>Provide, operate, maintain, and improve the Service;</li>
             <li style={styles.li}>Process nominations, votes, contestant entries, judge scores, prize claims, and competition results;</li>
             <li style={styles.li}>Authenticate you, secure your account, and remember your preferences;</li>
-            <li style={styles.li}>Send transactional communications you have requested or consented to, including vote alerts, nomination invitations, round advancement notices, voting reminders, event reminders, winner announcements, and account-related notices, by email, in-app notification, push notification, or SMS;</li>
+            <li style={styles.li}>Send transactional communications you have requested or consented to, including vote alerts, nomination invitations, round advancement notices, voting reminders, event reminders, winner announcements, and account-related notices, by email, in-app notification, or push notification;</li>
             <li style={styles.li}>Process payments for vote purchases and other paid features;</li>
             <li style={styles.li}>Detect, investigate, and prevent fraud, vote manipulation, abuse, security incidents, and other prohibited or illegal activity;</li>
             <li style={styles.li}>Comply with legal obligations, enforce our Terms of Use and Contest Terms &amp; Conditions, and protect our rights, the rights of users, and the public;</li>
@@ -223,42 +223,14 @@ export default function PrivacyPage() {
           </p>
           <ul style={styles.ul}>
             <li style={styles.li}><span style={styles.strong}>Performance of a contract:</span> to provide the Service you have requested and fulfill our obligations under our Terms of Use.</li>
-            <li style={styles.li}><span style={styles.strong}>Consent:</span> for SMS marketing, certain cookies, optional features, and other processing where consent is required. You may withdraw consent at any time.</li>
+            <li style={styles.li}><span style={styles.strong}>Consent:</span> for certain cookies, marketing communications, optional features, and other processing where consent is required. You may withdraw consent at any time.</li>
             <li style={styles.li}><span style={styles.strong}>Legitimate interests:</span> to secure the Service, prevent fraud, analyze usage, and communicate with you about features you actively use, provided those interests are not overridden by your rights.</li>
             <li style={styles.li}><span style={styles.strong}>Legal obligation:</span> to comply with tax, anti-money-laundering, contest-disclosure, and other applicable laws.</li>
           </ul>
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>5. SMS / Text Messaging Privacy</h2>
-          <p style={styles.p}>
-            When you opt in to receive SMS notifications from EliteRank, we collect your mobile phone number, your
-            consent to receive messages, and message delivery and interaction data. This information is used solely to
-            send you account-related notifications about your EliteRank activity.
-          </p>
-          <p style={styles.pBold}>
-            We will not sell, share, or rent your mobile phone number or SMS opt-in data or consent to any third
-            parties for marketing or promotional purposes.
-          </p>
-          <p style={styles.p}>
-            All categories of information described in this Policy exclude text-messaging originator opt-in data and
-            consent; this information will not be shared with any third parties.
-          </p>
-          <p style={styles.p}>
-            We share your information only with trusted service providers who assist us in delivering SMS messages
-            (such as OneSignal and our underlying messaging carrier, Twilio), and only as necessary to deliver
-            messages you have opted in to receive. These providers are contractually required to maintain the
-            confidentiality and security of your information.
-          </p>
-          <p style={styles.p}>
-            Message frequency varies based on your account activity and competition schedules. Message and data rates
-            may apply. You may opt out at any time by replying <span style={styles.strong}>STOP</span> to any SMS
-            message or by updating your notification preferences in your account settings.
-          </p>
-        </section>
-
-        <section style={styles.section}>
-          <h2 style={styles.h2}>6. How We Share Information</h2>
+          <h2 style={styles.h2}>5. How We Share Information</h2>
           <p style={styles.p}>
             <span style={styles.strong}>We do not sell your personal information for money.</span> We disclose
             information only in the following limited circumstances:
@@ -271,8 +243,7 @@ export default function PrivacyPage() {
                 <li style={styles.li}>Supabase &mdash; database, authentication, and file storage hosting</li>
                 <li style={styles.li}>Vercel &mdash; web hosting, edge functions, and performance monitoring</li>
                 <li style={styles.li}>Stripe &mdash; payment processing</li>
-                <li style={styles.li}>OneSignal &mdash; email, push, and SMS delivery orchestration</li>
-                <li style={styles.li}>Twilio &mdash; SMS carrier and short-code delivery</li>
+                <li style={styles.li}>OneSignal &mdash; email and push notification delivery</li>
                 <li style={styles.li}>Sentry &mdash; error and performance monitoring</li>
                 <li style={styles.li}>FingerprintJS &mdash; browser fingerprinting for fraud prevention</li>
                 <li style={styles.li}>Orbiiit Technology, Inc. &mdash; underlying platform technology</li>
@@ -286,7 +257,7 @@ export default function PrivacyPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>7. International Data Transfers</h2>
+          <h2 style={styles.h2}>6. International Data Transfers</h2>
           <p style={styles.p}>
             EliteRank is operated from the United States. Some of our service providers process data in the United
             States, Canada, the European Union, or other locations. If you access the Service from outside the United
@@ -301,7 +272,7 @@ export default function PrivacyPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>8. Data Security</h2>
+          <h2 style={styles.h2}>7. Data Security</h2>
           <p style={styles.p}>
             We implement administrative, technical, and physical safeguards designed to protect your information,
             including encryption in transit (HTTPS / TLS), encryption at rest for sensitive data, row-level security
@@ -312,7 +283,7 @@ export default function PrivacyPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>9. Data Retention and Deletion</h2>
+          <h2 style={styles.h2}>8. Data Retention and Deletion</h2>
           <p style={styles.p}>
             We retain personal information for as long as your account is active or as needed to provide the Service,
             satisfy our legal, accounting, or reporting obligations, resolve disputes, and enforce our agreements.
@@ -321,23 +292,21 @@ export default function PrivacyPage() {
           <ul style={styles.ul}>
             <li style={styles.li}><span style={styles.strong}>Account data:</span> retained while your account is active; deleted or anonymized within a reasonable period after account deletion, subject to legal retention obligations.</li>
             <li style={styles.li}><span style={styles.strong}>Competition records:</span> retained for the duration of the competition and a reasonable period afterward for prize fulfillment, dispute resolution, and historical accuracy.</li>
-            <li style={styles.li}><span style={styles.strong}>SMS opt-in data:</span> if you opt out of SMS notifications, we securely delete your SMS opt-in data within 30 days, except where retention is required by law (for example, to honor a prior STOP request).</li>
             <li style={styles.li}><span style={styles.strong}>Payment records:</span> retained for the period required by tax and financial-reporting laws (typically up to seven years).</li>
             <li style={styles.li}><span style={styles.strong}>Logs and security data:</span> retained for a limited period sufficient to investigate incidents.</li>
           </ul>
           <p style={styles.p}>
             You may request deletion of your account and associated personal data at any time by contacting us at the
-            address in Section 16. We will respond to verifiable deletion requests within 30 days (or as required by
+            address in Section 15. We will respond to verifiable deletion requests within 30 days (or as required by
             applicable law).
           </p>
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>10. Your Choices</h2>
+          <h2 style={styles.h2}>9. Your Choices</h2>
           <ul style={styles.ul}>
             <li style={styles.li}><span style={styles.strong}>Account settings:</span> review or update your profile, communication preferences, and connected services at any time from your account settings.</li>
             <li style={styles.li}><span style={styles.strong}>Email:</span> use the "unsubscribe" link in any marketing email. Transactional emails (for example, security alerts) will continue.</li>
-            <li style={styles.li}><span style={styles.strong}>SMS:</span> reply <span style={styles.strong}>STOP</span> to any text message, or update your preferences in account settings.</li>
             <li style={styles.li}><span style={styles.strong}>Push notifications:</span> disable in your browser or device settings.</li>
             <li style={styles.li}><span style={styles.strong}>Cookies:</span> use the controls described in our <a onClick={() => navigate('/cookies')} style={styles.link}>Cookie Policy</a> and your browser settings.</li>
             <li style={styles.li}><span style={styles.strong}>Do Not Track:</span> we do not currently respond to Do Not Track browser signals; we honor Global Privacy Control signals where required by applicable law.</li>
@@ -345,7 +314,7 @@ export default function PrivacyPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>11. Children's Privacy</h2>
+          <h2 style={styles.h2}>10. Children's Privacy</h2>
           <p style={styles.p}>
             The Service is intended for users <span style={styles.strong}>18 years of age or older</span>. We do not
             knowingly collect personal information from anyone under 18. If we learn that we have collected
@@ -355,7 +324,7 @@ export default function PrivacyPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>12. Notice to California Residents (CCPA / CPRA)</h2>
+          <h2 style={styles.h2}>11. Notice to California Residents (CCPA / CPRA)</h2>
           <p style={styles.p}>
             This section provides additional disclosures required by the California Consumer Privacy Act, as amended
             by the California Privacy Rights Act ("CCPA"), for California residents.
@@ -365,7 +334,7 @@ export default function PrivacyPage() {
             include: identifiers (name, email, phone, device identifiers, IP address); commercial information
             (transactions); internet and network activity; approximate location; audio/visual information (photos and
             videos you submit); inferences from the above; and, where you provide it, government identification for
-            prize verification. Sources, purposes, and recipients are described in Sections 2, 3, and 6.
+            prize verification. Sources, purposes, and recipients are described in Sections 2, 3, and 5.
           </p>
           <p style={styles.p}>
             <span style={styles.strong}>Sale or sharing of personal information:</span> we do not sell personal
@@ -384,7 +353,7 @@ export default function PrivacyPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>13. Notice to Residents of the EEA, United Kingdom, and Switzerland (GDPR / UK GDPR)</h2>
+          <h2 style={styles.h2}>12. Notice to Residents of the EEA, United Kingdom, and Switzerland (GDPR / UK GDPR)</h2>
           <p style={styles.p}>
             EliteRank is offered in the United States and is not actively marketed in the European Economic Area, the
             United Kingdom, or Switzerland. If you access the Service from these regions, the following rights apply
@@ -401,7 +370,7 @@ export default function PrivacyPage() {
             <li style={styles.li}><span style={styles.strong}>Right to lodge a complaint</span> with your local supervisory authority (in the UK, the Information Commissioner's Office; in Switzerland, the Federal Data Protection and Information Commissioner).</li>
           </ul>
           <p style={styles.p}>
-            To exercise any of these rights, contact us at the address in Section 16. Most Eligible LLC is the
+            To exercise any of these rights, contact us at the address in Section 15. Most Eligible LLC is the
             controller of personal data described in this Policy. We have not designated a representative in the EU
             or UK because we do not direct the Service to those regions; we will respond to inquiries received
             through the contact channel below.
@@ -409,18 +378,18 @@ export default function PrivacyPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>14. Notice to Canadian Residents (PIPEDA)</h2>
+          <h2 style={styles.h2}>13. Notice to Canadian Residents (PIPEDA)</h2>
           <p style={styles.p}>
             If you access the Service from Canada, you have the right under the Personal Information Protection and
             Electronic Documents Act ("PIPEDA") and applicable provincial laws to access and request correction of
             the personal information we hold about you, and to withdraw consent to our collection, use, and
             disclosure of your personal information (subject to legal or contractual restrictions). Contact us at the
-            address in Section 16.
+            address in Section 15.
           </p>
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>15. Changes to This Policy</h2>
+          <h2 style={styles.h2}>14. Changes to This Policy</h2>
           <p style={styles.p}>
             We may update this Privacy Policy from time to time. Material changes will be communicated by updating
             the "Last Updated" date above and, where required, by additional notice (such as a banner in the Service
@@ -430,7 +399,7 @@ export default function PrivacyPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>16. Contact Us</h2>
+          <h2 style={styles.h2}>15. Contact Us</h2>
           <p style={styles.p}>
             If you have questions about this Policy or wish to exercise any of your rights described above, please
             contact us:
