@@ -2,9 +2,12 @@
  * CookiesPage - Cookie Policy
  *
  * Mirrors Orbiiit's cookie policy structure and lists the actual cookies / local
- * storage / fingerprint identifiers EliteRank uses today. Wires into the cookie
- * consent banner via the openCookiePreferences global, exposed by
- * CookieConsentBanner.jsx, so users can re-open the preferences UI from here.
+ * storage / fingerprint identifiers EliteRank uses today.
+ *
+ * A consent banner / preferences UI is not currently shipped. When one lands,
+ * re-introduce the "Manage cookie preferences" button here (calling
+ * window.openCookiePreferences) and re-add the consent-preferences cookie to
+ * the essential cookies table below.
  */
 
 import React from 'react';
@@ -121,18 +124,6 @@ const styles = {
     color: colors.text.primary,
     whiteSpace: 'nowrap',
   },
-  ctaButton: {
-    display: 'inline-block',
-    padding: `${spacing[2]} ${spacing[4]}`,
-    background: 'transparent',
-    color: colors.gold.primary,
-    border: `1px solid ${colors.gold.primary}`,
-    borderRadius: borderRadius.lg,
-    cursor: 'pointer',
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    marginTop: spacing[3],
-  },
   contactBox: {
     marginTop: spacing[3],
     padding: spacing[4],
@@ -174,7 +165,6 @@ const essential = [
   { name: 'sb-*-auth-token-code-verifier', provider: 'Supabase', purpose: 'Protects the OAuth / PKCE login flow against interception.', expiration: 'Session' },
   { name: 'eliterank-anon-voted-v2-*', provider: 'EliteRank (localStorage)', purpose: 'Tracks anonymous votes already cast so the same person is not double-charged the free vote credit.', expiration: 'Persistent until cleared' },
   { name: 'chunk-error-reload', provider: 'EliteRank (sessionStorage)', purpose: 'Prevents an infinite reload loop when a deployment changes JS chunk hashes mid-session.', expiration: 'Session' },
-  { name: 'eliterank-cookie-consent', provider: 'EliteRank', purpose: 'Stores your cookie consent preferences.', expiration: '1 year' },
 ];
 
 const functional = [
@@ -191,12 +181,6 @@ const errorMonitoring = [
 
 export default function CookiesPage() {
   const navigate = useNavigate();
-
-  const openPreferences = () => {
-    if (typeof window !== 'undefined' && typeof window.openCookiePreferences === 'function') {
-      window.openCookiePreferences();
-    }
-  };
 
   return (
     <div style={styles.page}>
@@ -224,8 +208,7 @@ export default function CookiesPage() {
           </p>
           <p style={styles.p}>
             By using the Service, you consent to our use of cookies and similar technologies in accordance with this
-            Cookie Policy. You can change your preferences at any time through the cookie consent banner or the
-            "Manage cookie preferences" button below.
+            Cookie Policy. You can control cookies through your browser settings as described in Section 5.
           </p>
         </section>
 
@@ -314,21 +297,8 @@ export default function CookiesPage() {
         <section style={styles.section}>
           <h2 style={styles.h2}>5. Managing Your Cookie Preferences</h2>
           <p style={styles.p}>
-            You can manage non-essential cookies at any time using the cookie consent banner that appears when you
-            first visit the Service. You can re-open the preferences UI here:
-          </p>
-          <button
-            type="button"
-            onClick={openPreferences}
-            style={styles.ctaButton}
-            onMouseEnter={e => { e.currentTarget.style.background = colors.gold.muted; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            Manage cookie preferences
-          </button>
-          <p style={{ ...styles.p, marginTop: spacing[4] }}>
-            You can also control cookies in your browser settings. Disabling essential cookies may prevent parts of
-            the Service from functioning. Browser-level instructions:
+            You can control cookies in your browser settings. Disabling essential cookies may prevent parts of the
+            Service from functioning. Browser-level instructions:
           </p>
           <ul style={styles.ul}>
             <li style={styles.li}><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener noreferrer" style={styles.link}>Google Chrome</a></li>

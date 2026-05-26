@@ -339,7 +339,7 @@ export default function PrivacyPage() {
             <li style={styles.li}><span style={styles.strong}>Email:</span> use the "unsubscribe" link in any marketing email. Transactional emails (for example, security alerts) will continue.</li>
             <li style={styles.li}><span style={styles.strong}>SMS:</span> reply <span style={styles.strong}>STOP</span> to any text message, or update your preferences in account settings.</li>
             <li style={styles.li}><span style={styles.strong}>Push notifications:</span> disable in your browser or device settings.</li>
-            <li style={styles.li}><span style={styles.strong}>Cookies:</span> use the cookie banner, the controls described in our <a onClick={() => navigate('/cookies')} style={styles.link}>Cookie Policy</a>, or your browser settings.</li>
+            <li style={styles.li}><span style={styles.strong}>Cookies:</span> use the controls described in our <a onClick={() => navigate('/cookies')} style={styles.link}>Cookie Policy</a> and your browser settings.</li>
             <li style={styles.li}><span style={styles.strong}>Do Not Track:</span> we do not currently respond to Do Not Track browser signals; we honor Global Privacy Control signals where required by applicable law.</li>
           </ul>
         </section>
