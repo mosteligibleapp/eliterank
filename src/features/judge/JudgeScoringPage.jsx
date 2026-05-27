@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle, AlertTriangle, Lock, Save, Send, Sparkles, RotateCcw } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Lock, Save, Send, Sparkles, RotateCcw, ExternalLink } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import { Avatar, Button, PageHeader, Panel } from '../../components/ui';
@@ -213,7 +213,7 @@ export default function JudgeScoringPage() {
             .eq('id', competitionId)
             .maybeSingle(),
           supabase.from('contestants')
-            .select('id, name, avatar_url, status, eliminated_in_round')
+            .select('id, name, avatar_url, status, eliminated_in_round, user_id')
             .eq('competition_id', competitionId)
             .order('name'),
           supabase.from('judging_criteria')
@@ -362,13 +362,7 @@ export default function JudgeScoringPage() {
 
   const handleSubmitFinal = async () => {
     if (!judge || isLocked) return;
-    if (filledCount < totalCells) {
-      const missing = totalCells - filledCount;
-      const proceed = window.confirm(
-        `You haven't scored ${missing} cell${missing === 1 ? '' : 's'}. Submit anyway? Missing scores won't count toward totals.`
-      );
-      if (!proceed) return;
-    }
+    if (totalCells === 0 || filledCount < totalCells) return;
     if (previewMode) {
       setStatusMsg('Preview mode — scores were not saved.');
       setTimeout(() => navigate('/judge'), 1500);
@@ -574,8 +568,30 @@ export default function JudgeScoringPage() {
               <div key={c.id} style={styles.contestantCard}>
                 <div style={styles.contestantHeader}>
                   <Avatar name={c.name} size={48} src={c.avatar_url} />
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.md }}>{c.name}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {c.user_id ? (
+                      <a
+                        href={`/profile/${c.user_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: spacing.xs,
+                          color: colors.text.primary,
+                          fontWeight: typography.fontWeight.semibold,
+                          fontSize: typography.fontSize.md,
+                          textDecoration: 'none',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = colors.gold.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = colors.text.primary; }}
+                      >
+                        {c.name}
+                        <ExternalLink size={12} style={{ opacity: 0.6 }} />
+                      </a>
+                    ) : (
+                      <p style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.md, margin: 0 }}>{c.name}</p>
+                    )}
                     <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: 2 }}>
                       {t.answered} / {criteria.length} criteria scored
                     </p>
@@ -658,9 +674,20 @@ export default function JudgeScoringPage() {
             <Button
               icon={Send}
               onClick={handleSubmitFinal}
-              disabled={submitting || filledCount === 0}
+              disabled={submitting || totalCells === 0 || filledCount < totalCells}
+              title={
+                totalCells === 0
+                  ? 'No criteria to score yet.'
+                  : filledCount < totalCells
+                  ? `Score every contestant on every criterion before submitting (${totalCells - filledCount} remaining).`
+                  : undefined
+              }
             >
-              {submitting ? 'Submitting…' : 'Submit Final Scores'}
+              {submitting
+                ? 'Submitting…'
+                : filledCount < totalCells
+                ? `Submit Final Scores (${totalCells - filledCount} left)`
+                : 'Submit Final Scores'}
             </Button>
           </div>
         </div>
