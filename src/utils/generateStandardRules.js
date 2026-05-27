@@ -166,12 +166,10 @@ function generateVotingContent({ competition }) {
   }
 
   content.push(
-    '• One free vote per person, per day',
-    '• Free votes reset at midnight (local time)',
+    '• One free vote per person, per 24 hrs',
     '• Additional votes can be purchased',
-    '• Paid votes are applied immediately and do not expire',
+    "• Paid votes are applied immediately to contestants round vote count",
     '• Vote counts reset to zero at the start of each new round',
-    '• You can vote for any contestant - vote for your favorites!',
   );
 
   return content.join('\n');
@@ -184,12 +182,13 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
   const numWinners = competition?.number_of_winners || 5;
   const sorted = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
   const cityName = competition?.city?.name || competition?.city || '';
+  const competitionName = competition?.name || 'competition';
   const splitByGender = competition?.winners_split_by_gender;
   const judgesPct = competition?.judges_score_weight_pct;
 
   const content = [
-    `• The competition runs across ${sorted.length} voting rounds`,
-    '• Lead-up rounds use public voting to narrow the contestant pool',
+    `• The ${competitionName} competition runs across ${sorted.length} rounds`,
+    `• Rounds 1-${numRounds} are purely vote-based`,
     '• Votes reset to zero at the start of every round',
   ];
 
@@ -201,25 +200,36 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
     if (isLast) {
       if (judgesPct != null) {
         const votesPct = 100 - judgesPct;
-        content.push(`• ${title} — winners determined by ${judgesPct}% judges' scoring and ${votesPct}% public votes`);
+        content.push(`• ${title} — the vote count (${votesPct}%) and judge scores (${judgesPct}%) determines the ${numWinners} winners`);
       } else {
         content.push(`• ${title} — the final vote count determines the winners' rankings (1st–${numWinners}th)`);
       }
     } else {
-      const advanceInfo = round.contestants_advance
-        ? ` — Top ${round.contestants_advance} advance`
-        : '';
-      content.push(`• ${title}${advanceInfo}`);
+      const nextRound = sorted[index + 1];
+      const advance = round.contestants_advance;
+      if (advance && nextRound) {
+        content.push(`• ${title} — Top ${advance} advance to ${nextRound.title || 'next round'}`);
+      } else if (advance) {
+        content.push(`• ${title} — Top ${advance} advance`);
+      } else {
+        content.push(`• ${title}`);
+      }
     }
   });
 
-  const crowningTitle = `Most Eligible ${cityName}`;
-  if (splitByGender && numWinners === 2) {
-    content.push(`• One contestant legally recognized as male and one legally recognized as female will be crowned ${crowningTitle} and hold the title for one year`);
-  } else {
-    content.push(`• ${numWinners} contestants will be crowned ${crowningTitle} and hold the title for one year`);
+  // Optional finale event line — host-supplied text (date, attendance requirements, etc.)
+  if (competition?.finale_event_text) {
+    content.push(`• ${competition.finale_event_text}`);
   }
-  content.push('• Fans can vote once daily for free, or purchase additional votes');
+
+  // Crowning bullet — host can fully override, otherwise auto-generate
+  if (competition?.crowning_text) {
+    content.push(`• ${competition.crowning_text}`);
+  } else if (splitByGender && numWinners === 2) {
+    content.push(`• 2 winners (1 male and 1 female) will be crowned Most Eligible ${cityName} and hold the title for one year`);
+  } else {
+    content.push(`• ${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
+  }
 
   return content.join('\n');
 }
@@ -228,16 +238,18 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
  * Generate prize pool content
  */
 function generatePrizePoolContent({ competition }) {
-  const minimum = competition?.prize_pool_minimum || 1000;
   const numWinners = competition?.number_of_winners || 5;
+  const splitByGender = competition?.winners_split_by_gender;
 
-  const content = [
-    '• Total prize package value: $X',
-    `• Top ${numWinners} contestants with the most votes earn the year long title`,
-    `• The ${numWinners} winners receive a prize package from competition sponsors`,
-    `• 1st place receives a cash prize (min $${minimum.toLocaleString()})`,
-    '• Cash prize grows from every paid vote purchased',
-  ];
+  const content = ['• Total prize package value: $X'];
+
+  if (splitByGender && numWinners === 2) {
+    content.push('• Top 2 (1 male and 1 female) contestants with the most votes and highest judge earn the prize package + title');
+  } else {
+    content.push(`• Top ${numWinners} contestants with the most votes and highest judge earn the prize package + title`);
+  }
+
+  content.push(`• The ${numWinners} winners receive a prize package from competition sponsors`);
 
   return content.join('\n');
 }
