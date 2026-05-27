@@ -3656,6 +3656,32 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   line-height: 1.4;
 }
 
+.timeline-rounds {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-xs) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-round {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.timeline-round-title {
+  color: var(--color-text-secondary);
+}
+
+.timeline-round-dates {
+  white-space: nowrap;
+}
+
 .timeline-item-active .timeline-subtitle {
   color: var(--color-text-secondary);
 }
