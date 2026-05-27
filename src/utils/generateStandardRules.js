@@ -154,7 +154,6 @@ function generateVotingContent({ competition }) {
     '• One free vote per person, per day',
     '• Free votes reset at midnight (local time)',
     '• Additional votes can be purchased',
-    '• Paid votes are applied immediately and do not expire',
     '• Vote counts reset to zero at the start of each new round',
     '• You can vote for any contestant - vote for your favorites!',
   ];
