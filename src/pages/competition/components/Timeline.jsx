@@ -55,6 +55,7 @@ export function Timeline() {
       date: votingStart,
       endDate: votingEnd,
       status: getPeriodStatus(votingStart, votingEnd),
+      rounds: [...rounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0)),
     } : null,
     finaleDate ? {
       id: 'finale',
@@ -107,6 +108,21 @@ export function Timeline() {
                 </span>
                 {item.subtitle && (
                   <span className="timeline-subtitle">{item.subtitle}</span>
+                )}
+                {item.rounds && item.rounds.length > 0 && (
+                  <ul className="timeline-rounds">
+                    {item.rounds.map((r) => (
+                      <li key={r.id || r.round_order} className="timeline-round">
+                        <span className="timeline-round-title">{r.title || `Round ${r.round_order}`}</span>
+                        <span className="timeline-round-dates">
+                          {r.start_date && formatDate(r.start_date)}
+                          {r.end_date && r.end_date !== r.start_date && (
+                            <> — {formatDate(r.end_date)}</>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             </div>
