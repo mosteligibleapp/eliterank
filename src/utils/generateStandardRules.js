@@ -111,23 +111,35 @@ function generateEligibilityContent({ competition, about, city }) {
     parts.push(`Must identify as ${gender}`);
   }
 
-  // Location requirement — radius and jurisdiction both configurable per competition.
-  const radius = competition?.eligibility_radius_miles ?? 100;
-  const jurisdiction = competition?.eligibility_jurisdiction;
-  parts.push(
-    jurisdiction
-      ? `Must live within ${radius} miles of ${city}, ${jurisdiction}`
-      : `Must live within ${radius} miles of ${city}`
-  );
+  // Residency / location requirement.
+  // If the host provides a full custom residency string, use it verbatim
+  // (lets them express richer rules — e.g. permanent-resident status,
+  // temporary-resident exclusion, etc.). Otherwise auto-format from
+  // radius + optional jurisdiction.
+  const residencyText = competition?.eligibility_residency_text?.trim();
+  if (residencyText) {
+    parts.push(residencyText);
+  } else {
+    const radius = competition?.eligibility_radius_miles ?? 100;
+    const jurisdiction = competition?.eligibility_jurisdiction;
+    parts.push(
+      jurisdiction
+        ? `Must live within ${radius} miles of ${city}, ${jurisdiction}`
+        : `Must live within ${radius} miles of ${city}`
+    );
+  }
 
-  // Other requirements from about.requirement — supports multi-line (one bullet per line)
+  // Other requirements from about.requirement — supports multi-line (one bullet per line).
+  // Lines are passed through verbatim except for a couple of short keyword shorthands
+  // ("single" alone expands to the canonical sentence; "based" is treated as a duplicate
+  // of the location bullet and dropped).
   if (about?.requirement) {
     const lines = about.requirement.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
     for (const line of lines) {
-      const lower = line.toLowerCase();
-      if (lower.includes('single')) {
+      const normalized = line.toLowerCase();
+      if (normalized === 'single') {
         parts.push('Must be single (not married or engaged to be married)');
-      } else if (lower.includes('based')) {
+      } else if (normalized === 'based') {
         // Generic location requirement — already covered above
       } else {
         parts.push(line);
