@@ -17,7 +17,7 @@ const DEFAULT_REWARDS = [
   {
     icon: Gift,
     title: 'Sponsored Prizes',
-    description: 'Diamond necklaces, beauty products, and more — courtesy of our sponsors.',
+    description: 'Luxurious products and experiences provided by our gracious sponsors.',
   },
 ];
 
