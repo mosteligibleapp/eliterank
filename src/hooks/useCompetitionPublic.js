@@ -15,13 +15,13 @@ const COMPETITION_SELECT = `
   category:categories(*),
   demographic:demographics(*),
   host:profiles!competitions_host_id_fkey (
-    id, first_name, last_name, bio, avatar_url, city,
+    id, first_name, last_name, bio, headline, avatar_url, city,
     instagram, twitter, linkedin
   ),
   competition_co_hosts (
     created_at,
     profile:profiles!user_id (
-      id, first_name, last_name, bio, avatar_url, city,
+      id, first_name, last_name, bio, headline, avatar_url, city,
       instagram, twitter, linkedin
     )
   ),
