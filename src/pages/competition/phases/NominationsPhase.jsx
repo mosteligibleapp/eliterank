@@ -146,9 +146,13 @@ export function NominationsPhase() {
 
       <hr className="phase-divider" />
 
+      {/* Hosts — featured card, matches the Coming Soon page style */}
+      <section className="phase-section">
+        <HostCard variant="featured" />
+      </section>
+
       {/* Timeline + Rules — two columns once the host has added timeline/charity
-          content, otherwise a single stacked column. Hosts render as a
-          full-width featured card directly beneath. */}
+          content, otherwise a single stacked column. */}
       {hasTimelineColumn ? (
         <section className="phase-grid phase-grid-2">
           <div>
@@ -164,11 +168,6 @@ export function NominationsPhase() {
           <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
         </section>
       )}
-
-      {/* Hosts — featured card, matches the Coming Soon page style */}
-      <section className="phase-section">
-        <HostCard variant="featured" />
-      </section>
 
       {/* Footer */}
       <CompetitionFooter />
