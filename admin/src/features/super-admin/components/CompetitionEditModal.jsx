@@ -67,6 +67,7 @@ export default function CompetitionEditModal({
     min_contestants: 40,
     max_contestants: '',
     host_id: '',
+    category_id: '',
     description: '',
     cover_image: '',
     price_per_vote: 1.00,
@@ -86,6 +87,7 @@ export default function CompetitionEditModal({
         min_contestants: competition.min_contestants ?? 40,
         max_contestants: competition.max_contestants || '',
         host_id: competition.host_id || '',
+        category_id: competition.category_id || '',
         description: competition.description || '',
         cover_image: competition.cover_image || '',
         price_per_vote: competition.price_per_vote ?? 1.00,
@@ -141,6 +143,11 @@ export default function CompetitionEditModal({
     ...hosts.map(h => ({ value: h.id, label: getHostName(h) || h.email })),
   ], [hosts, getHostName]);
 
+  const categoryOptions = useMemo(
+    () => categories.map(c => ({ value: c.id, label: c.name })),
+    [categories]
+  );
+
   const handleSubmit = () => {
     onSave(formData);
   };
@@ -149,7 +156,6 @@ export default function CompetitionEditModal({
 
   const editOrg = organizations.find(o => o.id === competition.organization_id);
   const editCity = cities.find(c => c.id === competition.city_id);
-  const editCategory = categories.find(c => c.id === competition.category_id);
   const editDemographic = demographics.find(d => d.id === competition.demographic_id);
 
   const tabs = [
@@ -196,12 +202,18 @@ export default function CompetitionEditModal({
             <FormGrid>
               <ReadOnlyField label="Organization" value={editOrg?.name || 'Not set'} />
               <ReadOnlyField label="City" value={editCity?.name || 'Not set'} />
-              <ReadOnlyField label="Category" value={editCategory?.name || 'Not set'} />
               <ReadOnlyField label="Demographic" value={editDemographic?.label || 'Not set'} />
             </FormGrid>
           </FormSection>
 
           <FormSection title="Editable Fields">
+            <FormField label="Category">
+              <SelectInput
+                value={formData.category_id}
+                onChange={(e) => updateField('category_id', e.target.value)}
+                options={categoryOptions}
+              />
+            </FormField>
             <FormField label="Competition Name" description="Leave blank to auto-generate from organization and city.">
               <TextInput
                 value={formData.name}
