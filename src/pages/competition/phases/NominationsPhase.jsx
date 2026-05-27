@@ -146,8 +146,10 @@ export function NominationsPhase() {
 
       <hr className="phase-divider" />
 
-      {/* Hosts — featured card, matches the Coming Soon page style */}
-      <section className="phase-section">
+      {/* Hosts — featured card layout, solid card surface to match the
+          Timeline / Rules cards on this page (the translucent featured
+          background is only appropriate over the Coming Soon hero image). */}
+      <section className="phase-section phase-nominations-host">
         <HostCard variant="featured" />
       </section>
 

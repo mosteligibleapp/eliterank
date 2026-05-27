@@ -5966,6 +5966,16 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   width: 100%;
 }
 
+/* Nominations phase uses the featured (centered) host card layout but on a
+   solid card surface so it visually aligns with the Timeline / Rules cards
+   above and below it. */
+.phase-nominations-host .host-sidebar-card-featured {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 /* Featured host card — centered vertical layout used on the teaser */
 .host-sidebar-card-featured {
   padding: var(--spacing-xl);
