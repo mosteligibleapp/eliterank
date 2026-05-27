@@ -7,7 +7,7 @@ const DEFAULT_REWARDS = [
   {
     icon: Users,
     title: 'Network Access',
-    description: 'Exclusive introductions to founders, executives, and industry insiders.',
+    description: 'Exclusive invites to connect with high-caliber contestants, judges, sponsors and hosts.',
   },
   {
     icon: Crown,
