@@ -2,6 +2,10 @@
 -- on the public competition page (Rules accordion).
 --
 -- These power the generator in src/utils/generateStandardRules.js:
+--   - judges_score_weight_pct: judges' weight in the final scoring (0–100).
+--     When NULL, no scoring-formula bullet is shown (legacy pure-vote
+--     behavior). When set, the bullet reads "X% judges' scoring and
+--     (100−X)% public votes".
 --   - winners_split_by_gender: when true and number_of_winners = 2, the
 --     crowning bullet reads "one legally recognized as male and one
 --     legally recognized as female" instead of a single count.
@@ -11,6 +15,8 @@
 --     set, e.g. "within 50 miles of Toronto, Ontario, Canada".
 
 ALTER TABLE competitions
+  ADD COLUMN IF NOT EXISTS judges_score_weight_pct integer
+    CHECK (judges_score_weight_pct IS NULL OR (judges_score_weight_pct BETWEEN 0 AND 100)),
   ADD COLUMN IF NOT EXISTS winners_split_by_gender boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS eligibility_radius_miles integer,
   ADD COLUMN IF NOT EXISTS eligibility_jurisdiction text;

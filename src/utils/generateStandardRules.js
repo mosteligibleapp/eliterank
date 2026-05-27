@@ -144,16 +144,23 @@ function generateEligibilityContent({ competition, about, city }) {
  */
 function generateVotingContent({ competition }) {
   const pricePerVote = competition?.price_per_vote || 1;
+  const judgesPct = competition?.judges_score_weight_pct;
 
-  const content = [
-    "• Final winners are determined by 60% judges' scoring and 40% public votes",
+  const content = [];
+
+  if (judgesPct != null) {
+    const votesPct = 100 - judgesPct;
+    content.push(`• Final winners are determined by ${judgesPct}% judges' scoring and ${votesPct}% public votes`);
+  }
+
+  content.push(
     '• One free vote per person, per day',
     '• Free votes reset at midnight (local time)',
     '• Additional votes can be purchased',
     '• Paid votes are applied immediately and do not expire',
     '• Vote counts reset to zero at the start of each new round',
     '• You can vote for any contestant - vote for your favorites!',
-  ];
+  );
 
   return content.join('\n');
 }
@@ -166,6 +173,7 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
   const sorted = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
   const cityName = competition?.city?.name || competition?.city || '';
   const splitByGender = competition?.winners_split_by_gender;
+  const judgesPct = competition?.judges_score_weight_pct;
 
   const content = [
     `• The competition runs across ${sorted.length} voting rounds`,
@@ -179,7 +187,12 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
     const title = round.title || `Round ${index + 1}`;
 
     if (isLast) {
-      content.push(`• ${title} — winners determined by 60% judges' scoring and 40% public votes`);
+      if (judgesPct != null) {
+        const votesPct = 100 - judgesPct;
+        content.push(`• ${title} — winners determined by ${judgesPct}% judges' scoring and ${votesPct}% public votes`);
+      } else {
+        content.push(`• ${title} — the final vote count determines the winners' rankings (1st–${numWinners}th)`);
+      }
     } else {
       const advanceInfo = round.contestants_advance
         ? ` — Top ${round.contestants_advance} advance`
