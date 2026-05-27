@@ -226,6 +226,7 @@ export default function JudgeDashboardPage() {
           .from('judges')
           .select(`
             id,
+            hidden,
             competition:competitions(
               id, name, season, status, slug,
               city:cities(name),
@@ -315,6 +316,7 @@ export default function JudgeDashboardPage() {
           assignments.map((row) => {
             const comp = row.competition;
             if (!comp) return null;
+            const previewMode = row.hidden === true;
             const cityName = comp.city?.name || '';
             const compLabel = comp.name || `Most Eligible ${cityName} ${comp.season || ''}`.trim();
 
@@ -375,8 +377,8 @@ export default function JudgeDashboardPage() {
                   judgingRounds.map((r) => {
                     const phase = roundPhaseOf(r);
                     const submitted = submittedRoundIds.has(r.id);
-                    const blocked = phase === 'upcoming';
-                    const canScore = phase !== 'upcoming' && !submitted;
+                    const blocked = phase === 'upcoming' && !previewMode;
+                    const canScore = previewMode || (phase !== 'upcoming' && !submitted);
 
                     // The round whose advancement feeds THIS round (e.g. Top 15 → Top 10)
                     const prevRound = (comp.voting_rounds || []).find(
@@ -417,6 +419,8 @@ export default function JudgeDashboardPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
                             {submitted ? (
                               <span style={styles.pill(colors.status.success)}><CheckCircle size={12} /> Submitted</span>
+                            ) : previewMode ? (
+                              <span style={styles.pill(colors.gold.primary)}>Preview</span>
                             ) : phase === 'upcoming' ? (
                               <span style={styles.pill(colors.text.muted)}><Lock size={12} /> Upcoming</span>
                             ) : phase === 'closed' ? (

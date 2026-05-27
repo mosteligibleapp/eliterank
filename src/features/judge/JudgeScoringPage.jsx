@@ -200,7 +200,7 @@ export default function JudgeScoringPage() {
       try {
         const [judgeRes, roundRes, compRes, contestantsRes, criteriaRes] = await Promise.all([
           supabase.from('judges')
-            .select('id, name, user_id')
+            .select('id, name, user_id, hidden')
             .eq('competition_id', competitionId)
             .eq('user_id', user.id)
             .maybeSingle(),
@@ -252,21 +252,24 @@ export default function JudgeScoringPage() {
         setContestants(activeContestants);
         setCriteria(criteriaRes.data || []);
 
-        // Load existing scores for this judge + round
-        const { data: scoreRows } = await supabase
-          .from('judge_scores')
-          .select('id, contestant_id, criterion_id, score, submitted_at')
-          .eq('judge_id', judgeRes.data.id)
-          .eq('voting_round_id', roundId);
-        const map = {};
-        (scoreRows || []).forEach((s) => {
-          map[`${s.contestant_id}:${s.criterion_id}`] = {
-            id: s.id,
-            score: s.score,
-            submittedAt: s.submitted_at,
-          };
-        });
-        setScores(map);
+        if (judgeRes.data.hidden) {
+          setScores({});
+        } else {
+          const { data: scoreRows } = await supabase
+            .from('judge_scores')
+            .select('id, contestant_id, criterion_id, score, submitted_at')
+            .eq('judge_id', judgeRes.data.id)
+            .eq('voting_round_id', roundId);
+          const map = {};
+          (scoreRows || []).forEach((s) => {
+            map[`${s.contestant_id}:${s.criterion_id}`] = {
+              id: s.id,
+              score: s.score,
+              submittedAt: s.submitted_at,
+            };
+          });
+          setScores(map);
+        }
       } catch (e) {
         console.error('Failed to load scoring page:', e);
         if (!cancelled) setErrorMsg(e.message || 'Failed to load');
@@ -277,10 +280,13 @@ export default function JudgeScoringPage() {
     return () => { cancelled = true; };
   }, [user?.id, competitionId, roundId]);
 
+  const previewMode = judge?.hidden === true;
+
   const isLocked = useMemo(() => {
+    if (previewMode) return false;
     const vals = Object.values(scores);
     return vals.length > 0 && vals.every(v => v.submittedAt);
-  }, [scores]);
+  }, [scores, previewMode]);
 
   // Per-contestant judge total (weighted sum of criterion scores)
   const totalsByContestant = useMemo(() => {
@@ -307,6 +313,11 @@ export default function JudgeScoringPage() {
     if (!judge || isLocked) return;
     const key = `${contestantId}:${criterionId}`;
     const existing = scores[key];
+
+    if (previewMode) {
+      setScores(prev => ({ ...prev, [key]: { ...(existing || {}), score } }));
+      return;
+    }
 
     setSavingKeys(prev => new Set(prev).add(key));
     // Optimistic update
@@ -347,7 +358,7 @@ export default function JudgeScoringPage() {
     } finally {
       setSavingKeys(prev => { const n = new Set(prev); n.delete(key); return n; });
     }
-  }, [judge, scores, isLocked, competitionId, roundId]);
+  }, [judge, scores, isLocked, competitionId, roundId, previewMode]);
 
   const handleSubmitFinal = async () => {
     if (!judge || isLocked) return;
@@ -357,6 +368,11 @@ export default function JudgeScoringPage() {
         `You haven't scored ${missing} cell${missing === 1 ? '' : 's'}. Submit anyway? Missing scores won't count toward totals.`
       );
       if (!proceed) return;
+    }
+    if (previewMode) {
+      setStatusMsg('Preview mode — scores were not saved.');
+      setTimeout(() => navigate('/judge'), 1500);
+      return;
     }
     setSubmitting(true);
     setErrorMsg(null);
@@ -415,6 +431,11 @@ export default function JudgeScoringPage() {
     <div style={styles.page}>
       <PageHeader title={round?.title || 'Judging Round'} subtitle={competitionLabel} onBack={() => navigate('/judge')} />
       <div style={styles.container}>
+        {previewMode && (
+          <div style={styles.banner('warning')}>
+            <AlertTriangle size={18} /> Preview mode — your scores will not be saved. This view is only visible to hidden judges.
+          </div>
+        )}
         {isLocked && (
           <div style={styles.banner('success')}>
             <CheckCircle size={18} /> Your scores are submitted and locked.
