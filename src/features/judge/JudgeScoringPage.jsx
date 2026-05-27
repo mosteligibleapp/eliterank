@@ -1,10 +1,21 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle, AlertTriangle, Lock, Save, Send } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Lock, Save, Send, Sparkles, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import { Avatar, Button, PageHeader, Panel } from '../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
+
+const SAMPLE_CONTESTANT = {
+  id: '__sample__',
+  name: 'Sample Contestant (Practice)',
+  avatar_url: null,
+};
+
+const FALLBACK_SAMPLE_CRITERIA = [
+  { id: '__sample_c1__', label: 'Stage Presence', description: 'Confidence, charisma, command of the room.', weight: 1 },
+  { id: '__sample_c2__', label: 'Overall Impression', description: 'Your gut read after watching them.', weight: 1 },
+];
 
 /**
  * JudgeScoringPage — entered via /judge/:competitionId/round/:roundId
@@ -37,6 +48,47 @@ const styles = {
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginBottom: spacing.lg,
+  },
+  sampleCard: {
+    background: colors.background.secondary,
+    border: `1px dashed ${colors.gold.primary}`,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    position: 'relative',
+  },
+  sampleBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    padding: `${spacing.xs} ${spacing.sm}`,
+    background: 'rgba(212,175,55,0.12)',
+    color: colors.gold.primary,
+    borderRadius: borderRadius.md,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: spacing.sm,
+  },
+  sampleHint: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+    margin: `0 0 ${spacing.md}`,
+    lineHeight: 1.5,
+  },
+  sampleReset: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    padding: `${spacing.xs} ${spacing.sm}`,
+    background: 'transparent',
+    border: `1px solid ${colors.border.primary}`,
+    borderRadius: borderRadius.md,
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.xs,
+    cursor: 'pointer',
+    marginTop: spacing.md,
   },
   contestantHeader: {
     display: 'flex',
@@ -135,6 +187,8 @@ export default function JudgeScoringPage() {
   const [scores, setScores] = useState({});
   const [savingKeys, setSavingKeys] = useState(new Set());
   const [submitting, setSubmitting] = useState(false);
+  // Local-only scores for the practice contestant. Never saved.
+  const [sampleScores, setSampleScores] = useState({});
 
   // Load everything we need for the scoring screen
   useEffect(() => {
@@ -404,6 +458,87 @@ export default function JudgeScoringPage() {
             Progress: {filledCount} / {totalCells} cells filled · {contestants.length} contestants · {criteria.length} criteria
           </p>
         </div>
+
+        {/* Practice contestant — local-only, never saved. Helps judges learn the UI. */}
+        {(() => {
+          const sampleCriteria = criteria.length > 0 ? criteria : FALLBACK_SAMPLE_CRITERIA;
+          const sampleTotal = sampleCriteria.reduce((acc, cr) => {
+            const v = sampleScores[cr.id];
+            return v != null ? acc + v * (cr.weight || 1) : acc;
+          }, 0);
+          const sampleAnswered = sampleCriteria.filter((cr) => sampleScores[cr.id] != null).length;
+          return (
+            <div style={styles.sampleCard}>
+              <span style={styles.sampleBadge}>
+                <Sparkles size={12} /> Practice · won&rsquo;t save
+              </span>
+              <p style={styles.sampleHint}>
+                Try the scoring interface on this sample contestant. Nothing here is saved
+                or submitted{criteria.length === 0 ? ' (criteria below are examples)' : ''}.
+              </p>
+              <div style={styles.contestantHeader}>
+                <Avatar name={SAMPLE_CONTESTANT.name} size={48} src={null} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.md }}>
+                    {SAMPLE_CONTESTANT.name}
+                  </p>
+                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: 2 }}>
+                    {sampleAnswered} / {sampleCriteria.length} criteria scored
+                  </p>
+                </div>
+                <div style={styles.totalBadge}>
+                  {sampleTotal > 0 ? sampleTotal.toFixed(sampleTotal % 1 === 0 ? 0 : 1) : '—'}
+                </div>
+              </div>
+              {sampleCriteria.map((cr) => {
+                const value = sampleScores[cr.id];
+                return (
+                  <div key={cr.id} style={styles.criterionRow}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{
+                        fontSize: typography.fontSize.sm,
+                        fontWeight: typography.fontWeight.medium,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}>
+                        {cr.label}
+                        {cr.weight && cr.weight !== 1 && (
+                          <span style={{ color: colors.text.muted, fontWeight: typography.fontWeight.regular, marginLeft: spacing.xs }}>
+                            ×{cr.weight}
+                          </span>
+                        )}
+                      </p>
+                      {cr.description && (
+                        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: 2 }}>
+                          {cr.description}
+                        </p>
+                      )}
+                    </div>
+                    <div style={styles.scoreButtons}>
+                      {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setSampleScores((prev) => ({ ...prev, [cr.id]: n }))}
+                          style={styles.scoreBtn(value === n, false)}
+                          aria-label={`Sample score ${n} for ${cr.label}`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              {sampleAnswered > 0 && (
+                <button type="button" onClick={() => setSampleScores({})} style={styles.sampleReset}>
+                  <RotateCcw size={12} /> Clear practice scores
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {contestants.length === 0 ? (
           <Panel title="No contestants">
