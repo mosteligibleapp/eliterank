@@ -1,5 +1,5 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { User, MapPin, Instagram, Crown } from 'lucide-react';
+import { User, MapPin, Crown } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { transformSupabaseImage } from '../../../lib/storageImage';
 
@@ -50,7 +50,7 @@ export function HostCard({ variant = 'compact' }) {
         </div>
         <div className="host-card-info">
           <span className="host-card-name">{hostName}</span>
-          {host.bio && <span className="host-card-bio">{host.bio}</span>}
+          {host.headline && <span className="host-card-bio">{host.headline}</span>}
           {host.city && (
             <span className="host-card-location">
               <MapPin size={12} />
@@ -90,24 +90,6 @@ export function HostCard({ variant = 'compact' }) {
       >
         {hosts.map(renderHostEntry)}
       </div>
-
-      {/* Compact-variant: surface each host's Instagram below their card */}
-      {!isFeatured && (
-        <div className="host-card-socials" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          {hosts.map((host) => host.instagram ? (
-            <a
-              key={`ig-${host.id}`}
-              href={`https://instagram.com/${host.instagram}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="host-card-social"
-            >
-              <Instagram size={16} />
-              <span>@{host.instagram}</span>
-            </a>
-          ) : null)}
-        </div>
-      )}
     </div>
   );
 }

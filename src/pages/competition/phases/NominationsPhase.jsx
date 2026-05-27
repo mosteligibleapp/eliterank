@@ -146,16 +146,16 @@ export function NominationsPhase() {
 
       <hr className="phase-divider" />
 
-      {/* Timeline & Host + Rules — two columns once the host has added
-          timeline/charity content, otherwise a single stacked column. */}
+      {/* Timeline (with Hosts beneath it) + Rules — two columns once the host
+          has added timeline/charity content, otherwise a single stacked column. */}
       {hasTimelineColumn ? (
         <section className="phase-grid phase-grid-2">
           <div>
             <Timeline />
+            <HostCard />
             <CharityHighlight />
           </div>
           <div className="sidebar-stack">
-            <HostCard />
             <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
           </div>
         </section>

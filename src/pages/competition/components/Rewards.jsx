@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DollarSign, Crown, Gift, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Crown, Gift, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 
 // Default rewards when no prizes are uploaded by the host
 const DEFAULT_REWARDS = [
   {
-    icon: DollarSign,
-    title: 'Cash',
-    description: 'Cash Prize for 1st Place - $1,000 minimum.',
+    icon: Users,
+    title: 'Network Access',
+    description: 'Exclusive introductions to founders, executives, and industry insiders.',
   },
   {
     icon: Crown,
