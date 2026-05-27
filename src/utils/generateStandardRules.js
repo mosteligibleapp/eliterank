@@ -23,7 +23,6 @@ export function generateStandardRules({
   const votingOnly = votingRounds.filter(r => r.round_type === 'voting');
   // Fall back to all non-judging rounds if none are explicitly typed 'voting'
   const numRounds = votingOnly.length || votingRounds.filter(r => r.round_type !== 'judging').length;
-  const doubleVoteDays = events.filter(e => e.is_double_vote_day);
 
   // 1. Eligibility Requirements
   rules.push({
@@ -73,16 +72,6 @@ export function generateStandardRules({
     });
   }
 
-  // 6. Double Vote Days (if any scheduled)
-  if (doubleVoteDays.length > 0) {
-    rules.push({
-      id: 'double-days',
-      section_title: 'Double Vote Days',
-      section_content: generateDoubleVoteDaysContent({ doubleVoteDays }),
-      sort_order: 6,
-    });
-  }
-
   return rules;
 }
 
@@ -122,23 +111,41 @@ function generateEligibilityContent({ competition, about, city }) {
     parts.push(`Must identify as ${gender}`);
   }
 
-  // Location requirement
-  parts.push(`Must live within 100 miles of ${city}`);
+  // Residency / location requirement.
+  // If the host provides a full custom residency string, use it verbatim
+  // (lets them express richer rules — e.g. permanent-resident status,
+  // temporary-resident exclusion, etc.). Otherwise auto-format from
+  // radius + optional jurisdiction.
+  const residencyText = competition?.eligibility_residency_text?.trim();
+  if (residencyText) {
+    parts.push(residencyText);
+  } else {
+    const radius = competition?.eligibility_radius_miles ?? 100;
+    const jurisdiction = competition?.eligibility_jurisdiction;
+    parts.push(
+      jurisdiction
+        ? `Must live within ${radius} miles of ${city}, ${jurisdiction}`
+        : `Must live within ${radius} miles of ${city}`
+    );
+  }
 
-  // Other requirements from about.requirement
+  // Other requirements from about.requirement — supports multi-line (one bullet per line).
+  // Lines are passed through verbatim except for a couple of short keyword shorthands
+  // ("single" alone expands to the canonical sentence; "based" is treated as a duplicate
+  // of the location bullet and dropped).
   if (about?.requirement) {
-    // Parse common requirement patterns
-    const req = about.requirement.toLowerCase();
-    if (req.includes('single')) {
-      parts.push('Must be single (not married or engaged to be married)');
-    } else if (req.includes('based')) {
-      // Generic location requirement - already covered above, skip duplicating
-    } else {
-      // Include custom requirement as-is
-      parts.push(about.requirement);
+    const lines = about.requirement.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    for (const line of lines) {
+      const normalized = line.toLowerCase();
+      if (normalized === 'single') {
+        parts.push('Must be single (not married or engaged to be married)');
+      } else if (normalized === 'based') {
+        // Generic location requirement — already covered above
+      } else {
+        parts.push(line);
+      }
     }
   }
-  // Note: No default "single" requirement - only applies when explicitly set
 
   // Format as bullet list
   return parts.map(p => `• ${p}`).join('\n');
@@ -149,15 +156,21 @@ function generateEligibilityContent({ competition, about, city }) {
  */
 function generateVotingContent({ competition }) {
   const pricePerVote = competition?.price_per_vote || 1;
+  const judgesPct = competition?.judges_score_weight_pct;
 
-  const content = [
-    '• One free vote per person, per day',
-    '• Free votes reset at midnight (local time)',
+  const content = [];
+
+  if (judgesPct != null) {
+    const votesPct = 100 - judgesPct;
+    content.push(`• Final winners are determined by ${judgesPct}% judges' scoring and ${votesPct}% public votes`);
+  }
+
+  content.push(
+    '• One free vote per person, per 24 hrs',
     '• Additional votes can be purchased',
-    '• Paid votes are applied immediately and do not expire',
+    "• Paid votes are applied immediately to contestants round vote count",
     '• Vote counts reset to zero at the start of each new round',
-    '• You can vote for any contestant - vote for your favorites!',
-  ];
+  );
 
   return content.join('\n');
 }
@@ -169,10 +182,13 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
   const numWinners = competition?.number_of_winners || 5;
   const sorted = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
   const cityName = competition?.city?.name || competition?.city || '';
+  const competitionName = competition?.name || 'competition';
+  const splitByGender = competition?.winners_split_by_gender;
+  const judgesPct = competition?.judges_score_weight_pct;
 
   const content = [
-    `• The competition runs across ${sorted.length} voting rounds`,
-    '• A set number of contestants advances each round based on vote count',
+    `• The ${competitionName} competition runs across ${sorted.length} rounds`,
+    `• Rounds 1-${numRounds} are purely vote-based`,
     '• Votes reset to zero at the start of every round',
   ];
 
@@ -182,27 +198,38 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
     const title = round.title || `Round ${index + 1}`;
 
     if (isLast) {
-      content.push(`• ${title} — the final vote count determines the winners' rankings (1st–${numWinners}th)`);
+      if (judgesPct != null) {
+        const votesPct = 100 - judgesPct;
+        content.push(`• ${title} — the vote count (${votesPct}%) and judge scores (${judgesPct}%) determines the ${numWinners} winners`);
+      } else {
+        content.push(`• ${title} — the final vote count determines the winners' rankings (1st–${numWinners}th)`);
+      }
     } else {
-      const advanceInfo = round.contestants_advance
-        ? ` — Top ${round.contestants_advance} advance`
-        : '';
-      content.push(`• ${title}${advanceInfo}`);
+      const nextRound = sorted[index + 1];
+      const advance = round.contestants_advance;
+      if (advance && nextRound) {
+        content.push(`• ${title} — Top ${advance} advance to ${nextRound.title || 'next round'}`);
+      } else if (advance) {
+        content.push(`• ${title} — Top ${advance} advance`);
+      } else {
+        content.push(`• ${title}`);
+      }
     }
   });
 
-  // Add judge scoring note between second-to-last and last round
-  if (sorted.length >= 2) {
-    const preFinalists = sorted[sorted.length - 2]?.contestants_advance;
-    const finalists = sorted[sorted.length - 1]?.contestants_advance || numWinners;
-    if (preFinalists && preFinalists > finalists) {
-      content.push(`• After the Top ${preFinalists} are determined, a panel of judges will score the finalists — judge scores determine who advances to the Top ${finalists}`);
-    }
+  // Optional finale event line — host-supplied text (date, attendance requirements, etc.)
+  if (competition?.finale_event_text) {
+    content.push(`• ${competition.finale_event_text}`);
   }
 
-  content.push(`• ${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
-  content.push('• Fans can vote once daily for free, or purchase additional votes');
-  content.push('• Keep an eye out for surprise Double Vote Days — when they hit, every vote counts twice');
+  // Crowning bullet — host can fully override, otherwise auto-generate
+  if (competition?.crowning_text) {
+    content.push(`• ${competition.crowning_text}`);
+  } else if (splitByGender && numWinners === 2) {
+    content.push(`• 2 winners (1 male and 1 female) will be crowned Most Eligible ${cityName} and hold the title for one year`);
+  } else {
+    content.push(`• ${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
+  }
 
   return content.join('\n');
 }
@@ -211,15 +238,18 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
  * Generate prize pool content
  */
 function generatePrizePoolContent({ competition }) {
-  const minimum = competition?.prize_pool_minimum || 1000;
   const numWinners = competition?.number_of_winners || 5;
+  const splitByGender = competition?.winners_split_by_gender;
 
-  const content = [
-    `• Top ${numWinners} contestants with the most votes earn the year long title`,
-    `• The ${numWinners} winners receive a prize package from competition sponsors`,
-    `• 1st place receives a cash prize (min $${minimum.toLocaleString()})`,
-    '• Cash prize grows from every paid vote purchased',
-  ];
+  const content = ['• Total prize package value: $X'];
+
+  if (splitByGender && numWinners === 2) {
+    content.push('• Top 2 (1 male and 1 female) contestants with the most votes and highest judge earn the prize package + title');
+  } else {
+    content.push(`• Top ${numWinners} contestants with the most votes and highest judge earn the prize package + title`);
+  }
+
+  content.push(`• The ${numWinners} winners receive a prize package from competition sponsors`);
 
   return content.join('\n');
 }
@@ -235,31 +265,6 @@ function generateResurrectionContent() {
     '• Resurrected contestants start fresh in the next round',
     '• Only one resurrection opportunity per competition',
   ];
-
-  return content.join('\n');
-}
-
-/**
- * Generate double vote days content
- */
-function generateDoubleVoteDaysContent({ doubleVoteDays }) {
-  const content = [
-    '• On surprise Double Vote Days, every vote counts twice!',
-    '• Both free and paid votes are doubled',
-    '',
-    'Upcoming Double Vote Days:',
-  ];
-
-  doubleVoteDays.forEach(event => {
-    const safeDate = typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date)
-      ? event.date + 'T00:00:00' : event.date;
-    const date = new Date(safeDate).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    });
-    content.push(`• ${date}${event.name ? ` - ${event.name}` : ''}`);
-  });
 
   return content.join('\n');
 }

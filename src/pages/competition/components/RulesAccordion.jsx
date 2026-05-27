@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { generateStandardRules } from '../../../utils/generateStandardRules';
 
@@ -25,8 +26,13 @@ export function RulesAccordion({ competition, votingRounds = [], about, events =
   return (
     <div className="rules-accordion">
       <h4 className="section-label">RULES</h4>
-      <p className="rules-subtitle"><em>Subject to Change</em></p>
-      <p className="rules-subtitle"><em>Terms and Conditions Apply</em></p>
+      <p className="rules-subtitle">
+        <em>
+          <Link to="/contest-terms" className="rules-terms-link">
+            Terms and Conditions Apply
+          </Link>
+        </em>
+      </p>
 
       <div className="rules-list">
         {rules.map((rule, index) => (
