@@ -19,7 +19,9 @@ export function generateStandardRules({
   events = [],
 }) {
   const rules = [];
-  const city = competition?.city || 'your city';
+  // `competition.city` can be either the embedded cities row (from
+  // `city:cities(*)`) or the denormalized TEXT column — accept either.
+  const cityName = competition?.city?.name || competition?.city || 'your city';
   const votingOnly = votingRounds.filter(r => r.round_type === 'voting');
   // Fall back to all non-judging rounds if none are explicitly typed 'voting'
   const numRounds = votingOnly.length || votingRounds.filter(r => r.round_type !== 'judging').length;
@@ -29,7 +31,7 @@ export function generateStandardRules({
   rules.push({
     id: 'eligibility',
     section_title: 'Eligibility Requirements',
-    section_content: generateEligibilityContent({ competition, about, city }),
+    section_content: generateEligibilityContent({ competition, about, cityName }),
     sort_order: 1,
   });
 
@@ -37,7 +39,7 @@ export function generateStandardRules({
   rules.push({
     id: 'voting',
     section_title: 'Voting Rules',
-    section_content: generateVotingContent({ competition }),
+    section_content: generateVotingContent({ competition, votingRounds }),
     sort_order: 2,
   });
 
@@ -89,7 +91,7 @@ export function generateStandardRules({
 /**
  * Generate eligibility section content
  */
-function generateEligibilityContent({ competition, about, city }) {
+function generateEligibilityContent({ competition, about, cityName }) {
   const parts = [];
 
   // Age requirement
@@ -122,8 +124,9 @@ function generateEligibilityContent({ competition, about, city }) {
     parts.push(`Must identify as ${gender}`);
   }
 
-  // Location requirement
-  parts.push(`Must live within 100 miles of ${city}`);
+  // Location requirement — pulled from competitions.eligibility_radius_miles
+  const radiusMiles = competition?.eligibility_radius_miles || 100;
+  parts.push(`Must live within ${radiusMiles} miles of ${cityName}`);
 
   // Other requirements from about.requirement
   if (about?.requirement) {
@@ -147,18 +150,39 @@ function generateEligibilityContent({ competition, about, city }) {
 /**
  * Generate voting rules content
  */
-function generateVotingContent({ competition }) {
-  const pricePerVote = competition?.price_per_vote || 1;
-
+function generateVotingContent({ competition, votingRounds = [] }) {
   const content = [
     '• One free vote per person, per day',
     '• Free votes reset at midnight (local time)',
     '• Additional votes can be purchased',
-    '• Vote counts reset to zero at the start of each new round',
+    describeRoundCarryover(votingRounds),
     '• You can vote for any contestant - vote for your favorites!',
   ];
 
-  return content.join('\n');
+  return content.filter(Boolean).join('\n');
+}
+
+/**
+ * Inspect each round's votes_reset_at_start flag and produce a single
+ * accurate bullet describing how vote counts behave between rounds.
+ *
+ * The first round's flag is moot (the round opens with everyone at 0), so
+ * we only look at rounds where round_order > 1 — i.e. transitions between
+ * rounds. Returns null when there are no inter-round transitions to describe.
+ */
+function describeRoundCarryover(votingRounds) {
+  const transitions = votingRounds
+    .filter(r => (r.round_order || 0) > 1)
+    .map(r => Boolean(r.votes_reset_at_start));
+
+  if (transitions.length === 0) return null;
+
+  const allReset = transitions.every(v => v === true);
+  const allCarry = transitions.every(v => v === false);
+
+  if (allReset) return '• Vote counts reset to zero at the start of each new round';
+  if (allCarry) return '• Vote counts carry over from round to round';
+  return '• Vote counts carry over between most rounds; specific rounds may reset (see round details)';
 }
 
 /**
@@ -167,26 +191,31 @@ function generateVotingContent({ competition }) {
 function generateRoundsContent({ competition, votingRounds, numRounds }) {
   const numWinners = competition?.number_of_winners || 5;
   const sorted = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
-  const cityName = competition?.city?.name || competition?.city || '';
+  // Competition title (e.g. "Most Eligible Toronto 2026"). Avoids the
+  // previous hardcoded "Most Eligible {city}" string which only made sense
+  // for Most Eligible-branded events.
+  const competitionTitle = competition?.name?.trim();
 
   const content = [
     `• The competition runs across ${sorted.length} voting rounds`,
     '• A set number of contestants advances each round based on vote count',
-    '• Votes reset to zero at the start of every round',
   ];
 
-  // List each round with its advancement
+  // List each round with its advancement (and per-round reset note when it
+  // applies to an inter-round transition).
   sorted.forEach((round, index) => {
     const isLast = index === sorted.length - 1;
     const title = round.title || `Round ${index + 1}`;
+    const resetsAtStart = Boolean(round.votes_reset_at_start) && (round.round_order || 0) > 1;
+    const resetSuffix = resetsAtStart ? ' (votes reset to zero at the start of this round)' : '';
 
     if (isLast) {
-      content.push(`• ${title} — the final vote count determines the winners' rankings (1st–${numWinners}th)`);
+      content.push(`• ${title}${resetSuffix} — the final vote count determines the winners' rankings (1st–${numWinners}th)`);
     } else {
       const advanceInfo = round.contestants_advance
         ? ` — Top ${round.contestants_advance} advance`
         : '';
-      content.push(`• ${title}${advanceInfo}`);
+      content.push(`• ${title}${advanceInfo}${resetSuffix}`);
     }
   });
 
@@ -199,8 +228,11 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
     }
   }
 
-  content.push(`• ${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
-  content.push('• Fans can vote once daily for free, or purchase additional votes');
+  if (competitionTitle) {
+    content.push(`• ${numWinners} contestants will be crowned winners of ${competitionTitle} and hold the title for one year`);
+  } else {
+    content.push(`• ${numWinners} contestants will be crowned winners and hold the title for one year`);
+  }
   content.push('• Keep an eye out for surprise Double Vote Days — when they hit, every vote counts twice');
 
   return content.join('\n');
@@ -210,15 +242,22 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
  * Generate prize pool content
  */
 function generatePrizePoolContent({ competition }) {
-  const minimum = competition?.prize_pool_minimum || 1000;
+  // A cash prize pool exists only when prize_pool_minimum is explicitly set
+  // and positive. Without that, we shouldn't claim a cash prize at all —
+  // some competitions use purely sponsored / in-kind prizes.
+  const rawMinimum = competition?.prize_pool_minimum;
+  const minimum = Number(rawMinimum) > 0 ? Number(rawMinimum) : null;
   const numWinners = competition?.number_of_winners || 5;
 
   const content = [
     `• Top ${numWinners} contestants with the most votes earn the year long title`,
     `• The ${numWinners} winners receive a prize package from competition sponsors`,
-    `• 1st place receives a cash prize (min $${minimum.toLocaleString()})`,
-    '• Cash prize grows from every paid vote purchased',
   ];
+
+  if (minimum != null) {
+    content.push(`• 1st place receives a cash prize (min $${minimum.toLocaleString()})`);
+    content.push('• Cash prize grows from every paid vote purchased');
+  }
 
   return content.join('\n');
 }
