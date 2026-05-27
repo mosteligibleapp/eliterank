@@ -23,7 +23,6 @@ export function generateStandardRules({
   const votingOnly = votingRounds.filter(r => r.round_type === 'voting');
   // Fall back to all non-judging rounds if none are explicitly typed 'voting'
   const numRounds = votingOnly.length || votingRounds.filter(r => r.round_type !== 'judging').length;
-  const doubleVoteDays = events.filter(e => e.is_double_vote_day);
 
   // 1. Eligibility Requirements
   rules.push({
@@ -73,16 +72,6 @@ export function generateStandardRules({
     });
   }
 
-  // 6. Double Vote Days (if any scheduled)
-  if (doubleVoteDays.length > 0) {
-    rules.push({
-      id: 'double-days',
-      section_title: 'Double Vote Days',
-      section_content: generateDoubleVoteDaysContent({ doubleVoteDays }),
-      sort_order: 6,
-    });
-  }
-
   return rules;
 }
 
@@ -122,23 +111,29 @@ function generateEligibilityContent({ competition, about, city }) {
     parts.push(`Must identify as ${gender}`);
   }
 
-  // Location requirement
-  parts.push(`Must live within 100 miles of ${city}`);
+  // Location requirement — radius and jurisdiction both configurable per competition.
+  const radius = competition?.eligibility_radius_miles ?? 100;
+  const jurisdiction = competition?.eligibility_jurisdiction;
+  parts.push(
+    jurisdiction
+      ? `Must live within ${radius} miles of ${city}, ${jurisdiction}`
+      : `Must live within ${radius} miles of ${city}`
+  );
 
-  // Other requirements from about.requirement
+  // Other requirements from about.requirement — supports multi-line (one bullet per line)
   if (about?.requirement) {
-    // Parse common requirement patterns
-    const req = about.requirement.toLowerCase();
-    if (req.includes('single')) {
-      parts.push('Must be single (not married or engaged to be married)');
-    } else if (req.includes('based')) {
-      // Generic location requirement - already covered above, skip duplicating
-    } else {
-      // Include custom requirement as-is
-      parts.push(about.requirement);
+    const lines = about.requirement.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    for (const line of lines) {
+      const lower = line.toLowerCase();
+      if (lower.includes('single')) {
+        parts.push('Must be single (not married or engaged to be married)');
+      } else if (lower.includes('based')) {
+        // Generic location requirement — already covered above
+      } else {
+        parts.push(line);
+      }
     }
   }
-  // Note: No default "single" requirement - only applies when explicitly set
 
   // Format as bullet list
   return parts.map(p => `• ${p}`).join('\n');
@@ -151,6 +146,7 @@ function generateVotingContent({ competition }) {
   const pricePerVote = competition?.price_per_vote || 1;
 
   const content = [
+    "• Final winners are determined by 60% judges' scoring and 40% public votes",
     '• One free vote per person, per day',
     '• Free votes reset at midnight (local time)',
     '• Additional votes can be purchased',
@@ -169,10 +165,11 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
   const numWinners = competition?.number_of_winners || 5;
   const sorted = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
   const cityName = competition?.city?.name || competition?.city || '';
+  const splitByGender = competition?.winners_split_by_gender;
 
   const content = [
     `• The competition runs across ${sorted.length} voting rounds`,
-    '• A set number of contestants advances each round based on vote count',
+    '• Lead-up rounds use public voting to narrow the contestant pool',
     '• Votes reset to zero at the start of every round',
   ];
 
@@ -182,7 +179,7 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
     const title = round.title || `Round ${index + 1}`;
 
     if (isLast) {
-      content.push(`• ${title} — the final vote count determines the winners' rankings (1st–${numWinners}th)`);
+      content.push(`• ${title} — winners determined by 60% judges' scoring and 40% public votes`);
     } else {
       const advanceInfo = round.contestants_advance
         ? ` — Top ${round.contestants_advance} advance`
@@ -191,18 +188,13 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
     }
   });
 
-  // Add judge scoring note between second-to-last and last round
-  if (sorted.length >= 2) {
-    const preFinalists = sorted[sorted.length - 2]?.contestants_advance;
-    const finalists = sorted[sorted.length - 1]?.contestants_advance || numWinners;
-    if (preFinalists && preFinalists > finalists) {
-      content.push(`• After the Top ${preFinalists} are determined, a panel of judges will score the finalists — judge scores determine who advances to the Top ${finalists}`);
-    }
+  const crowningTitle = `Most Eligible ${cityName}`;
+  if (splitByGender && numWinners === 2) {
+    content.push(`• One contestant legally recognized as male and one legally recognized as female will be crowned ${crowningTitle} and hold the title for one year`);
+  } else {
+    content.push(`• ${numWinners} contestants will be crowned ${crowningTitle} and hold the title for one year`);
   }
-
-  content.push(`• ${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
   content.push('• Fans can vote once daily for free, or purchase additional votes');
-  content.push('• Keep an eye out for surprise Double Vote Days — when they hit, every vote counts twice');
 
   return content.join('\n');
 }
@@ -215,6 +207,7 @@ function generatePrizePoolContent({ competition }) {
   const numWinners = competition?.number_of_winners || 5;
 
   const content = [
+    '• Total prize package value: $X',
     `• Top ${numWinners} contestants with the most votes earn the year long title`,
     `• The ${numWinners} winners receive a prize package from competition sponsors`,
     `• 1st place receives a cash prize (min $${minimum.toLocaleString()})`,
@@ -235,31 +228,6 @@ function generateResurrectionContent() {
     '• Resurrected contestants start fresh in the next round',
     '• Only one resurrection opportunity per competition',
   ];
-
-  return content.join('\n');
-}
-
-/**
- * Generate double vote days content
- */
-function generateDoubleVoteDaysContent({ doubleVoteDays }) {
-  const content = [
-    '• On surprise Double Vote Days, every vote counts twice!',
-    '• Both free and paid votes are doubled',
-    '',
-    'Upcoming Double Vote Days:',
-  ];
-
-  doubleVoteDays.forEach(event => {
-    const safeDate = typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date)
-      ? event.date + 'T00:00:00' : event.date;
-    const date = new Date(safeDate).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    });
-    content.push(`• ${date}${event.name ? ` - ${event.name}` : ''}`);
-  });
 
   return content.join('\n');
 }
