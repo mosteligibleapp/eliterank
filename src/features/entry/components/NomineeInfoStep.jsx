@@ -36,6 +36,7 @@ export default function NomineeInfoStep({
   const isValid =
     data.name.trim() &&
     data.email?.trim() &&
+    data.instagram?.trim() &&
     (!splitByGender || data.gender === 'male' || data.gender === 'female');
 
   return (
@@ -104,7 +105,7 @@ export default function NomineeInfoStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Instagram Handle</label>
+        <label className="entry-label">Instagram Handle *</label>
         <div className="entry-input-icon">
           <Instagram size={18} />
           <input

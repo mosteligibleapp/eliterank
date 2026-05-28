@@ -27,6 +27,7 @@ export default function BuildCardDetailsStep({
     data.age &&
     parseInt(data.age, 10) >= 18 &&
     data.location?.trim() &&
+    data.instagram?.trim() &&
     (!splitByGender || data.gender === 'male' || data.gender === 'female');
 
   const handleSubmit = (e) => {
@@ -113,7 +114,7 @@ export default function BuildCardDetailsStep({
       )}
 
       <div className="entry-form-field">
-        <label className="entry-label">Instagram</label>
+        <label className="entry-label">Instagram *</label>
         <div className="entry-input-icon">
           <Instagram size={18} />
           <input
