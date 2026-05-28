@@ -265,7 +265,12 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
   const finalRound = sorted[sorted.length - 1] || null;
   const regularRounds = sorted.slice(0, -1);
   const numRegularRounds = regularRounds.length;
-  const advanceToFinalists = regularRounds[regularRounds.length - 1]?.contestants_advance;
+  const cutRound = regularRounds[regularRounds.length - 1] || null;
+  const advanceToFinalists = cutRound?.contestants_advance;
+  // Judge weight on the round that cuts to finalists, and on the final round
+  // itself. Either (or both) may carry the panel scoring depending on how the
+  // host configured their bracket.
+  const cutJudgePct = cutRound?.judge_weight ?? 0;
   const finalJudgePct = judgesPctRaw ?? finalRound?.judge_weight ?? 0;
   const half = (n) => Math.ceil(n / 2);
 
@@ -275,10 +280,14 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     howItWorksPoints.push('A set number of contestants advances each round based on vote count, and votes reset at the start of every round');
 
     if (advanceToFinalists) {
-      if (splitByGender) {
-        howItWorksPoints.push(`After the ${ordinal(numRegularRounds)} round, the top ${advanceToFinalists} (${half(advanceToFinalists)} men and ${half(advanceToFinalists)} women) will advance as finalists`);
+      const splitSuffix = splitByGender
+        ? ` (${half(advanceToFinalists)} men and ${half(advanceToFinalists)} women)`
+        : '';
+      if (cutJudgePct > 0) {
+        const cutVotePct = 100 - cutJudgePct;
+        howItWorksPoints.push(`After the ${ordinal(numRegularRounds)} round, a mix of judge scores (${cutJudgePct}%) and vote count (${cutVotePct}%) determines the top ${advanceToFinalists}${splitSuffix} who advance as finalists`);
       } else {
-        howItWorksPoints.push(`After the ${ordinal(numRegularRounds)} round, the top ${advanceToFinalists} will advance as finalists`);
+        howItWorksPoints.push(`After the ${ordinal(numRegularRounds)} round, the top ${advanceToFinalists}${splitSuffix} will advance as finalists`);
       }
     }
   }
@@ -295,6 +304,11 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
 
   if (competition?.crowning_text) {
     howItWorksPoints.push(competition.crowning_text);
+  } else if (competition?.name) {
+    const seasonPart = competition.season ? `${competition.season} ` : '';
+    const cityPart = cityName && cityName !== 'your city' ? ` of ${cityName}` : '';
+    const genderSuffix = splitByGender && numWinners === 2 ? ' (1 male and 1 female)' : '';
+    howItWorksPoints.push(`${numWinners} winner${numWinners === 1 ? '' : 's'}${genderSuffix} will be crowned the ${seasonPart}${competition.name}${cityPart} and hold the title for one year`);
   } else if (splitByGender && numWinners === 2) {
     howItWorksPoints.push('The 2 winners (1 male and 1 female) will be crowned and hold the title for one year');
   } else {
