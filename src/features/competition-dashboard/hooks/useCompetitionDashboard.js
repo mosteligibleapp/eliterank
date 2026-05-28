@@ -884,24 +884,38 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
-      const { data: inserted, error: insertError } = await supabase
+      const baseRecord = {
+        competition_id: competitionId,
+        user_id: nomineeData.userId || null,
+        name: nomineeData.name,
+        email: nomineeData.email ? nomineeData.email.replace(/^.*<([^>]+)>$/, '$1').trim() : null,
+        phone: nomineeData.phone || null,
+        instagram: nomineeData.instagram || null,
+        city: nomineeData.city || null,
+        gender: nomineeData.gender || null,
+        avatar_url: nomineeData.avatarUrl || null,
+        nominated_by: 'admin',
+        invite_token: crypto.randomUUID(),
+        status: 'pending',
+      };
+
+      let { data: inserted, error: insertError } = await supabase
         .from('nominees')
-        .insert({
-          competition_id: competitionId,
-          user_id: nomineeData.userId || null,
-          name: nomineeData.name,
-          email: nomineeData.email ? nomineeData.email.replace(/^.*<([^>]+)>$/, '$1').trim() : null,
-          phone: nomineeData.phone || null,
-          instagram: nomineeData.instagram || null,
-          city: nomineeData.city || null,
-          gender: nomineeData.gender || null,
-          avatar_url: nomineeData.avatarUrl || null,
-          nominated_by: 'admin',
-          invite_token: crypto.randomUUID(),
-          status: 'pending',
-        })
+        .insert(baseRecord)
         .select('id')
         .single();
+
+      // Schema-cache fallback: if 077 (nominees.gender) hasn't propagated
+      // yet, retry without the gender column so host-add keeps working.
+      if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('schema cache') || insertError.message?.includes('column "gender"'))) {
+        // eslint-disable-next-line no-unused-vars
+        const { gender, ...withoutGender } = baseRecord;
+        ({ data: inserted, error: insertError } = await supabase
+          .from('nominees')
+          .insert(withoutGender)
+          .select('id')
+          .single());
+      }
 
       if (insertError) throw insertError;
 
@@ -932,21 +946,32 @@ export function useCompetitionDashboard(competitionId) {
     try {
       const linkedUserId = contestantData.userId || null;
 
-      const { error: insertError } = await supabase
+      const baseRecord = {
+        competition_id: competitionId,
+        name: contestantData.name,
+        email: contestantData.email,
+        instagram: contestantData.instagram,
+        age: contestantData.age,
+        bio: contestantData.bio,
+        gender: contestantData.gender || null,
+        avatar_url: contestantData.avatarUrl || null,
+        status: 'active',
+        votes: 0,
+        user_id: linkedUserId,
+      };
+
+      let { error: insertError } = await supabase
         .from('contestants')
-        .insert({
-          competition_id: competitionId,
-          name: contestantData.name,
-          email: contestantData.email,
-          instagram: contestantData.instagram,
-          age: contestantData.age,
-          bio: contestantData.bio,
-          gender: contestantData.gender || null,
-          avatar_url: contestantData.avatarUrl || null,
-          status: 'active',
-          votes: 0,
-          user_id: linkedUserId,
-        });
+        .insert(baseRecord);
+
+      // Schema-cache fallback for the contestants.gender column from 077.
+      if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('schema cache') || insertError.message?.includes('column "gender"'))) {
+        // eslint-disable-next-line no-unused-vars
+        const { gender, ...withoutGender } = baseRecord;
+        ({ error: insertError } = await supabase
+          .from('contestants')
+          .insert(withoutGender));
+      }
 
       if (insertError) throw insertError;
 
