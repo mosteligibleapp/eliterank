@@ -73,9 +73,13 @@ async function sendNominationsOpenBlast(
 
   const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
   const orgSlug = (compDetails?.organization as { slug?: string } | null)?.slug
+  // All competition routes are mounted under :orgSlug. If a competition is
+  // missing an organization slug (shouldn't happen for published competitions,
+  // but guard anyway), the only safe target is the homepage — /c/:id is not
+  // a real route.
   const competitionUrl = orgSlug
     ? `${appUrl}/${orgSlug}/${compDetails?.slug || `id/${competition.id}`}`
-    : `${appUrl}/c/${competition.id}`
+    : appUrl
 
   const cityName = (compDetails?.city as { name?: string } | null)?.name || null
   const competitionName = compDetails?.name || `Most Eligible ${cityName || ''}`.trim()
