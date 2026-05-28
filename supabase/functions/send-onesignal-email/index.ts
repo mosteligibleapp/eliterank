@@ -171,11 +171,11 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
         : 'Accept your nomination to be considered.'
 
       return {
-        subject: `You've been nominated for ${req.competition_name || 'Most Eligible'}!`,
+        subject: `You've been nominated${req.competition_name ? ` for ${req.competition_name}` : ''}!`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You've Been Nominated!</h1>
-            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            ${req.competition_name ? `<p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name}</p>` : ''}
             ${nominatorLine}
             ${reasonLine}
             <p style="color:#999;font-size:14px;margin-top:16px;">
@@ -192,11 +192,11 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
 
     case 'nominee_reminder': {
       return {
-        subject: `Finish your profile for ${req.competition_name || 'Most Eligible'}`,
+        subject: `Finish your profile${req.competition_name ? ` for ${req.competition_name}` : ''}`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Almost There!</h1>
-            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            ${req.competition_name ? `<p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name}</p>` : ''}
             <p style="color:#ccc;font-size:15px;">
               You accepted your nomination — now finish setting up your profile to be eligible to compete.
             </p>
@@ -214,11 +214,11 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
 
     case 'self_nominee_reminder': {
       return {
-        subject: `You're almost in — finish your entry for ${req.competition_name || 'Most Eligible'}`,
+        subject: `You're almost in${req.competition_name ? ` — finish your entry for ${req.competition_name}` : ' — finish your entry'}`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You're So Close!</h1>
-            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            ${req.competition_name ? `<p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name}</p>` : ''}
             <p style="color:#ccc;font-size:15px;">
               You started entering but didn't finish your profile. Complete it now so the hosts can review and approve you.
             </p>
@@ -262,11 +262,11 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
         : ''
 
       return {
-        subject: `Your nomination for ${req.competition_name || 'Most Eligible'} was submitted!`,
+        subject: `Your nomination${req.competition_name ? ` for ${req.competition_name}` : ''} was submitted!`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Nomination Submitted!</h1>
-            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            ${req.competition_name ? `<p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name}</p>` : ''}
             <p style="color:#ccc;font-size:15px;">
               You nominated <strong>${req.nominee_name || 'someone special'}</strong>.
             </p>
@@ -301,11 +301,11 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
 
     case 'nominee_declined': {
       return {
-        subject: `Update on your nomination for ${req.competition_name || 'Most Eligible'}`,
+        subject: `Update on your nomination${req.competition_name ? ` for ${req.competition_name}` : ''}`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#999;font-size:28px;margin:0 0 8px;">Nomination Update</h1>
-            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            ${req.competition_name ? `<p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name}</p>` : ''}
             <p style="color:#ccc;font-size:15px;">
               Unfortunately, <strong>${req.nominee_name || 'your nominee'}</strong> has decided not to enter the competition at this time.
             </p>
@@ -321,11 +321,11 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
     case 'account_ready': {
       const resetUrl = req.reset_password_url || `${appUrl}/login`
       return {
-        subject: `Your ${req.competition_name || 'Most Eligible'} account is ready — set your password`,
+        subject: `Your${req.competition_name ? ` ${req.competition_name}` : ''} account is ready — set your password`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">Your Account is Ready!</h1>
-            <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name || 'Most Eligible'}</p>
+            ${req.competition_name ? `<p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${req.competition_name}</p>` : ''}
             <p style="color:#ccc;font-size:15px;">
               Hi${req.nominee_name ? ` ${req.nominee_name.split(' ')[0]}` : ''}! Your EliteRank account has been set up with your nomination details.
             </p>
