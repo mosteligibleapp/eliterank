@@ -746,24 +746,6 @@ CREATE INDEX idx_activity_type ON competition_activity(activity_type);
 CREATE INDEX idx_activity_contestant ON competition_activity(contestant_id) WHERE contestant_id IS NOT NULL;
 
 -- =============================================================================
--- TABLE: ai_post_events
--- Tracks which competition events triggered AI announcements
--- =============================================================================
-CREATE TABLE ai_post_events (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  competition_id UUID NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
-  event_type TEXT NOT NULL CHECK (event_type IN (
-    'competition_launched', 'nominations_open', 'nominations_close',
-    'voting_open', 'voting_close', 'results_announced'
-  )),
-  triggered_at TIMESTAMPTZ DEFAULT NOW(),
-  announcement_id UUID REFERENCES announcements(id) ON DELETE SET NULL,
-  UNIQUE(competition_id, event_type)
-);
-
-CREATE INDEX idx_ai_post_events_competition ON ai_post_events(competition_id);
-
--- =============================================================================
 -- TABLE: interest_submissions
 -- Interest form submissions for hosting/sponsoring/competing/judging
 -- =============================================================================
@@ -1237,7 +1219,6 @@ ALTER TABLE reward_competition_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE competition_activity ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ai_post_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interest_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE competition_prizes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE competition_rules ENABLE ROW LEVEL SECURITY;
@@ -1426,14 +1407,6 @@ CREATE POLICY "Super admins can manage app settings" ON app_settings FOR ALL
 -- =============================================================================
 CREATE POLICY "Public can view activity" ON competition_activity FOR SELECT USING (true);
 CREATE POLICY "Service role can insert activity" ON competition_activity FOR INSERT WITH CHECK (true);
-
--- =============================================================================
--- AI_POST_EVENTS POLICIES
--- =============================================================================
-CREATE POLICY "Super admins can view ai_post_events" ON ai_post_events FOR SELECT
-  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_super_admin = true));
-CREATE POLICY "Service role can manage ai_post_events" ON ai_post_events FOR ALL
-  USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
 
 -- =============================================================================
 -- INTEREST_SUBMISSIONS POLICIES
