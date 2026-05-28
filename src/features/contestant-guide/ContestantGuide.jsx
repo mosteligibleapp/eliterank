@@ -331,14 +331,13 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     {
       icon: <Vote size={48} className="guide-icon guide-icon--pink" />,
       title: 'Voting',
-      subtitle: 'Understanding votes is key to winning',
+      subtitle: 'Understanding votes is key to advancing',
       points: [
         'Fans can vote once daily for free, or purchase additional votes',
-        'Free votes reset at midnight (local time)',
-        `Additional votes can be purchased ($${pricePerVote.toFixed(2)} each)`,
-        'Paid votes count immediately and never expire',
+        `Additional votes can be purchased (not required) and are applied immediately to the contestant's vote count`,
         'Vote counts reset to zero at the start of each new round',
-        'Keep an eye out for surprise Double Vote Days — when they hit, every vote counts twice',
+        'Keep an eye out for Double Vote Days — when they hit, every vote counts twice',
+        'The host may upload simple Bonus Vote tasks for contestants to earn additional free votes (e.g., add your profile link to your Instagram bio)',
       ],
       tip: 'Remind your supporters to vote daily — those free votes add up fast!',
     },
