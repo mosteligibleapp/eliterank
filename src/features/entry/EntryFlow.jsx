@@ -248,6 +248,7 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           onNext={handleDetailsNext}
           error={flow.submitError}
           isSubmitting={flow.isSubmitting}
+          splitByGender={!!competition?.winners_split_by_gender}
         />
       );
 
@@ -293,6 +294,7 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           onChange={flow.updateNomineeData}
           onNext={flow.next}
           error={flow.submitError}
+          splitByGender={!!competition?.winners_split_by_gender}
         />
       );
 

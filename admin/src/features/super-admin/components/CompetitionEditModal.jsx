@@ -73,6 +73,7 @@ export default function CompetitionEditModal({
     price_per_vote: 1.00,
     use_price_bundler: false,
     allow_manual_votes: false,
+    winners_split_by_gender: false,
   });
 
   // Reset form when competition changes or modal opens
@@ -93,6 +94,7 @@ export default function CompetitionEditModal({
         price_per_vote: competition.price_per_vote ?? 1.00,
         use_price_bundler: competition.use_price_bundler ?? false,
         allow_manual_votes: competition.allow_manual_votes ?? false,
+        winners_split_by_gender: competition.winners_split_by_gender ?? false,
       });
       setActiveTab(defaultTab);
       setShowPriceBundlerTiers(false);
@@ -430,6 +432,20 @@ export default function CompetitionEditModal({
               />
             </FormField>
           </FormGrid>
+
+          <div style={styles.toggleRow}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={styles.toggleLabel}>Split Winners by Gender</p>
+              <p style={styles.toggleDescription}>
+                Nomination form asks for legally and medically recognized male/female,
+                and winners are picked separately per gender (one male + one female when number of winners is 2).
+              </p>
+            </div>
+            <ToggleSwitch
+              checked={formData.winners_split_by_gender}
+              onChange={(checked) => updateField('winners_split_by_gender', checked)}
+            />
+          </div>
         </FormSection>
       )}
     </FormModal>

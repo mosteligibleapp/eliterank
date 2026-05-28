@@ -2,13 +2,17 @@ import React, { useRef } from 'react';
 import { Instagram, Camera, X, Mail } from 'lucide-react';
 
 /**
- * Nomination: nominee info (name, email, instagram, optional photo)
+ * Nomination: nominee info (name, email, instagram, optional photo).
+ *
+ * When `splitByGender` is true the competition divides winners male/female,
+ * so the nominator must record the nominee's gender.
  */
 export default function NomineeInfoStep({
   data,
   onChange,
   onNext,
   error,
+  splitByGender = false,
 }) {
   const inputRef = useRef(null);
 
@@ -29,7 +33,10 @@ export default function NomineeInfoStep({
     onChange({ photoFile: file, photoPreview: previewUrl });
   };
 
-  const isValid = data.name.trim() && data.email?.trim();
+  const isValid =
+    data.name.trim() &&
+    data.email?.trim() &&
+    (!splitByGender || data.gender === 'male' || data.gender === 'female');
 
   return (
     <div className="entry-step entry-step-nominee">
@@ -111,6 +118,35 @@ export default function NomineeInfoStep({
           />
         </div>
       </div>
+
+      {splitByGender && (
+        <div className="entry-form-field">
+          <label className="entry-label">Their Gender *</label>
+          <div className="entry-gender-options">
+            <label className={`entry-gender-option ${data.gender === 'male' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="nominee-gender"
+                value="male"
+                checked={data.gender === 'male'}
+                onChange={() => onChange({ gender: 'male' })}
+              />
+              <span>Male</span>
+            </label>
+            <label className={`entry-gender-option ${data.gender === 'female' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="nominee-gender"
+                value="female"
+                checked={data.gender === 'female'}
+                onChange={() => onChange({ gender: 'female' })}
+              />
+              <span>Female</span>
+            </label>
+          </div>
+          <p className="entry-hint">Legally and medically recognized.</p>
+        </div>
+      )}
 
       {error && <p className="entry-error">{error}</p>}
 

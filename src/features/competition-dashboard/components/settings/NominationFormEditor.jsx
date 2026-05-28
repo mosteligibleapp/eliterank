@@ -16,7 +16,7 @@ import {
   resolveNominationFormConfig,
   CUSTOM_QUESTION_TYPES,
   newCustomQuestionId,
-  STANDARD_NOMINATION_FIELDS,
+  getStandardNominationFields,
   MAX_CUSTOM_QUESTIONS,
 } from '../../../../utils/nominationFormDefaults';
 
@@ -219,7 +219,7 @@ export function NominationFormEditor({ competition, onSave }) {
             These are always collected and can't be removed.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.xs }}>
-            {STANDARD_NOMINATION_FIELDS.map((f) => (
+            {getStandardNominationFields(competition).map((f) => (
               <div
                 key={f.label}
                 style={{

@@ -12,6 +12,7 @@ export default function BuildCardDetailsStep({
   onNext,
   error,
   isSubmitting,
+  splitByGender = false,
 }) {
   const handleChange = (field) => (e) => {
     onChange({ [field]: e.target.value });
@@ -25,7 +26,8 @@ export default function BuildCardDetailsStep({
     hasEmail &&
     data.age &&
     parseInt(data.age, 10) >= 18 &&
-    data.location?.trim();
+    data.location?.trim() &&
+    (!splitByGender || data.gender === 'male' || data.gender === 'female');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -125,6 +127,35 @@ export default function BuildCardDetailsStep({
           />
         </div>
       </div>
+
+      {splitByGender && (
+        <div className="entry-form-field">
+          <label className="entry-label">Gender *</label>
+          <div className="entry-gender-options">
+            <label className={`entry-gender-option ${data.gender === 'male' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="self-gender"
+                value="male"
+                checked={data.gender === 'male'}
+                onChange={() => onChange({ gender: 'male' })}
+              />
+              <span>Male</span>
+            </label>
+            <label className={`entry-gender-option ${data.gender === 'female' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="self-gender"
+                value="female"
+                checked={data.gender === 'female'}
+                onChange={() => onChange({ gender: 'female' })}
+              />
+              <span>Female</span>
+            </label>
+          </div>
+          <p className="entry-hint">Legally and medically recognized.</p>
+        </div>
+      )}
 
       {error && <p className="entry-error">{error}</p>}
 

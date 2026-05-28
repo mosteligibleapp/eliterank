@@ -373,6 +373,7 @@ export function useCompetitionDashboard(competitionId) {
           avatarUrl: matchedProfile?.avatar_url || n.avatar_url || null,
           instagram: n.instagram || matchedProfile?.instagram || null,
           status: n.status,
+          gender: n.gender || null,
           inviteToken: n.invite_token,
           inviteSentAt: n.invite_sent_at,
           claimedAt: n.claimed_at,
@@ -581,6 +582,9 @@ export function useCompetitionDashboard(competitionId) {
           timezone: competition.timezone || 'UTC',
           // Host-controlled gate for the manual "Add Votes" dashboard action.
           allowManualVotes: competition.allow_manual_votes ?? false,
+          // Super-admin gate: when true, the nomination form collects gender
+          // and winner selection is split male/female.
+          winnersSplitByGender: competition.winners_split_by_gender ?? false,
           // Setup-tab section ids the host has grayed out.
           hiddenSetupSections: competition.hidden_setup_sections || [],
           // Timeline arrays — pass through so computeCompetitionPhase can
@@ -635,6 +639,7 @@ export function useCompetitionDashboard(competitionId) {
         name: nominee.name,
         email: nominee.email,
         phone: nominee.phone,
+        gender: nominee.gender ?? null,
         status: 'active',
         votes: 0,
         user_id: linkedUserId,

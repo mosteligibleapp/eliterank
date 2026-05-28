@@ -464,6 +464,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
         price_per_vote: formData.price_per_vote,
         use_price_bundler: formData.use_price_bundler,
         allow_manual_votes: formData.allow_manual_votes,
+        winners_split_by_gender: formData.winners_split_by_gender,
         eligibility_radius_miles: formData.eligibility_radius,
         min_contestants: formData.min_contestants,
         max_contestants: maxContestants,

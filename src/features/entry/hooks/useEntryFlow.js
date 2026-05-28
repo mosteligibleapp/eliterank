@@ -3,8 +3,8 @@ import { supabase } from '../../../lib/supabase';
 import { uploadPhoto } from '../utils/uploadPhoto';
 import { resolveNominationFormConfig } from '../../../utils/nominationFormDefaults';
 
-// Columns added by 20260213 migration — strip if migration hasn't run yet
-const NEW_COLUMNS = ['city', 'flow_stage'];
+// Columns added by later migrations — strip if migration hasn't run yet
+const NEW_COLUMNS = ['city', 'flow_stage', 'gender'];
 
 function stripNewColumns(record) {
   const clean = { ...record };
@@ -94,6 +94,7 @@ export function useEntryFlow(competition, profile, options = {}) {
     photoFile: null,
     photoPreview: profile?.avatar_url || '',
     bio: '',
+    gender: '',
   });
 
   // Nomination data
@@ -105,6 +106,7 @@ export function useEntryFlow(competition, profile, options = {}) {
     photoFile: null,
     photoPreview: '',
     reason: '',
+    gender: '',
   });
 
   const [nominatorData, setNominatorData] = useState({
@@ -205,6 +207,7 @@ export function useEntryFlow(competition, profile, options = {}) {
           location: existingNominee.city || prev.location,
           photoPreview: existingNominee.avatar_url || prev.photoPreview,
           bio: existingNominee.bio || prev.bio,
+          gender: existingNominee.gender || prev.gender,
         }));
 
         if (existingNominee.eligibility_answers) {
@@ -358,6 +361,7 @@ export function useEntryFlow(competition, profile, options = {}) {
         instagram: selfData.instagram?.trim() || null,
         age: selfData.age ? parseInt(selfData.age, 10) : null,
         city: selfData.location?.trim() || null,
+        gender: selfData.gender || null,
         avatar_url: avatarUrl || null,
         nominated_by: 'self',
         status: 'pending',
@@ -379,6 +383,7 @@ export function useEntryFlow(competition, profile, options = {}) {
           instagram: record.instagram,
           age: record.age,
           city: record.city,
+          gender: record.gender,
           avatar_url: record.avatar_url,
           flow_stage: flowStage,
         };
@@ -471,6 +476,7 @@ export function useEntryFlow(competition, profile, options = {}) {
         avatar_url: avatarUrl || null,
         age: selfData.age ? parseInt(selfData.age, 10) : null,
         city: selfData.location?.trim() || null,
+        gender: selfData.gender || null,
         // Anon users still need the password step — set 'bio' so resume
         // maps to 'password'. Logged-in users skip password, so 'card'.
         flow_stage: isLoggedIn ? 'card' : 'bio',
@@ -771,6 +777,7 @@ export function useEntryFlow(competition, profile, options = {}) {
         name: nomineeData.name.trim(),
         email: nomineeData.email.trim() || null,
         instagram: nomineeData.instagram.trim() || null,
+        gender: nomineeData.gender || null,
         relationship: nomineeData.relationship || null,
         avatar_url: avatarUrl,
         nomination_reason: nomineeData.reason.trim() || null,
@@ -837,6 +844,7 @@ export function useEntryFlow(competition, profile, options = {}) {
       photoFile: null,
       photoPreview: '',
       reason: '',
+      gender: '',
     });
     setSubmittedData(null);
     setSubmitError('');
