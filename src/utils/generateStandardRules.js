@@ -207,7 +207,15 @@ function generateRoundsContent({ competition, votingRounds, numRounds }) {
     } else {
       const nextRound = sorted[index + 1];
       const advance = round.contestants_advance;
-      if (advance && nextRound) {
+      // When the competition splits winners by gender, finalize_voting_round
+      // advances CEIL(advance / 2) per gender — so a configured "60 advance"
+      // becomes "30 men and 30 women advance" in the rules text.
+      const perGender = advance ? Math.ceil(advance / 2) : 0;
+      if (advance && splitByGender && nextRound) {
+        content.push(`• ${title} — Top ${perGender} men and top ${perGender} women advance to ${nextRound.title || 'next round'}`);
+      } else if (advance && splitByGender) {
+        content.push(`• ${title} — Top ${perGender} men and top ${perGender} women advance`);
+      } else if (advance && nextRound) {
         content.push(`• ${title} — Top ${advance} advance to ${nextRound.title || 'next round'}`);
       } else if (advance) {
         content.push(`• ${title} — Top ${advance} advance`);

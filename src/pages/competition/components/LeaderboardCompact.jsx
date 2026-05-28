@@ -29,6 +29,7 @@ export function LeaderboardCompact() {
   // counts — no active voting is happening, so showing ranks/votes would
   // be misleading.
   const isBetweenRounds = phase?.phase === 'between-rounds';
+  const splitByGender = !!competition?.winners_split_by_gender;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,6 +70,19 @@ export function LeaderboardCompact() {
   const maxContestants = nextEvent ? 11 : 9;
   const displayContestants = contestants?.slice(0, maxContestants) || [];
 
+  // When the competition splits winners by gender, render the compact
+  // leaderboard as two stacked groups (top men / top women) instead of one
+  // mixed list. Each group shows half the cap, rounded up, so the total
+  // visible count stays close to maxContestants.
+  const perGenderCap = Math.ceil(maxContestants / 2);
+  const topMen = splitByGender
+    ? (contestants?.filter((c) => c.gender === 'male').slice(0, perGenderCap) || [])
+    : [];
+  const topWomen = splitByGender
+    ? (contestants?.filter((c) => c.gender === 'female').slice(0, perGenderCap) || [])
+    : [];
+  const winnersPerGender = Math.ceil(numberOfWinners / 2);
+
   return (
     <div className="leaderboard-prominent">
       <div className="leaderboard-header">
@@ -82,24 +96,59 @@ export function LeaderboardCompact() {
         </span>
       </div>
 
-      {/* Portrait Grid */}
-      <div className="portrait-grid">
-        {displayContestants.map((contestant, index) => (
-          <PortraitCard
-            key={contestant.id}
-            contestant={contestant}
-            rank={index + 1}
-            numberOfWinners={numberOfWinners}
-            hideRank={isBetweenRounds}
-            hideVotes={isBetweenRounds}
-            hideDanger={isBetweenRounds}
-            onVote={handleCardClick}
-          />
-        ))}
-        {nextEvent && (
-          <EventPortraitCard event={nextEvent} />
-        )}
-      </div>
+      {splitByGender ? (
+        <>
+          <h4 className="leaderboard-gender-subheading">Men</h4>
+          <div className="portrait-grid">
+            {topMen.map((contestant, index) => (
+              <PortraitCard
+                key={contestant.id}
+                contestant={contestant}
+                rank={index + 1}
+                numberOfWinners={winnersPerGender}
+                hideRank={isBetweenRounds}
+                hideVotes={isBetweenRounds}
+                hideDanger={isBetweenRounds}
+                onVote={handleCardClick}
+              />
+            ))}
+          </div>
+          <h4 className="leaderboard-gender-subheading">Women</h4>
+          <div className="portrait-grid">
+            {topWomen.map((contestant, index) => (
+              <PortraitCard
+                key={contestant.id}
+                contestant={contestant}
+                rank={index + 1}
+                numberOfWinners={winnersPerGender}
+                hideRank={isBetweenRounds}
+                hideVotes={isBetweenRounds}
+                hideDanger={isBetweenRounds}
+                onVote={handleCardClick}
+              />
+            ))}
+            {nextEvent && <EventPortraitCard event={nextEvent} />}
+          </div>
+        </>
+      ) : (
+        <div className="portrait-grid">
+          {displayContestants.map((contestant, index) => (
+            <PortraitCard
+              key={contestant.id}
+              contestant={contestant}
+              rank={index + 1}
+              numberOfWinners={numberOfWinners}
+              hideRank={isBetweenRounds}
+              hideVotes={isBetweenRounds}
+              hideDanger={isBetweenRounds}
+              onVote={handleCardClick}
+            />
+          ))}
+          {nextEvent && (
+            <EventPortraitCard event={nextEvent} />
+          )}
+        </div>
+      )}
 
       {/* Danger Zone Summary — hidden between rounds */}
       {!isBetweenRounds && dangerZone?.length > 0 && (

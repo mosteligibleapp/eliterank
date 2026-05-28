@@ -60,6 +60,7 @@ export function useLeaderboard(competitionId, options = {}) {
           eliminated_in_round,
           advancement_status,
           current_round,
+          gender,
           created_at,
           updated_at,
           profile:profiles!user_id(avatar_url, first_name, last_name)
