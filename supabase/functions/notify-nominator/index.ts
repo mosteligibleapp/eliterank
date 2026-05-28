@@ -90,7 +90,7 @@ serve(async (req) => {
 
     const competition = nominee.competition as any
     const cityName = competition?.city?.name || 'Unknown'
-    const competitionName = competition?.name || `Most Eligible ${cityName} ${competition?.season || ''}`
+    const competitionName = competition?.name || 'the competition'
     const competitionUrl = `${appUrl}/c/${competition?.id || ''}`
 
     // Determine email type
