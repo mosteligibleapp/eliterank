@@ -34,6 +34,22 @@ export const STANDARD_NOMINATION_FIELDS = [
   { label: 'Password', stage: 'Claim flow' },
 ];
 
+/**
+ * Standard fields list with a Gender row inserted when the competition splits
+ * winners by gender. Used by the host editor so the read-only field list
+ * matches what the public form actually collects.
+ */
+export function getStandardNominationFields(competition) {
+  if (competition?.winners_split_by_gender || competition?.winnersSplitByGender) {
+    return [
+      ...STANDARD_NOMINATION_FIELDS.slice(0, 4),
+      { label: 'Gender (legally & medically recognized)', stage: 'Nomination form' },
+      ...STANDARD_NOMINATION_FIELDS.slice(4),
+    ];
+  }
+  return STANDARD_NOMINATION_FIELDS;
+}
+
 export function resolveNominationFormConfig(stored) {
   if (!stored || typeof stored !== 'object') {
     return { custom_questions: [] };

@@ -100,7 +100,11 @@ export default function PeopleTab({
   const avatarUploadTarget = useRef(null);
   const [reordering, setReordering] = useState(false);
   const [showAddVotes, setShowAddVotes] = useState(false);
+  // 'all' | 'male' | 'female' — only meaningful when the competition splits
+  // winners by gender. Filters every nominee / contestant section below.
+  const [genderFilter, setGenderFilter] = useState('all');
 
+  const splitByGender = !!competition?.winnersSplitByGender;
   const isLegacy = competition?.is_legacy;
   const isCompleted = competition?.status === 'completed';
   const showReorder = isLegacy || isCompleted;
@@ -374,13 +378,32 @@ export default function PeopleTab({
     return true;
   });
   // Incomplete self-nominations: started the flow but haven't finished
-  const incompleteNominees = nominees.filter(n =>
+  const incompleteNomineesAll = nominees.filter(n =>
     (n.status === 'pending' || n.status === 'awaiting_profile' || n.status === 'profile_complete') &&
     n.nominatedBy === 'self' && !n.claimedAt
   );
-  const nomineesWithProfile = activeNominees.filter(n => n.hasProfile);
-  const externalNominees = activeNominees.filter(n => !n.hasProfile);
-  const declinedNominees = nominees.filter(n => n.status === 'declined' || n.status === 'rejected' || n.status === 'archived');
+  const nomineesWithProfileAll = activeNominees.filter(n => n.hasProfile);
+  const externalNomineesAll = activeNominees.filter(n => !n.hasProfile);
+  const declinedNomineesAll = nominees.filter(n => n.status === 'declined' || n.status === 'rejected' || n.status === 'archived');
+
+  // Per-gender breakdown helper. Used for both the stat-row sub-counts and
+  // the host's male/female filter chips. Only meaningful when split is on.
+  const byGender = (list) => ({
+    male: list.filter((p) => p.gender === 'male').length,
+    female: list.filter((p) => p.gender === 'female').length,
+    unset: list.filter((p) => p.gender !== 'male' && p.gender !== 'female').length,
+  });
+  const applyGenderFilter = (list) => {
+    if (!splitByGender || genderFilter === 'all') return list;
+    return list.filter((p) => p.gender === genderFilter);
+  };
+
+  // Filtered views used in the section panels + their counts.
+  const nomineesWithProfile = applyGenderFilter(nomineesWithProfileAll);
+  const externalNominees = applyGenderFilter(externalNomineesAll);
+  const incompleteNominees = applyGenderFilter(incompleteNomineesAll);
+  const declinedNominees = applyGenderFilter(declinedNomineesAll);
+  const contestantsFiltered = applyGenderFilter(contestants || []);
 
   // Whether a nominee can be approved (must have accepted and have a profile)
   const canApprove = (nominee) => {
@@ -404,7 +427,11 @@ export default function PeopleTab({
         </span>
       );
     }
-    if (nominee.hasProfile || (nominee.claimedAt && nominee.userId)) {
+    // "Accepted" requires an explicit claim — a matched profile alone is
+    // not consent. Host-added (nominated_by='admin') nominees often match
+    // an existing platform user by email, which used to flip this badge
+    // to "Accepted" before they ever clicked the invite link.
+    if (nominee.claimedAt) {
       return (
         <span style={{
           fontSize: typography.fontSize.xs,
@@ -847,6 +874,19 @@ export default function PeopleTab({
           </p>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' }}>
+          {splitByGender && (person.gender === 'male' || person.gender === 'female') && (
+            <span style={{
+              fontSize: typography.fontSize.xs,
+              fontWeight: typography.fontWeight.semibold,
+              padding: `1px ${spacing.xs}`,
+              borderRadius: borderRadius.sm,
+              background: 'rgba(212,175,55,0.12)',
+              color: colors.gold.primary,
+              letterSpacing: '0.04em',
+            }}>
+              {person.gender === 'male' ? 'M' : 'F'}
+            </span>
+          )}
           <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
             {parseEmail(person.email)}{showVotes && person.votes > 0 ? `${person.email ? ' · ' : ''}${person.votes} votes` : ''}
             {person.inviteSentAt && (
@@ -1139,6 +1179,48 @@ export default function PeopleTab({
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
       </div>
 
+      {/* Gender filter chips — only shown when the competition splits
+       *  winners by gender. Filters every section below + the contestants
+       *  panel. Counts above stay against the full population. */}
+      {!isNewHost && splitByGender && (
+        <div style={{
+          display: 'flex',
+          gap: spacing.xs,
+          flexWrap: 'wrap',
+          padding: spacing.xs,
+          background: colors.background.card,
+          border: `1px solid ${colors.border.light}`,
+          borderRadius: borderRadius.lg,
+        }}>
+          {[
+            { value: 'all', label: 'All' },
+            { value: 'male', label: 'Men' },
+            { value: 'female', label: 'Women' },
+          ].map((opt) => {
+            const active = genderFilter === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => setGenderFilter(opt.value)}
+                style={{
+                  flex: isMobile ? 1 : 'initial',
+                  padding: `${spacing.xs} ${spacing.md}`,
+                  background: active ? 'rgba(212,175,55,0.15)' : 'transparent',
+                  border: `1px solid ${active ? colors.gold.primary : 'transparent'}`,
+                  borderRadius: borderRadius.md,
+                  color: active ? colors.gold.primary : colors.text.secondary,
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: typography.fontWeight.medium,
+                  cursor: 'pointer',
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Stats Row - hide when all zeros */}
       {!isNewHost && <div style={{
         display: 'grid',
@@ -1146,43 +1228,56 @@ export default function PeopleTab({
         gap: spacing.sm,
       }}>
         {[
-          { label: 'Nominees', value: nominees.length, color: colors.gold.primary },
-          { label: 'Ready to Approve', value: nomineesWithProfile.length, color: '#3b82f6' },
-          { label: 'Awaiting Response', value: externalNominees.length, color: '#f59e0b' },
-          { label: 'Contestants', value: contestants.length, color: '#22c55e' },
-          { label: 'Declined', value: declinedNominees.length, color: '#ef4444' },
-        ].map((stat, i, arr) => (
-          <div
-            key={stat.label}
-            style={{
-              background: colors.background.card,
-              border: `1px solid ${colors.border.light}`,
-              borderRadius: borderRadius.lg,
-              padding: spacing.md,
-              ...(isMobile && i === arr.length - 1 && arr.length % 2 === 1 ? { gridColumn: 'span 2' } : {}),
-            }}
-          >
-            <p style={{
-              color: colors.text.secondary,
-              fontSize: typography.fontSize.xs,
-              marginBottom: spacing.xs,
-            }}>
-              {stat.label}
-            </p>
-            <p style={{
-              fontSize: typography.fontSize.xl,
-              fontWeight: typography.fontWeight.bold,
-              color: stat.color,
-            }}>
-              {stat.value}
-            </p>
-          </div>
-        ))}
+          { label: 'Nominees', list: nominees, color: colors.gold.primary },
+          { label: 'Ready to Approve', list: nomineesWithProfileAll, color: '#3b82f6' },
+          { label: 'Awaiting Response', list: externalNomineesAll, color: '#f59e0b' },
+          { label: 'Contestants', list: contestants || [], color: '#22c55e' },
+          { label: 'Declined', list: declinedNomineesAll, color: '#ef4444' },
+        ].map((stat, i, arr) => {
+          const breakdown = splitByGender ? byGender(stat.list) : null;
+          return (
+            <div
+              key={stat.label}
+              style={{
+                background: colors.background.card,
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.lg,
+                padding: spacing.md,
+                ...(isMobile && i === arr.length - 1 && arr.length % 2 === 1 ? { gridColumn: 'span 2' } : {}),
+              }}
+            >
+              <p style={{
+                color: colors.text.secondary,
+                fontSize: typography.fontSize.xs,
+                marginBottom: spacing.xs,
+              }}>
+                {stat.label}
+              </p>
+              <p style={{
+                fontSize: typography.fontSize.xl,
+                fontWeight: typography.fontWeight.bold,
+                color: stat.color,
+              }}>
+                {stat.list.length}
+              </p>
+              {breakdown && (
+                <p style={{
+                  marginTop: spacing.xs,
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.muted,
+                }}>
+                  {breakdown.male}M · {breakdown.female}F
+                  {breakdown.unset > 0 ? ` · ${breakdown.unset}?` : ''}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>}
 
       {/* Contestants Section */}
       <Panel
-        title={`Contestants (${contestants.length})`}
+        title={`Contestants (${contestantsFiltered.length})`}
         icon={Crown}
         style={{ marginBottom: 0 }}
         collapsible
@@ -1216,7 +1311,7 @@ export default function PeopleTab({
         }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {contestants.length === 0 ? (
+          {contestantsFiltered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <Crown size={40} style={{ marginBottom: spacing.md, opacity: 0.4, color: colors.gold.primary }} />
               <p style={{ marginBottom: spacing.md, fontSize: typography.fontSize.sm }}>No contestants yet</p>
@@ -1226,8 +1321,8 @@ export default function PeopleTab({
             </div>
           ) : (() => {
             const sortedContestants = showReorder
-              ? [...contestants].sort((a, b) => (a.rank || 999) - (b.rank || 999))
-              : contestants;
+              ? [...contestantsFiltered].sort((a, b) => (a.rank || 999) - (b.rank || 999))
+              : contestantsFiltered;
             return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {sortedContestants.map((c, idx) => (

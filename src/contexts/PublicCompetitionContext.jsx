@@ -146,6 +146,7 @@ export function PublicCompetitionProvider({
     realtime: phase?.isVoting ?? false,
     advancingCount: phase?.currentRound?.contestants_advance,
     eliminationThreshold: 0.2,
+    splitByGender: !!competition?.winners_split_by_gender,
   });
 
   // Activity feed (only fetch if we have a competition)

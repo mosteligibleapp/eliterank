@@ -745,6 +745,42 @@
   margin: 4px 0 8px;
 }
 
+/* Gender selector — used when the competition splits winners by gender. */
+.entry-gender-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.entry-gender-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #a1a1aa;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  min-height: 52px;
+}
+
+.entry-gender-option.selected {
+  background: rgba(212, 175, 55, 0.08);
+  border-color: rgba(212, 175, 55, 0.3);
+  color: #ffffff;
+}
+
+.entry-gender-option input[type='radio'] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Card reveal */
 .entry-step-card {
   align-items: center;

@@ -19,6 +19,11 @@ export default function AddPersonModal({
   onAdd,
   type = 'nominee', // 'nominee' or 'contestant'
   competitionId,
+  // When the competition splits winners by gender, the host must pick
+  // Male/Female for the added person — profiles don't carry gender, and
+  // a NULL value would silently put them on the eliminated bucket once
+  // round finalization runs (see migration 078).
+  splitByGender = false,
 }) {
   const [mode, setMode] = useState('search'); // 'search' | 'manual'
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +35,7 @@ export default function AddPersonModal({
   const [manualEmail, setManualEmail] = useState('');
   const [manualInstagram, setManualInstagram] = useState('');
   const [manualError, setManualError] = useState('');
+  const [gender, setGender] = useState(''); // 'male' | 'female' when split is on
 
   const isContestant = type === 'contestant';
   const title = isContestant ? 'Add Contestant' : 'Add Nominee';
@@ -45,6 +51,7 @@ export default function AddPersonModal({
       setManualEmail('');
       setManualInstagram('');
       setManualError('');
+      setGender('');
     }
   }, [isOpen]);
 
@@ -131,8 +138,11 @@ export default function AddPersonModal({
   const manualValid =
     manualName.trim().length > 0 && isEmailish(manualEmail);
 
+  const genderValid = !splitByGender || gender === 'male' || gender === 'female';
+
   const canSubmit =
     !submitting &&
+    genderValid &&
     ((mode === 'search' && !!selectedProfile) ||
       (mode === 'manual' && manualValid));
 
@@ -150,6 +160,7 @@ export default function AddPersonModal({
           city: selectedProfile.city,
           userId: selectedProfile.id,
           avatarUrl: selectedProfile.avatar_url,
+          gender: splitByGender ? gender : null,
         });
         onClose();
       } catch (err) {
@@ -175,6 +186,7 @@ export default function AddPersonModal({
         city: null,
         userId: null,
         avatarUrl: null,
+        gender: splitByGender ? gender : null,
       });
       onClose();
     } catch (err) {
@@ -251,6 +263,56 @@ export default function AddPersonModal({
           );
         })}
       </div>
+
+      {/* Gender picker — required when the competition splits winners by
+       *  gender. Both search and manual modes need it because platform
+       *  profiles don't carry gender. */}
+      {splitByGender && (
+        <div style={{ marginBottom: spacing.lg }}>
+          <p style={{
+            fontSize: typography.fontSize.xs,
+            fontWeight: typography.fontWeight.medium,
+            color: colors.text.secondary,
+            marginBottom: spacing.xs,
+          }}>
+            Gender <span style={{ color: colors.status.error }}>*</span>
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.xs }}>
+            {[
+              { value: 'male', label: 'Male' },
+              { value: 'female', label: 'Female' },
+            ].map((opt) => {
+              const active = gender === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setGender(opt.value)}
+                  style={{
+                    padding: `${spacing.sm} ${spacing.md}`,
+                    background: active ? 'rgba(212,175,55,0.22)' : colors.background.secondary,
+                    border: `1px solid ${active ? colors.gold.primary : colors.border.primary}`,
+                    borderRadius: borderRadius.lg,
+                    color: active ? colors.gold.primary : colors.text.secondary,
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.medium,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <p style={{
+            margin: `${spacing.xs} 0 0`,
+            fontSize: typography.fontSize.xs,
+            color: colors.text.muted,
+          }}>
+            Legally and medically recognized.
+          </p>
+        </div>
+      )}
 
       {mode === 'manual' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>

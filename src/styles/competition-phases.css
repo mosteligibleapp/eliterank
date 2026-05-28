@@ -1992,6 +1992,47 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   }
 }
 
+/* Gender-split leaderboard — full LeaderboardView renders two ranked
+ * columns side by side (men / women). On mobile the columns stack. */
+.leaderboard-gender-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+.leaderboard-gender-column {
+  min-width: 0;
+}
+
+.leaderboard-gender-heading {
+  margin: 0 0 var(--spacing-xs);
+  padding: 0 var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* Sidebar (compact) variant: smaller subheading between the two stacked
+ * groups (men on top, women below). */
+.leaderboard-gender-subheading {
+  margin: var(--spacing-md) 0 0;
+  padding: 0 var(--spacing-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 768px) {
+  .leaderboard-gender-split {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+}
+
 /* Portrait Card */
 .portrait-card {
   position: relative;

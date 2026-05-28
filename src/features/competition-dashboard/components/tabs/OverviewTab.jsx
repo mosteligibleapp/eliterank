@@ -93,6 +93,18 @@ export default function OverviewTab({
   const pendingNominees = completedNominees.filter(n => n.status === 'pending').length;
   const totalNominees = (nominees || []).length;
 
+  // Gender-split metrics — when the competition crowns winners per gender,
+  // the host needs to hit the minimum within EACH bucket (e.g. 40 men + 40
+  // women), not just 40 total. We surface the breakdown on both the
+  // Nominations and Contestants cards.
+  const splitByGender = !!competition?.winnersSplitByGender;
+  const countByGender = (list) => ({
+    male: list.filter((p) => p.gender === 'male').length,
+    female: list.filter((p) => p.gender === 'female').length,
+  });
+  const nomineesByGender = countByGender(nominees || []);
+  const contestantsByGender = countByGender(contestants || []);
+
   const upcomingEvents = useMemo(() => {
     // Use string comparison to avoid timezone issues
     const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
@@ -150,23 +162,57 @@ export default function OverviewTab({
             label="Nominations"
             value={totalNominees}
             goal={300}
-            goalLabel={[pendingNominees > 0 && `${pendingNominees} pending`, incompleteCount > 0 && `${incompleteCount} incomplete`].filter(Boolean).join(', ') || null}
+            goalLabel={(() => {
+              const parts = [];
+              if (splitByGender) parts.push(`${nomineesByGender.male} men · ${nomineesByGender.female} women`);
+              if (pendingNominees > 0) parts.push(`${pendingNominees} pending`);
+              if (incompleteCount > 0) parts.push(`${incompleteCount} incomplete`);
+              return parts.length ? parts.join(' · ') : null;
+            })()}
             variant="default"
             cta="People →"
             onCtaClick={() => onNavigateToTab?.('people')}
           />
-          <MetricCard
-            icon={Users}
-            label="Contestants"
-            value={contestants?.length || 0}
-            goal={competition?.minContestants || 40}
-            warning={contestants?.length < (competition?.minContestants || 40)
-              ? `Need ${(competition?.minContestants || 40) - contestants?.length} more`
-              : null}
-            variant={contestants?.length >= (competition?.minContestants || 40) ? 'success' : 'warning'}
-            cta="People →"
-            onCtaClick={() => onNavigateToTab?.('people')}
-          />
+          {(() => {
+            // The "minimum" gate is per-gender when the split is on (the host
+            // needs 40 men AND 40 women, not 40 mixed). We pass the doubled
+            // total to keep the progress bar tracking the combined goal and
+            // surface the per-gender deficit in the warning text.
+            const minPerBucket = competition?.minContestants || 40;
+            const totalContestants = contestants?.length || 0;
+            const goal = splitByGender ? minPerBucket * 2 : minPerBucket;
+            const maleDeficit = splitByGender
+              ? Math.max(0, minPerBucket - contestantsByGender.male)
+              : 0;
+            const femaleDeficit = splitByGender
+              ? Math.max(0, minPerBucket - contestantsByGender.female)
+              : 0;
+            const overallDeficit = Math.max(0, goal - totalContestants);
+            const warning = splitByGender
+              ? (maleDeficit + femaleDeficit > 0
+                  ? `Need ${maleDeficit} more men, ${femaleDeficit} more women`
+                  : null)
+              : (overallDeficit > 0 ? `Need ${overallDeficit} more` : null);
+            const variant = splitByGender
+              ? (maleDeficit + femaleDeficit === 0 ? 'success' : 'warning')
+              : (totalContestants >= minPerBucket ? 'success' : 'warning');
+            const goalLabel = splitByGender
+              ? `${contestantsByGender.male} men · ${contestantsByGender.female} women`
+              : null;
+            return (
+              <MetricCard
+                icon={Users}
+                label="Contestants"
+                value={totalContestants}
+                goal={goal}
+                goalLabel={goalLabel}
+                warning={warning}
+                variant={variant}
+                cta="People →"
+                onCtaClick={() => onNavigateToTab?.('people')}
+              />
+            );
+          })()}
           <MetricCard
             icon={Star}
             label="Sponsors"
