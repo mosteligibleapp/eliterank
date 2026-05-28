@@ -15,64 +15,6 @@ const BRAND_VOICE = `You are writing for EliteRank, a premium competition platfo
 Your tone is authoritative but energetic—confident, celebratory, and engaging.
 Keep posts concise (2-4 sentences max). Use active voice. No hashtags or emojis.`
 
-// Event-triggered post prompts
-const EVENT_PROMPTS: Record<string, (ctx: EventContext) => string> = {
-  competition_launched: (ctx) => `${BRAND_VOICE}
-
-Write a brief, exciting announcement that a new competition has launched.
-Competition: ${ctx.competitionName}
-Location: ${ctx.city}
-Season: ${ctx.season}
-
-Focus on building anticipation. Mention the city and invite participation.`,
-
-  nominations_open: (ctx) => `${BRAND_VOICE}
-
-Write a brief announcement that nominations are now open.
-Competition: ${ctx.competitionName}
-Location: ${ctx.city}
-Nomination deadline: ${ctx.nominationEnd ? new Date(ctx.nominationEnd).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'soon'}
-
-Encourage people to nominate themselves or someone they know.`,
-
-  nominations_close: (ctx) => `${BRAND_VOICE}
-
-Write a brief announcement that the nomination period has ended.
-Competition: ${ctx.competitionName}
-Location: ${ctx.city}
-Total nominees/contestants: ${ctx.contestantCount || 'many talented individuals'}
-
-Build excitement for the upcoming voting phase.`,
-
-  voting_open: (ctx) => `${BRAND_VOICE}
-
-Write a brief, energetic announcement that voting is now open.
-Competition: ${ctx.competitionName}
-Location: ${ctx.city}
-Number of contestants: ${ctx.contestantCount || 'our amazing contestants'}
-Voting ends: ${ctx.votingEnd ? new Date(ctx.votingEnd).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'soon'}
-
-Rally supporters to vote for their favorites.`,
-
-  voting_close: (ctx) => `${BRAND_VOICE}
-
-Write a brief announcement that voting has concluded.
-Competition: ${ctx.competitionName}
-Location: ${ctx.city}
-Total votes cast: ${ctx.totalVotes || 'thousands of votes'}
-
-Thank voters and build anticipation for results.`,
-
-  results_announced: (ctx) => `${BRAND_VOICE}
-
-Write a brief, celebratory announcement that winners have been announced.
-Competition: ${ctx.competitionName}
-Location: ${ctx.city}
-${ctx.winnerNames?.length ? `Winners: ${ctx.winnerNames.join(', ')}` : ''}
-
-Congratulate the winners and thank all participants.`,
-}
-
 // Editorial post prompts (admin-created)
 const EDITORIAL_PROMPTS: Record<string, (ctx: EditorialContext) => string> = {
   partnership: (ctx) => `${BRAND_VOICE}
@@ -124,17 +66,6 @@ Build excitement and engagement.`,
 // TYPES
 // =============================================================================
 
-interface EventContext {
-  competitionName: string
-  city: string
-  season?: number
-  nominationEnd?: string
-  votingEnd?: string
-  contestantCount?: number
-  totalVotes?: number
-  winnerNames?: string[]
-}
-
 interface EditorialContext {
   topicType: string
   bulletPoints: string[]
@@ -144,11 +75,6 @@ interface EditorialContext {
 }
 
 interface GenerateRequest {
-  mode: 'event' | 'editorial'
-  // For event mode
-  eventType?: string
-  competitionId?: string
-  // For editorial mode
   topicType?: string
   bulletPoints?: string[]
   contestantId?: string // For winner spotlight
@@ -215,96 +141,37 @@ serve(async (req) => {
     }
 
     const body: GenerateRequest = await req.json()
-    const { mode, eventType, competitionId, topicType, bulletPoints, contestantId } = body
+    const { topicType, bulletPoints, contestantId } = body
 
-    let prompt: string
-    let title: string
+    if (!topicType || !bulletPoints?.length) {
+      throw new Error('topicType and bulletPoints required')
+    }
 
-    if (mode === 'event') {
-      // Event-triggered post
-      if (!eventType || !competitionId) {
-        throw new Error('eventType and competitionId required for event mode')
-      }
+    const context: EditorialContext = {
+      topicType,
+      bulletPoints,
+    }
 
-      // Fetch competition data
-      const { data: competition, error: compError } = await supabase
-        .from('competitions')
-        .select('*, contestants(id, name, status)')
-        .eq('id', competitionId)
+    // If contestant is specified (for winner spotlight), fetch their data
+    if (contestantId) {
+      const { data: contestant, error: contError } = await supabase
+        .from('contestants')
+        .select('*, competition:competitions(*)')
+        .eq('id', contestantId)
         .single()
 
-      if (compError || !competition) {
-        throw new Error(`Competition not found: ${compError?.message}`)
+      if (!contError && contestant) {
+        context.contestantName = contestant.name
+        context.competitionName = `${contestant.competition.city} ${contestant.competition.season}`
+        context.city = contestant.competition.city
       }
-
-      const winners = competition.contestants?.filter((c: any) => c.status === 'winner') || []
-
-      const context: EventContext = {
-        competitionName: `${competition.city} ${competition.season}`,
-        city: competition.city,
-        season: competition.season,
-        nominationEnd: competition.nomination_end,
-        votingEnd: competition.voting_end,
-        contestantCount: competition.total_contestants || competition.contestants?.length,
-        totalVotes: competition.total_votes,
-        winnerNames: winners.map((w: any) => w.name),
-      }
-
-      const promptFn = EVENT_PROMPTS[eventType]
-      if (!promptFn) {
-        throw new Error(`Unknown event type: ${eventType}`)
-      }
-      prompt = promptFn(context)
-
-      // Generate appropriate title based on event type
-      const titleMap: Record<string, string> = {
-        competition_launched: `${competition.city} ${competition.season} Competition Launches`,
-        nominations_open: `Nominations Now Open for ${competition.city}`,
-        nominations_close: `Nomination Period Closes for ${competition.city}`,
-        voting_open: `Voting Opens for ${competition.city} ${competition.season}`,
-        voting_close: `Voting Concludes for ${competition.city} ${competition.season}`,
-        results_announced: `${competition.city} ${competition.season} Winners Announced`,
-      }
-      title = titleMap[eventType] || `${competition.city} Update`
-
-    } else if (mode === 'editorial') {
-      // Admin-created editorial post
-      if (!topicType || !bulletPoints?.length) {
-        throw new Error('topicType and bulletPoints required for editorial mode')
-      }
-
-      let context: EditorialContext = {
-        topicType,
-        bulletPoints,
-      }
-
-      // If contestant is specified (for winner spotlight), fetch their data
-      if (contestantId) {
-        const { data: contestant, error: contError } = await supabase
-          .from('contestants')
-          .select('*, competition:competitions(*)')
-          .eq('id', contestantId)
-          .single()
-
-        if (!contError && contestant) {
-          context.contestantName = contestant.name
-          context.competitionName = `${contestant.competition.city} ${contestant.competition.season}`
-          context.city = contestant.competition.city
-        }
-      }
-
-      const promptFn = EDITORIAL_PROMPTS[topicType]
-      if (!promptFn) {
-        throw new Error(`Unknown topic type: ${topicType}`)
-      }
-      prompt = promptFn(context)
-
-      // For editorial, we'll generate a title too
-      title = '' // Will be generated by Claude
-
-    } else {
-      throw new Error('Invalid mode: must be "event" or "editorial"')
     }
+
+    const promptFn = EDITORIAL_PROMPTS[topicType]
+    if (!promptFn) {
+      throw new Error(`Unknown topic type: ${topicType}`)
+    }
+    const prompt = promptFn(context)
 
     // Call Claude API
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -320,9 +187,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: mode === 'editorial'
-              ? `${prompt}\n\nRespond with JSON in this exact format:\n{"title": "Short catchy title", "content": "The post content"}`
-              : `${prompt}\n\nRespond with only the post content, no title.`,
+            content: `${prompt}\n\nRespond with JSON in this exact format:\n{"title": "Short catchy title", "content": "The post content"}`,
           },
         ],
       }),
@@ -337,18 +202,10 @@ serve(async (req) => {
     const generatedText = claudeData.content[0].text.trim()
 
     let result: { title: string; content: string }
-
-    if (mode === 'editorial') {
-      // Parse JSON response for editorial posts
-      try {
-        result = JSON.parse(generatedText)
-      } catch {
-        // If JSON parsing fails, use the text as content
-        result = { title: 'New Update', content: generatedText }
-      }
-    } else {
-      // For event posts, we already have the title
-      result = { title, content: generatedText }
+    try {
+      result = JSON.parse(generatedText)
+    } catch {
+      result = { title: 'New Update', content: generatedText }
     }
 
     return new Response(
