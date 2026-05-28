@@ -150,12 +150,9 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
 
   switch (req.type) {
     case 'nominee_invite': {
-      // Gender-specific language
-      const genderNoun = req.gender === 'female' ? 'women' : req.gender === 'male' ? 'men' : 'people'
-
       const nominatorLine = req.nominator_name
         ? `<p style="color:#ccc;font-size:15px;">Nominated by <strong>${req.nominator_name}</strong></p>`
-        : `<p style="color:#ccc;font-size:15px;">Someone thinks you're one of the most eligible ${genderNoun} in ${req.city_name || 'the city'}!</p>`
+        : `<p style="color:#ccc;font-size:15px;">Someone thinks you are an Elite in ${req.city_name || 'your city'}!</p>`
 
       const reasonLine = req.reason
         ? `<div style="background:#1a1a1a;border-left:3px solid #d4a843;padding:12px 16px;margin:16px 0;border-radius:4px;">
