@@ -290,8 +290,8 @@ export default function AddPersonModal({
                   onClick={() => setGender(opt.value)}
                   style={{
                     padding: `${spacing.sm} ${spacing.md}`,
-                    background: active ? 'rgba(212,175,55,0.12)' : colors.background.secondary,
-                    border: `1px solid ${active ? colors.gold.primary : colors.border.light}`,
+                    background: active ? 'rgba(212,175,55,0.22)' : colors.background.secondary,
+                    border: `1px solid ${active ? colors.gold.primary : colors.border.primary}`,
                     borderRadius: borderRadius.lg,
                     color: active ? colors.gold.primary : colors.text.secondary,
                     fontSize: typography.fontSize.sm,
