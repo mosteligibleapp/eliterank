@@ -139,7 +139,7 @@ function GenderColumn({ label, list, numberOfWinners, isBetweenRounds, onCardCli
             <PortraitCard
               key={contestant.id}
               contestant={contestant}
-              rank={index + 1}
+              rank={contestant.displayRank || index + 1}
               numberOfWinners={numberOfWinners}
               hideRank={isBetweenRounds}
               hideVotes={isBetweenRounds}

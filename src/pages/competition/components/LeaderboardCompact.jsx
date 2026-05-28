@@ -104,7 +104,7 @@ export function LeaderboardCompact() {
               <PortraitCard
                 key={contestant.id}
                 contestant={contestant}
-                rank={index + 1}
+                rank={contestant.displayRank || index + 1}
                 numberOfWinners={winnersPerGender}
                 hideRank={isBetweenRounds}
                 hideVotes={isBetweenRounds}
@@ -119,7 +119,7 @@ export function LeaderboardCompact() {
               <PortraitCard
                 key={contestant.id}
                 contestant={contestant}
-                rank={index + 1}
+                rank={contestant.displayRank || index + 1}
                 numberOfWinners={winnersPerGender}
                 hideRank={isBetweenRounds}
                 hideVotes={isBetweenRounds}

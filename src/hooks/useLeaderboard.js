@@ -13,10 +13,20 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  *   percentage-based threshold when not set.
  * @param {number} options.eliminationThreshold - Percentage for danger zone,
  *   used only when advancingCount is not provided (default: 0.2 = bottom 20%)
+ * @param {boolean} options.splitByGender - Mirror finalize_voting_round's
+ *   per-gender ranking: compute displayRank, top-3 and danger zone WITHIN
+ *   each gender so the male and female columns of a split leaderboard each
+ *   start at #1, and "at risk" is decided against the per-gender cutoff
+ *   (CEIL(advancingCount / 2)).
  * @returns {object} Leaderboard data and helpers
  */
 export function useLeaderboard(competitionId, options = {}) {
-  const { realtime = true, advancingCount, eliminationThreshold = 0.2 } = options;
+  const {
+    realtime = true,
+    advancingCount,
+    eliminationThreshold = 0.2,
+    splitByGender = false,
+  } = options;
 
   const [contestants, setContestants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -198,27 +208,74 @@ export function useLeaderboard(competitionId, options = {}) {
     const activeContestants = sortedContestants.filter(
       (c) => c.status === 'active',
     );
-    const activeTotal = activeContestants.length;
 
-    // Prefer the round's explicit advancing count (e.g. "top 25 move on")
-    // so the danger zone reflects the actual elimination cutoff. Only fall
-    // back to the percentage threshold (over the active roster) when no
-    // advancing count is supplied.
-    const dangerZoneStart =
-      Number.isFinite(advancingCount) && advancingCount > 0
-        ? advancingCount
-        : Math.ceil(activeTotal * (1 - eliminationThreshold));
+    // Build per-partition rank, top-3 and danger info.
+    //
+    // When splitByGender is on, finalize_voting_round advances
+    // CEIL(advancingCount / 2) per gender — so danger and rank must be
+    // computed within each gender bucket too, otherwise a contestant
+    // sitting at overall rank 25 in a 60-advance round looks "safe" even
+    // though they may be rank 20 of 22 men with only 30 male slots.
+    //
+    // NULL-gender rows can't be placed in either bucket: 078 eliminates
+    // them at round end, but pre-finalize they shouldn't pollute the
+    // male/female danger math. Treat them as their own bucket with no
+    // advance slots — everyone in it is at risk.
+    const buildAtRisk = (activesInBucket, advanceCap) => {
+      const cutoff =
+        Number.isFinite(advanceCap) && advanceCap > 0
+          ? advanceCap
+          : Math.ceil(activesInBucket.length * (1 - eliminationThreshold));
+      const atRisk = new Set();
+      const displayRankById = new Map();
+      activesInBucket.forEach((c, i) => {
+        displayRankById.set(c.id, i + 1);
+        if (i + 1 > cutoff) atRisk.add(c.id);
+      });
+      return { atRisk, displayRankById };
+    };
 
-    // Build the at-risk set from the active roster only. Eliminated
-    // contestants are never marked as in-danger again.
-    const atRiskIds = new Set();
-    activeContestants.forEach((c, i) => {
-      if (i + 1 > dangerZoneStart) atRiskIds.add(c.id);
-    });
+    let atRiskIds;
+    let displayRankById;
+    if (splitByGender) {
+      const perGenderCap = Number.isFinite(advancingCount) && advancingCount > 0
+        ? Math.ceil(advancingCount / 2)
+        : null;
+      const maleActives = activeContestants.filter((c) => c.gender === 'male');
+      const femaleActives = activeContestants.filter((c) => c.gender === 'female');
+      const otherActives = activeContestants.filter(
+        (c) => c.gender !== 'male' && c.gender !== 'female',
+      );
+
+      const male = buildAtRisk(maleActives, perGenderCap);
+      const female = buildAtRisk(femaleActives, perGenderCap);
+      // NULL/other gender: 0 advance slots — all flagged at risk.
+      const other = buildAtRisk(otherActives, 0);
+
+      atRiskIds = new Set([...male.atRisk, ...female.atRisk, ...other.atRisk]);
+      displayRankById = new Map([
+        ...male.displayRankById,
+        ...female.displayRankById,
+        ...other.displayRankById,
+      ]);
+    } else {
+      const overall = buildAtRisk(activeContestants, advancingCount);
+      atRiskIds = overall.atRisk;
+      displayRankById = overall.displayRankById;
+    }
 
     return sortedContestants.map((contestant, index) => {
-      const rank =
-        sortBy === 'rank' ? contestant.rank || index + 1 : index + 1;
+      // Per-partition rank when split is on, otherwise the overall
+      // position (or stored rank when sorting by rank).
+      let rank;
+      if (splitByGender) {
+        rank = displayRankById.get(contestant.id) ?? index + 1;
+      } else if (sortBy === 'rank') {
+        rank = contestant.rank || index + 1;
+      } else {
+        rank = index + 1;
+      }
+
       const isInDangerZone = atRiskIds.has(contestant.id);
       const isTop3 = rank <= 3;
 
@@ -230,7 +287,7 @@ export function useLeaderboard(competitionId, options = {}) {
         isTop3,
       };
     });
-  }, [sortedContestants, advancingCount, eliminationThreshold, sortBy]);
+  }, [sortedContestants, advancingCount, eliminationThreshold, sortBy, splitByGender]);
 
   // Top 3 contestants
   const topThree = useMemo(() => {
