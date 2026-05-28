@@ -1,5 +1,4 @@
 import React from 'react';
-import { getCompetitionTitle, getCityName } from '../utils/eligibilityEngine';
 
 const MAX_CHARS = 500;
 
@@ -12,17 +11,14 @@ export default function SelfPitchStep({
   onSubmit,
   isSubmitting,
   error,
-  competition,
 }) {
-  const title = getCompetitionTitle(competition);
-  const cityName = getCityName(competition);
   const remaining = MAX_CHARS - (bio?.length || 0);
 
   return (
     <div className="entry-step entry-step-pitch">
       <h2 className="entry-step-title">Your bio</h2>
       <p className="entry-step-subtitle">
-        Tell people why you should win <strong>{title}</strong>.
+        Tell people who you are and why you deserve the title (displays on your profile).
       </p>
 
       <div className="entry-form-field">
