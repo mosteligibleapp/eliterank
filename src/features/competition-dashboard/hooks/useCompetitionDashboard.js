@@ -276,6 +276,7 @@ export function useCompetitionDashboard(competitionId) {
         avatarUrl: c.avatar_url || c.profile?.avatar_url,
         instagram: c.instagram || c.profile?.instagram,
         userId: c.user_id,
+        gender: c.gender || null,
         eliminatedInRound: c.eliminated_in_round,
       }));
 
