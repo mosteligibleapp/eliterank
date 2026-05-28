@@ -237,48 +237,85 @@ export default function ContestantGuide({
   );
 }
 
+// 1 → "1st", 2 → "2nd", 21 → "21st", 11 → "11th", etc.
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 /**
  * Generate dynamic guide content based on competition configuration
  */
 function generateGuideContent({ competition, votingRounds = [], prizePool, about, phase }) {
   const competitionName = competition?.name || 'the competition';
   const cityName = (competition?.city?.name || competition?.city || 'your city');
-  const pricePerVote = competition?.price_per_vote || 1;
+  const pricePerVote = Number(competition?.price_per_vote) || 1;
   const numWinners = competition?.number_of_winners || 5;
-  const prizeMinimum = prizePool?.minimum || competition?.prize_pool_minimum || 1000;
-  const currentPrize = prizePool?.total || prizeMinimum;
-  
-  // Count rounds from actual data
+  const splitByGender = !!competition?.winners_split_by_gender;
+  const judgesPctRaw = competition?.judges_score_weight_pct;
+  const prizeMinimum = Number(prizePool?.minimum ?? competition?.prize_pool_minimum ?? 0);
+  const currentPrize = Number(prizePool?.total ?? prizeMinimum);
+
   const rounds = votingRounds || [];
-  const votingOnlyRounds = rounds.filter(r => r.round_type === 'voting');
-  // Use voting-type rounds if they exist, otherwise count all non-judging rounds
-  const votingRoundCount = votingOnlyRounds.length || rounds.filter(r => r.round_type !== 'judging').length || rounds.length;
-  const hasResurrection = rounds.some(r =>
-    r.round_type === 'resurrection' || r.title?.toLowerCase().includes('resurrection')
-  );
-
-  // Determine what phase we're in for context
-  const isVotingPhase = phase?.isVoting;
-  const isNominationPhase = phase?.phase === 'nominations';
-
   const sorted = [...rounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
 
-  // Detect judge scoring between second-to-last and last round
-  const preFinalists = sorted.length >= 2 ? sorted[sorted.length - 2]?.contestants_advance : null;
-  const finalists = sorted.length >= 1 ? (sorted[sorted.length - 1]?.contestants_advance || numWinners) : numWinners;
-  const hasJudgeStep = preFinalists && preFinalists > finalists;
+  // The last entry is the "final" round (judging or otherwise); everything
+  // before it is a regular voting round.
+  const finalRound = sorted[sorted.length - 1] || null;
+  const regularRounds = sorted.slice(0, -1);
+  const numRegularRounds = regularRounds.length;
+  const advanceToFinalists = regularRounds[regularRounds.length - 1]?.contestants_advance;
+  const finalJudgePct = judgesPctRaw ?? finalRound?.judge_weight ?? 0;
+  const half = (n) => Math.ceil(n / 2);
 
-  const howItWorksPoints = [
-    `The competition runs across ${sorted.length} voting rounds`,
-    'A set number of contestants advances each round based on vote count, and votes reset at the start of every round',
-  ];
-  if (hasJudgeStep) {
-    howItWorksPoints.push(`After the Top ${preFinalists} are determined, judges decide who makes it as a top finalist — a panel scores the contestants and the Top ${finalists} advance`);
-    howItWorksPoints.push(`From there, the Top ${finalists} compete in a final voting round — votes reset one last time, and the final vote count determines the winners' rankings (1st–${numWinners}th)`);
-  } else {
-    howItWorksPoints.push('Judges decide who makes it as a top finalist');
+  const howItWorksPoints = [];
+  if (numRegularRounds > 0) {
+    howItWorksPoints.push(`The competition runs across ${numRegularRounds} ${numRegularRounds === 1 ? 'round' : 'rounds'}`);
+    howItWorksPoints.push('A set number of contestants advances each round based on vote count, and votes reset at the start of every round');
+
+    if (advanceToFinalists) {
+      if (splitByGender) {
+        howItWorksPoints.push(`After the ${ordinal(numRegularRounds)} round, the top ${advanceToFinalists} (${half(advanceToFinalists)} men and ${half(advanceToFinalists)} women) will advance as finalists`);
+      } else {
+        howItWorksPoints.push(`After the ${ordinal(numRegularRounds)} round, the top ${advanceToFinalists} will advance as finalists`);
+      }
+    }
   }
-  howItWorksPoints.push(`${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
+
+  const winnerGenderSuffix = splitByGender
+    ? (numWinners === 2 ? ' (1 male and 1 female)' : ` (${half(numWinners)} male and ${half(numWinners)} female)`)
+    : '';
+  if (finalJudgePct > 0) {
+    const votePct = 100 - finalJudgePct;
+    howItWorksPoints.push(`In the final round, a mix of judge scores (${finalJudgePct}%) and vote count (${votePct}%) determines the ${numWinners} winners${winnerGenderSuffix}`);
+  } else if (finalRound) {
+    howItWorksPoints.push(`In the final round, the final vote count determines the ${numWinners} winner${numWinners === 1 ? '' : 's'}${winnerGenderSuffix}`);
+  }
+
+  if (competition?.crowning_text) {
+    howItWorksPoints.push(competition.crowning_text);
+  } else if (splitByGender && numWinners === 2) {
+    howItWorksPoints.push('The 2 winners (1 male and 1 female) will be crowned and hold the title for one year');
+  } else {
+    howItWorksPoints.push(`The ${numWinners} winner${numWinners === 1 ? '' : 's'} will be crowned and hold the title for one year`);
+  }
+
+  const prizePoolPoints = [];
+  if (splitByGender && numWinners === 2) {
+    prizePoolPoints.push(`2 winners (1 male and 1 female) earn the title and prize package`);
+  } else {
+    prizePoolPoints.push(`${numWinners} winners earn the title and prize package`);
+  }
+  prizePoolPoints.push(`Winners receive a prize package from competition sponsors`);
+  if (prizeMinimum > 0) {
+    prizePoolPoints.push({
+      text: `1st place receives a cash prize (min $${prizeMinimum.toLocaleString()})`,
+      subpoints: [
+        'Winner may keep the prize or donate to a verified 501(c)(3) of their choice',
+      ],
+    });
+  }
 
   const sections = [
     // Section 1: How It Works
@@ -341,18 +378,8 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
       icon: <Gift size={48} className="guide-icon guide-icon--green" />,
       title: 'Prize Pool',
       subtitle: 'Real prizes. Real bragging rights.',
-      points: [
-        `${numWinners} winners earn the year-long title of Most Eligible ${cityName}`,
-        `The ${numWinners} winners receive a prize package from competition sponsors`,
-        {
-          text: `1st place receives a cash prize (min $${prizeMinimum.toLocaleString()})`,
-          subpoints: [
-            'Paid votes are available but not required to advance.',
-            'Winner may keep the prize or donate to a verified 501(c)(3) of their choice',
-          ],
-        },
-      ],
-      tip: `Current cash prize: $${currentPrize.toLocaleString()}+`,
+      points: prizePoolPoints,
+      tip: prizeMinimum > 0 ? `Current cash prize: $${currentPrize.toLocaleString()}+` : null,
     },
   ];
 
@@ -371,7 +398,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     {
       icon: <TrendingUp size={20} />,
       label: 'Rounds',
-      value: `${votingRoundCount} rounds`,
+      value: `${numRegularRounds} rounds`,
     },
     {
       icon: <Trophy size={20} />,
