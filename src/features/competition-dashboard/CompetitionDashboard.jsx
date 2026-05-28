@@ -700,6 +700,7 @@ export default function CompetitionDashboard({
         onAdd={handleAddPerson}
         type={addPersonModal.type}
         competitionId={competitionId}
+        splitByGender={!!competition?.winnersSplitByGender}
       />
     </>
   );

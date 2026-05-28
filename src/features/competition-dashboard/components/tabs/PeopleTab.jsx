@@ -427,7 +427,11 @@ export default function PeopleTab({
         </span>
       );
     }
-    if (nominee.hasProfile || (nominee.claimedAt && nominee.userId)) {
+    // "Accepted" requires an explicit claim — a matched profile alone is
+    // not consent. Host-added (nominated_by='admin') nominees often match
+    // an existing platform user by email, which used to flip this badge
+    // to "Accepted" before they ever clicked the invite link.
+    if (nominee.claimedAt) {
       return (
         <span style={{
           fontSize: typography.fontSize.xs,
