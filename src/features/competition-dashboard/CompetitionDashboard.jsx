@@ -4,7 +4,8 @@ import {
   Eye, AlertCircle, Mail
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
-import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
+import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal, HostTermsAcknowledgmentModal } from '../../components/modals';
+import { HOST_TERMS_VERSION } from '../../components/modals/HostTermsAcknowledgmentModal';
 import { colors, gradients, spacing, borderRadius, typography, transitions } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
@@ -151,6 +152,15 @@ export default function CompetitionDashboard({
 
   const competition = data.competition;
   const competitionName = competition?.name || 'Competition';
+
+  // Host Obligations acknowledgment gate. Super-admins are exempt (they manage
+  // the platform, not specific competitions). Everyone else must accept the
+  // current version of the host terms before they can use the dashboard.
+  const needsHostTermsAcceptance = Boolean(
+    competition &&
+    !isSuperAdmin &&
+    (!competition.hostTermsAcceptedAt || competition.hostTermsVersion !== HOST_TERMS_VERSION)
+  );
 
   // Add person modal state
   const [addPersonModal, setAddPersonModal] = useState({ isOpen: false, type: 'nominee' });
@@ -584,7 +594,17 @@ export default function CompetitionDashboard({
 
   return (
     <>
-      <div style={{ minHeight: '100vh', background: gradients.background }}>
+      <div
+        style={{
+          minHeight: '100vh',
+          background: gradients.background,
+          // Visually mute the dashboard behind the acknowledgment gate.
+          filter: needsHostTermsAcceptance ? 'blur(4px)' : 'none',
+          pointerEvents: needsHostTermsAcceptance ? 'none' : 'auto',
+          userSelect: needsHostTermsAcceptance ? 'none' : 'auto',
+        }}
+        aria-hidden={needsHostTermsAcceptance ? 'true' : undefined}
+      >
         {renderHeader()}
         {renderNavigation()}
         <main style={{
@@ -595,6 +615,12 @@ export default function CompetitionDashboard({
           {renderContent()}
         </main>
       </div>
+      <HostTermsAcknowledgmentModal
+        isOpen={needsHostTermsAcceptance}
+        competition={competition}
+        onAccepted={() => { refresh(); }}
+        onDecline={() => { onBack ? onBack() : onLogout?.(); }}
+      />
       <HostAssignmentModal
         isOpen={showHostAssignment}
         onClose={() => setShowHostAssignment(false)}

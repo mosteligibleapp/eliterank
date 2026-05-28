@@ -126,7 +126,7 @@ export default function TermsPage() {
         </button>
 
         <h1 style={styles.title}>Terms of Use</h1>
-        <p style={styles.updated}>Last Updated: May 26, 2026</p>
+        <p style={styles.updated}>Last Updated: May 28, 2026</p>
 
         <section style={styles.section}>
           <h2 style={styles.h2}>1. Agreement to These Terms</h2>
@@ -325,17 +325,102 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>13. Termination</h2>
+          <h2 style={styles.h2}>13. Host Obligations, Compliance, and Indemnification</h2>
           <p style={styles.p}>
-            You may stop using the Service and close your account at any time. We may suspend or terminate your
-            access to the Service at any time, with or without notice, including for violation of these Terms.
-            Sections 5 (license), 9 (IP), 11&ndash;13 (disclaimers, liability, indemnity), 15 (governing law), and
-            any other provisions that by their nature should survive termination, will survive.
+            If you create, configure, host, administer, judge, sponsor, or otherwise operate a competition through
+            the Service (a <span style={styles.strong}>"Host"</span>), the following additional obligations apply
+            to you, in addition to all other provisions of these Terms. EliteRank provides the Service as a
+            neutral technology platform; you, as Host, are the promoter and operator of record of your
+            competition.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>13.1 Compliance with All Applicable Laws.</span> You represent, warrant,
+            and covenant that, at your sole cost and expense, you will comply with all laws, rules, regulations,
+            ordinances, codes, orders, and licensing, registration, bonding, taxation, consumer-protection,
+            advertising, prize-disclosure, sweepstakes, contest, raffle, lottery, charitable-solicitation,
+            data-protection, privacy, anti-discrimination, child-protection, intellectual-property, and labor
+            requirements that apply to your competition in every jurisdiction in which the competition is
+            offered, promoted, conducted, or capable of being entered or viewed, including without limitation
+            those of any country, federal or national government, state, province, territory, region, county,
+            parish, municipality, city, township, tribal nation, or other governmental authority (each, a{' '}
+            <span style={styles.strong}>"Jurisdiction"</span>). This includes, where required, registering and
+            bonding the competition (for example, with the New York Department of State, Florida Department of
+            Agriculture and Consumer Services, or Rhode Island Secretary of State), filing required disclosures,
+            obtaining any necessary permits or licenses, collecting and remitting any applicable taxes, issuing
+            IRS Forms 1099 or equivalent foreign tax forms to winners, and adhering to all applicable promotion,
+            marketing, and consumer-protection rules.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>13.2 Sole Responsibility; No Legal Advice.</span> You acknowledge and
+            agree that the Host &mdash; not EliteRank &mdash; is solely and exclusively responsible for the
+            lawful operation of the competition and for any failure to comply with any applicable law in any
+            Jurisdiction. EliteRank does not undertake, and expressly disclaims, any duty to investigate, advise
+            on, monitor, approve, or ensure the legality of any competition in any Jurisdiction. EliteRank does
+            not provide legal, tax, or regulatory advice. You should consult qualified counsel in each relevant
+            Jurisdiction before launching, promoting, or conducting any competition.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>13.3 Host Indemnification.</span> To the maximum extent permitted by law,
+            you agree to defend, indemnify, and hold harmless EliteRank, its affiliates, and their respective
+            officers, directors, employees, agents, licensors, and service providers (collectively, the{' '}
+            <span style={styles.strong}>"EliteRank Indemnitees"</span>) from and against any and all claims,
+            demands, investigations, regulatory actions, penalties, fines, judgments, settlements, taxes,
+            damages, losses, costs, and expenses (including reasonable attorneys' fees and costs of defense)
+            arising out of or related to:
+          </p>
+          <ul style={styles.ul}>
+            <li style={styles.li}>(a) your competition, including its design, scoring formula, prize structure, eligibility criteria, marketing, conduct, and outcome;</li>
+            <li style={styles.li}>(b) any actual or alleged violation by you (or by any person acting under your direction or on your behalf, including judges, sponsors, and co-promoters you select) of any law, rule, regulation, ordinance, order, or licensing or registration requirement of any Jurisdiction, whether at the country, federal, national, state, provincial, territorial, county, municipal, city, tribal, or other governmental level;</li>
+            <li style={styles.li}>(c) your failure to obtain or maintain any required registration, bond, permit, license, or filing, or your failure to pay any required tax, withholding, or fee in connection with the competition;</li>
+            <li style={styles.li}>(d) any claim by an entrant, voter, winner, judge, sponsor, regulator, charity, or third party arising from your competition, including disputes over eligibility, scoring, prize fulfillment, prize substitution, advertising claims, intellectual-property rights, publicity rights, or defamation;</li>
+            <li style={styles.li}>(e) any breach by you of your representations, warranties, or covenants in these Terms or in the Contest Terms &amp; Conditions; and</li>
+            <li style={styles.li}>(f) any content, materials, prizes, or marketing supplied by or on behalf of you, the Host.</li>
+          </ul>
+          <p style={styles.p}>
+            <span style={styles.strong}>13.4 Control of Defense.</span> EliteRank may, at its option and at your
+            expense, assume sole control of the defense and settlement of any claim subject to indemnification
+            under this Section. You may not settle any such claim in a manner that imposes any obligation,
+            restriction, or admission on EliteRank without EliteRank's prior written consent.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>13.5 Insurance.</span> EliteRank may require you, before publishing a
+            competition or at any time thereafter, to obtain and maintain at your own expense general commercial
+            liability insurance (including coverage for promotions and advertising injury) in amounts EliteRank
+            considers reasonable for the scale, prize value, and geographic reach of the competition, and to name
+            EliteRank as an additional insured. Failure to obtain such coverage when requested may result in
+            suspension or removal of the competition.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>13.6 Suspension and Removal.</span> Without limiting any other right or
+            remedy, EliteRank may at any time, with or without notice and without liability to you, suspend,
+            modify, take down, or remove any competition that EliteRank reasonably believes (a) is or may be
+            unlawful in any Jurisdiction, (b) is the subject of a regulatory inquiry or complaint, (c) violates
+            these Terms or the Contest Terms &amp; Conditions, or (d) creates or could create reputational,
+            legal, or financial risk for EliteRank. Suspension or removal is not a waiver of, and does not
+            transfer to EliteRank, any of the Host's compliance obligations or indemnification obligations.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>13.7 Survival; No Waiver.</span> The obligations in this Section 13
+            survive termination of these Terms, deletion of your account, and the conclusion of any competition.
+            EliteRank's failure to enforce any provision of this Section, or to identify any non-compliance, is
+            not a waiver of any right or remedy. This Section is in addition to, and not in place of, the general
+            indemnification in Section 12.
           </p>
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>14. Governing Law and Dispute Resolution</h2>
+          <h2 style={styles.h2}>14. Termination</h2>
+          <p style={styles.p}>
+            You may stop using the Service and close your account at any time. We may suspend or terminate your
+            access to the Service at any time, with or without notice, including for violation of these Terms.
+            Sections 5 (license), 9 (IP), 11&ndash;13 (disclaimers, liability, indemnity, host obligations), 15
+            (governing law), and any other provisions that by their nature should survive termination, will
+            survive.
+          </p>
+        </section>
+
+        <section style={styles.section}>
+          <h2 style={styles.h2}>15. Governing Law and Dispute Resolution</h2>
           <p style={styles.p}>
             These Terms and any dispute or claim arising out of or relating to them or the Service are governed by
             the laws of the <span style={styles.strong}>State of Illinois</span>, United States, and applicable U.S.
@@ -354,7 +439,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>15. International Use</h2>
+          <h2 style={styles.h2}>16. International Use</h2>
           <p style={styles.p}>
             The Service is operated from the United States and intended for use by residents of the United States
             and the province of Ontario, Canada. We make no representation that the Service is appropriate or
@@ -364,7 +449,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>16. Severability and Entire Agreement</h2>
+          <h2 style={styles.h2}>17. Severability and Entire Agreement</h2>
           <p style={styles.p}>
             If any provision of these Terms is held to be unlawful, void, or unenforceable, that provision will be
             severed to the minimum extent necessary, and the remaining provisions will remain in full force and
@@ -375,7 +460,7 @@ export default function TermsPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>17. Contact</h2>
+          <h2 style={styles.h2}>18. Contact</h2>
           <p style={styles.p}>
             Questions about these Terms? Contact us:
           </p>

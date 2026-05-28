@@ -583,6 +583,11 @@ export function useCompetitionDashboard(competitionId) {
           allowManualVotes: competition.allow_manual_votes ?? false,
           // Setup-tab section ids the host has grayed out.
           hiddenSetupSections: competition.hidden_setup_sections || [],
+          // Host acknowledgment of Host Obligations clause (TermsPage §13 +
+          // ContestTermsPage §2). Dashboard is gated on this being non-null.
+          hostTermsAcceptedAt: competition.host_terms_accepted_at || null,
+          hostTermsAcceptedBy: competition.host_terms_accepted_by || null,
+          hostTermsVersion: competition.host_terms_version || null,
           // Timeline arrays — pass through so computeCompetitionPhase can
           // detect between-rounds vs. nominations correctly.
           nomination_periods: competition.nomination_periods || [],

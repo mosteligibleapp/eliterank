@@ -14,3 +14,4 @@ export { default as ProfileViewModal } from './ProfileViewModal';
 export { default as AddPersonModal } from './AddPersonModal';
 export { default as AddVotesModal } from './AddVotesModal';
 export { default as CharityModal } from './CharityModal';
+export { default as HostTermsAcknowledgmentModal } from './HostTermsAcknowledgmentModal';

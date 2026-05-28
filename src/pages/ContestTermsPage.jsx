@@ -136,7 +136,7 @@ export default function ContestTermsPage() {
         </button>
 
         <h1 style={styles.title}>Contest Terms &amp; Conditions</h1>
-        <p style={styles.updated}>Last Updated: May 26, 2026</p>
+        <p style={styles.updated}>Last Updated: May 28, 2026</p>
 
         <section style={styles.section}>
           <h2 style={styles.h2}>1. About These Terms</h2>
@@ -177,6 +177,35 @@ export default function ContestTermsPage() {
           <p style={styles.p}>
             "Promotion Entities" means the Host, EliteRank, their respective affiliates, and their officers,
             directors, employees, agents, contractors, judges, and sponsors of the competition.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>Host responsibility for legal compliance.</span> The Host &mdash; not
+            EliteRank &mdash; is solely responsible for the lawful design, promotion, and conduct of the
+            competition, including without limitation compliance with all sweepstakes, contest, lottery, gaming,
+            raffle, charitable-solicitation, consumer-protection, advertising, prize-disclosure, taxation,
+            data-protection, privacy, intellectual-property, and labor laws and regulations of every jurisdiction
+            in which the competition is offered, promoted, conducted, or capable of being entered, at the
+            country, federal, national, state, provincial, territorial, county, parish, municipal, city,
+            township, tribal, or other governmental level. The Host is solely responsible for any required
+            registration, bonding, permitting, licensing, filing, tax withholding, or disclosure, and for the
+            consequences of any failure to obtain or comply with the same.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>No legal advice from EliteRank.</span> EliteRank acts only as a neutral
+            technology platform and administrator and does not provide legal, tax, or regulatory advice. The Host
+            should consult qualified counsel in each relevant jurisdiction before launching, promoting, or
+            conducting any competition.
+          </p>
+          <p style={styles.p}>
+            <span style={styles.strong}>Host indemnification of EliteRank.</span> The Host shall defend,
+            indemnify, and hold EliteRank and its affiliates, and their respective officers, directors,
+            employees, agents, licensors, and service providers, harmless from and against any claim, demand,
+            investigation, regulatory action, penalty, fine, tax, judgment, settlement, loss, cost, or expense
+            (including reasonable attorneys' fees) arising out of or related to the Host's competition or any
+            failure of the Host (or any person acting under the Host's direction or on its behalf, including
+            judges, sponsors, and co-promoters selected by the Host) to comply with any applicable law in any
+            jurisdiction. This obligation is in addition to, and incorporates, the Host indemnification set out
+            in Section 13 of the EliteRank Terms of Use.
           </p>
         </section>
 
