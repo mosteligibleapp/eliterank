@@ -684,3 +684,60 @@ export function getPhasePermissions(phase) {
     isBetweenRounds: phase === TIMELINE_PHASES.BETWEEN_ROUNDS,
   };
 }
+
+// =============================================================================
+// LISTING ORDER - Rank competitions by how close they are to finalizing
+// =============================================================================
+
+// How far along a competition is, by phase. Higher = closer to finalizing.
+// Mirrors the timeline order (nomination → voting → finals/judging → done),
+// with the between-rounds gap treated as "awaiting finals".
+const PHASE_PROGRESS = {
+  [TIMELINE_PHASES.NOMINATION]: 0,
+  [TIMELINE_PHASES.VOTING]: 1,
+  [TIMELINE_PHASES.BETWEEN_ROUNDS]: 2,
+  [TIMELINE_PHASES.JUDGING]: 3,
+  [TIMELINE_PHASES.COMPLETED]: 4,
+};
+
+function toTime(value) {
+  if (!value) return null;
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+
+/**
+ * The timestamp a competition is expected to wrap up — its finale date if set,
+ * otherwise the end of its latest known phase. Used to break ties between
+ * competitions sitting in the same phase.
+ */
+function finalizationTime(comp) {
+  return toTime(comp.finals_date) ?? toTime(comp.voting_end) ?? toTime(comp.nomination_end);
+}
+
+/**
+ * Comparator that orders competitions by proximity to finalizing: the one
+ * furthest along (later phase) comes first, then the one finalizing soonest,
+ * falling back to most-recently-created. Pass to Array.prototype.sort().
+ *
+ * @param {{phase: string, finals_date?, voting_end?, nomination_end?, createdAt?, created_at?}} a
+ * @param {object} b
+ */
+export function compareByFinalizationProximity(a, b) {
+  const progressA = PHASE_PROGRESS[a.phase] ?? -1;
+  const progressB = PHASE_PROGRESS[b.phase] ?? -1;
+  if (progressA !== progressB) return progressB - progressA; // later phase first
+
+  const finalizeA = finalizationTime(a);
+  const finalizeB = finalizationTime(b);
+  if (finalizeA !== finalizeB) {
+    if (finalizeA === null) return 1;  // unknown finalize date sinks
+    if (finalizeB === null) return -1;
+    return finalizeA - finalizeB;      // soonest to finalize first
+  }
+
+  // Stable fallback: newest first, matching the prior default ordering.
+  const createdA = toTime(a.createdAt ?? a.created_at) ?? 0;
+  const createdB = toTime(b.createdAt ?? b.created_at) ?? 0;
+  return createdB - createdA;
+}

@@ -26,6 +26,7 @@ import {
   isLive,
   isPublished,
   isCompleted,
+  compareByFinalizationProximity,
 } from '../../utils/competitionPhase';
 import { getCityImage } from '../../utils/cityImages';
 import { SkeletonPulse, SkeletonCard, SkeletonText } from '../common/Skeleton';
@@ -216,6 +217,7 @@ export default function EliteRankCityModal({
         voting_start: compWithSettings.voting_start,
         voting_end: compWithSettings.voting_end,
         finals_date: compWithSettings.finals_date,
+        createdAt: comp.created_at,
         voting_rounds: compWithSettings.voting_rounds,
         nomination_periods: compWithSettings.nomination_periods,
       };
@@ -258,15 +260,20 @@ export default function EliteRankCityModal({
   }, [activeTab, eventsFetched, announcementsFetched, competitions]);
 
   const visibleCompetitions = useMemo(() => {
-    return competitions.filter(c => {
-      if (!c.visible) return false;
-      if (statusFilter === 'active') {
-        return isLive(c.status) && ['nomination', 'voting', 'judging', 'between'].includes(c.phase);
-      }
-      if (statusFilter === 'upcoming') return isPublished(c.status);
-      if (statusFilter === 'complete') return isCompleted(c.status) || c.phase === 'completed';
-      return true;
-    });
+    return competitions
+      .filter(c => {
+        if (!c.visible) return false;
+        if (statusFilter === 'active') {
+          return isLive(c.status) && ['nomination', 'voting', 'judging', 'between'].includes(c.phase);
+        }
+        if (statusFilter === 'upcoming') return isPublished(c.status);
+        if (statusFilter === 'complete') return isCompleted(c.status) || c.phase === 'completed';
+        return true;
+      })
+      // Surface whichever competition is closest to finalizing first, so the
+      // most time-sensitive one (e.g. in voting) leads over earlier ones (e.g.
+      // still taking nominations).
+      .sort(compareByFinalizationProximity);
   }, [competitions, statusFilter]);
 
   // Competition counts for header stats
