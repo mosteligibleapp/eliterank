@@ -7,9 +7,16 @@ const corsHeaders = {
 }
 
 // =============================================================================
-// EVENT DETECTION LOGIC
-// This function checks for competition phase transitions and creates auto-posts
-// Designed to run on a 24-hour schedule via Supabase cron
+// COMPETITION EVENT NOTIFICATIONS
+// Detects competition phase transitions and notifies subscribers.
+// Currently the only event we act on is "nominations open": when a competition
+// enters its nomination window we email everyone on its coming-soon subscriber
+// list. Designed to run on a 24-hour schedule via Supabase cron.
+//
+// Delivery is deduped via the subscriber_blast_events ledger (one row per
+// competition + event_type), so this is safe to run repeatedly and is not
+// sensitive to exact cron timing — a competition gets at most one blast even
+// if the cron fires many times while nominations are open.
 // =============================================================================
 
 interface Competition {
@@ -17,105 +24,37 @@ interface Competition {
   city: string
   season: number
   status: string
-  phase: string
   nomination_start: string | null
   nomination_end: string | null
-  voting_start: string | null
-  voting_end: string | null
-  finale_date: string | null
-  total_contestants: number
-  total_votes: number
-  winners: string[] | null
-  created_at: string
 }
 
-interface EventCheck {
-  eventType: string
-  shouldTrigger: (comp: Competition, now: Date) => boolean
+// Nominations are "open" once we've passed nomination_start and haven't yet
+// passed nomination_end. We intentionally do NOT use a narrow "opened in the
+// last 24h" window: the blast ledger handles dedup, and a window-based trigger
+// silently misses competitions if the cron is down during that window.
+function nominationsAreOpen(comp: Competition, now: Date): boolean {
+  if (!comp.nomination_start) return false
+  const start = new Date(comp.nomination_start)
+  if (now.getTime() < start.getTime()) return false
+  if (comp.nomination_end) {
+    const end = new Date(comp.nomination_end)
+    if (now.getTime() > end.getTime()) return false
+  }
+  return true
 }
-
-// Define the events we check for
-const EVENT_CHECKS: EventCheck[] = [
-  {
-    eventType: 'competition_launched',
-    shouldTrigger: (comp, now) => {
-      // Trigger if competition was created in the last 24 hours
-      // and is in an active status (not draft)
-      if (comp.status === 'draft') return false
-      const createdAt = new Date(comp.created_at)
-      const hoursSinceCreated = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
-      return hoursSinceCreated <= 24
-    },
-  },
-  {
-    eventType: 'nominations_open',
-    shouldTrigger: (comp, now) => {
-      if (!comp.nomination_start) return false
-      const nomStart = new Date(comp.nomination_start)
-      const hoursSinceOpen = (now.getTime() - nomStart.getTime()) / (1000 * 60 * 60)
-      // Trigger if nominations opened in the last 24 hours
-      return hoursSinceOpen >= 0 && hoursSinceOpen <= 24
-    },
-  },
-  {
-    eventType: 'nominations_close',
-    shouldTrigger: (comp, now) => {
-      if (!comp.nomination_end) return false
-      const nomEnd = new Date(comp.nomination_end)
-      const hoursSinceClose = (now.getTime() - nomEnd.getTime()) / (1000 * 60 * 60)
-      // Trigger if nominations closed in the last 24 hours
-      return hoursSinceClose >= 0 && hoursSinceClose <= 24
-    },
-  },
-  {
-    eventType: 'voting_open',
-    shouldTrigger: (comp, now) => {
-      if (!comp.voting_start) return false
-      const votingStart = new Date(comp.voting_start)
-      const hoursSinceOpen = (now.getTime() - votingStart.getTime()) / (1000 * 60 * 60)
-      // Trigger if voting opened in the last 24 hours
-      return hoursSinceOpen >= 0 && hoursSinceOpen <= 24
-    },
-  },
-  {
-    eventType: 'voting_close',
-    shouldTrigger: (comp, now) => {
-      if (!comp.voting_end) return false
-      const votingEnd = new Date(comp.voting_end)
-      const hoursSinceClose = (now.getTime() - votingEnd.getTime()) / (1000 * 60 * 60)
-      // Trigger if voting closed in the last 24 hours
-      return hoursSinceClose >= 0 && hoursSinceClose <= 24
-    },
-  },
-  {
-    eventType: 'results_announced',
-    shouldTrigger: (comp, now) => {
-      // Trigger if competition has winners and status just changed to completed
-      if (comp.status !== 'completed') return false
-      if (!comp.winners || comp.winners.length === 0) return false
-      // Check if finale_date was in the last 24 hours
-      if (comp.finale_date) {
-        const finalsDate = new Date(comp.finale_date)
-        const hoursSinceFinals = (now.getTime() - finalsDate.getTime()) / (1000 * 60 * 60)
-        return hoursSinceFinals >= 0 && hoursSinceFinals <= 48 // Give a bit more buffer for results
-      }
-      return false
-    },
-  },
-]
 
 async function sendNominationsOpenBlast(
   supabase: ReturnType<typeof createClient>,
   supabaseUrl: string,
   supabaseServiceKey: string,
   competition: Competition,
-) {
+): Promise<number | null> {
   const EVENT_TYPE = 'nominations_open'
 
-  // Reserve the blast first via upsert with onConflict do-nothing semantics.
-  // If a row already exists for (competition_id, event_type), insert is a
-  // no-op and we bail out — guarantees at-most-once delivery even across
-  // overlapping cron runs.
+  // Reserve the blast first via an insert that will hit the unique constraint
+  // on (competition_id, event_type) if it already ran. If a row already exists,
+  // insert is a no-op and we bail out — guarantees at-most-once delivery even
+  // across overlapping cron runs.
   const { data: reserved, error: reserveError } = await supabase
     .from('subscriber_blast_events')
     .insert({
@@ -130,11 +69,11 @@ async function sendNominationsOpenBlast(
     // Unique violation = already sent. Anything else is a real error.
     if (reserveError.code === '23505') {
       console.log(`Subscriber blast already sent for competition ${competition.id}/${EVENT_TYPE}`)
-      return
+      return null
     }
     throw reserveError
   }
-  if (!reserved) return
+  if (!reserved) return null
 
   // Load subscribers with profile email + name. id is needed so each
   // recipient gets a signed one-click unsubscribe link in their footer.
@@ -145,7 +84,7 @@ async function sendNominationsOpenBlast(
 
   if (subsError) {
     console.error(`Failed to load subscribers for ${competition.id}:`, subsError)
-    return
+    return null
   }
 
   // Look up competition + organization details for the email subject and CTA URL
@@ -207,6 +146,7 @@ async function sendNominationsOpenBlast(
     .eq('id', reserved.id)
 
   console.log(`Subscriber blast for ${competition.id}/${EVENT_TYPE}: sent=${sent} of ${(subscribers || []).length}`)
+  return sent
 }
 
 serve(async (req) => {
@@ -223,10 +163,10 @@ serve(async (req) => {
     const now = new Date()
     const results: { competition: string; event: string; status: string }[] = []
 
-    // Fetch all active competitions (not draft, not archived long ago)
+    // Fetch all active competitions (not draft)
     const { data: competitions, error: compError } = await supabase
       .from('competitions')
-      .select('*')
+      .select('id, city, season, status, nomination_start, nomination_end')
       .neq('status', 'draft')
 
     if (compError) {
@@ -240,148 +180,23 @@ serve(async (req) => {
       )
     }
 
-    // Fetch all existing event records to avoid duplicates
-    const { data: existingEvents, error: eventsError } = await supabase
-      .from('ai_post_events')
-      .select('competition_id, event_type')
-
-    if (eventsError) {
-      throw new Error(`Failed to fetch existing events: ${eventsError.message}`)
-    }
-
-    // Create a set of existing events for quick lookup
-    const existingEventSet = new Set(
-      (existingEvents || []).map(e => `${e.competition_id}:${e.event_type}`)
-    )
-
-    // Check each competition for triggerable events
     for (const competition of competitions as Competition[]) {
-      for (const check of EVENT_CHECKS) {
-        const eventKey = `${competition.id}:${check.eventType}`
+      if (!nominationsAreOpen(competition, now)) continue
 
-        // Skip if we've already created a post for this event
-        if (existingEventSet.has(eventKey)) {
-          continue
-        }
-
-        // Check if this event should trigger
-        if (!check.shouldTrigger(competition, now)) {
-          continue
-        }
-
-        // Generate the post using our generate-ai-post function
-        try {
-          const generateResponse = await fetch(`${supabaseUrl}/functions/v1/generate-ai-post`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-            },
-            body: JSON.stringify({
-              mode: 'event',
-              eventType: check.eventType,
-              competitionId: competition.id,
-            }),
-          })
-
-          if (!generateResponse.ok) {
-            const error = await generateResponse.text()
-            console.error(`Failed to generate post for ${eventKey}:`, error)
-            results.push({
-              competition: `${competition.city} ${competition.season}`,
-              event: check.eventType,
-              status: `failed: ${error}`,
-            })
-            continue
-          }
-
-          const generatedPost = await generateResponse.json()
-
-          if (!generatedPost.success) {
-            results.push({
-              competition: `${competition.city} ${competition.season}`,
-              event: check.eventType,
-              status: `failed: ${generatedPost.error}`,
-            })
-            continue
-          }
-
-          // Create the announcement
-          const { data: announcement, error: announcementError } = await supabase
-            .from('announcements')
-            .insert({
-              competition_id: competition.id,
-              title: generatedPost.title,
-              content: generatedPost.content,
-              type: 'announcement',
-              pinned: false,
-              is_ai_generated: true,
-              published_at: new Date().toISOString(),
-            })
-            .select()
-            .single()
-
-          if (announcementError) {
-            console.error(`Failed to create announcement for ${eventKey}:`, announcementError)
-            results.push({
-              competition: `${competition.city} ${competition.season}`,
-              event: check.eventType,
-              status: `failed to save: ${announcementError.message}`,
-            })
-            continue
-          }
-
-          // Record that we've processed this event
-          const { error: eventRecordError } = await supabase
-            .from('ai_post_events')
-            .insert({
-              competition_id: competition.id,
-              event_type: check.eventType,
-              announcement_id: announcement.id,
-            })
-
-          if (eventRecordError) {
-            console.error(`Failed to record event for ${eventKey}:`, eventRecordError)
-            // Don't fail the whole operation, the post was created
-          }
-
-          // Create in-app notifications for all contestants + host
-          const { error: notifError } = await supabase.rpc('create_competition_notification', {
-            p_competition_id: competition.id,
-            p_type: 'event_posted',
-            p_title: generatedPost.title,
-            p_body: `${competition.city} ${competition.season}: ${check.eventType.replace(/_/g, ' ')}`,
-            p_action_url: null,
-            p_metadata: JSON.stringify({ event_type: check.eventType }),
-          })
-
-          if (notifError) {
-            console.error(`Failed to create notifications for ${eventKey}:`, notifError)
-          }
-
-          // Email blast to coming-soon subscribers — currently only fires on
-          // nominations_open. Dedup'd via subscriber_blast_events so a single
-          // competition + event sends at most once.
-          if (check.eventType === 'nominations_open') {
-            await sendNominationsOpenBlast(supabase, supabaseUrl, supabaseServiceKey, competition).catch((err) => {
-              console.error(`Subscriber blast failed for ${eventKey}:`, err)
-            })
-          }
-
-          results.push({
-            competition: `${competition.city} ${competition.season}`,
-            event: check.eventType,
-            status: 'success',
-          })
-
-        } catch (error) {
-          console.error(`Error processing ${eventKey}:`, error)
-          results.push({
-            competition: `${competition.city} ${competition.season}`,
-            event: check.eventType,
-            status: `error: ${error.message}`,
-          })
-        }
+      try {
+        const sent = await sendNominationsOpenBlast(supabase, supabaseUrl, supabaseServiceKey, competition)
+        results.push({
+          competition: `${competition.city} ${competition.season}`,
+          event: 'nominations_open',
+          status: sent === null ? 'skipped (already sent)' : `sent ${sent}`,
+        })
+      } catch (error) {
+        console.error(`Error processing nominations_open for ${competition.id}:`, error)
+        results.push({
+          competition: `${competition.city} ${competition.season}`,
+          event: 'nominations_open',
+          status: `error: ${error.message}`,
+        })
       }
     }
 
