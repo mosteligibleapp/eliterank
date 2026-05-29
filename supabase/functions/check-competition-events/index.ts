@@ -21,8 +21,9 @@ const corsHeaders = {
 
 interface Competition {
   id: string
-  city: string
-  season: number
+  name: string | null
+  slug: string | null
+  season: number | null
   status: string
   nomination_start: string | null
   nomination_end: string | null
@@ -100,8 +101,8 @@ async function sendNominationsOpenBlast(
     ? `${appUrl}/${orgSlug}/${compDetails?.slug || `id/${competition.id}`}`
     : `${appUrl}/c/${competition.id}`
 
-  const competitionName = compDetails?.name || `Most Eligible ${competition.city || ''}`.trim()
-  const cityName = compDetails?.city?.name || competition.city || null
+  const competitionName = compDetails?.name || competition.name || 'EliteRank'
+  const cityName = compDetails?.city?.name || null
 
   let sent = 0
   for (const row of subscribers || []) {
@@ -166,7 +167,7 @@ serve(async (req) => {
     // Fetch all active competitions (not draft)
     const { data: competitions, error: compError } = await supabase
       .from('competitions')
-      .select('id, city, season, status, nomination_start, nomination_end')
+      .select('id, name, slug, season, status, nomination_start, nomination_end')
       .neq('status', 'draft')
 
     if (compError) {
@@ -186,14 +187,14 @@ serve(async (req) => {
       try {
         const sent = await sendNominationsOpenBlast(supabase, supabaseUrl, supabaseServiceKey, competition)
         results.push({
-          competition: `${competition.city} ${competition.season}`,
+          competition: competition.name || competition.id,
           event: 'nominations_open',
           status: sent === null ? 'skipped (already sent)' : `sent ${sent}`,
         })
       } catch (error) {
         console.error(`Error processing nominations_open for ${competition.id}:`, error)
         results.push({
-          competition: `${competition.city} ${competition.season}`,
+          competition: competition.name || competition.id,
           event: 'nominations_open',
           status: `error: ${error.message}`,
         })
