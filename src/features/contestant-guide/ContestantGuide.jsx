@@ -238,6 +238,29 @@ export default function ContestantGuide({
 }
 
 /**
+ * Derive the crown/title brand shown in the guide.
+ *
+ * The platform is "Most Eligible {city}" branded by default, but other series
+ * (e.g. "Who's Who") run on the same component. We take the brand portion of
+ * the competition name — everything before a ":" subtitle and minus a trailing
+ * season year — then append the city when it isn't already part of the brand:
+ *   "Who's Who: Singles Edition" + Toronto  -> "Who's Who Toronto"
+ *   "Most Eligible Toronto 2026"             -> "Most Eligible Toronto"
+ *   "Most Eligible" (city stored separately) -> "Most Eligible Toronto"
+ */
+function deriveCrownTitle(competition, cityName) {
+  const brand = (competition?.name || '')
+    .split(':')[0]
+    .replace(/\s+\d{4}\s*$/, '')
+    .trim();
+  if (!brand) return `Most Eligible ${cityName}`.trim();
+  if (cityName && !brand.toLowerCase().includes(String(cityName).toLowerCase())) {
+    return `${brand} ${cityName}`;
+  }
+  return brand;
+}
+
+/**
  * Generate dynamic guide content based on competition configuration
  */
 function generateGuideContent({ competition, votingRounds = [], prizePool, about, phase }) {
@@ -246,7 +269,15 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
   const pricePerVote = competition?.price_per_vote || 1;
   const numWinners = competition?.number_of_winners || 5;
   const prizeMinimum = prizePool?.minimum || competition?.prize_pool_minimum || 1000;
-  const currentPrize = prizePool?.total || prizeMinimum;
+  const splitByGender = competition?.winners_split_by_gender;
+  const judgesPct = competition?.judges_score_weight_pct;
+  const votesPct = judgesPct != null ? 100 - judgesPct : null;
+  const crownTitle = deriveCrownTitle(competition, cityName);
+  // Only show a cash prize when the host actually guarantees one — a
+  // competition can run on sponsor prizes alone (prize_pool_minimum = 0).
+  const configuredMinimum = Number(competition?.prize_pool_minimum ?? prizePool?.hostMinimum ?? 0);
+  const hasCashPrize = configuredMinimum > 0;
+  const currentPrize = Number(prizePool?.totalPrizePool ?? prizePool?.total ?? configuredMinimum);
   
   // Count rounds from actual data
   const rounds = votingRounds || [];
@@ -263,22 +294,52 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
 
   const sorted = [...rounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
 
-  // Detect judge scoring between second-to-last and last round
-  const preFinalists = sorted.length >= 2 ? sorted[sorted.length - 2]?.contestants_advance : null;
-  const finalists = sorted.length >= 1 ? (sorted[sorted.length - 1]?.contestants_advance || numWinners) : numWinners;
-  const hasJudgeStep = preFinalists && preFinalists > finalists;
-
   const howItWorksPoints = [
     `The competition runs across ${sorted.length} voting rounds`,
     'A set number of contestants advances each round based on vote count, and votes reset at the start of every round',
   ];
-  if (hasJudgeStep) {
-    howItWorksPoints.push(`After the Top ${preFinalists} are determined, judges decide who makes it as a top finalist — a panel scores the contestants and the Top ${finalists} advance`);
-    howItWorksPoints.push(`From there, the Top ${finalists} compete in a final voting round — votes reset one last time, and the final vote count determines the winners' rankings (1st–${numWinners}th)`);
-  } else {
-    howItWorksPoints.push('Judges decide who makes it as a top finalist');
+
+  // Final round: the number of finalists who reach it is the prior round's
+  // advancement count (e.g. 24), optionally split by gender. The vote/judge
+  // weighting (when judges score) decides the winners.
+  const finalists = sorted.length >= 2 ? sorted[sorted.length - 2]?.contestants_advance : null;
+  if (finalists) {
+    const perGender = Math.ceil(finalists / 2);
+    const genderBreakdown = splitByGender ? ` (${perGender} males and ${perGender} females)` : '';
+    const scoring = votesPct != null
+      ? `vote count (${votesPct}%) and judge scores (${judgesPct}%) determine`
+      : 'the final vote count determines';
+    const winnerLabel = splitByGender && numWinners === 2
+      ? 'the 2 ultimate winners'
+      : `the ${numWinners} winners`;
+    howItWorksPoints.push(
+      `The final round will be comprised of the Top ${finalists} contestants${genderBreakdown}, ${scoring} ${winnerLabel}`
+    );
   }
-  howItWorksPoints.push(`${numWinners} contestants will be crowned Most Eligible ${cityName} and hold the title for one year`);
+
+  const crownWinnerLabel = splitByGender && numWinners === 2
+    ? '2 winners (1 male, 1 female)'
+    : `${numWinners} contestants`;
+  howItWorksPoints.push(
+    `The ${crownWinnerLabel} will be crowned ${crownTitle}, hold the title for one year and receive the prize package`
+  );
+
+  // Prize pool bullets — title + sponsor package always; cash prize only when guaranteed.
+  const prizeWinnersLabel = splitByGender && numWinners === 2 ? '2 winners (1 male, 1 female)' : `${numWinners} winners`;
+  const prizeWinnersCount = splitByGender && numWinners === 2 ? '2' : `${numWinners}`;
+  const prizePoolPoints = [
+    `${prizeWinnersLabel} earn the year-long title of ${crownTitle}`,
+    `The ${prizeWinnersCount} winners receive a prize package from competition sponsors`,
+  ];
+  if (hasCashPrize) {
+    prizePoolPoints.push({
+      text: `1st place receives a cash prize (min $${configuredMinimum.toLocaleString()})`,
+      subpoints: [
+        'Paid votes are available but not required to advance.',
+        'Winner may keep the prize or donate to a verified 501(c)(3) of their choice',
+      ],
+    });
+  }
 
   const sections = [
     // Section 1: How It Works
@@ -341,18 +402,8 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
       icon: <Gift size={48} className="guide-icon guide-icon--green" />,
       title: 'Prize Pool',
       subtitle: 'Real prizes. Real bragging rights.',
-      points: [
-        `${numWinners} winners earn the year-long title of Most Eligible ${cityName}`,
-        `The ${numWinners} winners receive a prize package from competition sponsors`,
-        {
-          text: `1st place receives a cash prize (min $${prizeMinimum.toLocaleString()})`,
-          subpoints: [
-            'Paid votes are available but not required to advance.',
-            'Winner may keep the prize or donate to a verified 501(c)(3) of their choice',
-          ],
-        },
-      ],
-      tip: `Current cash prize: $${currentPrize.toLocaleString()}+`,
+      points: prizePoolPoints,
+      tip: hasCashPrize ? `Current cash prize: $${currentPrize.toLocaleString()}+` : undefined,
     },
   ];
 
@@ -371,18 +422,20 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     {
       icon: <TrendingUp size={20} />,
       label: 'Rounds',
-      value: `${votingRoundCount} rounds`,
+      value: `${sorted.length} rounds`,
     },
     {
       icon: <Trophy size={20} />,
       label: 'Winners',
       value: `Top ${numWinners}`,
     },
-    {
-      icon: <Gift size={20} />,
-      label: 'Min Prize',
-      value: `$${prizeMinimum.toLocaleString()}`,
-    },
+    ...(hasCashPrize
+      ? [{
+          icon: <Gift size={20} />,
+          label: 'Min Prize',
+          value: `$${prizeMinimum.toLocaleString()}`,
+        }]
+      : []),
     {
       icon: <Target size={20} />,
       label: 'Goal',
