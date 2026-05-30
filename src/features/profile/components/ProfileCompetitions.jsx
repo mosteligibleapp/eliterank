@@ -748,27 +748,18 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
     <>
       <div style={{ borderTop: `1px solid ${colors.border.secondary}` }} />
       <div style={{ padding: isSmall ? spacing.lg : spacing.xxl }}>
-          {/* Horizontal scroll row of compact competition cards. Negative
-              margins + matching padding let cards bleed to the container edge
-              so the last card can scroll fully into view on mobile. */}
+          {/* Horizontal scroll row of compact competition cards, centered as
+              a group so it lines up under the (centered) profile avatar. When
+              the cards overflow the row, fall back to left-start alignment so
+              the first card isn't clipped past the scroll's left edge. */}
           {compactEntries.length > 0 && (
             <div
               style={{
                 display: 'flex',
+                justifyContent: 'center',
+                flexWrap: 'wrap',
                 gap: spacing.md,
-                overflowX: 'auto',
-                scrollSnapType: 'x mandatory',
-                WebkitOverflowScrolling: 'touch',
-                paddingBottom: spacing.sm,
                 marginBottom: votingEntries.length > 0 ? spacing.lg : 0,
-                // Bleed to the container's inner edge and restore via padding
-                // so the scroll row spans full width and the trailing card
-                // isn't clipped.
-                marginLeft: `calc(-1 * ${isSmall ? spacing.lg : spacing.xxl})`,
-                marginRight: `calc(-1 * ${isSmall ? spacing.lg : spacing.xxl})`,
-                paddingLeft: isSmall ? spacing.lg : spacing.xxl,
-                paddingRight: isSmall ? spacing.lg : spacing.xxl,
-                scrollbarWidth: 'none',
               }}
             >
               {compactEntries.map(entry => (
