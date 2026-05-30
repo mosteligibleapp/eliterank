@@ -755,26 +755,40 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
       <div style={{ borderTop: `1px solid ${colors.border.secondary}` }} />
       <div style={{ padding: isSmall ? spacing.lg : spacing.xxl }}>
           {/* Compact competition cards, centered as a group so they line up
-              under the (centered) profile avatar. Wraps to additional centered
-              rows when there are more than fit on one line. */}
+              under the (centered) profile avatar. When there are too many to
+              fit on one line, the row scrolls horizontally rather than wrapping
+              into a lopsided second row. The outer wrapper centers the inner
+              row while it fits; the inner row takes over scrolling once it
+              overflows. */}
           {compactEntries.length > 0 && (
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'center',
-                flexWrap: 'wrap',
-                gap: spacing.md,
                 marginBottom: stackedEntries.length > 0 ? spacing.lg : 0,
               }}
             >
-              {compactEntries.map(entry => (
-                <CompactCompetitionCard
-                  key={entry.id}
-                  entry={entry}
-                  onAcceptClick={handleOpenAcceptModal}
-                  isMobile={isMobile}
-                />
-              ))}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'nowrap',
+                  gap: spacing.md,
+                  maxWidth: '100%',
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  // Small gutter so the scrollbar doesn't crowd the cards.
+                  paddingBottom: spacing.xs,
+                }}
+              >
+                {compactEntries.map(entry => (
+                  <CompactCompetitionCard
+                    key={entry.id}
+                    entry={entry}
+                    onAcceptClick={handleOpenAcceptModal}
+                    isMobile={isMobile}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
