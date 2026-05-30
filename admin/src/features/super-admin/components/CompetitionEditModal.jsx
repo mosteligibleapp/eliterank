@@ -68,6 +68,7 @@ export default function CompetitionEditModal({
     max_contestants: '',
     host_id: '',
     category_id: '',
+    demographic_id: '',
     description: '',
     cover_image: '',
     price_per_vote: 1.00,
@@ -89,6 +90,7 @@ export default function CompetitionEditModal({
         max_contestants: competition.max_contestants || '',
         host_id: competition.host_id || '',
         category_id: competition.category_id || '',
+        demographic_id: competition.demographic_id || '',
         description: competition.description || '',
         cover_image: competition.cover_image || '',
         price_per_vote: competition.price_per_vote ?? 1.00,
@@ -150,6 +152,11 @@ export default function CompetitionEditModal({
     [categories]
   );
 
+  const demographicOptions = useMemo(
+    () => demographics.map(d => ({ value: d.id, label: d.label })),
+    [demographics]
+  );
+
   const handleSubmit = () => {
     onSave(formData);
   };
@@ -158,7 +165,6 @@ export default function CompetitionEditModal({
 
   const editOrg = organizations.find(o => o.id === competition.organization_id);
   const editCity = cities.find(c => c.id === competition.city_id);
-  const editDemographic = demographics.find(d => d.id === competition.demographic_id);
 
   const tabs = [
     { key: 'basic', label: 'Basic Info' },
@@ -204,18 +210,26 @@ export default function CompetitionEditModal({
             <FormGrid>
               <ReadOnlyField label="Organization" value={editOrg?.name || 'Not set'} />
               <ReadOnlyField label="City" value={editCity?.name || 'Not set'} />
-              <ReadOnlyField label="Demographic" value={editDemographic?.label || 'Not set'} />
             </FormGrid>
           </FormSection>
 
           <FormSection title="Editable Fields">
-            <FormField label="Category">
-              <SelectInput
-                value={formData.category_id}
-                onChange={(e) => updateField('category_id', e.target.value)}
-                options={categoryOptions}
-              />
-            </FormField>
+            <FormGrid>
+              <FormField label="Category">
+                <SelectInput
+                  value={formData.category_id}
+                  onChange={(e) => updateField('category_id', e.target.value)}
+                  options={categoryOptions}
+                />
+              </FormField>
+              <FormField label="Demographic" description="Age / gender bracket for this competition">
+                <SelectInput
+                  value={formData.demographic_id}
+                  onChange={(e) => updateField('demographic_id', e.target.value)}
+                  options={demographicOptions}
+                />
+              </FormField>
+            </FormGrid>
             <FormField label="Competition Name" description="Leave blank to auto-generate from organization and city.">
               <TextInput
                 value={formData.name}
