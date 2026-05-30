@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock } from 'lucide-react';
-import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
+import { Panel, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 
@@ -138,49 +138,57 @@ function StatBox({ label, value, suffix, icon, accent = false, isMobile = false 
   );
 }
 
-function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
-  switch (role) {
-    case 'nominee':
-      return (
-        <Badge variant="gold" size={size} pill>
-          <Award size={10} style={{ marginRight: '4px' }} />
-          Nominee
-        </Badge>
-      );
-    case 'host':
-      return (
-        <Badge variant="purple" size={size} pill>
-          <Crown size={10} style={{ marginRight: '4px' }} />
-          Host
-        </Badge>
-      );
-    case 'winner':
-      return (
-        <Badge variant="gold" size={size} pill>
-          <Trophy size={10} style={{ marginRight: '4px' }} />
-          Winner
-        </Badge>
-      );
-    case 'contestant':
-      return (
-        <Badge variant="success" size={size} pill>
-          <Crown size={10} style={{ marginRight: '4px' }} />
-          {contestantLabel || 'Contestant'}
-        </Badge>
-      );
-    case 'eliminated':
-      // Framed as an achievement, not a loss — the badge shows the tier
-      // the contestant reached (e.g. "Top 25 Contestant", "Entry Round")
-      // instead of calling out their elimination.
-      return (
-        <Badge variant="gold" size={size} pill>
-          <Crown size={10} style={{ marginRight: '4px' }} />
-          {subLabel || 'Contestant'}
-        </Badge>
-      );
-    default:
-      return null;
-  }
+// Each role maps to an icon + a color pair (background tint / foreground),
+// reusing the same semantics as the Badge variants: purple = host,
+// gold = nominee / winner / reached-tier, green = active contestant.
+const ROLE_TILE_CONFIG = {
+  nominee: { icon: Award, bg: colors.gold.muted, fg: colors.gold.primary, label: 'Nominee' },
+  host: { icon: Crown, bg: colors.accent.purpleMuted, fg: colors.accent.purple, label: 'Host' },
+  winner: { icon: Trophy, bg: colors.gold.muted, fg: colors.gold.primary, label: 'Winner' },
+  contestant: { icon: Crown, bg: colors.status.successMuted, fg: colors.status.success, label: 'Contestant' },
+  // Framed as an achievement, not a loss — the tooltip shows the tier the
+  // contestant reached (e.g. "Top 25 Contestant", "Entry Round") instead of
+  // calling out their elimination.
+  eliminated: { icon: Crown, bg: colors.gold.muted, fg: colors.gold.primary, label: 'Contestant' },
+};
+
+/**
+ * Compact square, icon-only role badge. The role name is dropped from the
+ * visual to keep the list dense when several competitions stack, but is kept
+ * accessible via the tooltip (title) and aria-label.
+ */
+function RoleBadge({ role, subLabel, contestantLabel }) {
+  const config = ROLE_TILE_CONFIG[role];
+  if (!config) return null;
+
+  const { icon: Icon, bg, fg } = config;
+  // Contestant/eliminated tiles carry a tier-specific label when available.
+  const label = role === 'contestant'
+    ? (contestantLabel || config.label)
+    : role === 'eliminated'
+      ? (subLabel || config.label)
+      : config.label;
+
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      role="img"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '24px',
+        height: '24px',
+        borderRadius: borderRadius.md,
+        background: bg,
+        color: fg,
+        flexShrink: 0,
+      }}
+    >
+      <Icon size={13} />
+    </span>
+  );
 }
 
 /**
