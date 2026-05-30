@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle, Mail
+  Eye, AlertCircle, Mail, ChevronDown, Check
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -87,11 +87,15 @@ export default function CompetitionDashboard({
   onLogout,
   onViewPublicSite,
   currentUserId,
+  competitions = [],
+  selectedCompetitionId,
+  onSelectCompetition,
 }) {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showHostAssignment, setShowHostAssignment] = useState(false);
   const [showAddCoHost, setShowAddCoHost] = useState(false);
+  const [showCompSwitcher, setShowCompSwitcher] = useState(false);
   const isSuperAdmin = role === 'superadmin';
   const { isMobile } = useResponsive();
 
@@ -151,6 +155,30 @@ export default function CompetitionDashboard({
 
   const competition = data.competition;
   const competitionName = competition?.name || 'Competition';
+
+  // When the host runs more than one competition, the header name becomes a
+  // switcher so they can jump between dashboards without leaving the page.
+  const hasMultipleCompetitions = competitions.length > 1;
+  const activeCompetitionId = selectedCompetitionId ?? competitionId;
+
+  // Gradient gold title shared by the single-competition and switcher renders.
+  const competitionNameStyle = {
+    fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.xxl,
+    fontWeight: typography.fontWeight.semibold,
+    background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: isMobile ? '100px' : 'none',
+    lineHeight: 1.2,
+  };
+
+  const handleSelectCompetition = (id) => {
+    setShowCompSwitcher(false);
+    if (id !== activeCompetitionId) onSelectCompetition?.(id);
+  };
 
   // Add person modal state
   const [addPersonModal, setAddPersonModal] = useState({ isOpen: false, type: 'nominee' });
@@ -268,20 +296,115 @@ export default function CompetitionDashboard({
             gap: isMobile ? '1px' : spacing.md,
             minWidth: 0,
           }}>
-            <span style={{
-              fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.xxl,
-              fontWeight: typography.fontWeight.semibold,
-              background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: isMobile ? '100px' : 'none',
-              lineHeight: 1.2,
-            }}>
-              {competitionName}
-            </span>
+            {hasMultipleCompetitions ? (
+              <div style={{ position: 'relative', minWidth: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCompSwitcher((v) => !v)}
+                  aria-haspopup="listbox"
+                  aria-expanded={showCompSwitcher}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    padding: 0,
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span style={competitionNameStyle}>{competitionName}</span>
+                  <ChevronDown
+                    size={isMobile ? 14 : 18}
+                    color={colors.gold.primary}
+                    style={{
+                      flexShrink: 0,
+                      transition: 'transform 0.2s ease',
+                      transform: showCompSwitcher ? 'rotate(180deg)' : 'none',
+                    }}
+                  />
+                </button>
+
+                {showCompSwitcher && (
+                  <>
+                    {/* Click-away backdrop */}
+                    <div
+                      onClick={() => setShowCompSwitcher(false)}
+                      style={{ position: 'fixed', inset: 0, zIndex: 49 }}
+                    />
+                    {/* Switcher menu */}
+                    <div
+                      role="listbox"
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 8px)',
+                        left: 0,
+                        zIndex: 50,
+                        minWidth: isMobile ? '220px' : '260px',
+                        maxWidth: '80vw',
+                        maxHeight: '60vh',
+                        overflowY: 'auto',
+                        background: 'rgba(20,20,30,0.98)',
+                        border: `1px solid ${colors.border.light}`,
+                        borderRadius: borderRadius.lg,
+                        boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+                        backdropFilter: 'blur(20px)',
+                        padding: spacing.xs,
+                      }}
+                    >
+                      {competitions.map((c) => {
+                        const isActive = c.id === activeCompetitionId;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            role="option"
+                            aria-selected={isActive}
+                            onClick={() => handleSelectCompetition(c.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: spacing.sm,
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: `${spacing.sm} ${spacing.md}`,
+                              background: isActive ? 'rgba(212,175,55,0.12)' : 'transparent',
+                              border: 'none',
+                              borderRadius: borderRadius.md,
+                              color: isActive ? colors.gold.primary : colors.text.primary,
+                              fontSize: typography.fontSize.sm,
+                              fontWeight: isActive
+                                ? typography.fontWeight.semibold
+                                : typography.fontWeight.normal,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Crown
+                              size={14}
+                              style={{ flexShrink: 0, opacity: isActive ? 1 : 0.5 }}
+                            />
+                            <span style={{
+                              flex: 1,
+                              minWidth: 0,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {c.name}
+                            </span>
+                            {isActive && <Check size={14} style={{ flexShrink: 0 }} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <span style={competitionNameStyle}>{competitionName}</span>
+            )}
 
             <span style={{
               padding: isMobile ? `1px ${spacing.xs}` : `${spacing.xs} ${spacing.md}`,

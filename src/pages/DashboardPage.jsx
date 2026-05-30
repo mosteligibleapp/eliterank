@@ -40,15 +40,19 @@ export default function DashboardPage() {
   const user = useAuthStore(s => s.user);
   const signOut = useAuthStore(s => s.signOut);
   
-  const [hostCompetition, setHostCompetition] = useState(null);
+  // A host may run several competitions (primary host or co-host). We load all
+  // of them so the dashboard can offer a switcher, and track which one is
+  // currently selected.
+  const [competitions, setCompetitions] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
 
-  // Fetch host's assigned competition from Supabase
+  // Fetch all competitions this user hosts (primary + co-hosted) from Supabase
   useEffect(() => {
-    const fetchHostCompetition = async () => {
+    const fetchHostCompetitions = async () => {
       if (!user?.id || !supabase) {
-        setHostCompetition(null);
+        setCompetitions([]);
         setLoading(false);
         return;
       }
@@ -73,32 +77,37 @@ export default function DashboardPage() {
             organization:organizations(slug, name)
           `)
           .or(filter)
-          .limit(1);
+          .order('created_at', { ascending: false });
 
         if (error) {
-          setHostCompetition(null);
+          setCompetitions([]);
           setLoading(false);
           return;
         }
 
-        const competition = data?.[0];
-        if (competition) {
-          setHostCompetition({
-            ...competition,
-            name: buildCompetitionName(competition),
-          });
-        } else {
-          setHostCompetition(null);
-        }
+        const list = (data ?? []).map((competition) => ({
+          ...competition,
+          // Prefer the stored name so the switcher matches the dashboard
+          // header; fall back to a city + season label when it's blank.
+          name: competition.name?.trim() || buildCompetitionName(competition),
+        }));
+        setCompetitions(list);
+        // Keep the current selection if it's still in the list, otherwise
+        // default to the most recent competition.
+        setSelectedId((prev) =>
+          prev && list.some((c) => c.id === prev) ? prev : list[0]?.id ?? null
+        );
       } catch (err) {
-        setHostCompetition(null);
+        setCompetitions([]);
         setFetchError(err);
       }
       setLoading(false);
     };
 
-    fetchHostCompetition();
+    fetchHostCompetitions();
   }, [user?.id]);
+
+  const selectedCompetition = competitions.find((c) => c.id === selectedId) || null;
 
   const handleBack = useCallback(() => {
     navigate('/');
@@ -110,31 +119,31 @@ export default function DashboardPage() {
   }, [signOut, navigate]);
 
   const handleViewPublicSite = useCallback(() => {
-    if (!hostCompetition) return;
+    if (!selectedCompetition) return;
 
-    const orgSlug = hostCompetition?.organization?.slug || 'most-eligible';
+    const orgSlug = selectedCompetition?.organization?.slug || 'most-eligible';
 
     // Priority 1: Use the database slug directly (preferred)
-    if (hostCompetition?.slug) {
-      window.open(getCompetitionUrl(orgSlug, hostCompetition.slug), '_blank');
+    if (selectedCompetition?.slug) {
+      window.open(getCompetitionUrl(orgSlug, selectedCompetition.slug), '_blank');
       return;
     }
 
     // Priority 2: Use the competition ID — the most reliable lookup
-    if (hostCompetition?.id) {
-      window.open(`/${orgSlug}/id/${hostCompetition.id}`, '_blank');
+    if (selectedCompetition?.id) {
+      window.open(`/${orgSlug}/id/${selectedCompetition.id}`, '_blank');
       return;
     }
 
     // Priority 3: Generate the slug from competition data
-    const cityName = hostCompetition?.city?.name || hostCompetition?.city || '';
+    const cityName = selectedCompetition?.city?.name || selectedCompetition?.city || '';
     const generatedSlug = generateCompetitionSlug({
-      name: hostCompetition?.name,
+      name: selectedCompetition?.name,
       citySlug: slugify(cityName),
-      season: hostCompetition?.season,
+      season: selectedCompetition?.season,
     });
     window.open(getCompetitionUrl(orgSlug, generatedSlug), '_blank');
-  }, [hostCompetition]);
+  }, [selectedCompetition]);
 
 
   if (loading) {
@@ -154,7 +163,7 @@ export default function DashboardPage() {
   }
 
   // Host must have an assigned competition to view the dashboard
-  if (!hostCompetition) {
+  if (!selectedCompetition) {
     return (
       <div
         style={{
@@ -211,12 +220,15 @@ export default function DashboardPage() {
 
   return (
     <CompetitionDashboard
-      competitionId={hostCompetition.id}
+      competitionId={selectedCompetition.id}
       role="host"
       onBack={handleBack}
       onLogout={handleLogout}
       currentUserId={user?.id}
       onViewPublicSite={handleViewPublicSite}
+      competitions={competitions}
+      selectedCompetitionId={selectedCompetition.id}
+      onSelectCompetition={setSelectedId}
     />
   );
 }
