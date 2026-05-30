@@ -231,6 +231,7 @@ export function parseCompetitionSlug(slug) {
     'lgbtq-plus-21-39',
     'lgbtq-plus-40-plus',
     'all-genders-29-45',
+    'all-genders-45-plus',
   ];
 
   // New format: {name}-{city}-{year}-{demographic} or {name}-{city}-{year}
