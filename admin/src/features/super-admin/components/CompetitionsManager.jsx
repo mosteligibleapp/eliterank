@@ -40,6 +40,8 @@ export default function CompetitionsManager({ onViewDashboard }) {
   const [showAssignHostModal, setShowAssignHostModal] = useState(false);
   const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
+  const [showDemographicConfirmModal, setShowDemographicConfirmModal] = useState(false);
+  const [pendingDemographicUpdate, setPendingDemographicUpdate] = useState(null);
   const [selectedCompetition, setSelectedCompetition] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -451,6 +453,37 @@ export default function CompetitionsManager({ onViewDashboard }) {
       return;
     }
 
+    // Changing the demographic (age/gender bracket) mid-competition can
+    // invalidate already-collected entries — confirm when a roster exists.
+    const demographicChanged =
+      (formData.demographic_id || null) !== (selectedCompetition.demographic_id || null);
+    const rosterCount =
+      (selectedCompetition._nominee_count || 0) + (selectedCompetition._contestant_count || 0);
+    if (demographicChanged && rosterCount > 0) {
+      setPendingDemographicUpdate(formData);
+      setShowDemographicConfirmModal(true);
+      return;
+    }
+
+    commitUpdate(formData);
+  };
+
+  const handleDemographicConfirm = () => {
+    setShowDemographicConfirmModal(false);
+    const formData = pendingDemographicUpdate;
+    setPendingDemographicUpdate(null);
+    if (formData) commitUpdate(formData);
+  };
+
+  const handleDemographicCancel = () => {
+    setShowDemographicConfirmModal(false);
+    setPendingDemographicUpdate(null);
+  };
+
+  const commitUpdate = async (formData) => {
+    if (!selectedCompetition) return;
+    const maxContestants = formData.max_contestants ? parseInt(formData.max_contestants, 10) : null;
+
     setIsSubmitting(true);
     try {
       const updatePayload = {
@@ -459,6 +492,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
         number_of_winners: formData.number_of_winners,
         host_id: formData.host_id || null,
         category_id: formData.category_id,
+        demographic_id: formData.demographic_id || null,
         description: formData.description || '',
         cover_image: formData.cover_image || null,
         price_per_vote: formData.price_per_vote,
@@ -874,6 +908,39 @@ export default function CompetitionsManager({ onViewDashboard }) {
             </div>
             <p style={styles.deleteText}>
               {getConfirmationContent(pendingStatusChange.competition.status, pendingStatusChange.newStatus).message}
+            </p>
+          </div>
+        </FormModal>
+      )}
+
+      {/* ── Demographic Change Confirm ──────────────────── */}
+      {showDemographicConfirmModal && selectedCompetition && pendingDemographicUpdate && (
+        <FormModal
+          isOpen={showDemographicConfirmModal}
+          onClose={handleDemographicCancel}
+          title="Change demographic?"
+          onSubmit={handleDemographicConfirm}
+          submitLabel="Change demographic"
+          size="sm"
+        >
+          <div style={styles.deleteBody}>
+            <div style={{ ...styles.deleteIcon, background: 'rgba(251,191,36,0.15)' }}>
+              <AlertTriangle size={24} style={{ color: '#fbbf24' }} />
+            </div>
+            <p style={styles.deleteText}>
+              This competition already has{' '}
+              {(selectedCompetition._nominee_count || 0) > 0 && (
+                <strong>{selectedCompetition._nominee_count} nominee{selectedCompetition._nominee_count === 1 ? '' : 's'}</strong>
+              )}
+              {(selectedCompetition._nominee_count || 0) > 0 && (selectedCompetition._contestant_count || 0) > 0 && ' and '}
+              {(selectedCompetition._contestant_count || 0) > 0 && (
+                <strong>{selectedCompetition._contestant_count} contestant{selectedCompetition._contestant_count === 1 ? '' : 's'}</strong>
+              )}
+              {' '}entered under the current demographic
+              {' '}(<strong>{demographics.find(d => d.id === selectedCompetition.demographic_id)?.label || 'Not set'}</strong>).
+              Changing it to{' '}
+              <strong>{demographics.find(d => d.id === pendingDemographicUpdate.demographic_id)?.label || 'Not set'}</strong>{' '}
+              may mean existing entries no longer match the age/gender bracket. Continue?
             </p>
           </div>
         </FormModal>
