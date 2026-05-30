@@ -739,10 +739,17 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
 
   // Contestant entries with an active voting round render a rich stacked card
   // (stats + inline voting panel) that can't fit the compact horizontal card,
-  // so they stay full-width below. Everything else (host / nominee / winner /
-  // completed contestant) goes into the horizontal scroll row.
+  // so they always stay full-width below. Everything else (host / nominee /
+  // winner / completed contestant) is a candidate for the compact row — but
+  // the compact row only makes sense when there are several to line up, so a
+  // lone entry falls back to the full-width stacked card.
   const votingEntries = entries.filter(e => entryHasInlineVoting(e, isPreview));
-  const compactEntries = entries.filter(e => !entryHasInlineVoting(e, isPreview));
+  const simpleEntries = entries.filter(e => !entryHasInlineVoting(e, isPreview));
+  const useCompactRow = simpleEntries.length > 1;
+  const compactEntries = useCompactRow ? simpleEntries : [];
+  // Stacked cards = active-voting entries, plus the lone simple entry when the
+  // compact row isn't used.
+  const stackedEntries = useCompactRow ? votingEntries : [...simpleEntries, ...votingEntries];
 
   return (
     <>
@@ -759,7 +766,7 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
                 justifyContent: 'center',
                 flexWrap: 'wrap',
                 gap: spacing.md,
-                marginBottom: votingEntries.length > 0 ? spacing.lg : 0,
+                marginBottom: stackedEntries.length > 0 ? spacing.lg : 0,
               }}
             >
               {compactEntries.map(entry => (
@@ -773,10 +780,11 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
             </div>
           )}
 
-          {/* Active-voting contestant entries — full-width stacked cards. */}
-          {votingEntries.length > 0 && (
+          {/* Full-width stacked cards: active-voting entries (always), plus a
+              lone simple entry when there aren't enough for the compact row. */}
+          {stackedEntries.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {votingEntries.map(entry => (
+              {stackedEntries.map(entry => (
                 <CompetitionCard
                   key={entry.id}
                   entry={entry}
