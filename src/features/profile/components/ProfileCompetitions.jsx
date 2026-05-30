@@ -166,7 +166,7 @@ function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
 
   return (
     <Badge variant={variant} size={size} pill>
-      <Icon size={10} style={{ marginRight: '4px' }} />
+      <Icon size={10} />
       {label}
     </Badge>
   );
