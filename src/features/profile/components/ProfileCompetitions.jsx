@@ -219,7 +219,7 @@ function getVotingStartDate(competition) {
  * Cheap, hook-free predicate mirroring CompetitionCard's `showInlineVoting`.
  * Lets the parent decide — before rendering — whether an entry needs the rich
  * stacked card (active voting: stats + inline voting panel) or can use the
- * compact card in the horizontal scroll row.
+ * compact card in the centered card row.
  */
 function entryHasInlineVoting(entry, isPreview) {
   const competition = entry.competition || {};
@@ -231,9 +231,9 @@ function entryHasInlineVoting(entry, isPreview) {
 }
 
 /**
- * Compact competition card used in the horizontal scroll row. Shows the org
- * icon, role badge, competition name, and city · year — no voting panel. Kept
- * narrow with a fixed width so multiple competitions form a swipeable row.
+ * Compact competition card used in the centered card row. Shows the org icon,
+ * role badge, competition name, and city · year — no voting panel. Kept narrow
+ * with a fixed width so multiple competitions line up neatly side by side.
  */
 function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -245,11 +245,10 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
     <a
       href={entry.url}
       style={{
-        // Fixed-width card so several form a horizontal row; kept narrow and
+        // Fixed-width card so several line up in a row; kept narrow and
         // center-aligned so the icon / badge / name / meta stack reads compact.
         flex: '0 0 auto',
         width: isMobile ? '160px' : '170px',
-        scrollSnapAlign: 'start',
         textDecoration: 'none',
         color: 'inherit',
         display: 'flex',
@@ -755,10 +754,9 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
     <>
       <div style={{ borderTop: `1px solid ${colors.border.secondary}` }} />
       <div style={{ padding: isSmall ? spacing.lg : spacing.xxl }}>
-          {/* Horizontal scroll row of compact competition cards, centered as
-              a group so it lines up under the (centered) profile avatar. When
-              the cards overflow the row, fall back to left-start alignment so
-              the first card isn't clipped past the scroll's left edge. */}
+          {/* Compact competition cards, centered as a group so they line up
+              under the (centered) profile avatar. Wraps to additional centered
+              rows when there are more than fit on one line. */}
           {compactEntries.length > 0 && (
             <div
               style={{
