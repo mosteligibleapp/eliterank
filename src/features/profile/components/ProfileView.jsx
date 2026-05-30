@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users, Play } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users, Play, MessageCircle } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { getCompetitionStats, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -11,6 +11,7 @@ import ProfileCompetitions from './ProfileCompetitions';
 import ProfileBonusVotes from './ProfileBonusVotes';
 import FanButton from '../../../components/ui/FanButton';
 import ProfileFans from './ProfileFans';
+import FanWall from './FanWall';
 import IntroVideoModal from '../../../components/modals/IntroVideoModal';
 
 export default function ProfileView({ hostProfile, onEdit, contestantId, isPreview = false }) {
@@ -384,6 +385,11 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
                   </div>
                 );
               })()}
+              {contestantId && (
+                <div style={{ marginTop: spacing.sm }}>
+                  <FanWallChip contestantId={contestantId} />
+                </div>
+              )}
               {/* Fan affordance below the name.
                   - On someone else's profile: "Become a Fan" (FanButton)
                   - On your own profile (viewing /profile/:yourId or /profile):
@@ -493,6 +499,22 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
           </>
         )}
 
+        {/* Fan Wall — public comments from fans (fans-only posting, owner moderates) */}
+        {contestantId && (
+          <>
+            <div style={dividerStyle} />
+            <FanWall
+              contestantId={contestantId}
+              contestantName={`${hostProfile?.firstName || ''} ${hostProfile?.lastName || ''}`.trim()}
+              isOwner={isOwnContestant}
+              onLoginRequired={(returnTo) => {
+                const target = returnTo || window.location.pathname;
+                window.location.href = `/login?returnTo=${encodeURIComponent(target)}`;
+              }}
+            />
+          </>
+        )}
+
         {/* Bonus Votes + Video Prompts - only for own profile */}
         {onEdit && hostProfile?.id && (
           <div style={{ padding: `0 ${sectionPadding} ${spacing.md}` }}>
@@ -545,6 +567,58 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
         posterUrl={hostProfile.avatarUrl}
       />
     </div>
+  );
+}
+
+/**
+ * Hero "cheers" chip — shows the visible Fan Wall comment count and scrolls
+ * down to the wall on click. Only rendered when there's at least one comment.
+ */
+function FanWallChip({ contestantId }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!contestantId || !supabase) return;
+    let cancelled = false;
+    (async () => {
+      const { count: c } = await supabase
+        .from('contestant_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('contestant_id', contestantId)
+        .eq('hidden', false);
+      if (!cancelled) setCount(c || 0);
+    })();
+    return () => { cancelled = true; };
+  }, [contestantId]);
+
+  if (count < 1) return null;
+
+  const scrollToWall = () => {
+    document.getElementById('fan-wall')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <button
+      onClick={scrollToWall}
+      title="See what fans are saying"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: spacing.xs,
+        padding: `${spacing.xs} ${spacing.md}`,
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: borderRadius.pill,
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.text.secondary,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      }}
+    >
+      <MessageCircle size={14} />
+      {count.toLocaleString()} {count === 1 ? 'comment' : 'comments'}
+    </button>
   );
 }
 
