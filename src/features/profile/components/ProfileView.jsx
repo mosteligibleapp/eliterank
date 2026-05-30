@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users, Play } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
-import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
+import { colors, spacing, borderRadius, typography, gradients, transitions } from '../../../styles/theme';
 import { getCompetitionStats, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { generateAchievementCard } from '../../achievement-cards/generateAchievementCard';
 import { useResponsive } from '../../../hooks/useResponsive';
@@ -12,6 +12,136 @@ import ProfileBonusVotes from './ProfileBonusVotes';
 import FanButton from '../../../components/ui/FanButton';
 import ProfileFans from './ProfileFans';
 import IntroVideoModal from '../../../components/modals/IntroVideoModal';
+
+/**
+ * Click-through photo gallery. One image at a time with prev/next arrows and
+ * dot indicators — purely manual navigation, no auto-rotation. Mirrors the
+ * prize carousel UX on the nomination page.
+ */
+function GalleryCarousel({ images, isMobile }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [hovered, setHovered] = useState(null); // 'left' | 'right' | null
+
+  const total = images.length;
+
+  const goTo = useCallback((index) => {
+    setCurrentIndex(((index % total) + total) % total);
+  }, [total]);
+
+  const goNext = useCallback(() => goTo(currentIndex + 1), [currentIndex, goTo]);
+  const goPrev = useCallback(() => goTo(currentIndex - 1), [currentIndex, goTo]);
+
+  const arrowBase = {
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    zIndex: 2,
+    width: 40,
+    height: 40,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: `1px solid ${colors.border.secondary}`,
+    borderRadius: borderRadius.full,
+    background: 'rgba(0, 0, 0, 0.55)',
+    cursor: 'pointer',
+    transition: transitions.all,
+    padding: 0,
+  };
+
+  return (
+    <div style={{ width: '100%' }}>
+      <div
+        style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: colors.background.secondary,
+          borderRadius: borderRadius.lg,
+          overflow: 'hidden',
+        }}
+      >
+        {total > 1 && (
+          <button
+            type="button"
+            onClick={goPrev}
+            aria-label="Previous photo"
+            onMouseEnter={() => setHovered('left')}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              ...arrowBase,
+              left: spacing.md,
+              color: hovered === 'left' ? colors.gold.primary : colors.text.primary,
+              borderColor: hovered === 'left' ? colors.gold.primary : colors.border.secondary,
+            }}
+          >
+            <ChevronLeft size={22} />
+          </button>
+        )}
+
+        <img
+          src={images[currentIndex]}
+          alt={`Gallery ${currentIndex + 1}`}
+          loading="lazy"
+          style={{
+            display: 'block',
+            width: '100%',
+            maxHeight: isMobile ? '60vh' : 520,
+            objectFit: 'contain',
+          }}
+        />
+
+        {total > 1 && (
+          <button
+            type="button"
+            onClick={goNext}
+            aria-label="Next photo"
+            onMouseEnter={() => setHovered('right')}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              ...arrowBase,
+              right: spacing.md,
+              color: hovered === 'right' ? colors.gold.primary : colors.text.primary,
+              borderColor: hovered === 'right' ? colors.gold.primary : colors.border.secondary,
+            }}
+          >
+            <ChevronRight size={22} />
+          </button>
+        )}
+      </div>
+
+      {total > 1 && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: spacing.sm,
+          marginTop: spacing.md,
+        }}>
+          {images.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => goTo(i)}
+              aria-label={`Go to photo ${i + 1}`}
+              style={{
+                width: 8,
+                height: 8,
+                padding: 0,
+                border: 'none',
+                borderRadius: borderRadius.full,
+                cursor: 'pointer',
+                background: i === currentIndex ? colors.gold.primary : 'rgba(255, 255, 255, 0.15)',
+                transform: i === currentIndex ? 'scale(1.3)' : 'none',
+                transition: transitions.all,
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ProfileView({ hostProfile, onEdit, contestantId, isPreview = false }) {
   const { isMobile, isSmall } = useResponsive();
@@ -457,38 +587,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
               }}>
                 <Camera size={isMobile ? 18 : 20} style={{ color: colors.gold.primary }} /> Gallery
               </h3>
-              <div style={{
-                columnCount: isMobile ? 2 : 3,
-                columnGap: spacing.sm,
-              }}>
-                {gallery.filter(Boolean).map((imageUrl, index) => (
-                  <a
-                    key={index}
-                    href={imageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'block',
-                      marginBottom: spacing.sm,
-                      breakInside: 'avoid',
-                      borderRadius: borderRadius.lg,
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <img
-                      src={imageUrl}
-                      alt={`Gallery ${index + 1}`}
-                      loading="lazy"
-                      style={{
-                        display: 'block',
-                        width: '100%',
-                        height: 'auto',
-                      }}
-                    />
-                  </a>
-                ))}
-              </div>
+              <GalleryCarousel images={gallery.filter(Boolean)} isMobile={isMobile} />
             </div>
           </>
         )}
