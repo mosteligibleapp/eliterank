@@ -83,11 +83,18 @@ export async function getNominationsForUser(userId, userEmail) {
 export async function getHostedCompetitions(userId) {
   if (!supabase || !userId) return [];
 
+  // Include timeline rounds/periods so callers can compute the live phase
+  // (voting / nominations / between) — not just the stored status.
+  const COMPETITION_SELECT =
+    '*, city:cities(name), organization:organizations(name, slug, logo_url), ' +
+    'voting_rounds(id, start_date, end_date, round_order, round_type), ' +
+    'nomination_periods(id, start_date, end_date, period_order)';
+
   try {
     const [primaryResult, coHostIdsResult] = await Promise.all([
       supabase
         .from('competitions')
-        .select('*, city:cities(name), organization:organizations(name, slug, logo_url)')
+        .select(COMPETITION_SELECT)
         .eq('host_id', userId)
         .order('created_at', { ascending: false }),
       supabase
@@ -115,7 +122,7 @@ export async function getHostedCompetitions(userId) {
     if (coHostIds.length) {
       const { data: coHostComps, error: coHostCompsError } = await supabase
         .from('competitions')
-        .select('*, city:cities(name), organization:organizations(name, slug, logo_url)')
+        .select(COMPETITION_SELECT)
         .in('id', coHostIds);
 
       if (coHostCompsError) {

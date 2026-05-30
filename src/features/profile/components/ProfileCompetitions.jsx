@@ -13,6 +13,25 @@ import { getCityImage } from '../../../utils/cityImages';
 import { getPhaseDisplayConfig, computeCompetitionPhase } from '../../../utils/competitionPhase';
 import CompetitionCardVoting from './CompetitionCardVoting';
 
+// Display order for the compact competition cards: active voting first, then
+// nominations / coming soon, then completed last. Lower rank renders earlier
+// (left). Phases not listed fall in the middle, ahead of completed/hidden.
+const PHASE_CARD_ORDER = {
+  voting: 0,
+  judging: 1,
+  between: 2,
+  nomination: 3,
+  publish: 4, // "Coming Soon" teaser
+  completed: 6,
+  draft: 7,
+  archive: 8,
+};
+
+function phaseCardRank(competition) {
+  const phase = computeCompetitionPhase(competition);
+  return PHASE_CARD_ORDER[phase] ?? 5;
+}
+
 /**
  * Given a competition with a voting_rounds join, return the currently active
  * voting round (one whose [start_date, end_date) window contains `now`).
@@ -745,7 +764,12 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
   const votingEntries = entries.filter(e => entryHasInlineVoting(e, isPreview));
   const simpleEntries = entries.filter(e => !entryHasInlineVoting(e, isPreview));
   const useCompactRow = simpleEntries.length > 1;
-  const compactEntries = useCompactRow ? simpleEntries : [];
+  // Order the row by lifecycle stage (voting → nominations/coming soon →
+  // completed). Array.sort is stable, so entries in the same phase keep their
+  // original order (nominations, then hosted, then contestant).
+  const compactEntries = useCompactRow
+    ? [...simpleEntries].sort((a, b) => phaseCardRank(a.competition) - phaseCardRank(b.competition))
+    : [];
   // Stacked cards = active-voting entries, plus the lone simple entry when the
   // compact row isn't used.
   const stackedEntries = useCompactRow ? votingEntries : [...simpleEntries, ...votingEntries];
