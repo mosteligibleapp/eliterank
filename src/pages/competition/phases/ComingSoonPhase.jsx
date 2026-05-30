@@ -105,17 +105,17 @@ export function ComingSoonPhase() {
         >
           {isSubscribed ? (
             <>
-              <Check size={20} />
+              <Check size={18} />
               <span className="phase-cta-primary-label">You'll be notified when nominations open</span>
             </>
           ) : subLoading ? (
             <>
-              <Loader size={20} className="loading-spinner" />
+              <Loader size={18} className="loading-spinner" />
               <span className="phase-cta-primary-label">Working…</span>
             </>
           ) : (
             <>
-              <Bell size={20} />
+              <Bell size={18} />
               <span className="phase-cta-primary-label">Get notified when nominations open</span>
             </>
           )}
