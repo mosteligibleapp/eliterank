@@ -63,11 +63,12 @@ export function LeaderboardCompact() {
     return sorted.find(e => !e.date || e.date.split('T')[0] >= todayStr) || null;
   }, [events]);
 
-  // When an event card is included the grid has (contestants + 1) items.
-  // Desktop is 3 columns, mobile is 2 columns. Pick a contestant count
-  // so total items fill complete rows on both layouts (divisible by 6).
-  // 11 + 1 = 12 (4×3, 6×2). Without event, 9 works for 3-col (3×3).
-  const maxContestants = nextEvent ? 11 : 9;
+  // Compact leaderboard shows the top 5 in a single row on desktop
+  // (5 columns), keeping the cards small and aligned with the full-width
+  // content around them. When an event card is included it takes the 5th
+  // slot, so cap contestants at 4 to keep one clean row. The full
+  // leaderboard page ("View All Contestants") shows every contestant.
+  const maxContestants = nextEvent ? 4 : 5;
   const displayContestants = contestants?.slice(0, maxContestants) || [];
 
   // When the competition splits winners by gender, render the compact

@@ -1992,6 +1992,20 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   }
 }
 
+/* Compact (sidebar) leaderboard on the competition page shows the top 5 in
+   a single tighter row, so the cards stay small and align with the
+   full-width content around them (countdown, activity feed). The full
+   leaderboard page keeps its own larger sizing (.leaderboard-full override). */
+.leaderboard-prominent .portrait-grid {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+@media (max-width: 768px) {
+  .leaderboard-prominent .portrait-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* Gender-split leaderboard — full LeaderboardView renders two ranked
  * columns side by side (men / women). On mobile the columns stack. */
 .leaderboard-gender-split {
