@@ -245,17 +245,19 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
     <a
       href={entry.url}
       style={{
-        // Fixed-width card so several form a horizontal row; on mobile each
-        // card is most of the viewport so one-and-a-bit peek encourages swipe.
+        // Fixed-width card so several form a horizontal row; kept narrow and
+        // center-aligned so the icon / badge / name / meta stack reads compact.
         flex: '0 0 auto',
-        width: isMobile ? 'min(82vw, 280px)' : '240px',
+        width: isMobile ? '160px' : '170px',
         scrollSnapAlign: 'start',
         textDecoration: 'none',
         color: 'inherit',
         display: 'flex',
         flexDirection: 'column',
-        gap: spacing.sm,
-        padding: spacing.lg,
+        alignItems: 'center',
+        textAlign: 'center',
+        gap: spacing.xs,
+        padding: spacing.md,
         borderRadius: borderRadius.lg,
         background: isHovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
         border: `1px solid ${isHovered ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.06)'}`,
@@ -269,21 +271,19 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
       {org?.logo_url && (
         <OrganizationLogo
           logo={org.logo_url}
-          size={isMobile ? 56 : 64}
+          size={56}
           alt={org?.name || 'Organization'}
         />
       )}
 
       {/* Role badge */}
       {entry.role && (
-        <div style={{ display: 'flex' }}>
-          <RoleBadge role={entry.role} subLabel={entry.reachedTierLabel} />
-        </div>
+        <RoleBadge role={entry.role} size="xs" subLabel={entry.reachedTierLabel} />
       )}
 
       {/* Competition name — allow up to two lines, then ellipsis. */}
       <h4 style={{
-        fontSize: typography.fontSize.base,
+        fontSize: typography.fontSize.sm,
         fontWeight: typography.fontWeight.semibold,
         color: colors.text.primary,
         lineHeight: 1.3,
@@ -301,10 +301,12 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
       <div style={{
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: spacing.xs,
         fontSize: typography.fontSize.xs,
         color: colors.text.secondary,
         whiteSpace: 'nowrap',
+        maxWidth: '100%',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
       }}>
@@ -327,6 +329,7 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
             display: 'inline-flex',
             alignItems: 'center',
             gap: spacing.xs,
+            marginTop: spacing.xs,
             padding: `${spacing.xs} ${spacing.sm}`,
             background: 'rgba(212, 175, 55, 0.15)',
             border: `1px solid ${colors.gold.primary}`,
@@ -335,7 +338,6 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
             fontSize: typography.fontSize.xs,
             fontWeight: typography.fontWeight.semibold,
             cursor: 'pointer',
-            alignSelf: 'flex-start',
           }}
         >
           Accept or Decline
