@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock } from 'lucide-react';
-import { Panel, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
+import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock, Mic } from 'lucide-react';
+import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 
@@ -138,31 +138,26 @@ function StatBox({ label, value, suffix, icon, accent = false, isMobile = false 
   );
 }
 
-// Each role maps to an icon + a color pair (background tint / foreground),
-// reusing the same semantics as the Badge variants: purple = host,
-// gold = nominee / winner / reached-tier, green = active contestant.
-const ROLE_TILE_CONFIG = {
-  nominee: { icon: Award, bg: colors.gold.muted, fg: colors.gold.primary, label: 'Nominee' },
-  host: { icon: Crown, bg: colors.accent.purpleMuted, fg: colors.accent.purple, label: 'Host' },
-  winner: { icon: Trophy, bg: colors.gold.muted, fg: colors.gold.primary, label: 'Winner' },
-  contestant: { icon: Crown, bg: colors.status.successMuted, fg: colors.status.success, label: 'Contestant' },
-  // Framed as an achievement, not a loss — the tooltip shows the tier the
+// Each role maps to an icon + a Badge variant. The host gets a mic (they
+// run / emcee the competition); nominee = award, winner = trophy, and
+// contestants keep the crown.
+const ROLE_BADGE_CONFIG = {
+  nominee: { icon: Award, variant: 'gold', label: 'Nominee' },
+  host: { icon: Mic, variant: 'purple', label: 'Host' },
+  winner: { icon: Trophy, variant: 'gold', label: 'Winner' },
+  contestant: { icon: Crown, variant: 'success', label: 'Contestant' },
+  // Framed as an achievement, not a loss — the label shows the tier the
   // contestant reached (e.g. "Top 25 Contestant", "Entry Round") instead of
   // calling out their elimination.
-  eliminated: { icon: Crown, bg: colors.gold.muted, fg: colors.gold.primary, label: 'Contestant' },
+  eliminated: { icon: Crown, variant: 'gold', label: 'Contestant' },
 };
 
-/**
- * Compact square, icon-only role badge. The role name is dropped from the
- * visual to keep the list dense when several competitions stack, but is kept
- * accessible via the tooltip (title) and aria-label.
- */
-function RoleBadge({ role, subLabel, contestantLabel }) {
-  const config = ROLE_TILE_CONFIG[role];
+function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
+  const config = ROLE_BADGE_CONFIG[role];
   if (!config) return null;
 
-  const { icon: Icon, bg, fg } = config;
-  // Contestant/eliminated tiles carry a tier-specific label when available.
+  const { icon: Icon, variant } = config;
+  // Contestant/eliminated badges carry a tier-specific label when available.
   const label = role === 'contestant'
     ? (contestantLabel || config.label)
     : role === 'eliminated'
@@ -170,24 +165,10 @@ function RoleBadge({ role, subLabel, contestantLabel }) {
       : config.label;
 
   return (
-    <span
-      title={label}
-      aria-label={label}
-      role="img"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '24px',
-        height: '24px',
-        borderRadius: borderRadius.md,
-        background: bg,
-        color: fg,
-        flexShrink: 0,
-      }}
-    >
-      <Icon size={13} />
-    </span>
+    <Badge variant={variant} size={size} pill>
+      <Icon size={10} style={{ marginRight: '4px' }} />
+      {label}
+    </Badge>
   );
 }
 
@@ -232,6 +213,137 @@ function getVotingStartDate(competition) {
     return new Date(votingStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
   return null;
+}
+
+/**
+ * Cheap, hook-free predicate mirroring CompetitionCard's `showInlineVoting`.
+ * Lets the parent decide — before rendering — whether an entry needs the rich
+ * stacked card (active voting: stats + inline voting panel) or can use the
+ * compact card in the horizontal scroll row.
+ */
+function entryHasInlineVoting(entry, isPreview) {
+  const competition = entry.competition || {};
+  const isContestantEntry = entry.role === 'contestant' || entry.role === 'winner';
+  if (!isContestantEntry || !entry.contestant?.id) return false;
+  const realRound = findActiveVotingRound(competition);
+  const activeRound = realRound || (isPreview ? synthesizePreviewRound(competition) : null);
+  return !!activeRound;
+}
+
+/**
+ * Compact competition card used in the horizontal scroll row. Shows the org
+ * icon, role badge, competition name, and city · year — no voting panel. Kept
+ * narrow with a fixed width so multiple competitions form a swipeable row.
+ */
+function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const competition = entry.competition || {};
+  const cityName = competition.city?.name || competition.city || '';
+  const org = competition.organization;
+
+  return (
+    <a
+      href={entry.url}
+      style={{
+        // Fixed-width card so several form a horizontal row; on mobile each
+        // card is most of the viewport so one-and-a-bit peek encourages swipe.
+        flex: '0 0 auto',
+        width: isMobile ? 'min(82vw, 280px)' : '240px',
+        scrollSnapAlign: 'start',
+        textDecoration: 'none',
+        color: 'inherit',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: spacing.sm,
+        padding: spacing.lg,
+        borderRadius: borderRadius.lg,
+        background: isHovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${isHovered ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.06)'}`,
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Org icon */}
+      {org?.logo_url && (
+        <OrganizationLogo
+          logo={org.logo_url}
+          size={isMobile ? 56 : 64}
+          alt={org?.name || 'Organization'}
+        />
+      )}
+
+      {/* Role badge */}
+      {entry.role && (
+        <div style={{ display: 'flex' }}>
+          <RoleBadge role={entry.role} subLabel={entry.reachedTierLabel} />
+        </div>
+      )}
+
+      {/* Competition name — allow up to two lines, then ellipsis. */}
+      <h4 style={{
+        fontSize: typography.fontSize.base,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.text.primary,
+        lineHeight: 1.3,
+        margin: 0,
+        letterSpacing: typography.letterSpacing.tight,
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+      }}>
+        {competition.name || entry.name}
+      </h4>
+
+      {/* City · year */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spacing.xs,
+        fontSize: typography.fontSize.xs,
+        color: colors.text.secondary,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}>
+        {cityName && <span style={{ flexShrink: 0 }}>{cityName}</span>}
+        {cityName && competition.season && (
+          <span style={{ color: colors.text.muted, flexShrink: 0 }}>·</span>
+        )}
+        {competition.season && <span style={{ flexShrink: 0 }}>{competition.season}</span>}
+      </div>
+
+      {/* Unclaimed nomination CTA */}
+      {entry.isUnclaimed && entry.nomination && (
+        <div
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onAcceptClick(entry.nomination);
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: spacing.xs,
+            padding: `${spacing.xs} ${spacing.sm}`,
+            background: 'rgba(212, 175, 55, 0.15)',
+            border: `1px solid ${colors.gold.primary}`,
+            borderRadius: borderRadius.md,
+            color: colors.gold.primary,
+            fontSize: typography.fontSize.xs,
+            fontWeight: typography.fontWeight.semibold,
+            cursor: 'pointer',
+            alignSelf: 'flex-start',
+          }}
+        >
+          Accept or Decline
+          <ArrowRight size={12} />
+        </div>
+      )}
+    </a>
+  );
 }
 
 function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) {
@@ -623,21 +735,65 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
     });
   });
 
+  // Contestant entries with an active voting round render a rich stacked card
+  // (stats + inline voting panel) that can't fit the compact horizontal card,
+  // so they stay full-width below. Everything else (host / nominee / winner /
+  // completed contestant) goes into the horizontal scroll row.
+  const votingEntries = entries.filter(e => entryHasInlineVoting(e, isPreview));
+  const compactEntries = entries.filter(e => !entryHasInlineVoting(e, isPreview));
+
   return (
     <>
       <div style={{ borderTop: `1px solid ${colors.border.secondary}` }} />
       <div style={{ padding: isSmall ? spacing.lg : spacing.xxl }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-            {entries.map(entry => (
-              <CompetitionCard
-                key={entry.id}
-                entry={entry}
-                onAcceptClick={handleOpenAcceptModal}
-                isMobile={isMobile}
-                isPreview={isPreview}
-              />
-            ))}
-          </div>
+          {/* Horizontal scroll row of compact competition cards. Negative
+              margins + matching padding let cards bleed to the container edge
+              so the last card can scroll fully into view on mobile. */}
+          {compactEntries.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                gap: spacing.md,
+                overflowX: 'auto',
+                scrollSnapType: 'x mandatory',
+                WebkitOverflowScrolling: 'touch',
+                paddingBottom: spacing.sm,
+                marginBottom: votingEntries.length > 0 ? spacing.lg : 0,
+                // Bleed to the container's inner edge and restore via padding
+                // so the scroll row spans full width and the trailing card
+                // isn't clipped.
+                marginLeft: `calc(-1 * ${isSmall ? spacing.lg : spacing.xxl})`,
+                marginRight: `calc(-1 * ${isSmall ? spacing.lg : spacing.xxl})`,
+                paddingLeft: isSmall ? spacing.lg : spacing.xxl,
+                paddingRight: isSmall ? spacing.lg : spacing.xxl,
+                scrollbarWidth: 'none',
+              }}
+            >
+              {compactEntries.map(entry => (
+                <CompactCompetitionCard
+                  key={entry.id}
+                  entry={entry}
+                  onAcceptClick={handleOpenAcceptModal}
+                  isMobile={isMobile}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Active-voting contestant entries — full-width stacked cards. */}
+          {votingEntries.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {votingEntries.map(entry => (
+                <CompetitionCard
+                  key={entry.id}
+                  entry={entry}
+                  onAcceptClick={handleOpenAcceptModal}
+                  isMobile={isMobile}
+                  isPreview={isPreview}
+                />
+              ))}
+            </div>
+          )}
       </div>
 
       {/* Accept Nomination Modal */}
