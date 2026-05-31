@@ -21,7 +21,6 @@ const FIELD_RULES = {
   // These affect prize commitments and revenue structure
   prize_pool_minimum: { draft: false, publish: false, live: false, completed: false },
   minimum_prize: { draft: false, publish: false, live: false, completed: false },
-  number_of_winners: { draft: false, publish: false, live: false, completed: false },
   price_per_vote: { draft: false, publish: false, live: false, completed: false },
   eligibility_radius: { draft: false, publish: false, live: false, completed: false },
   min_contestants: { draft: false, publish: false, live: false, completed: false },

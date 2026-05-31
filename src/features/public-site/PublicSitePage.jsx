@@ -387,18 +387,6 @@ export default function PublicSitePage({
   // Check if teaser page
   const isTeaser = competition?.isTeaser === true || competition?.status === COMPETITION_STATUSES.PUBLISH;
 
-  if (isOpen && isTeaser) {
-    return (
-      <CompetitionTeaser
-        competition={competition}
-        onClose={onClose}
-        isAuthenticated={isAuthenticated}
-        onLogin={onLogin}
-        user={user}
-      />
-    );
-  }
-
   // Phase detection
   const isDraftPhase = phase === 'draft';
   const isNominationPhase = phase === 'nomination';
@@ -443,6 +431,18 @@ export default function PublicSitePage({
     else newDefaultTab = 'contestants';
     setActiveTab(newDefaultTab);
   }, [phase, city]);
+
+  if (isOpen && isTeaser) {
+    return (
+      <CompetitionTeaser
+        competition={competition}
+        onClose={onClose}
+        isAuthenticated={isAuthenticated}
+        onLogin={onLogin}
+        user={user}
+      />
+    );
+  }
 
   if (!isOpen) return null;
 

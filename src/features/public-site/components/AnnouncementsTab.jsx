@@ -76,7 +76,7 @@ function parseArticleContent(content) {
   const blocks = [];
   for (const line of lines) {
     // ALL-CAPS heading (at least 3 chars, all uppercase letters/spaces/&)
-    if (/^[A-Z][A-Z\s&':\-]{2,}$/.test(line.replace(/:$/, ''))) {
+    if (/^[A-Z][A-Z\s&':-]{2,}$/.test(line.replace(/:$/, ''))) {
       blocks.push({ type: 'heading', text: line.replace(/:$/, '') });
     }
     // "Title:" style sub-header (short, ends with colon)

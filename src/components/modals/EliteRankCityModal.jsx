@@ -337,7 +337,7 @@ export default function EliteRankCityModal({
           src={cityImage}
           alt={competition.name}
           loading="eager"
-          fetchpriority="high"
+          fetchPriority="high"
           style={{
             ...styleHelpers.absoluteFill,
             width: '100%',
@@ -941,7 +941,7 @@ export default function EliteRankCityModal({
           </div>
         );
 
-      case 'events':
+      case 'events': {
         // Use string comparison to avoid timezone issues
         const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
         const upcomingEvents = events.filter(e => e.date >= todayStr).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1137,6 +1137,7 @@ export default function EliteRankCityModal({
             )}
           </div>
         );
+      }
 
       case 'announcements':
         return (
@@ -1197,7 +1198,7 @@ export default function EliteRankCityModal({
           </div>
         );
 
-      case 'opportunities':
+      case 'opportunities': {
         const joinOptions = [
           {
             id: 'compete',
@@ -1351,6 +1352,7 @@ export default function EliteRankCityModal({
 
           </div>
         );
+      }
 
       case 'about':
         return (

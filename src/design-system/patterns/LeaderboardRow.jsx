@@ -183,7 +183,7 @@ export const TopThreeDisplay = ({
             className={`
               flex flex-col items-center
               ${isFirst ? 'order-2' : index === 0 ? 'order-1' : 'order-3'}
-              ${onClick ? 'cursor-pointer' : ''}
+              ${onSelect ? 'cursor-pointer' : ''}
             `}
             onClick={() => onSelect?.(entry)}
           >
