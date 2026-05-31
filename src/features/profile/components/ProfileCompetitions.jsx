@@ -13,6 +13,25 @@ import { getCityImage } from '../../../utils/cityImages';
 import { getPhaseDisplayConfig, computeCompetitionPhase } from '../../../utils/competitionPhase';
 import CompetitionCardVoting from './CompetitionCardVoting';
 
+// Display order for the compact competition cards: active voting first, then
+// nominations / coming soon, then completed last. Lower rank renders earlier
+// (left). Phases not listed fall in the middle, ahead of completed/hidden.
+const PHASE_CARD_ORDER = {
+  voting: 0,
+  judging: 1,
+  between: 2,
+  nomination: 3,
+  publish: 4, // "Coming Soon" teaser
+  completed: 6,
+  draft: 7,
+  archive: 8,
+};
+
+function phaseCardRank(competition) {
+  const phase = computeCompetitionPhase(competition);
+  return PHASE_CARD_ORDER[phase] ?? 5;
+}
+
 /**
  * Given a competition with a voting_rounds join, return the currently active
  * voting round (one whose [start_date, end_date) window contains `now`).
@@ -745,7 +764,12 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
   const votingEntries = entries.filter(e => entryHasInlineVoting(e, isPreview));
   const simpleEntries = entries.filter(e => !entryHasInlineVoting(e, isPreview));
   const useCompactRow = simpleEntries.length > 1;
-  const compactEntries = useCompactRow ? simpleEntries : [];
+  // Order the row by lifecycle stage (voting → nominations/coming soon →
+  // completed). Array.sort is stable, so entries in the same phase keep their
+  // original order (nominations, then hosted, then contestant).
+  const compactEntries = useCompactRow
+    ? [...simpleEntries].sort((a, b) => phaseCardRank(a.competition) - phaseCardRank(b.competition))
+    : [];
   // Stacked cards = active-voting entries, plus the lone simple entry when the
   // compact row isn't used.
   const stackedEntries = useCompactRow ? votingEntries : [...simpleEntries, ...votingEntries];
@@ -755,26 +779,40 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
       <div style={{ borderTop: `1px solid ${colors.border.secondary}` }} />
       <div style={{ padding: isSmall ? spacing.lg : spacing.xxl }}>
           {/* Compact competition cards, centered as a group so they line up
-              under the (centered) profile avatar. Wraps to additional centered
-              rows when there are more than fit on one line. */}
+              under the (centered) profile avatar. When there are too many to
+              fit on one line, the row scrolls horizontally rather than wrapping
+              into a lopsided second row. The outer wrapper centers the inner
+              row while it fits; the inner row takes over scrolling once it
+              overflows. */}
           {compactEntries.length > 0 && (
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'center',
-                flexWrap: 'wrap',
-                gap: spacing.md,
                 marginBottom: stackedEntries.length > 0 ? spacing.lg : 0,
               }}
             >
-              {compactEntries.map(entry => (
-                <CompactCompetitionCard
-                  key={entry.id}
-                  entry={entry}
-                  onAcceptClick={handleOpenAcceptModal}
-                  isMobile={isMobile}
-                />
-              ))}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'nowrap',
+                  gap: spacing.md,
+                  maxWidth: '100%',
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  // Small gutter so the scrollbar doesn't crowd the cards.
+                  paddingBottom: spacing.xs,
+                }}
+              >
+                {compactEntries.map(entry => (
+                  <CompactCompetitionCard
+                    key={entry.id}
+                    entry={entry}
+                    onAcceptClick={handleOpenAcceptModal}
+                    isMobile={isMobile}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
