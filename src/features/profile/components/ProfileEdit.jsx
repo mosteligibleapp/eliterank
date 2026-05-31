@@ -454,7 +454,8 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             <div style={{ display: 'flex', gap: spacing.md, marginTop: spacing.md }}>
               <Button
                 variant="secondary"
-                icon={uploading.video ? Loader : Video}
+                icon={Video}
+                loading={uploading.video}
                 onClick={() => videoInputRef.current?.click()}
                 disabled={uploading.video}
               >
