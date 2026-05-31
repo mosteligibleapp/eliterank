@@ -94,6 +94,7 @@ export default function UserProfilePage() {
         avatar_url: editingData.avatarUrl,
         cover_image: editingData.coverImage,
         gallery: editingData.gallery,
+        intro_video_url: editingData.introVideoUrl,
       };
 
       // Remove undefined values
