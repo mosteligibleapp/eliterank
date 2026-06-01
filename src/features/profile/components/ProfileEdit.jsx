@@ -1,18 +1,24 @@
 import React, { useRef, useState } from 'react';
-import { Edit, User, FileText, Globe, Heart, Camera, Save, Plus, X, Loader, ChevronLeft } from 'lucide-react';
+import { Edit, User, FileText, Globe, Heart, Camera, Save, Plus, X, Loader, ChevronLeft, Video } from 'lucide-react';
 import { Button, Input, Textarea, FormSection, FormGrid, HobbySelector } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients } from '../../../styles/theme';
 import { ALL_HOBBIES, MAX_HOBBIES } from '../../../constants';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { uploadPhoto } from '../../entry/utils/uploadPhoto';
+import { uploadVideo } from '../../../lib/uploadVideo';
+import VideoPlayer from '../../../components/VideoPlayer';
+
+const MAX_VIDEO_DURATION_SECONDS = 60;
 
 export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, userId }) {
   const { isMobile, isSmall } = useResponsive();
 
   if (!hostProfile) return null;
 
-  const [uploading, setUploading] = useState({ avatar: false, gallery: null });
+  const [uploading, setUploading] = useState({ avatar: false, gallery: null, video: false });
+  const [videoError, setVideoError] = useState(null);
   const avatarInputRef = useRef(null);
+  const videoInputRef = useRef(null);
 
   const initials = `${(hostProfile.firstName || '?')[0]}${(hostProfile.lastName || '?')[0]}`;
 
@@ -74,6 +80,51 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
     handleFieldChange('gallery', gallery.filter(Boolean));
   };
 
+  // Read a video file's duration (seconds) client-side
+  const readVideoDuration = (f) => new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    const url = URL.createObjectURL(f);
+    video.src = url;
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve(Math.round(video.duration));
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+  });
+
+  // Handle intro video upload — replaces any existing video immediately, no host approval
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = ''; // allow re-selecting the same file
+    if (!file) return;
+
+    setVideoError(null);
+    const duration = await readVideoDuration(file);
+    if (duration && duration > MAX_VIDEO_DURATION_SECONDS) {
+      setVideoError(`Video is ${duration}s — must be ${MAX_VIDEO_DURATION_SECONDS}s or less. Please trim and try again.`);
+      return;
+    }
+
+    setUploading(prev => ({ ...prev, video: true }));
+    try {
+      const { url } = await uploadVideo(file);
+      handleFieldChange('introVideoUrl', url);
+    } catch (err) {
+      setVideoError(err?.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploading(prev => ({ ...prev, video: false }));
+    }
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoError(null);
+    handleFieldChange('introVideoUrl', '');
+  };
+
   const gallery = hostProfile.gallery || [];
 
   return (
@@ -84,6 +135,13 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
         type="file"
         accept="image/jpeg,image/png,image/webp"
         onChange={handleAvatarUpload}
+        style={{ display: 'none' }}
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        onChange={handleVideoUpload}
         style={{ display: 'none' }}
       />
 
@@ -378,6 +436,99 @@ export default function ProfileEdit({ hostProfile, onSave, onCancel, onChange, u
             );
           })}
         </div>
+      </FormSection>
+
+      {/* Intro Video */}
+      <FormSection title="Intro Video" icon={Video}>
+        <p style={{
+          fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.base,
+          color: colors.text.secondary,
+          marginBottom: spacing.md
+        }}>
+          Tell voters who you are, where you&rsquo;re from, and why you should win. Up to {MAX_VIDEO_DURATION_SECONDS}s — changes go live immediately.
+        </p>
+
+        {hostProfile.introVideoUrl ? (
+          <div>
+            <VideoPlayer src={hostProfile.introVideoUrl} maxHeight="280px" />
+            <div style={{ display: 'flex', gap: spacing.md, marginTop: spacing.md }}>
+              <Button
+                variant="secondary"
+                icon={Video}
+                loading={uploading.video}
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploading.video}
+              >
+                {uploading.video ? 'Uploading…' : 'Replace Video'}
+              </Button>
+              <button
+                type="button"
+                onClick={handleRemoveVideo}
+                disabled={uploading.video}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: colors.text.secondary,
+                  fontSize: typography.fontSize.sm,
+                  cursor: uploading.video ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => videoInputRef.current?.click()}
+            disabled={uploading.video}
+            style={{
+              padding: spacing.xl,
+              background: 'rgba(255,255,255,0.03)',
+              border: `1px dashed ${colors.border.light}`,
+              borderRadius: borderRadius.lg,
+              color: colors.text.secondary,
+              cursor: uploading.video ? 'wait' : 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: spacing.sm,
+              width: '100%',
+            }}
+          >
+            <div style={{
+              width: '48px', height: '48px',
+              borderRadius: borderRadius.full,
+              background: 'rgba(212,175,55,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {uploading.video
+                ? <Loader size={22} style={{ color: colors.gold.primary, animation: 'spin 1s linear infinite' }} />
+                : <Video size={22} style={{ color: colors.gold.primary }} />}
+            </div>
+            <span style={{
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.medium,
+              color: colors.text.primary,
+            }}>
+              {uploading.video ? 'Uploading…' : 'Choose a video'}
+            </span>
+            <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+              MP4, MOV, or WebM — up to {MAX_VIDEO_DURATION_SECONDS}s, 500MB
+            </span>
+          </button>
+        )}
+
+        {videoError && (
+          <p style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.status.error,
+            marginTop: spacing.sm,
+          }}>
+            {videoError}
+          </p>
+        )}
       </FormSection>
 
       {/* Bottom Save + Cancel */}
