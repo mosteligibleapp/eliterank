@@ -50,7 +50,7 @@ export function VotingPhase() {
 
       {isFinals && (
         <div className="finals-banner">
-          <span>The final battle for the crown</span>
+          <span>The ranking round</span>
         </div>
       )}
 
