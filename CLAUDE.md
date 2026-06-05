@@ -43,7 +43,7 @@
 - `send-nomination-invite` — Orchestrates nomination flow (email + push + in-app)
 - `notify-nominator` — Notifies nominator when nominee accepts/declines
 - `check-competition-events` — Scheduled: detects competition phase changes
-- `notify-round-results` — Emails contestants (advanced/eliminated) and fans of advancers when a voting round finalizes; deduped via `round_result_notifications`
+- `send-round-end-emails` — Emails contestants (advanced/eliminated/winner) and opt-in fans of advancers when a voting round finalizes; driven by the `round-end-emails` cron, deduped via `voting_rounds.round_end_emails_sent_at`
 - `create-payment-intent` — Stripe payment intents
 - `stripe-webhook` — Stripe webhook handler
 - `set-nominee-password` — Password setup during claim flow

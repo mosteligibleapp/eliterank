@@ -22,12 +22,12 @@ const corsHeaders = {
  *                          subscribed on the competition's coming-soon page
  *   - subscriber_confirmation: "You're on the list" instant confirmation when
  *                          a user opts in on the coming-soon page
- *   - contestant_advanced:  "You advanced!" to a contestant who made the cut
- *                          when a voting round finalizes
- *   - contestant_eliminated: "Thank you for competing" to a contestant who was
+ *   - round_advanced:       "You advanced!" (or "You won!") to a contestant who
+ *                          made the cut when a voting round finalizes
+ *   - round_eliminated:     "Thank you for competing" to a contestant who was
  *                          eliminated when a voting round finalizes
- *   - fan_contestant_advanced: "Your contestant advanced!" to a fan of a
- *                          contestant who made the cut
+ *   - round_fan_advanced:   "Your contestant advanced!" to a fan of a contestant
+ *                          who made the cut
  *
  * Required Supabase secrets:
  *   ONESIGNAL_APP_ID     — OneSignal App ID
@@ -36,7 +36,7 @@ const corsHeaders = {
  */
 
 interface EmailRequest {
-  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'nominations_open_subscriber' | 'subscriber_confirmation' | 'judge_invite' | 'contestant_advanced' | 'contestant_eliminated' | 'fan_contestant_advanced'
+  type: 'nominee_invite' | 'nominee_reminder' | 'self_nominee_reminder' | 'nominator_confirm' | 'nominee_accepted' | 'nominee_declined' | 'account_ready' | 'fan_confirmation' | 'fan_weekly_digest' | 'vote_receipt' | 'nominations_open_subscriber' | 'subscriber_confirmation' | 'judge_invite' | 'round_advanced' | 'round_eliminated' | 'round_fan_advanced'
   to_email: string
   to_name?: string
   // When set, the send is recorded in email_logs so the host of this
@@ -67,9 +67,6 @@ interface EmailRequest {
   next_event_name?: string | null
   next_event_date?: string | null
   is_self?: boolean
-  // round-result fields (contestant_advanced / contestant_eliminated / fan_contestant_advanced)
-  round_name?: string | null
-  next_round_name?: string | null
   // vote_receipt fields
   vote_count?: number | null
   amount_paid?: number | null
@@ -77,6 +74,14 @@ interface EmailRequest {
   was_doubled?: boolean
   signup_url?: string
   is_anonymous?: boolean
+  // round-result fields (round_advanced / round_eliminated / round_fan_advanced)
+  round_label?: string | null
+  next_round_label?: string | null
+  next_round_end?: string | null
+  next_round_advance_count?: number | null
+  tier_count?: number | null
+  final_rank?: number | null
+  is_winner?: boolean
 }
 
 /**
@@ -598,21 +603,39 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
     }
 
-    case 'contestant_advanced': {
+    case 'round_advanced': {
       const competitionName = req.competition_name || 'Most Eligible'
       const firstName = (req.contestant_name || '').split(' ')[0]
       const ctaUrl = req.profile_url || req.competition_url || appUrl
-      const formatShortDate = (iso: string) => {
+      const isWinner = !!req.is_winner
+      const formatLongDate = (iso: string) => {
         try {
           return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
         } catch { return iso }
       }
-      const roundLine = req.round_name
-        ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">You made it through the <strong style="color:#fff;">${req.round_name}</strong> round${req.rank ? ` — finishing <strong style="color:#d4a843;">#${req.rank}</strong>` : ''}.</p>`
-        : (req.rank ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">You finished <strong style="color:#d4a843;">#${req.rank}</strong>.</p>` : '')
-      const nextLine = req.next_round_name
-        ? `<p style="color:#ccc;font-size:15px;margin:16px 0 4px;">Next up: <strong style="color:#fff;">${req.next_round_name}</strong>.${req.voting_round_end ? ` Voting is open now and ends <strong style="color:#fff;">${formatShortDate(req.voting_round_end)}</strong>.` : ''}</p>
-           <p style="color:#999;font-size:14px;margin:4px 0;">Now's the time to rally your supporters — votes start fresh this round.</p>`
+      const rankLine = req.final_rank
+        ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">You finished <strong style="color:#d4a843;">#${req.final_rank}</strong>${req.round_label ? ` in the ${req.round_label} round` : ''}.</p>`
+        : (req.round_label ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">You made it through the <strong style="color:#fff;">${req.round_label}</strong> round.</p>` : '')
+
+      if (isWinner) {
+        return {
+          subject: `You won ${competitionName}!`,
+          body: wrapper(`
+            <div style="text-align:center;">
+              <h1 style="color:#d4a843;font-size:30px;margin:0 0 8px;">You Won!</h1>
+              <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${competitionName}</p>
+              <p style="color:#ccc;font-size:16px;margin:12px 0 0;">Congratulations${firstName ? `, ${firstName}` : ''} — you've been crowned the winner.</p>
+              ${rankLine}
+              <p style="color:#999;font-size:14px;margin:16px 0;">Thank you to everyone who rallied behind you. Enjoy the moment — you earned it.</p>
+              ${goldButton('View My Profile', ctaUrl)}
+            </div>
+          `),
+        }
+      }
+
+      const nextLine = req.next_round_label
+        ? `<p style="color:#ccc;font-size:15px;margin:16px 0 4px;">Next up: <strong style="color:#fff;">${req.next_round_label}</strong>.${req.next_round_end ? ` Voting is open now and ends <strong style="color:#fff;">${formatLongDate(req.next_round_end)}</strong>.` : ''}${req.next_round_advance_count ? ` Only ${req.next_round_advance_count} move on.` : ''}</p>
+           <p style="color:#999;font-size:14px;margin:4px 0;">Votes start fresh this round — now's the time to rally your supporters.</p>`
         : `<p style="color:#999;font-size:14px;margin:16px 0 4px;">Keep the momentum going and rally your supporters for what's next.</p>`
       return {
         subject: `You advanced in ${competitionName}!`,
@@ -621,7 +644,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             <h1 style="color:#d4a843;font-size:28px;margin:0 0 8px;">You're Through!</h1>
             <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${competitionName}</p>
             <p style="color:#ccc;font-size:16px;margin:12px 0 0;">Congratulations${firstName ? `, ${firstName}` : ''} — you've advanced to the next round.</p>
-            ${roundLine}
+            ${rankLine}
             ${nextLine}
             ${goldButton('View My Profile', ctaUrl)}
           </div>
@@ -629,13 +652,13 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
     }
 
-    case 'contestant_eliminated': {
+    case 'round_eliminated': {
       const competitionName = req.competition_name || 'Most Eligible'
       const firstName = (req.contestant_name || '').split(' ')[0]
       const ctaUrl = req.competition_url || req.profile_url || appUrl
-      const roundLine = req.round_name
-        ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">Your run came to an end after the <strong style="color:#fff;">${req.round_name}</strong> round${req.rank ? `, finishing <strong style="color:#d4a843;">#${req.rank}</strong>` : ''}.</p>`
-        : (req.rank ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">You finished <strong style="color:#d4a843;">#${req.rank}</strong>.</p>` : '')
+      const rankLine = req.final_rank
+        ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">Your run came to an end after the <strong style="color:#fff;">${req.round_label || 'latest'}</strong> round, finishing <strong style="color:#d4a843;">#${req.final_rank}</strong>.</p>`
+        : (req.round_label ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">Your run came to an end after the <strong style="color:#fff;">${req.round_label}</strong> round.</p>` : '')
       return {
         subject: `Thank you for competing in ${competitionName}`,
         body: wrapper(`
@@ -643,7 +666,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             <h1 style="color:#d4a843;font-size:26px;margin:0 0 8px;">Thank You for Competing</h1>
             <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${competitionName}</p>
             <p style="color:#ccc;font-size:16px;margin:12px 0 0;">Hi${firstName ? ` ${firstName}` : ''}, you should be proud of how far you came.</p>
-            ${roundLine}
+            ${rankLine}
             <p style="color:#999;font-size:14px;margin:16px 0;">Thank you for putting yourself forward and for everyone who rallied behind you. We'd love to see you compete again.</p>
             ${goldButton('View Competition', ctaUrl)}
           </div>
@@ -651,23 +674,24 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
     }
 
-    case 'fan_contestant_advanced': {
+    case 'round_fan_advanced': {
       const contestantName = req.contestant_name || 'your contestant'
       const firstName = contestantName.split(' ')[0]
       const competitionName = req.competition_name || 'Most Eligible'
       const ctaUrl = req.profile_url || req.competition_url || appUrl
-      const formatShortDate = (iso: string) => {
+      const isWinner = !!req.is_winner
+      const formatLongDate = (iso: string) => {
         try {
           return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
         } catch { return iso }
       }
-      const roundLine = req.round_name
-        ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">${contestantName} made it through the <strong style="color:#fff;">${req.round_name}</strong> round${req.rank ? ` — finishing <strong style="color:#d4a843;">#${req.rank}</strong>` : ''}.</p>`
+      const rankLine = req.round_label
+        ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">${contestantName} made it through the <strong style="color:#fff;">${req.round_label}</strong> round${req.final_rank ? ` — finishing <strong style="color:#d4a843;">#${req.final_rank}</strong>` : ''}.</p>`
         : ''
-      const nextLine = req.next_round_name
-        ? `<p style="color:#ccc;font-size:15px;margin:16px 0 4px;">Next up: <strong style="color:#fff;">${req.next_round_name}</strong>.${req.voting_round_end ? ` Voting is open now and ends <strong style="color:#fff;">${formatShortDate(req.voting_round_end)}</strong>.` : ''}</p>
+      const nextLine = !isWinner && req.next_round_label
+        ? `<p style="color:#ccc;font-size:15px;margin:16px 0 4px;">Next up: <strong style="color:#fff;">${req.next_round_label}</strong>.${req.next_round_end ? ` Voting is open now and ends <strong style="color:#fff;">${formatLongDate(req.next_round_end)}</strong>.` : ''}</p>
            <p style="color:#999;font-size:14px;margin:4px 0;">Votes start fresh this round — your support counts more than ever.</p>`
-        : `<p style="color:#999;font-size:14px;margin:16px 0 4px;">Keep cheering ${firstName} on toward the finish.</p>`
+        : (isWinner ? '' : `<p style="color:#999;font-size:14px;margin:16px 0 4px;">Keep cheering ${firstName} on toward the finish.</p>`)
       const unsubLine = req.unsubscribe_url
         ? `<p style="color:#666;font-size:12px;margin-top:16px;">
              Not interested in updates for ${contestantName}?
@@ -675,13 +699,15 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
            </p>`
         : ''
       return {
-        subject: `${contestantName} advanced in ${competitionName}!`,
+        subject: isWinner
+          ? `${contestantName} won ${competitionName}!`
+          : `${contestantName} advanced in ${competitionName}!`,
         body: wrapper(`
           <div style="text-align:center;">
-            <h1 style="color:#d4a843;font-size:26px;margin:0 0 8px;">${firstName} Advanced!</h1>
+            <h1 style="color:#d4a843;font-size:26px;margin:0 0 8px;">${firstName} ${isWinner ? 'Won' : 'Advanced'}!</h1>
             <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${competitionName}</p>
-            <p style="color:#ccc;font-size:16px;margin:12px 0 0;">Great news — ${contestantName} is moving on to the next round.</p>
-            ${roundLine}
+            <p style="color:#ccc;font-size:16px;margin:12px 0 0;">Great news — ${contestantName} ${isWinner ? `is the winner of ${competitionName}` : 'is moving on to the next round'}.</p>
+            ${rankLine}
             ${nextLine}
             ${goldButton(`Vote for ${firstName}`, ctaUrl)}
             ${unsubLine}
@@ -872,7 +898,7 @@ serve(async (req) => {
     // the matching signature. Skipped when the caller already supplied an
     // unsubscribe_url (e.g. contestant-self digests point at settings).
     const needsFanUnsubLink =
-      (body.type === 'fan_confirmation' || body.type === 'fan_weekly_digest' || body.type === 'fan_contestant_advanced') &&
+      (body.type === 'fan_confirmation' || body.type === 'fan_weekly_digest' || body.type === 'round_fan_advanced') &&
       body.fan_id && !body.unsubscribe_url
     if (needsFanUnsubLink) {
       const unsubSecret = Deno.env.get('FAN_UNSUBSCRIBE_SECRET')
