@@ -656,18 +656,28 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       const competitionName = req.competition_name || 'Most Eligible'
       const firstName = (req.contestant_name || '').split(' ')[0]
       const ctaUrl = req.competition_url || req.profile_url || appUrl
-      const rankLine = req.final_rank
-        ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">Your run came to an end after the <strong style="color:#fff;">${req.round_label || 'latest'}</strong> round, finishing <strong style="color:#d4a843;">#${req.final_rank}</strong>.</p>`
-        : (req.round_label ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">Your run came to an end after the <strong style="color:#fff;">${req.round_label}</strong> round.</p>` : '')
+      const hasVotes = typeof req.total_votes === 'number'
+      const votesBlock = hasVotes
+        ? `<div style="display:inline-block;padding:14px 28px;background:#1a1a1a;border:1px solid #333;border-radius:12px;margin:16px 0;">
+             <div style="color:#999;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;">Your Total Votes</div>
+             <div style="color:#d4a843;font-size:42px;font-weight:bold;line-height:1.1;margin-top:4px;">${req.total_votes!.toLocaleString()}</div>
+           </div>`
+        : ''
+      const roundLine = req.round_label
+        ? `<p style="color:#ccc;font-size:15px;margin:8px 0;">Your run came to an end after the <strong style="color:#fff;">${req.round_label}</strong> round.</p>`
+        : ''
       return {
         subject: `Thank you for competing in ${competitionName}`,
         body: wrapper(`
           <div style="text-align:center;">
             <h1 style="color:#d4a843;font-size:26px;margin:0 0 8px;">Thank You for Competing</h1>
             <p style="color:#fff;font-size:18px;font-weight:bold;margin:8px 0;">${competitionName}</p>
-            <p style="color:#ccc;font-size:16px;margin:12px 0 0;">Hi${firstName ? ` ${firstName}` : ''}, you should be proud of how far you came.</p>
-            ${rankLine}
-            <p style="color:#999;font-size:14px;margin:16px 0;">Thank you for putting yourself forward and for everyone who rallied behind you. We'd love to see you compete again.</p>
+            <p style="color:#ccc;font-size:16px;margin:12px 0 0;">Hi${firstName ? ` ${firstName}` : ''}, thank you for participating.</p>
+            ${roundLine}
+            ${votesBlock}
+            <p style="color:#ccc;font-size:15px;margin:12px 0;">You should be proud of how far you came${hasVotes ? ` and grateful for every one of the <strong style="color:#fff;">${req.total_votes!.toLocaleString()} votes</strong> your supporters cast for you` : ''}.</p>
+            <p style="color:#ccc;font-size:15px;margin:12px 0;">We'd love to <strong style="color:#fff;">honor you at our crowning event this July</strong> — we hope you'll join us.</p>
+            <p style="color:#999;font-size:14px;margin:16px 0;">And we hope you'll choose to compete again next year.</p>
             ${goldButton('View Competition', ctaUrl)}
           </div>
         `),

@@ -194,6 +194,7 @@ serve(async (req) => {
           round_label: roundLabel,
           tier_count: eliminatedTierCount,
           final_rank: entry.rank,
+          total_votes: entry.votes,
           profile_url: profileUrl,
           competition_url: competitionUrl,
         }
