@@ -657,10 +657,14 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       const firstName = (req.contestant_name || '').split(' ')[0]
       const ctaUrl = req.competition_url || req.profile_url || appUrl
       const hasVotes = typeof req.total_votes === 'number'
+      const roundPhrase = req.round_label ? `the ${req.round_label} round` : 'this round'
+      // Note: total_votes here is the contestant's tally for THIS round (votes
+      // reset each round), not a lifetime competition total — labeled accordingly.
       const votesBlock = hasVotes
         ? `<div style="display:inline-block;padding:14px 28px;background:#1a1a1a;border:1px solid #333;border-radius:12px;margin:16px 0;">
-             <div style="color:#999;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;">Your Total Votes</div>
+             <div style="color:#999;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;">Your Votes This Round</div>
              <div style="color:#d4a843;font-size:42px;font-weight:bold;line-height:1.1;margin-top:4px;">${req.total_votes!.toLocaleString()}</div>
+             ${req.round_label ? `<div style="color:#666;font-size:12px;margin-top:4px;">in ${roundPhrase}</div>` : ''}
            </div>`
         : ''
       const roundLine = req.round_label
@@ -675,7 +679,7 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
             <p style="color:#ccc;font-size:16px;margin:12px 0 0;">Hi${firstName ? ` ${firstName}` : ''}, thank you for participating.</p>
             ${roundLine}
             ${votesBlock}
-            <p style="color:#ccc;font-size:15px;margin:12px 0;">You should be proud of how far you came${hasVotes ? ` and grateful for every one of the <strong style="color:#fff;">${req.total_votes!.toLocaleString()} votes</strong> your supporters cast for you` : ''}.</p>
+            <p style="color:#ccc;font-size:15px;margin:12px 0;">You should be proud of how far you came${hasVotes ? ` and grateful for every one of the <strong style="color:#fff;">${req.total_votes!.toLocaleString()} votes</strong> your supporters cast for you in ${roundPhrase}` : ''}.</p>
             <p style="color:#ccc;font-size:15px;margin:12px 0;">We'd love to <strong style="color:#fff;">honor you at our crowning event this July</strong> — we hope you'll join us.</p>
             <p style="color:#999;font-size:14px;margin:16px 0;">And we hope you'll choose to compete again next year.</p>
             ${goldButton('View Competition', ctaUrl)}
