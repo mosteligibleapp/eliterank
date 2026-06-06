@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Trophy, Settings, TrendingUp, Heart, Award, Gavel } from 'lucide-react';
 import { colors, borderRadius, spacing, typography, shadows, transitions } from '../../styles/theme';
 import Avatar from './Avatar';
@@ -15,7 +16,6 @@ function ProfileIcon({
   onLogin,
   onLogout,
   onProfile,
-  onPerformance,
   onRewards,
   onAchievements,
   onDashboard,
@@ -29,6 +29,7 @@ function ProfileIcon({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -319,9 +320,12 @@ function ProfileIcon({
               </button>
             )}
 
-            {onPerformance && (
+            {/* Performance dashboard — shown for any nominee/contestant
+                (current or past). Navigates internally so every header that
+                renders ProfileIcon exposes it without extra wiring. */}
+            {profile?.is_nominee_or_contestant && (
               <button
-                onClick={() => handleMenuClick(onPerformance)}
+                onClick={() => handleMenuClick(() => navigate('/performance'))}
                 style={menuItemStyle}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = colors.interactive.hover;
