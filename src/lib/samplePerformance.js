@@ -17,6 +17,10 @@ const competitor = (id, name, city, status, votes) => ({
   votes,
 });
 
+// Build the ordered, named round list a competition would expose.
+const rounds = (...labels) =>
+  labels.map((label, i) => ({ order: i + 1, label }));
+
 export const SAMPLE_PERFORMANCE = [
   {
     competitionId: 'sample-la-2026',
@@ -33,6 +37,7 @@ export const SAMPLE_PERFORMANCE = [
     fieldSize: 9,
     roundsReached: 2,
     totalRounds: 4,
+    rounds: rounds('Entry Round', 'Top 50', 'Top 15', 'Finale'),
     totalVotes: 4820,
     freeVotes: 1240,
     paidVotes: 3100,
@@ -62,6 +67,7 @@ export const SAMPLE_PERFORMANCE = [
     fieldSize: 8,
     roundsReached: 4,
     totalRounds: 4,
+    rounds: rounds('Entry Round', 'Top 40', 'Top 10', 'Finale'),
     totalVotes: 6210,
     freeVotes: 1680,
     paidVotes: 4100,
@@ -88,6 +94,7 @@ export const SAMPLE_PERFORMANCE = [
     fieldSize: 7,
     roundsReached: 4,
     totalRounds: 4,
+    rounds: rounds('Entry Round', 'Top 25', 'Top 10', 'Finale'),
     totalVotes: 9340,
     freeVotes: 2100,
     paidVotes: 6800,

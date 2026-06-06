@@ -6,9 +6,9 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  *
  * Builds the contestant-facing "performance" view: for every competition the
  * user entered (any status except removed), it returns their lifetime vote
- * total broken down into free / paid / bonus, how far they advanced (rounds
- * reached vs. total rounds), and the roster of contestants they competed
- * against.
+ * total broken down into free / paid / bonus, how far they advanced (named
+ * rounds, e.g. "Entry Round" / "Top 50" / "Finale"), and the roster of
+ * contestants they competed against.
  *
  * Vote breakdown comes straight from the never-reset lifetime_* counters on
  * `contestants` (migration 054), so the numbers reflect the whole competition
@@ -19,13 +19,45 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  *     competitionId, competitionName, citySeason, orgName, orgLogo,
  *     orgSlug, competitionSlug, competitionStatus,
  *     myContestantId, myStatus, placement, fieldSize,
- *     roundsReached, totalRounds,
+ *     roundsReached, totalRounds, rounds: [{ order, label }],
  *     totalVotes, freeVotes, paidVotes, bonusVotes,
  *     competitors: [
  *       { id, name, avatarUrl, city, status, votes }
  *     ]
  *   }
  */
+
+// "Round 2" / "Round  3" etc. — a placeholder name, not a real tier label.
+const isGenericRoundLabel = (label) =>
+  !label || /^round\s*\d+$/i.test(String(label).trim());
+
+// Name each round in a competition. Mirrors getReachedTierLabel in
+// ProfileCompetitions: a round's tier is the size of the field that advanced
+// INTO it (the prior round's contestants_advance), so round 1 is the "Entry
+// Round" and round R reads as "Top {advance of R-1}". An explicit tier_label
+// (or finale round_type, or title) takes precedence when it isn't generic.
+function buildRoundLabels(orderedRounds) {
+  return orderedRounds.map((r, idx) => {
+    let label;
+    if (!isGenericRoundLabel(r.tier_label)) {
+      label = r.tier_label;
+    } else if (r.round_type === 'finale') {
+      label = 'Finale';
+    } else if (idx === 0) {
+      label = 'Entry Round';
+    } else {
+      const advance = orderedRounds[idx - 1]?.contestants_advance;
+      if (Number.isFinite(advance) && advance > 0) {
+        label = `Top ${advance}`;
+      } else if (!isGenericRoundLabel(r.title)) {
+        label = r.title;
+      } else {
+        label = `Round ${r.round_order}`;
+      }
+    }
+    return { order: r.round_order, label };
+  });
+}
 export function usePerformanceDashboard(userId) {
   const [competitions, setCompetitions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -99,21 +131,25 @@ export function usePerformanceDashboard(userId) {
 
       const roster = allContestants || [];
 
-      // 3. Number of voting rounds per competition, so we can show how far the
-      //    contestant advanced ("Round 3 of 4"). Only voting rounds count
-      //    toward the total (other round_types are skipped, matching the
-      //    public timeline's notion of a round).
-      const totalRoundsByCompetition = new Map();
+      // 3. The competition's rounds, so we can show how far the contestant
+      //    advanced by name ("Entry Round" → "Top 50" → "Finale"). All
+      //    voting_rounds rows are real rounds (the finale included); nomination
+      //    periods live in a separate table and aren't pulled here.
       const { data: rounds } = await supabase
         .from('voting_rounds')
-        .select('competition_id, round_type')
+        .select('competition_id, round_order, round_type, title, tier_label, contestants_advance')
         .in('competition_id', competitionIds);
+
+      const roundLabelsByCompetition = new Map();
+      const groupedRounds = new Map();
       (rounds || []).forEach((r) => {
-        if (r.round_type && r.round_type !== 'voting') return;
-        totalRoundsByCompetition.set(
-          r.competition_id,
-          (totalRoundsByCompetition.get(r.competition_id) || 0) + 1,
-        );
+        const list = groupedRounds.get(r.competition_id) || [];
+        list.push(r);
+        groupedRounds.set(r.competition_id, list);
+      });
+      groupedRounds.forEach((list, compId) => {
+        const ordered = [...list].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+        roundLabelsByCompetition.set(compId, buildRoundLabels(ordered));
       });
 
       // Group the roster by competition for quick lookup.
@@ -157,10 +193,14 @@ export function usePerformanceDashboard(userId) {
         // How far they advanced. Winners ran the whole gauntlet; eliminated
         // contestants reached the round they went out in; everyone still in
         // is measured by their current round. Falls back to round 1.
-        const totalRounds = totalRoundsByCompetition.get(mine.competition_id) || 0;
+        const roundLabels = roundLabelsByCompetition.get(mine.competition_id) || [];
+        const totalRounds = roundLabels.length;
+        const lastOrder = roundLabels.length
+          ? roundLabels[roundLabels.length - 1].order
+          : 1;
         const roundsReached = mine.status === 'winner'
-          ? (totalRounds || mine.current_round || 1)
-          : (mine.eliminated_in_round || mine.current_round || 1);
+          ? lastOrder
+          : (mine.eliminated_in_round || mine.current_round || roundLabels[0]?.order || 1);
 
         return {
           competitionId: mine.competition_id,
@@ -177,6 +217,7 @@ export function usePerformanceDashboard(userId) {
           fieldSize: field.length,
           roundsReached,
           totalRounds,
+          rounds: roundLabels,
           totalVotes: myVotes,
           freeVotes: mine.lifetime_free_votes ?? 0,
           paidVotes: mine.lifetime_paid_votes ?? 0,

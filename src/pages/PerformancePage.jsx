@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Trophy, Crown, Award, ChevronRight, Eye } from 'lucide-react';
+import { BarChart3, Trophy, Check, ChevronRight, Eye } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
 import usePerformanceDashboard from '../hooks/usePerformanceDashboard';
 import { useResponsive } from '../hooks/useResponsive';
@@ -31,38 +31,21 @@ function formatNumber(n) {
   return (n ?? 0).toLocaleString('en-US');
 }
 
-// Competition.status values that mean the competition is over. A contestant
-// who is still 'active' when one of these is set reached the finale without
-// winning — i.e. a finalist — since finalize_voting_round leaves non-winning
-// finalists 'active' (migration 053).
+// Competition.status values that mean the competition is over.
 const ENDED_COMPETITION_STATUSES = new Set(['completed', 'complete', 'ended', 'archive', 'archived']);
 
-function StatusBadge({ status, competitionStatus }) {
-  if (status === 'winner') {
+// Reflects the competition's phase, not the contestant's outcome.
+function CompetitionPhaseBadge({ competitionStatus }) {
+  if (ENDED_COMPETITION_STATUSES.has(competitionStatus)) {
     return (
-      <span style={{ ...styles.badge, color: colors.gold.primary, background: colors.gold.muted }}>
-        <Trophy size={11} /> Winner
-      </span>
-    );
-  }
-  if (status === 'eliminated') {
-    return (
-      <span style={{ ...styles.badge, color: colors.text.tertiary, background: 'rgba(255,255,255,0.05)' }}>
-        Eliminated
-      </span>
-    );
-  }
-  // Competition is over and they weren't eliminated → they made the finale.
-  if (status === 'completed' || ENDED_COMPETITION_STATUSES.has(competitionStatus)) {
-    return (
-      <span style={{ ...styles.badge, color: colors.gold.primary, background: colors.gold.muted }}>
-        <Award size={11} /> Finalist
+      <span style={{ ...styles.badge, color: colors.text.secondary, background: 'rgba(255,255,255,0.06)' }}>
+        <Check size={11} /> Complete
       </span>
     );
   }
   return (
     <span style={{ ...styles.badge, color: colors.status.success, background: colors.status.successMuted }}>
-      <Crown size={11} /> Active
+      Active
     </span>
   );
 }
@@ -121,32 +104,36 @@ function VoteBreakdown({ entry }) {
         ))}
       </div>
 
-      {/* How far they advanced — segmented round progress */}
-      {entry.totalRounds > 0 && (
-        <div style={styles.roundsBlock}>
-          <div style={styles.roundsHead}>
-            <span style={styles.roundsLabel}>
-              {entry.myStatus === 'winner' ? 'Made it all the way' : 'Rounds reached'}
-            </span>
-            <span style={styles.roundsValue}>
-              {entry.roundsReached} of {entry.totalRounds}
-            </span>
+      {/* How far they advanced — named round chips, filled up to the round
+          they reached. */}
+      {entry.rounds && entry.rounds.length > 0 && (() => {
+        const reached = entry.rounds.filter((r) => r.order <= entry.roundsReached);
+        const furthest = reached.length ? reached[reached.length - 1].label : null;
+        return (
+          <div style={styles.roundsBlock}>
+            <div style={styles.roundsHead}>
+              <span style={styles.roundsLabel}>Rounds reached</span>
+              {furthest && <span style={styles.roundsValue}>{furthest}</span>}
+            </div>
+            <div style={styles.roundsChips}>
+              {entry.rounds.map((r) => {
+                const isReached = r.order <= entry.roundsReached;
+                return (
+                  <span
+                    key={r.order}
+                    style={{
+                      ...styles.roundChip,
+                      ...(isReached ? styles.roundChipReached : styles.roundChipMuted),
+                    }}
+                  >
+                    {r.label}
+                  </span>
+                );
+              })}
+            </div>
           </div>
-          <div style={styles.roundsDots}>
-            {Array.from({ length: entry.totalRounds }).map((_, i) => (
-              <span
-                key={i}
-                style={{
-                  ...styles.roundDot,
-                  background: i < entry.roundsReached
-                    ? colors.gold.primary
-                    : 'rgba(255,255,255,0.10)',
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -197,7 +184,7 @@ function CompetitionCard({ entry, isMobile, onOpenCompetition }) {
         <div style={styles.headerText}>
           <div style={styles.headerTitleRow}>
             <h3 style={styles.compTitle}>{entry.competitionName}</h3>
-            <StatusBadge status={entry.myStatus} competitionStatus={entry.competitionStatus} />
+            <CompetitionPhaseBadge competitionStatus={entry.competitionStatus} />
           </div>
           {entry.citySeason && <div style={styles.compSub}>{entry.citySeason}</div>}
         </div>
@@ -485,14 +472,27 @@ const styles = {
     color: colors.gold.primary,
     fontVariantNumeric: 'tabular-nums',
   },
-  roundsDots: {
+  roundsChips: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: spacing.xs,
   },
-  roundDot: {
-    flex: 1,
-    height: '6px',
+  roundChip: {
+    padding: `3px ${spacing.sm}`,
     borderRadius: borderRadius.pill,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.medium,
+    whiteSpace: 'nowrap',
+  },
+  roundChipReached: {
+    background: colors.gold.muted,
+    color: colors.gold.primary,
+    border: `1px solid ${colors.border.focus}`,
+  },
+  roundChipMuted: {
+    background: 'rgba(255,255,255,0.03)',
+    color: colors.text.muted,
+    border: `1px solid ${colors.border.secondary}`,
   },
 
   // Competitors
