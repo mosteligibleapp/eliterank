@@ -9,13 +9,30 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
  * @param {string} contestantId - The contestant's ID to fetch fans for
  * @param {boolean} isOpen - Controls visibility
  * @param {() => void} onClose - Fires when the overlay or X is clicked
+ * @param {Array<object>} [previewFans] - Optional profile-like objects
+ *   ({ first_name, last_name, city, avatar_url }). When provided, the modal
+ *   renders these directly and skips the network query — used by the
+ *   super-admin sample preview on the Performance page.
  */
-export default function ProfileFans({ contestantId, isOpen, onClose }) {
+export default function ProfileFans({ contestantId, isOpen, onClose, previewFans }) {
   const [fans, setFans] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isOpen || !contestantId || !supabase) return;
+    if (!isOpen) return;
+
+    // Preview mode: render the supplied sample fans without hitting the DB.
+    if (previewFans) {
+      setFans(previewFans.map((p, i) => ({
+        user_id: `preview-${i}`,
+        created_at: null,
+        profile: p,
+      })));
+      setLoading(false);
+      return;
+    }
+
+    if (!contestantId || !supabase) return;
 
     let cancelled = false;
     setLoading(true);
@@ -57,7 +74,7 @@ export default function ProfileFans({ contestantId, isOpen, onClose }) {
 
     fetchFans();
     return () => { cancelled = true; };
-  }, [isOpen, contestantId]);
+  }, [isOpen, contestantId, previewFans]);
 
   useEffect(() => {
     if (!isOpen) return;

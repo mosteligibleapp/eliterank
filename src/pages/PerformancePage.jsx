@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Trophy, Crown, ChevronRight } from 'lucide-react';
+import { BarChart3, Users, Trophy, Crown, ChevronRight, Eye } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
 import usePerformanceDashboard from '../hooks/usePerformanceDashboard';
 import { useResponsive } from '../hooks/useResponsive';
@@ -17,6 +17,7 @@ import { PageHeader, OrganizationLogo } from '../components/ui';
 import EmptyState from '../components/common/EmptyState';
 import ProfileFans from '../features/profile/components/ProfileFans';
 import { getCompetitionUrl } from '../utils/slugs';
+import { SAMPLE_PERFORMANCE } from '../lib/samplePerformance';
 import { colors, spacing, borderRadius, typography } from '../styles/theme';
 
 // Vote-type palette. Per the brand rules accent colors are reserved for data
@@ -200,9 +201,17 @@ function CompetitionCard({ entry, isMobile, onOpenFans, onOpenCompetition }) {
 export default function PerformancePage() {
   const navigate = useNavigate();
   const { isMobile } = useResponsive();
-  const { user } = useSupabaseAuth();
+  const { user, profile } = useSupabaseAuth();
   const { competitions, loading } = usePerformanceDashboard(user?.id);
   const [fansFor, setFansFor] = useState(null);
+
+  // Super admins with no real contestant entries see sample data so they can
+  // review the populated layout. It's a render-only preview — nothing is
+  // written to the database, so it can't leak onto public leaderboards.
+  const isSamplePreview = !loading
+    && competitions.length === 0
+    && profile?.is_super_admin === true;
+  const data = isSamplePreview ? SAMPLE_PERFORMANCE : competitions;
 
   const handleOpenCompetition = (entry) => {
     if (entry.orgSlug && entry.competitionSlug) {
@@ -223,7 +232,7 @@ export default function PerformancePage() {
       }}>
         {loading ? (
           <div style={styles.loading}>Loading your performance…</div>
-        ) : competitions.length === 0 ? (
+        ) : data.length === 0 ? (
           <EmptyState
             icon={<BarChart3 size={32} />}
             title="No performance data yet"
@@ -233,7 +242,17 @@ export default function PerformancePage() {
           />
         ) : (
           <div style={styles.stack}>
-            {competitions.map((entry) => (
+            {isSamplePreview && (
+              <div style={styles.sampleBanner}>
+                <Eye size={15} style={{ flexShrink: 0, marginTop: '1px' }} />
+                <span>
+                  <strong>Sample preview</strong> — super admins only. This is placeholder
+                  data to show how a contestant's dashboard looks once they have votes. It
+                  isn't saved and only you can see it.
+                </span>
+              </div>
+            )}
+            {data.map((entry) => (
               <CompetitionCard
                 key={entry.competitionId}
                 entry={entry}
@@ -248,6 +267,7 @@ export default function PerformancePage() {
 
       <ProfileFans
         contestantId={fansFor?.id}
+        previewFans={fansFor?.fans}
         isOpen={!!fansFor}
         onClose={() => setFansFor(null)}
       />
@@ -266,6 +286,18 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: spacing.lg,
+  },
+  sampleBanner: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: `${spacing.sm} ${spacing.md}`,
+    background: colors.gold.muted,
+    border: `1px solid ${colors.border.focus}`,
+    borderRadius: borderRadius.md,
+    color: colors.gold.primary,
+    fontSize: typography.fontSize.xs,
+    lineHeight: 1.5,
   },
   card: {
     background: colors.background.secondary,
