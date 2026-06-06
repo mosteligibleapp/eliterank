@@ -3219,8 +3219,11 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 }
 
 .legacy-winners-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* Flex (not grid) so a partial last row — e.g. ranks 4 & 5 of 5 — stays
+     centered instead of left-aligning. Card flex-basis sets the per-row count. */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--spacing-md);
 }
 
@@ -3228,6 +3231,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 0 0 calc((100% - 4 * var(--spacing-md)) / 5);
   gap: var(--spacing-md);
   padding: var(--spacing-lg) var(--spacing-sm);
   cursor: pointer;
@@ -3333,11 +3337,11 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 @media (max-width: 768px) {
   .legacy-winners-grid {
-    grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-sm);
   }
 
   .legacy-winner-card {
+    flex-basis: calc((100% - 2 * var(--spacing-sm)) / 3);
     padding: var(--spacing-md) var(--spacing-xs);
   }
 
@@ -3357,8 +3361,8 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 }
 
 @media (max-width: 480px) {
-  .legacy-winners-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .legacy-winner-card {
+    flex-basis: calc((100% - var(--spacing-sm)) / 2);
   }
 }
 
