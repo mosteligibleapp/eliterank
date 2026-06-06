@@ -5982,6 +5982,26 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 }
 
 /* =====================
+   COMING SOON — SPARSE SPLASH
+   ----------------------
+   When the host hasn't filled in any credibility/stakes sections, center the
+   hero into a near-full-viewport teaser so the page reads as an intentional
+   splash rather than a short block stranded over a void. A sliver of the
+   "How It Works" section peeks below the fold to invite scrolling.
+   ===================== */
+.phase-coming-soon-sparse .phase-coming-soon-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 85svh;
+}
+
+/* CTA folds into the centered hero — drop its standalone bottom margin. */
+.phase-coming-soon-sparse .phase-coming-soon-hero-inner .phase-coming-soon-cta {
+  margin-bottom: 0;
+}
+
+/* =====================
    COMING SOON — CTA
    ===================== */
 .phase-coming-soon-cta {
@@ -6135,6 +6155,99 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   max-width: 560px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* =====================
+   COMING SOON — HOW IT WORKS (evergreen journey)
+   Mirrors the Timeline's visual language (step circles + connecting line)
+   but with icons + descriptions, so it sits naturally in the same slot.
+   ===================== */
+.how-it-works {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.how-it-works-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.how-it-works-header .section-label {
+  margin: 0;
+}
+
+.how-it-works-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.how-it-works-item {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
+}
+
+.how-it-works-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.how-it-works-step {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(var(--color-primary-rgb), 0.12);
+  color: var(--color-primary);
+  border: 1.5px solid rgba(var(--color-primary-rgb), 0.35);
+}
+
+.how-it-works-line {
+  flex: 1;
+  width: 2px;
+  min-height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-top: var(--spacing-xs);
+  border-radius: 1px;
+}
+
+.how-it-works-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px 0;
+  min-width: 0;
+}
+
+.how-it-works-title {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+}
+
+.how-it-works-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .how-it-works-step {
+    width: 24px;
+    height: 24px;
+  }
+
+  .how-it-works-marker {
+    width: 28px;
+  }
 }
 
 /* =====================

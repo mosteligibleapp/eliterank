@@ -7,6 +7,7 @@ import { HostSection } from '../components/HostSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
+import { HowItWorks } from '../components/HowItWorks';
 import { PrizePool } from '../components/PrizePool';
 import { JudgesSection } from '../components/JudgesSection';
 import { CharityHighlight } from '../components/CharityHighlight';
@@ -78,12 +79,51 @@ export function ComingSoonPhase() {
 
   const heroImage = competition?.cover_image || getCityImage(competition?.city, competition?.name);
 
+  // When the host hasn't filled in any of the credibility/stakes sections, the
+  // page would otherwise be hero + CTA stranded over a tall void. In that case
+  // we center the hero into a full-viewport splash and let the evergreen
+  // "How It Works" explainer carry the rest.
+  const isSparse = !hasHost && !hasJudges && !hasPrize && !hasTimeline
+    && !hasCharity && !hasSponsors;
+
+  const cta = (
+    <section className="phase-coming-soon-cta">
+      <button
+        className="phase-cta-primary"
+        onClick={handleSubscribeClick}
+        disabled={subLoading || isSubscribed}
+        aria-pressed={isSubscribed}
+      >
+        {isSubscribed ? (
+          <>
+            <Check size={18} />
+            <span className="phase-cta-primary-label">You'll be notified when nominations open</span>
+          </>
+        ) : subLoading ? (
+          <>
+            <Loader size={18} className="loading-spinner" />
+            <span className="phase-cta-primary-label">Working…</span>
+          </>
+        ) : (
+          <>
+            <Bell size={18} />
+            <span className="phase-cta-primary-label">Get notified when nominations open</span>
+          </>
+        )}
+      </button>
+      {subError && (
+        <p className="phase-coming-soon-cta-error" role="alert">{subError}</p>
+      )}
+    </section>
+  );
+
   return (
     <div
-      className="phase-view phase-coming-soon"
+      className={`phase-view phase-coming-soon${isSparse ? ' phase-coming-soon-sparse' : ''}`}
       style={heroImage ? { '--hero-image': `url("${heroImage}")` } : undefined}
     >
-      {/* Hero — header + countdown over the page-wide backdrop */}
+      {/* Hero — header + countdown over the page-wide backdrop. When the page
+          is sparse the CTA folds into the hero so the splash reads as one unit. */}
       <section className="phase-coming-soon-hero">
         <div className="phase-coming-soon-hero-inner">
           <CompetitionHeader badge="Coming Soon" badgeVariant="default" />
@@ -92,38 +132,12 @@ export function ComingSoonPhase() {
               <CountdownDisplay label="Nominations open in" large showPlaceholder={false} />
             </div>
           )}
+          {isSparse && cta}
         </div>
       </section>
 
       {/* Primary CTA — subscribe to nomination-open notification */}
-      <section className="phase-coming-soon-cta">
-        <button
-          className="phase-cta-primary"
-          onClick={handleSubscribeClick}
-          disabled={subLoading || isSubscribed}
-          aria-pressed={isSubscribed}
-        >
-          {isSubscribed ? (
-            <>
-              <Check size={18} />
-              <span className="phase-cta-primary-label">You'll be notified when nominations open</span>
-            </>
-          ) : subLoading ? (
-            <>
-              <Loader size={18} className="loading-spinner" />
-              <span className="phase-cta-primary-label">Working…</span>
-            </>
-          ) : (
-            <>
-              <Bell size={18} />
-              <span className="phase-cta-primary-label">Get notified when nominations open</span>
-            </>
-          )}
-        </button>
-        {subError && (
-          <p className="phase-coming-soon-cta-error" role="alert">{subError}</p>
-        )}
-      </section>
+      {!isSparse && cta}
 
       {/* Host credibility — full card variant */}
       {hasHost && (
@@ -145,6 +159,14 @@ export function ComingSoonPhase() {
               <PrizePool showLiveBadge={false} />
             </div>
           )}
+        </section>
+      )}
+
+      {/* How It Works — evergreen journey explainer. Stands in for the Timeline
+          until the host sets real dates, so the page always explains the flow. */}
+      {!hasTimeline && (
+        <section className="phase-section phase-coming-soon-howitworks">
+          <HowItWorks />
         </section>
       )}
 
