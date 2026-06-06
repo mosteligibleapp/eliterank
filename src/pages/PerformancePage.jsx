@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Trophy, Crown, ChevronRight, Eye } from 'lucide-react';
+import { BarChart3, Trophy, Crown, Award, ChevronRight, Eye } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
 import usePerformanceDashboard from '../hooks/usePerformanceDashboard';
 import { useResponsive } from '../hooks/useResponsive';
@@ -31,7 +31,13 @@ function formatNumber(n) {
   return (n ?? 0).toLocaleString('en-US');
 }
 
-function StatusBadge({ status }) {
+// Competition.status values that mean the competition is over. A contestant
+// who is still 'active' when one of these is set reached the finale without
+// winning — i.e. a finalist — since finalize_voting_round leaves non-winning
+// finalists 'active' (migration 053).
+const ENDED_COMPETITION_STATUSES = new Set(['completed', 'complete', 'ended', 'archive', 'archived']);
+
+function StatusBadge({ status, competitionStatus }) {
   if (status === 'winner') {
     return (
       <span style={{ ...styles.badge, color: colors.gold.primary, background: colors.gold.muted }}>
@@ -43,6 +49,14 @@ function StatusBadge({ status }) {
     return (
       <span style={{ ...styles.badge, color: colors.text.tertiary, background: 'rgba(255,255,255,0.05)' }}>
         Eliminated
+      </span>
+    );
+  }
+  // Competition is over and they weren't eliminated → they made the finale.
+  if (status === 'completed' || ENDED_COMPETITION_STATUSES.has(competitionStatus)) {
+    return (
+      <span style={{ ...styles.badge, color: colors.gold.primary, background: colors.gold.muted }}>
+        <Award size={11} /> Finalist
       </span>
     );
   }
@@ -183,7 +197,7 @@ function CompetitionCard({ entry, isMobile, onOpenCompetition }) {
         <div style={styles.headerText}>
           <div style={styles.headerTitleRow}>
             <h3 style={styles.compTitle}>{entry.competitionName}</h3>
-            <StatusBadge status={entry.myStatus} />
+            <StatusBadge status={entry.myStatus} competitionStatus={entry.competitionStatus} />
           </div>
           {entry.citySeason && <div style={styles.compSub}>{entry.citySeason}</div>}
         </div>
