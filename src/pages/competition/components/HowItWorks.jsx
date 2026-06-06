@@ -30,7 +30,7 @@ export function HowItWorks() {
       id: 'crowned',
       icon: Crown,
       title: 'Crowned',
-      desc: 'The top finalists are celebrated and crowned at the finale.',
+      desc: 'The top finalists are celebrated, spotlighted and rewarded.',
     },
   ];
 
