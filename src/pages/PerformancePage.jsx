@@ -2,21 +2,33 @@
  * PerformancePage — contestant-facing performance dashboard.
  *
  * For each competition the signed-in user entered, shows their lifetime vote
- * total broken down into free / paid / bonus, plus the roster of contestants
- * they competed against.
+ * total broken down into free / paid / bonus, how far they advanced (named
+ * rounds), the rewards their advancement earned (claimable in place via the
+ * shared ClaimRewardModal), and the roster of contestants they competed with.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Trophy, Check, ChevronRight, Eye } from 'lucide-react';
+import { BarChart3, Trophy, Check, ChevronRight, Eye, Gift } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
 import usePerformanceDashboard from '../hooks/usePerformanceDashboard';
 import { useResponsive } from '../hooks/useResponsive';
 import { PageHeader, OrganizationLogo } from '../components/ui';
 import EmptyState from '../components/common/EmptyState';
+import ClaimRewardModal from '../components/modals/ClaimRewardModal';
 import { getCompetitionUrl } from '../utils/slugs';
 import { SAMPLE_PERFORMANCE } from '../lib/samplePerformance';
 import { colors, spacing, borderRadius, typography } from '../styles/theme';
+
+// Status chip styling for an earned reward. Pending rewards render a Claim
+// button instead, so they don't need an entry here.
+const REWARD_STATUS = {
+  claimed: { color: colors.status.info, label: 'Claimed' },
+  shipped: { color: colors.status.info, label: 'Shipped' },
+  active: { color: colors.status.success, label: 'Active' },
+  completed: { color: colors.text.muted, label: 'Completed' },
+  expired: { color: colors.status.error, label: 'Expired' },
+};
 
 // Vote-type palette. Per the brand rules accent colors are reserved for data
 // visualization — this breakdown is exactly that. Paid leans on the gold
@@ -138,6 +150,56 @@ function VoteBreakdown({ entry }) {
   );
 }
 
+function RewardsEarned({ rewards, onClaim }) {
+  return (
+    <div style={styles.compSection}>
+      <div style={styles.compSectionHead}>
+        <span style={styles.compSectionTitle}>Rewards earned</span>
+        <span style={styles.compSectionCount}>{rewards.length}</span>
+      </div>
+      <div style={styles.rewardList}>
+        {rewards.map((a) => {
+          const r = a.reward || {};
+          const isPending = a.status === 'pending';
+          const statusMeta = REWARD_STATUS[a.status];
+          return (
+            <div key={a.id} style={styles.rewardRow}>
+              <div
+                style={{
+                  ...styles.rewardThumb,
+                  background: r.image_url
+                    ? `url(${r.image_url}) center/cover`
+                    : 'rgba(212,175,55,0.12)',
+                }}
+              >
+                {!r.image_url && <Gift size={16} style={{ color: colors.gold.primary }} />}
+              </div>
+              <div style={styles.rewardText}>
+                <span style={styles.rewardName}>{r.name || 'Reward'}</span>
+                {isPending ? (
+                  <span style={styles.rewardSubPending}>Ready to claim</span>
+                ) : statusMeta ? (
+                  <span style={styles.rewardSub}>
+                    <span style={{ ...styles.statusDot, background: statusMeta.color }} />
+                    {statusMeta.label}
+                  </span>
+                ) : null}
+              </div>
+              {isPending ? (
+                <button type="button" style={styles.claimBtn} onClick={() => onClaim(a)}>
+                  Claim
+                </button>
+              ) : r.cash_value ? (
+                <span style={styles.rewardValue}>${Number(r.cash_value).toLocaleString()}</span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function CompetitorRow({ competitor }) {
   const initials = (competitor.name?.[0] || '?').toUpperCase();
   return (
@@ -169,7 +231,7 @@ function CompetitorRow({ competitor }) {
   );
 }
 
-function CompetitionCard({ entry, isMobile, onOpenCompetition }) {
+function CompetitionCard({ entry, isMobile, onOpenCompetition, onClaim }) {
   return (
     <div style={styles.card}>
       {/* Header */}
@@ -192,6 +254,11 @@ function CompetitionCard({ entry, isMobile, onOpenCompetition }) {
       </button>
 
       <VoteBreakdown entry={entry} />
+
+      {/* Rewards earned — what their advancement was worth */}
+      {entry.rewards && entry.rewards.length > 0 && (
+        <RewardsEarned rewards={entry.rewards} onClaim={onClaim} />
+      )}
 
       {/* Competitors */}
       <div style={styles.compSection}>
@@ -219,7 +286,8 @@ export default function PerformancePage() {
   const navigate = useNavigate();
   const { isMobile } = useResponsive();
   const { user, profile } = useSupabaseAuth();
-  const { competitions, loading } = usePerformanceDashboard(user?.id);
+  const { competitions, loading, refetch } = usePerformanceDashboard(user?.id);
+  const [claimingReward, setClaimingReward] = useState(null);
 
   // Super admins with no real contestant entries see sample data so they can
   // review the populated layout. It's a render-only preview — nothing is
@@ -274,11 +342,20 @@ export default function PerformancePage() {
                 entry={entry}
                 isMobile={isMobile}
                 onOpenCompetition={handleOpenCompetition}
+                onClaim={setClaimingReward}
               />
             ))}
           </div>
         )}
       </div>
+
+      <ClaimRewardModal
+        isOpen={!!claimingReward}
+        onClose={() => setClaimingReward(null)}
+        assignment={claimingReward}
+        userId={user?.id}
+        onClaimed={() => { setClaimingReward(null); refetch(); }}
+      />
     </div>
   );
 }
@@ -523,6 +600,79 @@ const styles = {
     margin: 0,
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
+  },
+
+  // Rewards earned
+  rewardList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.sm,
+  },
+  rewardRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  rewardThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  rewardText: {
+    flex: 1,
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  rewardName: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  rewardSub: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+    marginTop: '1px',
+  },
+  rewardSubPending: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gold.primary,
+    fontWeight: typography.fontWeight.medium,
+    marginTop: '1px',
+  },
+  statusDot: {
+    width: '7px',
+    height: '7px',
+    borderRadius: borderRadius.full,
+    flexShrink: 0,
+  },
+  rewardValue: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.status.success,
+    fontVariantNumeric: 'tabular-nums',
+    flexShrink: 0,
+  },
+  claimBtn: {
+    flexShrink: 0,
+    padding: `${spacing.xs} ${spacing.md}`,
+    background: colors.gold.primary,
+    color: colors.text.inverse,
+    border: 'none',
+    borderRadius: borderRadius.pill,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    cursor: 'pointer',
   },
   compList: {
     display: 'flex',
