@@ -5993,9 +5993,10 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  /* Cap the splash so it fills a short screen but doesn't open a big gap
-     above "How It Works" on tall ones. */
-  min-height: min(78svh, 640px);
+  /* Keep just enough height to feel like a hero on short screens; the small
+     cap means the box hugs its content so "How It Works" sits right under the
+     CTA instead of after a centered gap. */
+  min-height: min(56svh, 440px);
 }
 
 /* CTA folds into the centered hero — drop its standalone bottom margin. */
