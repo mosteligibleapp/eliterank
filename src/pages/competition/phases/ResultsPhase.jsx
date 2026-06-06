@@ -7,7 +7,9 @@ import { PrizePool } from '../components/PrizePool';
 import { HostSection } from '../components/HostSection';
 import { JudgesSection } from '../components/JudgesSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
+import { InterestModal } from '../components/InterestModal';
 import { formatNumber } from '../../../utils/formatters';
+import { INTEREST_TYPE } from '../../../types/competition';
 import { supabase } from '../../../lib/supabase';
 
 /**
@@ -28,6 +30,9 @@ export function ResultsPhase() {
 
   // Check if there's an active/upcoming competition for the same org
   const [currentComp, setCurrentComp] = useState(null);
+  // Fallback when no upcoming competition exists: collect interest so we can
+  // notify them when the next round of nominations opens.
+  const [showInterest, setShowInterest] = useState(false);
   const orgId = competition?.organization_id;
   const compId = competition?.id;
   const cityId = competition?.city_id;
@@ -118,18 +123,34 @@ export function ResultsPhase() {
         </section>
       )}
 
-      {/* Next Season CTA - only show if there's an active competition */}
-      {currentComp && (
-        <section className="phase-cta-next-season">
-          <div className="next-season-card">
-            <h3>Think You Can Win?</h3>
-            <p>{currentComp.name} nominations are open now!</p>
-            <button className="btn btn-primary" onClick={handleNavigateToCurrentComp}>
-              Enter Now
-            </button>
-          </div>
-        </section>
-      )}
+      {/* Next Season CTA
+          - If a sibling competition is already live/coming up, point to it.
+          - Otherwise collect interest so they're notified when the next
+            round of nominations opens. */}
+      <section className="phase-cta-next-season">
+        <div className="next-season-card">
+          <h3>Think You Can Win?</h3>
+          {currentComp ? (
+            <>
+              <p>{currentComp.name} nominations are open now!</p>
+              <button className="btn btn-primary" onClick={handleNavigateToCurrentComp}>
+                Enter Now
+              </button>
+            </>
+          ) : (
+            <>
+              <p>
+                {organization?.name
+                  ? `Be the first to know when ${organization.name} opens nominations again.`
+                  : 'Be the first to know when nominations open again.'}
+              </p>
+              <button className="btn btn-primary" onClick={() => setShowInterest(true)}>
+                Notify Me
+              </button>
+            </>
+          )}
+        </div>
+      </section>
 
       {/* Judges */}
       <section className="phase-section">
@@ -142,6 +163,15 @@ export function ResultsPhase() {
       <section className="phase-section">
         <HostSection />
       </section>
+
+      {/* Notify-me interest capture (shown only when no upcoming competition) */}
+      {showInterest && (
+        <InterestModal
+          type={INTEREST_TYPE.COMPETING}
+          competition={competition}
+          onClose={() => setShowInterest(false)}
+        />
+      )}
     </div>
   );
 }
