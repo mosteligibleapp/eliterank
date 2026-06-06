@@ -24,4 +24,5 @@ export { default as useBonusVotes } from './useBonusVotes';
 export { default as useAuthWithZustand } from './useAuthWithZustand';
 export { default as useFingerprint } from './useFingerprint';
 export { default as useMyPerformance } from './useMyPerformance';
+export { default as usePerformanceDashboard } from './usePerformanceDashboard';
 export { default as useIsJudge } from './useIsJudge';

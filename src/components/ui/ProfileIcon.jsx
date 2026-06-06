@@ -15,6 +15,7 @@ function ProfileIcon({
   onLogin,
   onLogout,
   onProfile,
+  onPerformance,
   onRewards,
   onAchievements,
   onDashboard,
@@ -315,6 +316,24 @@ function ProfileIcon({
               >
                 <UserCircle size={16} />
                 View Profile
+              </button>
+            )}
+
+            {onPerformance && (
+              <button
+                onClick={() => handleMenuClick(onPerformance)}
+                style={menuItemStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.interactive.hover;
+                  e.currentTarget.style.color = colors.text.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = colors.text.secondary;
+                }}
+              >
+                <TrendingUp size={16} />
+                Performance
               </button>
             )}
 

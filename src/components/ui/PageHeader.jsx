@@ -26,6 +26,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
 
   const handleBack = onBack || (() => navigate(-1));
   const handleProfile = () => navigate('/profile');
+  const handlePerformance = () => navigate('/performance');
   const handleRewards = () => navigate('/rewards');
   const handleAchievements = () => navigate('/achievements');
   const handleDashboard = () => navigate('/dashboard');
@@ -76,6 +77,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             onLogin={() => navigate('/login')}
             onLogout={handleLogout}
             onProfile={handleProfile}
+            onPerformance={performances.length > 0 ? handlePerformance : undefined}
             onRewards={profile?.is_nominee_or_contestant ? handleRewards : undefined}
             onAchievements={profile?.is_nominee_or_contestant ? handleAchievements : undefined}
             onAccountSettings={handleAccountSettings}

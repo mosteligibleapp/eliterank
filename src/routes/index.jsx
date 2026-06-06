@@ -34,6 +34,7 @@ const UserRewardsPage = lazy(() => import('../pages/UserRewardsPage'));
 const ViewPublicProfilePage = lazy(() => import('../pages/ViewPublicProfilePage'));
 const AchievementsPage = lazy(() => import('../pages/AchievementsPage'));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
+const PerformancePage = lazy(() => import('../pages/PerformancePage'));
 const CompetitionLayout = lazy(() => import('../pages/competition/CompetitionLayout'));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
@@ -308,6 +309,17 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <SuspenseWrapper fallback={<NotificationsSkeleton />}>
               <NotificationsPage />
+            </SuspenseWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/performance"
+        element={
+          <ProtectedRoute>
+            <SuspenseWrapper>
+              <PerformancePage />
             </SuspenseWrapper>
           </ProtectedRoute>
         }
