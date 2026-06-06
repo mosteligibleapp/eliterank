@@ -6,8 +6,8 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  *
  * Builds the contestant-facing "performance" view: for every competition the
  * user entered (any status except removed), it returns their lifetime vote
- * total broken down into free / paid / bonus, plus the roster of contestants
- * they competed against and each of those competitors' fan counts.
+ * total broken down into free / paid / bonus, the count of fans they gained in
+ * that competition, and the roster of contestants they competed against.
  *
  * Vote breakdown comes straight from the never-reset lifetime_* counters on
  * `contestants` (migration 054), so the numbers reflect the whole competition
@@ -20,7 +20,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  *     myContestantId, myStatus, placement, fieldSize,
  *     totalVotes, freeVotes, paidVotes, bonusVotes, myFans,
  *     competitors: [
- *       { id, name, avatarUrl, city, status, votes, fanCount }
+ *       { id, name, avatarUrl, city, status, votes }
  *     ]
  *   }
  */
@@ -95,18 +95,19 @@ export function usePerformanceDashboard(userId) {
 
       const roster = allContestants || [];
 
-      // 3. Fan counts for the whole roster in one query, then tally locally.
-      //    contestant_fans is publicly readable (it backs the fan modal on
-      //    public profiles), so we can count fans for competitors too.
-      const allIds = roster.map((c) => c.id);
-      const fanCountById = new Map();
-      if (allIds.length > 0) {
+      // 3. Fan counts for the user's OWN contestant rows — we surface how many
+      //    fans they gained in each competition, not how many fans their
+      //    competitors have. Each competition has its own contestant row, so a
+      //    row's fan count is exactly that competition's fans.
+      const myIds = entries.map((r) => r.id);
+      const myFansById = new Map();
+      if (myIds.length > 0) {
         const { data: fanRows } = await supabase
           .from('contestant_fans')
           .select('contestant_id')
-          .in('contestant_id', allIds);
+          .in('contestant_id', myIds);
         (fanRows || []).forEach((f) => {
-          fanCountById.set(f.contestant_id, (fanCountById.get(f.contestant_id) || 0) + 1);
+          myFansById.set(f.contestant_id, (myFansById.get(f.contestant_id) || 0) + 1);
         });
       }
 
@@ -142,7 +143,6 @@ export function usePerformanceDashboard(userId) {
             city: c.city || null,
             status: c.status,
             votes: c.lifetime_votes ?? 0,
-            fanCount: fanCountById.get(c.id) || 0,
           }))
           .sort((a, b) => b.votes - a.votes);
 
@@ -166,7 +166,7 @@ export function usePerformanceDashboard(userId) {
           freeVotes: mine.lifetime_free_votes ?? 0,
           paidVotes: mine.lifetime_paid_votes ?? 0,
           bonusVotes: mine.lifetime_bonus_votes ?? 0,
-          myFans: fanCountById.get(mine.id) || 0,
+          myFans: myFansById.get(mine.id) || 0,
           competitors,
         };
       });

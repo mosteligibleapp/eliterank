@@ -2,14 +2,14 @@
  * PerformancePage — contestant-facing performance dashboard.
  *
  * For each competition the signed-in user entered, shows their lifetime vote
- * total broken down into free / paid / bonus, plus the roster of contestants
- * they competed against and each competitor's fan count. Tapping a
- * competitor's fan pill opens the shared ProfileFans modal.
+ * total broken down into free / paid / bonus, the number of fans they gained,
+ * and the roster of contestants they competed against. Tapping the fans card
+ * opens the shared ProfileFans modal listing the contestant's own fans.
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Trophy, Crown, ChevronRight, Eye } from 'lucide-react';
+import { BarChart3, Heart, Trophy, Crown, ChevronRight, Eye } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
 import usePerformanceDashboard from '../hooks/usePerformanceDashboard';
 import { useResponsive } from '../hooks/useResponsive';
@@ -55,7 +55,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function VoteBreakdown({ entry }) {
+function VoteBreakdown({ entry, onOpenFans }) {
   const total = entry.totalVotes || 0;
   const segments = VOTE_TYPES.map((t) => ({
     ...t,
@@ -108,11 +108,28 @@ function VoteBreakdown({ entry }) {
           </div>
         ))}
       </div>
+
+      {/* Fans the contestant gained in this competition */}
+      <button
+        type="button"
+        onClick={() => onOpenFans({ id: entry.myContestantId, fans: entry.myFansList })}
+        style={styles.fansCard}
+      >
+        <span style={styles.fansIconWrap}>
+          <Heart size={18} />
+        </span>
+        <span style={styles.fansCardText}>
+          <span style={styles.fansCardLabel}>Fans you gained</span>
+          <span style={styles.fansCardSub}>People who backed you this competition</span>
+        </span>
+        <span style={styles.fansCardValue}>{formatNumber(entry.myFans)}</span>
+        <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+      </button>
     </div>
   );
 }
 
-function CompetitorRow({ competitor, onOpenFans }) {
+function CompetitorRow({ competitor }) {
   const initials = (competitor.name?.[0] || '?').toUpperCase();
   return (
     <div style={styles.compRow}>
@@ -139,15 +156,6 @@ function CompetitorRow({ competitor, onOpenFans }) {
           <span>{formatNumber(competitor.votes)} votes</span>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => onOpenFans(competitor)}
-        style={styles.fansPill}
-        aria-label={`View ${competitor.name}'s fans`}
-      >
-        <Users size={13} />
-        {formatNumber(competitor.fanCount)}
-      </button>
     </div>
   );
 }
@@ -174,7 +182,7 @@ function CompetitionCard({ entry, isMobile, onOpenFans, onOpenCompetition }) {
         <ChevronRight size={18} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
       </button>
 
-      <VoteBreakdown entry={entry} />
+      <VoteBreakdown entry={entry} onOpenFans={onOpenFans} />
 
       {/* Competitors */}
       <div style={styles.compSection}>
@@ -189,7 +197,7 @@ function CompetitionCard({ entry, isMobile, onOpenFans, onOpenCompetition }) {
         ) : (
           <div style={styles.compList}>
             {entry.competitors.map((c) => (
-              <CompetitorRow key={c.id} competitor={c} onOpenFans={onOpenFans} />
+              <CompetitorRow key={c.id} competitor={c} />
             ))}
           </div>
         )}
@@ -441,6 +449,54 @@ const styles = {
     fontVariantNumeric: 'tabular-nums',
   },
 
+  // Fans-gained card
+  fansCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.md,
+    width: '100%',
+    marginTop: spacing.md,
+    padding: spacing.md,
+    background: colors.gold.muted,
+    border: `1px solid ${colors.border.focus}`,
+    borderRadius: borderRadius.md,
+    cursor: 'pointer',
+    textAlign: 'left',
+  },
+  fansIconWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 38,
+    height: 38,
+    borderRadius: borderRadius.full,
+    background: 'rgba(212,175,55,0.18)',
+    color: colors.gold.primary,
+    flexShrink: 0,
+  },
+  fansCardText: {
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1,
+    minWidth: 0,
+  },
+  fansCardLabel: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  fansCardSub: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+  },
+  fansCardValue: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.gold.primary,
+    fontVariantNumeric: 'tabular-nums',
+    flexShrink: 0,
+  },
+
   // Competitors
   compSection: {
     borderTop: `1px solid ${colors.border.secondary}`,
@@ -521,20 +577,5 @@ const styles = {
   },
   metaDot: {
     color: colors.text.muted,
-  },
-  fansPill: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '5px',
-    flexShrink: 0,
-    padding: `${spacing.xs} ${spacing.sm}`,
-    background: 'rgba(255,255,255,0.04)',
-    border: `1px solid ${colors.border.secondary}`,
-    borderRadius: borderRadius.pill,
-    color: colors.text.secondary,
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
-    fontVariantNumeric: 'tabular-nums',
-    cursor: 'pointer',
   },
 };
