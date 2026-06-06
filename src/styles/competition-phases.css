@@ -5993,7 +5993,9 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 85svh;
+  /* Cap the splash so it fills a short screen but doesn't open a big gap
+     above "How It Works" on tall ones. */
+  min-height: min(78svh, 640px);
 }
 
 /* CTA folds into the centered hero — drop its standalone bottom margin. */
