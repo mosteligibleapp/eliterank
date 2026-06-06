@@ -6,8 +6,9 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  *
  * Builds the contestant-facing "performance" view: for every competition the
  * user entered (any status except removed), it returns their lifetime vote
- * total broken down into free / paid / bonus, the count of fans they gained in
- * that competition, and the roster of contestants they competed against.
+ * total broken down into free / paid / bonus, how far they advanced (rounds
+ * reached vs. total rounds), and the roster of contestants they competed
+ * against.
  *
  * Vote breakdown comes straight from the never-reset lifetime_* counters on
  * `contestants` (migration 054), so the numbers reflect the whole competition
@@ -18,7 +19,8 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  *     competitionId, competitionName, citySeason, orgName, orgLogo,
  *     orgSlug, competitionSlug, competitionStatus,
  *     myContestantId, myStatus, placement, fieldSize,
- *     totalVotes, freeVotes, paidVotes, bonusVotes, myFans,
+ *     roundsReached, totalRounds,
+ *     totalVotes, freeVotes, paidVotes, bonusVotes,
  *     competitors: [
  *       { id, name, avatarUrl, city, status, votes }
  *     ]
@@ -46,6 +48,8 @@ export function usePerformanceDashboard(userId) {
           competition_id,
           status,
           rank,
+          eliminated_in_round,
+          current_round,
           lifetime_votes,
           lifetime_free_votes,
           lifetime_paid_votes,
@@ -95,21 +99,22 @@ export function usePerformanceDashboard(userId) {
 
       const roster = allContestants || [];
 
-      // 3. Fan counts for the user's OWN contestant rows — we surface how many
-      //    fans they gained in each competition, not how many fans their
-      //    competitors have. Each competition has its own contestant row, so a
-      //    row's fan count is exactly that competition's fans.
-      const myIds = entries.map((r) => r.id);
-      const myFansById = new Map();
-      if (myIds.length > 0) {
-        const { data: fanRows } = await supabase
-          .from('contestant_fans')
-          .select('contestant_id')
-          .in('contestant_id', myIds);
-        (fanRows || []).forEach((f) => {
-          myFansById.set(f.contestant_id, (myFansById.get(f.contestant_id) || 0) + 1);
-        });
-      }
+      // 3. Number of voting rounds per competition, so we can show how far the
+      //    contestant advanced ("Round 3 of 4"). Only voting rounds count
+      //    toward the total (other round_types are skipped, matching the
+      //    public timeline's notion of a round).
+      const totalRoundsByCompetition = new Map();
+      const { data: rounds } = await supabase
+        .from('voting_rounds')
+        .select('competition_id, round_type')
+        .in('competition_id', competitionIds);
+      (rounds || []).forEach((r) => {
+        if (r.round_type && r.round_type !== 'voting') return;
+        totalRoundsByCompetition.set(
+          r.competition_id,
+          (totalRoundsByCompetition.get(r.competition_id) || 0) + 1,
+        );
+      });
 
       // Group the roster by competition for quick lookup.
       const rosterByCompetition = new Map();
@@ -149,6 +154,14 @@ export function usePerformanceDashboard(userId) {
         const city = comp.city?.name || '';
         const citySeason = [city, comp.season].filter(Boolean).join(' · ');
 
+        // How far they advanced. Winners ran the whole gauntlet; eliminated
+        // contestants reached the round they went out in; everyone still in
+        // is measured by their current round. Falls back to round 1.
+        const totalRounds = totalRoundsByCompetition.get(mine.competition_id) || 0;
+        const roundsReached = mine.status === 'winner'
+          ? (totalRounds || mine.current_round || 1)
+          : (mine.eliminated_in_round || mine.current_round || 1);
+
         return {
           competitionId: mine.competition_id,
           competitionName: comp.name || 'Competition',
@@ -162,11 +175,12 @@ export function usePerformanceDashboard(userId) {
           myStatus: mine.status,
           placement: ahead + 1,
           fieldSize: field.length,
+          roundsReached,
+          totalRounds,
           totalVotes: myVotes,
           freeVotes: mine.lifetime_free_votes ?? 0,
           paidVotes: mine.lifetime_paid_votes ?? 0,
           bonusVotes: mine.lifetime_bonus_votes ?? 0,
-          myFans: myFansById.get(mine.id) || 0,
           competitors,
         };
       });

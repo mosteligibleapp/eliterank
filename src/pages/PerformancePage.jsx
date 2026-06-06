@@ -2,20 +2,18 @@
  * PerformancePage — contestant-facing performance dashboard.
  *
  * For each competition the signed-in user entered, shows their lifetime vote
- * total broken down into free / paid / bonus, the number of fans they gained,
- * and the roster of contestants they competed against. Tapping the fans card
- * opens the shared ProfileFans modal listing the contestant's own fans.
+ * total broken down into free / paid / bonus, plus the roster of contestants
+ * they competed against.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Heart, Trophy, Crown, ChevronRight, Eye } from 'lucide-react';
+import { BarChart3, Trophy, Crown, ChevronRight, Eye } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
 import usePerformanceDashboard from '../hooks/usePerformanceDashboard';
 import { useResponsive } from '../hooks/useResponsive';
 import { PageHeader, OrganizationLogo } from '../components/ui';
 import EmptyState from '../components/common/EmptyState';
-import ProfileFans from '../features/profile/components/ProfileFans';
 import { getCompetitionUrl } from '../utils/slugs';
 import { SAMPLE_PERFORMANCE } from '../lib/samplePerformance';
 import { colors, spacing, borderRadius, typography } from '../styles/theme';
@@ -55,7 +53,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function VoteBreakdown({ entry, onOpenFans }) {
+function VoteBreakdown({ entry }) {
   const total = entry.totalVotes || 0;
   const segments = VOTE_TYPES.map((t) => ({
     ...t,
@@ -109,22 +107,32 @@ function VoteBreakdown({ entry, onOpenFans }) {
         ))}
       </div>
 
-      {/* Fans the contestant gained in this competition */}
-      <button
-        type="button"
-        onClick={() => onOpenFans({ id: entry.myContestantId, fans: entry.myFansList })}
-        style={styles.fansCard}
-      >
-        <span style={styles.fansIconWrap}>
-          <Heart size={18} />
-        </span>
-        <span style={styles.fansCardText}>
-          <span style={styles.fansCardLabel}>Fans you gained</span>
-          <span style={styles.fansCardSub}>People who backed you this competition</span>
-        </span>
-        <span style={styles.fansCardValue}>{formatNumber(entry.myFans)}</span>
-        <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />
-      </button>
+      {/* How far they advanced — segmented round progress */}
+      {entry.totalRounds > 0 && (
+        <div style={styles.roundsBlock}>
+          <div style={styles.roundsHead}>
+            <span style={styles.roundsLabel}>
+              {entry.myStatus === 'winner' ? 'Made it all the way' : 'Rounds reached'}
+            </span>
+            <span style={styles.roundsValue}>
+              {entry.roundsReached} of {entry.totalRounds}
+            </span>
+          </div>
+          <div style={styles.roundsDots}>
+            {Array.from({ length: entry.totalRounds }).map((_, i) => (
+              <span
+                key={i}
+                style={{
+                  ...styles.roundDot,
+                  background: i < entry.roundsReached
+                    ? colors.gold.primary
+                    : 'rgba(255,255,255,0.10)',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -160,7 +168,7 @@ function CompetitorRow({ competitor }) {
   );
 }
 
-function CompetitionCard({ entry, isMobile, onOpenFans, onOpenCompetition }) {
+function CompetitionCard({ entry, isMobile, onOpenCompetition }) {
   return (
     <div style={styles.card}>
       {/* Header */}
@@ -182,7 +190,7 @@ function CompetitionCard({ entry, isMobile, onOpenFans, onOpenCompetition }) {
         <ChevronRight size={18} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
       </button>
 
-      <VoteBreakdown entry={entry} onOpenFans={onOpenFans} />
+      <VoteBreakdown entry={entry} />
 
       {/* Competitors */}
       <div style={styles.compSection}>
@@ -211,7 +219,6 @@ export default function PerformancePage() {
   const { isMobile } = useResponsive();
   const { user, profile } = useSupabaseAuth();
   const { competitions, loading } = usePerformanceDashboard(user?.id);
-  const [fansFor, setFansFor] = useState(null);
 
   // Super admins with no real contestant entries see sample data so they can
   // review the populated layout. It's a render-only preview — nothing is
@@ -265,20 +272,12 @@ export default function PerformancePage() {
                 key={entry.competitionId}
                 entry={entry}
                 isMobile={isMobile}
-                onOpenFans={setFansFor}
                 onOpenCompetition={handleOpenCompetition}
               />
             ))}
           </div>
         )}
       </div>
-
-      <ProfileFans
-        contestantId={fansFor?.id}
-        previewFans={fansFor?.fans}
-        isOpen={!!fansFor}
-        onClose={() => setFansFor(null)}
-      />
     </div>
   );
 }
@@ -449,52 +448,37 @@ const styles = {
     fontVariantNumeric: 'tabular-nums',
   },
 
-  // Fans-gained card
-  fansCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.md,
-    width: '100%',
+  // Rounds-reached progress
+  roundsBlock: {
     marginTop: spacing.md,
-    padding: spacing.md,
-    background: colors.gold.muted,
-    border: `1px solid ${colors.border.focus}`,
-    borderRadius: borderRadius.md,
-    cursor: 'pointer',
-    textAlign: 'left',
   },
-  fansIconWrap: {
+  roundsHead: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 38,
-    height: 38,
-    borderRadius: borderRadius.full,
-    background: 'rgba(212,175,55,0.18)',
-    color: colors.gold.primary,
-    flexShrink: 0,
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
   },
-  fansCardText: {
-    display: 'flex',
-    flexDirection: 'column',
-    flex: 1,
-    minWidth: 0,
-  },
-  fansCardLabel: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
-  },
-  fansCardSub: {
+  roundsLabel: {
     fontSize: typography.fontSize.xs,
     color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    fontWeight: typography.fontWeight.semibold,
   },
-  fansCardValue: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+  roundsValue: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
     color: colors.gold.primary,
     fontVariantNumeric: 'tabular-nums',
-    flexShrink: 0,
+  },
+  roundsDots: {
+    display: 'flex',
+    gap: spacing.xs,
+  },
+  roundDot: {
+    flex: 1,
+    height: '6px',
+    borderRadius: borderRadius.pill,
   },
 
   // Competitors
