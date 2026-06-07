@@ -616,14 +616,11 @@ export default function EliteRankCityModal({
 
     return (
       <div style={{
-        maxWidth: '600px',
+        maxWidth: '760px',
         margin: '0 auto',
         marginTop: spacing.xxxl,
         marginBottom: spacing.xxxl,
-        padding: spacing.md,
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: borderRadius.xl,
-        border: `1px solid rgba(255, 255, 255, 0.1)`,
+        padding: spacing.lg,
       }}>
         {/* Header */}
         <div style={{
@@ -640,26 +637,18 @@ export default function EliteRankCityModal({
             margin: 0,
             textAlign: 'center',
           }}>
-            Most Eligible Bachelorettes
+            Most Eligible Bachelorettes {year}
           </h2>
-          <p style={{
-            fontSize: typography.fontSize.sm,
-            color: colors.text.muted,
-            margin: 0,
-            textAlign: 'center',
-          }}>
-            Chicago {year}
-          </p>
         </div>
 
-        {/* Winners Grid - compact circular avatar style */}
+        {/* Winners Grid - portrait photo cards */}
         <div style={{
           display: 'flex',
           flexWrap: isMobile ? 'wrap' : 'nowrap',
           justifyContent: 'center',
           gap: spacing.sm,
         }}>
-          {winners.slice(0, 5).map((winner, index) => {
+          {winners.slice(0, 5).map((winner) => {
             const igUrl = getIgUrl(winner);
             const Tag = igUrl ? 'a' : 'div';
             const linkProps = igUrl
@@ -671,79 +660,60 @@ export default function EliteRankCityModal({
                 {...linkProps}
                 style={{
                   width: isMobile ? 'calc(33.33% - 8px)' : 'calc(20% - 10px)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: `${spacing.md} ${spacing.xs}`,
-                  background: 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: borderRadius.lg,
-                  border: `1px solid rgba(212, 175, 55, 0.15)`,
-                  textAlign: 'center',
+                  aspectRatio: '3 / 4',
+                  display: 'block',
                   position: 'relative',
+                  borderRadius: borderRadius.lg,
+                  overflow: 'hidden',
+                  background: colors.background.elevated,
+                  border: `1px solid rgba(212, 175, 55, 0.25)`,
                   textDecoration: 'none',
                   color: 'inherit',
                   cursor: igUrl ? 'pointer' : 'default',
                   transition: 'border-color 0.2s ease, transform 0.2s ease',
                 }}
                 onMouseEnter={igUrl ? (e) => {
-                  e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.45)';
+                  e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.55)';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 } : undefined}
                 onMouseLeave={igUrl ? (e) => {
-                  e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.25)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 } : undefined}
               >
-                {/* Rank Badge */}
+                {/* Photo fills the card */}
+                {winner.imageUrl ? (
+                  <img
+                    src={winner.imageUrl}
+                    alt={winner.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', ...styleHelpers.flexCenter }}>
+                    <User size={32} style={{ color: colors.text.muted }} />
+                  </div>
+                )}
+
+                {/* Name on a gradient background for legibility */}
                 <div style={{
-                  width: '20px',
-                  height: '20px',
-                  background: 'rgba(212, 175, 55, 0.25)',
-                  borderRadius: '50%',
-                  ...styleHelpers.flexCenter,
-                  fontSize: '10px',
-                  fontWeight: typography.fontWeight.bold,
-                  color: colors.gold.primary,
                   position: 'absolute',
-                  top: '6px',
-                  left: '6px',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: `${spacing.lg} ${spacing.xs} ${spacing.sm}`,
+                  background: 'linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 55%, rgba(0, 0, 0, 0) 100%)',
+                  textAlign: 'center',
                 }}>
-                  {index + 1}
+                  <p style={{
+                    fontSize: typography.fontSize.xs,
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.primary,
+                    margin: 0,
+                    lineHeight: 1.2,
+                  }}>
+                    {winner.name}
+                  </p>
                 </div>
-
-                {/* Circular Avatar */}
-                <div style={{
-                  width: isMobile ? '48px' : '56px',
-                  height: isMobile ? '48px' : '56px',
-                  borderRadius: '50%',
-                  background: colors.background.elevated,
-                  border: '2px solid rgba(212, 175, 55, 0.35)',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                  ...styleHelpers.flexCenter,
-                }}>
-                  {winner.imageUrl ? (
-                    <img
-                      src={winner.imageUrl}
-                      alt={winner.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <User size={24} style={{ color: colors.text.muted }} />
-                  )}
-                </div>
-
-                {/* Name */}
-                <p style={{
-                  fontSize: typography.fontSize.xs,
-                  fontWeight: typography.fontWeight.semibold,
-                  color: colors.text.primary,
-                  margin: 0,
-                  lineHeight: 1.3,
-                }}>
-                  {winner.name}
-                </p>
               </Tag>
             );
           })}
@@ -896,6 +866,9 @@ export default function EliteRankCityModal({
                 )}
               </div>
             )}
+
+            {/* Hall of Winners showcase */}
+            <HallOfWinners />
 
             {/* Ready to Host CTA */}
             <div style={{
