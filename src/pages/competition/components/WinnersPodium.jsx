@@ -4,6 +4,7 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { Trophy } from 'lucide-react';
 import EliteRankCrown from '../../../components/ui/icons/EliteRankCrown';
 import { transformSupabaseImage } from '../../../lib/storageImage';
+import { formatNumber } from '../../../utils/formatters';
 
 /**
  * Winners podium for results phase
@@ -142,6 +143,14 @@ function WinnersGrid({ winners, onSelect, year }) {
                 {index + 1}
               </span>
               <span className="legacy-winner-name">{contestant.name}</span>
+              {/* Lifetime votes accumulated across every round (never reset),
+                  so this reflects the contestant's full-competition total
+                  rather than just the final round's tally. */}
+              {contestant.lifetime_votes > 0 && (
+                <span className="legacy-winner-votes">
+                  {formatNumber(contestant.lifetime_votes)} votes
+                </span>
+              )}
             </div>
           </div>
         ))}

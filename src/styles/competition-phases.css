@@ -3335,6 +3335,12 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   line-height: 1.3;
 }
 
+.legacy-winner-votes {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
 @media (max-width: 768px) {
   .legacy-winners-grid {
     gap: var(--spacing-sm);
