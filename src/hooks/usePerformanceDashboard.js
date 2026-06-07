@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { sortContestantsByStanding } from '../utils/contestantRanking';
 
 /**
  * usePerformanceDashboard
@@ -122,6 +123,7 @@ export function usePerformanceDashboard(userId) {
           status,
           votes,
           lifetime_votes,
+          eliminated_in_round,
           profile:profiles!user_id(avatar_url, first_name, last_name)
         `)
         .in('competition_id', competitionIds)
@@ -169,19 +171,13 @@ export function usePerformanceDashboard(userId) {
         const comp = mine.competition;
         const field = rosterByCompetition.get(mine.competition_id) || [];
 
-        // Placement mirrors the public leaderboard's default (votes) sort:
-        // eliminated contestants rank below everyone still standing, otherwise
-        // by current-round votes descending. So a finished competition's
-        // winner — who holds the most finale votes — lands at #1, matching
-        // what the leaderboard shows (rather than ranking by lifetime votes,
-        // which an earlier-eliminated contestant could win).
+        // Placement uses the same standing order as the leaderboards: still-in
+        // contestants rank above eliminated ones (who keep their old round's
+        // votes), eliminated are ordered by how far they got, and ties break on
+        // current-round votes. So a finished competition's winner lands at #1,
+        // not an earlier-eliminated contestant with more lifetime votes.
         const myVotes = mine.lifetime_votes ?? 0;
-        const tier = (c) => (c.status === 'eliminated' ? 1 : 0);
-        const orderedField = [...field].sort((a, b) => {
-          const t = tier(a) - tier(b);
-          if (t !== 0) return t;
-          return (b.votes ?? 0) - (a.votes ?? 0);
-        });
+        const orderedField = sortContestantsByStanding(field);
         const placementIdx = orderedField.findIndex((c) => c.id === mine.id);
         const placement = placementIdx >= 0 ? placementIdx + 1 : 1;
 

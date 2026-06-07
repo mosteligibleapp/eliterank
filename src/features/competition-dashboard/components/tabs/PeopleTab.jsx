@@ -12,6 +12,7 @@ import { useResponsive } from '../../../../hooks/useResponsive';
 import { generateAchievementCard, getAdvancementTitle } from '../../../achievement-cards/generateAchievementCard';
 import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
+import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import WinnersManager from '../WinnersManager';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
@@ -1322,7 +1323,7 @@ export default function PeopleTab({
           ) : (() => {
             const sortedContestants = showReorder
               ? [...contestantsFiltered].sort((a, b) => (a.rank || 999) - (b.rank || 999))
-              : contestantsFiltered;
+              : sortContestantsByStanding(contestantsFiltered);
             return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {sortedContestants.map((c, idx) => (

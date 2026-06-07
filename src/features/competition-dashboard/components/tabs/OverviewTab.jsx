@@ -7,6 +7,7 @@ import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
 import { isLive } from '../../../../utils/competitionPhase';
+import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
 
@@ -77,8 +78,11 @@ export default function OverviewTab({
     }
   };
 
+  // Standing order, not raw votes: still-competing contestants rank above
+  // eliminated ones (who keep their old round's votes), so the Top Contestants
+  // widget reflects who is actually winning.
   const rankedContestants = useMemo(() => {
-    return [...(contestants || [])].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    return sortContestantsByStanding(contestants);
   }, [contestants]);
 
   const topContestants = rankedContestants.slice(0, 5);
