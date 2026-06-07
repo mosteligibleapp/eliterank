@@ -3,11 +3,11 @@
  *
  * For each competition the signed-in user entered, shows their lifetime vote
  * total broken down into free / paid / bonus, how far they advanced (named
- * rounds), the rewards their advancement earned (claimable in place via the
- * shared ClaimRewardModal), and the roster of contestants they competed with.
+ * rounds), the rewards their advancement earned (read-only, with claiming
+ * handled on the dedicated Rewards page), and the contestants they faced.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, Trophy, Check, ChevronRight, Eye, Gift } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
@@ -15,13 +15,12 @@ import usePerformanceDashboard from '../hooks/usePerformanceDashboard';
 import { useResponsive } from '../hooks/useResponsive';
 import { PageHeader, OrganizationLogo } from '../components/ui';
 import EmptyState from '../components/common/EmptyState';
-import ClaimRewardModal from '../components/modals/ClaimRewardModal';
 import { getCompetitionUrl } from '../utils/slugs';
 import { SAMPLE_PERFORMANCE } from '../lib/samplePerformance';
 import { colors, spacing, borderRadius, typography } from '../styles/theme';
 
-// Status chip styling for an earned reward. Pending rewards render a Claim
-// button instead, so they don't need an entry here.
+// Status chip styling for an earned reward. Pending rewards instead route to
+// the Rewards tab to claim, so they don't need an entry here.
 const REWARD_STATUS = {
   claimed: { color: colors.status.info, label: 'Claimed' },
   shipped: { color: colors.status.info, label: 'Shipped' },
@@ -186,8 +185,9 @@ function RewardsEarned({ rewards, onClaim }) {
                 ) : null}
               </div>
               {isPending ? (
-                <button type="button" style={styles.claimBtn} onClick={() => onClaim(a)}>
+                <button type="button" style={styles.claimBtn} onClick={onClaim}>
                   Claim
+                  <ChevronRight size={13} />
                 </button>
               ) : r.cash_value ? (
                 <span style={styles.rewardValue}>${Number(r.cash_value).toLocaleString()}</span>
@@ -286,8 +286,11 @@ export default function PerformancePage() {
   const navigate = useNavigate();
   const { isMobile } = useResponsive();
   const { user, profile } = useSupabaseAuth();
-  const { competitions, loading, refetch } = usePerformanceDashboard(user?.id);
-  const [claimingReward, setClaimingReward] = useState(null);
+  const { competitions, loading } = usePerformanceDashboard(user?.id);
+
+  // Earned rewards are shown here read-only; claiming/tracking/shipping still
+  // lives on the dedicated Rewards page, so a pending reward routes there.
+  const goToRewards = () => navigate('/rewards');
 
   // Super admins with no real contestant entries see sample data so they can
   // review the populated layout. It's a render-only preview — nothing is
@@ -342,20 +345,12 @@ export default function PerformancePage() {
                 entry={entry}
                 isMobile={isMobile}
                 onOpenCompetition={handleOpenCompetition}
-                onClaim={setClaimingReward}
+                onClaim={goToRewards}
               />
             ))}
           </div>
         )}
       </div>
-
-      <ClaimRewardModal
-        isOpen={!!claimingReward}
-        onClose={() => setClaimingReward(null)}
-        assignment={claimingReward}
-        userId={user?.id}
-        onClaimed={() => { setClaimingReward(null); refetch(); }}
-      />
     </div>
   );
 }
@@ -665,7 +660,10 @@ const styles = {
   },
   claimBtn: {
     flexShrink: 0,
-    padding: `${spacing.xs} ${spacing.md}`,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '2px',
+    padding: `${spacing.xs} ${spacing.sm} ${spacing.xs} ${spacing.md}`,
     background: colors.gold.primary,
     color: colors.text.inverse,
     border: 'none',

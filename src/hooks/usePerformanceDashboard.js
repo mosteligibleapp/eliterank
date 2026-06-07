@@ -156,7 +156,7 @@ export function usePerformanceDashboard(userId) {
       // 4. Rewards the contestant earned, per competition. These are their
       //    reward_assignments — what they were awarded for how far they
       //    advanced (e.g. an entry gift, a Top-50 shoot, the winner package).
-      //    Raw rows are kept so the shared ClaimRewardModal can be reused.
+      //    Shown read-only here; claiming/tracking lives on the Rewards page.
       const compByContestant = new Map(entries.map((e) => [e.id, e.competition_id]));
       const rewardsByCompetition = new Map();
       const myContestantIds = entries.map((e) => e.id);
@@ -168,12 +168,7 @@ export function usePerformanceDashboard(userId) {
             status,
             contestant_id,
             competition_id,
-            content_links,
-            discount_code,
-            tracking_link,
-            expires_at,
-            reward:rewards(id, name, description, image_url, brand_name, cash_value, terms, commission_rate),
-            competition:competitions(id, name, season, city:cities(name))
+            reward:rewards(id, name, image_url, cash_value)
           `)
           .in('contestant_id', myContestantIds)
           .order('created_at', { ascending: false });
