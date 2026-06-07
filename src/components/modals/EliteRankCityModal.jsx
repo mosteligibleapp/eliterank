@@ -80,7 +80,6 @@ export default function EliteRankCityModal({
   const [nominationPeriodsMap, setNominationPeriodsMap] = useState({});
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [statusFilter, setStatusFilter] = useState('active'); // Default to Live competitions
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Use cached hooks for static data (cities, organizations)
@@ -259,22 +258,26 @@ export default function EliteRankCityModal({
     }
   }, [activeTab, eventsFetched, announcementsFetched, competitions]);
 
+  // Rank by lifecycle stage so the grid reads top-to-bottom as
+  // Live → Coming Soon → Complete. Lower number = surfaced first.
+  const getStatusRank = useCallback((c) => {
+    if (isLive(c.status) && ['nomination', 'voting', 'judging', 'between'].includes(c.phase)) return 0;
+    if (isPublished(c.status)) return 1;
+    return 2; // completed / everything else still visible
+  }, []);
+
+  // Show every visible competition in one grid (no status filtering). Within a
+  // lifecycle stage, surface whichever is closest to finalizing first, so the
+  // most time-sensitive one (e.g. in voting) leads over earlier ones.
   const visibleCompetitions = useMemo(() => {
     return competitions
-      .filter(c => {
-        if (!c.visible) return false;
-        if (statusFilter === 'active') {
-          return isLive(c.status) && ['nomination', 'voting', 'judging', 'between'].includes(c.phase);
-        }
-        if (statusFilter === 'upcoming') return isPublished(c.status);
-        if (statusFilter === 'complete') return isCompleted(c.status) || c.phase === 'completed';
-        return true;
-      })
-      // Surface whichever competition is closest to finalizing first, so the
-      // most time-sensitive one (e.g. in voting) leads over earlier ones (e.g.
-      // still taking nominations).
-      .sort(compareByFinalizationProximity);
-  }, [competitions, statusFilter]);
+      .filter(c => c.visible)
+      .sort((a, b) => {
+        const rankDiff = getStatusRank(a) - getStatusRank(b);
+        if (rankDiff !== 0) return rankDiff;
+        return compareByFinalizationProximity(a, b);
+      });
+  }, [competitions, getStatusRank]);
 
   // Competition counts for header stats
   const competitionStats = useMemo(() => {
@@ -472,68 +475,6 @@ export default function EliteRankCityModal({
       </div>
     );
   };
-
-  // ============================================
-  // FILTER BAR - Clean, minimal
-  // ============================================
-  const FilterBar = () => (
-    <div style={{
-      display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: spacing.md,
-      marginBottom: spacing.xl,
-      padding: isMobile ? `0 ${spacing.lg}` : 0,
-      flexWrap: 'wrap',
-    }}>
-      {/* Status Pills */}
-      <div style={{
-        display: 'flex',
-        gap: spacing.sm,
-        overflowX: 'auto',
-        paddingBottom: isMobile ? spacing.sm : 0,
-        ...styleHelpers.hideScrollbar,
-      }}>
-        {[
-          { id: 'active', label: 'Live', dot: true },
-          { id: 'upcoming', label: 'Coming Soon' },
-          { id: 'complete', label: 'Complete' },
-        ].map((filter) => (
-          <button
-            key={filter.id}
-            onClick={() => setStatusFilter(filter.id)}
-            style={{
-              ...styleHelpers.flexCenter,
-              gap: spacing.xs,
-              padding: `${spacing.sm} ${spacing.lg}`,
-              background: statusFilter === filter.id ? colors.gold.muted : 'transparent',
-              border: statusFilter === filter.id ? `1.5px solid ${colors.gold.primary}` : `1px solid ${colors.border.primary}`,
-              borderRadius: borderRadius.pill,
-              color: statusFilter === filter.id ? colors.gold.primary : colors.text.secondary,
-              fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.medium,
-              cursor: 'pointer',
-              transition: `all ${transitions.fast}`,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            {filter.dot && statusFilter === filter.id && (
-              <span style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                background: colors.status.success,
-                animation: 'pulse 2s infinite',
-              }} />
-            )}
-            {filter.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 
   // ============================================
   // WINNER AVATAR - handles load/error gracefully
@@ -851,9 +792,7 @@ export default function EliteRankCityModal({
               </p>
             </div>
 
-            <FilterBar />
-
-            {/* Competition Grid */}
+            {/* Competition Grid — all competitions, no status filtering */}
             {visibleCompetitions.length > 0 ? (
               <div style={{
                 display: 'flex',
@@ -886,14 +825,9 @@ export default function EliteRankCityModal({
                 <h3 style={{ fontSize: typography.fontSize.xl, color: colors.text.primary, marginBottom: spacing.sm }}>
                   No competitions found
                 </h3>
-                <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
-                  Try adjusting your filters or check back soon.
+                <p style={{ color: colors.text.secondary }}>
+                  Check back soon for new competitions.
                 </p>
-                {statusFilter !== 'active' && (
-                  <Button variant="outline" size="sm" onClick={() => setStatusFilter('active')}>
-                    Clear Filters
-                  </Button>
-                )}
               </div>
             )}
 
