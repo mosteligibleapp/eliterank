@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Trophy, Users } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
-import { PrizePool } from '../components/PrizePool';
 import { HostSection } from '../components/HostSection';
 import { JudgesSection } from '../components/JudgesSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
@@ -74,7 +73,6 @@ export function ResultsPhase() {
   const {
     competition,
     organization,
-    prizePool,
     leaderboardStats,
   } = usePublicCompetition();
   const navigate = useNavigate();
@@ -146,15 +144,6 @@ export function ResultsPhase() {
       {/* Final Stats - only for non-legacy competitions */}
       {!isLegacy && (
         <section className="phase-stats results-stats">
-          {prizePool && (
-            <div className="stat-card stat-card-highlight">
-              <div className="stat-icon-wrap">
-                <Trophy size={20} className="stat-icon" />
-              </div>
-              <span className="stat-value">{prizePool.formatted.totalPrizePool}</span>
-              <span className="stat-label">Total Awarded</span>
-            </div>
-          )}
           <div className="stat-card">
             <div className="stat-icon-wrap">
               <Users size={20} className="stat-icon" />
@@ -166,13 +155,6 @@ export function ResultsPhase() {
             <span className="stat-value">{formatNumber(leaderboardStats?.totalVotes)}</span>
             <span className="stat-label">Total Votes</span>
           </div>
-        </section>
-      )}
-
-      {/* Prize Pool Breakdown - only for non-legacy with a configured prize */}
-      {!isLegacy && prizePool && (
-        <section className="phase-section">
-          <PrizePool showLiveBadge={false} />
         </section>
       )}
 
