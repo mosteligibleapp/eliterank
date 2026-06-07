@@ -28,7 +28,7 @@ export function WinnersPodium() {
   const isLegacy = competition?.is_legacy;
 
   if (isLegacy) {
-    const sorted = [...(contestants || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999)).slice(0, 20);
+    const sorted = [...(contestants || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999)).slice(0, 10);
     if (!sorted.length) return null;
     // Prefer the competition's configured season; fall back to slug/name
     // parsing only if it isn't set. Avoids the "SEASON 2025" + "2026
@@ -61,7 +61,17 @@ export function WinnersPodium() {
   }
 
   if (numberOfWinners > 1 && winners.length > 1) {
-    return <WinnersGrid winners={winners} onSelect={handleContestantClick} year={competition?.season} />;
+    // Showcase up to 10: the official winners first, then the next
+    // top-ranked contestants (runners-up) shown far less prominently.
+    const showcase = [...winners];
+    if (showcase.length < 10) {
+      const have = new Set(showcase.map((c) => c.id));
+      const rest = (contestants || [])
+        .filter((c) => !have.has(c.id))
+        .sort((a, b) => (a.rank || 999) - (b.rank || 999) || (b.votes || 0) - (a.votes || 0));
+      showcase.push(...rest.slice(0, 10 - showcase.length));
+    }
+    return <WinnersGrid winners={showcase} onSelect={handleContestantClick} year={competition?.season} />;
   }
 
   // Winner takes all — show only 1st place
@@ -125,7 +135,7 @@ function WinnersGrid({ winners, onSelect, year }) {
         {winners.map((contestant, index) => (
           <div
             key={contestant.id}
-            className={`legacy-winner-card ${index < 2 ? 'legacy-winner-card-top' : ''}`}
+            className={`legacy-winner-card ${index < 2 ? 'legacy-winner-card-top' : 'legacy-winner-card-minor'}`}
             onClick={() => onSelect?.(contestant)}
           >
             {contestant.avatar_url ? (
