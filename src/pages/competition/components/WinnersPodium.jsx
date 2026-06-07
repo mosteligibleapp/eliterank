@@ -124,6 +124,32 @@ export function WinnersPodium() {
  * (rank #1) gets the highlighted treatment.
  */
 function WinnersGrid({ winners, onSelect, year }) {
+  const topFive = winners.slice(0, 5);
+  const runnersUp = winners.slice(5, 10);
+
+  const renderCard = (contestant, extraClass = '') => (
+    <div
+      key={contestant.id}
+      className={`legacy-winner-card ${extraClass}`}
+      onClick={() => onSelect?.(contestant)}
+    >
+      {contestant.avatar_url ? (
+        <img
+          src={transformSupabaseImage(contestant.avatar_url, { width: 300, height: 400 })}
+          alt={contestant.name}
+          className="legacy-winner-photo"
+        />
+      ) : (
+        <div className="legacy-winner-photo legacy-winner-photo-fallback">
+          {contestant.name?.charAt(0)}
+        </div>
+      )}
+      <div className="legacy-winner-overlay">
+        <span className="legacy-winner-name">{contestant.name}</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="legacy-winners-section">
       <div className="legacy-winners-header">
@@ -132,29 +158,17 @@ function WinnersGrid({ winners, onSelect, year }) {
       </div>
 
       <div className="legacy-winners-grid">
-        {winners.map((contestant, index) => (
-          <div
-            key={contestant.id}
-            className={`legacy-winner-card ${index < 2 ? 'legacy-winner-card-top' : 'legacy-winner-card-minor'}`}
-            onClick={() => onSelect?.(contestant)}
-          >
-            {contestant.avatar_url ? (
-              <img
-                src={transformSupabaseImage(contestant.avatar_url, { width: 300, height: 400 })}
-                alt={contestant.name}
-                className="legacy-winner-photo"
-              />
-            ) : (
-              <div className="legacy-winner-photo legacy-winner-photo-fallback">
-                {contestant.name?.charAt(0)}
-              </div>
-            )}
-            <div className="legacy-winner-overlay">
-              <span className="legacy-winner-name">{contestant.name}</span>
-            </div>
-          </div>
-        ))}
+        {topFive.map((contestant, index) => renderCard(contestant, index < 2 ? 'legacy-winner-card-top' : ''))}
       </div>
+
+      {runnersUp.length > 0 && (
+        <>
+          <h3 className="legacy-winners-subheader">Top 10</h3>
+          <div className="legacy-winners-grid legacy-winners-grid-minor">
+            {runnersUp.map((contestant) => renderCard(contestant))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

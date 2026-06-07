@@ -3253,13 +3253,23 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   border-color: var(--color-primary);
 }
 
-/* Runners-up (ranks 3-10): shown, but far less pronounced */
-.legacy-winner-card-minor {
+/* Runners-up grid (ranks 6-10): shown, but far less pronounced */
+.legacy-winners-subheader {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: var(--spacing-xl) 0 var(--spacing-md);
+}
+
+.legacy-winners-grid-minor .legacy-winner-card {
   opacity: 0.7;
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-.legacy-winner-card-minor:hover {
+.legacy-winners-grid-minor .legacy-winner-card:hover {
   opacity: 1;
   border-color: rgba(var(--color-primary-rgb), 0.35);
 }
@@ -3304,13 +3314,13 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
     gap: var(--spacing-sm);
   }
 
-  /* Top two on their own row; runners-up flow 3 per row below */
-  .legacy-winner-card-top {
-    flex-basis: calc((100% - var(--spacing-sm)) / 2);
+  /* Default 3 per row; the top two share their own row of 2 above */
+  .legacy-winner-card {
+    flex-basis: calc((100% - 2 * var(--spacing-sm)) / 3);
   }
 
-  .legacy-winner-card-minor {
-    flex-basis: calc((100% - 2 * var(--spacing-sm)) / 3);
+  .legacy-winner-card-top {
+    flex-basis: calc((100% - var(--spacing-sm)) / 2);
   }
 
   .legacy-winner-name {
