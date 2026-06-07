@@ -143,7 +143,7 @@ export function ResultsPhase() {
 
       {/* Final Stats - only for non-legacy competitions */}
       {!isLegacy && (
-        <section className="phase-stats results-stats">
+        <section className="phase-stats phase-stats-centered results-stats">
           <div className="stat-card">
             <div className="stat-icon-wrap">
               <Users size={20} className="stat-icon" />
@@ -152,7 +152,11 @@ export function ResultsPhase() {
             <span className="stat-label">Contestants</span>
           </div>
           <div className="stat-card">
-            <span className="stat-value">{formatNumber(leaderboardStats?.totalVotes)}</span>
+            {/* All votes cast throughout the competition. Use the competition's
+                running total_votes counter (maintained by the vote-insert
+                triggers, never reset) rather than summing contestants' current
+                votes, which are wiped by per-round vote resets. */}
+            <span className="stat-value">{formatNumber(competition?.total_votes)}</span>
             <span className="stat-label">Total Votes</span>
           </div>
         </section>
