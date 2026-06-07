@@ -86,6 +86,7 @@ export function usePerformanceDashboard(userId) {
         .from('contestants')
         .select(`
           id,
+          user_id,
           competition_id,
           name,
           avatar_url,
@@ -155,6 +156,7 @@ export function usePerformanceDashboard(userId) {
           .filter((c) => c.id !== mine.id)
           .map((c) => ({
             id: c.id,
+            userId: c.user_id || null,
             name: resolveName(c),
             avatarUrl: c.avatar_url || c.profile?.avatar_url || null,
             city: c.city || null,

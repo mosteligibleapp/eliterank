@@ -6,9 +6,9 @@
  * rounds), and the roster of contestants they competed against.
  */
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Trophy, Check, ChevronRight, Eye } from 'lucide-react';
+import { BarChart3, Trophy, Check, ChevronRight, Eye, Search, X } from 'lucide-react';
 import { useSupabaseAuth } from '../hooks';
 import usePerformanceDashboard from '../hooks/usePerformanceDashboard';
 import { useResponsive } from '../hooks/useResponsive';
@@ -139,9 +139,13 @@ function VoteBreakdown({ entry }) {
 }
 
 function CompetitorRow({ competitor }) {
+  const navigate = useNavigate();
   const initials = (competitor.name?.[0] || '?').toUpperCase();
-  return (
-    <div style={styles.compRow}>
+  // Only contestants with a claimed account have a public profile to open.
+  const clickable = Boolean(competitor.userId);
+
+  const body = (
+    <>
       <div
         style={{
           ...styles.compAvatar,
@@ -165,6 +169,96 @@ function CompetitorRow({ competitor }) {
           </div>
         )}
       </div>
+      {clickable && (
+        <ChevronRight size={16} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
+      )}
+    </>
+  );
+
+  if (!clickable) {
+    return <div style={styles.compRow}>{body}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(`/profile/${competitor.userId}`)}
+      style={styles.compRowButton}
+      onMouseEnter={(e) => { e.currentTarget.style.background = colors.background.cardHover; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+      aria-label={`View ${competitor.name}'s profile`}
+    >
+      {body}
+    </button>
+  );
+}
+
+// Below this many competitors a single column reads fine and search is noise;
+// above it, switch on search and (on wider screens) a two-column grid.
+const COMPETITOR_LIST_THRESHOLD = 8;
+
+function CompetitorList({ competitors, isMobile }) {
+  const [query, setQuery] = useState('');
+  const total = competitors.length;
+  const isLongList = total > COMPETITOR_LIST_THRESHOLD;
+  const twoColumns = isLongList && !isMobile;
+
+  const q = query.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!q) return competitors;
+    return competitors.filter(
+      (c) =>
+        c.name?.toLowerCase().includes(q) ||
+        c.city?.toLowerCase().includes(q)
+    );
+  }, [competitors, q]);
+
+  return (
+    <div style={styles.compSection}>
+      <div style={styles.compSectionHead}>
+        <span style={styles.compSectionTitle}>Who you competed with</span>
+        <span style={styles.compSectionCount}>{total}</span>
+      </div>
+
+      {total === 0 ? (
+        <p style={styles.compEmpty}>No other contestants in this competition yet.</p>
+      ) : (
+        <>
+          {isLongList && (
+            <div style={styles.compSearchWrap}>
+              <Search size={15} style={styles.compSearchIcon} />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name or city"
+                aria-label="Search contestants"
+                style={styles.compSearchInput}
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Clear search"
+                  style={styles.compSearchClear}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {filtered.length === 0 ? (
+            <p style={styles.compEmpty}>No contestants match “{query.trim()}”.</p>
+          ) : (
+            <div style={twoColumns ? styles.compGrid : styles.compList}>
+              {filtered.map((c) => (
+                <CompetitorRow key={c.id} competitor={c} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -193,24 +287,7 @@ function CompetitionCard({ entry, isMobile, onOpenCompetition }) {
 
       <VoteBreakdown entry={entry} />
 
-      {/* Competitors */}
-      <div style={styles.compSection}>
-        <div style={styles.compSectionHead}>
-          <span style={styles.compSectionTitle}>
-            Who you competed with
-          </span>
-          <span style={styles.compSectionCount}>{entry.competitors.length}</span>
-        </div>
-        {entry.competitors.length === 0 ? (
-          <p style={styles.compEmpty}>No other contestants in this competition yet.</p>
-        ) : (
-          <div style={styles.compList}>
-            {entry.competitors.map((c) => (
-              <CompetitorRow key={c.id} competitor={c} />
-            ))}
-          </div>
-        )}
-      </div>
+      <CompetitorList competitors={entry.competitors} isMobile={isMobile} />
     </div>
   );
 }
@@ -529,11 +606,67 @@ const styles = {
     flexDirection: 'column',
     gap: spacing.xs,
   },
+  // Two columns for long rosters on wider screens; minmax(0,1fr) lets each
+  // cell shrink so long names ellipsize instead of forcing overflow.
+  compGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `${spacing.xs} ${spacing.lg}`,
+  },
   compRow: {
     display: 'flex',
     alignItems: 'center',
     gap: spacing.md,
-    padding: `${spacing.sm} 0`,
+    padding: spacing.sm,
+    minWidth: 0,
+  },
+  compRowButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.sm,
+    width: '100%',
+    minWidth: 0,
+    background: 'transparent',
+    border: 'none',
+    borderRadius: borderRadius.md,
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'background 0.15s ease',
+  },
+  compSearchWrap: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  compSearchIcon: {
+    position: 'absolute',
+    left: spacing.sm,
+    color: colors.text.tertiary,
+    pointerEvents: 'none',
+  },
+  compSearchInput: {
+    width: '100%',
+    padding: `${spacing.sm} ${spacing.xl} ${spacing.sm} ${spacing.xxl}`,
+    background: colors.background.tertiary,
+    border: `1px solid ${colors.border.secondary}`,
+    borderRadius: borderRadius.md,
+    color: colors.text.primary,
+    fontSize: typography.fontSize.sm,
+    outline: 'none',
+  },
+  compSearchClear: {
+    position: 'absolute',
+    right: spacing.sm,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xs,
+    background: 'transparent',
+    border: 'none',
+    color: colors.text.tertiary,
+    cursor: 'pointer',
   },
   compAvatar: {
     width: 40,
