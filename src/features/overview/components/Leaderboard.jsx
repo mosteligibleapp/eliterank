@@ -15,9 +15,9 @@ export default function Leaderboard({ contestants, title = 'Top Contestants' }) 
     fontWeight: typography.fontWeight.bold,
     fontSize: typography.fontSize.md,
     background: trend === 'up'
-      ? 'rgba(34,197,94,0.15)'
+      ? 'rgba(var(--color-success-rgb),0.15)'
       : trend === 'down'
-        ? 'rgba(239,68,68,0.15)'
+        ? 'rgba(var(--color-error-rgb),0.15)'
         : 'rgba(255,255,255,0.05)',
     color: trend === 'up'
       ? colors.status.success

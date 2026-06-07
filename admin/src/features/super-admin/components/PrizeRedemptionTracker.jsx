@@ -13,9 +13,9 @@ const ASSIGNMENT_STATUS_COLORS = {
   pending: { bg: 'rgba(234,179,8,0.15)', color: '#eab308', label: 'Pending' },
   claimed: { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6', label: 'Claimed' },
   shipped: { bg: 'rgba(139,92,246,0.15)', color: '#8b5cf6', label: 'Shipped' },
-  active: { bg: 'rgba(34,197,94,0.15)', color: '#22c55e', label: 'Active' },
+  active: { bg: 'rgba(var(--color-success-rgb),0.15)', color: 'var(--color-success)', label: 'Active' },
   completed: { bg: 'rgba(107,114,128,0.15)', color: '#6b7280', label: 'Completed' },
-  expired: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', label: 'Expired' },
+  expired: { bg: 'rgba(var(--color-error-rgb),0.15)', color: 'var(--color-error)', label: 'Expired' },
 };
 
 function StatusBadge({ status }) {
@@ -139,7 +139,7 @@ export default function PrizeRedemptionTracker() {
     { label: 'Total Redemptions', value: assignments.length, icon: Package, color: colors.gold.primary },
     { label: 'Pending', value: assignments.filter(a => a.status === 'pending').length, icon: Clock, color: '#eab308' },
     { label: 'Shipped', value: assignments.filter(a => a.status === 'shipped').length, icon: Package, color: '#8b5cf6' },
-    { label: 'Completed', value: assignments.filter(a => a.status === 'completed' || a.status === 'active').length, icon: Check, color: '#22c55e' },
+    { label: 'Completed', value: assignments.filter(a => a.status === 'completed' || a.status === 'active').length, icon: Check, color: 'var(--color-success)' },
   ], [assignments]);
 
   // Filtered data
@@ -272,7 +272,7 @@ export default function PrizeRedemptionTracker() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs, fontSize: typography.fontSize.xs }}>
               {email && <span style={{ color: colors.text.secondary }}>{email}</span>}
-              {row.reward?.cash_value && <span style={{ color: '#22c55e' }}>Value: ${row.reward.cash_value}</span>}
+              {row.reward?.cash_value && <span style={{ color: 'var(--color-success)' }}>Value: ${row.reward.cash_value}</span>}
               {claimedDate && <span style={{ color: colors.text.tertiary }}>Claimed: {claimedDate}</span>}
               {expiresDate && <span style={{ color: colors.text.tertiary }}>Expires: {expiresDate}</span>}
               {row.discount_code && <span style={{ fontFamily: typography.fontFamily.mono, color: colors.text.secondary }}>Code: {row.discount_code}</span>}
@@ -339,8 +339,8 @@ export default function PrizeRedemptionTracker() {
   if (error && !loading) {
     return (
       <div style={{
-        padding: spacing.xl, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
-        borderRadius: borderRadius.lg, color: '#ef4444', textAlign: 'center',
+        padding: spacing.xl, background: 'rgba(var(--color-error-rgb),0.08)', border: '1px solid rgba(var(--color-error-rgb),0.25)',
+        borderRadius: borderRadius.lg, color: 'var(--color-error)', textAlign: 'center',
       }}>
         <p style={{ fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>Failed to load redemption data</p>
         <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>{error}</p>
@@ -348,8 +348,8 @@ export default function PrizeRedemptionTracker() {
           onClick={() => { setError(null); setLoading(true); Promise.all([fetchAssignments(), fetchCompetitions()]).then(() => setLoading(false)); }}
           style={{
             marginTop: spacing.md, padding: `${spacing.sm} ${spacing.xl}`,
-            background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-            borderRadius: borderRadius.md, color: '#ef4444', cursor: 'pointer',
+            background: 'rgba(var(--color-error-rgb),0.15)', border: '1px solid rgba(var(--color-error-rgb),0.3)',
+            borderRadius: borderRadius.md, color: 'var(--color-error)', cursor: 'pointer',
           }}
         >
           Retry

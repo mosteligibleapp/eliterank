@@ -38,11 +38,11 @@ export default function BonusVotesEarnedBadge({ userId, bonusVotes }) {
   return (
     <Panel style={{ marginBottom: isMobile ? spacing.md : spacing.xl, overflow: 'hidden' }}>
       <div style={{
-        borderTop: '2px solid rgba(34, 197, 94, 0.6)',
+        borderTop: '2px solid rgba(var(--color-success-rgb), 0.6)',
       }}>
         <div style={{
           padding: isMobile ? spacing.md : spacing.lg,
-          background: 'rgba(34, 197, 94, 0.04)',
+          background: 'rgba(var(--color-success-rgb), 0.04)',
         }}>
           <div style={{
             display: 'flex',
@@ -54,14 +54,14 @@ export default function BonusVotesEarnedBadge({ userId, bonusVotes }) {
               width: isMobile ? '44px' : '52px',
               height: isMobile ? '44px' : '52px',
               borderRadius: borderRadius.xl,
-              background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.08))',
-              border: '1px solid rgba(34,197,94,0.2)',
+              background: 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.2), rgba(var(--color-success-rgb),0.08))',
+              border: '1px solid rgba(var(--color-success-rgb),0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <Heart size={isMobile ? 22 : 26} style={{ color: '#22c55e', fill: '#22c55e' }} />
+              <Heart size={isMobile ? 22 : 26} style={{ color: 'var(--color-success)', fill: 'var(--color-success)' }} />
             </div>
 
             {/* Text */}

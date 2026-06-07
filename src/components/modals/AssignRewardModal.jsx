@@ -452,7 +452,7 @@ export default function AssignRewardModal({
                         cursor: 'pointer',
                         background: isSelected
                           ? alreadyAssigned
-                            ? 'rgba(34,197,94,0.1)'
+                            ? 'rgba(var(--color-success-rgb),0.1)'
                             : 'rgba(212,175,55,0.1)'
                           : 'transparent',
                       }}
@@ -464,11 +464,11 @@ export default function AssignRewardModal({
                         borderRadius: borderRadius.sm,
                         border: `2px solid ${
                           isSelected
-                            ? alreadyAssigned ? '#22c55e' : colors.gold.primary
+                            ? alreadyAssigned ? 'var(--color-success)' : colors.gold.primary
                             : colors.border.light
                         }`,
                         background: isSelected
-                          ? alreadyAssigned ? '#22c55e' : colors.gold.primary
+                          ? alreadyAssigned ? 'var(--color-success)' : colors.gold.primary
                           : 'transparent',
                         display: 'flex',
                         alignItems: 'center',
@@ -492,8 +492,8 @@ export default function AssignRewardModal({
                           <Badge
                             size="sm"
                             style={{
-                              background: comp.status === 'live' ? 'rgba(34,197,94,0.15)' : 'rgba(107,114,128,0.15)',
-                              color: comp.status === 'live' ? '#22c55e' : '#6b7280',
+                              background: comp.status === 'live' ? 'rgba(var(--color-success-rgb),0.15)' : 'rgba(107,114,128,0.15)',
+                              color: comp.status === 'live' ? 'var(--color-success)' : '#6b7280',
                             }}
                           >
                             {comp.status}
@@ -505,8 +505,8 @@ export default function AssignRewardModal({
                       {alreadyAssigned && (
                         <span style={{
                           fontSize: typography.fontSize.xs,
-                          color: isSelected ? '#22c55e' : colors.text.muted,
-                          background: isSelected ? 'rgba(34,197,94,0.1)' : 'rgba(107,114,128,0.1)',
+                          color: isSelected ? 'var(--color-success)' : colors.text.muted,
+                          background: isSelected ? 'rgba(var(--color-success-rgb),0.1)' : 'rgba(107,114,128,0.1)',
                           padding: `${spacing.xs} ${spacing.sm}`,
                           borderRadius: borderRadius.sm,
                         }}>
@@ -628,7 +628,7 @@ export default function AssignRewardModal({
                       borderBottom: index < filteredPeople.length - 1 ? `1px solid ${colors.border.light}` : 'none',
                       cursor: 'pointer',
                       background: isDeselected
-                        ? 'rgba(239,68,68,0.05)'
+                        ? 'rgba(var(--color-error-rgb),0.05)'
                         : isSelected
                           ? 'rgba(212,175,55,0.1)'
                           : 'transparent',
@@ -641,7 +641,7 @@ export default function AssignRewardModal({
                       borderRadius: borderRadius.sm,
                       border: `2px solid ${
                         isDeselected
-                          ? '#ef4444'
+                          ? 'var(--color-error)'
                           : isSelected
                             ? colors.gold.primary
                             : colors.border.light
@@ -695,10 +695,10 @@ export default function AssignRewardModal({
                           style={{
                             background: person.type === 'nominee'
                               ? 'rgba(212,175,55,0.15)'
-                              : 'rgba(34,197,94,0.15)',
+                              : 'rgba(var(--color-success-rgb),0.15)',
                             color: person.type === 'nominee'
                               ? colors.gold.primary
-                              : '#22c55e',
+                              : 'var(--color-success)',
                             flexShrink: 0,
                           }}
                         >
@@ -720,8 +720,8 @@ export default function AssignRewardModal({
                     {person.alreadyAssigned && (
                       <span style={{
                         fontSize: typography.fontSize.xs,
-                        color: isDeselected ? '#ef4444' : colors.text.muted,
-                        background: isDeselected ? 'rgba(239,68,68,0.1)' : colors.background.secondary,
+                        color: isDeselected ? 'var(--color-error)' : colors.text.muted,
+                        background: isDeselected ? 'rgba(var(--color-error-rgb),0.1)' : colors.background.secondary,
                         padding: `${spacing.xs} ${spacing.sm}`,
                         borderRadius: borderRadius.sm,
                       }}>

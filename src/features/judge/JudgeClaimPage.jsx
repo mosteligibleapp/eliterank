@@ -60,7 +60,7 @@ const styles = {
   },
   error: {
     padding: spacing.md,
-    background: 'rgba(239,68,68,0.1)',
+    background: 'rgba(var(--color-error-rgb),0.1)',
     border: `1px solid ${colors.border.error}`,
     borderRadius: borderRadius.md,
     color: colors.status.error,
@@ -72,8 +72,8 @@ const styles = {
   },
   success: {
     padding: spacing.md,
-    background: 'rgba(34,197,94,0.1)',
-    border: `1px solid rgba(34,197,94,0.3)`,
+    background: 'rgba(var(--color-success-rgb),0.1)',
+    border: `1px solid rgba(var(--color-success-rgb),0.3)`,
     borderRadius: borderRadius.md,
     color: colors.status.success,
     fontSize: typography.fontSize.sm,

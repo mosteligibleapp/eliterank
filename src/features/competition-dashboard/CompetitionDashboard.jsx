@@ -576,8 +576,8 @@ export default function CompetitionDashboard({
           padding: spacing.xxxl,
           gap: spacing.lg,
         }}>
-          <AlertCircle size={48} style={{ color: '#ef4444' }} />
-          <p style={{ color: '#ef4444', fontSize: typography.fontSize.lg }}>
+          <AlertCircle size={48} style={{ color: 'var(--color-error)' }} />
+          <p style={{ color: 'var(--color-error)', fontSize: typography.fontSize.lg }}>
             Error loading data: {error}
           </p>
           <Button onClick={refresh} variant="secondary">Try Again</Button>

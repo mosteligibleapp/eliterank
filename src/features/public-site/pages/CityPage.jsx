@@ -312,7 +312,7 @@ function CompetitionCard({ competition, onClick }) {
               ? 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.1))'
               : isPast
                 ? 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.1))'
-                : 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1))',
+                : 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.2), rgba(var(--color-success-rgb),0.1))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -320,7 +320,7 @@ function CompetitionCard({ competition, onClick }) {
             <Crown
               size={24}
               style={{
-                color: isTeaser ? colors.gold.primary : isPast ? '#8b5cf6' : '#22c55e'
+                color: isTeaser ? colors.gold.primary : isPast ? '#8b5cf6' : 'var(--color-success)'
               }}
             />
           </div>

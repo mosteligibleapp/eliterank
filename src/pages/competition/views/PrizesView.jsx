@@ -224,7 +224,7 @@ function PrizeCard({ prize, isMobile }) {
               position: 'absolute',
               bottom: isMobile ? spacing.sm : spacing.md,
               right: isMobile ? spacing.sm : spacing.md,
-              background: 'rgba(34, 197, 94, 0.9)',
+              background: 'rgba(var(--color-success-rgb), 0.9)',
               backdropFilter: 'blur(8px)',
               borderRadius: '20px',
               padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,

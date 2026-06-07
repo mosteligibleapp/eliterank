@@ -13,9 +13,9 @@ const STATUS_CONFIG = {
   pending: { color: '#eab308', label: 'Pending Claim', description: 'Click to claim this reward' },
   claimed: { color: '#3b82f6', label: 'Claimed', description: 'Awaiting shipment' },
   shipped: { color: '#8b5cf6', label: 'Shipped', description: 'On its way to you' },
-  active: { color: '#22c55e', label: 'Active', description: 'Start promoting!' },
+  active: { color: 'var(--color-success)', label: 'Active', description: 'Start promoting!' },
   completed: { color: '#6b7280', label: 'Completed', description: 'Thank you for participating' },
-  expired: { color: '#ef4444', label: 'Expired', description: 'Claim period ended' },
+  expired: { color: 'var(--color-error)', label: 'Expired', description: 'Claim period ended' },
 };
 
 /**
@@ -640,7 +640,7 @@ function RewardCard({
             position: 'absolute',
             bottom: isMobile ? spacing.sm : spacing.md,
             right: isMobile ? spacing.sm : spacing.md,
-            background: 'rgba(34, 197, 94, 0.9)',
+            background: 'rgba(var(--color-success-rgb), 0.9)',
             backdropFilter: 'blur(8px)',
             borderRadius: '20px',
             padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
@@ -658,7 +658,7 @@ function RewardCard({
             position: 'absolute',
             top: isMobile ? spacing.sm : spacing.md,
             right: isMobile ? spacing.sm : spacing.md,
-            background: daysRemaining <= 2 ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.65)',
+            background: daysRemaining <= 2 ? 'rgba(var(--color-error-rgb),0.85)' : 'rgba(0,0,0,0.65)',
             backdropFilter: 'blur(8px)',
             borderRadius: '20px',
             padding: isMobile ? `2px ${spacing.xs}` : `4px ${spacing.sm}`,
@@ -849,7 +849,7 @@ function RewardCard({
                           border: `1px solid ${colors.border.secondary}`,
                         }}
                       >
-                        <Check size={isMobile ? 12 : 14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                        <Check size={isMobile ? 12 : 14} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
                         <a
                           href={link}
                           target="_blank"
@@ -875,7 +875,7 @@ function RewardCard({
                           onClick={() => onDeleteLink(index)}
                           style={{
                             background: 'none', border: 'none', padding: '2px', cursor: 'pointer',
-                            color: '#ef4444', flexShrink: 0, display: 'flex', alignItems: 'center',
+                            color: 'var(--color-error)', flexShrink: 0, display: 'flex', alignItems: 'center',
                           }}
                           aria-label="Delete link"
                         >
@@ -1053,7 +1053,7 @@ function VisibleRewardCard({ assignment, isMobile }) {
             position: 'absolute',
             bottom: isMobile ? spacing.sm : spacing.md,
             right: isMobile ? spacing.sm : spacing.md,
-            background: 'rgba(34, 197, 94, 0.9)',
+            background: 'rgba(var(--color-success-rgb), 0.9)',
             backdropFilter: 'blur(8px)',
             borderRadius: '20px',
             padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
@@ -1205,7 +1205,7 @@ function CompetitionPrizeCard({ prize, isMobile }) {
               position: 'absolute',
               bottom: isMobile ? spacing.sm : spacing.md,
               right: isMobile ? spacing.sm : spacing.md,
-              background: 'rgba(34, 197, 94, 0.9)',
+              background: 'rgba(var(--color-success-rgb), 0.9)',
               backdropFilter: 'blur(8px)',
               borderRadius: '20px',
               padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,

@@ -166,7 +166,7 @@ export default function PrizeModal({
                     right: '-8px',
                     width: '24px',
                     height: '24px',
-                    background: 'rgba(239, 68, 68, 0.9)',
+                    background: 'rgba(var(--color-error-rgb), 0.9)',
                     border: 'none',
                     borderRadius: borderRadius.full,
                     display: 'flex',

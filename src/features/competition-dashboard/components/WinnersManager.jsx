@@ -306,18 +306,18 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
           alignItems: 'center',
           gap: spacing.sm,
           padding: spacing.md,
-          background: 'rgba(239,68,68,0.1)',
-          border: '1px solid rgba(239,68,68,0.3)',
+          background: 'rgba(var(--color-error-rgb),0.1)',
+          border: '1px solid rgba(var(--color-error-rgb),0.3)',
           borderRadius: borderRadius.md,
           marginBottom: spacing.lg,
-          color: '#ef4444',
+          color: 'var(--color-error)',
           fontSize: typography.fontSize.sm,
         }}>
           <AlertCircle size={16} />
           {error}
           <button
             onClick={() => setError(null)}
-            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-error)' }}
           >
             <X size={14} />
           </button>
@@ -411,9 +411,9 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
                   </div>
                   <div style={{
                     padding: spacing.sm,
-                    background: 'rgba(34,197,94,0.1)',
+                    background: 'rgba(var(--color-success-rgb),0.1)',
                     borderRadius: borderRadius.full,
-                    color: '#22c55e',
+                    color: 'var(--color-success)',
                   }}>
                     <Check size={16} />
                   </div>
@@ -500,11 +500,11 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
                 onClick={() => removeWinner(winner.id)}
                 style={{
                   padding: spacing.sm,
-                  background: 'rgba(239,68,68,0.1)',
-                  border: '1px solid rgba(239,68,68,0.3)',
+                  background: 'rgba(var(--color-error-rgb),0.1)',
+                  border: '1px solid rgba(var(--color-error-rgb),0.3)',
                   borderRadius: borderRadius.md,
                   cursor: 'pointer',
-                  color: '#ef4444',
+                  color: 'var(--color-error)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -535,11 +535,11 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
         <div style={{
           marginTop: spacing.lg,
           padding: spacing.md,
-          background: 'rgba(34,197,94,0.1)',
-          border: '1px solid rgba(34,197,94,0.3)',
+          background: 'rgba(var(--color-success-rgb),0.1)',
+          border: '1px solid rgba(var(--color-success-rgb),0.3)',
           borderRadius: borderRadius.md,
           textAlign: 'center',
-          color: '#22c55e',
+          color: 'var(--color-success)',
           fontSize: typography.fontSize.sm,
         }}>
           <Check size={16} style={{ marginRight: spacing.xs, verticalAlign: 'middle' }} />

@@ -68,17 +68,36 @@ jewel-tone set chosen to sit beside antique gold:
 - Pair the color with a **text label** ("OPEN"/"CLOSED") and/or icon — never color alone
   (accessibility + intent).
 - Use as a **muted pill**: fill at ~15% opacity, with a saturated border + label, not a
-  solid bright block. e.g. `background: rgba(47,163,108,0.15); border/text: #2FA36C`.
+  solid bright block. e.g. `background: rgba(var(--color-success-rgb), 0.15); color/border: var(--color-success)`.
 - Keep small (chip/pill). Gold stays the hero.
 
-> ✅ **theme.js aligned:** `colors.status.success`/`error` in `src/styles/theme.js` and
-> the mirrored tokens in `src/design-system/tokens.js` are retuned to `#2FA36C` / `#C24A5C`
-> (plus their light/muted/gradient/shadow/border variants).
+### Source of truth & how to reference status colors
+Single global definition lives in **`src/index.css` `:root`** (loaded by both the web app
+*and* the admin app via `@shared/index.css`):
+
+```
+--color-success: #2fa36c;  --color-success-rgb: 47, 163, 108;
+--color-success-light: #3fbe80;  --color-success-dark: #1f7a50;
+--color-error:   #c24a5c;  --color-error-rgb:   194, 74, 92;
+--color-error-dark: #9e3848;
+```
+
+- **In components / inline styles:** use `var(--color-success)` / `var(--color-error)`, and
+  `rgba(var(--color-success-rgb), <opacity>)` for tints. Never hardcode the hex.
+- **In `src/styles/theme.js`:** `colors.status.success`/`error` hold the same literal values
+  for the rare JS-only consumer; keep them in sync with the CSS vars above.
+- `src/design-system/tokens.js` is currently **unused** (not imported anywhere); retuned for
+  consistency only.
+
+> ✅ **Fully migrated (done):** all ~70 component/CSS files in `src/` and `admin/` that
+> hardcoded `#22c55e`/`#ef4444` (+ `rgba()` tints and the `#4ade80`/`#16a34a`/`#dc2626`
+> shades) now reference the CSS vars above. The duplicate `--color-success`/`--color-error`
+> definitions were removed from `competition-phases.css` so `index.css` is the lone source.
+> Both `npm run build:web` and `build:admin` pass.
 >
-> ⚠️ **Hardcoded stragglers:** ~75 component files still hardcode the old `#22C55E`/`#EF4444`
-> (and `rgba(34,197,94,…)` / `rgba(239,68,68,…)`) inline instead of using the tokens. These
-> won't pick up the brand color until migrated to `colors.status.*`. Highest-priority:
-> `src/styles/competition-phases.css` (literal phase open/closed styling). Tracked as cleanup.
+> ℹ️ **Out of scope (intentional):** `supabase/functions/*` email templates keep literal
+> hex — email clients don't support CSS custom properties. Retune those separately if
+> branded status colors are ever wanted in emails.
 
 ## Gradients
 

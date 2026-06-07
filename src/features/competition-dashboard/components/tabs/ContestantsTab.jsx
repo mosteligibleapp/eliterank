@@ -91,8 +91,8 @@ export default function ContestantsTab({
     { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
     { label: 'External', value: externalNominees.length, color: '#f59e0b' },
     { label: 'Incomplete', value: incompleteNominees.length, color: '#fbbf24' },
-    { label: 'Approved', value: contestants.length, color: '#22c55e' },
-    { label: 'Declined', value: declinedNominees.length, color: '#ef4444' },
+    { label: 'Approved', value: contestants.length, color: 'var(--color-success)' },
+    { label: 'Declined', value: declinedNominees.length, color: 'var(--color-error)' },
   ];
 
   const SectionHeader = ({ title, count, icon: Icon, iconColor, sectionKey, badge }) => (
@@ -198,8 +198,8 @@ export default function ContestantsTab({
       alignItems: 'center',
       gap: spacing.lg,
       padding: spacing.lg,
-      background: 'rgba(34,197,94,0.1)',
-      border: '1px solid rgba(34,197,94,0.2)',
+      background: 'rgba(var(--color-success-rgb),0.1)',
+      border: '1px solid rgba(var(--color-success-rgb),0.2)',
       borderRadius: borderRadius.lg,
       marginBottom: spacing.sm,
     }}>
@@ -272,13 +272,13 @@ export default function ContestantsTab({
       {/* Contestants Section */}
       <div style={{
         background: colors.background.card,
-        border: `1px solid rgba(34,197,94,0.3)`,
+        border: `1px solid rgba(var(--color-success-rgb),0.3)`,
         borderRadius: borderRadius.xl,
         marginBottom: spacing.lg,
         overflow: 'hidden',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: spacing.lg }}>
-          <SectionHeader title="Contestants" count={contestants.length} icon={Crown} iconColor="#22c55e" sectionKey="contestants" badge="success" />
+          <SectionHeader title="Contestants" count={contestants.length} icon={Crown} iconColor="var(--color-success)" sectionKey="contestants" badge="success" />
           <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('contestant')}>
             Add Contestant
           </Button>
@@ -370,7 +370,7 @@ export default function ContestantsTab({
         borderRadius: borderRadius.xl,
         overflow: 'hidden',
       }}>
-        <SectionHeader title="Declined" count={declinedNominees.length} icon={XCircle} iconColor="#ef4444" sectionKey="archived" />
+        <SectionHeader title="Declined" count={declinedNominees.length} icon={XCircle} iconColor="var(--color-error)" sectionKey="archived" />
         {expandedSections.archived && (
           <div style={{ padding: `0 ${spacing.lg} ${spacing.lg}` }}>
             {declinedNominees.length === 0 ? (

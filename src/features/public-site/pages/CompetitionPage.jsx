@@ -300,18 +300,18 @@ export default function CompetitionPage() {
                   alignItems: 'center',
                   gap: spacing.sm,
                   padding: `${spacing.sm} ${spacing.md}`,
-                  background: 'rgba(34,197,94,0.1)',
-                  border: '1px solid rgba(34,197,94,0.3)',
+                  background: 'rgba(var(--color-success-rgb),0.1)',
+                  border: '1px solid rgba(var(--color-success-rgb),0.3)',
                   borderRadius: borderRadius.md,
                 }}>
                   <span style={{
                     width: 8,
                     height: 8,
                     borderRadius: '50%',
-                    background: '#22c55e',
+                    background: 'var(--color-success)',
                     animation: 'pulse 2s infinite',
                   }} />
-                  <span style={{ color: '#22c55e', fontSize: typography.fontSize.sm }}>
+                  <span style={{ color: 'var(--color-success)', fontSize: typography.fontSize.sm }}>
                     {phaseInfo.label}
                   </span>
                 </div>

@@ -256,8 +256,8 @@ export default function ClaimRewardModal({
               alignItems: 'center',
               gap: spacing.sm,
               padding: `${spacing.sm} ${spacing.md}`,
-              background: 'rgba(34,197,94,0.08)',
-              border: '1px solid rgba(34,197,94,0.15)',
+              background: 'rgba(var(--color-success-rgb),0.08)',
+              border: '1px solid rgba(var(--color-success-rgb),0.15)',
               borderRadius: borderRadius.md,
               marginBottom: spacing.lg,
             }}>
@@ -458,7 +458,7 @@ export default function ClaimRewardModal({
               alignItems: 'center',
               gap: spacing.sm,
               padding: `${spacing.sm} ${spacing.md}`,
-              background: 'rgba(34,197,94,0.06)',
+              background: 'rgba(var(--color-success-rgb),0.06)',
               borderRadius: borderRadius.lg,
               marginBottom: spacing.md,
             }}>
@@ -483,7 +483,7 @@ export default function ClaimRewardModal({
           <button
             style={{
               ...primaryBtnStyle,
-              background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+              background: 'linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%)',
               boxShadow: shadows.success,
               marginTop: 0,
               opacity: (claiming || (isAffiliate && reward?.terms && !termsAccepted)) ? 0.4 : 1,

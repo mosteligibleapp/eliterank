@@ -206,8 +206,8 @@ function AdminApp() {
   if (authError && !isAuthenticated) {
     return (
       <div style={styles.centeredPage}>
-        <div style={{ ...styles.messageCard, borderColor: 'rgba(239,68,68,0.3)' }}>
-          <AlertTriangle size={40} style={{ color: '#ef4444', marginBottom: spacing.md }} />
+        <div style={{ ...styles.messageCard, borderColor: 'rgba(var(--color-error-rgb),0.3)' }}>
+          <AlertTriangle size={40} style={{ color: 'var(--color-error)', marginBottom: spacing.md }} />
           <h1 style={styles.messageTitle}>Connection Error</h1>
           <p style={styles.messageText}>{authError}</p>
           <button onClick={() => window.location.reload()} style={styles.primaryButton}>
@@ -326,7 +326,7 @@ class AdminErrorBoundary extends React.Component {
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: spacing.lg, padding: spacing.xl,
         }}>
-          <AlertTriangle size={48} style={{ color: '#ef4444' }} />
+          <AlertTriangle size={48} style={{ color: 'var(--color-error)' }} />
           <h1 style={{ color: '#fff', fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold }}>
             Something went wrong
           </h1>
@@ -464,10 +464,10 @@ const styles = {
   },
   errorMessage: {
     padding: spacing.md,
-    background: 'rgba(239,68,68,0.1)',
-    border: '1px solid rgba(239,68,68,0.3)',
+    background: 'rgba(var(--color-error-rgb),0.1)',
+    border: '1px solid rgba(var(--color-error-rgb),0.3)',
     borderRadius: borderRadius.md,
-    color: '#ef4444',
+    color: 'var(--color-error)',
     fontSize: typography.fontSize.sm,
   },
   loginButton: {

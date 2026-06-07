@@ -15,9 +15,9 @@ const SECTION_CONFIG = {
     title: 'Contestants',
     subtitle: 'Approved to compete',
     icon: UserCheck,
-    color: '#22c55e',
-    bgColor: 'rgba(34,197,94,0.15)',
-    borderColor: 'rgba(34,197,94,0.3)',
+    color: 'var(--color-success)',
+    bgColor: 'rgba(var(--color-success-rgb),0.15)',
+    borderColor: 'rgba(var(--color-success-rgb),0.3)',
   },
   withProfile: {
     title: 'Nominees with Profile',
@@ -47,9 +47,9 @@ const SECTION_CONFIG = {
     title: 'Declined',
     subtitle: 'Declined & rejected nominees',
     icon: XCircle,
-    color: '#ef4444',
-    bgColor: 'rgba(239,68,68,0.15)',
-    borderColor: 'rgba(239,68,68,0.3)',
+    color: 'var(--color-error)',
+    bgColor: 'rgba(var(--color-error-rgb),0.15)',
+    borderColor: 'rgba(var(--color-error-rgb),0.3)',
   },
 };
 

@@ -437,9 +437,9 @@ export default function AddPersonModal({
                 </div>
                 <div style={{
                   padding: spacing.sm,
-                  background: 'rgba(34,197,94,0.1)',
+                  background: 'rgba(var(--color-success-rgb),0.1)',
                   borderRadius: borderRadius.full,
-                  color: '#22c55e',
+                  color: 'var(--color-success)',
                 }}>
                   <Check size={16} />
                 </div>

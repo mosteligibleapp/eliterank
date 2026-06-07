@@ -9,8 +9,8 @@ const COLUMN_CONFIG = {
     subtitle: 'Active & voting enabled',
     icon: Trophy,
     color: colors.status.success,
-    bgColor: 'rgba(34,197,94,0.15)',
-    borderColor: 'rgba(34,197,94,0.2)',
+    bgColor: 'rgba(var(--color-success-rgb),0.15)',
+    borderColor: 'rgba(var(--color-success-rgb),0.2)',
   },
   pending: {
     title: 'Pending Contestants',

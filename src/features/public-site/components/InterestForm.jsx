@@ -19,7 +19,7 @@ const INTEREST_OPTIONS = [
   {
     type: INTEREST_TYPE.SPONSORING,
     icon: DollarSign,
-    color: '#22c55e',
+    color: 'var(--color-success)',
     title: 'Sponsor',
     description: 'Support the competition and get brand visibility',
   },
@@ -131,14 +131,14 @@ export default function InterestForm({ competition, onSuccess }) {
           width: 64,
           height: 64,
           borderRadius: '50%',
-          background: 'rgba(34,197,94,0.2)',
+          background: 'rgba(var(--color-success-rgb),0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto',
           marginBottom: spacing.lg,
         }}>
-          <Check size={32} style={{ color: '#22c55e' }} />
+          <Check size={32} style={{ color: 'var(--color-success)' }} />
         </div>
         <h3 style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.md }}>
           Thank You!
@@ -286,10 +286,10 @@ export default function InterestForm({ competition, onSuccess }) {
         {error && (
           <div style={{
             padding: spacing.md,
-            background: 'rgba(239,68,68,0.1)',
-            border: '1px solid rgba(239,68,68,0.3)',
+            background: 'rgba(var(--color-error-rgb),0.1)',
+            border: '1px solid rgba(var(--color-error-rgb),0.3)',
             borderRadius: borderRadius.md,
-            color: '#ef4444',
+            color: 'var(--color-error)',
             fontSize: typography.fontSize.sm,
             marginBottom: spacing.lg,
           }}>

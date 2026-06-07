@@ -21,7 +21,7 @@ const INTEREST_ICONS = {
 
 const INTEREST_COLORS = {
   [INTEREST_TYPE.HOSTING]: '#8b5cf6',
-  [INTEREST_TYPE.SPONSORING]: '#22c55e',
+  [INTEREST_TYPE.SPONSORING]: 'var(--color-success)',
   [INTEREST_TYPE.COMPETING]: '#f59e0b',
   [INTEREST_TYPE.JUDGING]: '#3b82f6',
 };
@@ -107,8 +107,8 @@ export default function InterestSubmissionsViewer({ competition }) {
   const stats = useMemo(() => [
     { label: 'Total Submissions', value: submissions.length, icon: Mail, color: colors.gold.primary },
     { label: 'Pending', value: submissions.filter(s => !s.status || s.status === 'pending').length, icon: Calendar, color: '#eab308' },
-    { label: 'Approved', value: submissions.filter(s => s.status === 'approved').length, icon: CheckCircle, color: '#22c55e' },
-    { label: 'Rejected', value: submissions.filter(s => s.status === 'rejected').length, icon: XCircle, color: '#ef4444' },
+    { label: 'Approved', value: submissions.filter(s => s.status === 'approved').length, icon: CheckCircle, color: 'var(--color-success)' },
+    { label: 'Rejected', value: submissions.filter(s => s.status === 'rejected').length, icon: XCircle, color: 'var(--color-error)' },
   ], [submissions]);
 
   // CSV export
@@ -201,8 +201,8 @@ export default function InterestSubmissionsViewer({ competition }) {
         const status = val || 'pending';
         const cfgMap = {
           pending: { bg: 'rgba(234,179,8,0.15)', color: '#eab308' },
-          approved: { bg: 'rgba(34,197,94,0.15)', color: '#22c55e' },
-          rejected: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444' },
+          approved: { bg: 'rgba(var(--color-success-rgb),0.15)', color: 'var(--color-success)' },
+          rejected: { bg: 'rgba(var(--color-error-rgb),0.15)', color: 'var(--color-error)' },
         };
         const cfg = cfgMap[status] || cfgMap.pending;
         return (
@@ -264,8 +264,8 @@ export default function InterestSubmissionsViewer({ competition }) {
           style={{
             display: 'flex', alignItems: 'center', gap: spacing.xs,
             padding: `${spacing.xs} ${spacing.md}`, border: 'none', borderRadius: borderRadius.sm,
-            background: row.status === 'approved' ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.15)',
-            color: '#22c55e', fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium,
+            background: row.status === 'approved' ? 'rgba(var(--color-success-rgb),0.08)' : 'rgba(var(--color-success-rgb),0.15)',
+            color: 'var(--color-success)', fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium,
             cursor: row.status === 'approved' ? 'not-allowed' : 'pointer',
             opacity: row.status === 'approved' ? 0.5 : 1,
           }}
@@ -278,8 +278,8 @@ export default function InterestSubmissionsViewer({ competition }) {
           style={{
             display: 'flex', alignItems: 'center', gap: spacing.xs,
             padding: `${spacing.xs} ${spacing.md}`, border: 'none', borderRadius: borderRadius.sm,
-            background: row.status === 'rejected' ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.15)',
-            color: '#ef4444', fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium,
+            background: row.status === 'rejected' ? 'rgba(var(--color-error-rgb),0.08)' : 'rgba(var(--color-error-rgb),0.15)',
+            color: 'var(--color-error)', fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium,
             cursor: row.status === 'rejected' ? 'not-allowed' : 'pointer',
             opacity: row.status === 'rejected' ? 0.5 : 1,
           }}

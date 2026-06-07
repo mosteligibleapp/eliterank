@@ -390,6 +390,6 @@ const S = {
   expandLabel: { fontSize: typography.fontSize.xs, color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: typography.fontWeight.semibold },
   expandText: { fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.6, margin: 0 },
   confirmBody: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.md, padding: `${spacing.md} 0` },
-  confirmIcon: { width: '48px', height: '48px', borderRadius: borderRadius.full, background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  confirmIcon: { width: '48px', height: '48px', borderRadius: borderRadius.full, background: 'rgba(var(--color-error-rgb),0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   confirmText: { fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.6, margin: 0, textAlign: 'center' },
 };

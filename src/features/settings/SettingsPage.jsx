@@ -130,13 +130,13 @@ export default function SettingsPage({
           marginBottom: spacing.xl,
           borderRadius: borderRadius.xl,
           background: hostCompetition.status === COMPETITION_STATUSES.LIVE
-            ? 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))'
+            ? 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.15), rgba(var(--color-success-rgb),0.05))'
             : hostCompetition.status === COMPETITION_STATUSES.PUBLISH
               ? 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05))'
               : 'linear-gradient(135deg, rgba(100,100,100,0.15), rgba(100,100,100,0.05))',
           border: `1px solid ${
             hostCompetition.status === COMPETITION_STATUSES.LIVE
-              ? 'rgba(34,197,94,0.3)'
+              ? 'rgba(var(--color-success-rgb),0.3)'
               : hostCompetition.status === COMPETITION_STATUSES.PUBLISH
                 ? 'rgba(251,191,36,0.3)'
                 : 'rgba(100,100,100,0.3)'
@@ -145,7 +145,7 @@ export default function SettingsPage({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
               {hostCompetition.status === COMPETITION_STATUSES.LIVE ? (
-                <Zap size={24} style={{ color: '#22c55e' }} />
+                <Zap size={24} style={{ color: 'var(--color-success)' }} />
               ) : (
                 <AlertCircle size={24} style={{ color: hostCompetition.status === COMPETITION_STATUSES.PUBLISH ? '#fbbf24' : colors.text.muted }} />
               )}
@@ -153,7 +153,7 @@ export default function SettingsPage({
                 <p style={{
                   fontSize: typography.fontSize.lg,
                   fontWeight: typography.fontWeight.semibold,
-                  color: hostCompetition.status === COMPETITION_STATUSES.LIVE ? '#22c55e' : hostCompetition.status === COMPETITION_STATUSES.PUBLISH ? '#fbbf24' : colors.text.secondary,
+                  color: hostCompetition.status === COMPETITION_STATUSES.LIVE ? 'var(--color-success)' : hostCompetition.status === COMPETITION_STATUSES.PUBLISH ? '#fbbf24' : colors.text.secondary,
                   marginBottom: spacing.xs,
                 }}>
                   {hostCompetition.status === COMPETITION_STATUSES.LIVE
@@ -344,13 +344,13 @@ export default function SettingsPage({
                 {/* Finals Date */}
                 <div style={{
                   padding: spacing.lg,
-                  background: 'rgba(34,197,94,0.05)',
+                  background: 'rgba(var(--color-success-rgb),0.05)',
                   borderRadius: borderRadius.lg,
-                  border: '1px solid rgba(34,197,94,0.2)',
+                  border: '1px solid rgba(var(--color-success-rgb),0.2)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
-                    <Trophy size={18} style={{ color: '#22c55e' }} />
-                    <span style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: '#22c55e' }}>
+                    <Trophy size={18} style={{ color: 'var(--color-success)' }} />
+                    <span style={{ fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: 'var(--color-success)' }}>
                       Finals / Award Ceremony
                     </span>
                   </div>
@@ -462,23 +462,23 @@ export default function SettingsPage({
                   alignItems: 'center',
                   gap: spacing.lg,
                   padding: spacing.lg,
-                  background: 'rgba(34,197,94,0.05)',
+                  background: 'rgba(var(--color-success-rgb),0.05)',
                   borderRadius: borderRadius.lg,
-                  border: '1px solid rgba(34,197,94,0.1)',
+                  border: '1px solid rgba(var(--color-success-rgb),0.1)',
                 }}>
                   <div style={{
                     width: '40px',
                     height: '40px',
                     borderRadius: borderRadius.lg,
-                    background: 'rgba(34,197,94,0.2)',
+                    background: 'rgba(var(--color-success-rgb),0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
-                    <Trophy size={20} style={{ color: '#22c55e' }} />
+                    <Trophy size={20} style={{ color: 'var(--color-success)' }} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: typography.fontSize.sm, color: '#22c55e', fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
+                    <p style={{ fontSize: typography.fontSize.sm, color: 'var(--color-success)', fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>
                       Finals / Award Ceremony
                     </p>
                     <p style={{ fontSize: typography.fontSize.md, color: colors.text.primary }}>
@@ -705,7 +705,7 @@ export default function SettingsPage({
               style={{
                 marginTop: spacing.lg,
                 padding: spacing.lg,
-                background: 'rgba(34,197,94,0.1)',
+                background: 'rgba(var(--color-success-rgb),0.1)',
                 borderRadius: borderRadius.lg,
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -754,7 +754,7 @@ export default function SettingsPage({
                   borderRadius: borderRadius.full,
                   background:
                     event.status === 'completed'
-                      ? 'rgba(34,197,94,0.2)'
+                      ? 'rgba(var(--color-success-rgb),0.2)'
                       : event.status === 'active'
                         ? 'rgba(212,175,55,0.2)'
                         : 'rgba(255,255,255,0.05)',

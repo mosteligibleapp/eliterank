@@ -41,10 +41,10 @@ export default function MetricCard({
       progressFill: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
     },
     success: {
-      background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))',
-      border: '1px solid rgba(34,197,94,0.3)',
-      progressBg: 'rgba(34,197,94,0.2)',
-      progressFill: 'linear-gradient(90deg, #22c55e, #4ade80)',
+      background: 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.15), rgba(var(--color-success-rgb),0.05))',
+      border: '1px solid rgba(var(--color-success-rgb),0.3)',
+      progressBg: 'rgba(var(--color-success-rgb),0.2)',
+      progressFill: 'linear-gradient(90deg, var(--color-success), var(--color-success-light))',
     },
   };
 
@@ -54,7 +54,7 @@ export default function MetricCard({
     default: 'rgba(96,165,250,0.12)',
     gold: 'rgba(212,175,55,0.15)',
     warning: 'rgba(251,191,36,0.15)',
-    success: 'rgba(34,197,94,0.15)',
+    success: 'rgba(var(--color-success-rgb),0.15)',
   };
 
   return (
@@ -141,10 +141,10 @@ export default function MetricCard({
             <div style={{
               width: `${progress}%`,
               height: '100%',
-              background: isGoalMet ? 'linear-gradient(90deg, #22c55e, #4ade80)' : style.progressFill,
+              background: isGoalMet ? 'linear-gradient(90deg, var(--color-success), var(--color-success-light))' : style.progressFill,
               borderRadius: borderRadius.pill,
               transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: isGoalMet ? '0 0 6px rgba(34,197,94,0.3)' : 'none',
+              boxShadow: isGoalMet ? '0 0 6px rgba(var(--color-success-rgb),0.3)' : 'none',
             }} />
           </div>
         </div>

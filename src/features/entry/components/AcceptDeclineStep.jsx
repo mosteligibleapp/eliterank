@@ -29,7 +29,7 @@ export default function AcceptDeclineStep({
   if (confirmingDecline) {
     return (
       <div className="entry-step entry-step-accept">
-        <div className="entry-accept-icon" style={{ color: '#ef4444' }}>
+        <div className="entry-accept-icon" style={{ color: 'var(--color-error)' }}>
           <AlertTriangle size={36} />
         </div>
 
@@ -42,7 +42,7 @@ export default function AcceptDeclineStep({
         </p>
 
         {error && (
-          <p style={{ color: '#ef4444', fontSize: '14px', textAlign: 'center', margin: '16px 0 0' }}>
+          <p style={{ color: 'var(--color-error)', fontSize: '14px', textAlign: 'center', margin: '16px 0 0' }}>
             {error}
           </p>
         )}
@@ -119,7 +119,7 @@ export default function AcceptDeclineStep({
       </p>
 
       {error && (
-        <p style={{ color: '#ef4444', fontSize: '14px', textAlign: 'center', margin: '8px 0' }}>
+        <p style={{ color: 'var(--color-error)', fontSize: '14px', textAlign: 'center', margin: '8px 0' }}>
           {error}
         </p>
       )}

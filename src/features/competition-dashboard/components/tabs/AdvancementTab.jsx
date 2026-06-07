@@ -140,9 +140,9 @@ export default function AdvancementTab({ competitionId, contestants }) {
                       background: isTied
                         ? 'rgba(245,158,11,0.1)'
                         : isInAdvanceZone
-                          ? 'rgba(34,197,94,0.05)'
+                          ? 'rgba(var(--color-success-rgb),0.05)'
                           : colors.background.secondary,
-                      border: `1px solid ${isTied ? 'rgba(245,158,11,0.3)' : isInAdvanceZone ? 'rgba(34,197,94,0.2)' : colors.border.light}`,
+                      border: `1px solid ${isTied ? 'rgba(245,158,11,0.3)' : isInAdvanceZone ? 'rgba(var(--color-success-rgb),0.2)' : colors.border.light}`,
                       borderRadius: borderRadius.lg,
                     }}
                   >

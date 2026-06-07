@@ -28,7 +28,7 @@ const REWARD_TYPE_OPTIONS = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: 'active', label: 'Active', color: '#22c55e' },
+  { value: 'active', label: 'Active', color: 'var(--color-success)' },
   { value: 'paused', label: 'Paused', color: '#eab308' },
   { value: 'archived', label: 'Archived', color: '#6b7280' },
 ];
@@ -314,7 +314,7 @@ export default function RewardModal({
                     right: '-8px',
                     width: '24px',
                     height: '24px',
-                    background: 'rgba(239, 68, 68, 0.9)',
+                    background: 'rgba(var(--color-error-rgb), 0.9)',
                     border: 'none',
                     borderRadius: borderRadius.full,
                     display: 'flex',

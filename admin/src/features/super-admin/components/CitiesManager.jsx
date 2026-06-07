@@ -287,5 +287,5 @@ const S = {
   compRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.sm} ${spacing.md}`, background: colors.background.tertiary, borderRadius: borderRadius.md },
   badge: { fontSize: typography.fontSize.xs, padding: `2px ${spacing.sm}`, background: 'rgba(212,175,55,0.2)', color: colors.gold.primary, borderRadius: borderRadius.pill },
   slugPreview: { marginTop: spacing.lg, padding: spacing.md, background: colors.background.tertiary, borderRadius: borderRadius.md },
-  deleteIcon: { width: '56px', height: '56px', borderRadius: borderRadius.full, background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' },
+  deleteIcon: { width: '56px', height: '56px', borderRadius: borderRadius.full, background: 'rgba(var(--color-error-rgb),0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' },
 };

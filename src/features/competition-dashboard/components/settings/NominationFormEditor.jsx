@@ -400,9 +400,9 @@ function CustomQuestionRow({ question, onChange, onRemove, inputStyle, flagButto
           style={{
             padding: spacing.xs,
             background: 'transparent',
-            border: '1px solid rgba(239,68,68,0.3)',
+            border: '1px solid rgba(var(--color-error-rgb),0.3)',
             borderRadius: borderRadius.md,
-            color: '#ef4444',
+            color: 'var(--color-error)',
             cursor: 'pointer',
             width: '30px',
             height: '30px',

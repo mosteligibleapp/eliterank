@@ -133,8 +133,8 @@ export default function SubmitVideoProofModal({
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: spacing.md,
             padding: spacing.md,
-            background: 'rgba(239,68,68,0.06)',
-            border: '1px solid rgba(239,68,68,0.15)',
+            background: 'rgba(var(--color-error-rgb),0.06)',
+            border: '1px solid rgba(var(--color-error-rgb),0.15)',
             borderRadius: borderRadius.md,
           }}>
             <AlertCircle size={16} style={{ color: colors.status.error, flexShrink: 0, marginTop: '2px' }} />

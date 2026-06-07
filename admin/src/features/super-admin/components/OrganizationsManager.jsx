@@ -304,5 +304,5 @@ const S = {
   badge: { fontSize: typography.fontSize.xs, padding: `2px ${spacing.sm}`, background: 'rgba(212,175,55,0.2)', color: colors.gold.primary, borderRadius: borderRadius.pill },
   fieldLabel: { display: 'block', fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.text.primary, marginBottom: spacing.sm },
   logoZone: { width: '96px', height: '96px', borderRadius: borderRadius.lg, border: `2px dashed ${colors.border.primary}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', gap: spacing.xs, background: colors.background.tertiary },
-  deleteIcon: { width: '56px', height: '56px', borderRadius: borderRadius.full, background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' },
+  deleteIcon: { width: '56px', height: '56px', borderRadius: borderRadius.full, background: 'rgba(var(--color-error-rgb),0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' },
 };

@@ -12,7 +12,7 @@ export default function RevenueCard({ revenueData, sponsors }) {
   const breakdownItems = [
     { icon: Building, label: 'Sponsorships', amount: sponsorshipTotal, color: 'rgba(59,130,246,0.15)', iconColor: '#60a5fa' },
     { icon: Users, label: 'Paid Votes', amount: revenueData.paidVotes, color: 'rgba(139,92,246,0.15)', iconColor: '#a78bfa' },
-    { icon: Calendar, label: 'Event Tickets', amount: revenueData.eventTickets, color: 'rgba(34,197,94,0.15)', iconColor: '#4ade80' },
+    { icon: Calendar, label: 'Event Tickets', amount: revenueData.eventTickets, color: 'rgba(var(--color-success-rgb),0.15)', iconColor: 'var(--color-success-light)' },
   ];
 
   return (

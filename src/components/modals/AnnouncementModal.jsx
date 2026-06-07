@@ -488,9 +488,9 @@ export default function AnnouncementModal({
             <p style={{
               marginTop: spacing.md,
               padding: spacing.md,
-              background: 'rgba(239,68,68,0.1)',
+              background: 'rgba(var(--color-error-rgb),0.1)',
               borderRadius: borderRadius.md,
-              color: '#ef4444',
+              color: 'var(--color-error)',
               fontSize: typography.fontSize.sm,
             }}>
               {aiError}

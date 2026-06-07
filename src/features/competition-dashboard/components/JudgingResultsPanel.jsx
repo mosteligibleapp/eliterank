@@ -184,8 +184,8 @@ export default function JudgingResultsPanel({
               <div style={{
                 display: 'flex', alignItems: 'center', gap: spacing.sm,
                 padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.md,
-                background: 'rgba(34,197,94,0.08)',
-                border: `1px solid rgba(34,197,94,0.3)`,
+                background: 'rgba(var(--color-success-rgb),0.08)',
+                border: `1px solid rgba(var(--color-success-rgb),0.3)`,
                 color: colors.status.success,
                 fontSize: typography.fontSize.sm,
               }}>

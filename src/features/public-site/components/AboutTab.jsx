@@ -344,8 +344,8 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
               {/* Finals Date */}
               {competition.finals_date && (
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.02))',
-                  border: '1px solid rgba(34,197,94,0.2)',
+                  background: 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.1), rgba(var(--color-success-rgb),0.02))',
+                  border: '1px solid rgba(var(--color-success-rgb),0.2)',
                   borderRadius: borderRadius.xxl,
                   padding: spacing.xxl,
                   position: 'relative',
@@ -357,26 +357,26 @@ export default function AboutTab({ judges, sponsors, host, city = 'New York', co
                     right: 0,
                     width: '100px',
                     height: '100px',
-                    background: 'radial-gradient(circle at top right, rgba(34,197,94,0.15), transparent)',
+                    background: 'radial-gradient(circle at top right, rgba(var(--color-success-rgb),0.15), transparent)',
                     borderRadius: '0 0 0 100%',
                   }} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
                     <div style={{
                       width: '48px',
                       height: '48px',
-                      background: 'rgba(34,197,94,0.2)',
+                      background: 'rgba(var(--color-success-rgb),0.2)',
                       borderRadius: borderRadius.lg,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
-                      <Trophy size={24} style={{ color: '#22c55e' }} />
+                      <Trophy size={24} style={{ color: 'var(--color-success)' }} />
                     </div>
                     <div>
                       <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
                         Finals & Award Ceremony
                       </p>
-                      <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#22c55e' }}>
+                      <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: 'var(--color-success)' }}>
                         {new Date() >= new Date(competition.finals_date) ? 'Completed' : 'Mark Your Calendar'}
                       </p>
                     </div>
