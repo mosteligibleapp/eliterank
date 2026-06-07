@@ -75,4 +75,33 @@ export default [
       globals: { ...globals.node },
     },
   },
+  {
+    // Brand guardrail: no raw hex color literals in app/admin components.
+    // Colors must come from theme tokens (colors.* in src/styles/theme.js) or
+    // CSS variables (var(--color-...)). See BRAND.md.
+    // NOTE: 'warn' for now — legacy raw hex still exists in ~120 files. Ratchet
+    // to 'error' once those are migrated to tokens/vars.
+    files: ['src/**/*.{js,jsx}', 'admin/**/*.{js,jsx}'],
+    ignores: [
+      'src/styles/theme.js',   // the JS token source of truth (defines the hexes)
+      'src/design-system/**',  // design-system token defs + showcase
+      '**/*.test.{js,jsx}',
+      '**/*.spec.{js,jsx}',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: "Literal[value=/#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})/]",
+          message:
+            'No raw hex colors in components — use a theme token (colors.* from src/styles/theme.js) or a CSS variable (e.g. var(--color-success)). See BRAND.md.',
+        },
+        {
+          selector: "TemplateElement[value.raw=/#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})/]",
+          message:
+            'No raw hex colors in template strings — use a CSS variable (e.g. var(--color-success)) or theme token. See BRAND.md.',
+        },
+      ],
+    },
+  },
 ];
