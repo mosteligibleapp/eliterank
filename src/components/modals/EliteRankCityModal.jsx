@@ -637,8 +637,18 @@ export default function EliteRankCityModal({
             margin: 0,
             textAlign: 'center',
           }}>
-            Most Eligible Bachelorettes {year}
+            Most Eligible Bachelorettes
           </h2>
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.gold.primary,
+            margin: 0,
+            textAlign: 'center',
+            letterSpacing: '0.04em',
+          }}>
+            Chicago &bull; {year}
+          </p>
         </div>
 
         {/* Winners Grid - portrait photo cards */}
