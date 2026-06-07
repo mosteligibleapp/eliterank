@@ -621,9 +621,6 @@ export default function EliteRankCityModal({
         marginTop: spacing.xxxl,
         marginBottom: spacing.xxxl,
         padding: spacing.lg,
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: borderRadius.xl,
-        border: `1px solid rgba(255, 255, 255, 0.1)`,
       }}>
         {/* Header */}
         <div style={{
