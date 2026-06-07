@@ -88,7 +88,6 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             hasDashboardAccess={hasDashboardAccess}
             onJudge={isJudge ? handleJudge : null}
             isJudge={isJudge}
-            performance={performances}
             size={40}
           />
         </div>

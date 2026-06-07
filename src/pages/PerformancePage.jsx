@@ -206,11 +206,7 @@ function CompetitorList({ competitors, isMobile }) {
   const q = query.trim().toLowerCase();
   const filtered = useMemo(() => {
     if (!q) return competitors;
-    return competitors.filter(
-      (c) =>
-        c.name?.toLowerCase().includes(q) ||
-        c.city?.toLowerCase().includes(q)
-    );
+    return competitors.filter((c) => c.name?.toLowerCase().includes(q));
   }, [competitors, q]);
 
   return (
@@ -231,7 +227,7 @@ function CompetitorList({ competitors, isMobile }) {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by name or city"
+                placeholder="Search by name"
                 aria-label="Search contestants"
                 style={styles.compSearchInput}
               />
