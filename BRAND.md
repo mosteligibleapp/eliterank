@@ -71,10 +71,14 @@ jewel-tone set chosen to sit beside antique gold:
   solid bright block. e.g. `background: rgba(47,163,108,0.15); border/text: #2FA36C`.
 - Keep small (chip/pill). Gold stays the hero.
 
-> ⚠️ **theme.js drift:** the app currently uses the loud Tailwind defaults
-> (`#22C55E` success / `#EF4444` error). To make the product match this brand standard,
-> `colors.status.success`/`error` in `src/styles/theme.js` should be retuned to
-> `#2FA36C` / `#C24A5C` (follow-up — touches all success/error UI, so verify contrast).
+> ✅ **theme.js aligned:** `colors.status.success`/`error` in `src/styles/theme.js` and
+> the mirrored tokens in `src/design-system/tokens.js` are retuned to `#2FA36C` / `#C24A5C`
+> (plus their light/muted/gradient/shadow/border variants).
+>
+> ⚠️ **Hardcoded stragglers:** ~75 component files still hardcode the old `#22C55E`/`#EF4444`
+> (and `rgba(34,197,94,…)` / `rgba(239,68,68,…)`) inline instead of using the tokens. These
+> won't pick up the brand color until migrated to `colors.status.*`. Highest-priority:
+> `src/styles/competition-phases.css` (literal phase open/closed styling). Tracked as cleanup.
 
 ## Gradients
 
