@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users,
   Activity, Info, Briefcase, User, Megaphone, Award, Building, Heart,
@@ -62,6 +63,7 @@ export default function EliteRankCityModal({
   onLogout,
 }) {
   const { isMobile, isTablet, width } = useResponsive();
+  const navigate = useNavigate();
 
   // Get user and profile data for ProfileIcon
   const user = useAuthStore(s => s.user);
@@ -528,30 +530,6 @@ export default function EliteRankCityModal({
     // Use dynamic data from app settings
     const winners = hallOfWinnersData?.winners || [];
     const year = hallOfWinnersData?.year || new Date().getFullYear();
-    const [igMap, setIgMap] = useState({});
-
-    useEffect(() => {
-      const profileIds = winners.slice(0, 5).map(w => w.profileId).filter(Boolean);
-      if (!profileIds.length) return;
-      supabase
-        .from('profiles')
-        .select('id, instagram')
-        .in('id', profileIds)
-        .then(({ data }) => {
-          if (data) {
-            const m = {};
-            data.forEach(p => { if (p.instagram) m[p.id] = p.instagram; });
-            setIgMap(m);
-          }
-        });
-    }, [winners]);
-
-    const getIgUrl = (winner) => {
-      const handle = igMap[winner.profileId];
-      if (!handle) return null;
-      const clean = handle.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '');
-      return `https://instagram.com/${clean}`;
-    };
 
     if (!winners.length) return null;
 
@@ -601,15 +579,19 @@ export default function EliteRankCityModal({
           gap: spacing.sm,
         }}>
           {winners.slice(0, 5).map((winner, index) => {
-            const igUrl = getIgUrl(winner);
-            const Tag = igUrl ? 'a' : 'div';
-            const linkProps = igUrl
-              ? { href: igUrl, target: '_blank', rel: 'noopener noreferrer' }
-              : {};
+            const clickable = !!winner.profileId;
             return (
-              <Tag
+              <div
                 key={winner.id}
-                {...linkProps}
+                role={clickable ? 'button' : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onClick={clickable ? () => navigate(`/profile/${winner.profileId}`) : undefined}
+                onKeyDown={clickable ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/profile/${winner.profileId}`);
+                  }
+                } : undefined}
                 style={{
                   width: isMobile ? 'calc(33.33% - 8px)' : 'calc(20% - 10px)',
                   display: 'flex',
@@ -624,14 +606,14 @@ export default function EliteRankCityModal({
                   position: 'relative',
                   textDecoration: 'none',
                   color: 'inherit',
-                  cursor: igUrl ? 'pointer' : 'default',
+                  cursor: clickable ? 'pointer' : 'default',
                   transition: 'border-color 0.2s ease, transform 0.2s ease',
                 }}
-                onMouseEnter={igUrl ? (e) => {
+                onMouseEnter={clickable ? (e) => {
                   e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.45)';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 } : undefined}
-                onMouseLeave={igUrl ? (e) => {
+                onMouseLeave={clickable ? (e) => {
                   e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.15)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 } : undefined}
@@ -685,7 +667,7 @@ export default function EliteRankCityModal({
                 }}>
                   {winner.name}
                 </p>
-              </Tag>
+              </div>
             );
           })}
         </div>
@@ -791,6 +773,9 @@ export default function EliteRankCityModal({
                 Enter <span style={{ color: '#d4af37' }}>·</span> Compete <span style={{ color: '#d4af37' }}>·</span> Win
               </p>
             </div>
+
+            {/* Reigning champions — drives traffic to winners' profiles */}
+            <HallOfWinners />
 
             {/* Competition Grid — all competitions, no status filtering */}
             {visibleCompetitions.length > 0 ? (
