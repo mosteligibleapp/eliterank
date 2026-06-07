@@ -7,8 +7,8 @@ import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
  * Winners podium for results phase
- * Regular competitions: large display of top 3 with prizes
- * Legacy competitions: premium card grid of ranked winners
+ * Single-winner competitions: large spotlight on the champion
+ * Multi-winner / legacy competitions: premium card grid of ranked winners
  */
 export function WinnersPodium() {
   const { competition, contestants, topThree, prizePool, openContestantProfile } = usePublicCompetition();
@@ -42,13 +42,30 @@ export function WinnersPodium() {
           : competition?.created_at
             ? new Date(competition.created_at).getFullYear()
             : null);
-    return <LegacyContestantsGrid contestants={sorted} onSelect={handleContestantClick} year={year} />;
+    return <WinnersGrid winners={sorted} onSelect={handleContestantClick} year={year} />;
   }
 
-  if (!topThree?.length) return null;
+  // Multi-winner competitions (e.g. a Top 5) showcase every crowned winner in
+  // the ranked grid; classic winner-take-all competitions keep the single
+  // champion spotlight. The authoritative winner set + order comes from
+  // competitions.winners (written by finalize_voting_round); we fall back to
+  // the top-ranked contestants when that array isn't populated yet (e.g. a host
+  // previewing the results phase before the finale closes).
+  const numberOfWinners = competition?.number_of_winners || 1;
+  const byId = new Map((contestants || []).map((c) => [c.id, c]));
+  const winnerIds = Array.isArray(competition?.winners) ? competition.winners : [];
+  let winners = winnerIds.map((id) => byId.get(id)).filter(Boolean);
+  if (!winners.length) {
+    const crowned = (contestants || []).filter((c) => c.status === 'winner');
+    winners = (crowned.length ? crowned : (contestants || [])).slice(0, numberOfWinners);
+  }
+
+  if (numberOfWinners > 1 && winners.length > 1) {
+    return <WinnersGrid winners={winners} onSelect={handleContestantClick} year={competition?.season} />;
+  }
 
   // Winner takes all — show only 1st place
-  const winner = topThree[0];
+  const winner = winners[0] || topThree?.[0];
   if (!winner) return null;
 
   return (
@@ -92,10 +109,11 @@ export function WinnersPodium() {
 }
 
 /**
- * Premium card grid for legacy competition winners
- * Clean, elevated card design with gold accent and rank badges
+ * Premium card grid for multi-winner (and legacy) competitions.
+ * Clean, elevated card design with gold accent and rank badges; the first card
+ * (rank #1) gets the highlighted treatment.
  */
-function LegacyContestantsGrid({ contestants, onSelect, year }) {
+function WinnersGrid({ winners, onSelect, year }) {
   const isFirst = (index) => index === 0;
 
   return (
@@ -106,7 +124,7 @@ function LegacyContestantsGrid({ contestants, onSelect, year }) {
       </div>
 
       <div className="legacy-winners-grid">
-        {contestants.map((contestant, index) => (
+        {winners.map((contestant, index) => (
           <div
             key={contestant.id}
             className={`legacy-winner-card ${isFirst(index) ? 'legacy-winner-card-first' : ''}`}
