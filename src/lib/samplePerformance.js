@@ -21,15 +21,6 @@ const competitor = (id, name, city, status, votes) => ({
 const rounds = (...labels) =>
   labels.map((label, i) => ({ order: i + 1, label }));
 
-// A reward the contestant earned (shape mirrors a reward_assignments row with
-// its joined reward). Non-pending statuses so the preview doesn't surface a
-// claim button that can't resolve against fake data.
-const reward = (id, name, status, cashValue) => ({
-  id,
-  status,
-  reward: { id, name, image_url: null, brand_name: null, cash_value: cashValue || null },
-});
-
 export const SAMPLE_PERFORMANCE = [
   {
     competitionId: 'sample-la-2026',
@@ -47,10 +38,6 @@ export const SAMPLE_PERFORMANCE = [
     roundsReached: 2,
     totalRounds: 4,
     rounds: rounds('Entry Round', 'Top 50', 'Top 15', 'Finale'),
-    rewards: [
-      reward('r-la-1', 'The Lumi (all contestants)', 'shipped', 49),
-      reward('r-la-2', 'Top 50 Photoshoot', 'claimed', 350),
-    ],
     totalVotes: 4820,
     freeVotes: 1240,
     paidVotes: 3100,
@@ -81,11 +68,6 @@ export const SAMPLE_PERFORMANCE = [
     roundsReached: 4,
     totalRounds: 4,
     rounds: rounds('Entry Round', 'Top 40', 'Top 10', 'Finale'),
-    rewards: [
-      reward('r-mia-1', 'The Lumi (all contestants)', 'shipped', 49),
-      reward('r-mia-2', 'Top 40 Photoshoot', 'completed', 350),
-      reward('r-mia-3', 'Top 10 Dinner', 'completed', 200),
-    ],
     totalVotes: 6210,
     freeVotes: 1680,
     paidVotes: 4100,
@@ -113,12 +95,6 @@ export const SAMPLE_PERFORMANCE = [
     roundsReached: 4,
     totalRounds: 4,
     rounds: rounds('Entry Round', 'Top 25', 'Top 10', 'Finale'),
-    rewards: [
-      reward('r-ny-1', 'The Lumi (all contestants)', 'shipped', 49),
-      reward('r-ny-2', 'Top 25 Photoshoot', 'completed', 350),
-      reward('r-ny-3', 'Top 10 Dinner', 'completed', 200),
-      reward('r-ny-4', "Winner's Prize Package", 'claimed', 5000),
-    ],
     totalVotes: 9340,
     freeVotes: 2100,
     paidVotes: 6800,

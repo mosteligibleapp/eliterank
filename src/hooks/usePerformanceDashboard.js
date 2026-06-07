@@ -20,7 +20,6 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  *     orgSlug, competitionSlug, competitionStatus,
  *     myContestantId, myStatus, placement, fieldSize,
  *     roundsReached, totalRounds, rounds: [{ order, label }],
- *     rewards: [ reward_assignments row + joined reward/competition ],
  *     totalVotes, freeVotes, paidVotes, bonusVotes,
  *     competitors: [
  *       { id, name, avatarUrl, city, status, votes }
@@ -153,34 +152,6 @@ export function usePerformanceDashboard(userId) {
         roundLabelsByCompetition.set(compId, buildRoundLabels(ordered));
       });
 
-      // 4. Rewards the contestant earned, per competition. These are their
-      //    reward_assignments — what they were awarded for how far they
-      //    advanced (e.g. an entry gift, a Top-50 shoot, the winner package).
-      //    Shown read-only here; claiming/tracking lives on the Rewards page.
-      const compByContestant = new Map(entries.map((e) => [e.id, e.competition_id]));
-      const rewardsByCompetition = new Map();
-      const myContestantIds = entries.map((e) => e.id);
-      if (myContestantIds.length > 0) {
-        const { data: rewardRows } = await supabase
-          .from('reward_assignments')
-          .select(`
-            id,
-            status,
-            contestant_id,
-            competition_id,
-            reward:rewards(id, name, image_url, cash_value)
-          `)
-          .in('contestant_id', myContestantIds)
-          .order('created_at', { ascending: false });
-        (rewardRows || []).forEach((r) => {
-          const compId = r.competition_id || compByContestant.get(r.contestant_id);
-          if (!compId) return;
-          const list = rewardsByCompetition.get(compId) || [];
-          list.push(r);
-          rewardsByCompetition.set(compId, list);
-        });
-      }
-
       // Group the roster by competition for quick lookup.
       const rosterByCompetition = new Map();
       roster.forEach((c) => {
@@ -247,7 +218,6 @@ export function usePerformanceDashboard(userId) {
           roundsReached,
           totalRounds,
           rounds: roundLabels,
-          rewards: rewardsByCompetition.get(mine.competition_id) || [],
           totalVotes: myVotes,
           freeVotes: mine.lifetime_free_votes ?? 0,
           paidVotes: mine.lifetime_paid_votes ?? 0,
