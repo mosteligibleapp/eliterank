@@ -10,11 +10,19 @@ exclusive, minimal color variety. Gold is the only accent.**
 ## Colors
 
 ### Brand / Accent — Gold (the ONLY accent color)
-| Name | Hex |
-|---|---|
-| Gold (primary) | `#D4AF37` |
-| Gold Light | `#F4D03F` |
-| Gold Dark | `#B8962F` |
+| Name | Hex | In Canva kit? |
+|---|---|---|
+| Gold Primary | `#D4AF37` | ✅ |
+| Gold Light | `#F4D03F` | ✅ |
+| Gold Dark | `#B8962F` | ✅ |
+| Logo Highlight | `#F5D485` | ❌ (documented only) |
+| Logo Shadow | `#A8893A` | ❌ (documented only) |
+
+**Logo Highlight / Logo Shadow** are the gradient stops baked into the crown logo
+(`public/favicon.svg`: `#F5D485 → #D4AF37 → #A8893A`). They are intentionally **left out
+of the Canva color palette** — the crown logo asset already carries that sheen, so adding
+them as standalone swatches just invites clutter. Kept here as a record of the true logo
+gradient in case it ever needs to be recreated.
 
 ### Backgrounds (dark)
 | Name | Hex |
@@ -65,10 +73,30 @@ Never add Google Fonts or custom display fonts to the actual app — system font
 The Inter substitution applies to Canva/external collateral only.
 
 ## Logo
-- **Primary mark:** `favicon.svg` — gold crown on `#0A0A0C`
+- **Primary mark:** `public/favicon.svg` — gold crown on `#0A0A0C` (also the favicon)
+- **Crown only (transparent):** `public/crown.svg` / `public/crown.png` — for logo use in
+  Canva and other collateral
 - **Social / lockup:** `public/og-image.png` (and `public/og-image.svg`)
+- Logo gradient: `#F5D485 → #D4AF37 → #A8893A`
 
 ## Canva Brand Kit
-- Existing brand kit id: `kAGY6tn2LUY`
-- Logo upload note: the Canva connector's asset upload accepts **public HTTPS URLs only**,
-  not local repo files. Upload logos manually, or provide a live URL to push them via MCP.
+- Brand kit id: `kAGY6tn2LUY`
+
+### Palette as entered in Canva (keep in sync with this doc)
+| Canva swatch name | Hex |
+|---|---|
+| Gold Primary | `#D4AF37` |
+| Gold Light | `#F4D03F` |
+| Gold Dark | `#B8962F` |
+| Background | `#0A0A0C` |
+| Dark Surface | `#18181B` |
+| Secondary Text | `#A1A1AA` |
+| White | `#FFFFFF` |
+
+- **Not in the palette (deliberate):** Logo Highlight/Shadow (carried by the logo asset),
+  status green/red (status-only), purple/pink/cyan accents (tier/data-viz only).
+- **Themes:** skipped — auto-shuffle color combos work against the locked gold-on-dark look.
+- **Fonts:** Inter (headings Bold/Extrabold, body Regular/Medium).
+- **Logo upload note:** the Canva connector's asset upload accepts **public HTTPS URLs only**,
+  not local repo files. Once this branch deploys, `eliterank.co/crown.png` is live and the
+  crown can be pushed into Canva via MCP; until then, upload manually.
