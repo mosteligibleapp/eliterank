@@ -122,10 +122,10 @@ function WinnersGrid({ winners, onSelect, year }) {
       </div>
 
       <div className="legacy-winners-grid">
-        {winners.map((contestant) => (
+        {winners.map((contestant, index) => (
           <div
             key={contestant.id}
-            className="legacy-winner-card"
+            className={`legacy-winner-card ${index < 2 ? 'legacy-winner-card-top' : ''}`}
             onClick={() => onSelect?.(contestant)}
           >
             {contestant.avatar_url ? (
