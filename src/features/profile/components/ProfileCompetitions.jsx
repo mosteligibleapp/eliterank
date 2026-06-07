@@ -32,9 +32,19 @@ function phaseCardRank(competition) {
   return PHASE_CARD_ORDER[phase] ?? 5;
 }
 
+// Round types that collect public votes. The finale is votable too — the
+// winner is ranked by votes during the finale (see finalize_voting_round),
+// so the inline panel must stay open through it. Judging / resurrection
+// rounds are not publicly votable. A null round_type is legacy "voting".
+const VOTABLE_ROUND_TYPES = ['voting', 'finale'];
+
+function isVotableRound(round) {
+  return !round?.round_type || VOTABLE_ROUND_TYPES.includes(round.round_type);
+}
+
 /**
  * Given a competition with a voting_rounds join, return the currently active
- * voting round (one whose [start_date, end_date) window contains `now`).
+ * votable round (one whose [start_date, end_date) window contains `now`).
  * Returns null if no active round.
  */
 function findActiveVotingRound(competition) {
@@ -42,7 +52,7 @@ function findActiveVotingRound(competition) {
   if (!rounds.length) return null;
   const now = Date.now();
   const active = rounds.find((r) => {
-    if (r.round_type && r.round_type !== 'voting') return false;
+    if (!isVotableRound(r)) return false;
     const start = r.start_date ? new Date(r.start_date).getTime() : null;
     const end = r.end_date ? new Date(r.end_date).getTime() : null;
     return start && end && now >= start && now < end;
@@ -59,7 +69,7 @@ function findActiveVotingRound(competition) {
 function synthesizePreviewRound(competition) {
   const rounds = competition?.voting_rounds || [];
   const sorted = [...rounds]
-    .filter((r) => !r.round_type || r.round_type === 'voting')
+    .filter(isVotableRound)
     .sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
   const first = sorted[0];
   return {
