@@ -4,6 +4,9 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { Trophy, Users } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
 import { PrizePool } from '../components/PrizePool';
+import { PrizeShowcase } from '../components/PrizeShowcase';
+import { PhotoGallery } from '../components/PhotoGallery';
+import { CompetitionEvents } from '../components/CompetitionEvents';
 import { HostSection } from '../components/HostSection';
 import { JudgesSection } from '../components/JudgesSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
@@ -128,6 +131,43 @@ export function ResultsPhase() {
     }
   };
 
+  // Final stats — shown for every completed competition (legacy included).
+  // Only cards backed by real data render, and the grid centers itself when
+  // fewer than three are present so a single stat doesn't sit off to one side.
+  const totalContestants = leaderboardStats?.totalContestants || 0;
+  const totalVotes = leaderboardStats?.totalVotes || 0;
+  const statCards = [];
+  if (prizePool) {
+    statCards.push({
+      key: 'awarded',
+      icon: Trophy,
+      highlight: true,
+      value: prizePool.formatted.totalPrizePool,
+      label: 'Total Awarded',
+    });
+  }
+  if (totalContestants > 0) {
+    statCards.push({
+      key: 'contestants',
+      icon: Users,
+      value: formatNumber(totalContestants),
+      label: 'Contestants',
+    });
+  }
+  if (totalVotes > 0) {
+    statCards.push({
+      key: 'votes',
+      value: formatNumber(totalVotes),
+      label: 'Total Votes',
+    });
+  }
+  const statsGridClass =
+    statCards.length === 1
+      ? 'phase-stats phase-stats-solo results-stats'
+      : statCards.length === 2
+      ? 'phase-stats phase-stats-centered results-stats'
+      : 'phase-stats results-stats';
+
   return (
     <div className="phase-view phase-results">
       {/* Competition Header - Consistent across all phases */}
@@ -143,38 +183,47 @@ export function ResultsPhase() {
         <WinnersPodium />
       </section>
 
-      {/* Final Stats - only for non-legacy competitions */}
-      {!isLegacy && (
-        <section className="phase-stats results-stats">
-          {prizePool && (
-            <div className="stat-card stat-card-highlight">
-              <div className="stat-icon-wrap">
-                <Trophy size={20} className="stat-icon" />
-              </div>
-              <span className="stat-value">{prizePool.formatted.totalPrizePool}</span>
-              <span className="stat-label">Total Awarded</span>
+      {/* Final Stats - shown for all completed competitions */}
+      {statCards.length > 0 && (
+        <section className={statsGridClass}>
+          {statCards.map((stat) => (
+            <div
+              key={stat.key}
+              className={`stat-card${stat.highlight ? ' stat-card-highlight' : ''}`}
+            >
+              {stat.icon && (
+                <div className="stat-icon-wrap">
+                  <stat.icon size={20} className="stat-icon" />
+                </div>
+              )}
+              <span className="stat-value">{stat.value}</span>
+              <span className="stat-label">{stat.label}</span>
             </div>
-          )}
-          <div className="stat-card">
-            <div className="stat-icon-wrap">
-              <Users size={20} className="stat-icon" />
-            </div>
-            <span className="stat-value">{formatNumber(leaderboardStats?.totalContestants)}</span>
-            <span className="stat-label">Contestants</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-value">{formatNumber(leaderboardStats?.totalVotes)}</span>
-            <span className="stat-label">Total Votes</span>
-          </div>
+          ))}
         </section>
       )}
 
-      {/* Prize Pool Breakdown - only for non-legacy with a configured prize */}
+      {/* Prize Pool Breakdown - only for non-legacy with a configured cash pool */}
       {!isLegacy && prizePool && (
         <section className="phase-section">
           <PrizePool showLiveBadge={false} />
         </section>
       )}
+
+      {/* Itemized prizes / rewards awarded in the competition */}
+      <section className="phase-section">
+        <PrizeShowcase />
+      </section>
+
+      {/* Photo gallery from the competition */}
+      <section className="phase-section">
+        <PhotoGallery />
+      </section>
+
+      {/* Events from the competition */}
+      <section className="phase-section">
+        <CompetitionEvents />
+      </section>
 
       {/* Next Season CTA
           - If a sibling competition is already live/coming up, point to it.

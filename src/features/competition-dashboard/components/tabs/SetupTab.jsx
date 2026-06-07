@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, EyeOff, RotateCcw, Zap, Send, Link2, Mail } from 'lucide-react';
+import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, EyeOff, RotateCcw, Zap, Send, Link2, Mail, Camera } from 'lucide-react';
+import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -95,6 +96,140 @@ const restoreButtonStyle = {
 };
 
 /**
+ * PhotosManager - host-facing photo gallery management for a competition.
+ * Uploads via the shared uploadPhoto helper (Supabase Storage + Vercel Blob
+ * fallback) and persists rows through the dashboard hook. Photos surface on
+ * the public completed-competition page.
+ */
+function PhotosManager({ photos = [], isMobile, onAddPhoto, onUpdatePhotoCaption, onDeletePhoto }) {
+  const toast = useToast();
+  const fileInputRef = React.useRef(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFiles = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setUploading(true);
+    let added = 0;
+    let failed = 0;
+    for (const file of files) {
+      try {
+        const url = await uploadPhoto(file, 'competition-photos');
+        const result = await onAddPhoto?.(url);
+        if (result?.success) added += 1;
+        else failed += 1;
+      } catch (err) {
+        console.error('Photo upload failed:', err);
+        failed += 1;
+      }
+    }
+    setUploading(false);
+    // Reset the input so re-selecting the same file fires onChange again.
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    if (added > 0) toast?.success?.(`Added ${added} photo${added === 1 ? '' : 's'}`);
+    if (failed > 0) toast?.error?.(`${failed} photo${failed === 1 ? '' : 's'} failed to upload`);
+  };
+
+  return (
+    <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.lg, flexWrap: 'wrap' }}>
+        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, margin: 0 }}>
+          Showcase photos from the competition. They appear in the gallery once the competition is complete.
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          onChange={handleFiles}
+          style={{ display: 'none' }}
+        />
+        <Button
+          size="sm"
+          icon={Upload}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+        >
+          {uploading ? 'Uploading…' : 'Upload Photos'}
+        </Button>
+      </div>
+
+      {photos.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+          <Camera size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+          <p>No photos yet</p>
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? '120px' : '160px'}, 1fr))`,
+          gap: spacing.md,
+        }}>
+          {photos.map((photo) => (
+            <div key={photo.id} style={{
+              border: `1px solid ${colors.border.primary || 'rgba(255,255,255,0.15)'}`,
+              borderRadius: borderRadius.lg,
+              overflow: 'hidden',
+              background: colors.background.secondary,
+            }}>
+              <div style={{ position: 'relative', aspectRatio: '1 / 1' }}>
+                <img
+                  src={photo.imageUrl}
+                  alt={photo.caption || 'Competition photo'}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+                <button
+                  onClick={() => onDeletePhoto?.(photo.id)}
+                  aria-label="Delete photo"
+                  style={{
+                    position: 'absolute',
+                    top: spacing.xs,
+                    right: spacing.xs,
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.6)',
+                    border: '1px solid rgba(239,68,68,0.4)',
+                    borderRadius: borderRadius.md,
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <input
+                type="text"
+                defaultValue={photo.caption || ''}
+                placeholder="Add caption…"
+                onBlur={(e) => {
+                  const next = e.target.value.trim();
+                  if (next !== (photo.caption || '')) onUpdatePhotoCaption?.(photo.id, next);
+                }}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  borderTop: `1px solid ${colors.border.primary || 'rgba(255,255,255,0.1)'}`,
+                  background: 'transparent',
+                  color: colors.text.primary,
+                  fontSize: typography.fontSize.xs,
+                  padding: `${spacing.sm} ${spacing.sm}`,
+                  outline: 'none',
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * SetupTab - Configuration settings tab
  * Contains competition details, timeline, judges, sponsors, and events
  */
@@ -107,6 +242,7 @@ export default function SetupTab({
   sponsors,
   events,
   prizes = [],
+  photos = [],
   doubleDays = [],
   isSuperAdmin = false,
   onRefresh,
@@ -119,6 +255,9 @@ export default function SetupTab({
   onDeleteSponsor,
   onDeleteEvent,
   onDeletePrize,
+  onAddPhoto,
+  onUpdatePhotoCaption,
+  onDeletePhoto,
   onAddDoubleDay,
   onDeleteDoubleDay,
   onUpdateTimezone,
@@ -1115,6 +1254,22 @@ export default function SetupTab({
             </div>
           )}
         </div>
+      </Panel>
+
+      {/* Photos Section */}
+      <Panel
+        title={`Photos (${photos.length})`}
+        icon={Camera}
+        collapsible
+        defaultCollapsed
+      >
+        <PhotosManager
+          photos={photos}
+          isMobile={isMobile}
+          onAddPhoto={onAddPhoto}
+          onUpdatePhotoCaption={onUpdatePhotoCaption}
+          onDeletePhoto={onDeletePhoto}
+        />
       </Panel>
 
       {/* Double Vote Days Section */}

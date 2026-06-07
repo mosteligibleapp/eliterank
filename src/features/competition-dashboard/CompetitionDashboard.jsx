@@ -144,6 +144,9 @@ export default function CompetitionDashboard({
     addPrize,
     updatePrize,
     deletePrize,
+    addPhoto,
+    updatePhotoCaption,
+    deletePhoto,
     assignHost,
     removeHost,
     addCoHost,
@@ -669,6 +672,7 @@ export default function CompetitionDashboard({
             sponsors={data.sponsors}
             events={data.events}
             prizes={data.prizes}
+            photos={data.photos}
             doubleDays={data.doubleDays}
             isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
@@ -681,6 +685,9 @@ export default function CompetitionDashboard({
             onDeleteSponsor={deleteSponsor}
             onDeleteEvent={deleteEvent}
             onDeletePrize={deletePrize}
+            onAddPhoto={addPhoto}
+            onUpdatePhotoCaption={updatePhotoCaption}
+            onDeletePhoto={deletePhoto}
             onAddDoubleDay={addDoubleDay}
             onDeleteDoubleDay={deleteDoubleDay}
             onUpdateTimezone={updateCompetitionTimezone}

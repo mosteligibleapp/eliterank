@@ -39,6 +39,7 @@ export function useCompetitionDashboard(competitionId) {
     announcements: [],
     rules: [],
     prizes: [],
+    photos: [],
     doubleDays: [],
     host: null,
     coHosts: [],
@@ -71,6 +72,7 @@ export function useCompetitionDashboard(competitionId) {
         announcementsResult,
         rulesResult,
         prizesResult,
+        photosResult,
         doubleDaysResult,
         competitionResult,
         paidVotesResult,
@@ -148,6 +150,13 @@ export function useCompetitionDashboard(competitionId) {
           .eq('competition_id', competitionId)
           .order('sort_order'),
 
+        // Photos ordered by sort_order
+        supabase
+          .from('competition_photos')
+          .select('*')
+          .eq('competition_id', competitionId)
+          .order('sort_order'),
+
         // Double vote days ordered by date
         supabase
           .from('competition_double_days')
@@ -201,6 +210,7 @@ export function useCompetitionDashboard(competitionId) {
         announcementsResult.error,
         rulesResult.error,
         prizesResult.error,
+        photosResult.error,
         doubleDaysResult.error,
         competitionResult.error,
         paidVotesResult.error,
@@ -506,6 +516,14 @@ export function useCompetitionDashboard(competitionId) {
         prizeType: p.prize_type || 'winner',
       }));
 
+      // Transform photos
+      const photos = (photosResult.data || []).map((p) => ({
+        id: p.id,
+        imageUrl: p.image_url,
+        caption: p.caption,
+        sortOrder: p.sort_order,
+      }));
+
       setData({
         contestants,
         nominees,
@@ -517,6 +535,7 @@ export function useCompetitionDashboard(competitionId) {
         announcements,
         rules,
         prizes,
+        photos,
         doubleDays,
         host,
         coHosts,
@@ -1810,6 +1829,70 @@ export function useCompetitionDashboard(competitionId) {
   }, [fetchDashboardData]);
 
   // ============================================================================
+  // PHOTO OPERATIONS
+  // ============================================================================
+
+  const addPhoto = useCallback(async (imageUrl, caption = null) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+    if (!imageUrl) return { success: false, error: 'Image is required' };
+
+    try {
+      const maxSort = data.photos.length > 0 ? Math.max(...data.photos.map(p => p.sortOrder || 0)) : 0;
+      const { error } = await supabase
+        .from('competition_photos')
+        .insert({
+          competition_id: competitionId,
+          image_url: imageUrl,
+          caption: caption || null,
+          sort_order: maxSort + 1,
+        });
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding photo:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, data.photos, fetchDashboardData]);
+
+  const updatePhotoCaption = useCallback(async (photoId, caption) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competition_photos')
+        .update({ caption: caption || null })
+        .eq('id', photoId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating photo:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  const deletePhoto = useCallback(async (photoId) => {
+    if (!supabase) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { error } = await supabase
+        .from('competition_photos')
+        .delete()
+        .eq('id', photoId);
+
+      if (error) throw error;
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error deleting photo:', err);
+      return { success: false, error: err.message };
+    }
+  }, [fetchDashboardData]);
+
+  // ============================================================================
   // COMPETITION TIMELINE OPERATIONS
   // ============================================================================
 
@@ -2058,6 +2141,10 @@ export function useCompetitionDashboard(competitionId) {
     addPrize,
     updatePrize,
     deletePrize,
+    // Photo operations
+    addPhoto,
+    updatePhotoCaption,
+    deletePhoto,
     // Competition operations
     updateTimeline,
     updateWinners,

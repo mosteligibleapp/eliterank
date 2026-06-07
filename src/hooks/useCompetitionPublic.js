@@ -34,6 +34,7 @@ const COMPETITION_SELECT = `
   sponsors (id, name, tier, amount, logo_url, website_url, sort_order),
   events (*),
   competition_prizes (id, title, description, image_url, value, sponsor_name, external_url, sort_order, prize_type),
+  competition_photos (id, image_url, caption, sort_order),
   competition_rules (id, section_title, section_content, sort_order),
   voting_rounds (
     id, title, round_order, start_date, end_date,
@@ -63,6 +64,7 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
   const [nominationPeriods, setNominationPeriods] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [prizes, setPrizes] = useState([]);
+  const [photos, setPhotos] = useState([]);
   const [votes, setVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -191,6 +193,9 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       );
       setPrizes(
         (compData.competition_prizes || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      );
+      setPhotos(
+        (compData.competition_photos || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       );
       setRules(
         (compData.competition_rules || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -360,6 +365,7 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
     votingRounds,
     nominationPeriods,
     announcements,
+    photos,
     phase,
     prizePool,
     about,

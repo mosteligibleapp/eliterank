@@ -6170,3 +6170,228 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 .phase-coming-soon .powered-by-eliterank {
   display: flex;
 }
+
+/* ====================================================================
+   Results-page showcase sections — photos, prizes, events.
+   Shared centered header + neutral card styling per brand rules.
+   ==================================================================== */
+.competition-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xl);
+}
+
+.competition-section-icon {
+  color: var(--color-primary);
+}
+
+.competition-section-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* --- Photo gallery --- */
+.competition-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.competition-gallery-thumb {
+  position: relative;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--color-bg-secondary);
+  aspect-ratio: 1 / 1;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.competition-gallery-thumb:hover {
+  transform: translateY(-3px);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+}
+
+.competition-gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* --- Lightbox --- */
+.competition-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+}
+
+.competition-lightbox-figure {
+  margin: 0;
+  max-width: 90vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.competition-lightbox-figure img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+}
+
+.competition-lightbox-caption {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.competition-lightbox-close,
+.competition-lightbox-nav {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full, 999px);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.competition-lightbox-close:hover,
+.competition-lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.competition-lightbox-close {
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  width: 44px;
+  height: 44px;
+}
+
+.competition-lightbox-nav {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+}
+
+.competition-lightbox-prev {
+  left: var(--spacing-lg);
+}
+
+.competition-lightbox-next {
+  right: var(--spacing-lg);
+}
+
+/* --- Prizes showcase --- */
+.competition-prizes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.competition-prize-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+a.competition-prize-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+}
+
+.competition-prize-media {
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--color-primary-rgb), 0.06);
+}
+
+.competition-prize-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.competition-prize-placeholder {
+  color: rgba(var(--color-primary-rgb), 0.4);
+}
+
+.competition-prize-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--spacing-lg);
+}
+
+.competition-prize-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.competition-prize-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.competition-prize-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 4px 0 0;
+}
+
+.competition-prize-sponsor {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-xs);
+}
+
+/* --- Events grid --- */
+.competition-events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .competition-gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .competition-lightbox-nav {
+    width: 40px;
+    height: 40px;
+  }
+}
