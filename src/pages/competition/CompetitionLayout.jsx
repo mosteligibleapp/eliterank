@@ -9,6 +9,7 @@ import CompetitionSkeleton from '../../components/skeletons/CompetitionSkeleton'
 import { useAuthStore } from '../../stores';
 import { ProfileIcon, NotificationBell } from '../../components/ui';
 import { useIsJudge } from '../../hooks';
+import { isCompetitionInProgress } from '../../utils/competitionPhase';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
 // Phase view components (lazy-loaded — only the active phase is needed)
@@ -67,6 +68,13 @@ function CompetitionLayoutInner() {
   // Check if user has dashboard access
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
   const isJudge = useIsJudge();
+
+  // "How to Win" only shows while the competition is actively running
+  // (nominations → finals); hidden for Coming Soon and Completed. Merge in the
+  // loaded voting rounds so the live sub-phase resolves accurately.
+  const competitionInProgress = isCompetitionInProgress(
+    competition ? { ...competition, voting_rounds: votingRounds } : null,
+  );
 
   // Performance stats — surfaced inside the profile dropdown when the
   // current user is a contestant in this competition. We have the data on
@@ -225,7 +233,7 @@ function CompetitionLayoutInner() {
             onRewards={profile?.is_nominee_or_contestant ? handleRewards : undefined}
             onAchievements={profile?.is_nominee_or_contestant ? handleAchievements : undefined}
             onAccountSettings={handleAccountSettings}
-            onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
+            onHowToCompete={profile?.is_nominee_or_contestant && competitionInProgress ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
             onJudge={isJudge ? handleJudge : null}

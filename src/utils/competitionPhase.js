@@ -298,6 +298,34 @@ export function isCompetitionAccessible(status) {
   ].includes(normalized);
 }
 
+// Phases where the competition is actively running — people can still
+// nominate, vote, or are being judged. Excludes "Coming Soon" (publish),
+// completed, archived, and draft. 'live'/'finals' are included as a safety
+// net for data that stores the phase directly in `status`.
+const IN_PROGRESS_PHASES = new Set([
+  TIMELINE_PHASES.NOMINATION,
+  TIMELINE_PHASES.VOTING,
+  TIMELINE_PHASES.JUDGING,
+  TIMELINE_PHASES.BETWEEN_ROUNDS,
+  'finals',
+  'live',
+]);
+
+/**
+ * Whether the competition is actively in progress (nominations through
+ * finals), as opposed to Coming Soon or Completed. Use this to gate things
+ * that only make sense while contestants can still act — e.g. the "How to
+ * Win" guide.
+ *
+ * @param {Object} competition - Competition object (status, and timeline
+ *   fields when available for an accurate live sub-phase).
+ * @returns {boolean}
+ */
+export function isCompetitionInProgress(competition) {
+  if (!competition) return false;
+  return IN_PROGRESS_PHASES.has(computeCompetitionPhase(competition));
+}
+
 /**
  * Legacy function for backward compatibility.
  * @deprecated Use isCompetitionAccessible instead
