@@ -115,25 +115,28 @@ export default function PeopleTab({
     if (!supabase || !competition?.id) return;
     setReordering(true);
 
-    // Sort contestants by current rank
-    const sorted = [...contestants].sort((a, b) => (a.rank || 999) - (b.rank || 999));
-    const currentIndex = sorted.findIndex(c => c.id === contestantId);
+    // Work from the same rank order the list is displayed in.
+    const ordered = [...contestants].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    const currentIndex = ordered.findIndex(c => c.id === contestantId);
     const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
 
-    if (swapIndex < 0 || swapIndex >= sorted.length) {
+    if (currentIndex === -1 || swapIndex < 0 || swapIndex >= ordered.length) {
       setReordering(false);
       return;
     }
 
-    const current = sorted[currentIndex];
-    const swap = sorted[swapIndex];
+    // Move the contestant one slot in the chosen direction.
+    [ordered[currentIndex], ordered[swapIndex]] = [ordered[swapIndex], ordered[currentIndex]];
 
-    // Swap ranks in DB
+    // Renumber everyone 1..N. Swapping the two rank *values* (the old approach)
+    // is a no-op whenever neighbors share a rank — and the data can contain
+    // duplicate / non-sequential ranks — so always reassign sequential ranks.
     try {
-      await Promise.all([
-        supabase.from('contestants').update({ rank: swap.rank || (swapIndex + 1) }).eq('id', current.id),
-        supabase.from('contestants').update({ rank: current.rank || (currentIndex + 1) }).eq('id', swap.id),
-      ]);
+      await Promise.all(
+        ordered.map((c, idx) =>
+          supabase.from('contestants').update({ rank: idx + 1 }).eq('id', c.id),
+        ),
+      );
       if (onRefresh) await onRefresh();
     } catch (err) {
       console.error('Error reordering contestants:', err);
