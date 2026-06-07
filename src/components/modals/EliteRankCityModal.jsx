@@ -640,16 +640,8 @@ export default function EliteRankCityModal({
             margin: 0,
             textAlign: 'center',
           }}>
-            Hall of Winners
+            Most Eligible Bachelorettes {year}
           </h2>
-          <p style={{
-            fontSize: typography.fontSize.sm,
-            color: colors.text.muted,
-            margin: 0,
-            textAlign: 'center',
-          }}>
-            Most Eligible {year}
-          </p>
         </div>
 
         {/* Winners Grid - portrait photo cards */}
