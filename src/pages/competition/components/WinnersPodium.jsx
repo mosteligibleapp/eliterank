@@ -114,8 +114,6 @@ export function WinnersPodium() {
  * (rank #1) gets the highlighted treatment.
  */
 function WinnersGrid({ winners, onSelect, year }) {
-  const isFirst = (index) => index === 0;
-
   return (
     <div className="legacy-winners-section">
       <div className="legacy-winners-header">
@@ -124,10 +122,10 @@ function WinnersGrid({ winners, onSelect, year }) {
       </div>
 
       <div className="legacy-winners-grid">
-        {winners.map((contestant, index) => (
+        {winners.map((contestant) => (
           <div
             key={contestant.id}
-            className={`legacy-winner-card ${isFirst(index) ? 'legacy-winner-card-first' : ''}`}
+            className="legacy-winner-card"
             onClick={() => onSelect?.(contestant)}
           >
             {contestant.avatar_url ? (
@@ -141,9 +139,6 @@ function WinnersGrid({ winners, onSelect, year }) {
                 {contestant.name?.charAt(0)}
               </div>
             )}
-            <span className={`legacy-winner-rank ${isFirst(index) ? 'legacy-winner-rank-first' : ''}`}>
-              {index + 1}
-            </span>
             <div className="legacy-winner-overlay">
               <span className="legacy-winner-name">{contestant.name}</span>
             </div>
