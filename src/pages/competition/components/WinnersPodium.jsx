@@ -130,17 +130,21 @@ function WinnersGrid({ winners, onSelect, year }) {
             className={`legacy-winner-card ${isFirst(index) ? 'legacy-winner-card-first' : ''}`}
             onClick={() => onSelect?.(contestant)}
           >
-            <div className={`legacy-winner-avatar-wrap ${isFirst(index) ? 'legacy-winner-avatar-wrap-first' : ''}`}>
-              {contestant.avatar_url ? (
-                <img src={transformSupabaseImage(contestant.avatar_url, { width: 200, height: 200 })} alt={contestant.name} className="legacy-winner-avatar-img" />
-              ) : (
-                <span className="legacy-winner-avatar-fallback">{contestant.name?.charAt(0)}</span>
-              )}
-            </div>
-            <div className="legacy-winner-info">
-              <span className={`legacy-winner-rank ${isFirst(index) ? 'legacy-winner-rank-first' : ''}`}>
-                {index + 1}
-              </span>
+            {contestant.avatar_url ? (
+              <img
+                src={transformSupabaseImage(contestant.avatar_url, { width: 300, height: 400 })}
+                alt={contestant.name}
+                className="legacy-winner-photo"
+              />
+            ) : (
+              <div className="legacy-winner-photo legacy-winner-photo-fallback">
+                {contestant.name?.charAt(0)}
+              </div>
+            )}
+            <span className={`legacy-winner-rank ${isFirst(index) ? 'legacy-winner-rank-first' : ''}`}>
+              {index + 1}
+            </span>
+            <div className="legacy-winner-overlay">
               <span className="legacy-winner-name">{contestant.name}</span>
             </div>
           </div>
