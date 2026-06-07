@@ -270,6 +270,7 @@ export function useCompetitionDashboard(competitionId) {
         age: c.age,
         email: c.email || c.profile?.email || null,
         votes: c.votes || 0,
+        lifetimeVotes: c.lifetime_votes || 0,
         status: c.status,
         trend: c.trend || 'same',
         rank: index + 1,

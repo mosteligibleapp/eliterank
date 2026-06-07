@@ -24,7 +24,12 @@
 
 const reachedRound = (c) => c?.eliminatedInRound ?? c?.eliminated_in_round ?? 0;
 
-export function compareContestantsByStanding(a, b) {
+// Default tie-break: current-round votes. Host overview surfaces pass a
+// lifetime-votes accessor instead, so their displayed totals stay monotonic
+// with the order.
+const roundVotes = (c) => c?.votes || 0;
+
+export function compareContestantsByStanding(a, b, voteOf = roundVotes) {
   const aOut = a?.status === 'eliminated';
   const bOut = b?.status === 'eliminated';
   if (aOut !== bOut) return aOut ? 1 : -1; // active before eliminated
@@ -34,11 +39,11 @@ export function compareContestantsByStanding(a, b) {
     if (diff !== 0) return diff;
   }
 
-  return (b?.votes || 0) - (a?.votes || 0);
+  return voteOf(b) - voteOf(a);
 }
 
-export function sortContestantsByStanding(contestants) {
-  return [...(contestants || [])].sort(compareContestantsByStanding);
+export function sortContestantsByStanding(contestants, voteOf = roundVotes) {
+  return [...(contestants || [])].sort((a, b) => compareContestantsByStanding(a, b, voteOf));
 }
 
 export default sortContestantsByStanding;

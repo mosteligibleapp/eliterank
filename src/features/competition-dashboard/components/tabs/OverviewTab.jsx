@@ -78,11 +78,12 @@ export default function OverviewTab({
     }
   };
 
-  // Standing order, not raw votes: still-competing contestants rank above
-  // eliminated ones (who keep their old round's votes), so the Top Contestants
-  // widget reflects who is actually winning.
+  // Standing order, ranked on total competition votes: still-competing
+  // contestants sit above eliminated ones (who keep their old round's votes),
+  // and the number shown is each contestant's lifetime total so the host sees
+  // one comparable figure across every round.
   const rankedContestants = useMemo(() => {
-    return sortContestantsByStanding(contestants);
+    return sortContestantsByStanding(contestants, (c) => c.lifetimeVotes || 0);
   }, [contestants]);
 
   const topContestants = rankedContestants.slice(0, 5);
@@ -475,7 +476,7 @@ export default function OverviewTab({
                       )}
                     </div>
                     <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                      {formatNumber(contestant.votes || 0)} votes
+                      {formatNumber(contestant.lifetimeVotes || contestant.votes || 0)} votes
                     </span>
                     <button
                       onClick={() => handleDownloadCard(contestant)}
