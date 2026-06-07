@@ -52,8 +52,31 @@ gradient in case it ever needs to be recreated.
 | Bronze | `#CD7F32` |
 
 ### Reserved — do NOT use for general/marketing design
-- **Status (success/warning/error/info states only):** `#22C55E` · `#F59E0B` · `#EF4444` · `#3B82F6`
 - **Accents (tier badges & data-viz only):** purple `#8B5CF6` · pink `#EC4899` · cyan `#06B6D4`
+
+## Status Colors (functional use — open/closed, success/error)
+Status colors ARE allowed, but **only to carry meaning** (e.g. nominations Open/Closed,
+success/error) — never as decoration. The brand status pair is an elegant, desaturated
+jewel-tone set chosen to sit beside antique gold:
+
+| Name | Hex | Use |
+|---|---|---|
+| Open / Success | `#2FA36C` | emerald — open, live, success |
+| Closed / Error | `#C24A5C` | garnet — closed, ended, error |
+
+**Treatment (always):**
+- Pair the color with a **text label** ("OPEN"/"CLOSED") and/or icon — never color alone
+  (accessibility + intent).
+- Use as a **muted pill**: fill at ~15% opacity, with a saturated border + label, not a
+  solid bright block. e.g. `background: rgba(47,163,108,0.15); border/text: #2FA36C`.
+- Keep small (chip/pill). Gold stays the hero.
+
+> ⚠️ **theme.js drift:** the app currently uses the loud Tailwind defaults
+> (`#22C55E` success / `#EF4444` error). To make the product match this brand standard,
+> `colors.status.success`/`error` in `src/styles/theme.js` should be retuned to
+> `#2FA36C` / `#C24A5C` (follow-up — touches all success/error UI, so verify contrast).
+
+## Gradients
 
 ## Gradients
 | Name | Value |
@@ -82,19 +105,28 @@ The Inter substitution applies to Canva/external collateral only.
 ## Canva Brand Kit
 - Brand kit id: `kAGY6tn2LUY`
 
-### Palette as entered in Canva (keep in sync with this doc)
+### Palettes as entered in Canva (keep in sync with this doc)
+Two **separate** palettes, deliberately walled off from each other:
+
+**Palette 1 — "Color palette" (brand / marketing)**
 | Canva swatch name | Hex |
 |---|---|
 | Gold Primary | `#D4AF37` |
 | Gold Light | `#F4D03F` |
 | Gold Dark | `#B8962F` |
-| Background | `#0A0A0C` |
+| Base Black | `#0A0A0C` |
 | Dark Surface | `#18181B` |
 | Secondary Text | `#A1A1AA` |
-| White | `#FFFFFF` |
+| Primary Text / White | `#FFFFFF` |
 
-- **Not in the palette (deliberate):** Logo Highlight/Shadow (carried by the logo asset),
-  status green/red (status-only), purple/pink/cyan accents (tier/data-viz only).
+**Palette 2 — "Status — Functional Only"** (use only for real status, see Status Colors above)
+| Canva swatch name | Hex |
+|---|---|
+| Open / Success | `#2FA36C` |
+| Closed / Error | `#C24A5C` |
+
+- **Not in either palette (deliberate):** Logo Highlight/Shadow (carried by the logo asset),
+  purple/pink/cyan accents (tier/data-viz only).
 - **Themes:** skipped — auto-shuffle color combos work against the locked gold-on-dark look.
 - **Fonts:** Inter (headings Bold/Extrabold, body Regular/Medium).
 - **Logo upload note:** the Canva connector's asset upload accepts **public HTTPS URLs only**,
