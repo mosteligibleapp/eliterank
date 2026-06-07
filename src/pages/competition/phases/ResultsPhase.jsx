@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Trophy, Users } from 'lucide-react';
+import { Trophy, Users, Heart } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
 import { HostSection } from '../components/HostSection';
 import { JudgesSection } from '../components/JudgesSection';
@@ -143,7 +143,7 @@ export function ResultsPhase() {
 
       {/* Final Stats - only for non-legacy competitions */}
       {!isLegacy && (
-        <section className="phase-stats results-stats">
+        <section className="phase-stats phase-stats-centered results-stats">
           <div className="stat-card">
             <div className="stat-icon-wrap">
               <Users size={20} className="stat-icon" />
@@ -152,7 +152,14 @@ export function ResultsPhase() {
             <span className="stat-label">Contestants</span>
           </div>
           <div className="stat-card">
-            <span className="stat-value">{formatNumber(leaderboardStats?.totalVotes)}</span>
+            <div className="stat-icon-wrap">
+              <Heart size={20} className="stat-icon" />
+            </div>
+            {/* All votes cast throughout the competition. Use the competition's
+                running total_votes counter (maintained by the vote-insert
+                triggers, never reset) rather than summing contestants' current
+                votes, which are wiped by per-round vote resets. */}
+            <span className="stat-value">{formatNumber(competition?.total_votes)}</span>
             <span className="stat-label">Total Votes</span>
           </div>
         </section>
