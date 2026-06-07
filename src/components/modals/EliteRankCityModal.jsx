@@ -640,7 +640,7 @@ export default function EliteRankCityModal({
             margin: 0,
             textAlign: 'center',
           }}>
-            Most Eligible Bachelorettes
+            Hall of Winners
           </h2>
           <p style={{
             fontSize: typography.fontSize.sm,
@@ -648,7 +648,7 @@ export default function EliteRankCityModal({
             margin: 0,
             textAlign: 'center',
           }}>
-            Chicago {year}
+            Most Eligible {year}
           </p>
         </div>
 
@@ -896,6 +896,9 @@ export default function EliteRankCityModal({
                 )}
               </div>
             )}
+
+            {/* Hall of Winners showcase */}
+            <HallOfWinners />
 
             {/* Ready to Host CTA */}
             <div style={{
