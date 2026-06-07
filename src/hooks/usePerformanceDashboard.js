@@ -79,7 +79,6 @@ export function usePerformanceDashboard(userId) {
           id,
           competition_id,
           status,
-          rank,
           eliminated_in_round,
           current_round,
           lifetime_votes,
@@ -121,6 +120,7 @@ export function usePerformanceDashboard(userId) {
           avatar_url,
           city,
           status,
+          votes,
           lifetime_votes,
           profile:profiles!user_id(avatar_url, first_name, last_name)
         `)
@@ -169,11 +169,21 @@ export function usePerformanceDashboard(userId) {
         const comp = mine.competition;
         const field = rosterByCompetition.get(mine.competition_id) || [];
 
-        // Olympic placement by lifetime votes, kept consistent with the
-        // totals shown on the card (the stored rank is round-scoped and only
-        // set at finalization, so we derive it from the same lifetime number).
+        // Placement mirrors the public leaderboard's default (votes) sort:
+        // eliminated contestants rank below everyone still standing, otherwise
+        // by current-round votes descending. So a finished competition's
+        // winner — who holds the most finale votes — lands at #1, matching
+        // what the leaderboard shows (rather than ranking by lifetime votes,
+        // which an earlier-eliminated contestant could win).
         const myVotes = mine.lifetime_votes ?? 0;
-        const ahead = field.filter((c) => (c.lifetime_votes ?? 0) > myVotes).length;
+        const tier = (c) => (c.status === 'eliminated' ? 1 : 0);
+        const orderedField = [...field].sort((a, b) => {
+          const t = tier(a) - tier(b);
+          if (t !== 0) return t;
+          return (b.votes ?? 0) - (a.votes ?? 0);
+        });
+        const placementIdx = orderedField.findIndex((c) => c.id === mine.id);
+        const placement = placementIdx >= 0 ? placementIdx + 1 : 1;
 
         const competitors = field
           .filter((c) => c.id !== mine.id)
@@ -213,7 +223,7 @@ export function usePerformanceDashboard(userId) {
           competitionStatus: comp.status,
           myContestantId: mine.id,
           myStatus: mine.status,
-          placement: ahead + 1,
+          placement,
           fieldSize: field.length,
           roundsReached,
           totalRounds,
