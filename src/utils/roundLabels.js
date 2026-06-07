@@ -1,13 +1,28 @@
 /**
- * Round / tier naming for a multi-round elimination competition.
+ * Round / tier naming — the single source of truth for how a multi-round
+ * elimination competition's rounds are labelled across the app.
  *
- * The tier a contestant reached is the round they were last in: the field that
- * advanced INTO a round is its tier size, so round 1 is the "Entry Round" and a
- * later round reads as "Top {N}" (N = the prior round's contestants_advance). A
- * round's own non-generic tier_label wins when present; a finale reads "Finale".
+ * THE MODEL
+ * The cohort competing in round R is whoever advanced out of round R-1, so a
+ * round's "tier" is the size of the field that entered it. That makes round 1
+ * the "Entry Round" and a later round read as "Top {N}", where N is the prior
+ * round's `contestants_advance`. The contestant a host eliminates in round R
+ * therefore *reached* round R's tier.
  *
- * Shared by the Performance dashboard (round chips) and the host dashboard
- * (per-contestant tier badge) so the labels never diverge.
+ * PRECEDENCE (one rule, applied everywhere)
+ * A round's label is resolved in this order, most authoritative first:
+ *   1. `tier_label`            — an explicit, non-generic host-defined tier name
+ *   2. finale `round_type`     — "Finale"
+ *   3. first round             — "Entry Round" (no prior tier exists)
+ *   4. derived advancement     — "Top {prior round's contestants_advance}"
+ *   5. `title`                 — an explicit, non-generic round title
+ *   6. positional fallback     — "Round {order}"
+ * A label of the form "Round 2" / "Round  3" is treated as generic (a
+ * placeholder), never as a real tier name.
+ *
+ * Consumers: usePerformanceDashboard (round chips), the host dashboard People
+ * list (per-contestant tier badge), and the profile competition history. They
+ * all route through here so the labels can never drift apart.
  */
 
 // "Round 2" / "Round  3" — a placeholder, not a real tier label.
@@ -15,9 +30,11 @@ const isGenericRoundLabel = (label) =>
   !label || /^round\s*\d+$/i.test(String(label).trim());
 
 /**
+ * Name every round in a competition, in round order.
+ *
  * @param {Array} rounds - voting_rounds rows ({ round_order, round_type, title,
- *   tier_label, contestants_advance }). Order doesn't matter; sorted here.
- * @returns {Array<{ order: number, label: string }>} one per round, in order.
+ *   tier_label, contestants_advance }). Input order is irrelevant; sorted here.
+ * @returns {Array<{ order: number, label: string }>}
  */
 export function buildRoundLabels(rounds) {
   const ordered = [...(rounds || [])]
@@ -47,13 +64,24 @@ export function buildRoundLabels(rounds) {
 }
 
 /**
+ * The tier name of a single round by its `round_order`.
+ *
+ * @returns {string|null} null when the order isn't found.
+ */
+export function getRoundLabel(rounds, order) {
+  if (order == null) return null;
+  const match = buildRoundLabels(rounds).find((l) => l.order === order);
+  return match ? match.label : null;
+}
+
+/**
  * The tier a contestant reached — for a "how far did they get" badge.
  *   - winner                         → "Winner"
  *   - still active in the last round → "Finalist"
  *   - still active otherwise         → the tier of their current round
  *   - eliminated                     → the tier of the round they went out in
  *
- * Handles both snake_case (eliminated_in_round / current_round) and camelCase
+ * Accepts both snake_case (eliminated_in_round / current_round) and camelCase
  * (eliminatedInRound / currentRound) contestant shapes.
  *
  * @returns {string|null}
