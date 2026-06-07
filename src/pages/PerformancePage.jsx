@@ -159,11 +159,11 @@ function CompetitorRow({ competitor }) {
             <Trophy size={12} style={{ color: colors.gold.primary, flexShrink: 0 }} />
           )}
         </div>
-        <div style={styles.compMeta}>
-          {competitor.city && <span>{competitor.city}</span>}
-          {competitor.city && <span style={styles.metaDot}>·</span>}
-          <span>{formatNumber(competitor.votes)} votes</span>
-        </div>
+        {competitor.city && (
+          <div style={styles.compMeta}>
+            <span>{competitor.city}</span>
+          </div>
+        )}
       </div>
     </div>
   );
