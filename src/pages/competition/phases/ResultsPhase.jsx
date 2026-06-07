@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { Trophy, Users } from 'lucide-react';
+import { Trophy, Users, Heart } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
 import { HostSection } from '../components/HostSection';
 import { JudgesSection } from '../components/JudgesSection';
@@ -152,6 +152,9 @@ export function ResultsPhase() {
             <span className="stat-label">Contestants</span>
           </div>
           <div className="stat-card">
+            <div className="stat-icon-wrap">
+              <Heart size={20} className="stat-icon" />
+            </div>
             {/* All votes cast throughout the competition. Use the competition's
                 running total_votes counter (maintained by the vote-insert
                 triggers, never reset) rather than summing contestants' current
