@@ -135,6 +135,7 @@ export function ResultsPhase() {
         badge="Competition Complete"
         badgeIcon={Trophy}
         badgeVariant="complete"
+        iconOnly
       />
 
       {/* Winners Podium */}
