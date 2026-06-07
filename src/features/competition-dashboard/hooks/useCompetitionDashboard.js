@@ -279,6 +279,7 @@ export function useCompetitionDashboard(competitionId) {
         userId: c.user_id,
         gender: c.gender || null,
         eliminatedInRound: c.eliminated_in_round,
+        currentRound: c.current_round,
       }));
 
       // Targeted profile lookup for nominee matching

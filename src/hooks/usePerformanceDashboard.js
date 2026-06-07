@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { sortContestantsByStanding } from '../utils/contestantRanking';
+import { buildRoundLabels } from '../utils/roundLabels';
 
 /**
  * usePerformanceDashboard
@@ -28,37 +29,6 @@ import { sortContestantsByStanding } from '../utils/contestantRanking';
  *   }
  */
 
-// "Round 2" / "Round  3" etc. — a placeholder name, not a real tier label.
-const isGenericRoundLabel = (label) =>
-  !label || /^round\s*\d+$/i.test(String(label).trim());
-
-// Name each round in a competition. Mirrors getReachedTierLabel in
-// ProfileCompetitions: a round's tier is the size of the field that advanced
-// INTO it (the prior round's contestants_advance), so round 1 is the "Entry
-// Round" and round R reads as "Top {advance of R-1}". An explicit tier_label
-// (or finale round_type, or title) takes precedence when it isn't generic.
-function buildRoundLabels(orderedRounds) {
-  return orderedRounds.map((r, idx) => {
-    let label;
-    if (!isGenericRoundLabel(r.tier_label)) {
-      label = r.tier_label;
-    } else if (r.round_type === 'finale') {
-      label = 'Finale';
-    } else if (idx === 0) {
-      label = 'Entry Round';
-    } else {
-      const advance = orderedRounds[idx - 1]?.contestants_advance;
-      if (Number.isFinite(advance) && advance > 0) {
-        label = `Top ${advance}`;
-      } else if (!isGenericRoundLabel(r.title)) {
-        label = r.title;
-      } else {
-        label = `Round ${r.round_order}`;
-      }
-    }
-    return { order: r.round_order, label };
-  });
-}
 export function usePerformanceDashboard(userId) {
   const [competitions, setCompetitions] = useState([]);
   const [loading, setLoading] = useState(true);
