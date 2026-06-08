@@ -186,7 +186,6 @@ const styles = {
   section: {
     maxWidth: '760px',
     margin: '0 auto',
-    marginTop: spacing.xxxl,
     marginBottom: spacing.xxxl,
     padding: spacing.lg,
   },

@@ -282,6 +282,11 @@
   animation: pulse 1.5s infinite;
 }
 
+/* Completed competitions are static — no live pulse on the dot. */
+.phase-badge-complete .badge-dot {
+  animation: none;
+}
+
 /* Sections */
 .phase-section {
   margin-bottom: var(--spacing-2xl);
