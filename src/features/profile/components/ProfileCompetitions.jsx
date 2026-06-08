@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock, Mic } from 'lucide-react';
+import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock, Mic, Heart } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -333,6 +333,23 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
         {competition.season && <span style={{ flexShrink: 0 }}>{competition.season}</span>}
       </div>
 
+      {/* Lifetime competition vote total — shown for contestant-role entries
+          so a past winner/contestant's total reads in context on the card. */}
+      {['winner', 'contestant', 'eliminated'].includes(entry.role) && (entry.lifetimeVotes || 0) > 0 && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: spacing.xs,
+          marginTop: spacing.xs,
+          color: colors.gold.primary,
+          fontSize: typography.fontSize.xs,
+          fontWeight: typography.fontWeight.semibold,
+        }}>
+          <Heart size={12} style={{ fill: colors.gold.primary }} />
+          {(entry.lifetimeVotes || 0).toLocaleString()} votes
+        </div>
+      )}
+
       {/* Unclaimed nomination CTA */}
       {entry.isUnclaimed && entry.nomination && (
         <div
@@ -547,28 +564,41 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
         )}
       </a>
 
-      {/* Stats row: rank / round-ends — rendered only for contestant
-          entries with an active voting round, since the data only makes
-          sense there. */}
-      {showInlineVoting && (
+      {/* Stats row. Votes (the lifetime competition total) shows for every
+          contestant-role entry — active, finished, or eliminated — so a past
+          winner's full total is visible right on their card. Rank and
+          Round-ends only make sense during a live voting round, so they're
+          appended only then. */}
+      {['winner', 'contestant', 'eliminated'].includes(entry.role) && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gridTemplateColumns: `repeat(${showInlineVoting ? 3 : 1}, minmax(0, 1fr))`,
           gap: spacing.sm,
         }}>
           <StatBox
-            label="Rank"
-            value={rankStats ? `#${rankStats.current}` : '—'}
-            suffix={rankStats ? `/ ${rankStats.total}` : undefined}
-            isMobile={isMobile}
-          />
-          <StatBox
-            label="Round ends"
-            value={countdown?.isExpired ? 'Ended' : (countdown?.display?.primary || '—')}
-            icon={<Clock size={12} />}
+            label="Votes"
+            value={(entry.lifetimeVotes || 0).toLocaleString()}
+            icon={<Heart size={12} style={{ fill: colors.gold.primary }} />}
             accent
             isMobile={isMobile}
           />
+          {showInlineVoting && (
+            <StatBox
+              label="Rank"
+              value={rankStats ? `#${rankStats.current}` : '—'}
+              suffix={rankStats ? `/ ${rankStats.total}` : undefined}
+              isMobile={isMobile}
+            />
+          )}
+          {showInlineVoting && (
+            <StatBox
+              label="Round ends"
+              value={countdown?.isExpired ? 'Ended' : (countdown?.display?.primary || '—')}
+              icon={<Clock size={12} />}
+              accent
+              isMobile={isMobile}
+            />
+          )}
         </div>
       )}
 
@@ -744,6 +774,10 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
       status: comp?.status,
       competition: comp,
       votes: entry.votes || 0,
+      // Never-reset competition total (paid + free + bonus + manual). Shown on
+      // the card so it reflects everything earned across the comp, not just the
+      // current round's running `votes` (which resets each round).
+      lifetimeVotes: entry.lifetime_votes ?? entry.votes ?? 0,
       contestant: {
         id: entry.id,
         name: entry.name,
