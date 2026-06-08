@@ -302,6 +302,9 @@ export default function EliteRankCityModal({
     const displayPhase = competition.accessible ? competition.phase : competition.status;
     const config = getPhaseDisplayConfig(displayPhase);
     const isClickable = competition.accessible || isPublished(competition.status);
+    // Completed competitions already read as finished (the "View Winners" CTA +
+    // the Complete filter), so the redundant "COMPLETED" status badge is omitted.
+    const isCompletedPhase = displayPhase === 'completed';
     const cityImage = competition.cover_image || getCityImage(competition.city, competition.name);
     const org = getOrg(competition.organizationId);
 
@@ -378,7 +381,10 @@ export default function EliteRankCityModal({
         }}>
           {/* Top Row */}
           <div style={{ ...styleHelpers.flexBetween }}>
-            {config.pulse ? (
+            {isCompletedPhase ? (
+              /* Empty spacer keeps the org logo right-aligned */
+              <span />
+            ) : config.pulse ? (
               <span style={{
                 width: isMobile ? '10px' : '12px',
                 height: isMobile ? '10px' : '12px',
