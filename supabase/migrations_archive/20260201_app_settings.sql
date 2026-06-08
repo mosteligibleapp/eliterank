@@ -16,8 +16,7 @@ CREATE INDEX IF NOT EXISTS idx_app_settings_key ON app_settings(key);
 INSERT INTO app_settings (key, value) VALUES (
   'hall_of_winners',
   '{
-    "year": 2025,
-    "totalAwarded": "$75K+",
+    "year": 2026,
     "winners": []
   }'::jsonb
 ) ON CONFLICT (key) DO NOTHING;

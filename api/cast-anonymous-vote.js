@@ -257,11 +257,14 @@ export default async function handler(request, response) {
   try {
     // ─── Verify active voting round ─────────────────────────────────────
     const nowIso = new Date().toISOString();
+    // Finale rounds collect public votes too (the winner is ranked by votes),
+    // so they must accept votes alongside regular voting rounds. Judging /
+    // resurrection rounds are not publicly votable.
     const { data: rounds, error: roundErr } = await supabase
       .from('voting_rounds')
       .select('id, start_date, end_date, round_type')
       .eq('competition_id', competitionId)
-      .eq('round_type', 'voting')
+      .in('round_type', ['voting', 'finale'])
       .lte('start_date', nowIso)
       .gt('end_date', nowIso)
       .limit(1);
