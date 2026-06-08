@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients, transitions } from '../../../styles/theme';
 import { getCompetitionStats, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -465,8 +465,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
                 const statsVotes = competitionStats?.totalVotes || 0;
                 const nomineeBonusVotes = (!statsVotes && bonusVotes?.totalEarned) ? bonusVotes.totalEarned : 0;
                 const displayVotes = statsVotes + nomineeBonusVotes;
-                const wins = competitionStats?.wins || 0;
-                if (displayVotes <= 0 && wins <= 0) return null;
+                if (displayVotes <= 0) return null;
 
                 return (
                   <div style={{
@@ -477,40 +476,21 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
                     marginTop: spacing.md,
                     flexWrap: 'wrap',
                   }}>
-                    {displayVotes > 0 && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        padding: `${spacing.xs} ${spacing.md}`,
-                        background: 'rgba(212,175,55,0.1)',
-                        border: '1px solid rgba(212,175,55,0.2)',
-                        borderRadius: borderRadius.pill,
-                        fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                        fontWeight: typography.fontWeight.semibold,
-                        color: colors.gold.primary,
-                      }}>
-                        <Heart size={isMobile ? 14 : 16} style={{ fill: colors.gold.primary }} />
-                        {displayVotes.toLocaleString()} votes
-                      </span>
-                    )}
-                    {wins > 0 && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        padding: `${spacing.xs} ${spacing.md}`,
-                        background: 'rgba(212,175,55,0.1)',
-                        border: '1px solid rgba(212,175,55,0.2)',
-                        borderRadius: borderRadius.pill,
-                        fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                        fontWeight: typography.fontWeight.semibold,
-                        color: colors.gold.primary,
-                      }}>
-                        <TrendingUp size={isMobile ? 14 : 16} />
-                        {wins} {wins === 1 ? 'win' : 'wins'}
-                      </span>
-                    )}
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                      padding: `${spacing.xs} ${spacing.md}`,
+                      background: 'rgba(212,175,55,0.1)',
+                      border: '1px solid rgba(212,175,55,0.2)',
+                      borderRadius: borderRadius.pill,
+                      fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
+                      fontWeight: typography.fontWeight.semibold,
+                      color: colors.gold.primary,
+                    }}>
+                      <Heart size={isMobile ? 14 : 16} style={{ fill: colors.gold.primary }} />
+                      {displayVotes.toLocaleString()} votes
+                    </span>
                   </div>
                 );
               })()}
