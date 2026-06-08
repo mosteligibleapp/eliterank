@@ -4,6 +4,7 @@ import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext
 import { Trophy, Users, Heart } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
 import { HostSection } from '../components/HostSection';
+import { CharityHighlight } from '../components/CharityHighlight';
 import { JudgesSection } from '../components/JudgesSection';
 import { CompetitionHeader } from '../components/CompetitionHeader';
 import { InterestModal } from '../components/InterestModal';
@@ -201,6 +202,11 @@ export function ResultsPhase() {
             </>
           )}
         </div>
+      </section>
+
+      {/* Charity partner */}
+      <section className="phase-section">
+        <CharityHighlight />
       </section>
 
       {/* Judges */}
