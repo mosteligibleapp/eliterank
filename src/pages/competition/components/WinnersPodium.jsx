@@ -142,7 +142,7 @@ function WinnersGrid({ winners, onSelect, year, city }) {
             onClick={() => onSelect?.(contestant)}
             style={{
               ...styles.card,
-              width: isMobile ? 'calc(46% - 8px)' : 'calc(25% - 10px)',
+              width: isMobile ? 'calc(46% - 8px)' : 'calc(20% - 10px)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.55)';
