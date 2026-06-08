@@ -564,15 +564,13 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
         )}
       </a>
 
-      {/* Stats row. Votes (the lifetime competition total) shows for every
-          contestant-role entry — active, finished, or eliminated — so a past
-          winner's full total is visible right on their card. Rank and
-          Round-ends only make sense during a live voting round, so they're
-          appended only then. */}
-      {['winner', 'contestant', 'eliminated'].includes(entry.role) && (
+      {/* Stats for a live voting round: Votes + Rank + Round-ends in an even
+          grid. The three boxes fill the row, so the centered StatBox layout
+          reads well here. */}
+      {['winner', 'contestant', 'eliminated'].includes(entry.role) && showInlineVoting && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${showInlineVoting ? 3 : 1}, minmax(0, 1fr))`,
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
           gap: spacing.sm,
         }}>
           <StatBox
@@ -582,23 +580,59 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             accent
             isMobile={isMobile}
           />
-          {showInlineVoting && (
-            <StatBox
-              label="Rank"
-              value={rankStats ? `#${rankStats.current}` : '—'}
-              suffix={rankStats ? `/ ${rankStats.total}` : undefined}
-              isMobile={isMobile}
-            />
-          )}
-          {showInlineVoting && (
-            <StatBox
-              label="Round ends"
-              value={countdown?.isExpired ? 'Ended' : (countdown?.display?.primary || '—')}
-              icon={<Clock size={12} />}
-              accent
-              isMobile={isMobile}
-            />
-          )}
+          <StatBox
+            label="Rank"
+            value={rankStats ? `#${rankStats.current}` : '—'}
+            suffix={rankStats ? `/ ${rankStats.total}` : undefined}
+            isMobile={isMobile}
+          />
+          <StatBox
+            label="Round ends"
+            value={countdown?.isExpired ? 'Ended' : (countdown?.display?.primary || '—')}
+            icon={<Clock size={12} />}
+            accent
+            isMobile={isMobile}
+          />
+        </div>
+      )}
+
+      {/* Finished / eliminated card: a single lifetime-votes figure. A
+          full-width centered StatBox looks empty for one stat, so use a
+          horizontal ledger row instead — label on the left, figure on the
+          right — which fills the width and reads as a headline result. */}
+      {['winner', 'contestant', 'eliminated'].includes(entry.role) && !showInlineVoting && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: spacing.md,
+          padding: isMobile ? `${spacing.sm} ${spacing.md}` : `${spacing.sm} ${spacing.lg}`,
+          background: 'rgba(212,175,55,0.06)',
+          border: '1px solid rgba(212,175,55,0.3)',
+          borderRadius: borderRadius.md,
+        }}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: spacing.xs,
+            fontSize: typography.fontSize.xs,
+            fontWeight: typography.fontWeight.semibold,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: colors.gold.primary,
+          }}>
+            <Heart size={13} style={{ fill: colors.gold.primary }} />
+            Total Votes
+          </span>
+          <span style={{
+            fontSize: typography.fontSize.xxl,
+            fontWeight: typography.fontWeight.bold,
+            color: colors.gold.primary,
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1,
+          }}>
+            {(entry.lifetimeVotes || 0).toLocaleString()}
+          </span>
         </div>
       )}
 
