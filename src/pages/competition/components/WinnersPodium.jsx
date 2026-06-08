@@ -142,7 +142,7 @@ function WinnersGrid({ winners, onSelect, year, city }) {
             onClick={() => onSelect?.(contestant)}
             style={{
               ...styles.card,
-              width: isMobile ? 'calc(33.33% - 8px)' : 'calc(20% - 10px)',
+              width: isMobile ? 'calc(50% - 8px)' : 'calc(25% - 10px)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.55)';
@@ -243,10 +243,10 @@ const styles = {
   },
   rankBadge: {
     position: 'absolute',
-    top: spacing.xs,
-    left: spacing.xs,
-    width: '32px',
-    height: '32px',
+    top: spacing.sm,
+    left: spacing.sm,
+    width: '36px',
+    height: '36px',
     flexShrink: 0,
     borderRadius: borderRadius.full,
     background: 'rgba(0, 0, 0, 0.65)',
@@ -256,7 +256,7 @@ const styles = {
     justifyContent: 'center',
   },
   rankText: {
-    fontSize: typography.fontSize.xs,
+    fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.bold,
     color: colors.gold.primary,
     lineHeight: 1,
@@ -271,7 +271,7 @@ const styles = {
     textAlign: 'center',
   },
   name: {
-    fontSize: typography.fontSize.xs,
+    fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
     margin: 0,
