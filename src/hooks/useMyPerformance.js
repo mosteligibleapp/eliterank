@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isCompetitionInProgress } from '../utils/competitionPhase';
 
 /**
  * useMyPerformance
@@ -115,6 +116,9 @@ export function useMyPerformance(userId) {
           roundVotes: r.votes ?? 0,
           rank: ranks[idx],
           roundLabel: rnd?.title || 'Current round',
+          // Actively running (nominations → finals) vs Coming Soon / Completed.
+          // Used to gate the "How to Win" guide so it only shows mid-competition.
+          isActive: isCompetitionInProgress(r.competition),
         };
       });
 

@@ -38,9 +38,6 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
     await signOut();
   };
 
-  const isNomineeOrContestant = profile?.is_nominee_or_contestant;
-  const handleHowToCompete = isNomineeOrContestant ? (onHowToCompete || (() => setShowGuide(true))) : undefined;
-
   const hasDashboardAccess = userRole === ROLES.HOST || userRole === ROLES.SUPER_ADMIN;
   const isJudge = useIsJudge();
 
@@ -48,6 +45,13 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   // Hook short-circuits when there's no user, so the network call only fires
   // for authenticated users.
   const { performances } = useMyPerformance(user?.id);
+
+  // "How to Win" only makes sense while a competition is actively running —
+  // hide it once the user's competitions are all Coming Soon or Completed.
+  const hasActiveCompetition = performances.some((p) => p.isActive);
+  const handleHowToCompete = hasActiveCompetition
+    ? (onHowToCompete || (() => setShowGuide(true)))
+    : undefined;
 
   return (
     <>
@@ -84,7 +88,6 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             hasDashboardAccess={hasDashboardAccess}
             onJudge={isJudge ? handleJudge : null}
             isJudge={isJudge}
-            performance={performances}
             size={40}
           />
         </div>

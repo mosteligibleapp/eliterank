@@ -12,6 +12,8 @@ import { useResponsive } from '../../../../hooks/useResponsive';
 import { generateAchievementCard, getAdvancementTitle } from '../../../achievement-cards/generateAchievementCard';
 import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
+import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
+import { getReachedTierLabel } from '../../../../utils/roundLabels';
 import WinnersManager from '../WinnersManager';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
@@ -890,8 +892,35 @@ export default function PeopleTab({
               {person.gender === 'male' ? 'M' : 'F'}
             </span>
           )}
+          {/* How far the contestant got: "Winner" / "Finalist" / "Top N" /
+              "Entry Round" so a host can read the bracket at a glance. */}
+          {cardType === 'contestant' && (() => {
+            const tier = getReachedTierLabel(person, votingRounds);
+            if (!tier) return null;
+            const out = person.status === 'eliminated';
+            return (
+              <span style={{
+                fontSize: typography.fontSize.xs,
+                fontWeight: typography.fontWeight.semibold,
+                padding: `1px ${spacing.xs}`,
+                borderRadius: borderRadius.sm,
+                background: out ? 'rgba(255,255,255,0.06)' : 'rgba(212,175,55,0.12)',
+                color: out ? colors.text.secondary : colors.gold.primary,
+                letterSpacing: '0.02em',
+                whiteSpace: 'nowrap',
+              }}>
+                {tier}
+              </span>
+            );
+          })()}
           <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-            {parseEmail(person.email)}{showVotes && person.votes > 0 ? `${person.email ? ' · ' : ''}${person.votes} votes` : ''}
+            {parseEmail(person.email)}{(() => {
+              // Contestants show their total competition votes (lifetime); the
+              // round-scoped `votes` is a misleading per-round number that
+              // resets and freezes on elimination.
+              const total = person.lifetimeVotes ?? person.votes;
+              return showVotes && total > 0 ? `${person.email ? ' · ' : ''}${total.toLocaleString()} votes` : '';
+            })()}
             {person.inviteSentAt && (
               <span style={{ color: colors.text.muted, opacity: 0.7 }}>
                 {' · '}Invited {new Date(person.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -1325,7 +1354,7 @@ export default function PeopleTab({
           ) : (() => {
             const sortedContestants = showReorder
               ? [...contestantsFiltered].sort((a, b) => (a.rank || 999) - (b.rank || 999))
-              : contestantsFiltered;
+              : sortContestantsByStanding(contestantsFiltered, (c) => c.lifetimeVotes || 0);
             return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {sortedContestants.map((c, idx) => (

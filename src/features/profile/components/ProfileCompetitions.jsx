@@ -9,6 +9,7 @@ import { useLeaderboard } from '../../../hooks';
 import useCountdown from '../../../hooks/useCountdown';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
+import { getRoundLabel } from '../../../utils/roundLabels';
 import { getCityImage } from '../../../utils/cityImages';
 import { getPhaseDisplayConfig, computeCompetitionPhase } from '../../../utils/competitionPhase';
 import CompetitionCardVoting from './CompetitionCardVoting';
@@ -202,30 +203,17 @@ function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
 }
 
 /**
- * Resolve the public-facing tier a contestant reached, given the round
- * they were eliminated in.
- *
- * The cohort competing in round R is whoever advanced out of round R-1,
- * so an eliminated contestant reached the tier sized by the prior round's
- * `contestants_advance` ("Top 50 Contestant"). The first round has no
- * prior tier and reads as the "Entry Round". The host's `tier_label` /
- * `title` are used only as a fallback, and never when they're a generic
- * "Round N".
+ * Public-facing tier a contestant reached, given the round they were
+ * eliminated in. Delegates the tier naming to the shared `roundLabels`
+ * source of truth and only adds the profile's "… Contestant" phrasing for
+ * numbered tiers ("Top 50 Contestant"); structural tiers like the entry
+ * round read on their own.
  */
 function getReachedTierLabel(competition, eliminatedInRound) {
   if (!eliminatedInRound) return null;
-  if (eliminatedInRound === 1) return 'Entry Round';
-
-  const rounds = competition?.voting_rounds || [];
-  const prior = rounds.find((r) => r.round_order === eliminatedInRound - 1);
-  const advance = prior?.contestants_advance;
-  if (Number.isFinite(advance) && advance > 0) return `Top ${advance} Contestant`;
-
-  const isGeneric = (label) => !label || /^round\s*\d+$/i.test(label.trim());
-  const round = rounds.find((r) => r.round_order === eliminatedInRound);
-  if (!isGeneric(round?.tier_label)) return round.tier_label;
-  if (!isGeneric(round?.title)) return round.title;
-  return `Round ${eliminatedInRound}`;
+  const label = getRoundLabel(competition?.voting_rounds, eliminatedInRound);
+  if (!label) return null;
+  return /^Top \d+$/.test(label) ? `${label} Contestant` : label;
 }
 
 function getVotingStartDate(competition) {

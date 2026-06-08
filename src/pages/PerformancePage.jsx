@@ -1,0 +1,708 @@
+/**
+ * PerformancePage — contestant-facing performance dashboard.
+ *
+ * For each competition the signed-in user entered, shows their lifetime vote
+ * total broken down into free / paid / bonus, how far they advanced (named
+ * rounds), and the roster of contestants they competed against.
+ */
+
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BarChart3, Trophy, Check, ChevronRight, Eye, Search, X } from 'lucide-react';
+import { useSupabaseAuth } from '../hooks';
+import usePerformanceDashboard from '../hooks/usePerformanceDashboard';
+import { useResponsive } from '../hooks/useResponsive';
+import { PageHeader, OrganizationLogo } from '../components/ui';
+import EmptyState from '../components/common/EmptyState';
+import { getCompetitionUrl } from '../utils/slugs';
+import { SAMPLE_PERFORMANCE } from '../lib/samplePerformance';
+import { colors, spacing, borderRadius, typography } from '../styles/theme';
+
+// Vote-type palette. Per the brand rules accent colors are reserved for data
+// visualization — this breakdown is exactly that. Paid leans on the gold
+// accent (premium), free stays neutral silver, bonus uses the cyan accent.
+const VOTE_TYPES = [
+  { key: 'freeVotes', label: 'Free', color: colors.text.secondary },
+  { key: 'paidVotes', label: 'Paid', color: colors.gold.primary },
+  { key: 'bonusVotes', label: 'Bonus', color: colors.accent.cyan },
+];
+
+function formatNumber(n) {
+  return (n ?? 0).toLocaleString('en-US');
+}
+
+// Competition.status values that mean the competition is over.
+const ENDED_COMPETITION_STATUSES = new Set(['completed', 'complete', 'ended', 'archive', 'archived']);
+
+// Reflects the competition's phase, not the contestant's outcome.
+function CompetitionPhaseBadge({ competitionStatus }) {
+  if (ENDED_COMPETITION_STATUSES.has(competitionStatus)) {
+    return (
+      <span style={{ ...styles.badge, color: colors.text.secondary, background: 'rgba(255,255,255,0.06)' }}>
+        <Check size={11} /> Complete
+      </span>
+    );
+  }
+  return (
+    <span style={{ ...styles.badge, color: colors.status.success, background: colors.status.successMuted }}>
+      Active
+    </span>
+  );
+}
+
+function VoteBreakdown({ entry }) {
+  const total = entry.totalVotes || 0;
+  const segments = VOTE_TYPES.map((t) => ({
+    ...t,
+    value: entry[t.key] || 0,
+    pct: total > 0 ? (entry[t.key] || 0) / total : 0,
+  }));
+
+  return (
+    <div style={styles.breakdown}>
+      <div style={styles.totalRow}>
+        <div>
+          <div style={styles.totalLabel}>Total votes this competition</div>
+          <div style={styles.totalValue}>{formatNumber(total)}</div>
+        </div>
+        <div style={styles.placement}>
+          <span style={styles.placementRank}>#{entry.placement}</span>
+          <span style={styles.placementOf}>of {entry.fieldSize}</span>
+        </div>
+      </div>
+
+      {/* Stacked proportion bar */}
+      <div style={styles.bar}>
+        {total > 0 ? (
+          segments.map((s) => (
+            s.value > 0 && (
+              <div
+                key={s.key}
+                style={{ width: `${s.pct * 100}%`, background: s.color, height: '100%' }}
+                title={`${s.label}: ${formatNumber(s.value)}`}
+              />
+            )
+          ))
+        ) : (
+          <div style={{ width: '100%', background: 'rgba(255,255,255,0.06)', height: '100%' }} />
+        )}
+      </div>
+
+      {/* Per-type tiles */}
+      <div style={styles.tiles}>
+        {segments.map((s) => (
+          <div key={s.key} style={styles.tile}>
+            <div style={styles.tileHead}>
+              <span style={{ ...styles.dot, background: s.color }} />
+              <span style={styles.tileLabel}>{s.label}</span>
+            </div>
+            <div style={styles.tileValue}>{formatNumber(s.value)}</div>
+            <div style={styles.tilePct}>
+              {total > 0 ? `${Math.round(s.pct * 100)}%` : '—'}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* How far they advanced — named round chips, filled up to the round
+          they reached. */}
+      {entry.rounds && entry.rounds.length > 0 && (() => {
+        const reached = entry.rounds.filter((r) => r.order <= entry.roundsReached);
+        const furthest = reached.length ? reached[reached.length - 1].label : null;
+        return (
+          <div style={styles.roundsBlock}>
+            <div style={styles.roundsHead}>
+              <span style={styles.roundsLabel}>Rounds reached</span>
+              {furthest && <span style={styles.roundsValue}>{furthest}</span>}
+            </div>
+            <div style={styles.roundsChips}>
+              {entry.rounds.map((r) => {
+                const isReached = r.order <= entry.roundsReached;
+                return (
+                  <span
+                    key={r.order}
+                    style={{
+                      ...styles.roundChip,
+                      ...(isReached ? styles.roundChipReached : styles.roundChipMuted),
+                    }}
+                  >
+                    {r.label}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function CompetitorRow({ competitor }) {
+  const navigate = useNavigate();
+  const initials = (competitor.name?.[0] || '?').toUpperCase();
+  // Only contestants with a claimed account have a public profile to open.
+  const clickable = Boolean(competitor.userId);
+
+  const body = (
+    <>
+      <div
+        style={{
+          ...styles.compAvatar,
+          background: competitor.avatarUrl
+            ? `url(${competitor.avatarUrl}) center/cover`
+            : 'rgba(212,175,55,0.15)',
+        }}
+      >
+        {!competitor.avatarUrl && initials}
+      </div>
+      <div style={styles.compText}>
+        <div style={styles.compNameRow}>
+          <span style={styles.compName}>{competitor.name}</span>
+          {competitor.status === 'winner' && (
+            <Trophy size={12} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+          )}
+        </div>
+        {competitor.city && (
+          <div style={styles.compMeta}>
+            <span>{competitor.city}</span>
+          </div>
+        )}
+      </div>
+      {clickable && (
+        <ChevronRight size={16} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
+      )}
+    </>
+  );
+
+  if (!clickable) {
+    return <div style={styles.compRow}>{body}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(`/profile/${competitor.userId}`)}
+      style={styles.compRowButton}
+      onMouseEnter={(e) => { e.currentTarget.style.background = colors.background.cardHover; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+      aria-label={`View ${competitor.name}'s profile`}
+    >
+      {body}
+    </button>
+  );
+}
+
+// Below this many competitors a single column reads fine and search is noise;
+// above it, switch on search and (on wider screens) a two-column grid.
+const COMPETITOR_LIST_THRESHOLD = 8;
+
+function CompetitorList({ competitors, isMobile }) {
+  const [query, setQuery] = useState('');
+  const total = competitors.length;
+  const isLongList = total > COMPETITOR_LIST_THRESHOLD;
+  const twoColumns = isLongList && !isMobile;
+
+  const q = query.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!q) return competitors;
+    return competitors.filter((c) => c.name?.toLowerCase().includes(q));
+  }, [competitors, q]);
+
+  return (
+    <div style={styles.compSection}>
+      <div style={styles.compSectionHead}>
+        <span style={styles.compSectionTitle}>Who you competed with</span>
+        <span style={styles.compSectionCount}>{total}</span>
+      </div>
+
+      {total === 0 ? (
+        <p style={styles.compEmpty}>No other contestants in this competition yet.</p>
+      ) : (
+        <>
+          {isLongList && (
+            <div style={styles.compSearchWrap}>
+              <Search size={15} style={styles.compSearchIcon} />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name"
+                aria-label="Search contestants"
+                style={styles.compSearchInput}
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Clear search"
+                  style={styles.compSearchClear}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {filtered.length === 0 ? (
+            <p style={styles.compEmpty}>No contestants match “{query.trim()}”.</p>
+          ) : (
+            <div style={twoColumns ? styles.compGrid : styles.compList}>
+              {filtered.map((c) => (
+                <CompetitorRow key={c.id} competitor={c} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function CompetitionCard({ entry, isMobile, onOpenCompetition }) {
+  return (
+    <div style={styles.card}>
+      {/* Header */}
+      <button
+        type="button"
+        onClick={() => onOpenCompetition(entry)}
+        style={styles.cardHeader}
+      >
+        {entry.orgLogo && (
+          <OrganizationLogo logo={entry.orgLogo} size={isMobile ? 44 : 52} />
+        )}
+        <div style={styles.headerText}>
+          <div style={styles.headerTitleRow}>
+            <h3 style={styles.compTitle}>{entry.competitionName}</h3>
+            <CompetitionPhaseBadge competitionStatus={entry.competitionStatus} />
+          </div>
+          {entry.citySeason && <div style={styles.compSub}>{entry.citySeason}</div>}
+        </div>
+        <ChevronRight size={18} style={{ color: colors.text.tertiary, flexShrink: 0 }} />
+      </button>
+
+      <VoteBreakdown entry={entry} />
+
+      <CompetitorList competitors={entry.competitors} isMobile={isMobile} />
+    </div>
+  );
+}
+
+export default function PerformancePage() {
+  const navigate = useNavigate();
+  const { isMobile } = useResponsive();
+  const { user, profile } = useSupabaseAuth();
+  const { competitions, loading } = usePerformanceDashboard(user?.id);
+
+  // Super admins with no real contestant entries see sample data so they can
+  // review the populated layout. It's a render-only preview — nothing is
+  // written to the database, so it can't leak onto public leaderboards.
+  const isSamplePreview = !loading
+    && competitions.length === 0
+    && profile?.is_super_admin === true;
+  const data = isSamplePreview ? SAMPLE_PERFORMANCE : competitions;
+
+  const handleOpenCompetition = (entry) => {
+    if (entry.orgSlug && entry.competitionSlug) {
+      navigate(getCompetitionUrl(entry.orgSlug, entry.competitionSlug));
+    } else if (entry.orgSlug) {
+      navigate(`/${entry.orgSlug}/id/${entry.competitionId}`);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: colors.background.primary }}>
+      <PageHeader title="Performance" />
+
+      <div style={{
+        maxWidth: '760px',
+        margin: '0 auto',
+        padding: isMobile ? spacing.md : `${spacing.lg} ${spacing.lg} ${spacing.xxxl}`,
+      }}>
+        {loading ? (
+          <div style={styles.loading}>Loading your performance…</div>
+        ) : data.length === 0 ? (
+          <EmptyState
+            icon={<BarChart3 size={32} />}
+            title="No performance data yet"
+            description="Once you enter a competition, your vote breakdown and the contestants you competed with will show up here."
+            ctaLabel="Browse Competitions"
+            onCta={() => navigate('/')}
+          />
+        ) : (
+          <div style={styles.stack}>
+            {isSamplePreview && (
+              <div style={styles.sampleBanner}>
+                <Eye size={15} style={{ flexShrink: 0, marginTop: '1px' }} />
+                <span>
+                  <strong>Sample preview</strong> — super admins only. This is placeholder
+                  data to show how a contestant's dashboard looks once they have votes. It
+                  isn't saved and only you can see it.
+                </span>
+              </div>
+            )}
+            {data.map((entry) => (
+              <CompetitionCard
+                key={entry.competitionId}
+                entry={entry}
+                isMobile={isMobile}
+                onOpenCompetition={handleOpenCompetition}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  loading: {
+    padding: spacing.xxl,
+    textAlign: 'center',
+    color: colors.text.muted,
+    fontSize: typography.fontSize.sm,
+  },
+  stack: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.lg,
+  },
+  sampleBanner: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: `${spacing.sm} ${spacing.md}`,
+    background: colors.gold.muted,
+    border: `1px solid ${colors.border.focus}`,
+    borderRadius: borderRadius.md,
+    color: colors.gold.primary,
+    fontSize: typography.fontSize.xs,
+    lineHeight: 1.5,
+  },
+  card: {
+    background: colors.background.secondary,
+    border: `1px solid ${colors.border.primary}`,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+  },
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.md,
+    width: '100%',
+    padding: spacing.lg,
+    background: 'transparent',
+    border: 'none',
+    borderBottom: `1px solid ${colors.border.secondary}`,
+    cursor: 'pointer',
+    textAlign: 'left',
+  },
+  headerText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  headerTitleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  compTitle: {
+    margin: 0,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+    letterSpacing: typography.letterSpacing.tight,
+  },
+  compSub: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    marginTop: '2px',
+  },
+  badge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '2px 8px',
+    borderRadius: borderRadius.pill,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    whiteSpace: 'nowrap',
+  },
+
+  // Vote breakdown
+  breakdown: {
+    padding: spacing.lg,
+  },
+  totalRow: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  totalLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    fontWeight: typography.fontWeight.semibold,
+  },
+  totalValue: {
+    fontSize: typography.fontSize['4xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    lineHeight: 1.1,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  placement: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    flexShrink: 0,
+  },
+  placementRank: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.gold.primary,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  placementOf: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+  },
+  bar: {
+    display: 'flex',
+    width: '100%',
+    height: '10px',
+    borderRadius: borderRadius.pill,
+    overflow: 'hidden',
+    background: 'rgba(255,255,255,0.04)',
+    marginBottom: spacing.md,
+  },
+  tiles: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: spacing.sm,
+  },
+  tile: {
+    background: 'rgba(255,255,255,0.03)',
+    border: `1px solid ${colors.border.secondary}`,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+  },
+  tileHead: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  dot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: borderRadius.full,
+    flexShrink: 0,
+  },
+  tileLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    fontWeight: typography.fontWeight.medium,
+  },
+  tileValue: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1.2,
+  },
+  tilePct: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+    fontVariantNumeric: 'tabular-nums',
+  },
+
+  // Rounds-reached progress
+  roundsBlock: {
+    marginTop: spacing.md,
+  },
+  roundsHead: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  roundsLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    fontWeight: typography.fontWeight.semibold,
+  },
+  roundsValue: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.gold.primary,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  roundsChips: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  roundChip: {
+    padding: `3px ${spacing.sm}`,
+    borderRadius: borderRadius.pill,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.medium,
+    whiteSpace: 'nowrap',
+  },
+  roundChipReached: {
+    background: colors.gold.muted,
+    color: colors.gold.primary,
+    border: `1px solid ${colors.border.focus}`,
+  },
+  roundChipMuted: {
+    background: 'rgba(255,255,255,0.03)',
+    color: colors.text.muted,
+    border: `1px solid ${colors.border.secondary}`,
+  },
+
+  // Competitors
+  compSection: {
+    borderTop: `1px solid ${colors.border.secondary}`,
+    padding: spacing.lg,
+  },
+  compSectionHead: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  compSectionTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  compSectionCount: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.gold.primary,
+    background: colors.gold.muted,
+    borderRadius: borderRadius.pill,
+    padding: '1px 8px',
+  },
+  compEmpty: {
+    margin: 0,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+  },
+  compList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.xs,
+  },
+  // Two columns for long rosters on wider screens; minmax(0,1fr) lets each
+  // cell shrink so long names ellipsize instead of forcing overflow.
+  compGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `${spacing.xs} ${spacing.lg}`,
+  },
+  compRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.sm,
+    minWidth: 0,
+  },
+  compRowButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.sm,
+    width: '100%',
+    minWidth: 0,
+    background: 'transparent',
+    border: 'none',
+    borderRadius: borderRadius.md,
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'background 0.15s ease',
+  },
+  compSearchWrap: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  compSearchIcon: {
+    position: 'absolute',
+    left: spacing.sm,
+    color: colors.text.tertiary,
+    pointerEvents: 'none',
+  },
+  compSearchInput: {
+    width: '100%',
+    padding: `${spacing.sm} ${spacing.xl} ${spacing.sm} ${spacing.xxl}`,
+    background: colors.background.tertiary,
+    border: `1px solid ${colors.border.secondary}`,
+    borderRadius: borderRadius.md,
+    color: colors.text.primary,
+    fontSize: typography.fontSize.sm,
+    outline: 'none',
+  },
+  compSearchClear: {
+    position: 'absolute',
+    right: spacing.sm,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xs,
+    background: 'transparent',
+    border: 'none',
+    color: colors.text.tertiary,
+    cursor: 'pointer',
+  },
+  compAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.gold.primary,
+    flexShrink: 0,
+  },
+  compText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  compNameRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    minWidth: 0,
+  },
+  compName: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  compMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+    marginTop: '1px',
+  },
+  metaDot: {
+    color: colors.text.muted,
+  },
+};

@@ -6,6 +6,7 @@ import { formatNumber } from '../../../utils/formatters';
 import { useCountdown } from '../../../hooks';
 import { CONTESTANT_IMAGES } from '../../../constants';
 import { transformSupabaseImage } from '../../../lib/storageImage';
+import { sortContestantsByStanding } from '../../../utils/contestantRanking';
 
 export default function ContestantsTab({ contestants, events, forceDoubleVoteDay, onVote, isAuthenticated = false, onLogin, isJudgingPhase = false, onViewProfile, currentRound }) {
   // Use currentRound end date if available, otherwise show no countdown
@@ -17,14 +18,10 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
   // carry-over while eliminated rows keep their pre-reset totals. Without a
   // tier-aware sort, eliminated contestants would render above advancers in
   // the grid. Mirrors the host-dashboard pattern in useLeaderboard.js.
-  const sortedContestants = React.useMemo(() => {
-    const tier = (c) => (c.status === 'eliminated' ? 1 : 0);
-    return [...contestants].sort((a, b) => {
-      const t = tier(a) - tier(b);
-      if (t !== 0) return t;
-      return (b.votes || 0) - (a.votes || 0);
-    });
-  }, [contestants]);
+  const sortedContestants = React.useMemo(
+    () => sortContestantsByStanding(contestants),
+    [contestants],
+  );
 
   const handleVoteClick = (contestant) => {
     if (isJudgingPhase) return;
