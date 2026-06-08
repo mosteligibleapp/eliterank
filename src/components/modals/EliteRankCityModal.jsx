@@ -302,9 +302,10 @@ export default function EliteRankCityModal({
     const displayPhase = competition.accessible ? competition.phase : competition.status;
     const config = getPhaseDisplayConfig(displayPhase);
     const isClickable = competition.accessible || isPublished(competition.status);
-    // Completed competitions already read as finished (the "View Winners" CTA +
-    // the Complete filter), so the redundant "COMPLETED" status badge is omitted.
-    const isCompletedPhase = displayPhase === 'completed';
+    // The CTA already states the status for completed ("View Winners") and
+    // coming-soon ("Coming Soon") cards, so the redundant status badge is
+    // omitted for those. Live cards keep their pulsing indicator.
+    const hideStatusBadge = displayPhase === 'completed' || isPublished(competition.status);
     const cityImage = competition.cover_image || getCityImage(competition.city, competition.name);
     const org = getOrg(competition.organizationId);
 
@@ -381,7 +382,7 @@ export default function EliteRankCityModal({
         }}>
           {/* Top Row */}
           <div style={{ ...styleHelpers.flexBetween }}>
-            {isCompletedPhase ? (
+            {hideStatusBadge ? (
               /* Empty spacer keeps the org logo right-aligned */
               <span />
             ) : config.pulse ? (
