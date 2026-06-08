@@ -211,7 +211,7 @@ export async function getCompetitionStats(userId) {
         .single(),
       supabase
         .from('contestants')
-        .select('votes, rank, status')
+        .select('votes, lifetime_votes, rank, status')
         .eq('user_id', userId)
         .neq('status', 'removed'),
     ]);
@@ -219,8 +219,18 @@ export async function getCompetitionStats(userId) {
     const profile = profileResult.data;
     const contestants = contestantsResult.data || [];
 
-    // Calculate from contestants as source of truth for votes
-    const contestantVotes = contestants.reduce((sum, c) => sum + (c.votes || 0), 0);
+    // Calculate from contestants as source of truth for votes. Use
+    // lifetime_votes (the never-reset per-competition total: paid + free +
+    // bonus + manual) rather than `votes`, which is only the current round's
+    // running total and gets reset when each round starts (migration 053).
+    // Without this, a finished competition's winner would show just their
+    // final-round count instead of everything they earned across the comp.
+    // Fall back to `votes` per row in case lifetime_votes is unset on an
+    // older row (it equals `votes` for a competition still in round one).
+    const contestantVotes = contestants.reduce(
+      (sum, c) => sum + Math.max(c.lifetime_votes || 0, c.votes || 0),
+      0
+    );
     const contestantWins = contestants.filter(c => c.status === 'winner').length;
     const bestRank = contestants.reduce((best, c) => {
       if (c.rank && (best === null || c.rank < best)) return c.rank;
