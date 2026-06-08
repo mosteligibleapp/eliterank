@@ -282,9 +282,9 @@
   animation: pulse 1.5s infinite;
 }
 
-/* Completed competitions are static — no live pulse on the dot. */
+/* Completed competitions are static — no live-status dot at all. */
 .phase-badge-complete .badge-dot {
-  animation: none;
+  display: none;
 }
 
 /* Sections */

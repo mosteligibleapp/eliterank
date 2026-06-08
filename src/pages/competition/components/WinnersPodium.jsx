@@ -187,7 +187,7 @@ const styles = {
     maxWidth: '760px',
     margin: '0 auto',
     marginBottom: spacing.xxxl,
-    padding: spacing.lg,
+    padding: `0 ${spacing.lg} ${spacing.lg}`,
   },
   header: {
     display: 'flex',
