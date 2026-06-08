@@ -524,8 +524,9 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             </div>
           )}
 
-          {/* Row 3: Meta (city · season) — kept tight because rank / votes
-              / round-end now live in the stats row below. */}
+          {/* Row 3: Meta (city · season) — kept tight because the vote total
+              sits to the right in the header and rank / round-end live in the
+              stats row below. */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -549,6 +550,43 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           </div>
         </div>
 
+        {/* Lifetime vote total, right-aligned in the header for any
+            contestant-role entry. The figure leads with the city/season meta
+            on the left, so the header reads "who / where" → "how many" without
+            a separate stat band below. */}
+        {['winner', 'contestant', 'eliminated'].includes(entry.role) && (
+          <div style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            textAlign: 'right',
+            lineHeight: 1.1,
+          }}>
+            <span style={{
+              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.gold.primary,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {(entry.lifetimeVotes || 0).toLocaleString()}
+            </span>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              fontSize: '10px',
+              fontWeight: typography.fontWeight.semibold,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: colors.gold.primary,
+            }}>
+              <Heart size={10} style={{ fill: colors.gold.primary }} />
+              Votes
+            </span>
+          </div>
+        )}
+
         {/* Chevron only for non-contestant entries — contestant cards are
             primarily about the inline voting panel, so the navigational
             affordance would compete with the primary CTA. */}
@@ -564,22 +602,14 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
         )}
       </a>
 
-      {/* Stats for a live voting round: Votes + Rank + Round-ends in an even
-          grid. The three boxes fill the row, so the centered StatBox layout
-          reads well here. */}
-      {['winner', 'contestant', 'eliminated'].includes(entry.role) && showInlineVoting && (
+      {/* Live voting round: Rank + Round-ends below the header (the vote total
+          lives in the header now). Two even boxes fill the row. */}
+      {showInlineVoting && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
           gap: spacing.sm,
         }}>
-          <StatBox
-            label="Votes"
-            value={(entry.lifetimeVotes || 0).toLocaleString()}
-            icon={<Heart size={12} style={{ fill: colors.gold.primary }} />}
-            accent
-            isMobile={isMobile}
-          />
           <StatBox
             label="Rank"
             value={rankStats ? `#${rankStats.current}` : '—'}
@@ -593,46 +623,6 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             accent
             isMobile={isMobile}
           />
-        </div>
-      )}
-
-      {/* Finished / eliminated card: a single lifetime-votes figure. A
-          full-width centered StatBox looks empty for one stat, so use a
-          horizontal ledger row instead — label on the left, figure on the
-          right — which fills the width and reads as a headline result. */}
-      {['winner', 'contestant', 'eliminated'].includes(entry.role) && !showInlineVoting && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: spacing.md,
-          padding: isMobile ? `${spacing.sm} ${spacing.md}` : `${spacing.sm} ${spacing.lg}`,
-          background: 'rgba(212,175,55,0.06)',
-          border: '1px solid rgba(212,175,55,0.3)',
-          borderRadius: borderRadius.md,
-        }}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: spacing.xs,
-            fontSize: typography.fontSize.xs,
-            fontWeight: typography.fontWeight.semibold,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            color: colors.gold.primary,
-          }}>
-            <Heart size={13} style={{ fill: colors.gold.primary }} />
-            Total Votes
-          </span>
-          <span style={{
-            fontSize: typography.fontSize.xxl,
-            fontWeight: typography.fontWeight.bold,
-            color: colors.gold.primary,
-            fontVariantNumeric: 'tabular-nums',
-            lineHeight: 1,
-          }}>
-            {(entry.lifetimeVotes || 0).toLocaleString()}
-          </span>
         </div>
       )}
 
