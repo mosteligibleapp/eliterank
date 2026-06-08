@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock, Mic } from 'lucide-react';
+import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock, Mic, Heart } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -333,6 +333,23 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
         {competition.season && <span style={{ flexShrink: 0 }}>{competition.season}</span>}
       </div>
 
+      {/* Lifetime competition vote total — shown for contestant-role entries
+          so a past winner/contestant's total reads in context on the card. */}
+      {['winner', 'contestant', 'eliminated'].includes(entry.role) && (entry.lifetimeVotes || 0) > 0 && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: spacing.xs,
+          marginTop: spacing.xs,
+          color: colors.gold.primary,
+          fontSize: typography.fontSize.xs,
+          fontWeight: typography.fontWeight.semibold,
+        }}>
+          <Heart size={12} style={{ fill: colors.gold.primary }} />
+          {(entry.lifetimeVotes || 0).toLocaleString()} votes
+        </div>
+      )}
+
       {/* Unclaimed nomination CTA */}
       {entry.isUnclaimed && entry.nomination && (
         <div
@@ -507,8 +524,9 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             </div>
           )}
 
-          {/* Row 3: Meta (city · season) — kept tight because rank / votes
-              / round-end now live in the stats row below. */}
+          {/* Row 3: Meta (city · season) — kept tight because the vote total
+              sits to the right in the header and rank / round-end live in the
+              stats row below. */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -532,6 +550,43 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           </div>
         </div>
 
+        {/* Lifetime vote total, right-aligned in the header for any
+            contestant-role entry. The figure leads with the city/season meta
+            on the left, so the header reads "who / where" → "how many" without
+            a separate stat band below. */}
+        {['winner', 'contestant', 'eliminated'].includes(entry.role) && (
+          <div style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            textAlign: 'right',
+            lineHeight: 1.1,
+          }}>
+            <span style={{
+              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.gold.primary,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {(entry.lifetimeVotes || 0).toLocaleString()}
+            </span>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              fontSize: '10px',
+              fontWeight: typography.fontWeight.semibold,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: colors.gold.primary,
+            }}>
+              <Heart size={10} style={{ fill: colors.gold.primary }} />
+              Votes
+            </span>
+          </div>
+        )}
+
         {/* Chevron only for non-contestant entries — contestant cards are
             primarily about the inline voting panel, so the navigational
             affordance would compete with the primary CTA. */}
@@ -547,9 +602,8 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
         )}
       </a>
 
-      {/* Stats row: rank / round-ends — rendered only for contestant
-          entries with an active voting round, since the data only makes
-          sense there. */}
+      {/* Live voting round: Rank + Round-ends below the header (the vote total
+          lives in the header now). Two even boxes fill the row. */}
       {showInlineVoting && (
         <div style={{
           display: 'grid',
@@ -744,6 +798,10 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
       status: comp?.status,
       competition: comp,
       votes: entry.votes || 0,
+      // Never-reset competition total (paid + free + bonus + manual). Shown on
+      // the card so it reflects everything earned across the comp, not just the
+      // current round's running `votes` (which resets each round).
+      lifetimeVotes: entry.lifetime_votes ?? entry.votes ?? 0,
       contestant: {
         id: entry.id,
         name: entry.name,

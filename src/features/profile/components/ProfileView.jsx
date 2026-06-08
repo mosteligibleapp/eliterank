@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit, MapPin, FileText, Camera, Globe, TrendingUp, Share2, Check, Heart, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, MapPin, FileText, Camera, Globe, Share2, Check, Instagram, Linkedin, Link as LinkIcon, Download, Loader, Users, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, gradients, transitions } from '../../../styles/theme';
-import { getCompetitionStats, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
+import { getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
 import { generateAchievementCard } from '../../achievement-cards/generateAchievementCard';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { useSupabaseAuth } from '../../../hooks';
@@ -146,8 +146,6 @@ function GalleryCarousel({ images, isMobile }) {
 export default function ProfileView({ hostProfile, onEdit, contestantId, isPreview = false }) {
   const { isMobile, isSmall } = useResponsive();
   const { user } = useSupabaseAuth();
-  const [competitionStats, setCompetitionStats] = useState(null);
-  const [bonusVotes, setBonusVotes] = useState(null);
   const [copied, setCopied] = useState(false);
   const [cardInfo, setCardInfo] = useState(null);
   const [generatingCard, setGeneratingCard] = useState(false);
@@ -160,7 +158,6 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
 
   useEffect(() => {
     if (!hostProfile?.id) return;
-    getCompetitionStats(hostProfile.id).then(setCompetitionStats).catch(console.error);
 
     // Fetch competition data for card generation
     Promise.all([
@@ -219,37 +216,6 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
       });
     }).catch(console.error);
   }, [hostProfile?.id, hostProfile?.email]);
-
-  // Live-refresh the "X votes" pill. process_vote() updates the
-  // contestant row whenever someone votes for this profile; we refetch
-  // getCompetitionStats so the header reflects the new count within ~1s.
-  // Filtered to this user's contestant rows only to avoid waking up on
-  // every vote in the DB.
-  useEffect(() => {
-    if (!hostProfile?.id || !supabase) return;
-    const channel = supabase
-      .channel(`profile-stats-${hostProfile.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'contestants',
-          filter: `user_id=eq.${hostProfile.id}`,
-        },
-        () => {
-          getCompetitionStats(hostProfile.id)
-            .then(setCompetitionStats)
-            .catch(console.error);
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [hostProfile?.id]);
-
-  const handleBonusVotesLoaded = useCallback((data) => {
-    setBonusVotes(data);
-  }, []);
 
   const handleShare = async () => {
     if (!hostProfile?.id) return; // Profile not loaded yet
@@ -461,59 +427,10 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
                   {hostProfile.headline}
                 </p>
               )}
-              {(() => {
-                const statsVotes = competitionStats?.totalVotes || 0;
-                const nomineeBonusVotes = (!statsVotes && bonusVotes?.totalEarned) ? bonusVotes.totalEarned : 0;
-                const displayVotes = statsVotes + nomineeBonusVotes;
-                const wins = competitionStats?.wins || 0;
-                if (displayVotes <= 0 && wins <= 0) return null;
-
-                return (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: spacing.md,
-                    marginTop: spacing.md,
-                    flexWrap: 'wrap',
-                  }}>
-                    {displayVotes > 0 && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        padding: `${spacing.xs} ${spacing.md}`,
-                        background: 'rgba(212,175,55,0.1)',
-                        border: '1px solid rgba(212,175,55,0.2)',
-                        borderRadius: borderRadius.pill,
-                        fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                        fontWeight: typography.fontWeight.semibold,
-                        color: colors.gold.primary,
-                      }}>
-                        <Heart size={isMobile ? 14 : 16} style={{ fill: colors.gold.primary }} />
-                        {displayVotes.toLocaleString()} votes
-                      </span>
-                    )}
-                    {wins > 0 && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        padding: `${spacing.xs} ${spacing.md}`,
-                        background: 'rgba(212,175,55,0.1)',
-                        border: '1px solid rgba(212,175,55,0.2)',
-                        borderRadius: borderRadius.pill,
-                        fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
-                        fontWeight: typography.fontWeight.semibold,
-                        color: colors.gold.primary,
-                      }}>
-                        <TrendingUp size={isMobile ? 14 : 16} />
-                        {wins} {wins === 1 ? 'win' : 'wins'}
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
+              {/* Per-competition vote totals now live on each competition
+                  card (ProfileCompetitions) rather than as a single aggregate
+                  pill here, so the number always reads in the context of the
+                  competition it belongs to. */}
               {/* Fan affordance below the name.
                   - On someone else's profile: "Become a Fan" (FanButton)
                   - On your own profile (viewing /profile/:yourId or /profile):
@@ -595,7 +512,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
         {/* Bonus Votes + Video Prompts - only for own profile */}
         {onEdit && hostProfile?.id && (
           <div style={{ padding: `0 ${sectionPadding} ${spacing.md}` }}>
-            <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} onBonusVotesLoaded={handleBonusVotesLoaded} />
+            <ProfileBonusVotes userId={hostProfile.id} userEmail={hostProfile.email} profile={hostProfile} />
           </div>
         )}
 

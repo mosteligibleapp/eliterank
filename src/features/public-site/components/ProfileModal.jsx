@@ -264,11 +264,15 @@ export default function ProfileModal({
               )}
             </div>
 
-            {/* Vote count for contestants */}
-            {type === 'contestant' && profile.votes !== undefined && (
+            {/* Vote count for contestants. Show lifetime_votes — the
+                never-reset per-competition total (paid + free + bonus +
+                manual) — rather than `votes`, which is only the current
+                round's running total and resets each round. Fall back to
+                `votes` when the lifetime counter is unset. */}
+            {type === 'contestant' && (profile.lifetime_votes ?? profile.votes) !== undefined && (
               <div style={{ textAlign: 'right', paddingBottom: spacing.sm }}>
                 <p style={{ fontSize: typography.fontSize.display, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-                  {formatNumber(profile.votes)}
+                  {formatNumber(profile.lifetime_votes ?? profile.votes)}
                 </p>
                 <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textTransform: 'uppercase', letterSpacing: '1px' }}>
                   Total Votes
