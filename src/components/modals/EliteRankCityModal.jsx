@@ -658,7 +658,7 @@ export default function EliteRankCityModal({
           justifyContent: 'center',
           gap: spacing.sm,
         }}>
-          {winners.slice(0, 5).map((winner) => {
+          {winners.slice(0, 5).map((winner, index) => {
             const igUrl = getIgUrl(winner);
             const Tag = igUrl ? 'a' : 'div';
             const linkProps = igUrl
@@ -703,6 +703,28 @@ export default function EliteRankCityModal({
                     <User size={32} style={{ color: colors.text.muted }} />
                   </div>
                 )}
+
+                {/* Rank badge */}
+                <div style={{
+                  position: 'absolute',
+                  top: spacing.xs,
+                  left: spacing.xs,
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: borderRadius.full,
+                  background: 'rgba(0, 0, 0, 0.65)',
+                  border: `1px solid ${colors.gold.primary}`,
+                  ...styleHelpers.flexCenter,
+                }}>
+                  <span style={{
+                    fontSize: typography.fontSize.xs,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.gold.primary,
+                    lineHeight: 1,
+                  }}>
+                    {index + 1}
+                  </span>
+                </div>
 
                 {/* Name on a gradient background for legibility */}
                 <div style={{
