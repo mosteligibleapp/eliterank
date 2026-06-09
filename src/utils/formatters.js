@@ -198,6 +198,27 @@ export function formatEventTime(timeStr, timezone = 'CST') {
 }
 
 /**
+ * Human label for who receives a prize, from its sponsor's recipient setting.
+ * Returns null for winner prizes (the "Winner's Prize Package" section header
+ * already conveys that) and when no recipient is set, so callers can simply
+ * skip rendering a chip on a null.
+ * @param {object} prize - Prize with `recipient` and `recipient_top_x_count`
+ * @returns {string|null}
+ */
+export function formatPrizeRecipient(prize) {
+  if (!prize) return null;
+  const count = prize.recipient_top_x_count;
+  switch (prize.recipient) {
+    case 'top_x':
+      return count ? `Top ${count} contestants` : 'Top contestants';
+    case 'all':
+      return 'All contestants';
+    default:
+      return null;
+  }
+}
+
+/**
  * Get ordinal suffix for number (1st, 2nd, 3rd, etc.)
  * @param {number} n
  * @returns {string}

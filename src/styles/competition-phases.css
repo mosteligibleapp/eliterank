@@ -1396,6 +1396,17 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   margin-bottom: var(--spacing-sm);
 }
 
+.rewards-recipient {
+  display: inline-block;
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.1);
+  padding: 2px 12px;
+  border-radius: var(--radius-full);
+}
+
 .rewards-value {
   display: inline-block;
   margin-top: var(--spacing-sm);

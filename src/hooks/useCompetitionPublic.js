@@ -31,9 +31,9 @@ const COMPETITION_SELECT = `
     external_shares, eliminated_in_round, advancement_status,
     current_round, created_at, updated_at
   ),
-  sponsors (id, name, tier, amount, logo_url, website_url, sort_order),
+  sponsors (id, name, tier, amount, logo_url, website_url, sort_order, reward_recipient, reward_top_x_count),
   events (*),
-  competition_prizes (id, title, description, image_url, value, sponsor_name, external_url, sort_order, prize_type),
+  competition_prizes (id, title, description, image_url, value, sponsor_name, external_url, sort_order, prize_type, sponsor_id),
   competition_rules (id, section_title, section_content, sort_order),
   voting_rounds (
     id, title, round_order, start_date, end_date,
@@ -189,8 +189,26 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
           .filter((e) => e.public_visible !== false)
           .sort((a, b) => new Date(a.date) - new Date(b.date))
       );
+      // Attach each prize's recipient from its parent sponsor — recipient lives
+      // on the sponsor row, not the prize — so public prize cards can label who
+      // receives it ("Top 5 contestants", "All contestants", etc.).
+      const sponsorRewardById = new Map(
+        (compData.sponsors || []).map((s) => [
+          s.id,
+          { recipient: s.reward_recipient || null, count: s.reward_top_x_count ?? null },
+        ])
+      );
       setPrizes(
-        (compData.competition_prizes || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+        (compData.competition_prizes || [])
+          .map((p) => {
+            const reward = sponsorRewardById.get(p.sponsor_id);
+            return {
+              ...p,
+              recipient: reward?.recipient || null,
+              recipient_top_x_count: reward?.count ?? null,
+            };
+          })
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       );
       setRules(
         (compData.competition_rules || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
