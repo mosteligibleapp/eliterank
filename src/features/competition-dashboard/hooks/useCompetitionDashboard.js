@@ -777,23 +777,14 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
-      // Determine the appropriate status to restore to based on the nominee's flow state
-      const { data: nominee } = await supabase
-        .from('nominees')
-        .select('flow_stage, claimed_at')
-        .eq('id', nomineeId)
-        .single();
-
-      let restoreStatus = 'pending';
-      if (nominee?.flow_stage === 'complete' || nominee?.flow_stage === 'profile_complete') {
-        restoreStatus = 'profile_complete';
-      } else if (nominee?.claimed_at) {
-        restoreStatus = 'awaiting_profile';
-      }
-
+      // Restore to 'pending' — the only valid "active nominee" status
+      // (nominees_status_check allows pending/approved/rejected/expired/declined).
+      // The nominee's funnel position is preserved by `flow_stage`, which
+      // reject/restore never touch, so the dashboard re-derives their bucket
+      // (Awaiting Response / Ready to Approve) from flow_stage + profile.
       const { error: updateError } = await supabase
         .from('nominees')
-        .update({ status: restoreStatus })
+        .update({ status: 'pending' })
         .eq('id', nomineeId);
 
       if (updateError) throw updateError;
