@@ -1313,9 +1313,11 @@ export function useCompetitionDashboard(competitionId) {
 
       if (error) throw error;
 
-      // Diff-based prize sync. Preserves external_url, voting_round_id, and per-prize
-      // prize_type on existing rows — the wizard doesn't model those fields, so blindly
-      // re-inserting would silently wipe them.
+      // Diff-based prize sync. Preserves external_url and voting_round_id on
+      // existing rows (the wizard doesn't model them, so we never write them).
+      // prize_type IS re-synced from the sponsor's recipient on every save so it
+      // can't drift — e.g. switching recipient from Winners to All moves existing
+      // prizes from the winner package to contestant rewards.
       const { data: existing, error: readError } = await supabase
         .from('competition_prizes')
         .select('id')
@@ -1344,6 +1346,7 @@ export function useCompetitionDashboard(competitionId) {
           description: p.description || null,
           value: p.value ? String(p.value) : null,
           image_url: p.imageUrl || null,
+          prize_type: newPrizeType,
           sort_order: i,
         };
 
@@ -1359,7 +1362,6 @@ export function useCompetitionDashboard(competitionId) {
             .insert({
               competition_id: competitionId,
               sponsor_id: sponsorId,
-              prize_type: newPrizeType,
               ...sharedFields,
             });
           if (insErr) throw insErr;
