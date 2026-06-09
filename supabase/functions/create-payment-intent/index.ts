@@ -109,6 +109,22 @@ serve(async (req) => {
       )
     }
 
+    // Defense in depth: don't open a checkout for a round that's already
+    // closed. The binding guard is the validate_paid_vote_round DB trigger
+    // (which the stripe-webhook refunds against), but rejecting here avoids
+    // charging customers in the common case where voting clearly ended before
+    // they reached the payment form. ensure_round_state also finalizes any due
+    // round as a side effect, so this reflects the true current state.
+    const { data: roundState } = await supabase.rpc('ensure_round_state', {
+      p_competition_id: competitionId,
+    })
+    if (!roundState?.active) {
+      return new Response(
+        JSON.stringify({ error: 'Voting is not currently open for this competition.' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Server is the source of truth for the Stripe amount. If the bundler is
     // on, apply the tier multiplier against the competition's base price.
     const basePrice = parseFloat(competition.price_per_vote) || 1.00

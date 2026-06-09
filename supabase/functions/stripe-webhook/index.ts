@@ -113,6 +113,30 @@ async function sendVoteReceiptEmail(
   console.log(`Vote receipt email sent to ${voterEmail} for ${voteCount} votes`)
 }
 
+/**
+ * Refund a PaymentIntent in full, idempotently. Used when votes can't be
+ * recorded (e.g. the voting round closed before the payment confirmed) so the
+ * customer is never charged for votes that don't count. Checks for an existing
+ * refund first so a redelivered webhook doesn't double-refund.
+ */
+async function refundPaymentIntent(
+  stripe: Stripe,
+  paymentIntentId: string,
+  metadata: Record<string, string>
+) {
+  const existing = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 1 })
+  if (existing.data.length > 0) {
+    console.log(`PaymentIntent ${paymentIntentId} already refunded — skipping`)
+    return
+  }
+  await stripe.refunds.create({
+    payment_intent: paymentIntentId,
+    reason: 'requested_by_customer',
+    metadata,
+  })
+  console.log(`Refunded PaymentIntent ${paymentIntentId} (${JSON.stringify(metadata)})`)
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -261,6 +285,43 @@ serve(async (req) => {
           })
 
         if (voteError) {
+          // The validate_paid_vote_round DB trigger (migration 080) rejects a
+          // paid vote once the votable round has closed. This is the binding
+          // guard: it fires whether the client or this webhook reaches the
+          // insert. If voting closed before this payment confirmed, we must
+          // NOT keep the money — refund it instead of recording votes.
+          const roundClosed =
+            (voteError as { hint?: string }).hint === 'voting_round_closed' ||
+            /voting is closed/i.test(voteError.message || '')
+
+          if (roundClosed) {
+            console.error(
+              `Voting closed before payment ${paymentIntent.id} confirmed ` +
+              `(competition ${competition_id}, contestant ${contestant_id}, ` +
+              `${purchasedVoteCount} votes) — refunding instead of crediting.`
+            )
+            try {
+              await refundPaymentIntent(stripe, paymentIntent.id, {
+                refund_reason: 'voting_round_closed',
+                competition_id,
+                contestant_id,
+                vote_count,
+              })
+            } catch (refundErr) {
+              // Return 500 so Stripe redelivers and we retry the refund. We
+              // still never recorded a vote, so the result stays uncorrupted.
+              console.error(`Refund failed for ${paymentIntent.id}:`, refundErr)
+              return new Response(
+                JSON.stringify({ error: 'Refund failed', details: String(refundErr) }),
+                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+            return new Response(
+              JSON.stringify({ received: true, status: 'refunded_round_closed' }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
           console.error('Failed to record vote:', voteError)
           return new Response(
             JSON.stringify({ error: 'Failed to record vote', details: voteError.message }),

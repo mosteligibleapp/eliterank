@@ -126,7 +126,7 @@ export default function VotePaymentReturnHandler() {
         // client-side write for instant feedback; anonymous voters rely on
         // the stripe-webhook so voter_email comes from billing details.
         if (isAuthenticated && user?.id && paymentIntent.status === 'succeeded') {
-          await recordPaidVote({
+          const result = await recordPaidVote({
             paymentIntentId: paymentIntent.id,
             competitionId,
             contestantId,
@@ -135,6 +135,14 @@ export default function VotePaymentReturnHandler() {
             voterEmail: user?.email,
             isDoubleVote: isDoubleVoteDay,
           });
+
+          // Round closed before the payment confirmed — the stripe-webhook
+          // refunds it. Don't show the success modal; tell the voter instead.
+          if (result?.roundClosed) {
+            stripParams();
+            toast?.error?.(result.error);
+            return;
+          }
         }
 
         stripParams();

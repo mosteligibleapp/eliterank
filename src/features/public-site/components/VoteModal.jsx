@@ -316,7 +316,7 @@ export default function VoteModal({
     // voters we let the webhook be the source of truth so voter_email is
     // populated from Stripe's billing details instead of left null.
     if (userId) {
-      await recordPaidVote({
+      const result = await recordPaidVote({
         paymentIntentId,
         competitionId,
         contestantId: contestant.id,
@@ -325,6 +325,14 @@ export default function VoteModal({
         voterEmail: user?.email,
         isDoubleVote: !!forceDoubleVoteDay,
       });
+
+      // Round closed before the payment confirmed — the stripe-webhook
+      // refunds it. Skip the success screen and tell the voter instead.
+      if (result?.roundClosed) {
+        setShowPaymentForm(false);
+        toast.error(result.error);
+        return;
+      }
     }
 
     setVotesAdded(creditedVoteCount);
