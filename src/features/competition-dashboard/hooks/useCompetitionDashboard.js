@@ -840,6 +840,66 @@ export function useCompetitionDashboard(competitionId) {
   }, [competitionId, fetchDashboardData]);
 
   /**
+   * Undo an accidental nominee→contestant conversion.
+   *
+   * Unlike removeContestant (which rejects the person), this returns them to
+   * the nominee pool as "pending" so they can be re-approved on purpose. It
+   * refuses to run if the contestant has accrued real fan votes — those would
+   * be lost. Bonus votes auto-awarded by the conversion itself cascade away
+   * with the contestant row and are expected to be discarded.
+   */
+  const unconvertContestant = useCallback(async (contestantId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { data: contestant } = await supabase
+        .from('contestants')
+        .select('email, name')
+        .eq('id', contestantId)
+        .single();
+
+      // Guard: never silently drop real fan votes. Bonus-vote rows live in a
+      // separate table and cascade with the contestant, so only the `votes`
+      // table counts as "real" here.
+      const { count: realVotes } = await supabase
+        .from('votes')
+        .select('id', { count: 'exact', head: true })
+        .eq('contestant_id', contestantId);
+
+      if (realVotes && realVotes > 0) {
+        return {
+          success: false,
+          error: `${contestant?.name || 'This contestant'} already has ${realVotes} fan vote${realVotes === 1 ? '' : 's'}. Use Remove instead — moving them back to nominees would erase those votes.`,
+        };
+      }
+
+      // Deleting the contestant cascades bonus votes / aggregates / cards etc.
+      const { error: deleteError } = await supabase
+        .from('contestants')
+        .delete()
+        .eq('id', contestantId);
+
+      if (deleteError) throw deleteError;
+
+      // Return the matching nominee to the approve queue (not "rejected").
+      if (contestant?.email) {
+        await supabase
+          .from('nominees')
+          .update({ status: 'pending', converted_to_contestant: false })
+          .eq('competition_id', competitionId)
+          .ilike('email', contestant.email)
+          .eq('status', 'approved');
+      }
+
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error un-converting contestant:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  /**
    * Resend invitation email to a nominee
    * Uses force_resend to bypass the already-sent check
    */
@@ -2011,6 +2071,7 @@ export function useCompetitionDashboard(competitionId) {
     approveNominee,
     rejectNominee,
     removeContestant,
+    unconvertContestant,
     restoreNominee,
     resendInvite,
     repairNomineeAccount,

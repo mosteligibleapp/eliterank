@@ -5,7 +5,7 @@ import {
   ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
+import { Button, Badge, Avatar, Panel, Modal } from '../../../../components/ui';
 import { AddVotesModal } from '../../../../components/modals';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
@@ -79,6 +79,7 @@ export default function PeopleTab({
   onRemoveCoHost,
   onResendInvite,
   onRemoveContestant,
+  onUnconvertContestant,
   onRepairNomineeAccount,
   onRepairAllNomineeAccounts,
 }) {
@@ -100,6 +101,9 @@ export default function PeopleTab({
   const avatarUploadTarget = useRef(null);
   const [reordering, setReordering] = useState(false);
   const [showAddVotes, setShowAddVotes] = useState(false);
+  // Nominee pending confirmation before being converted to a contestant.
+  // Conversion makes them public + votable, so it requires an explicit confirm.
+  const [convertConfirm, setConvertConfirm] = useState(null);
   // 'all' | 'male' | 'female' — only meaningful when the competition splits
   // winners by gender. Filters every nominee / contestant section below.
   const [genderFilter, setGenderFilter] = useState('all');
@@ -564,9 +568,9 @@ export default function PeopleTab({
           </button>
         )}
         <button
-          onClick={async () => { addProcessing(nominee.id); try { await onApproveNominee(nominee); } finally { removeProcessing(nominee.id); } }}
+          onClick={() => setConvertConfirm(nominee)}
           disabled={approveDisabled}
-          title={!canApprove(nominee) ? 'Nominee must accept first' : 'Approve'}
+          title={!canApprove(nominee) ? 'Nominee must accept first' : 'Approve & convert to contestant'}
           style={{
             padding: spacing.xs,
             background: approveDisabled ? 'rgba(107,114,128,0.1)' : 'rgba(34,197,94,0.1)',
@@ -1375,6 +1379,35 @@ export default function PeopleTab({
                           </button>
                         </div>
                       )}
+                      {onUnconvertContestant && (
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm(`Move ${c.name} back to Nominees? This undoes the conversion — they stop being public and votable, and return to the "Ready to Approve" list. Any votes auto-awarded by the conversion are discarded.`)) return;
+                            addProcessing(c.id);
+                            try {
+                              const result = await onUnconvertContestant(c.id);
+                              if (result && !result.success) alert(result.error || 'Could not move this contestant back to nominees.');
+                            } finally { removeProcessing(c.id); }
+                          }}
+                          disabled={processingIds.has(c.id)}
+                          title="Move back to nominees (undo conversion)"
+                          style={{
+                            padding: spacing.xs,
+                            background: 'rgba(212,175,55,0.1)',
+                            border: 'none',
+                            borderRadius: borderRadius.sm,
+                            cursor: 'pointer',
+                            color: colors.gold.primary,
+                            minWidth: '32px',
+                            minHeight: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <RotateCcw size={16} />
+                        </button>
+                      )}
                       <button
                         onClick={async () => {
                           if (!window.confirm(`Remove ${c.name} from contestants? They will be moved to Declined.`)) return;
@@ -1813,6 +1846,80 @@ export default function PeopleTab({
         contestants={contestants}
         onSuccess={onRefresh}
       />
+
+      {/* Convert-to-contestant confirmation. Converting is a one-way, public
+       *  action (the nominee goes live on the Contestants page and voting
+       *  opens), so it requires an explicit confirm to avoid early conversions. */}
+      <Modal
+        isOpen={!!convertConfirm}
+        onClose={() => setConvertConfirm(null)}
+        title="Convert to contestant?"
+        maxWidth="480px"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConvertConfirm(null)} style={{ width: 'auto' }}>
+              Cancel
+            </Button>
+            <Button
+              icon={Crown}
+              disabled={convertConfirm ? processingIds.has(convertConfirm.id) : false}
+              onClick={async () => {
+                const nominee = convertConfirm;
+                if (!nominee) return;
+                addProcessing(nominee.id);
+                try {
+                  await onApproveNominee(nominee);
+                  setConvertConfirm(null);
+                } finally {
+                  removeProcessing(nominee.id);
+                }
+              }}
+              style={{ width: 'auto' }}
+            >
+              Convert &amp; notify
+            </Button>
+          </>
+        }
+      >
+        {convertConfirm && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+            <p style={{ color: colors.text.light, fontSize: typography.fontSize.md, lineHeight: 1.6 }}>
+              This makes <strong style={{ color: '#fff' }}>{convertConfirm.name}</strong> an active contestant. It will:
+            </p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {[
+                'Publish their profile on the public Contestants page',
+                'Open voting so fans can immediately cast votes',
+                'Add them to the leaderboard',
+                'Email them that they’ve been accepted',
+              ].map((line) => (
+                <li key={line} style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm }}>
+                  <Check size={16} style={{ color: colors.gold.primary, flexShrink: 0, marginTop: 2 }} />
+                  <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, lineHeight: 1.5 }}>
+                    {line}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {(!competition?.votingStart || new Date(competition.votingStart) > new Date()) && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: spacing.sm,
+                padding: spacing.md,
+                background: 'rgba(245,158,11,0.1)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                borderRadius: borderRadius.md,
+              }}>
+                <Clock size={16} style={{ color: colors.status.warning, flexShrink: 0, marginTop: 2 }} />
+                <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, lineHeight: 1.5 }}>
+                  Voting hasn’t started yet — they’ll appear publicly right away. If you only want to approve them for now, you can convert later. Converting can be undone from the Contestants list while they have no votes.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
