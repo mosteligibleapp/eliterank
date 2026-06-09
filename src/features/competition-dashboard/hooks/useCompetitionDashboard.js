@@ -23,6 +23,30 @@ function fetchCompetitionRevenue(competitionId) {
 }
 
 /**
+ * Reverse of increment_profile_competitions: when a contestant is removed or
+ * un-converted, drop the person's lifetime competition count back down (floored
+ * at 0). Best-effort and non-critical — failures are logged, not thrown.
+ */
+async function decrementProfileCompetitions(userId) {
+  if (!userId) return;
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('total_competitions')
+      .eq('id', userId)
+      .maybeSingle();
+    if (profile) {
+      await supabase
+        .from('profiles')
+        .update({ total_competitions: Math.max((profile.total_competitions || 0) - 1, 0) })
+        .eq('id', userId);
+    }
+  } catch (err) {
+    console.warn('Error decrementing profile competition count:', err);
+  }
+}
+
+/**
  * Hook to fetch all dashboard data for a specific competition
  * Fetches contestants, nominees, judges, sponsors, events, announcements, rules, and host data
  * Provides CRUD operations for all entities
@@ -635,6 +659,29 @@ export function useCompetitionDashboard(competitionId) {
         }
       }
 
+      // Guard against duplicate contestants. The DB only enforces uniqueness on
+      // (competition_id, user_id), which doesn't catch nominees with no linked
+      // account (user_id NULL) or a fast double-click. Refuse to create a second
+      // contestant for the same person in this competition.
+      let dupQuery = supabase
+        .from('contestants')
+        .select('id')
+        .eq('competition_id', competitionId);
+      if (linkedUserId) {
+        dupQuery = dupQuery.eq('user_id', linkedUserId);
+      } else if (nominee.email) {
+        dupQuery = dupQuery.ilike('email', nominee.email);
+      } else {
+        dupQuery = dupQuery.eq('id', '00000000-0000-0000-0000-000000000000'); // no match key → skip
+      }
+      const { data: existingContestant } = await dupQuery.limit(1).maybeSingle();
+      if (existingContestant?.id) {
+        return {
+          success: false,
+          error: `${nominee.name} is already a contestant in this competition.`,
+        };
+      }
+
       const contestantData = {
         competition_id: competitionId,
         name: nominee.name,
@@ -822,6 +869,9 @@ export function useCompetitionDashboard(competitionId) {
           .eq('status', 'approved');
       }
 
+      // Conversion bumped the person's lifetime competition count; undo it.
+      await decrementProfileCompetitions(contestant?.user_id);
+
       await fetchDashboardData();
       return { success: true };
     } catch (err) {
@@ -845,7 +895,7 @@ export function useCompetitionDashboard(competitionId) {
     try {
       const { data: contestant } = await supabase
         .from('contestants')
-        .select('email, name')
+        .select('email, name, user_id')
         .eq('id', contestantId)
         .single();
 
@@ -881,6 +931,9 @@ export function useCompetitionDashboard(competitionId) {
           .ilike('email', contestant.email)
           .eq('status', 'approved');
       }
+
+      // Conversion bumped the person's lifetime competition count; undo it.
+      await decrementProfileCompetitions(contestant?.user_id);
 
       await fetchDashboardData();
       return { success: true };

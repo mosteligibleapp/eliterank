@@ -1868,8 +1868,12 @@ export default function PeopleTab({
                 if (!nominee) return;
                 addProcessing(nominee.id);
                 try {
-                  await onApproveNominee(nominee);
-                  setConvertConfirm(null);
+                  const result = await onApproveNominee(nominee);
+                  if (result && !result.success) {
+                    alert(result.error || 'Could not convert this nominee to a contestant.');
+                  } else {
+                    setConvertConfirm(null);
+                  }
                 } finally {
                   removeProcessing(nominee.id);
                 }
