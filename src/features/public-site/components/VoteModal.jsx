@@ -326,8 +326,8 @@ export default function VoteModal({
         isDoubleVote: !!forceDoubleVoteDay,
       });
 
-      // Round closed before the payment confirmed — the stripe-webhook
-      // refunds it. Skip the success screen and tell the voter instead.
+      // Round closed before capture — the stripe-webhook voids the held
+      // authorization (no charge). Skip the success screen.
       if (result?.roundClosed) {
         setShowPaymentForm(false);
         toast.error(result.error);
@@ -1031,7 +1031,13 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
 
       if (error) {
         setErrorMessage(error.message);
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      } else if (
+        paymentIntent &&
+        // 'requires_capture' is success under manual capture: the card is
+        // authorized (funds held) and the webhook will capture once it records
+        // the votes, or void the hold if the round has closed.
+        (paymentIntent.status === 'requires_capture' || paymentIntent.status === 'succeeded')
+      ) {
         onSuccess();
       } else if (paymentIntent && paymentIntent.status === 'processing') {
         // Payment is processing, show appropriate message

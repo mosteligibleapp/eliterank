@@ -91,7 +91,13 @@ export default function VotePaymentReturnHandler() {
           return;
         }
 
-        if (paymentIntent.status !== 'succeeded' && paymentIntent.status !== 'processing') {
+        // 'requires_capture' is the authorized state under manual capture — the
+        // card is held and the webhook captures or voids it. Treat it as success
+        // alongside 'succeeded' (legacy/auto-capture) and 'processing'.
+        const isAuthorizedOrPaid =
+          paymentIntent.status === 'requires_capture' ||
+          paymentIntent.status === 'succeeded';
+        if (!isAuthorizedOrPaid && paymentIntent.status !== 'processing') {
           if (paymentIntent.status === 'requires_payment_method') {
             toast?.error?.('Payment was not completed. Please try again.');
           }
@@ -125,7 +131,7 @@ export default function VotePaymentReturnHandler() {
         // Mirror VoteModal.handlePaymentSuccess: authenticated voters get a
         // client-side write for instant feedback; anonymous voters rely on
         // the stripe-webhook so voter_email comes from billing details.
-        if (isAuthenticated && user?.id && paymentIntent.status === 'succeeded') {
+        if (isAuthenticated && user?.id && isAuthorizedOrPaid) {
           const result = await recordPaidVote({
             paymentIntentId: paymentIntent.id,
             competitionId,
@@ -136,8 +142,8 @@ export default function VotePaymentReturnHandler() {
             isDoubleVote: isDoubleVoteDay,
           });
 
-          // Round closed before the payment confirmed — the stripe-webhook
-          // refunds it. Don't show the success modal; tell the voter instead.
+          // Round closed before capture — the stripe-webhook voids the held
+          // authorization (no charge). Don't show the success modal.
           if (result?.roundClosed) {
             stripParams();
             toast?.error?.(result.error);

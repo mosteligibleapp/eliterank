@@ -159,10 +159,18 @@ serve(async (req) => {
       httpClient: Stripe.createFetchHttpClient(),
     })
 
-    // Create PaymentIntent
+    // Create PaymentIntent.
+    //
+    // capture_method: 'manual' means confirming the card only AUTHORIZES (holds)
+    // the funds — it does not charge them. The stripe-webhook captures the hold
+    // once the votes are recorded, or cancels it (no charge, no refund) if the
+    // round closed before capture. This is the rejection model: we never take
+    // money we can't turn into valid votes, so post-cutoff payments are voided
+    // rather than charged-then-refunded.
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalAmount,
       currency: 'usd',
+      capture_method: 'manual',
       automatic_payment_methods: {
         enabled: true,
       },

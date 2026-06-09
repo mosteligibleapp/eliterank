@@ -21,9 +21,10 @@
 -- Scope: only PAID votes (payment_intent_id IS NOT NULL). Free votes keep
 -- their existing validation (validate_free_vote_count, migration 051) and the
 -- anonymous-vote API's own active-round check. We also DO NOT skip
--- service_role here (unlike the free-vote trigger): the webhook runs as
+-- service_role here (unlike the free-vote trigger): the stripe-webhook runs as
 -- service_role and must be subject to this guard too, so that when it cannot
--- insert it knows to refund.
+-- insert it knows to void the held authorization (payments use Stripe manual
+-- capture; a refund is only the last-resort fallback if funds were captured).
 --
 -- Pure read: this trigger never finalizes a round (no side effects in a
 -- BEFORE INSERT). It only asks "is a votable round open right now?".

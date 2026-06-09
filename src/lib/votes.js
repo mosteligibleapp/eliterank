@@ -502,13 +502,14 @@ export async function recordPaidVote({
         return { success: true, alreadyRecorded: true };
       }
       // The round closed before the payment confirmed (validate_paid_vote_round
-      // trigger, migration 080). The stripe-webhook auto-refunds this payment,
-      // so surface a clear, non-alarming message instead of a raw DB error.
+      // trigger, migration 080). Under manual capture the funds were only held,
+      // not charged — the stripe-webhook voids the authorization. Surface a
+      // clear, non-alarming message instead of a raw DB error.
       if (voteError.hint === 'voting_round_closed') {
         return {
           success: false,
           roundClosed: true,
-          error: 'Voting closed before your payment completed. You will not be charged — any payment will be refunded.',
+          error: 'Voting closed before your payment completed — you have not been charged.',
         };
       }
       console.error('Vote insert error:', voteError);
