@@ -119,14 +119,20 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
         compData = result.data;
         compError = result.error;
       }
-      // Lookup by slug
+      // Lookup by slug — match the canonical slug OR a preserved legacy_slug so
+      // old (pre-shortening) URLs keep resolving. CompetitionLayout redirects
+      // legacy hits to the canonical short URL once the data loads.
       else if (competitionSlug) {
+        // Slugs are [a-z0-9-]; strip anything else so the OR filter can't be
+        // broken by stray characters in the URL segment.
+        const safeSlug = competitionSlug.replace(/[^a-z0-9-]/gi, '');
         const result = await supabase
           .from('competitions')
           .select(COMPETITION_SELECT)
           .eq('organization_id', orgData.id)
-          .eq('slug', competitionSlug)
-          .single();
+          .or(`slug.eq.${safeSlug},legacy_slug.eq.${safeSlug}`)
+          .limit(1)
+          .maybeSingle();
 
         compData = result.data;
         compError = result.error;

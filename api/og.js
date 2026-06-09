@@ -199,8 +199,11 @@ async function fetchCompetitionByIdMeta(competitionId, canonicalUrl, origin) {
 }
 
 async function fetchCompetitionBySlugMeta(orgSlug, slug, canonicalUrl, origin) {
+  // Match the canonical slug OR a preserved legacy_slug so social/crawler
+  // requests to old (pre-shortening) URLs still get the right meta.
+  const enc = encodeURIComponent(slug);
   const rows = await supabaseRest(
-    `/competitions?slug=eq.${encodeURIComponent(slug)}` +
+    `/competitions?or=(slug.eq.${enc},legacy_slug.eq.${enc})` +
       `&organization.slug=eq.${encodeURIComponent(orgSlug)}` +
       `&select=id,name,season,description,cover_image,city:cities(name),organization:organizations!inner(name,slug)&limit=1`,
   );

@@ -54,6 +54,37 @@ function CompetitionLayoutInner() {
   } = usePublicCompetition();
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams();
+
+  // Canonical-URL redirect: when a competition is reached via an old (legacy)
+  // slug, the loaded record still carries its current short `slug`. Redirect to
+  // the canonical short URL so old links keep working but resolve to one
+  // canonical address (no duplicate-content URLs for SEO). Only applies to the
+  // slug route — the /id/ and legacy /c/ routes are left as-is.
+  useEffect(() => {
+    if (loading || error || isPreview) return;
+    if (params.competitionId != null) return;        // /:orgSlug/id/:competitionId
+    if (location.pathname.startsWith('/c/')) return; // legacy /c/:org/:city/:year
+    const urlSlug = params.slug;
+    if (!competition?.slug || !organization?.slug || !urlSlug) return;
+    if (urlSlug === competition.slug) return;
+
+    const rest = params['*'] ? `/${params['*']}` : '';
+    navigate(
+      `/${organization.slug}/${competition.slug}${rest}${location.search}`,
+      { replace: true }
+    );
+  }, [
+    loading,
+    error,
+    isPreview,
+    competition?.slug,
+    organization?.slug,
+    params,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
 
   // Guide modal state
   const [showGuide, setShowGuide] = useState(false);

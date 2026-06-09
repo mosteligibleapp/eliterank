@@ -34,36 +34,50 @@ export function removeCityStateSuffix(citySlug) {
 /**
  * Generate competition slug
  *
- * Format: {name}-{city}-{year} for open demographic
- * Format: {name}-{city}-{year}-{demographic} for specific demographic
+ * SEO-friendly short format. The organization slug is always the first URL
+ * segment (e.g. `/most-eligible/...`), so the competition slug only needs to
+ * carry city + year + (optional) demographic. The freeform competition `name`
+ * is intentionally omitted: it duplicated the demographic ("Elite Single
+ * Women" + "women-21-39") and was the main source of slug bloat.
+ *
+ * Format: {city}-{year} for open demographic
+ * Format: {city}-{year}-{demographic} for specific demographic
+ *
+ * `name` is still accepted but only used as a fallback when no city slug is
+ * available, so older callers keep working.
  *
  * @param {Object} params
- * @param {string} params.name - Competition name (e.g., "Most Eligible")
+ * @param {string} [params.name] - Competition name (fallback only, when citySlug missing)
  * @param {string} params.citySlug - City slug (e.g., "chicago" or "chicago-il")
  * @param {number} params.season - Season year (e.g., 2026)
  * @param {string} [params.demographicSlug] - Demographic slug (e.g., "women-21-39")
  * @returns {string} Competition slug
  *
  * @example
- * generateCompetitionSlug({ name: "Elite Single Women", citySlug: "chicago-il", season: 2026 })
- * // Returns: "elite-single-women-chicago-2026"
+ * generateCompetitionSlug({ citySlug: "chicago-il", season: 2026 })
+ * // Returns: "chicago-2026"
  *
  * @example
- * generateCompetitionSlug({ name: "Most Eligible", citySlug: "chicago", season: 2026, demographicSlug: "women-21-39" })
- * // Returns: "most-eligible-chicago-2026-women-21-39"
+ * generateCompetitionSlug({ citySlug: "chicago", season: 2026, demographicSlug: "women-21-39" })
+ * // Returns: "chicago-2026-women-21-39"
  */
 export function generateCompetitionSlug({ name, citySlug, season, demographicSlug }) {
-  const namePart = slugify(name || 'competition');
-  const cityPart = removeCityStateSuffix(citySlug || 'unknown');
+  const cityPart = removeCityStateSuffix(citySlug || '');
   const yearPart = season || new Date().getFullYear();
+
+  // Base = {city}-{year}. Fall back to the slugified name only when we have no
+  // city to anchor the slug (keeps slugs unique and human-readable either way).
+  const base = cityPart
+    ? `${cityPart}-${yearPart}`
+    : `${slugify(name || 'competition')}-${yearPart}`;
 
   // Open demographic or no demographic specified
   if (!demographicSlug || demographicSlug === 'open') {
-    return `${namePart}-${cityPart}-${yearPart}`;
+    return base;
   }
 
   // Specific demographic
-  return `${namePart}-${cityPart}-${yearPart}-${demographicSlug}`;
+  return `${base}-${demographicSlug}`;
 }
 
 /**
