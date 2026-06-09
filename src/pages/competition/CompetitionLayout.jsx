@@ -9,6 +9,7 @@ import CompetitionSkeleton from '../../components/skeletons/CompetitionSkeleton'
 import { useAuthStore } from '../../stores';
 import { ProfileIcon, NotificationBell } from '../../components/ui';
 import { useIsJudge } from '../../hooks';
+import { isCompetitionInProgress } from '../../utils/competitionPhase';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
 // Phase view components (lazy-loaded — only the active phase is needed)
@@ -47,7 +48,6 @@ function CompetitionLayoutInner() {
     votingRounds,
     prizePool,
     about,
-    contestants,
     organization,
     isPreview,
     previewMode,
@@ -68,23 +68,12 @@ function CompetitionLayoutInner() {
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
   const isJudge = useIsJudge();
 
-  // Performance stats — surfaced inside the profile dropdown when the
-  // current user is a contestant in this competition. We have the data on
-  // hand here, so skip the extra round-trip the global hook would make.
-  const myContestant = isAuthenticated && user?.id
-    ? contestants?.find((c) => c.user_id === user.id) || null
-    : null;
-  const performance = myContestant
-    ? [{
-        competitionId: competition?.id,
-        competitionName: competition?.name || 'Competition',
-        totalVotes: myContestant.lifetime_votes ?? 0,
-        roundVotes: myContestant.votes ?? 0,
-        rank: myContestant.rank ?? myContestant.displayRank ?? null,
-        roundLabel: phase?.currentRound?.title
-          || (phase?.roundNumber ? `Round ${phase.roundNumber} votes` : 'This round'),
-      }]
-    : null;
+  // "How to Win" only shows while the competition is actively running
+  // (nominations → finals); hidden for Coming Soon and Completed. Merge in the
+  // loaded voting rounds so the live sub-phase resolves accurately.
+  const competitionInProgress = isCompetitionInProgress(
+    competition ? { ...competition, voting_rounds: votingRounds } : null,
+  );
 
   // Navigation handlers for profile icon
   const handleLogin = () => {
@@ -225,12 +214,11 @@ function CompetitionLayoutInner() {
             onRewards={profile?.is_nominee_or_contestant ? handleRewards : undefined}
             onAchievements={profile?.is_nominee_or_contestant ? handleAchievements : undefined}
             onAccountSettings={handleAccountSettings}
-            onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
+            onHowToCompete={profile?.is_nominee_or_contestant && competitionInProgress ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             hasDashboardAccess={hasDashboardAccess}
             onJudge={isJudge ? handleJudge : null}
             isJudge={isJudge}
-            performance={performance}
             size={40}
           />
         </div>

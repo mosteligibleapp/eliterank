@@ -7,6 +7,7 @@ import { Button, Panel, Avatar, Badge } from '../../../../components/ui';
 import { formatNumber, formatCurrency, formatRelativeTime, daysUntil, formatDate } from '../../../../utils/formatters';
 import { generateAchievementCard } from '../../../achievement-cards/generateAchievementCard';
 import { isLive } from '../../../../utils/competitionPhase';
+import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
 
@@ -77,8 +78,12 @@ export default function OverviewTab({
     }
   };
 
+  // Standing order, ranked on total competition votes: still-competing
+  // contestants sit above eliminated ones (who keep their old round's votes),
+  // and the number shown is each contestant's lifetime total so the host sees
+  // one comparable figure across every round.
   const rankedContestants = useMemo(() => {
-    return [...(contestants || [])].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    return sortContestantsByStanding(contestants, (c) => c.lifetimeVotes || 0);
   }, [contestants]);
 
   const topContestants = rankedContestants.slice(0, 5);
@@ -471,7 +476,7 @@ export default function OverviewTab({
                       )}
                     </div>
                     <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                      {formatNumber(contestant.votes || 0)} votes
+                      {formatNumber(contestant.lifetimeVotes || contestant.votes || 0)} votes
                     </span>
                     <button
                       onClick={() => handleDownloadCard(contestant)}

@@ -294,6 +294,7 @@ export function useCompetitionDashboard(competitionId) {
         age: c.age,
         email: c.email || c.profile?.email || null,
         votes: c.votes || 0,
+        lifetimeVotes: c.lifetime_votes || 0,
         status: c.status,
         trend: c.trend || 'same',
         rank: index + 1,
@@ -302,6 +303,7 @@ export function useCompetitionDashboard(competitionId) {
         userId: c.user_id,
         gender: c.gender || null,
         eliminatedInRound: c.eliminated_in_round,
+        currentRound: c.current_round,
       }));
 
       // Targeted profile lookup for nominee matching
@@ -469,6 +471,8 @@ export function useCompetitionDashboard(competitionId) {
         logoUrl: s.logo_url,
         websiteUrl: s.website_url,
         sortOrder: s.sort_order,
+        rewardRecipient: s.reward_recipient || '',
+        rewardTopXCount: s.reward_top_x_count ?? null,
         prizes: (prizesBySponsorId.get(s.id) || []).sort((a, b) => a.sortOrder - b.sortOrder),
       }));
 
@@ -1359,6 +1363,8 @@ export function useCompetitionDashboard(competitionId) {
           amount: sponsorData.amount || 0,
           logo_url: sponsorData.logoUrl || null,
           website_url: sponsorData.websiteUrl || null,
+          reward_recipient: sponsorData.recipient || null,
+          reward_top_x_count: sponsorData.topXCount ?? null,
           sort_order: maxSort + 1,
         })
         .select('id')
@@ -1404,14 +1410,18 @@ export function useCompetitionDashboard(competitionId) {
           amount: sponsorData.amount || 0,
           logo_url: sponsorData.logoUrl || null,
           website_url: sponsorData.websiteUrl || null,
+          reward_recipient: sponsorData.recipient || null,
+          reward_top_x_count: sponsorData.topXCount ?? null,
         })
         .eq('id', sponsorId);
 
       if (error) throw error;
 
-      // Diff-based prize sync. Preserves external_url, voting_round_id, and per-prize
-      // prize_type on existing rows — the wizard doesn't model those fields, so blindly
-      // re-inserting would silently wipe them.
+      // Diff-based prize sync. Preserves external_url and voting_round_id on
+      // existing rows (the wizard doesn't model them, so we never write them).
+      // prize_type IS re-synced from the sponsor's recipient on every save so it
+      // can't drift — e.g. switching recipient from Winners to All moves existing
+      // prizes from the winner package to contestant rewards.
       const { data: existing, error: readError } = await supabase
         .from('competition_prizes')
         .select('id')
@@ -1440,6 +1450,7 @@ export function useCompetitionDashboard(competitionId) {
           description: p.description || null,
           value: p.value ? String(p.value) : null,
           image_url: p.imageUrl || null,
+          prize_type: newPrizeType,
           sort_order: i,
         };
 
@@ -1455,7 +1466,6 @@ export function useCompetitionDashboard(competitionId) {
             .insert({
               competition_id: competitionId,
               sponsor_id: sponsorId,
-              prize_type: newPrizeType,
               ...sharedFields,
             });
           if (insErr) throw insErr;

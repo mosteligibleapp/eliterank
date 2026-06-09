@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Trophy, Plus, Trash2, Loader, User, Save, Search, X, Check, GripVertical
+  Trophy, Plus, Trash2, Loader, User, Save, Search, X, Check, GripVertical, Crown
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography, transitions } from '@shared/styles/theme';
 import { useToast } from '@shared/contexts/ToastContext';
@@ -21,8 +21,7 @@ export default function SiteSettingsManager() {
   } = useAppSettings('hall_of_winners');
 
   const [formData, setFormData] = useState({
-    year: new Date().getFullYear() - 1,
-    totalAwarded: '$75K+',
+    year: new Date().getFullYear(),
     winners: [],
     displayOnCompetitions: [],
   });
@@ -44,8 +43,7 @@ export default function SiteSettingsManager() {
   useEffect(() => {
     if (hallOfWinners) {
       setFormData({
-        year: hallOfWinners.year || new Date().getFullYear() - 1,
-        totalAwarded: hallOfWinners.totalAwarded || '$75K+',
+        year: hallOfWinners.year || new Date().getFullYear(),
         winners: hallOfWinners.winners || [],
         displayOnCompetitions: hallOfWinners.displayOnCompetitions || [],
       });
@@ -123,7 +121,6 @@ export default function SiteSettingsManager() {
       name: displayName || 'Unknown',
       city: profile.city || '',
       imageUrl: profile.avatar_url || '',
-      featured: formData.winners.length === 0,
     };
     setFormData(prev => ({ ...prev, winners: [...prev.winners, newWinner] }));
     setHasChanges(true);
@@ -134,14 +131,6 @@ export default function SiteSettingsManager() {
 
   const handleRemoveWinner = (id) => {
     setFormData(prev => ({ ...prev, winners: prev.winners.filter(w => w.id !== id) }));
-    setHasChanges(true);
-  };
-
-  const handleSetFeatured = (id) => {
-    setFormData(prev => ({
-      ...prev,
-      winners: prev.winners.map(w => ({ ...w, featured: w.id === id })),
-    }));
     setHasChanges(true);
   };
 
@@ -215,12 +204,12 @@ export default function SiteSettingsManager() {
 
   const winnersColumns = [
     {
-      key: '_index', label: '#', width: '48px', sortable: false,
-      render: (val, row) => (
+      key: '_index', label: 'Rank', width: '56px', sortable: false,
+      render: (val) => (
         <div style={{
           width: '24px', height: '24px', borderRadius: borderRadius.full,
-          background: row.featured ? colors.gold.primary : colors.background.elevated,
-          color: row.featured ? '#000' : colors.text.secondary,
+          background: colors.gold.muted,
+          color: colors.gold.primary,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold,
         }}>
@@ -245,9 +234,6 @@ export default function SiteSettingsManager() {
             <span style={{ fontWeight: typography.fontWeight.medium, display: 'block' }}>{val}</span>
             <span style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary }}>{row.city || 'No city'}</span>
           </span>
-          {row.featured && (
-            <Trophy size={12} style={{ color: colors.gold.primary, marginLeft: spacing.xs }} />
-          )}
         </span>
       ),
     },
@@ -272,7 +258,7 @@ export default function SiteSettingsManager() {
               Hall of Winners
             </h2>
             <p style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, margin: 0 }}>
-              Showcase past champions on the explore page
+              Showcase your Most Eligible winners on competition pages
             </p>
           </div>
         </div>
@@ -296,20 +282,13 @@ export default function SiteSettingsManager() {
       </div>
 
       {/* Basic Settings */}
-      <FormSection title="General Settings" description="Configure the year and awards total displayed" divider={false}>
+      <FormSection title="General Settings" description="The year shown in the 'Most Eligible {year}' heading on competition pages" divider={false}>
         <FormGrid>
-          <FormField label="Champions Year">
+          <FormField label="Showcase Year">
             <TextInput
               type="number"
               value={formData.year}
               onChange={(e) => handleFieldChange('year', parseInt(e.target.value) || new Date().getFullYear())}
-            />
-          </FormField>
-          <FormField label="Total Awarded (display text)">
-            <TextInput
-              value={formData.totalAwarded}
-              onChange={(e) => handleFieldChange('totalAwarded', e.target.value)}
-              placeholder="e.g., $75K+"
             />
           </FormField>
         </FormGrid>
@@ -422,7 +401,6 @@ export default function SiteSettingsManager() {
             data={winnersTableData}
             actions={(row) => (
               <ActionMenu actions={[
-                { label: row.featured ? 'Featured' : 'Set Featured', icon: Trophy, onClick: () => handleSetFeatured(row.id), disabled: row.featured },
                 { label: 'Move Up', icon: GripVertical, onClick: () => handleMoveWinner(row._index, -1), disabled: row._index === 0 },
                 { label: 'Move Down', icon: GripVertical, onClick: () => handleMoveWinner(row._index, 1), disabled: row._index === formData.winners.length - 1 },
                 { label: 'Remove', icon: Trash2, variant: 'danger', onClick: () => handleRemoveWinner(row.id) },
@@ -481,56 +459,78 @@ export default function SiteSettingsManager() {
 
       {/* Preview */}
       {formData.winners.length > 0 && (
-        <FormSection title="Preview" description="How the Hall of Winners will appear on the site">
+        <FormSection title="Preview" description="Exactly how this appears on competition pages">
           <div style={{
-            padding: spacing.lg, background: colors.background.tertiary,
+            padding: spacing.lg, background: 'rgba(255, 255, 255, 0.03)',
             borderRadius: borderRadius.lg, border: `1px solid ${colors.border.primary}`,
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md }}>
-              <div>
-                <p style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
-                  {formData.year} Champions
-                </p>
+            {/* Header — mirrors the live "Most Eligible {year}" heading */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+              <Crown size={28} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  ELITES
+                </span>
                 <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.text.primary, margin: 0 }}>
-                  Hall of Winners
+                  Most Eligible {formData.year}
                 </h3>
               </div>
-              <div>
-                <span style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.gold.primary }}>
-                  {formData.totalAwarded}
-                </span>
-                <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginLeft: spacing.xs }}>awarded</span>
-              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(formData.winners.length, 5)}, 1fr)`, gap: spacing.sm }}>
-              {formData.winners.slice(0, 5).map((winner) => (
+
+            {/* Ranked grid (up to 5 winners + the "Winners Each Year" card) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: spacing.md }}>
+              {formData.winners.slice(0, 5).map((winner, index) => (
                 <div key={winner.id} style={{
-                  display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm,
-                  background: colors.background.elevated, borderRadius: borderRadius.md,
-                  border: winner.featured ? `1.5px solid ${colors.gold.primary}` : `1px solid ${colors.border.primary}`,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.sm,
+                  padding: `${spacing.lg} ${spacing.sm}`,
+                  background: 'rgba(0, 0, 0, 0.2)', borderRadius: borderRadius.xl,
+                  border: `1px solid ${colors.gold.muted}`,
                 }}>
                   <div style={{
-                    width: '32px', height: '32px', borderRadius: borderRadius.sm, flexShrink: 0,
-                    background: colors.background.card, border: `1px solid ${colors.border.secondary}`,
+                    width: '24px', height: '24px', borderRadius: borderRadius.full,
+                    background: colors.gold.muted, color: colors.gold.primary,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold,
+                  }}>
+                    {index + 1}
+                  </div>
+                  <div style={{
+                    width: '56px', height: '56px', borderRadius: borderRadius.full, flexShrink: 0,
+                    background: colors.background.elevated, border: `2px solid ${colors.gold.muted}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
                   }}>
                     {winner.imageUrl ? (
                       <img src={winner.imageUrl} alt={winner.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <User size={14} style={{ color: colors.text.tertiary }} />
+                      <User size={24} style={{ color: colors.text.tertiary }} />
                     )}
                   </div>
-                  <div>
-                    <p style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, margin: 0 }}>
-                      {winner.name || 'Winner Name'}
-                    </p>
-                    <p style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, margin: 0 }}>
-                      {winner.city || 'City'}
-                    </p>
-                  </div>
+                  <p style={{
+                    fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.primary, margin: 0, textAlign: 'center', lineHeight: 1.3,
+                  }}>
+                    {winner.name || 'Winner'}
+                  </p>
                 </div>
               ))}
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+                padding: `${spacing.lg} ${spacing.sm}`,
+                background: colors.gold.muted, borderRadius: borderRadius.xl,
+                border: `1px solid ${colors.gold.muted}`,
+              }}>
+                <span style={{ fontSize: typography.fontSize.xxxl, fontWeight: typography.fontWeight.bold, color: colors.gold.primary, lineHeight: 1 }}>
+                  5
+                </span>
+                <span style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>
+                  Winners Each Year
+                </span>
+              </div>
             </div>
+
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.tertiary, marginTop: spacing.md, marginBottom: 0 }}>
+              The "Winners Each Year" number reflects each competition's own winner count. Winners with an Instagram handle on their profile become tap-through links.
+            </p>
           </div>
         </FormSection>
       )}

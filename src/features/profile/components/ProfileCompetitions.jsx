@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock, Mic } from 'lucide-react';
+import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock, Mic, Heart } from 'lucide-react';
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
@@ -9,6 +9,7 @@ import { useLeaderboard } from '../../../hooks';
 import useCountdown from '../../../hooks/useCountdown';
 import AcceptNominationModal from '../../../components/modals/AcceptNominationModal';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../../utils/slugs';
+import { getRoundLabel } from '../../../utils/roundLabels';
 import { getCityImage } from '../../../utils/cityImages';
 import { getPhaseDisplayConfig, computeCompetitionPhase } from '../../../utils/competitionPhase';
 import CompetitionCardVoting from './CompetitionCardVoting';
@@ -32,9 +33,19 @@ function phaseCardRank(competition) {
   return PHASE_CARD_ORDER[phase] ?? 5;
 }
 
+// Round types that collect public votes. The finale is votable too — the
+// winner is ranked by votes during the finale (see finalize_voting_round),
+// so the inline panel must stay open through it. Judging / resurrection
+// rounds are not publicly votable. A null round_type is legacy "voting".
+const VOTABLE_ROUND_TYPES = ['voting', 'finale'];
+
+function isVotableRound(round) {
+  return !round?.round_type || VOTABLE_ROUND_TYPES.includes(round.round_type);
+}
+
 /**
  * Given a competition with a voting_rounds join, return the currently active
- * voting round (one whose [start_date, end_date) window contains `now`).
+ * votable round (one whose [start_date, end_date) window contains `now`).
  * Returns null if no active round.
  */
 function findActiveVotingRound(competition) {
@@ -42,7 +53,7 @@ function findActiveVotingRound(competition) {
   if (!rounds.length) return null;
   const now = Date.now();
   const active = rounds.find((r) => {
-    if (r.round_type && r.round_type !== 'voting') return false;
+    if (!isVotableRound(r)) return false;
     const start = r.start_date ? new Date(r.start_date).getTime() : null;
     const end = r.end_date ? new Date(r.end_date).getTime() : null;
     return start && end && now >= start && now < end;
@@ -59,7 +70,7 @@ function findActiveVotingRound(competition) {
 function synthesizePreviewRound(competition) {
   const rounds = competition?.voting_rounds || [];
   const sorted = [...rounds]
-    .filter((r) => !r.round_type || r.round_type === 'voting')
+    .filter(isVotableRound)
     .sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
   const first = sorted[0];
   return {
@@ -192,30 +203,17 @@ function RoleBadge({ role, size = 'sm', subLabel, contestantLabel }) {
 }
 
 /**
- * Resolve the public-facing tier a contestant reached, given the round
- * they were eliminated in.
- *
- * The cohort competing in round R is whoever advanced out of round R-1,
- * so an eliminated contestant reached the tier sized by the prior round's
- * `contestants_advance` ("Top 50 Contestant"). The first round has no
- * prior tier and reads as the "Entry Round". The host's `tier_label` /
- * `title` are used only as a fallback, and never when they're a generic
- * "Round N".
+ * Public-facing tier a contestant reached, given the round they were
+ * eliminated in. Delegates the tier naming to the shared `roundLabels`
+ * source of truth and only adds the profile's "… Contestant" phrasing for
+ * numbered tiers ("Top 50 Contestant"); structural tiers like the entry
+ * round read on their own.
  */
 function getReachedTierLabel(competition, eliminatedInRound) {
   if (!eliminatedInRound) return null;
-  if (eliminatedInRound === 1) return 'Entry Round';
-
-  const rounds = competition?.voting_rounds || [];
-  const prior = rounds.find((r) => r.round_order === eliminatedInRound - 1);
-  const advance = prior?.contestants_advance;
-  if (Number.isFinite(advance) && advance > 0) return `Top ${advance} Contestant`;
-
-  const isGeneric = (label) => !label || /^round\s*\d+$/i.test(label.trim());
-  const round = rounds.find((r) => r.round_order === eliminatedInRound);
-  if (!isGeneric(round?.tier_label)) return round.tier_label;
-  if (!isGeneric(round?.title)) return round.title;
-  return `Round ${eliminatedInRound}`;
+  const label = getRoundLabel(competition?.voting_rounds, eliminatedInRound);
+  if (!label) return null;
+  return /^Top \d+$/.test(label) ? `${label} Contestant` : label;
 }
 
 function getVotingStartDate(competition) {
@@ -334,6 +332,23 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
         )}
         {competition.season && <span style={{ flexShrink: 0 }}>{competition.season}</span>}
       </div>
+
+      {/* Lifetime competition vote total — shown for contestant-role entries
+          so a past winner/contestant's total reads in context on the card. */}
+      {['winner', 'contestant', 'eliminated'].includes(entry.role) && (entry.lifetimeVotes || 0) > 0 && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: spacing.xs,
+          marginTop: spacing.xs,
+          color: colors.gold.primary,
+          fontSize: typography.fontSize.xs,
+          fontWeight: typography.fontWeight.semibold,
+        }}>
+          <Heart size={12} style={{ fill: colors.gold.primary }} />
+          {(entry.lifetimeVotes || 0).toLocaleString()} votes
+        </div>
+      )}
 
       {/* Unclaimed nomination CTA */}
       {entry.isUnclaimed && entry.nomination && (
@@ -509,8 +524,9 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
             </div>
           )}
 
-          {/* Row 3: Meta (city · season) — kept tight because rank / votes
-              / round-end now live in the stats row below. */}
+          {/* Row 3: Meta (city · season) — kept tight because the vote total
+              sits to the right in the header and rank / round-end live in the
+              stats row below. */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -534,6 +550,43 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
           </div>
         </div>
 
+        {/* Lifetime vote total, right-aligned in the header for any
+            contestant-role entry. The figure leads with the city/season meta
+            on the left, so the header reads "who / where" → "how many" without
+            a separate stat band below. */}
+        {['winner', 'contestant', 'eliminated'].includes(entry.role) && (
+          <div style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            textAlign: 'right',
+            lineHeight: 1.1,
+          }}>
+            <span style={{
+              fontSize: isMobile ? typography.fontSize.lg : typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.gold.primary,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {(entry.lifetimeVotes || 0).toLocaleString()}
+            </span>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              fontSize: '10px',
+              fontWeight: typography.fontWeight.semibold,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: colors.gold.primary,
+            }}>
+              <Heart size={10} style={{ fill: colors.gold.primary }} />
+              Votes
+            </span>
+          </div>
+        )}
+
         {/* Chevron only for non-contestant entries — contestant cards are
             primarily about the inline voting panel, so the navigational
             affordance would compete with the primary CTA. */}
@@ -549,9 +602,8 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
         )}
       </a>
 
-      {/* Stats row: rank / round-ends — rendered only for contestant
-          entries with an active voting round, since the data only makes
-          sense there. */}
+      {/* Live voting round: Rank + Round-ends below the header (the vote total
+          lives in the header now). Two even boxes fill the row. */}
       {showInlineVoting && (
         <div style={{
           display: 'grid',
@@ -746,6 +798,10 @@ export default function ProfileCompetitions({ userId, userEmail, user, profile, 
       status: comp?.status,
       competition: comp,
       votes: entry.votes || 0,
+      // Never-reset competition total (paid + free + bonus + manual). Shown on
+      // the card so it reflects everything earned across the comp, not just the
+      // current round's running `votes` (which resets each round).
+      lifetimeVotes: entry.lifetime_votes ?? entry.votes ?? 0,
       contestant: {
         id: entry.id,
         name: entry.name,

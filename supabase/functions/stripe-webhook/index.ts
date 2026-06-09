@@ -60,7 +60,7 @@ async function sendVoteReceiptEmail(
     .from('voting_rounds')
     .select('end_date')
     .eq('competition_id', competitionId)
-    .eq('round_type', 'voting')
+    .in('round_type', ['voting', 'finale'])
     .lte('start_date', nowIso)
     .gt('end_date', nowIso)
     .limit(1)

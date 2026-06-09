@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Trophy, Settings, TrendingUp, Heart, Award, Gavel } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Settings, TrendingUp, Gavel } from 'lucide-react';
 import { colors, borderRadius, spacing, typography, shadows, transitions } from '../../styles/theme';
 import Avatar from './Avatar';
 import { SkeletonPulse } from '../common/Skeleton';
@@ -23,11 +24,11 @@ function ProfileIcon({
   onHowToCompete,
   hasDashboardAccess = false,
   isJudge = false,
-  performance = null,
   size = 36,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -133,57 +134,6 @@ function ProfileIcon({
     padding: spacing.sm,
   };
 
-  const performanceSectionStyle = {
-    padding: `${spacing.md} ${spacing.lg}`,
-    borderBottom: `1px solid ${colors.border.primary}`,
-    background: 'linear-gradient(135deg, rgba(212,175,55,0.06), transparent)',
-  };
-
-  const performanceHeaderStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.xs,
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.gold.primary,
-    textTransform: 'uppercase',
-    letterSpacing: typography.letterSpacing.wider,
-    marginBottom: spacing.sm,
-  };
-
-  const performanceRowStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  };
-
-  const performanceLabelStyle = {
-    flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  };
-
-  const performanceValueStyle = {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.gold.primary,
-    fontVariantNumeric: 'tabular-nums',
-  };
-
-  const performanceCompNameStyle = {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  };
-
   const menuItemStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -245,59 +195,6 @@ function ProfileIcon({
             )}
           </div>
 
-          {/* Performance stats — accepts either a single { totalVotes,
-              roundVotes, rank, roundLabel } object or an array of such
-              entries (one per competition the user is competing in). */}
-          {performance && (Array.isArray(performance) ? performance : [performance]).length > 0 && (
-            <div style={performanceSectionStyle}>
-              <div style={performanceHeaderStyle}>
-                <TrendingUp size={12} color={colors.gold.primary} />
-                <span>My Performance</span>
-              </div>
-              {(Array.isArray(performance) ? performance : [performance]).map((perf, idx, arr) => (
-                <div
-                  key={perf.competitionId || idx}
-                  style={{
-                    marginBottom: idx < arr.length - 1 ? spacing.md : 0,
-                    paddingBottom: idx < arr.length - 1 ? spacing.md : 0,
-                    borderBottom: idx < arr.length - 1
-                      ? `1px solid ${colors.border.secondary}`
-                      : 'none',
-                  }}
-                >
-                  {arr.length > 1 && perf.competitionName && (
-                    <div style={performanceCompNameStyle}>
-                      {perf.competitionName}
-                    </div>
-                  )}
-                  <div style={performanceRowStyle}>
-                    <Heart size={14} color={colors.gold.primary} />
-                    <span style={performanceLabelStyle}>Total votes</span>
-                    <span style={performanceValueStyle}>
-                      {Number(perf.totalVotes ?? 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div style={performanceRowStyle}>
-                    <Award size={14} color={colors.gold.primary} />
-                    <span style={performanceLabelStyle}>
-                      {perf.roundLabel || 'This round'}
-                    </span>
-                    <span style={performanceValueStyle}>
-                      {Number(perf.roundVotes ?? 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div style={{ ...performanceRowStyle, marginBottom: 0 }}>
-                    <Trophy size={14} color={colors.gold.primary} />
-                    <span style={performanceLabelStyle}>Current rank</span>
-                    <span style={performanceValueStyle}>
-                      {perf.rank ? `#${perf.rank}` : '—'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Menu items */}
           <div style={menuStyle}>
             {onProfile && (
@@ -315,6 +212,27 @@ function ProfileIcon({
               >
                 <UserCircle size={16} />
                 View Profile
+              </button>
+            )}
+
+            {/* Performance dashboard — shown for any nominee/contestant
+                (current or past). Navigates internally so every header that
+                renders ProfileIcon exposes it without extra wiring. */}
+            {profile?.is_nominee_or_contestant && (
+              <button
+                onClick={() => handleMenuClick(() => navigate('/performance'))}
+                style={menuItemStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.interactive.hover;
+                  e.currentTarget.style.color = colors.text.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = colors.text.secondary;
+                }}
+              >
+                <TrendingUp size={16} />
+                Performance
               </button>
             )}
 
