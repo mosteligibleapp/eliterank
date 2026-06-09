@@ -26,8 +26,23 @@
 -- insert it knows to void the held authorization (payments use Stripe manual
 -- capture; a refund is only the last-resort fallback if funds were captured).
 --
--- Pure read: this trigger never finalizes a round (no side effects in a
--- BEFORE INSERT). It only asks "is a votable round open right now?".
+-- Boundary correctness (the millisecond problem):
+--   A round is finalized the instant its end_date passes (ensure_round_state →
+--   finalize_voting_round), which snapshots the standings by ranking the live
+--   vote totals. Advancement can turn on a single vote, so a paid vote must be
+--   EITHER fully counted in that snapshot OR rejected — it must never be
+--   charged-but-uncounted (committed a hair after finalize ran).
+--
+--   finalize_voting_round() locks the round row FOR UPDATE before it ranks.
+--   This trigger takes a FOR SHARE lock on the active round, which serializes
+--   the two:
+--     * If the vote grabs FOR SHARE first, finalize() waits for it to commit
+--       and therefore counts it.
+--     * If finalize() holds FOR UPDATE first, this query blocks, then re-checks
+--       the committed row, sees finalized_at set, and rejects the vote.
+--   Product decision (2026-06-09): finalize instantly at the cutoff; a paid
+--   vote that isn't fully recorded in time is voided (customer not charged),
+--   not granted a grace period. This lock makes "counted ⇔ charged" exact.
 -- ─────────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION validate_paid_vote_round()
@@ -42,19 +57,34 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Only enforce for competitions that actually use rounds. If rounds exist,
-  -- a paid vote must land inside an open votable one (voting or finale).
-  -- Judging / resurrection rounds are not votable; the gap between rounds
-  -- counts as closed. Round-less competitions (if any) are unaffected.
-  IF EXISTS (
+  -- Round-less competitions (if any) are unaffected — nothing to gate against.
+  IF NOT EXISTS (
     SELECT 1 FROM voting_rounds WHERE competition_id = NEW.competition_id
-  ) AND NOT EXISTS (
-    SELECT 1 FROM voting_rounds
-    WHERE competition_id = NEW.competition_id
-      AND round_type IN ('voting', 'finale')
-      AND start_date <= NOW()
-      AND end_date > NOW()
   ) THEN
+    RETURN NEW;
+  END IF;
+
+  -- A paid vote must land inside an open, not-yet-finalized votable round
+  -- (voting or finale). Judging / resurrection rounds are not votable; the gap
+  -- between rounds counts as closed.
+  --
+  -- FOR SHARE locks the matching round row so this insert serializes against
+  -- finalize_voting_round()'s FOR UPDATE (see header). Postgres re-evaluates the
+  -- WHERE clause against the latest committed row after any blocking FOR UPDATE
+  -- holder commits, so a vote that loses the race to finalization sees
+  -- finalized_at set here and is rejected rather than silently uncounted.
+  -- Concurrent paid votes all take FOR SHARE, which is mutually compatible — no
+  -- contention except against the one-time finalize.
+  PERFORM 1
+  FROM voting_rounds
+  WHERE competition_id = NEW.competition_id
+    AND round_type IN ('voting', 'finale')
+    AND start_date <= NOW()
+    AND end_date > NOW()
+    AND finalized_at IS NULL
+  FOR SHARE;
+
+  IF NOT FOUND THEN
     RAISE EXCEPTION 'Voting is closed for competition % — paid vote rejected', NEW.competition_id
       USING ERRCODE = 'check_violation', HINT = 'voting_round_closed';
   END IF;
@@ -80,5 +110,7 @@ CREATE TRIGGER votes_validate_paid_vote_round
 --     VALUES ('<comp-with-closed-round>', '<contestant-id>', 25, 1000, 'pi_test_closed', 'verify@example.com');
 --
 --   -- With an open voting/finale round, the same insert must SUCCEED.
+--   -- A round whose end_date has passed OR whose finalized_at is set must
+--   -- REJECT the paid insert (hint 'voting_round_closed').
 --   -- Cleanup: DELETE FROM votes WHERE payment_intent_id = 'pi_test_closed';
 -- =============================================================================
