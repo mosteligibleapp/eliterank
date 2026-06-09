@@ -50,9 +50,11 @@ function sponsorToWizardForm(sponsor) {
     value: p.value ? String(p.value) : '',
     imageUrl: p.imageUrl || '',
   }));
-  // Recipient isn't stored explicitly — infer from prize_type of the first child prize.
+  // Prefer the stored recipient; fall back to inferring from the first prize's
+  // prize_type for legacy sponsors saved before reward_recipient was persisted.
   const firstPrizeType = sponsor.prizes?.[0]?.prizeType;
   const inferredRecipient = firstPrizeType === 'winner' ? 'winners' : (prizes.length > 0 ? 'all' : '');
+  const recipient = sponsor.rewardRecipient || inferredRecipient;
   return {
     name: sponsor.name || '',
     logoUrl: sponsor.logoUrl || '',
@@ -61,8 +63,8 @@ function sponsorToWizardForm(sponsor) {
     value: sponsor.amount ? String(sponsor.amount) : '',
     visibilityTier: isInKind ? '' : (sponsor.tier || ''),
     providesContestantRewards: prizes.length > 0,
-    recipient: inferredRecipient,
-    topXCount: '',
+    recipient,
+    topXCount: sponsor.rewardTopXCount != null ? String(sponsor.rewardTopXCount) : '',
     prizes,
   };
 }
@@ -76,6 +78,7 @@ function wizardFormToSponsor(form) {
     logoUrl: form.logoUrl,
     websiteUrl: form.websiteUrl,
     recipient: form.recipient,
+    topXCount: form.topXCount ?? null,
     prizes: form.prizes || [],
   };
 }

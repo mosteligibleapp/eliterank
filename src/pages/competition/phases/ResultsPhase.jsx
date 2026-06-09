@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Trophy, Users, Heart } from 'lucide-react';
 import { WinnersPodium } from '../components/WinnersPodium';
+import { Rewards } from '../components/Rewards';
 import { HostSection } from '../components/HostSection';
 import { CharityHighlight } from '../components/CharityHighlight';
 import { JudgesSection } from '../components/JudgesSection';
@@ -75,6 +76,7 @@ export function ResultsPhase() {
     competition,
     organization,
     leaderboardStats,
+    prizes,
   } = usePublicCompetition();
   const navigate = useNavigate();
 
@@ -163,6 +165,15 @@ export function ResultsPhase() {
             <span className="stat-value">{formatNumber(competition?.total_votes)}</span>
             <span className="stat-label">Total Votes</span>
           </div>
+        </section>
+      )}
+
+      {/* Prizes — showcase what the winners took home. Only render when the
+          host actually configured prizes; the Rewards fallback shows generic
+          future-tense reward cards that don't fit a completed competition. */}
+      {prizes && prizes.length > 0 && (
+        <section className="phase-section">
+          <Rewards />
         </section>
       )}
 
