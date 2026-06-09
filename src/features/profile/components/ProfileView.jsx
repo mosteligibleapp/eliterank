@@ -286,7 +286,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
         season: cardInfo.season,
         organizationName: cardInfo.orgName,
         organizationLogoUrl: cardInfo.orgLogoUrl,
-        voteUrl: cardInfo.slug ? `mosteligible.co/${cardInfo.slug}` : 'mosteligible.co',
+        voteUrl: cardInfo.slug ? `eliterank.co/${cardInfo.slug}` : 'eliterank.co',
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

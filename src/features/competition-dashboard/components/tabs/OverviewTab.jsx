@@ -58,7 +58,7 @@ export default function OverviewTab({
         organizationName: competition?.organizationName || 'Most Eligible',
         organizationLogoUrl: competition?.organizationLogoUrl,
         accentColor: competition?.themePrimary || '#d4af37',
-        voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+        voteUrl: competition?.slug ? `eliterank.co/${competition.slug}` : 'eliterank.co',
         votingStartDate: competition?.votingStart,
       });
 

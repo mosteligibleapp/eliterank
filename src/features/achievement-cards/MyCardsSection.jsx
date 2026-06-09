@@ -146,7 +146,7 @@ export default function MyCardsSection({
         organizationName: organization?.name || 'Most Eligible',
         organizationLogoUrl: organization?.logo_url,
         accentColor: competition?.theme_primary || '#d4af37',
-        voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+        voteUrl: competition?.slug ? `eliterank.co/${competition.slug}` : 'eliterank.co',
         rank: cardOption.rank,
         votingStartDate: competition?.voting_start,
       });
@@ -211,7 +211,7 @@ export default function MyCardsSection({
         organizationName: organization?.name || 'Most Eligible',
         organizationLogoUrl: organization?.logo_url,
         accentColor: competition?.theme_primary || '#d4af37',
-        voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+        voteUrl: competition?.slug ? `eliterank.co/${competition.slug}` : 'eliterank.co',
         rank: cardOption.rank,
         votingStartDate: competition?.voting_start,
       });

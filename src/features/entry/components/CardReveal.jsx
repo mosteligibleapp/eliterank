@@ -48,7 +48,7 @@ export default function CardReveal({
     season: String(season || ''),
     accentColor,
     organizationLogoUrl,
-    voteUrl: competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co',
+    voteUrl: competition?.slug ? `eliterank.co/${competition.slug}` : 'eliterank.co',
     votingStartDate: competition?.voting_start,
   };
 
@@ -150,7 +150,7 @@ export default function CardReveal({
           season={season}
           accentColor={accentColor}
           organizationLogoUrl={organizationLogoUrl}
-          voteUrl={competition?.slug ? `mosteligible.co/${competition.slug}` : 'mosteligible.co'}
+          voteUrl={competition?.slug ? `eliterank.co/${competition.slug}` : 'eliterank.co'}
           votingStartDate={competition?.voting_start}
         />
       </div>
