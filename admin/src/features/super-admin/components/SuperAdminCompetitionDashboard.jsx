@@ -466,7 +466,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           </div>
           <div>
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>Vote Price</p>
-            <p style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.medium, color: '#22c55e' }}>
+            <p style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.medium, color: 'var(--color-success)' }}>
               ${competition.votePrice?.toFixed(2)}
             </p>
           </div>
@@ -636,8 +636,8 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         alignItems: 'center',
         gap: spacing.lg,
         padding: spacing.lg,
-        background: 'rgba(34,197,94,0.1)',
-        border: '1px solid rgba(34,197,94,0.2)',
+        background: 'rgba(var(--color-success-rgb),0.1)',
+        border: '1px solid rgba(var(--color-success-rgb),0.2)',
         borderRadius: borderRadius.lg,
         marginBottom: spacing.sm,
       }}>
@@ -684,7 +684,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
             { label: 'Total Nominees', value: totalNominees, color: '#8b5cf6' },
             { label: 'With Profile', value: nomineesWithProfile.length, color: '#3b82f6' },
             { label: 'External', value: externalNominees.length, color: '#f59e0b' },
-            { label: 'Approved', value: approvedCount, color: '#22c55e' },
+            { label: 'Approved', value: approvedCount, color: 'var(--color-success)' },
             { label: 'Archived', value: archivedNominees.length, color: '#6b7280' },
           ].map((stat, i) => (
             <div key={i} style={{
@@ -702,7 +702,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
         {/* Contestants (Approved to Compete) */}
         <div style={{
           background: colors.background.card,
-          border: `1px solid rgba(34,197,94,0.3)`,
+          border: `1px solid rgba(var(--color-success-rgb),0.3)`,
           borderRadius: borderRadius.xl,
           marginBottom: spacing.lg,
           overflow: 'hidden',
@@ -712,7 +712,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
               title="Contestants"
               count={approvedContestants.length}
               icon={Crown}
-              iconColor="#22c55e"
+              iconColor="var(--color-success)"
               sectionKey="contestants"
               badge="success"
             />
@@ -835,7 +835,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
             }}>
               {repairResult.summary}
               {repairResult.errors?.length > 0 && (
-                <span style={{ color: '#ef4444', marginLeft: spacing.sm }}>
+                <span style={{ color: 'var(--color-error)', marginLeft: spacing.sm }}>
                   Errors: {repairResult.errors.map(e => `${e.name}: ${e.error}`).join('; ')}
                 </span>
               )}
@@ -1131,7 +1131,7 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
             {isEditing && (
               <div style={{ display: 'flex', gap: spacing.sm }}>
                 <Button variant="secondary" icon={Edit2}>Edit Host</Button>
-                <Button variant="secondary" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}>
+                <Button variant="secondary" style={{ color: 'var(--color-error)', borderColor: 'rgba(var(--color-error-rgb),0.5)' }}>
                   Remove Host
                 </Button>
               </div>
@@ -1208,8 +1208,8 @@ export default function SuperAdminCompetitionDashboard({ competition, onBack, on
           padding: spacing.xxxl,
           gap: spacing.lg,
         }}>
-          <AlertCircle size={48} style={{ color: '#ef4444' }} />
-          <p style={{ color: '#ef4444', fontSize: typography.fontSize.lg }}>
+          <AlertCircle size={48} style={{ color: 'var(--color-error)' }} />
+          <p style={{ color: 'var(--color-error)', fontSize: typography.fontSize.lg }}>
             Error loading data: {error}
           </p>
           <Button onClick={refresh} variant="secondary">

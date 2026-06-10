@@ -5,7 +5,7 @@
   --guide-pink: #f472b6;
   --guide-blue: #60a5fa;
   --guide-purple: #a78bfa;
-  --guide-green: #4ade80;
+  --guide-green: var(--color-success-light);
   --guide-bg: #0f0f15;
   --guide-card: #1a1a24;
   --guide-border: rgba(255, 255, 255, 0.1);

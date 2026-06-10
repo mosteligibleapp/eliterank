@@ -66,7 +66,7 @@ export default function CurrentPhaseCard({ competition }) {
           <div
             style={{
               padding: `${spacing.sm} ${spacing.md}`,
-              background: 'rgba(34,197,94,0.15)',
+              background: 'rgba(var(--color-success-rgb),0.15)',
               borderRadius: borderRadius.xxl,
               display: 'flex',
               alignItems: 'center',

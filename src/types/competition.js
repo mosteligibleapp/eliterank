@@ -29,8 +29,8 @@ export const STATUS_CONFIG = {
   },
   [COMPETITION_STATUS.LIVE]: {
     label: 'Live',
-    color: '#22c55e',
-    bg: 'rgba(34, 197, 94, 0.2)',
+    color: 'var(--color-success)',
+    bg: 'rgba(var(--color-success-rgb), 0.2)',
     description: 'Competition is active',
   },
   [COMPETITION_STATUS.ARCHIVE]: {
@@ -439,7 +439,7 @@ export const ROUND_TYPE_CONFIG = {
     label: 'Public Voting',
     description: 'Public can vote for contestants',
     icon: 'Vote',
-    color: '#22c55e',
+    color: 'var(--color-success)',
   },
   judging: {
     label: 'Judging',
@@ -451,13 +451,13 @@ export const ROUND_TYPE_CONFIG = {
     label: 'Resurrection',
     description: 'Eliminated contestants compete for wildcard spots',
     icon: 'Vote',
-    color: '#22c55e',
+    color: 'var(--color-success)',
   },
   finale: {
     label: 'Finale',
     description: 'Final round — top finishers crowned as winners',
     icon: 'Trophy',
-    color: '#22c55e',
+    color: 'var(--color-success)',
   },
 };
 

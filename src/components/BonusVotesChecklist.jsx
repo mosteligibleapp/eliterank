@@ -90,16 +90,16 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
   const isRejected = task.requires_approval && task.submission_status === 'rejected';
 
   const getBorderColor = () => {
-    if (isCompleted) return 'rgba(34, 197, 94, 0.2)';
+    if (isCompleted) return 'rgba(var(--color-success-rgb), 0.2)';
     if (isPending) return 'rgba(212, 175, 55, 0.25)';
-    if (isRejected) return 'rgba(239, 68, 68, 0.2)';
+    if (isRejected) return 'rgba(var(--color-error-rgb), 0.2)';
     return 'rgba(255, 255, 255, 0.06)';
   };
 
   const getBackground = () => {
-    if (isCompleted) return 'rgba(34, 197, 94, 0.08)';
+    if (isCompleted) return 'rgba(var(--color-success-rgb), 0.08)';
     if (isPending) return 'rgba(212, 175, 55, 0.05)';
-    if (isRejected) return 'rgba(239, 68, 68, 0.04)';
+    if (isRejected) return 'rgba(var(--color-error-rgb), 0.04)';
     return 'rgba(255, 255, 255, 0.03)';
   };
 
@@ -131,11 +131,11 @@ const TaskRow = memo(function TaskRow({ task, onAction, isAwarding }) {
         alignItems: 'center',
         justifyContent: 'center',
         background: isCompleted
-          ? 'rgba(34, 197, 94, 0.15)'
+          ? 'rgba(var(--color-success-rgb), 0.15)'
           : isPending
             ? 'rgba(212, 175, 55, 0.12)'
             : isRejected
-              ? 'rgba(239, 68, 68, 0.1)'
+              ? 'rgba(var(--color-error-rgb), 0.1)'
               : 'rgba(212, 175, 55, 0.1)',
         flexShrink: 0,
       }}>

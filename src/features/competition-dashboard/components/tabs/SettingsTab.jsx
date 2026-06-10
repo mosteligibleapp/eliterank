@@ -248,9 +248,9 @@ export default function SettingsTab({
                     style={{
                       padding: spacing.sm,
                       background: 'transparent',
-                      border: `1px solid rgba(239,68,68,0.3)`,
+                      border: `1px solid rgba(var(--color-error-rgb),0.3)`,
                       borderRadius: borderRadius.md,
-                      color: '#ef4444',
+                      color: 'var(--color-error)',
                       cursor: 'pointer',
                     }}
                   >
@@ -304,9 +304,9 @@ export default function SettingsTab({
                     style={{
                       padding: spacing.sm,
                       background: 'transparent',
-                      border: `1px solid rgba(239,68,68,0.3)`,
+                      border: `1px solid rgba(var(--color-error-rgb),0.3)`,
                       borderRadius: borderRadius.md,
-                      color: '#ef4444',
+                      color: 'var(--color-error)',
                       cursor: 'pointer',
                     }}
                   >
@@ -347,13 +347,13 @@ export default function SettingsTab({
                     <div style={{
                       width: 48,
                       height: 48,
-                      background: status === 'active' ? 'rgba(212,175,55,0.2)' : status === 'completed' ? 'rgba(34,197,94,0.2)' : 'rgba(59,130,246,0.2)',
+                      background: status === 'active' ? 'rgba(212,175,55,0.2)' : status === 'completed' ? 'rgba(var(--color-success-rgb),0.2)' : 'rgba(59,130,246,0.2)',
                       borderRadius: borderRadius.lg,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
-                      <Calendar size={24} style={{ color: status === 'active' ? colors.gold.primary : status === 'completed' ? '#22c55e' : '#3b82f6' }} />
+                      <Calendar size={24} style={{ color: status === 'active' ? colors.gold.primary : status === 'completed' ? 'var(--color-success)' : '#3b82f6' }} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontWeight: typography.fontWeight.medium }}>{event.name}</p>
@@ -370,9 +370,9 @@ export default function SettingsTab({
                       style={{
                         padding: spacing.sm,
                         background: 'transparent',
-                        border: `1px solid rgba(239,68,68,0.3)`,
+                        border: `1px solid rgba(var(--color-error-rgb),0.3)`,
                         borderRadius: borderRadius.md,
-                        color: '#ef4444',
+                        color: 'var(--color-error)',
                         cursor: 'pointer',
                       }}
                     >
@@ -427,9 +427,9 @@ export default function SettingsTab({
                         style={{
                           padding: spacing.sm,
                           background: 'transparent',
-                          border: `1px solid rgba(239,68,68,0.3)`,
+                          border: `1px solid rgba(var(--color-error-rgb),0.3)`,
                           borderRadius: borderRadius.md,
-                          color: '#ef4444',
+                          color: 'var(--color-error)',
                           cursor: 'pointer',
                         }}
                       >

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 75">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5d485"/>
+      <stop offset="50%" style="stop-color:#d4af37"/>
+      <stop offset="100%" style="stop-color:#a8893a"/>
+    </linearGradient>
+  </defs>
+  <!-- Crown - 3 peaks -->
+  <path d="M50 6L66.5 35.5L91.5 24L79 59H21L8.5 24L33.5 35.5L50 6Z" fill="url(#gold)"/>
+  <!-- Bottom band -->
+  <rect x="19" y="63" width="62" height="12" rx="2" fill="url(#gold)"/>
+  <!-- Band highlight -->
+  <rect x="19" y="69" width="62" height="2" fill="rgba(255,255,255,0.2)"/>
+</svg>

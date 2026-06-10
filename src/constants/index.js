@@ -48,7 +48,7 @@ export const ANNOUNCEMENT_TYPES = [
 
 export const ANNOUNCEMENT_TYPE_COLORS = {
   announcement: { bg: 'rgba(212,175,55,0.15)', color: '#d4af37', border: 'rgba(212,175,55,0.3)' },
-  update: { bg: 'rgba(74,222,128,0.15)', color: '#4ade80', border: 'rgba(74,222,128,0.3)' },
+  update: { bg: 'rgba(74,222,128,0.15)', color: 'var(--color-success-light)', border: 'rgba(74,222,128,0.3)' },
   news: { bg: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: 'rgba(96,165,250,0.3)' },
 };
 

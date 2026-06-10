@@ -63,15 +63,15 @@ export const colors = {
 
   // Status colors - Vibrant, accessible
   status: {
-    success: '#22c55e',
-    successLight: '#4ade80',
-    successMuted: 'rgba(34, 197, 94, 0.15)',
+    success: '#2fa36c',
+    successLight: '#3fbe80',
+    successMuted: 'rgba(47, 163, 108, 0.15)',
     warning: '#f59e0b',
     warningLight: '#fbbf24',
     warningMuted: 'rgba(245, 158, 11, 0.15)',
-    error: '#ef4444',
-    errorLight: '#f87171',
-    errorMuted: 'rgba(239, 68, 68, 0.15)',
+    error: '#c24a5c',
+    errorLight: '#d9657a',
+    errorMuted: 'rgba(194, 74, 92, 0.15)',
     info: '#3b82f6',
     infoLight: '#60a5fa',
     infoMuted: 'rgba(59, 130, 246, 0.15)',
@@ -103,7 +103,7 @@ export const colors = {
     primary: 'rgba(255, 255, 255, 0.1)',
     secondary: 'rgba(255, 255, 255, 0.06)',
     focus: 'rgba(212, 175, 55, 0.5)',
-    error: 'rgba(239, 68, 68, 0.5)',
+    error: 'rgba(194, 74, 92, 0.5)',
   },
 
   // Interactive states
@@ -123,7 +123,7 @@ export const gradients = {
   goldRadial: 'radial-gradient(circle at 30% 30%, rgba(212, 175, 55, 0.15) 0%, transparent 70%)',
   dark: 'linear-gradient(180deg, #111114 0%, #0a0a0c 100%)',
   card: 'linear-gradient(180deg, rgba(28, 28, 31, 0.8) 0%, rgba(28, 28, 31, 0.95) 100%)',
-  success: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+  success: 'linear-gradient(135deg, #2fa36c 0%, #1f7a50 100%)',
   purple: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
   shine: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%)',
   skeleton: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%)',
@@ -145,8 +145,8 @@ export const shadows = {
   gold: '0 4px 20px rgba(212, 175, 55, 0.25)',
   goldGlow: '0 0 30px rgba(212, 175, 55, 0.3)',
   goldInset: 'inset 0 1px 0 rgba(212, 175, 55, 0.2)',
-  success: '0 4px 20px rgba(34, 197, 94, 0.25)',
-  error: '0 4px 20px rgba(239, 68, 68, 0.25)',
+  success: '0 4px 20px rgba(47, 163, 108, 0.25)',
+  error: '0 4px 20px rgba(194, 74, 92, 0.25)',
 
   // Card shadows
   card: '0 2px 8px rgba(0, 0, 0, 0.2)',
@@ -155,7 +155,7 @@ export const shadows = {
 
   // Focus rings
   focus: '0 0 0 2px rgba(212, 175, 55, 0.4)',
-  focusError: '0 0 0 2px rgba(239, 68, 68, 0.4)',
+  focusError: '0 0 0 2px rgba(194, 74, 92, 0.4)',
 };
 
 // ============================================

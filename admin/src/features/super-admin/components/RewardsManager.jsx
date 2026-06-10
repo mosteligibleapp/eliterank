@@ -13,7 +13,7 @@ import StatRow from '../../../components/StatRow';
 import ActionMenu from '../../../components/ActionMenu';
 
 const STATUS_COLORS = {
-  active: { bg: 'rgba(34,197,94,0.15)', color: '#22c55e' },
+  active: { bg: 'rgba(var(--color-success-rgb),0.15)', color: 'var(--color-success)' },
   paused: { bg: 'rgba(234,179,8,0.15)', color: '#eab308' },
   archived: { bg: 'rgba(107,114,128,0.15)', color: '#6b7280' },
 };
@@ -22,9 +22,9 @@ const ASSIGNMENT_STATUS_COLORS = {
   pending: { bg: 'rgba(234,179,8,0.15)', color: '#eab308', label: 'Pending' },
   claimed: { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6', label: 'Claimed' },
   shipped: { bg: 'rgba(139,92,246,0.15)', color: '#8b5cf6', label: 'Shipped' },
-  active: { bg: 'rgba(34,197,94,0.15)', color: '#22c55e', label: 'Active' },
+  active: { bg: 'rgba(var(--color-success-rgb),0.15)', color: 'var(--color-success)', label: 'Active' },
   completed: { bg: 'rgba(107,114,128,0.15)', color: '#6b7280', label: 'Completed' },
-  expired: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', label: 'Expired' },
+  expired: { bg: 'rgba(var(--color-error-rgb),0.15)', color: 'var(--color-error)', label: 'Expired' },
 };
 
 const TAB_OPTIONS = [
@@ -284,7 +284,7 @@ export default function RewardsManager() {
       { label: 'Total Rewards', value: rewards.length, icon: Gift, color: colors.gold.primary },
       { label: 'Active Assignments', value: assignments.filter(a => a.status === 'active' || a.status === 'claimed').length, icon: Users, color: '#3b82f6' },
       { label: 'Pending Claims', value: assignments.filter(a => a.status === 'pending').length, icon: Clock, color: '#eab308' },
-      { label: 'Total Value', value: totalValue > 0 ? `$${totalValue.toLocaleString()}` : '$0', icon: DollarSign, color: '#22c55e' },
+      { label: 'Total Value', value: totalValue > 0 ? `$${totalValue.toLocaleString()}` : '$0', icon: DollarSign, color: 'var(--color-success)' },
     ];
   }, [rewards, assignments]);
 
@@ -337,8 +337,8 @@ export default function RewardsManager() {
       render: (val) => (
         <span style={{
           padding: `2px ${spacing.sm}`, borderRadius: borderRadius.sm, fontSize: typography.fontSize.xs,
-          background: val === 'winners_only' ? 'rgba(212,175,55,0.15)' : 'rgba(34,197,94,0.15)',
-          color: val === 'winners_only' ? colors.gold.primary : '#22c55e',
+          background: val === 'winners_only' ? 'rgba(212,175,55,0.15)' : 'rgba(var(--color-success-rgb),0.15)',
+          color: val === 'winners_only' ? colors.gold.primary : 'var(--color-success)',
         }}>
           {val === 'winners_only' ? 'Winners Only' : 'All Nominees'}
         </span>
@@ -347,7 +347,7 @@ export default function RewardsManager() {
     {
       key: 'cash_value', label: 'Value', sortable: true,
       render: (val) => val ? (
-        <span style={{ color: '#22c55e', fontWeight: typography.fontWeight.semibold }}>${val}</span>
+        <span style={{ color: 'var(--color-success)', fontWeight: typography.fontWeight.semibold }}>${val}</span>
       ) : <span style={{ color: colors.text.tertiary }}>--</span>,
     },
     {
@@ -436,7 +436,7 @@ export default function RewardsManager() {
       render: (_, row) => (
         <span style={{
           padding: `2px ${spacing.sm}`, borderRadius: borderRadius.sm, fontSize: typography.fontSize.xs,
-          background: 'rgba(34,197,94,0.15)', color: '#22c55e', textTransform: 'capitalize',
+          background: 'rgba(var(--color-success-rgb),0.15)', color: 'var(--color-success)', textTransform: 'capitalize',
         }}>
           {row.competition?.status || 'unknown'}
         </span>
@@ -561,8 +561,8 @@ export default function RewardsManager() {
             style={{
               padding: `${spacing.xs} ${spacing.sm}`, border: 'none', borderRadius: borderRadius.sm, cursor: 'pointer',
               fontSize: typography.fontSize.xs,
-              background: row.content_posted ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.1)',
-              color: row.content_posted ? '#22c55e' : '#ef4444',
+              background: row.content_posted ? 'rgba(var(--color-success-rgb),0.15)' : 'rgba(var(--color-error-rgb),0.1)',
+              color: row.content_posted ? 'var(--color-success)' : 'var(--color-error)',
               display: 'flex', alignItems: 'center', gap: '4px',
             }}
           >
@@ -749,8 +749,8 @@ function AssignmentInlineRow({ assignment, onUpdate }) {
         onClick={() => onUpdate(assignment.id, { content_posted: !assignment.content_posted })}
         style={{
           padding: '2px 6px', border: 'none', borderRadius: borderRadius.xs, cursor: 'pointer',
-          background: assignment.content_posted ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.1)',
-          color: assignment.content_posted ? '#22c55e' : '#ef4444', fontSize: typography.fontSize.xs,
+          background: assignment.content_posted ? 'rgba(var(--color-success-rgb),0.15)' : 'rgba(var(--color-error-rgb),0.1)',
+          color: assignment.content_posted ? 'var(--color-success)' : 'var(--color-error)', fontSize: typography.fontSize.xs,
           display: 'flex', alignItems: 'center', gap: '2px',
         }}
       >

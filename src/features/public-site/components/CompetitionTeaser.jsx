@@ -438,7 +438,7 @@ export default function CompetitionTeaser({
               {submitError && (
                 <div style={{
                   padding: spacing.md,
-                  background: 'rgba(239,68,68,0.1)',
+                  background: 'rgba(var(--color-error-rgb),0.1)',
                   border: `1px solid ${colors.status.error}`,
                   borderRadius: borderRadius.lg,
                   marginBottom: spacing.lg,
@@ -602,7 +602,7 @@ export default function CompetitionTeaser({
               {submitError && (
                 <div style={{
                   padding: spacing.md,
-                  background: 'rgba(239,68,68,0.1)',
+                  background: 'rgba(var(--color-error-rgb),0.1)',
                   border: `1px solid ${colors.status.error}`,
                   borderRadius: borderRadius.lg,
                   marginBottom: spacing.lg,
@@ -727,7 +727,7 @@ export default function CompetitionTeaser({
               {submitError && (
                 <div style={{
                   padding: spacing.md,
-                  background: 'rgba(239,68,68,0.1)',
+                  background: 'rgba(var(--color-error-rgb),0.1)',
                   border: `1px solid ${colors.status.error}`,
                   borderRadius: borderRadius.lg,
                   marginBottom: spacing.lg,
@@ -853,7 +853,7 @@ export default function CompetitionTeaser({
               {submitError && (
                 <div style={{
                   padding: spacing.md,
-                  background: 'rgba(239,68,68,0.1)',
+                  background: 'rgba(var(--color-error-rgb),0.1)',
                   border: `1px solid ${colors.status.error}`,
                   borderRadius: borderRadius.lg,
                   marginBottom: spacing.lg,

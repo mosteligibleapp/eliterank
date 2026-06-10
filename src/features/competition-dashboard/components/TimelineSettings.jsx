@@ -700,19 +700,19 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       {/* Validation Errors */}
       {errors.length > 0 && (
         <div style={{
-          background: 'rgba(239,68,68,0.1)',
-          border: '1px solid rgba(239,68,68,0.3)',
+          background: 'rgba(var(--color-error-rgb),0.1)',
+          border: '1px solid rgba(var(--color-error-rgb),0.3)',
           borderRadius: borderRadius.lg,
           padding: spacing.md,
           marginBottom: spacing.lg,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-            <AlertTriangle size={16} style={{ color: '#ef4444' }} />
-            <span style={{ color: '#ef4444', fontWeight: typography.fontWeight.medium }}>Validation Errors</span>
+            <AlertTriangle size={16} style={{ color: 'var(--color-error)' }} />
+            <span style={{ color: 'var(--color-error)', fontWeight: typography.fontWeight.medium }}>Validation Errors</span>
           </div>
           <ul style={{ margin: 0, paddingLeft: spacing.lg }}>
             {errors.map((error, i) => (
-              <li key={i} style={{ color: '#ef4444', fontSize: typography.fontSize.sm }}>{error}</li>
+              <li key={i} style={{ color: 'var(--color-error)', fontSize: typography.fontSize.sm }}>{error}</li>
             ))}
           </ul>
         </div>
@@ -913,12 +913,12 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                   <button
                     onClick={() => removeNominationPeriod(index)}
                     style={{
-                      background: 'rgba(239,68,68,0.1)',
+                      background: 'rgba(var(--color-error-rgb),0.1)',
                       border: 'none',
                       borderRadius: borderRadius.sm,
                       padding: spacing.xs,
                       cursor: 'pointer',
-                      color: '#ef4444',
+                      color: 'var(--color-error)',
                     }}
                   >
                     <Trash2 size={14} />
@@ -943,11 +943,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                         fontSize: '16px', // Prevents iOS zoom
                         padding: spacing.md,
                         minHeight: '44px',
-                        borderColor: parseErrors[`nom_${index}_start_date`] ? '#ef4444' : colors.border.light,
+                        borderColor: parseErrors[`nom_${index}_start_date`] ? 'var(--color-error)' : colors.border.light,
                       }}
                     />
                     {parseErrors[`nom_${index}_start_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
+                      <p style={{ fontSize: '10px', color: 'var(--color-error)', marginTop: '2px' }}>Invalid date</p>
                     )}
                   </div>
                   <div>
@@ -963,11 +963,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                         fontSize: '16px', // Prevents iOS zoom
                         padding: spacing.md,
                         minHeight: '44px',
-                        borderColor: parseErrors[`nom_${index}_end_date`] ? '#ef4444' : colors.border.light,
+                        borderColor: parseErrors[`nom_${index}_end_date`] ? 'var(--color-error)' : colors.border.light,
                       }}
                     />
                     {parseErrors[`nom_${index}_end_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
+                      <p style={{ fontSize: '10px', color: 'var(--color-error)', marginTop: '2px' }}>Invalid date</p>
                     )}
                   </div>
                 </div>
@@ -1062,12 +1062,12 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                   <button
                     onClick={() => removeVotingRound(index)}
                     style={{
-                      background: 'rgba(239,68,68,0.1)',
+                      background: 'rgba(var(--color-error-rgb),0.1)',
                       border: 'none',
                       borderRadius: borderRadius.sm,
                       padding: spacing.xs,
                       cursor: 'pointer',
-                      color: '#ef4444',
+                      color: 'var(--color-error)',
                     }}
                   >
                     <Trash2 size={14} />
@@ -1092,11 +1092,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                         fontSize: '16px', // Prevents iOS zoom
                         padding: spacing.md,
                         minHeight: '44px',
-                        borderColor: parseErrors[`round_${index}_start_date`] ? '#ef4444' : colors.border.light,
+                        borderColor: parseErrors[`round_${index}_start_date`] ? 'var(--color-error)' : colors.border.light,
                       }}
                     />
                     {parseErrors[`round_${index}_start_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
+                      <p style={{ fontSize: '10px', color: 'var(--color-error)', marginTop: '2px' }}>Invalid date</p>
                     )}
                   </div>
                   <div>
@@ -1112,11 +1112,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                         fontSize: '16px', // Prevents iOS zoom
                         padding: spacing.md,
                         minHeight: '44px',
-                        borderColor: parseErrors[`round_${index}_end_date`] ? '#ef4444' : colors.border.light,
+                        borderColor: parseErrors[`round_${index}_end_date`] ? 'var(--color-error)' : colors.border.light,
                       }}
                     />
                     {parseErrors[`round_${index}_end_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
+                      <p style={{ fontSize: '10px', color: 'var(--color-error)', marginTop: '2px' }}>Invalid date</p>
                     )}
                   </div>
                   <div>
@@ -1217,11 +1217,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
             style={{
               ...inputStyle,
               maxWidth: '300px',
-              borderColor: parseErrors.finals_date ? '#ef4444' : colors.border.light,
+              borderColor: parseErrors.finals_date ? 'var(--color-error)' : colors.border.light,
             }}
           />
           {parseErrors.finals_date && (
-            <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.xs }}>
+            <p style={{ fontSize: typography.fontSize.xs, color: 'var(--color-error)', marginTop: spacing.xs }}>
               Invalid date format
             </p>
           )}

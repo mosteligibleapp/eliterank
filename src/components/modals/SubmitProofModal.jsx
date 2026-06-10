@@ -224,9 +224,9 @@ export default function SubmitProofModal({
         {task.submission_status === 'rejected' && task.rejection_reason && (
           <div style={{
             padding: spacing.md,
-            background: 'rgba(239,68,68,0.06)',
+            background: 'rgba(var(--color-error-rgb),0.06)',
             borderRadius: borderRadius.md,
-            border: '1px solid rgba(239,68,68,0.15)',
+            border: '1px solid rgba(var(--color-error-rgb),0.15)',
           }}>
             <p style={{
               fontSize: typography.fontSize.xs,

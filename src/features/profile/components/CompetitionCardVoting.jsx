@@ -398,8 +398,8 @@ export default function CompetitionCardVoting({
         {isDoubleVoteDay && (
           <div style={{
             padding: `${spacing.xs} ${spacing.md}`,
-            background: 'rgba(34,197,94,0.07)',
-            border: `1px solid rgba(34,197,94,0.22)`,
+            background: 'rgba(var(--color-success-rgb),0.07)',
+            border: `1px solid rgba(var(--color-success-rgb),0.22)`,
             borderRadius: borderRadius.md,
             display: 'flex',
             alignItems: 'center',

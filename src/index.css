@@ -18,6 +18,15 @@
   --color-border-secondary: rgba(255, 255, 255, 0.05);
   --color-border-gold: rgba(212, 175, 55, 0.3);
 
+  /* Status colors — elegant jewel tones (single source of truth, shared by app + admin) */
+  --color-success: #2fa36c;
+  --color-success-rgb: 47, 163, 108;
+  --color-success-light: #3fbe80;
+  --color-success-dark: #1f7a50;
+  --color-error: #c24a5c;
+  --color-error-rgb: 194, 74, 92;
+  --color-error-dark: #9e3848;
+
   /* Font family */
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
 }

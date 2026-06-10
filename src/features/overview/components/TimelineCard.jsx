@@ -111,7 +111,7 @@ export default function TimelineCard({ competition, events = [] }) {
         {isLive && (
           <div style={{
             padding: `${spacing.xs} ${spacing.sm}`,
-            background: 'rgba(34,197,94,0.15)',
+            background: 'rgba(var(--color-success-rgb),0.15)',
             borderRadius: borderRadius.pill,
             display: 'flex',
             alignItems: 'center',

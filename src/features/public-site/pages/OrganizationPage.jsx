@@ -212,7 +212,7 @@ export default function OrganizationPage() {
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                background: '#22c55e',
+                background: 'var(--color-success)',
                 animation: 'pulse 2s infinite',
               }} />
               Live Competitions
@@ -326,7 +326,7 @@ function CompetitionCard({ competition, onClick, isTeaser, isPast }) {
             borderRadius: borderRadius.lg,
             background: isTeaser
               ? 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.1))'
-              : 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1))',
+              : 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.2), rgba(var(--color-success-rgb),0.1))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -334,7 +334,7 @@ function CompetitionCard({ competition, onClick, isTeaser, isPast }) {
             {isTeaser ? (
               <Calendar size={24} style={{ color: colors.gold.primary }} />
             ) : (
-              <Crown size={24} style={{ color: isPast ? colors.text.muted : '#22c55e' }} />
+              <Crown size={24} style={{ color: isPast ? colors.text.muted : 'var(--color-success)' }} />
             )}
           </div>
 

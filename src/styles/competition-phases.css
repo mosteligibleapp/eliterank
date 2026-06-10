@@ -8,12 +8,10 @@
 :root {
   --color-primary: #d4af37;
   --color-primary-rgb: 212, 175, 55;
-  --color-success: #22c55e;
-  --color-success-rgb: 34, 197, 94;
   --color-warning: #f59e0b;
   --color-warning-rgb: 245, 158, 11;
-  --color-error: #ef4444;
-  --color-error-rgb: 239, 68, 68;
+  /* --color-success* and --color-error* now live in src/index.css :root
+     (single source, shared by app + admin) */
 
   --color-bg-primary: #0a0a0c;
   --color-bg-secondary: #111114;
@@ -796,21 +794,21 @@
 }
 
 .stat-card-urgent {
-  border-color: rgba(239, 68, 68, 0.25);
+  border-color: rgba(var(--color-error-rgb), 0.25);
 }
 
 .stat-card-urgent .stat-icon {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .stat-card-urgent .stat-icon-wrap {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(var(--color-error-rgb), 0.15);
 }
 
 .stat-card-urgent .stat-value,
 .stat-card-urgent .countdown-value,
 .stat-card-urgent .countdown-number {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .stat-card .countdown-icon {

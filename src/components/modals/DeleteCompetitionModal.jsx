@@ -98,7 +98,7 @@ export default function DeleteCompetitionModal({
             <div style={{
               width: '40px',
               height: '40px',
-              background: 'rgba(239,68,68,0.2)',
+              background: 'rgba(var(--color-error-rgb),0.2)',
               borderRadius: borderRadius.lg,
               display: 'flex',
               alignItems: 'center',
@@ -132,7 +132,7 @@ export default function DeleteCompetitionModal({
         <div style={{ padding: spacing.xl }}>
           <div style={{
             padding: spacing.lg,
-            background: 'rgba(239,68,68,0.1)',
+            background: 'rgba(var(--color-error-rgb),0.1)',
             borderRadius: borderRadius.lg,
             marginBottom: spacing.xl,
           }}>
@@ -196,7 +196,7 @@ export default function DeleteCompetitionModal({
           {error && (
             <div style={{
               padding: spacing.md,
-              background: 'rgba(239,68,68,0.1)',
+              background: 'rgba(var(--color-error-rgb),0.1)',
               border: `1px solid ${colors.status.error}`,
               borderRadius: borderRadius.lg,
               marginBottom: spacing.xl,

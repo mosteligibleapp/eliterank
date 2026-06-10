@@ -388,7 +388,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--color-error);
   border: none;
   color: #fff;
   display: flex;
@@ -669,9 +669,9 @@
 }
 
 .entry-btn-secondary.copied {
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: #22c55e;
+  background: rgba(var(--color-success-rgb), 0.15);
+  border-color: rgba(var(--color-success-rgb), 0.3);
+  color: var(--color-success);
 }
 
 .entry-btn-done {
@@ -689,7 +689,7 @@
 
 /* Error */
 .entry-error {
-  color: #ef4444;
+  color: var(--color-error);
   font-size: 0.8125rem;
   text-align: center;
   margin: 8px 0;
@@ -1045,7 +1045,7 @@
 }
 
 .entry-btn-ineligible:active {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 /* =============================================================================

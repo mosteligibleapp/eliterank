@@ -129,7 +129,7 @@ const ICON_COLOR_MAP = {
   gold: { bg: 'rgba(212,175,55,0.15)', color: colors.gold.primary },
   blue: { bg: 'rgba(59,130,246,0.15)', color: colors.status.info },
   purple: { bg: 'rgba(139,92,246,0.15)', color: colors.status.purple },
-  green: { bg: 'rgba(34,197,94,0.15)', color: colors.status.success },
+  green: { bg: 'rgba(var(--color-success-rgb),0.15)', color: colors.status.success },
 };
 
 export const StatCard = memo(function StatCard({

@@ -6,7 +6,7 @@ import { formatRelativeTime } from '../../utils/formatters';
 
 const TYPE_CONFIG = {
   announcement: { icon: Sparkles, color: colors.gold.primary, bgColor: 'rgba(212,175,55,0.15)' },
-  update: { icon: Check, color: colors.status.success, bgColor: 'rgba(34,197,94,0.15)' },
+  update: { icon: Check, color: colors.status.success, bgColor: 'rgba(var(--color-success-rgb),0.15)' },
   news: { icon: FileText, color: colors.status.info, bgColor: 'rgba(59,130,246,0.15)' },
 };
 
@@ -175,7 +175,7 @@ export default function CommunityPage({
                         onClick={() => onDeleteAnnouncement(post.id)}
                         style={{
                           padding: spacing.sm,
-                          background: 'rgba(239,68,68,0.15)',
+                          background: 'rgba(var(--color-error-rgb),0.15)',
                           border: 'none',
                           borderRadius: borderRadius.sm,
                           cursor: 'pointer',

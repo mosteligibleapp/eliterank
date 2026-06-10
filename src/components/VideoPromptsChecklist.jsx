@@ -55,16 +55,16 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
           const canSubmit = !isApproved;
 
           const getBorderColor = () => {
-            if (isApproved) return 'rgba(34, 197, 94, 0.2)';
+            if (isApproved) return 'rgba(var(--color-success-rgb), 0.2)';
             if (isPending) return 'rgba(212, 175, 55, 0.25)';
-            if (isRejected) return 'rgba(239, 68, 68, 0.2)';
+            if (isRejected) return 'rgba(var(--color-error-rgb), 0.2)';
             return 'rgba(255, 255, 255, 0.06)';
           };
 
           const getBackground = () => {
-            if (isApproved) return 'rgba(34, 197, 94, 0.08)';
+            if (isApproved) return 'rgba(var(--color-success-rgb), 0.08)';
             if (isPending) return 'rgba(212, 175, 55, 0.05)';
-            if (isRejected) return 'rgba(239, 68, 68, 0.04)';
+            if (isRejected) return 'rgba(var(--color-error-rgb), 0.04)';
             return 'rgba(255, 255, 255, 0.03)';
           };
 
@@ -76,9 +76,9 @@ export default function VideoPromptsChecklist({ competitionId, contestantId, use
           };
 
           const getIconBg = () => {
-            if (isApproved) return 'rgba(34, 197, 94, 0.15)';
+            if (isApproved) return 'rgba(var(--color-success-rgb), 0.15)';
             if (isPending) return 'rgba(212, 175, 55, 0.12)';
-            if (isRejected) return 'rgba(239, 68, 68, 0.1)';
+            if (isRejected) return 'rgba(var(--color-error-rgb), 0.1)';
             return 'rgba(212, 175, 55, 0.1)';
           };
 

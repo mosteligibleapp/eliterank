@@ -88,9 +88,9 @@ const styles = {
     gap: spacing.sm,
     padding: spacing.md,
     background: variant === 'error'
-      ? 'rgba(239,68,68,0.1)'
+      ? 'rgba(var(--color-error-rgb),0.1)'
       : variant === 'success'
-      ? 'rgba(34,197,94,0.1)'
+      ? 'rgba(var(--color-success-rgb),0.1)'
       : 'rgba(245,158,11,0.1)',
     border: `1px solid ${
       variant === 'error' ? colors.status.error

@@ -442,8 +442,8 @@ export default function PeopleTab({
           fontSize: typography.fontSize.xs,
           padding: `2px ${spacing.sm}`,
           borderRadius: borderRadius.sm,
-          background: 'rgba(34,197,94,0.15)',
-          color: '#22c55e',
+          background: 'rgba(var(--color-success-rgb),0.15)',
+          color: 'var(--color-success)',
           whiteSpace: 'nowrap',
         }}>
           Accepted
@@ -492,11 +492,11 @@ export default function PeopleTab({
             title={isCopied ? 'Copied!' : 'Copy claim link'}
             style={{
               padding: spacing.xs,
-              background: isCopied ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
+              background: isCopied ? 'rgba(var(--color-success-rgb),0.1)' : 'rgba(59,130,246,0.1)',
               border: 'none',
               borderRadius: borderRadius.sm,
               cursor: 'pointer',
-              color: isCopied ? '#22c55e' : '#3b82f6',
+              color: isCopied ? 'var(--color-success)' : '#3b82f6',
               minWidth: '32px',
               minHeight: '32px',
               display: 'flex',
@@ -514,11 +514,11 @@ export default function PeopleTab({
             title={resentId === nominee.id ? 'Sent!' : `${nominee.claimedAt ? 'Send profile completion reminder' : 'Resend invite email'}${nominee.inviteSentAt ? `\nLast sent: ${new Date(nominee.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}` : '\nNever sent'}`}
             style={{
               padding: spacing.xs,
-              background: resentId === nominee.id ? 'rgba(34,197,94,0.1)' : 'rgba(168,85,247,0.1)',
+              background: resentId === nominee.id ? 'rgba(var(--color-success-rgb),0.1)' : 'rgba(168,85,247,0.1)',
               border: 'none',
               borderRadius: borderRadius.sm,
               cursor: isProcessing ? 'not-allowed' : 'pointer',
-              color: resentId === nominee.id ? '#22c55e' : '#a855f7',
+              color: resentId === nominee.id ? 'var(--color-success)' : '#a855f7',
               minWidth: '32px',
               minHeight: '32px',
               display: 'flex',
@@ -574,11 +574,11 @@ export default function PeopleTab({
           title={!canApprove(nominee) ? 'Nominee must accept first' : 'Approve'}
           style={{
             padding: spacing.xs,
-            background: approveDisabled ? 'rgba(107,114,128,0.1)' : 'rgba(34,197,94,0.1)',
+            background: approveDisabled ? 'rgba(107,114,128,0.1)' : 'rgba(var(--color-success-rgb),0.1)',
             border: 'none',
             borderRadius: borderRadius.sm,
             cursor: approveDisabled ? 'not-allowed' : 'pointer',
-            color: approveDisabled ? '#6b7280' : '#22c55e',
+            color: approveDisabled ? '#6b7280' : 'var(--color-success)',
             minWidth: '32px',
             minHeight: '32px',
             display: 'flex',
@@ -594,11 +594,11 @@ export default function PeopleTab({
           disabled={isProcessing}
           style={{
             padding: spacing.xs,
-            background: 'rgba(239,68,68,0.1)',
+            background: 'rgba(var(--color-error-rgb),0.1)',
             border: 'none',
             borderRadius: borderRadius.sm,
             cursor: 'pointer',
-            color: '#ef4444',
+            color: 'var(--color-error)',
             minWidth: '32px',
             minHeight: '32px',
             display: 'flex',
@@ -1126,7 +1126,7 @@ export default function PeopleTab({
                         <Button
                           size="sm"
                           variant="secondary"
-                          style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                          style={{ color: 'var(--color-error)', borderColor: 'rgba(var(--color-error-rgb),0.5)' }}
                           onClick={onRemoveHost}
                         >
                           Remove
@@ -1194,7 +1194,7 @@ export default function PeopleTab({
                     <Button
                       size="sm"
                       variant="secondary"
-                      style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                      style={{ color: 'var(--color-error)', borderColor: 'rgba(var(--color-error-rgb),0.5)' }}
                       onClick={() => onRemoveCoHost?.(coHost.id)}
                     >
                       Remove
@@ -1263,8 +1263,8 @@ export default function PeopleTab({
           { label: 'Nominees', list: nominees, color: colors.gold.primary },
           { label: 'Ready to Approve', list: nomineesWithProfileAll, color: '#3b82f6' },
           { label: 'Awaiting Response', list: externalNomineesAll, color: '#f59e0b' },
-          { label: 'Contestants', list: contestants || [], color: '#22c55e' },
-          { label: 'Declined', list: declinedNomineesAll, color: '#ef4444' },
+          { label: 'Contestants', list: contestants || [], color: 'var(--color-success)' },
+          { label: 'Declined', list: declinedNomineesAll, color: 'var(--color-error)' },
         ].map((stat, i, arr) => {
           const breakdown = splitByGender ? byGender(stat.list) : null;
           return (
@@ -1417,11 +1417,11 @@ export default function PeopleTab({
                         title="Remove contestant"
                         style={{
                           padding: spacing.xs,
-                          background: 'rgba(239,68,68,0.1)',
+                          background: 'rgba(var(--color-error-rgb),0.1)',
                           border: 'none',
                           borderRadius: borderRadius.sm,
                           cursor: 'pointer',
-                          color: '#ef4444',
+                          color: 'var(--color-error)',
                           minWidth: '32px',
                           minHeight: '32px',
                           display: 'flex',
@@ -1603,11 +1603,11 @@ export default function PeopleTab({
                           title={copiedId === n.id ? 'Copied!' : 'Copy resume link'}
                           style={{
                             padding: spacing.xs,
-                            background: copiedId === n.id ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
+                            background: copiedId === n.id ? 'rgba(var(--color-success-rgb),0.1)' : 'rgba(59,130,246,0.1)',
                             border: 'none',
                             borderRadius: borderRadius.sm,
                             cursor: 'pointer',
-                            color: copiedId === n.id ? '#22c55e' : '#3b82f6',
+                            color: copiedId === n.id ? 'var(--color-success)' : '#3b82f6',
                             minWidth: '32px',
                             minHeight: '32px',
                             display: 'flex',
@@ -1625,11 +1625,11 @@ export default function PeopleTab({
                           title={resentId === n.id ? 'Sent!' : `Send reminder to finish profile${n.inviteSentAt ? `\nLast sent: ${new Date(n.inviteSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}`}
                           style={{
                             padding: spacing.xs,
-                            background: resentId === n.id ? 'rgba(34,197,94,0.1)' : 'rgba(168,85,247,0.1)',
+                            background: resentId === n.id ? 'rgba(var(--color-success-rgb),0.1)' : 'rgba(168,85,247,0.1)',
                             border: 'none',
                             borderRadius: borderRadius.sm,
                             cursor: processingIds.has(n.id) ? 'not-allowed' : 'pointer',
-                            color: resentId === n.id ? '#22c55e' : '#a855f7',
+                            color: resentId === n.id ? 'var(--color-success)' : '#a855f7',
                             minWidth: '32px',
                             minHeight: '32px',
                             display: 'flex',
@@ -1646,11 +1646,11 @@ export default function PeopleTab({
                         title="Reject"
                         style={{
                           padding: spacing.xs,
-                          background: 'rgba(239,68,68,0.1)',
+                          background: 'rgba(var(--color-error-rgb),0.1)',
                           border: 'none',
                           borderRadius: borderRadius.sm,
                           cursor: 'pointer',
-                          color: '#ef4444',
+                          color: 'var(--color-error)',
                           minWidth: '32px',
                           minHeight: '32px',
                           display: 'flex',
@@ -1699,11 +1699,11 @@ export default function PeopleTab({
                         title="Unreject"
                         style={{
                           padding: `${spacing.xs} ${spacing.sm}`,
-                          background: 'rgba(34,197,94,0.1)',
+                          background: 'rgba(var(--color-success-rgb),0.1)',
                           border: 'none',
                           borderRadius: borderRadius.sm,
                           cursor: processingIds.has(n.id) ? 'not-allowed' : 'pointer',
-                          color: '#22c55e',
+                          color: 'var(--color-success)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: spacing.xs,

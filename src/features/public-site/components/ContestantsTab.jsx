@@ -43,7 +43,7 @@ export default function ContestantsTab({ contestants, events, forceDoubleVoteDay
     justifyContent: 'center',
     fontWeight: typography.fontWeight.bold,
     fontSize: typography.fontSize.md,
-    background: trend === 'up' ? 'rgba(34,197,94,0.9)' : trend === 'down' ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.7)',
+    background: trend === 'up' ? 'rgba(var(--color-success-rgb),0.9)' : trend === 'down' ? 'rgba(var(--color-error-rgb),0.9)' : 'rgba(0,0,0,0.7)',
     backdropFilter: 'blur(8px)',
     color: '#fff',
     zIndex: 2,

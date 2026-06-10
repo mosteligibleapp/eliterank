@@ -314,9 +314,9 @@ export default function OverviewTab({
         <div style={{
           padding: isMobile ? spacing.md : spacing.xl,
           borderRadius: borderRadius.xl,
-          background: 'linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.04) 60%, rgba(6,182,212,0.06) 100%)',
-          border: '1px solid rgba(34,197,94,0.25)',
-          boxShadow: totalRevenue > 0 ? '0 4px 24px rgba(34,197,94,0.12)' : 'none',
+          background: 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.12) 0%, rgba(var(--color-success-rgb),0.04) 60%, rgba(6,182,212,0.06) 100%)',
+          border: '1px solid rgba(var(--color-success-rgb),0.25)',
+          boxShadow: totalRevenue > 0 ? '0 4px 24px rgba(var(--color-success-rgb),0.12)' : 'none',
           position: 'relative',
           overflow: 'hidden',
         }}>
@@ -328,7 +328,7 @@ export default function OverviewTab({
             width: '120px',
             height: '120px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(34,197,94,0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(var(--color-success-rgb),0.12) 0%, transparent 70%)',
             pointerEvents: 'none',
           }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md, position: 'relative' }}>
@@ -336,12 +336,12 @@ export default function OverviewTab({
               width: '32px',
               height: '32px',
               borderRadius: borderRadius.md,
-              background: 'rgba(34,197,94,0.15)',
+              background: 'rgba(var(--color-success-rgb),0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <DollarSign size={16} style={{ color: '#4ade80' }} />
+              <DollarSign size={16} style={{ color: 'var(--color-success-light)' }} />
             </div>
             <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Total Revenue

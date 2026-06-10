@@ -28,7 +28,7 @@ export const AVAILABLE_CITIES = [
 export const CATEGORY_TYPES = [
   { id: 'dating', name: 'Dating', icon: Heart, color: '#ec4899', description: 'Singles & Dating Competition' },
   { id: 'pageant', name: 'Pageant', icon: Sparkles, color: '#f59e0b', description: 'Beauty & Talent Pageant' },
-  { id: 'fitness', name: 'Fitness', icon: Dumbbell, color: '#22c55e', description: 'Fitness & Body Competition' },
+  { id: 'fitness', name: 'Fitness', icon: Dumbbell, color: 'var(--color-success)', description: 'Fitness & Body Competition' },
   { id: 'health', name: 'Health', icon: Star, color: '#3b82f6', description: 'Health & Wellness' },
   { id: 'social', name: 'Social', icon: Crown, color: '#8b5cf6', description: 'Social Influencer' },
   { id: 'talent', name: 'Talent', icon: Trophy, color: '#d4af37', description: 'Talent & Performance' },
@@ -63,12 +63,12 @@ export const WIZARD_STEPS = [
 export const STATUS_STYLES = {
   draft: { bg: 'rgba(100,100,100,0.2)', color: '#9ca3af', label: 'Draft' },
   publish: { bg: 'rgba(212,175,55,0.2)', color: '#d4af37', label: 'Published' },
-  live: { bg: 'rgba(34,197,94,0.2)', color: '#22c55e', label: 'Live' },
+  live: { bg: 'rgba(var(--color-success-rgb),0.2)', color: 'var(--color-success)', label: 'Live' },
   completed: { bg: 'rgba(139,92,246,0.2)', color: '#8b5cf6', label: 'Completed' },
   archive: { bg: 'rgba(100,100,100,0.2)', color: '#6b7280', label: 'Archived' },
   // Timeline phases (for live competitions)
   nomination: { bg: 'rgba(251,191,36,0.2)', color: '#fbbf24', label: 'Nominations' },
-  voting: { bg: 'rgba(34,197,94,0.2)', color: '#22c55e', label: 'Voting' },
+  voting: { bg: 'rgba(var(--color-success-rgb),0.2)', color: 'var(--color-success)', label: 'Voting' },
   judging: { bg: 'rgba(59,130,246,0.2)', color: '#3b82f6', label: 'Judging' },
 };
 

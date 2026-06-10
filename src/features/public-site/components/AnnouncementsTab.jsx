@@ -6,7 +6,7 @@ import { useResponsive } from '../../../hooks/useResponsive';
 
 const TYPE_CONFIG = {
   announcement: { icon: Sparkles, label: 'Announcement', color: colors.gold.primary, bgColor: 'rgba(212,175,55,0.10)' },
-  update: { icon: Check, label: 'Update', color: colors.status.success, bgColor: 'rgba(34,197,94,0.08)' },
+  update: { icon: Check, label: 'Update', color: colors.status.success, bgColor: 'rgba(var(--color-success-rgb),0.08)' },
   news: { icon: FileText, label: 'Press Release', color: colors.status.info, bgColor: 'rgba(59,130,246,0.08)' },
 };
 

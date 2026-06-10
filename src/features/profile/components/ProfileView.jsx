@@ -301,7 +301,7 @@ export default function ProfileView({ hostProfile, onEdit, contestantId, isPrevi
               icon={copied ? Check : Share2}
               size={isMobile ? 'sm' : 'md'}
               style={{
-                background: copied ? 'rgba(34,197,94,0.8)' : 'rgba(255,255,255,0.06)',
+                background: copied ? 'rgba(var(--color-success-rgb),0.8)' : 'rgba(255,255,255,0.06)',
                 backdropFilter: 'blur(8px)',
                 color: '#fff',
                 border: '1px solid rgba(255,255,255,0.1)',

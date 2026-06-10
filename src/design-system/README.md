@@ -67,9 +67,9 @@ Designed for thumbs first:
 | `gold` (DEFAULT) | `#d4af37` - Primary brand color |
 
 ### Status Colors
-- **Success**: Green (`#22c55e`) - Votes cast, entries confirmed
+- **Success**: Green (`#2fa36c`) - Votes cast, entries confirmed
 - **Warning**: Amber (`#f59e0b`) - Time running out, limits approaching
-- **Error**: Red (`#ef4444`) - Failed actions, destructive operations
+- **Error**: Red (`#c24a5c`) - Failed actions, destructive operations
 - **Info**: Blue (`#3b82f6`) - Informational messages
 
 ### Accents

@@ -251,7 +251,7 @@ export default function AdminHeader({ title, subtitle, onLogout, actions, user, 
                     textAlign: 'left',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                    e.currentTarget.style.background = 'rgba(var(--color-error-rgb), 0.1)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent';

@@ -559,7 +559,7 @@ export default function VoteModal({
                       colorPrimary: '#d4af37',
                       colorBackground: '#18181b',
                       colorText: '#ffffff',
-                      colorDanger: '#ef4444',
+                      colorDanger: 'var(--color-error)',
                       fontFamily: 'system-ui, -apple-system, sans-serif',
                       borderRadius: '8px',
                       spacingUnit: '3px',
@@ -755,8 +755,8 @@ export default function VoteModal({
       {isAuthenticated && freeVoteUsed && alreadyVotedForThis && (
         <div
           style={{
-            background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))',
-            border: `1px solid rgba(34,197,94,0.3)`,
+            background: 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.15), rgba(var(--color-success-rgb),0.05))',
+            border: `1px solid rgba(var(--color-success-rgb),0.3)`,
             borderRadius: borderRadius.md,
             padding: `${spacing.sm} ${spacing.md}`,
             marginBottom: spacing.md,
@@ -800,8 +800,8 @@ export default function VoteModal({
               size="lg"
               onClick={onLogin}
               style={{
-                background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1))',
-                borderColor: 'rgba(34,197,94,0.4)',
+                background: 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.2), rgba(var(--color-success-rgb),0.1))',
+                borderColor: 'rgba(var(--color-success-rgb),0.4)',
                 color: colors.status.success,
                 padding: `${spacing.sm} ${spacing.md}`,
               }}
@@ -840,8 +840,8 @@ export default function VoteModal({
               style={{
                 background: (!hasActiveRound || freeVoteUsed)
                   ? 'rgba(255,255,255,0.05)'
-                  : 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1))',
-                borderColor: (!hasActiveRound || freeVoteUsed) ? 'rgba(255,255,255,0.1)' : 'rgba(34,197,94,0.4)',
+                  : 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.2), rgba(var(--color-success-rgb),0.1))',
+                borderColor: (!hasActiveRound || freeVoteUsed) ? 'rgba(255,255,255,0.1)' : 'rgba(var(--color-success-rgb),0.4)',
                 color: (!hasActiveRound || freeVoteUsed) ? colors.text.muted : colors.status.success,
                 cursor: (!hasActiveRound || freeVoteUsed) ? 'not-allowed' : 'pointer',
                 padding: `${spacing.sm} ${spacing.md}`,
@@ -922,9 +922,9 @@ export default function VoteModal({
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: `${spacing.sm} ${spacing.md}`,
-            background: forceDoubleVoteDay ? 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(34,197,94,0.1))' : 'rgba(212,175,55,0.15)',
+            background: forceDoubleVoteDay ? 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(var(--color-success-rgb),0.1))' : 'rgba(212,175,55,0.15)',
             borderRadius: borderRadius.md,
-            border: `1px solid ${forceDoubleVoteDay ? 'rgba(34,197,94,0.3)' : 'rgba(212,175,55,0.2)'}`,
+            border: `1px solid ${forceDoubleVoteDay ? 'rgba(var(--color-success-rgb),0.3)' : 'rgba(212,175,55,0.2)'}`,
           }}
         >
           <span style={{ color: colors.text.light, fontSize: typography.fontSize.sm }}>
@@ -1056,10 +1056,10 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
           style={{
             marginTop: spacing.md,
             padding: spacing.md,
-            background: 'rgba(239, 68, 68, 0.1)',
+            background: 'rgba(var(--color-error-rgb), 0.1)',
             borderRadius: borderRadius.md,
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#ef4444',
+            border: '1px solid rgba(var(--color-error-rgb), 0.3)',
+            color: 'var(--color-error)',
             fontSize: typography.fontSize.sm,
           }}
         >

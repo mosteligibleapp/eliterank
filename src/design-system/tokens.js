@@ -43,11 +43,11 @@ export const tokens = {
       inverse: '#08080c',      // Inverse (on light backgrounds)
     },
     
-    // Status colors (like Kalshi - trustworthy, clear)
+    // Status colors — elegant jewel tones tuned for the dark + gold brand
     success: {
-      light: '#86efac',        // green-300
-      DEFAULT: '#22c55e',      // green-500
-      dark: '#16a34a',         // green-600
+      light: '#3fbe80',        // emerald (light)
+      DEFAULT: '#2fa36c',      // emerald — open / success
+      dark: '#1f7a50',         // emerald (dark)
     },
     warning: {
       light: '#fcd34d',        // amber-300
@@ -55,9 +55,9 @@ export const tokens = {
       dark: '#d97706',         // amber-600
     },
     error: {
-      light: '#fca5a5',        // red-300
-      DEFAULT: '#ef4444',      // red-500
-      dark: '#dc2626',         // red-600
+      light: '#d9657a',        // garnet (light)
+      DEFAULT: '#c24a5c',      // garnet — closed / error
+      dark: '#9e3848',         // garnet (dark)
     },
     info: {
       light: '#93c5fd',        // blue-300
@@ -190,8 +190,8 @@ export const tokens = {
       pink: '0 0 20px rgba(236,72,153,0.3)',
       purple: '0 0 20px rgba(168,85,247,0.3)',
       cyan: '0 0 20px rgba(6,182,212,0.3)',
-      success: '0 0 20px rgba(34,197,94,0.3)',
-      error: '0 0 20px rgba(239,68,68,0.3)',
+      success: '0 0 20px rgba(47,163,108,0.3)',
+      error: '0 0 20px rgba(194,74,92,0.3)',
     },
     
     // Inner shadows

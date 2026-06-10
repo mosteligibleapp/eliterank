@@ -20,7 +20,7 @@ export default function HostPayoutCard({ totalRevenue }) {
         style={{
           marginTop: spacing.md,
           padding: `${spacing.md} ${spacing.md}`,
-          background: 'rgba(34,197,94,0.1)',
+          background: 'rgba(var(--color-success-rgb),0.1)',
           borderRadius: borderRadius.md,
         }}
       >

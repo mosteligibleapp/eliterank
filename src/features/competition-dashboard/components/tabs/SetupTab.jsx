@@ -732,7 +732,7 @@ export default function SetupTab({
                           title={isCopied ? 'Copied!' : 'Copy claim link'}
                           style={{
                             padding: spacing.sm,
-                            background: isCopied ? 'rgba(34,197,94,0.1)' : 'transparent',
+                            background: isCopied ? 'rgba(var(--color-success-rgb),0.1)' : 'transparent',
                             border: `1px solid ${isCopied ? colors.status.success : colors.border.primary}`,
                             borderRadius: borderRadius.md,
                             color: isCopied ? colors.status.success : colors.text.secondary,
@@ -754,7 +754,7 @@ export default function SetupTab({
                           title={isSent ? 'Sent!' : judge.inviteSentAt ? 'Resend invite' : 'Send invite'}
                           style={{
                             padding: spacing.sm,
-                            background: isSent ? 'rgba(34,197,94,0.1)' : 'transparent',
+                            background: isSent ? 'rgba(var(--color-success-rgb),0.1)' : 'transparent',
                             border: `1px solid ${isSent ? colors.status.success : colors.border.primary}`,
                             borderRadius: borderRadius.md,
                             color: isSent ? colors.status.success : colors.gold.primary,
@@ -792,9 +792,9 @@ export default function SetupTab({
                         style={{
                           padding: spacing.sm,
                           background: 'transparent',
-                          border: `1px solid rgba(239,68,68,0.3)`,
+                          border: `1px solid rgba(var(--color-error-rgb),0.3)`,
                           borderRadius: borderRadius.md,
-                          color: '#ef4444',
+                          color: 'var(--color-error)',
                           cursor: 'pointer',
                           minWidth: '36px',
                           minHeight: '36px',
@@ -908,9 +908,9 @@ export default function SetupTab({
                         style={{
                           padding: spacing.sm,
                           background: 'transparent',
-                          border: `1px solid rgba(239,68,68,0.3)`,
+                          border: `1px solid rgba(var(--color-error-rgb),0.3)`,
                           borderRadius: borderRadius.md,
-                          color: '#ef4444',
+                          color: 'var(--color-error)',
                           cursor: 'pointer',
                           minWidth: '36px',
                           minHeight: '36px',
@@ -1054,14 +1054,14 @@ export default function SetupTab({
                     <div style={{
                       width: 48,
                       height: 48,
-                      background: status === 'active' ? 'rgba(212,175,55,0.2)' : status === 'completed' ? 'rgba(34,197,94,0.2)' : 'rgba(59,130,246,0.2)',
+                      background: status === 'active' ? 'rgba(212,175,55,0.2)' : status === 'completed' ? 'rgba(var(--color-success-rgb),0.2)' : 'rgba(59,130,246,0.2)',
                       borderRadius: borderRadius.lg,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      <Calendar size={24} style={{ color: status === 'active' ? colors.gold.primary : status === 'completed' ? '#22c55e' : '#3b82f6' }} />
+                      <Calendar size={24} style={{ color: status === 'active' ? colors.gold.primary : status === 'completed' ? 'var(--color-success)' : '#3b82f6' }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: typography.fontWeight.medium }}>{event.name}</p>
@@ -1096,9 +1096,9 @@ export default function SetupTab({
                       style={{
                         padding: spacing.sm,
                         background: 'transparent',
-                        border: `1px solid rgba(239,68,68,0.3)`,
+                        border: `1px solid rgba(var(--color-error-rgb),0.3)`,
                         borderRadius: borderRadius.md,
-                        color: '#ef4444',
+                        color: 'var(--color-error)',
                         cursor: 'pointer',
                         minWidth: '36px',
                         minHeight: '36px',
@@ -1266,9 +1266,9 @@ export default function SetupTab({
                       style={{
                         padding: spacing.sm,
                         background: 'transparent',
-                        border: `1px solid rgba(239,68,68,0.3)`,
+                        border: `1px solid rgba(var(--color-error-rgb),0.3)`,
                         borderRadius: borderRadius.md,
-                        color: '#ef4444',
+                        color: 'var(--color-error)',
                         cursor: 'pointer',
                         minWidth: '36px',
                         minHeight: '36px',
@@ -1310,7 +1310,7 @@ export default function SetupTab({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: manualVotesEnabled ? 'rgba(34,197,94,0.15)' : 'rgba(100,100,100,0.15)',
+                background: manualVotesEnabled ? 'rgba(var(--color-success-rgb),0.15)' : 'rgba(100,100,100,0.15)',
                 border: 'none',
                 cursor: manualVotesSaving ? 'wait' : 'pointer',
                 flexShrink: 0,
@@ -1395,9 +1395,9 @@ export default function SetupTab({
                   </div>
                   <div style={{
                     padding: spacing.md,
-                    background: 'rgba(34,197,94,0.08)',
+                    background: 'rgba(var(--color-success-rgb),0.08)',
                     borderRadius: borderRadius.lg,
-                    border: '1px solid rgba(34,197,94,0.15)',
+                    border: '1px solid rgba(var(--color-success-rgb),0.15)',
                   }}>
                     <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Total Completions</p>
                     <p style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.status.success }}>
@@ -1446,7 +1446,7 @@ export default function SetupTab({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: task.enabled ? 'rgba(34,197,94,0.15)' : 'rgba(100,100,100,0.15)',
+                        background: task.enabled ? 'rgba(var(--color-success-rgb),0.15)' : 'rgba(100,100,100,0.15)',
                         border: 'none',
                         cursor: 'pointer',
                         flexShrink: 0,
@@ -1554,9 +1554,9 @@ export default function SetupTab({
                           style={{
                             padding: spacing.sm,
                             background: 'transparent',
-                            border: '1px solid rgba(239,68,68,0.3)',
+                            border: '1px solid rgba(var(--color-error-rgb),0.3)',
                             borderRadius: borderRadius.md,
-                            color: '#ef4444',
+                            color: 'var(--color-error)',
                             cursor: 'pointer',
                             minWidth: '36px',
                             minHeight: '36px',
@@ -1698,10 +1698,10 @@ export default function SetupTab({
                                   disabled={reviewingId === sub.id}
                                   style={{
                                     padding: `${spacing.xs} ${spacing.sm}`,
-                                    background: 'rgba(239,68,68,0.15)',
-                                    border: '1px solid rgba(239,68,68,0.3)',
+                                    background: 'rgba(var(--color-error-rgb),0.15)',
+                                    border: '1px solid rgba(var(--color-error-rgb),0.3)',
                                     borderRadius: borderRadius.sm,
-                                    color: '#ef4444',
+                                    color: 'var(--color-error)',
                                     cursor: 'pointer',
                                     fontSize: typography.fontSize.xs,
                                     fontWeight: typography.fontWeight.medium,
@@ -1729,8 +1729,8 @@ export default function SetupTab({
                                   disabled={reviewingId === sub.id}
                                   style={{
                                     padding: `${spacing.xs} ${spacing.sm}`,
-                                    background: 'rgba(34,197,94,0.15)',
-                                    border: '1px solid rgba(34,197,94,0.3)',
+                                    background: 'rgba(var(--color-success-rgb),0.15)',
+                                    border: '1px solid rgba(var(--color-success-rgb),0.3)',
                                     borderRadius: borderRadius.sm,
                                     color: colors.status.success,
                                     cursor: 'pointer',
@@ -1748,10 +1748,10 @@ export default function SetupTab({
                                   disabled={reviewingId === sub.id}
                                   style={{
                                     padding: `${spacing.xs} ${spacing.sm}`,
-                                    background: 'rgba(239,68,68,0.08)',
-                                    border: '1px solid rgba(239,68,68,0.2)',
+                                    background: 'rgba(var(--color-error-rgb),0.08)',
+                                    border: '1px solid rgba(var(--color-error-rgb),0.2)',
                                     borderRadius: borderRadius.sm,
-                                    color: '#ef4444',
+                                    color: 'var(--color-error)',
                                     cursor: 'pointer',
                                     fontSize: typography.fontSize.xs,
                                     fontWeight: typography.fontWeight.medium,
@@ -1822,9 +1822,9 @@ export default function SetupTab({
                             alignItems: 'center',
                             gap: spacing.md,
                             padding: `${spacing.sm} ${spacing.md}`,
-                            background: c.completed ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)',
+                            background: c.completed ? 'rgba(var(--color-success-rgb),0.06)' : 'rgba(255,255,255,0.02)',
                             borderRadius: borderRadius.md,
-                            border: `1px solid ${c.completed ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                            border: `1px solid ${c.completed ? 'rgba(var(--color-success-rgb),0.2)' : 'rgba(255,255,255,0.06)'}`,
                           }}>
                             <Avatar src={c.avatar_url} name={c.name} size={32} />
                             <span style={{
@@ -1840,8 +1840,8 @@ export default function SetupTab({
                               disabled={awardingAttendance === c.id}
                               style={{
                                 padding: `${spacing.xs} ${spacing.sm}`,
-                                background: c.completed ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
-                                border: `1px solid ${c.completed ? 'rgba(34,197,94,0.3)' : colors.border.primary}`,
+                                background: c.completed ? 'rgba(var(--color-success-rgb),0.15)' : 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${c.completed ? 'rgba(var(--color-success-rgb),0.3)' : colors.border.primary}`,
                                 borderRadius: borderRadius.sm,
                                 color: c.completed ? colors.status.success : colors.text.muted,
                                 cursor: 'pointer',
@@ -2050,7 +2050,7 @@ export default function SetupTab({
                           <Button
                             size="sm"
                             variant="secondary"
-                            style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)', flexShrink: 0 }}
+                            style={{ color: 'var(--color-error)', borderColor: 'rgba(var(--color-error-rgb),0.5)', flexShrink: 0 }}
                             onClick={() => {
                               handleReviewVideoResponse(resp.id, 'reject', videoRejectionReason);
                               setVideoRejectingId(null);
@@ -2065,7 +2065,7 @@ export default function SetupTab({
                           <Button
                             size="sm"
                             variant="secondary"
-                            style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
+                            style={{ color: 'var(--color-error)', borderColor: 'rgba(var(--color-error-rgb),0.5)' }}
                             onClick={() => setVideoRejectingId(resp.id)}
                           >
                             Reject

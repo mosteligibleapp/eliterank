@@ -188,9 +188,9 @@ export default function CommunityTab({
                       style={{
                         padding: spacing.sm,
                         background: 'transparent',
-                        border: `1px solid rgba(239,68,68,0.3)`,
+                        border: `1px solid rgba(var(--color-error-rgb),0.3)`,
                         borderRadius: borderRadius.md,
-                        color: '#ef4444',
+                        color: 'var(--color-error)',
                         cursor: 'pointer',
                       }}
                     >

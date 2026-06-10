@@ -684,7 +684,7 @@ export default function CompetitionsManager({ onViewDashboard }) {
         const target = row.min_contestants || 40;
         const met = actual >= target;
         return (
-          <span style={{ color: met ? '#22c55e' : colors.text.secondary, fontSize: typography.fontSize.sm }}>
+          <span style={{ color: met ? 'var(--color-success)' : colors.text.secondary, fontSize: typography.fontSize.sm }}>
             {actual}<span style={{ color: colors.text.tertiary }}> / {target}</span>
           </span>
         );

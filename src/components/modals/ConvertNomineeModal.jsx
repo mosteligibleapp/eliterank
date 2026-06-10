@@ -32,7 +32,7 @@ export default function ConvertNomineeModal({
           <Button
             onClick={onConfirm}
             icon={Check}
-            style={{ background: 'linear-gradient(135deg, #4ade80, #22c55e)' }}
+            style={{ background: 'linear-gradient(135deg, var(--color-success-light), var(--color-success))' }}
           >
             Accept & Notify Contestant
           </Button>
@@ -104,8 +104,8 @@ export default function ConvertNomineeModal({
       {/* What Happens Next */}
       <div
         style={{
-          background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05))',
-          border: '1px solid rgba(34,197,94,0.2)',
+          background: 'linear-gradient(135deg, rgba(var(--color-success-rgb),0.1), rgba(var(--color-success-rgb),0.05))',
+          border: '1px solid rgba(var(--color-success-rgb),0.2)',
           borderRadius: borderRadius.xl,
           padding: spacing.xl,
         }}
@@ -140,7 +140,7 @@ export default function ConvertNomineeModal({
                   width: '24px',
                   height: '24px',
                   borderRadius: borderRadius.full,
-                  background: 'rgba(34,197,94,0.2)',
+                  background: 'rgba(var(--color-success-rgb),0.2)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

@@ -331,7 +331,7 @@ function ProfileIcon({
                 onClick={() => handleMenuClick(onLogout)}
                 style={logoutItemStyle}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                  e.currentTarget.style.background = 'rgba(var(--color-error-rgb), 0.1)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'transparent';
