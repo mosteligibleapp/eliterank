@@ -14,6 +14,16 @@ interface PaymentRequest {
   voterEmail?: string
 }
 
+// The purchase terms a buyer must accept at checkout (the acknowledgment
+// checkbox in VoteModal's PaymentCheckoutForm gates the Pay button on these).
+// Stamped into PaymentIntent metadata so it is attached to the charge as
+// dispute evidence: it records WHICH terms governed the sale, and since the
+// only path to pay is through the gated checkbox, a succeeded payment is
+// proof the buyer affirmatively accepted them. Bump the version whenever the
+// checkout disclosure text materially changes.
+const VOTE_TERMS_VERSION = 'votes-2026-06'
+const VOTE_TERMS_URL = 'https://eliterank.co/contest-terms'
+
 // Mirror of PRICE_BUNDLER_TIERS in src/types/competition.js. Kept inline
 // because this Deno edge function can't import from the frontend bundle.
 // If you edit the tiers, edit both places.
@@ -159,6 +169,10 @@ serve(async (req) => {
         contestant_name: contestant.name,
         is_double_vote_day: isDoubleVoteDay ? 'true' : 'false',
         credited_vote_count: creditedVoteCount.toString(),
+        // Governing purchase terms (accepted via the gated checkout checkbox).
+        // Surfaced in Stripe so it auto-submits as dispute evidence.
+        terms_version: VOTE_TERMS_VERSION,
+        terms_url: VOTE_TERMS_URL,
       },
       description,
     })

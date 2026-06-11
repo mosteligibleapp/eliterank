@@ -992,11 +992,16 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  // Buyer must affirmatively accept the purchase terms before paying. This is
+  // the binding consent gate for every paid-vote path (every checkout funnels
+  // through this form) and the deterrent against post-result "friendly fraud"
+  // chargebacks — votes are final and don't guarantee any outcome.
+  const [acknowledged, setAcknowledged] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!stripe || !elements) {
+    if (!stripe || !elements || !acknowledged) {
       return;
     }
 
@@ -1067,20 +1072,66 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
         </div>
       )}
 
+      {/* Purchase-terms acknowledgment — gates the Pay button. Themed to the
+          dark/gold tokens; the checked state uses the gold accent. */}
+      <label
+        htmlFor="vote-terms-ack"
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: spacing.sm,
+          marginTop: spacing.md,
+          padding: spacing.sm,
+          background: 'rgba(255,255,255,0.03)',
+          border: `1px solid ${acknowledged ? colors.gold.primary : colors.border.light}`,
+          borderRadius: borderRadius.md,
+          cursor: 'pointer',
+          transition: 'border-color 0.2s',
+        }}
+      >
+        <input
+          id="vote-terms-ack"
+          type="checkbox"
+          checked={acknowledged}
+          onChange={(e) => setAcknowledged(e.target.checked)}
+          style={{
+            marginTop: '2px',
+            width: '16px',
+            height: '16px',
+            accentColor: colors.gold.primary,
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary, lineHeight: 1.5 }}>
+          I understand my votes are <strong style={{ color: colors.text.primary }}>final and non-refundable</strong>, and do not guarantee any contest outcome.{' '}
+          <a
+            href="/contest-terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            style={{ color: colors.gold.primary, textDecoration: 'underline' }}
+          >
+            Contest terms
+          </a>
+        </span>
+      </label>
+
       <button
         type="submit"
-        disabled={!stripe || isProcessing}
+        disabled={!stripe || isProcessing || !acknowledged}
         style={{
           width: '100%',
           marginTop: spacing.md,
           padding: spacing.sm,
-          background: isProcessing ? 'rgba(212,175,55,0.5)' : gradients.gold,
+          background: (isProcessing || !acknowledged) ? 'rgba(212,175,55,0.5)' : gradients.gold,
           border: 'none',
           borderRadius: borderRadius.md,
           color: '#0a0a0f',
           fontSize: typography.fontSize.sm,
           fontWeight: typography.fontWeight.semibold,
-          cursor: isProcessing ? 'not-allowed' : 'pointer',
+          cursor: (isProcessing || !acknowledged) ? 'not-allowed' : 'pointer',
+          opacity: !acknowledged ? 0.6 : 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
