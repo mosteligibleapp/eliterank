@@ -148,7 +148,7 @@ const STEP_EVENTS = {
   optional: true,
   getStatus: ({ events }) =>
     (events?.length || 0) > 0 ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE,
-  target: { type: 'tab', tab: 'setup', section: 'events' },
+  target: { type: 'tab', tab: 'engagement', section: 'events' },
   ctaLabel: 'Add events',
 };
 

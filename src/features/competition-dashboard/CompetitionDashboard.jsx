@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle, Mail, ChevronDown, Check, Rocket
+  Eye, AlertCircle, Mail, ChevronDown, Check, Rocket, TrendingUp
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -25,6 +25,7 @@ const TABS = [
   { id: 'emails', label: 'Emails', shortLabel: 'Emails', icon: Mail },
   { id: 'content', label: 'Content', shortLabel: 'Content', icon: FileText },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
+  { id: 'engagement', label: 'Engagement', shortLabel: 'Engage', icon: TrendingUp },
   { id: 'preview', label: 'Preview', shortLabel: 'Preview', icon: Eye },
 ];
 
@@ -587,6 +588,46 @@ export default function CompetitionDashboard({
   // MAIN RENDER
   // ============================================================================
 
+  // SetupTab backs two tabs: "Setup" (core config) and "Engagement"
+  // (participation tools — events, double-vote days, bonus votes). Same
+  // component, same handlers; `mode` decides which sections it shows.
+  const renderSetupTab = (mode) => (
+    <SetupTab
+      mode={mode}
+      competition={competition}
+      focusSection={setupFocus}
+      judges={data.judges}
+      judgingCriteria={data.judgingCriteria}
+      judgeScores={data.judgeScores}
+      contestants={data.contestants}
+      sponsors={data.sponsors}
+      events={data.events}
+      prizes={data.prizes}
+      doubleDays={data.doubleDays}
+      isSuperAdmin={isSuperAdmin}
+      onRefresh={refresh}
+      onDeleteJudge={deleteJudge}
+      onSendJudgeInvite={sendJudgeInvite}
+      onAddCriterion={addCriterion}
+      onUpdateCriterion={updateCriterion}
+      onDeleteCriterion={deleteCriterion}
+      onUpdateRoundJudgeWeight={updateRoundJudgeWeight}
+      onDeleteSponsor={deleteSponsor}
+      onDeleteEvent={deleteEvent}
+      onDeletePrize={deletePrize}
+      onAddDoubleDay={addDoubleDay}
+      onDeleteDoubleDay={deleteDoubleDay}
+      onUpdateTimezone={updateCompetitionTimezone}
+      onUpdateAllowManualVotes={updateAllowManualVotes}
+      onUpdateHiddenSections={updateHiddenSetupSections}
+      onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
+      onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+      onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+      onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
+      onOpenCharityModal={() => setCharityModal(true)}
+    />
+  );
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -718,41 +759,9 @@ export default function CompetitionDashboard({
           />
         );
       case 'setup':
-        return (
-          <SetupTab
-            competition={competition}
-            focusSection={setupFocus}
-            judges={data.judges}
-            judgingCriteria={data.judgingCriteria}
-            judgeScores={data.judgeScores}
-            contestants={data.contestants}
-            sponsors={data.sponsors}
-            events={data.events}
-            prizes={data.prizes}
-            doubleDays={data.doubleDays}
-            isSuperAdmin={isSuperAdmin}
-            onRefresh={refresh}
-            onDeleteJudge={deleteJudge}
-            onSendJudgeInvite={sendJudgeInvite}
-            onAddCriterion={addCriterion}
-            onUpdateCriterion={updateCriterion}
-            onDeleteCriterion={deleteCriterion}
-            onUpdateRoundJudgeWeight={updateRoundJudgeWeight}
-            onDeleteSponsor={deleteSponsor}
-            onDeleteEvent={deleteEvent}
-            onDeletePrize={deletePrize}
-            onAddDoubleDay={addDoubleDay}
-            onDeleteDoubleDay={deleteDoubleDay}
-            onUpdateTimezone={updateCompetitionTimezone}
-            onUpdateAllowManualVotes={updateAllowManualVotes}
-            onUpdateHiddenSections={updateHiddenSetupSections}
-            onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
-            onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
-            onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
-            onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
-            onOpenCharityModal={() => setCharityModal(true)}
-          />
-        );
+        return renderSetupTab('setup');
+      case 'engagement':
+        return renderSetupTab('engagement');
       case 'preview':
         return (
           <PreviewTab

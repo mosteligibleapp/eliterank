@@ -82,6 +82,11 @@ const SECTION_ORDER = [
   'videoPrompts',
 ];
 
+// Sections that live on the Engagement tab (participation-driving tools) rather
+// than the core Setup tab. SetupTab renders under both tabs and filters its
+// sections by `mode` — see sectionStyle.
+const ENGAGEMENT_SECTIONS = ['events', 'doubleVoteDays', 'bonusVotes'];
+
 const grayOutButtonStyle = {
   display: 'flex',
   alignItems: 'center',
@@ -120,6 +125,7 @@ const restoreButtonStyle = {
 export default function SetupTab({
   competition,
   focusSection,
+  mode = 'setup',
   judges,
   judgingCriteria = [],
   judgeScores = [],
@@ -281,7 +287,15 @@ export default function SetupTab({
     }
   };
 
+  // SetupTab renders under two tabs: the core Setup tab and the Engagement tab.
+  // Each shows a disjoint slice of sections; the other slice is hidden outright.
+  const belongsToMode = (id) => {
+    const isEngagementSection = ENGAGEMENT_SECTIONS.includes(id);
+    return mode === 'engagement' ? isEngagementSection : !isEngagementSection;
+  };
+
   const sectionStyle = (id) => {
+    if (!belongsToMode(id)) return { display: 'none' };
     const idx = SECTION_ORDER.indexOf(id);
     return {
       order: isHidden(id) ? 100 + idx : 1 + idx,
