@@ -113,6 +113,38 @@ async function sendVoteReceiptEmail(
   console.log(`Vote receipt email sent to ${voterEmail} for ${voteCount} votes`)
 }
 
+/**
+ * Returns true if the payer (by billing email or card fingerprint) is on the
+ * blocked_payers list from a prior chargeback. Uses separate equality lookups
+ * rather than a built .or() filter so an attacker-controlled billing email
+ * can't inject PostgREST filter syntax.
+ */
+async function isBlockedPayer(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+  cardFingerprint: string
+): Promise<boolean> {
+  if (email) {
+    const { data } = await supabase
+      .from('blocked_payers')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .limit(1)
+      .maybeSingle()
+    if (data) return true
+  }
+  if (cardFingerprint) {
+    const { data } = await supabase
+      .from('blocked_payers')
+      .select('id')
+      .eq('card_fingerprint', cardFingerprint)
+      .limit(1)
+      .maybeSingle()
+    if (data) return true
+  }
+  return false
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -200,17 +232,22 @@ serve(async (req) => {
         // For anonymous paid votes the client doesn't collect an email — the
         // buyer enters it in the Stripe PaymentElement instead. Fall back to
         // the charge's billing_details.email so the vote can still be
-        // attributed (and later claimed via magic link).
+        // attributed (and later claimed via magic link). We also grab the
+        // card fingerprint here for the blocked-payer check below.
         let resolvedVoterEmail = voter_email || ''
-        if (!resolvedVoterEmail && paymentIntent.latest_charge) {
+        let cardFingerprint = ''
+        if (paymentIntent.latest_charge) {
           try {
             const chargeId = typeof paymentIntent.latest_charge === 'string'
               ? paymentIntent.latest_charge
               : paymentIntent.latest_charge.id
             const charge = await stripe.charges.retrieve(chargeId)
-            resolvedVoterEmail = charge.billing_details?.email || ''
+            if (!resolvedVoterEmail) {
+              resolvedVoterEmail = charge.billing_details?.email || ''
+            }
+            cardFingerprint = charge.payment_method_details?.card?.fingerprint || ''
           } catch (err) {
-            console.warn('Could not retrieve charge for billing email:', err)
+            console.warn('Could not retrieve charge for billing email/fingerprint:', err)
           }
         }
         // Syntax validation — reject anything obviously malformed.
@@ -222,7 +259,10 @@ serve(async (req) => {
         const purchasedVoteCount = parseInt(vote_count, 10)
         const amountPaid = paymentIntent.amount / 100 // Convert from cents to dollars
 
-        // Check if this payment has already been processed (idempotency)
+        // Check if this payment has already been processed (idempotency).
+        // Runs before the blocked-payer refund below so a re-delivered
+        // succeeded event for an already-credited payment is a clean no-op
+        // rather than triggering a spurious refund.
         const { data: existingVote } = await supabase
           .from('votes')
           .select('id')
@@ -233,6 +273,22 @@ serve(async (req) => {
           console.log('Payment already processed:', paymentIntent.id)
           return new Response(
             JSON.stringify({ received: true, status: 'already_processed' }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        // Refuse + auto-refund purchases from payers we've blocked for a prior
+        // chargeback. We check both the billing email and the card fingerprint
+        // so a blocked payer can't get around it with a fresh email address.
+        if (await isBlockedPayer(supabase, resolvedVoterEmail, cardFingerprint)) {
+          console.warn(`Blocked payer attempted purchase; auto-refunding ${paymentIntent.id}`)
+          try {
+            await stripe.refunds.create({ payment_intent: paymentIntent.id })
+          } catch (refundErr) {
+            console.error('Failed to auto-refund blocked payer:', refundErr)
+          }
+          return new Response(
+            JSON.stringify({ received: true, status: 'blocked_payer_refunded' }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
@@ -296,6 +352,76 @@ serve(async (req) => {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
         console.log('Payment failed:', paymentIntent.id, paymentIntent.last_payment_error?.message)
         // Could log this for analytics, but no action needed
+        break
+      }
+
+      case 'charge.dispute.created': {
+        // A cardholder disputed a charge — almost always "friendly fraud"
+        // (buyer's remorse after their contestant lost). Record the payer so
+        // they can't buy more votes: future purchases are refused up front in
+        // create-payment-intent and auto-refunded in payment_intent.succeeded.
+        const dispute = event.data.object as Stripe.Dispute
+        console.log('Dispute created:', dispute.id, 'for charge', dispute.charge)
+
+        // Idempotency — Stripe may re-deliver this event.
+        const { data: existingBlock } = await supabase
+          .from('blocked_payers')
+          .select('id')
+          .eq('dispute_id', dispute.id)
+          .limit(1)
+          .maybeSingle()
+        if (existingBlock) {
+          console.log('Dispute already recorded:', dispute.id)
+          break
+        }
+
+        let email = ''
+        let fingerprint = ''
+        try {
+          const chargeId = typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id
+          if (chargeId) {
+            const charge = await stripe.charges.retrieve(chargeId)
+            email = charge.billing_details?.email || ''
+            fingerprint = charge.payment_method_details?.card?.fingerprint || ''
+          }
+        } catch (err) {
+          console.warn('Could not retrieve disputed charge:', err)
+        }
+
+        // Attribute the block to a competition via the PaymentIntent metadata.
+        const piId = typeof dispute.payment_intent === 'string'
+          ? dispute.payment_intent
+          : dispute.payment_intent?.id
+        let competitionId: string | null = null
+        if (piId) {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(piId)
+            competitionId = pi.metadata?.competition_id || null
+          } catch (err) {
+            console.warn('Could not retrieve disputed payment intent:', err)
+          }
+        }
+
+        if (!email && !fingerprint) {
+          console.warn('Dispute', dispute.id, 'had no email or fingerprint to block')
+          break
+        }
+
+        const { error: blockErr } = await supabase
+          .from('blocked_payers')
+          .insert({
+            email: email ? email.toLowerCase() : null,
+            card_fingerprint: fingerprint || null,
+            reason: 'chargeback',
+            dispute_id: dispute.id,
+            payment_intent_id: piId || null,
+            competition_id: competitionId,
+          })
+        if (blockErr) {
+          console.error('Failed to record blocked payer:', blockErr)
+        } else {
+          console.log(`Blocked payer recorded from dispute ${dispute.id} (email=${!!email}, fingerprint=${!!fingerprint})`)
+        }
         break
       }
 

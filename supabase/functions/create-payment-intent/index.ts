@@ -119,6 +119,25 @@ serve(async (req) => {
       )
     }
 
+    // Refuse payers we've blocked for a prior chargeback. Only the known-email
+    // (authenticated) case is catchable here; anonymous buyers enter their
+    // email in Stripe later, so the card-fingerprint + email block is enforced
+    // authoritatively in stripe-webhook on payment_intent.succeeded.
+    if (voterEmail) {
+      const { data: blocked } = await supabase
+        .from('blocked_payers')
+        .select('id')
+        .eq('email', voterEmail.toLowerCase())
+        .limit(1)
+        .maybeSingle()
+      if (blocked) {
+        return new Response(
+          JSON.stringify({ error: 'This account is not eligible to purchase votes.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     // Server is the source of truth for the Stripe amount. If the bundler is
     // on, apply the tier multiplier against the competition's base price.
     const basePrice = parseFloat(competition.price_per_vote) || 1.00
