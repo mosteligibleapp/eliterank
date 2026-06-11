@@ -73,7 +73,6 @@ export default function CompetitionEditModal({
     cover_image: '',
     price_per_vote: 1.00,
     use_price_bundler: false,
-    allow_manual_votes: false,
     winners_split_by_gender: false,
   });
 
@@ -95,7 +94,6 @@ export default function CompetitionEditModal({
         cover_image: competition.cover_image || '',
         price_per_vote: competition.price_per_vote ?? 1.00,
         use_price_bundler: competition.use_price_bundler ?? false,
-        allow_manual_votes: competition.allow_manual_votes ?? false,
         winners_split_by_gender: competition.winners_split_by_gender ?? false,
       });
       setActiveTab(defaultTab);
@@ -391,21 +389,6 @@ export default function CompetitionEditModal({
                 )}
               </div>
             )}
-          </FormSection>
-
-          <FormSection title="Additional Options">
-            <div style={styles.toggleRow}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={styles.toggleLabel}>Allow Manual Votes</p>
-                <p style={styles.toggleDescription}>
-                  Host can add manual votes (tracked separately from public votes)
-                </p>
-              </div>
-              <ToggleSwitch
-                checked={formData.allow_manual_votes}
-                onChange={(checked) => updateField('allow_manual_votes', checked)}
-              />
-            </div>
           </FormSection>
         </>
       )}

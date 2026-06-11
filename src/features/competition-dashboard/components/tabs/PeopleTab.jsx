@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
-import { AddVotesModal } from '../../../../components/modals';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import { generateAchievementCard, getAdvancementTitle } from '../../../achievement-cards/generateAchievementCard';
@@ -101,7 +100,6 @@ export default function PeopleTab({
   const avatarFileRef = useRef(null);
   const avatarUploadTarget = useRef(null);
   const [reordering, setReordering] = useState(false);
-  const [showAddVotes, setShowAddVotes] = useState(false);
   // 'all' | 'male' | 'female' — only meaningful when the competition splits
   // winners by gender. Filters every nominee / contestant section below.
   const [genderFilter, setGenderFilter] = useState('all');
@@ -1328,17 +1326,6 @@ export default function PeopleTab({
                 {bulkPhotoProgress ? `${bulkPhotoProgress.current}/${bulkPhotoProgress.total}` : 'Photos'}
               </Button>
             )}
-            {competition?.allowManualVotes && contestants.length > 0 && (
-              <Button
-                size="sm"
-                variant="secondary"
-                icon={Star}
-                onClick={() => setShowAddVotes(true)}
-                title="Manually add votes for a contestant"
-              >
-                Add Votes
-              </Button>
-            )}
           </div>
         }
       >
@@ -1837,14 +1824,6 @@ export default function PeopleTab({
           )}
         </div>
       </Panel>
-
-      <AddVotesModal
-        isOpen={showAddVotes}
-        onClose={() => setShowAddVotes(false)}
-        competition={competition}
-        contestants={contestants}
-        onSuccess={onRefresh}
-      />
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

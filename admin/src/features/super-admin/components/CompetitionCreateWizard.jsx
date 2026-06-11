@@ -41,7 +41,6 @@ const INITIAL_FORM = {
   description: '',
   price_per_vote: 1.00,
   use_price_bundler: false,
-  allow_manual_votes: false,
 };
 
 /**

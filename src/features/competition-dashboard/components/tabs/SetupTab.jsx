@@ -59,8 +59,8 @@ const getEventStatus = (event) => {
 
 // Top-to-bottom order of every Setup section, aligned with the launch
 // checklist: Timeline → Nomination form → Judging (judges, criteria, results,
-// charity) → Events, then the non-checklist extras (sponsors, double-vote
-// days, manual votes, bonus votes, video prompts) grouped below.
+// charity), then the remaining setup extras (sponsors) below. Engagement
+// sections live on their own tab but share this ordering list.
 //
 // `sectionStyle` maps each id to a CSS flex `order`, so THIS list — not DOM
 // source order — is the single source of truth for vertical ordering. That
@@ -77,7 +77,6 @@ const SECTION_ORDER = [
   'events',
   'sponsors',
   'doubleVoteDays',
-  'manualVotes',
   'bonusVotes',
   'videoPrompts',
 ];
@@ -85,7 +84,7 @@ const SECTION_ORDER = [
 // Sections that live on the Engagement tab (participation-driving tools) rather
 // than the core Setup tab. SetupTab renders under both tabs and filters its
 // sections by `mode` — see sectionStyle.
-const ENGAGEMENT_SECTIONS = ['events', 'doubleVoteDays', 'bonusVotes'];
+const ENGAGEMENT_SECTIONS = ['events', 'doubleVoteDays', 'bonusVotes', 'videoPrompts'];
 
 const grayOutButtonStyle = {
   display: 'flex',
@@ -148,7 +147,6 @@ export default function SetupTab({
   onAddDoubleDay,
   onDeleteDoubleDay,
   onUpdateTimezone,
-  onUpdateAllowManualVotes,
   onUpdateHiddenSections,
   onOpenJudgeModal,
   onOpenSponsorModal,
@@ -238,11 +236,6 @@ export default function SetupTab({
   const [doubleDaySaving, setDoubleDaySaving] = useState(false);
   const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [timezoneError, setTimezoneError] = useState('');
-
-  // Manual votes setting state
-  const [manualVotesSaving, setManualVotesSaving] = useState(false);
-  const [manualVotesError, setManualVotesError] = useState('');
-  const manualVotesEnabled = !!competition?.allowManualVotes;
 
   // ---- Grayed-out Setup sections ----
   // Hosts can gray out sections they aren't using; grayed sections render
@@ -360,17 +353,6 @@ export default function SetupTab({
     setTimezoneSaving(false);
     if (!result?.success) {
       setTimezoneError(result?.error || 'Could not update timezone.');
-    }
-  };
-
-  const handleToggleManualVotes = async () => {
-    if (!onUpdateAllowManualVotes || manualVotesSaving) return;
-    setManualVotesError('');
-    setManualVotesSaving(true);
-    const result = await onUpdateAllowManualVotes(!manualVotesEnabled);
-    setManualVotesSaving(false);
-    if (!result?.success) {
-      setManualVotesError(result?.error || 'Could not update this setting.');
     }
   };
 
@@ -1363,62 +1345,6 @@ export default function SetupTab({
                 );
               })}
             </div>
-          )}
-        </div>
-      </Panel>
-
-      {/* Manual Votes Section */}
-      <Panel
-        key={`section-manualVotes-${isHidden('manualVotes')}`}
-        title="Manual Votes"
-        icon={Star}
-        action={sectionAction('manualVotes', null)}
-        collapsible
-        defaultCollapsed
-        style={sectionStyle('manualVotes')}
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-            <button
-              onClick={handleToggleManualVotes}
-              disabled={manualVotesSaving}
-              aria-pressed={manualVotesEnabled}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: borderRadius.md,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: manualVotesEnabled ? 'rgba(34,197,94,0.15)' : 'rgba(100,100,100,0.15)',
-                border: 'none',
-                cursor: manualVotesSaving ? 'wait' : 'pointer',
-                flexShrink: 0,
-              }}
-            >
-              {manualVotesEnabled ? (
-                <CheckCircle size={18} style={{ color: colors.status.success }} />
-              ) : (
-                <XCircle size={18} style={{ color: colors.text.muted }} />
-              )}
-            </button>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontWeight: typography.fontWeight.medium }}>
-                Allow manually adding votes
-              </p>
-              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
-                Shows an "Add Votes" button on the People tab so you can credit votes to a contestant. They count toward the public leaderboard immediately.
-              </p>
-            </div>
-          </div>
-          {manualVotesError && (
-            <p style={{
-              color: colors.status.error,
-              fontSize: typography.fontSize.sm,
-              marginTop: spacing.md,
-            }}>
-              {manualVotesError}
-            </p>
           )}
         </div>
       </Panel>

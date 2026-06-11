@@ -585,8 +585,6 @@ export function useCompetitionDashboard(competitionId) {
           // IANA timezone for double-vote-day scheduling. Default 'UTC'
           // matches the column default; hosts opt in via SetupTab.
           timezone: competition.timezone || 'UTC',
-          // Host-controlled gate for the manual "Add Votes" dashboard action.
-          allowManualVotes: competition.allow_manual_votes ?? false,
           // Super-admin gate: when true, the nomination form collects gender
           // and winner selection is split male/female.
           winnersSplitByGender: competition.winners_split_by_gender ?? false,
@@ -1552,24 +1550,6 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [competitionId, fetchDashboardData]);
 
-  const updateAllowManualVotes = useCallback(async (enabled) => {
-    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
-
-    try {
-      const { error } = await supabase
-        .from('competitions')
-        .update({ allow_manual_votes: !!enabled })
-        .eq('id', competitionId);
-
-      if (error) throw error;
-      await fetchDashboardData();
-      return { success: true };
-    } catch (err) {
-      console.error('Error updating manual votes setting:', err);
-      return { success: false, error: err.message };
-    }
-  }, [competitionId, fetchDashboardData]);
-
   const updateHiddenSetupSections = useCallback(async (sections) => {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
@@ -2053,7 +2033,6 @@ export function useCompetitionDashboard(competitionId) {
     addDoubleDay,
     deleteDoubleDay,
     updateCompetitionTimezone,
-    updateAllowManualVotes,
     updateHiddenSetupSections,
     // Announcement operations
     addAnnouncement,
