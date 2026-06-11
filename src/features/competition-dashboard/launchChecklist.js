@@ -109,7 +109,7 @@ const STEP_NOMINATION_FORM = {
     const questions = competition?.nominationFormConfig?.custom_questions || [];
     return questions.length > 0 ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE;
   },
-  target: { type: 'tab', tab: 'content', section: 'nominationForm' },
+  target: { type: 'tab', tab: 'setup', section: 'nominationForm' },
   ctaLabel: 'Add questions',
 };
 

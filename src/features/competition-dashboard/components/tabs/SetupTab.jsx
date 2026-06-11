@@ -6,6 +6,7 @@ import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
 import JudgingPanel from '../JudgingPanel';
 import JudgingResultsPanel from '../JudgingResultsPanel';
+import { NominationFormEditor } from '../settings';
 import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission, getHostManagedTaskContestants, awardHostManagedTask, revokeHostManagedTask } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
 import { useAuthStore } from '../../../../stores';
@@ -56,11 +57,29 @@ const getEventStatus = (event) => {
   return 'upcoming';
 };
 
-// Grayable Setup sections, in their natural top-to-bottom order. Grayed-out
-// sections render dimmed and sort below the visible ones.
+// Top-to-bottom order of every Setup section, aligned with the launch
+// checklist: Timeline → Nomination form → Judging (judges, criteria, results,
+// charity) → Events, then the non-checklist extras (sponsors, double-vote
+// days, manual votes, bonus votes, video prompts) grouped below.
+//
+// `sectionStyle` maps each id to a CSS flex `order`, so THIS list — not DOM
+// source order — is the single source of truth for vertical ordering. That
+// lets us realign sections without physically moving large JSX blocks.
+// Grayable sections a host hides sort to the bottom (see sectionStyle).
 const SECTION_ORDER = [
-  'judges', 'sponsors', 'charity', 'events', 'doubleVoteDays',
-  'manualVotes', 'winnerPrize', 'contestantRewards', 'bonusVotes', 'videoPrompts',
+  'competitionDetails',
+  'timeline',
+  'nominationForm',
+  'judges',
+  'judgingCriteria',
+  'judgingResults',
+  'charity',
+  'events',
+  'sponsors',
+  'doubleVoteDays',
+  'manualVotes',
+  'bonusVotes',
+  'videoPrompts',
 ];
 
 const grayOutButtonStyle = {
@@ -571,6 +590,7 @@ export default function SetupTab({
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Competition Details - View Only (Admin Controlled) - Open by default */}
       <Panel
+        style={sectionStyle('competitionDetails')}
         title="Competition Details"
         icon={Lock}
         action={
@@ -670,6 +690,7 @@ export default function SetupTab({
       <Panel
         key={`section-timeline-${focusId === 'timeline' ? focusNonce : 'x'}`}
         id="setup-section-timeline"
+        style={sectionStyle('timeline')}
         title="Timeline & Status"
         icon={Calendar}
         collapsible
@@ -679,6 +700,19 @@ export default function SetupTab({
           <TimelineSettings competition={competition} onSave={onRefresh} isSuperAdmin={isSuperAdmin} />
         </div>
       </Panel>
+
+      {/* Nomination Form — checklist step 4. Lives here in Setup (not Content)
+          so the launch flow's build steps (timeline → form → judging → events)
+          all sit in one tab, in order. */}
+      <NominationFormEditor
+        key={`section-nominationForm-${focusId === 'nominationForm' ? focusNonce : 'x'}`}
+        id="setup-section-nominationForm"
+        style={sectionStyle('nominationForm')}
+        competition={competition}
+        onSave={onRefresh}
+        collapsible
+        defaultCollapsed={focusId !== 'nominationForm'}
+      />
 
       {/* Judges Section */}
       <Panel
@@ -839,24 +873,30 @@ export default function SetupTab({
         </div>
       </Panel>
 
-      {/* Judging criteria + per-round judge weight */}
-      <JudgingPanel
-        criteria={judgingCriteria}
-        votingRounds={competition?.voting_rounds || []}
-        onAddCriterion={onAddCriterion}
-        onUpdateCriterion={onUpdateCriterion}
-        onDeleteCriterion={onDeleteCriterion}
-        onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
-      />
+      {/* Judging criteria + per-round judge weight. Wrapped so it picks up an
+          explicit flex order (these panels aren't grayable, so they'd otherwise
+          float above Judges). */}
+      <div style={sectionStyle('judgingCriteria')}>
+        <JudgingPanel
+          criteria={judgingCriteria}
+          votingRounds={competition?.voting_rounds || []}
+          onAddCriterion={onAddCriterion}
+          onUpdateCriterion={onUpdateCriterion}
+          onDeleteCriterion={onDeleteCriterion}
+          onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
+        />
+      </div>
 
       {/* Judging results — blended judge + vote leaderboard per round */}
-      <JudgingResultsPanel
-        contestants={contestants}
-        judges={judges}
-        judgingCriteria={judgingCriteria}
-        judgeScores={judgeScores}
-        votingRounds={competition?.voting_rounds || []}
-      />
+      <div style={sectionStyle('judgingResults')}>
+        <JudgingResultsPanel
+          contestants={contestants}
+          judges={judges}
+          judgingCriteria={judgingCriteria}
+          judgeScores={judgeScores}
+          votingRounds={competition?.voting_rounds || []}
+        />
+      </div>
 
       {/* Sponsors Section */}
       <Panel
