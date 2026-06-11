@@ -693,6 +693,78 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     outline: 'none',
   };
 
+  // Compact, read-only schedule shown to hosts once the timeline is locked,
+  // instead of the full editor with its empty-state cards and disabled inputs.
+  const renderLockedSchedule = () => {
+    const finalsDisplay = displayValues.finals_date;
+    const fmtRange = (start, end) =>
+      !start && !end ? 'Dates not set' : `${start || '—'} → ${end || '—'}`;
+
+    const groupLabel = (Icon, text) => (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: spacing.sm,
+        color: colors.text.secondary, fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.medium, marginBottom: spacing.sm,
+      }}>
+        <Icon size={14} /> {text}
+      </div>
+    );
+    const rowStyle = {
+      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+      gap: spacing.md, padding: `${spacing.sm} 0`,
+      borderBottom: `1px solid ${colors.border.lighter}`,
+    };
+    const muted = (t) => (
+      <p style={{ margin: 0, color: colors.text.muted, fontSize: typography.fontSize.sm }}>{t}</p>
+    );
+    const dateText = { color: colors.text.secondary, fontSize: typography.fontSize.xs, whiteSpace: 'nowrap' };
+
+    return (
+      <div style={sectionStyle}>
+        <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+          <Calendar size={18} /> Schedule
+        </h4>
+
+        <div style={{ marginBottom: spacing.lg }}>
+          {groupLabel(Calendar, 'Prospecting Periods')}
+          {nominationPeriods.length > 0
+            ? nominationPeriods.map((p, i) => (
+              <div key={i} style={rowStyle}>
+                <span style={{ color: colors.text.primary, fontSize: typography.fontSize.sm }}>{p.title || `Period ${i + 1}`}</span>
+                <span style={dateText}>{fmtRange(nominationDisplayValues[i]?.start_date, nominationDisplayValues[i]?.end_date)}</span>
+              </div>
+            ))
+            : muted('No prospecting periods')}
+        </div>
+
+        <div style={{ marginBottom: spacing.lg }}>
+          {groupLabel(Vote, 'Voting & Judging Rounds')}
+          {votingRounds.length > 0
+            ? votingRounds.map((r, i) => {
+              const cfg = ROUND_TYPE_CONFIG[r.round_type] || ROUND_TYPE_CONFIG.voting;
+              return (
+                <div key={i} style={rowStyle}>
+                  <span style={{ color: colors.text.primary, fontSize: typography.fontSize.sm }}>
+                    {r.title || `Round ${i + 1}`}
+                    <span style={{ color: cfg.color, fontSize: typography.fontSize.xs, marginLeft: spacing.sm }}>{cfg.label}</span>
+                  </span>
+                  <span style={dateText}>{fmtRange(roundDisplayValues[i]?.start_date, roundDisplayValues[i]?.end_date)}</span>
+                </div>
+              );
+            })
+            : muted('No rounds')}
+        </div>
+
+        <div>
+          {groupLabel(Trophy, 'Finals')}
+          {finalsDisplay
+            ? <p style={{ margin: 0, color: colors.text.primary, fontSize: typography.fontSize.sm }}>{finalsDisplay}</p>
+            : muted('Not set')}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div style={{ padding: spacing.lg }}>
@@ -868,43 +940,35 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         )}
       </div>
 
-      {/* Locked notice — a finished competition's timeline is read-only for hosts */}
-      {isLocked && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: spacing.sm,
-          padding: spacing.md,
-          marginBottom: spacing.lg,
-          background: 'rgba(59, 130, 246, 0.1)',
-          border: '1px solid rgba(59, 130, 246, 0.3)',
-          borderRadius: borderRadius.lg,
-        }}>
-          <Lock size={16} style={{ color: 'rgb(59, 130, 246)', marginTop: '2px', flexShrink: 0 }} />
-          <div>
-            <p style={{ margin: 0, fontSize: typography.fontSize.sm, color: 'rgb(59, 130, 246)', fontWeight: typography.fontWeight.medium }}>
-              Timeline locked
-            </p>
-            <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-              This competition has {status === COMPETITION_STATUS.ARCHIVE ? 'been archived' : 'ended'}. Its
-              schedule is preserved as a record and can no longer be edited.
-            </p>
+      {isLocked ? (
+        <>
+          {/* Locked: a finished competition's schedule is read-only. Show a
+              compact summary instead of the full editor. */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: spacing.sm,
+            padding: spacing.md,
+            marginBottom: spacing.lg,
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            borderRadius: borderRadius.lg,
+          }}>
+            <Lock size={16} style={{ color: 'rgb(59, 130, 246)', marginTop: '2px', flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: 0, fontSize: typography.fontSize.sm, color: 'rgb(59, 130, 246)', fontWeight: typography.fontWeight.medium }}>
+                Timeline locked
+              </p>
+              <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+                This competition has {status === COMPETITION_STATUS.ARCHIVE ? 'been archived' : 'ended'}. Its
+                schedule is preserved as a record and can no longer be edited.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Editable timeline region — disabled wholesale once the competition is
-          finished so a host can't mutate a finalized schedule. */}
-      <fieldset
-        disabled={isLocked}
-        style={{
-          border: 'none',
-          margin: 0,
-          padding: 0,
-          minInlineSize: 'auto',
-          opacity: isLocked ? 0.6 : 1,
-        }}
-      >
+          {renderLockedSchedule()}
+        </>
+      ) : (
+        <>
       {/* Contestant Prospecting Periods */}
       <div style={sectionStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
@@ -1286,7 +1350,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           {saving ? 'Saving...' : 'Save Timeline Settings'}
         </Button>
       </div>
-      </fieldset>
+        </>
+      )}
     </div>
   );
 }
