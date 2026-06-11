@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle, Mail, ChevronDown, Check
+  Eye, AlertCircle, Mail, ChevronDown, Check, Rocket
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -13,9 +13,13 @@ import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
 import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
+import LaunchChecklist from './components/LaunchChecklist';
+import { resolveLaunchChecklist, computeChecklistProgress } from './launchChecklist';
 
-// Consolidated tab navigation
+// Consolidated tab navigation. Launch leads — it's the guided checklist for
+// getting a competition live; the rest are the day-to-day management surfaces.
 const TABS = [
+  { id: 'launch', label: 'Launch', shortLabel: 'Launch', icon: Rocket },
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
   { id: 'emails', label: 'Emails', shortLabel: 'Emails', icon: Mail },
@@ -95,7 +99,7 @@ export default function CompetitionDashboard({
   onSelectCompetition,
 }) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('launch');
   // When a launch-checklist CTA deep-links into the Setup tab, this carries the
   // section to auto-expand + scroll to. The nonce re-triggers the scroll even
   // when the host clicks the same step twice.
@@ -162,6 +166,32 @@ export default function CompetitionDashboard({
 
   const competition = data.competition;
   const competitionName = competition?.name || 'Competition';
+
+  // Pick the landing tab once data is in: a still-launching competition opens
+  // on the guided Launch checklist; one whose required steps are all done opens
+  // on the live Dashboard. Runs a single time, and never overrides a tab the
+  // host has already clicked.
+  const initialTabResolvedRef = useRef(false);
+  useEffect(() => {
+    if (initialTabResolvedRef.current || loading || !competition) return;
+    initialTabResolvedRef.current = true;
+    const checklist = resolveLaunchChecklist(competition);
+    const { allRequiredComplete } = computeChecklistProgress(checklist, {
+      competition,
+      host: data.host,
+      nominees: data.nominees,
+      contestants: data.contestants,
+      judges: data.judges,
+      judgingCriteria: data.judgingCriteria,
+      prizes: data.prizes,
+      events: data.events,
+      sponsors: data.sponsors,
+      doubleDays: data.doubleDays,
+    });
+    if (allRequiredComplete) {
+      setActiveTab((cur) => (cur === 'launch' ? 'dashboard' : cur));
+    }
+  }, [loading, competition, data]);
 
   // When the host runs more than one competition, the header name becomes a
   // switcher so they can jump between dashboards without leaving the page.
@@ -599,6 +629,22 @@ export default function CompetitionDashboard({
     }
 
     switch (activeTab) {
+      case 'launch':
+        return (
+          <LaunchChecklist
+            competition={competition}
+            host={data.host}
+            nominees={data.nominees}
+            contestants={data.contestants}
+            judges={data.judges}
+            judgingCriteria={data.judgingCriteria}
+            prizes={data.prizes}
+            events={data.events}
+            sponsors={data.sponsors}
+            doubleDays={data.doubleDays}
+            onNavigateToTab={navigateToTab}
+          />
+        );
       case 'dashboard':
         return (
           <OverviewTab
@@ -609,10 +655,6 @@ export default function CompetitionDashboard({
             events={data.events}
             announcements={data.announcements}
             host={data.host}
-            judges={data.judges}
-            judgingCriteria={data.judgingCriteria}
-            prizes={data.prizes}
-            doubleDays={data.doubleDays}
             voteRevenue={data.voteRevenue}
             isSuperAdmin={isSuperAdmin}
             onViewPublicSite={onViewPublicSite}
