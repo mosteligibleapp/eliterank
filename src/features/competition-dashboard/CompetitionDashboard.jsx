@@ -96,6 +96,10 @@ export default function CompetitionDashboard({
 }) {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
+  // When a launch-checklist CTA deep-links into the Setup tab, this carries the
+  // section to auto-expand + scroll to. The nonce re-triggers the scroll even
+  // when the host clicks the same step twice.
+  const [setupFocus, setSetupFocus] = useState(null);
   const [showHostAssignment, setShowHostAssignment] = useState(false);
   const [showAddCoHost, setShowAddCoHost] = useState(false);
   const [showCompSwitcher, setShowCompSwitcher] = useState(false);
@@ -181,6 +185,12 @@ export default function CompetitionDashboard({
   const handleSelectCompetition = (id) => {
     setShowCompSwitcher(false);
     if (id !== activeCompetitionId) onSelectCompetition?.(id);
+  };
+
+  // Tab navigation that can optionally focus a specific Setup section.
+  const navigateToTab = (tab, section = null) => {
+    setActiveTab(tab);
+    setSetupFocus(section ? { id: section, nonce: Date.now() } : null);
   };
 
   // Add person modal state
@@ -509,7 +519,7 @@ export default function CompetitionDashboard({
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setSetupFocus(null); }}
               style={{
                 padding: isMobile ? `${spacing.md} ${spacing.md}` : `${spacing.md} ${spacing.xl}`,
                 color: isActive ? colors.gold.primary : colors.text.secondary,
@@ -599,10 +609,14 @@ export default function CompetitionDashboard({
             events={data.events}
             announcements={data.announcements}
             host={data.host}
+            judges={data.judges}
+            judgingCriteria={data.judgingCriteria}
+            prizes={data.prizes}
+            doubleDays={data.doubleDays}
             voteRevenue={data.voteRevenue}
             isSuperAdmin={isSuperAdmin}
             onViewPublicSite={onViewPublicSite}
-            onNavigateToTab={setActiveTab}
+            onNavigateToTab={navigateToTab}
             onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
             onAddAnnouncement={addAnnouncement}
@@ -665,6 +679,7 @@ export default function CompetitionDashboard({
         return (
           <SetupTab
             competition={competition}
+            focusSection={setupFocus}
             judges={data.judges}
             judgingCriteria={data.judgingCriteria}
             judgeScores={data.judgeScores}

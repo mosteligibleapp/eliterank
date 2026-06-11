@@ -100,6 +100,7 @@ const restoreButtonStyle = {
  */
 export default function SetupTab({
   competition,
+  focusSection,
   judges,
   judgingCriteria = [],
   judgeScores = [],
@@ -231,6 +232,22 @@ export default function SetupTab({
   }, [competition?.hiddenSetupSections]);
 
   const isHidden = (id) => hiddenSections.includes(id);
+
+  // ---- Deep-link focus from the launch checklist ----
+  // A checklist CTA can target a section ({ id, nonce }); the matching Panel
+  // opens expanded and we scroll it into view. The nonce makes repeat clicks
+  // on the same step re-trigger the scroll.
+  const focusId = focusSection?.id || null;
+  const focusNonce = focusSection?.nonce || null;
+
+  useEffect(() => {
+    if (!focusId) return undefined;
+    const t = setTimeout(() => {
+      const el = document.getElementById(`setup-section-${focusId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [focusId, focusNonce]);
 
   const toggleSection = async (id) => {
     const prev = hiddenSections;
@@ -650,7 +667,14 @@ export default function SetupTab({
       </Panel>
 
       {/* Timeline & Status Settings */}
-      <Panel title="Timeline & Status" icon={Calendar} collapsible defaultCollapsed>
+      <Panel
+        key={`section-timeline-${focusId === 'timeline' ? focusNonce : 'x'}`}
+        id="setup-section-timeline"
+        title="Timeline & Status"
+        icon={Calendar}
+        collapsible
+        defaultCollapsed={focusId !== 'timeline'}
+      >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           <TimelineSettings competition={competition} onSave={onRefresh} isSuperAdmin={isSuperAdmin} />
         </div>
@@ -658,12 +682,13 @@ export default function SetupTab({
 
       {/* Judges Section */}
       <Panel
-        key={`section-judges-${isHidden('judges')}`}
+        key={`section-judges-${isHidden('judges')}-${focusId === 'judges' ? focusNonce : 'x'}`}
+        id="setup-section-judges"
         title={`Judges (${judges.length})`}
         icon={User}
         action={sectionAction('judges', <Button size="sm" icon={Plus} onClick={() => onOpenJudgeModal(null)}>Add Judge</Button>)}
         collapsible
-        defaultCollapsed
+        defaultCollapsed={focusId !== 'judges'}
         style={sectionStyle('judges')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
@@ -1023,12 +1048,13 @@ export default function SetupTab({
 
       {/* Events Section */}
       <Panel
-        key={`section-events-${isHidden('events')}`}
+        key={`section-events-${isHidden('events')}-${focusId === 'events' ? focusNonce : 'x'}`}
+        id="setup-section-events"
         title={`Events (${events.length})`}
         icon={Calendar}
         action={sectionAction('events', <Button size="sm" icon={Plus} onClick={() => onOpenEventModal(null)}>Add Event</Button>)}
         collapsible
-        defaultCollapsed
+        defaultCollapsed={focusId !== 'events'}
         style={sectionStyle('events')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>

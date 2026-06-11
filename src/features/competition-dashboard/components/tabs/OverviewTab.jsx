@@ -10,6 +10,7 @@ import { isLive } from '../../../../utils/competitionPhase';
 import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
+import LaunchChecklist from '../LaunchChecklist';
 
 /**
  * OverviewTab - Host Dashboard with performance metrics and quick actions
@@ -22,6 +23,10 @@ export default function OverviewTab({
   events,
   announcements,
   host,
+  judges,
+  judgingCriteria,
+  prizes,
+  doubleDays,
   voteRevenue = 0,
   isSuperAdmin,
   onViewPublicSite,
@@ -146,12 +151,28 @@ export default function OverviewTab({
   };
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-      gap: isMobile ? spacing.lg : spacing.xl,
-      alignItems: 'start',
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
+      {/* Launch Checklist — guided steps to get the competition live */}
+      <LaunchChecklist
+        competition={competition}
+        host={host}
+        nominees={nominees}
+        contestants={contestants}
+        judges={judges}
+        judgingCriteria={judgingCriteria}
+        prizes={prizes}
+        events={events}
+        sponsors={sponsors}
+        doubleDays={doubleDays}
+        onNavigateToTab={onNavigateToTab}
+      />
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: isMobile ? spacing.lg : spacing.xl,
+        alignItems: 'start',
+      }}>
       {/* Left Column */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
         <TimelineCard competition={competition} events={events} />
@@ -717,6 +738,7 @@ export default function OverviewTab({
             View Competition
           </button>
         )}
+      </div>
       </div>
 
       {/* Keyframes for loader animation */}
