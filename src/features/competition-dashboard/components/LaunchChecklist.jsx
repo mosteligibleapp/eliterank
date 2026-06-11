@@ -102,7 +102,9 @@ export default function LaunchChecklist({
     const target = step.target;
     if (!target) return;
     if (target.type === 'profile') {
-      if (host?.id) navigate(`/profile/${host.id}`);
+      // Send the host to their own editable profile in edit mode — not the
+      // read-only public view at /profile/:id, which can't be edited.
+      navigate('/profile?edit=true');
       return;
     }
     if (target.type === 'tab') {
