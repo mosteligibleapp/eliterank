@@ -150,6 +150,105 @@ async function sendNominationsOpenBlast(
   return sent
 }
 
+/**
+ * Email everyone who voted in a finalized round a results recap (their
+ * contestant's final rank + movement + charity mention). Deduped per
+ * (round, recipient) via results_recap_emails so the cron is safe to re-run.
+ */
+async function sendRoundRecapEmails(
+  supabase: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  round: { id: string; competition_id: string; title: string | null },
+): Promise<number> {
+  const appUrl = Deno.env.get('APP_URL') || 'https://eliterank.co'
+
+  const { data: comp } = await supabase
+    .from('competitions')
+    .select('id, name, slug, charity_name, organization:organizations(slug)')
+    .eq('id', round.competition_id)
+    .single()
+
+  const orgSlug = (comp?.organization as { slug?: string } | null)?.slug || 'most-eligible'
+  const competitionUrl = comp?.slug ? `${appUrl}/${orgSlug}/${comp.slug}` : appUrl
+  const competitionName = comp?.name || 'Most Eligible'
+
+  const { data: recipients, error: rpcError } = await supabase
+    .rpc('get_round_recap_recipients', { p_round_id: round.id })
+  if (rpcError) {
+    console.error(`Recap recipients RPC failed for round ${round.id}:`, rpcError)
+    return 0
+  }
+
+  let sent = 0
+  for (const r of (recipients || []) as Array<{
+    recipient_email: string
+    contestant_name: string | null
+    final_rank: number | null
+    final_status: string | null
+    prev_rank: number | null
+    voter_vote_count: number | null
+  }>) {
+    if (!r.recipient_email) continue
+
+    // Claim per (round, email) so re-runs / overlapping cron never double-send.
+    const { data: claimed, error: claimErr } = await supabase
+      .from('results_recap_emails')
+      .insert({
+        voting_round_id: round.id,
+        competition_id: round.competition_id,
+        recipient_email: r.recipient_email,
+      })
+      .select('id')
+      .maybeSingle()
+    if (claimErr) {
+      if (claimErr.code === '23505') continue // already sent
+      console.error(`Recap claim failed for ${r.recipient_email}:`, claimErr)
+      continue
+    }
+    if (!claimed) continue
+
+    try {
+      const resp = await fetch(`${supabaseUrl}/functions/v1/send-onesignal-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          type: 'vote_results_recap',
+          to_email: r.recipient_email,
+          contestant_name: r.contestant_name,
+          competition_id: round.competition_id,
+          competition_name: competitionName,
+          competition_url: competitionUrl,
+          profile_url: competitionUrl,
+          round_title: round.title,
+          final_rank: r.final_rank,
+          final_status: r.final_status,
+          prev_rank: r.prev_rank,
+          vote_count: Number(r.voter_vote_count) || 0,
+          charity_name: comp?.charity_name || null,
+        }),
+      })
+      if (resp.ok) {
+        sent += 1
+      } else {
+        const text = await resp.text()
+        console.error(`Recap email failed for ${r.recipient_email}:`, text)
+        // Roll back the claim so a transient failure can retry next run.
+        await supabase.from('results_recap_emails').delete().eq('id', claimed.id)
+      }
+    } catch (err) {
+      console.error(`Recap email error for ${r.recipient_email}:`, err)
+      await supabase.from('results_recap_emails').delete().eq('id', claimed.id)
+    }
+  }
+
+  console.log(`Round recap for ${round.id}: sent=${sent}`)
+  return sent
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -198,6 +297,41 @@ serve(async (req) => {
           event: 'nominations_open',
           status: `error: ${error.message}`,
         })
+      }
+    }
+
+    // ── Results recap blasts ────────────────────────────────────────────
+    // Email voters of any public round finalized in the last few days. The
+    // per-recipient ledger dedups, and the recent-window guard keeps a first
+    // deploy from retroactively blasting voters of long-finished rounds. The
+    // ~24h cron cadence fits comfortably inside the window.
+    const recapWindowIso = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: finalizedRounds, error: roundsError } = await supabase
+      .from('voting_rounds')
+      .select('id, competition_id, title, round_type, finalized_at')
+      .in('round_type', ['voting', 'finale'])
+      .not('finalized_at', 'is', null)
+      .gte('finalized_at', recapWindowIso)
+
+    if (roundsError) {
+      console.error('Failed to fetch finalized rounds for recap:', roundsError)
+    } else {
+      for (const round of finalizedRounds || []) {
+        try {
+          const sent = await sendRoundRecapEmails(supabase, supabaseUrl, supabaseServiceKey, round)
+          results.push({
+            competition: round.competition_id,
+            event: `results_recap:${round.id}`,
+            status: `sent ${sent}`,
+          })
+        } catch (error) {
+          console.error(`Error processing results_recap for round ${round.id}:`, error)
+          results.push({
+            competition: round.competition_id,
+            event: `results_recap:${round.id}`,
+            status: `error: ${error.message}`,
+          })
+        }
       }
     }
 

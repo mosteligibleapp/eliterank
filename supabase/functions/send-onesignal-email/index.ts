@@ -531,6 +531,97 @@ function getEmailContent(req: EmailRequest): { subject: string; body: string } {
       }
     }
 
+    case 'vote_results_recap': {
+      // Post-round recap sent to everyone who voted in a round once it
+      // finalizes. Reinforces that the voter's votes mattered (final rank +
+      // movement) — the proactive anti-"friendly-fraud-chargeback" touch for
+      // voters whose contestant didn't win.
+      const contestantName = req.contestant_name || 'your contestant'
+      const firstName = contestantName.split(' ')[0]
+      const competitionName = req.competition_name || 'Most Eligible'
+      const roundTitle = req.round_title || 'this round'
+      const voteCount = req.vote_count || 0
+      const finalRank = req.final_rank || null
+      const finalStatus = req.final_status || null
+      const prevRank = req.prev_rank || null
+      const isAnonymous = !!req.is_anonymous
+      const ctaUrl = req.profile_url || req.competition_url || appUrl
+
+      const voteText = voteCount === 1 ? 'your vote' : `your ${voteCount.toLocaleString()} votes`
+
+      // Headline keyed off the contestant's outcome this round.
+      let headline: string
+      let subject: string
+      switch (finalStatus) {
+        case 'winner':
+          headline = `🏆 ${contestantName} won ${competitionName}!`
+          subject = `${contestantName} won — thank you for your votes!`
+          break
+        case 'runner_up':
+          headline = `${contestantName} finished as a runner-up!`
+          subject = `${contestantName} finished as a runner-up`
+          break
+        case 'advanced':
+          headline = `${contestantName} advanced to the next round!`
+          subject = `${contestantName} advanced — your votes helped!`
+          break
+        case 'eliminated':
+          headline = `${firstName}'s ${competitionName} journey ended this round`
+          subject = `Thank you for backing ${contestantName}`
+          break
+        default:
+          headline = `Here's how ${contestantName} finished`
+          subject = `${contestantName}: ${roundTitle} results`
+      }
+
+      const rankBlock = finalRank
+        ? `<div style="display:inline-block;padding:16px 24px;background:#1a1a1a;border:1px solid #333;border-radius:12px;margin:16px 0;">
+             <div style="color:#999;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;">Final rank — ${roundTitle}</div>
+             <div style="color:#d4a843;font-size:48px;font-weight:bold;line-height:1.1;margin-top:4px;">#${finalRank}</div>
+           </div>`
+        : ''
+
+      // Movement vs. the previous round's final rank.
+      let movementLine = ''
+      if (finalRank && prevRank) {
+        const delta = prevRank - finalRank
+        if (delta > 0) {
+          movementLine = `<p style="color:#4ade80;font-size:15px;margin:8px 0;font-weight:bold;">Up ${delta} ${delta === 1 ? 'spot' : 'spots'} from last round — that's your votes at work.</p>`
+        } else if (delta < 0) {
+          movementLine = `<p style="color:#ccc;font-size:15px;margin:8px 0;">Moved from #${prevRank} to #${finalRank} this round.</p>`
+        } else {
+          movementLine = `<p style="color:#ccc;font-size:15px;margin:8px 0;">Held steady at #${finalRank}.</p>`
+        }
+      }
+
+      // Charity mention when the competition has one (donation % comes later).
+      const charityLine = req.charity_name
+        ? `<p style="color:#999;font-size:13px;margin:16px 0 0;">A portion of every paid vote supports <strong style="color:#ccc;">${req.charity_name}</strong>. Thank you for contributing.</p>`
+        : ''
+
+      const fanPrompt = isAnonymous && req.signup_url
+        ? `<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;margin-top:24px;">
+             <p style="color:#ccc;font-size:14px;margin:0 0 12px;">Create a free account to follow ${firstName} and keep track of your votes.</p>
+             <a href="${req.signup_url}" style="display:inline-block;padding:10px 24px;background:transparent;border:1px solid #d4a843;color:#d4a843;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;">Create Account</a>
+           </div>`
+        : ''
+
+      return {
+        subject,
+        body: wrapper(`
+          <div style="text-align:center;">
+            <h1 style="color:#d4a843;font-size:26px;margin:0 0 8px;">${headline}</h1>
+            <p style="color:#ccc;font-size:16px;margin:8px 0;">Thank you for sending <strong style="color:#fff;">${voteText}</strong> in ${competitionName}.</p>
+            ${rankBlock}
+            ${movementLine}
+            ${ctaUrl ? goldButton(`View ${firstName}'s Profile`, ctaUrl) : ''}
+            ${charityLine}
+            ${fanPrompt}
+          </div>
+        `),
+      }
+    }
+
     case 'subscriber_confirmation': {
       const competitionName = req.competition_name || 'Most Eligible'
       const cityLine = req.city_name
