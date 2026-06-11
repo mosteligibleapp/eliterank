@@ -286,6 +286,14 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Status state
   const [status, setStatus] = useState(competition?.status || COMPETITION_STATUS.DRAFT);
 
+  // A finished competition's timeline is historical: editing periods/rounds can
+  // re-trigger finalization + vote resets on already-closed rounds. Lock it for
+  // hosts once the competition is completed or archived. Super admins keep edit
+  // access (they own the status controls and can reopen if a fix is needed).
+  const isFinished =
+    status === COMPETITION_STATUS.COMPLETED || status === COMPETITION_STATUS.ARCHIVE;
+  const isLocked = isFinished && !isSuperAdmin;
+
   // Validation errors
   const [errors, setErrors] = useState([]);
 
@@ -442,6 +450,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
   // Save settings
   const handleSave = async () => {
+    if (isLocked) {
+      toast.error('This competition has ended — its timeline is locked.');
+      return;
+    }
     if (!validateDates()) {
       toast.error('Please fix the validation errors before saving');
       return;
@@ -856,6 +868,43 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         )}
       </div>
 
+      {/* Locked notice — a finished competition's timeline is read-only for hosts */}
+      {isLocked && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: spacing.sm,
+          padding: spacing.md,
+          marginBottom: spacing.lg,
+          background: 'rgba(59, 130, 246, 0.1)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: borderRadius.lg,
+        }}>
+          <Lock size={16} style={{ color: 'rgb(59, 130, 246)', marginTop: '2px', flexShrink: 0 }} />
+          <div>
+            <p style={{ margin: 0, fontSize: typography.fontSize.sm, color: 'rgb(59, 130, 246)', fontWeight: typography.fontWeight.medium }}>
+              Timeline locked
+            </p>
+            <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+              This competition has {status === COMPETITION_STATUS.ARCHIVE ? 'been archived' : 'ended'}. Its
+              schedule is preserved as a record and can no longer be edited.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Editable timeline region — disabled wholesale once the competition is
+          finished so a host can't mutate a finalized schedule. */}
+      <fieldset
+        disabled={isLocked}
+        style={{
+          border: 'none',
+          margin: 0,
+          padding: 0,
+          minInlineSize: 'auto',
+          opacity: isLocked ? 0.6 : 1,
+        }}
+      >
       {/* Contestant Prospecting Periods */}
       <div style={sectionStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
@@ -1237,6 +1286,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           {saving ? 'Saving...' : 'Save Timeline Settings'}
         </Button>
       </div>
+      </fieldset>
     </div>
   );
 }
