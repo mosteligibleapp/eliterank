@@ -219,6 +219,7 @@ serve(async (req) => {
           contestant_id,
           vote_count,
           voter_email,
+          voter_id,
         } = paymentIntent.metadata
 
         if (!competition_id || !contestant_id || !vote_count) {
@@ -309,6 +310,9 @@ serve(async (req) => {
           .insert({
             competition_id,
             contestant_id,
+            // Attribute to the account resolved in create-payment-intent so
+            // every paid voter is identifiable (no more anonymous guests).
+            voter_id: voter_id || null,
             voter_email: resolvedVoterEmail || null,
             vote_count: voteCount,
             amount_paid: amountPaid,

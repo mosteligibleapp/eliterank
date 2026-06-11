@@ -5,8 +5,12 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
 vi.mock('../../../lib/supabase', () => ({ supabase: {}, isSupabaseConfigured: () => false }));
 
+// Mutable auth state so individual tests can run authenticated. Defaults to
+// logged-out; reset in beforeEach. The paid fast-path (pre-created
+// PaymentIntent → serverAmount/preloadedClientSecret) is authenticated-only.
+const authRef = vi.hoisted(() => ({ current: { user: null, isAuthenticated: false } }));
 vi.mock('../../../hooks', () => ({
-  useSupabaseAuth: () => ({ user: null, isAuthenticated: false }),
+  useSupabaseAuth: () => authRef.current,
   useLeaderboard: () => ({ contestants: [] }),
   useFingerprint: () => ({ fingerprint: 'fp-test', loading: false, error: null }),
 }));
@@ -54,6 +58,7 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
   beforeEach(() => {
     window.localStorage.clear();
     submitAnonymousVoteMock.mockReset();
+    authRef.current = { user: null, isAuthenticated: false };
   });
 
   it('shows the active free-vote CTA when nothing is in localStorage', async () => {
@@ -179,6 +184,11 @@ describe('CompetitionCardVoting (anonymous already-voted lock)', () => {
   });
 
   it('passes the server-returned amount to VoteModal as serverAmount', async () => {
+    // The pre-created-PaymentIntent fast path is authenticated-only (logged-out
+    // buyers run the modal's full flow to collect name + email first), so this
+    // test signs the buyer in.
+    authRef.current = { user: { id: 'user-1', email: 'buyer@test.com' }, isAuthenticated: true };
+
     // The server's authoritative price for 250 votes against the *current*
     // competitions.price_per_vote (e.g. $1.40 base × 0.50 tier = $1.75/vote).
     // The client estimate using the prop's stale price_per_vote=1 would be

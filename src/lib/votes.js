@@ -379,6 +379,12 @@ export async function createVotePaymentIntent({
   contestantId,
   voteCount,
   voterEmail,
+  // Identity for vote attribution. Authenticated callers pass voterUserId;
+  // logged-out buyers pass email + first/last name so the edge function can
+  // bootstrap a passwordless account (guest checkout is no longer anonymous).
+  voterUserId,
+  voterFirstName,
+  voterLastName,
 }) {
   if (!supabase) {
     return { success: false, error: 'Database not configured' };
@@ -406,6 +412,9 @@ export async function createVotePaymentIntent({
         contestantId,
         voteCount,
         voterEmail,
+        voterUserId,
+        voterFirstName,
+        voterLastName,
       },
     });
 
@@ -462,6 +471,7 @@ export async function recordPaidVote({
   voteCount,
   amountPaid,
   voterEmail,
+  voterUserId,
   isDoubleVote = false,
 }) {
   if (!supabase) {
@@ -487,6 +497,7 @@ export async function recordPaidVote({
     const { error: voteError } = await supabase
       .from('votes')
       .insert({
+        voter_id: voterUserId || null,
         voter_email: voterEmail || null,
         competition_id: competitionId,
         contestant_id: contestantId,

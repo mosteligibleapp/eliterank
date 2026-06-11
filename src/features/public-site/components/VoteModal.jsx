@@ -75,6 +75,18 @@ export default function VoteModal({
   // everywhere downstream. Null = no PaymentIntent has resolved yet.
   const [confirmedAmount, setConfirmedAmount] = useState(serverAmount);
 
+  // Logged-out buyer details. Guest checkout is no longer anonymous — we
+  // collect name + email and bootstrap a passwordless account server-side so
+  // every paid voter is identifiable. Authenticated buyers skip this.
+  const [buyerFirstName, setBuyerFirstName] = useState('');
+  const [buyerLastName, setBuyerLastName] = useState('');
+  const [buyerEmail, setBuyerEmail] = useState('');
+  const buyerEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(buyerEmail.trim());
+  const contactComplete =
+    isAuthenticated || (!!buyerFirstName.trim() && !!buyerLastName.trim() && buyerEmailValid);
+  // Email we hand to Stripe / the edge function for this checkout.
+  const checkoutEmail = (isAuthenticated ? user?.email : buyerEmail.trim().toLowerCase()) || '';
+
   // Adopt the server amount whenever the opener pushes a fresh one in
   // (externalCheckout flow — the parent's createVotePaymentIntent landed).
   useEffect(() => {
@@ -112,6 +124,9 @@ export default function VoteModal({
       setSelectedVoteCount(10);
       setConfirmedAmount(null);
       setStripeLoadFailed(false);
+      setBuyerFirstName('');
+      setBuyerLastName('');
+      setBuyerEmail('');
     }
   }, [isOpen]);
 
@@ -193,6 +208,9 @@ export default function VoteModal({
     // If the opener is managing the PaymentIntent, never fire our own —
     // just wait for preloadedClientSecret to arrive via the effect below.
     if (externalCheckout) return;
+    // Logged-out buyers must fill the name/email capture first, so never
+    // auto-fire for them — they fall through to the full selector screen.
+    if (!isAuthenticated) return;
     if (!hasActiveRound || !stripeConfigured) return;
     autoCheckoutTriggered.current = true;
     handleInitiatePurchase();
@@ -264,6 +282,13 @@ export default function VoteModal({
       return;
     }
 
+    // Logged-out buyers must give name + email so we can bootstrap their
+    // account (guest checkout is no longer anonymous).
+    if (!isAuthenticated && !contactComplete) {
+      toast.error('Please enter your name and a valid email to continue.');
+      return;
+    }
+
     setIsCreatingPayment(true);
     const requestVersion = requestVersionRef.current;
 
@@ -272,7 +297,10 @@ export default function VoteModal({
         competitionId,
         contestantId: contestant.id,
         voteCount: selectedVoteCount,
-        voterEmail: user?.email,
+        voterEmail: checkoutEmail,
+        voterUserId: user?.id,
+        voterFirstName: isAuthenticated ? undefined : buyerFirstName.trim(),
+        voterLastName: isAuthenticated ? undefined : buyerLastName.trim(),
       });
 
       // Bail if the modal was closed while this request was in flight; the
@@ -323,6 +351,7 @@ export default function VoteModal({
         voteCount: creditedVoteCount,
         amountPaid: displayedTotal,
         voterEmail: user?.email,
+        voterUserId: user?.id,
         isDoubleVote: !!forceDoubleVoteDay,
       });
     }
@@ -400,7 +429,7 @@ export default function VoteModal({
   // which means the user has already picked vote count + seen the total on
   // the button they clicked. Skip the full vote selector and render a
   // minimal loader while the Stripe PaymentIntent is being created.
-  if (autoCheckout && isOpen && !showSuccess && !showPaymentForm) {
+  if (autoCheckout && isAuthenticated && isOpen && !showSuccess && !showPaymentForm) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="" maxWidth="360px" centered hideCloseButton variant="gold">
         <div style={{ position: 'relative', padding: `${spacing.xxl} ${spacing.lg}` }}>
@@ -572,8 +601,11 @@ export default function VoteModal({
                   onCancel={handleBackFromPayment}
                   amount={displayedTotal}
                   contestantName={contestant.name}
-                  collectEmail={!isAuthenticated || !user?.email}
-                  userEmail={user?.email}
+                  // We now collect the buyer's email up front (authed user or
+                  // the logged-out capture form), so Stripe never needs to —
+                  // we pass it as billing_details instead.
+                  collectEmail={!checkoutEmail}
+                  userEmail={checkoutEmail}
                 />
               </Elements>
             )}
@@ -943,19 +975,82 @@ export default function VoteModal({
         </div>
       </div>
 
+      {/* Buyer details (logged-out only) — we bootstrap a passwordless
+          account from these so the paid vote is attributed and the buyer can
+          claim it later via the receipt email. */}
+      {!isAuthenticated && (
+        <div style={{ marginBottom: spacing.md }}>
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, marginBottom: spacing.sm, textAlign: 'center' }}>
+            Your details — we'll set up your account so you can track your votes
+          </p>
+          <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.sm }}>
+            <input
+              type="text"
+              placeholder="First name"
+              value={buyerFirstName}
+              onChange={(e) => setBuyerFirstName(e.target.value)}
+              disabled={!stripeConfigured || !hasActiveRound}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: 'rgba(255,255,255,0.05)',
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.md,
+                color: colors.text.primary,
+                fontSize: typography.fontSize.sm,
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Last name"
+              value={buyerLastName}
+              onChange={(e) => setBuyerLastName(e.target.value)}
+              disabled={!stripeConfigured || !hasActiveRound}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: `${spacing.sm} ${spacing.md}`,
+                background: 'rgba(255,255,255,0.05)',
+                border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.md,
+                color: colors.text.primary,
+                fontSize: typography.fontSize.sm,
+              }}
+            />
+          </div>
+          <input
+            type="email"
+            placeholder="Email address"
+            value={buyerEmail}
+            onChange={(e) => setBuyerEmail(e.target.value)}
+            disabled={!stripeConfigured || !hasActiveRound}
+            style={{
+              width: '100%',
+              padding: `${spacing.sm} ${spacing.md}`,
+              background: 'rgba(255,255,255,0.05)',
+              border: `1px solid ${buyerEmail && !buyerEmailValid ? colors.status.error : colors.border.light}`,
+              borderRadius: borderRadius.md,
+              color: colors.text.primary,
+              fontSize: typography.fontSize.sm,
+            }}
+          />
+        </div>
+      )}
+
       {/* Purchase Button - Compact */}
       <Button
         fullWidth
         size="lg"
         icon={isCreatingPayment ? Loader : CreditCard}
         onClick={handleInitiatePurchase}
-        disabled={!stripeConfigured || !hasActiveRound || isCreatingPayment}
+        disabled={!stripeConfigured || !hasActiveRound || isCreatingPayment || (!isAuthenticated && !contactComplete)}
         style={{
-          background: (!stripeConfigured || !hasActiveRound) ? 'rgba(212,175,55,0.1)' : gradients.gold,
+          background: (!stripeConfigured || !hasActiveRound || (!isAuthenticated && !contactComplete)) ? 'rgba(212,175,55,0.1)' : gradients.gold,
           borderColor: 'rgba(212,175,55,0.3)',
-          color: (!stripeConfigured || !hasActiveRound) ? colors.text.muted : '#0a0a0f',
-          cursor: (!stripeConfigured || !hasActiveRound) ? 'not-allowed' : 'pointer',
-          opacity: (!stripeConfigured || !hasActiveRound) ? 0.5 : 1,
+          color: (!stripeConfigured || !hasActiveRound || (!isAuthenticated && !contactComplete)) ? colors.text.muted : '#0a0a0f',
+          cursor: (!stripeConfigured || !hasActiveRound || (!isAuthenticated && !contactComplete)) ? 'not-allowed' : 'pointer',
+          opacity: (!stripeConfigured || !hasActiveRound || (!isAuthenticated && !contactComplete)) ? 0.5 : 1,
           padding: `${spacing.sm} ${spacing.md}`,
         }}
       >

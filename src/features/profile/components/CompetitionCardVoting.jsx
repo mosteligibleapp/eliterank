@@ -221,10 +221,18 @@ export default function CompetitionCardVoting({
     const voteCount = Number(selectedCount);
     if (!voteCount || voteCount < 1) return;
 
-    // Open the modal immediately (user sees progress instantly) and fire
-    // the PaymentIntent creation in parallel. When it resolves we push
-    // clientSecret into the modal via a prop, skipping the modal's own
-    // round-trip.
+    // Logged-out buyers run the modal's full flow (it collects name + email
+    // and creates its own PaymentIntent), so don't pre-create one here — the
+    // modal renders without externalCheckout for them.
+    if (!user?.id) {
+      setShowVoteModal(true);
+      return;
+    }
+
+    // Authenticated fast path: open the modal immediately (user sees progress
+    // instantly) and fire the PaymentIntent creation in parallel. When it
+    // resolves we push clientSecret into the modal via a prop, skipping the
+    // modal's own round-trip.
     const requestId = ++checkoutRequestRef.current;
     setPreloadedCheckout({ clientSecret: null, paymentIntentId: null, voteCount, amount: null });
     setShowVoteModal(true);
@@ -234,6 +242,7 @@ export default function CompetitionCardVoting({
       contestantId,
       voteCount,
       voterEmail: user?.email,
+      voterUserId: user?.id,
     });
 
     // If the modal was closed (or another Send was clicked) while this
@@ -693,11 +702,14 @@ export default function CompetitionCardVoting({
           }}
           currentRound={roundForModal}
           initialVoteCount={Number(selectedCount) || 1}
-          autoCheckout
+          // The pre-created-PaymentIntent fast path is authenticated-only.
+          // Logged-out buyers run the modal's full flow so it can collect
+          // their name + email and bootstrap an account before checkout.
+          autoCheckout={!!user?.id}
           votePrice={competition?.price_per_vote}
           useBundler={competition?.use_price_bundler}
           forceDoubleVoteDay={isDoubleVoteDay}
-          externalCheckout
+          externalCheckout={!!user?.id}
           preloadedClientSecret={preloadedCheckout.clientSecret}
           preloadedPaymentIntentId={preloadedCheckout.paymentIntentId}
           serverAmount={preloadedCheckout.amount}

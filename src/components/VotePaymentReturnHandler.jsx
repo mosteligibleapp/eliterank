@@ -133,6 +133,7 @@ export default function VotePaymentReturnHandler() {
             voteCount: creditedVoteCount,
             amountPaid: (paymentIntent.amount || 0) / 100,
             voterEmail: user?.email,
+            voterUserId: user?.id,
             isDoubleVote: isDoubleVoteDay,
           });
         }

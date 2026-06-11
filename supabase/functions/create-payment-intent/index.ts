@@ -12,6 +12,12 @@ interface PaymentRequest {
   contestantId: string
   voteCount: number
   voterEmail?: string
+  // Identity for vote attribution. Authenticated buyers pass voterUserId;
+  // logged-out buyers pass email + first/last name so we can bootstrap a
+  // passwordless account (guest checkout is no longer anonymous).
+  voterUserId?: string
+  voterFirstName?: string
+  voterLastName?: string
 }
 
 // The purchase terms a buyer must accept at checkout (the acknowledgment
@@ -23,6 +29,77 @@ interface PaymentRequest {
 // checkout disclosure text materially changes.
 const VOTE_TERMS_VERSION = 'votes-2026-06'
 const VOTE_TERMS_URL = 'https://eliterank.co/contest-terms'
+
+/**
+ * Resolve the profile id to attribute a paid vote to, so every paid voter has
+ * an account (no more anonymous guest checkout). Authenticated buyers pass
+ * their user id directly; for everyone else we find-or-create a passwordless
+ * account from their email + name, mirroring the free-vote bootstrap in
+ * api/cast-anonymous-vote.js. The buyer can set a password later via the
+ * "create your account" CTA in the receipt email. Returns null only when we
+ * have no email to work with (legacy/fallback) — the vote still records, just
+ * unattributed, rather than failing the purchase.
+ */
+async function resolveVoterId(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  opts: { userId?: string; email?: string; firstName?: string; lastName?: string }
+): Promise<string | null> {
+  if (opts.userId) return opts.userId
+
+  const email = (opts.email || '').trim().toLowerCase()
+  if (!email) return null
+
+  const firstName = (opts.firstName || '').trim().slice(0, 60)
+  const lastName = (opts.lastName || '').trim().slice(0, 60)
+
+  // Reuse an existing profile when the email already has one.
+  const { data: existingProfile } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name')
+    .ilike('email', email)
+    .maybeSingle()
+
+  if (existingProfile?.id) {
+    // Backfill the name only when missing — never overwrite a claimed profile.
+    if (!existingProfile.first_name && !existingProfile.last_name && (firstName || lastName)) {
+      await supabase
+        .from('profiles')
+        .update({ first_name: firstName, last_name: lastName })
+        .eq('id', existingProfile.id)
+    }
+    return existingProfile.id
+  }
+
+  const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+    email,
+    email_confirm: false,
+    user_metadata: { first_name: firstName, last_name: lastName },
+  })
+  if (createErr || !created?.user?.id) {
+    console.error('Voter account bootstrap failed:', createErr)
+    return null
+  }
+  const voterId = created.user.id
+
+  // handle_new_user may swallow exceptions, so ensure the profile row exists
+  // before we attribute a vote to it (FK on votes.voter_id).
+  const { data: profileCheck } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', voterId)
+    .maybeSingle()
+  if (!profileCheck) {
+    const { error: profileErr } = await supabase
+      .from('profiles')
+      .insert({ id: voterId, email, first_name: firstName, last_name: lastName })
+    if (profileErr) {
+      console.error('Manual profile creation failed during bootstrap:', profileErr)
+      return null
+    }
+  }
+  return voterId
+}
 
 // Mirror of PRICE_BUNDLER_TIERS in src/types/competition.js. Kept inline
 // because this Deno edge function can't import from the frontend bundle.
@@ -52,7 +129,15 @@ serve(async (req) => {
 
   try {
     // Get request body
-    const { competitionId, contestantId, voteCount, voterEmail }: PaymentRequest = await req.json()
+    const {
+      competitionId,
+      contestantId,
+      voteCount,
+      voterEmail,
+      voterUserId,
+      voterFirstName,
+      voterLastName,
+    }: PaymentRequest = await req.json()
 
     // Validate required fields
     if (!competitionId || !contestantId || !voteCount) {
@@ -138,6 +223,16 @@ serve(async (req) => {
       }
     }
 
+    // Resolve the account this paid vote will be attributed to. Every paid
+    // voter gets an account now — authenticated buyers pass their id, others
+    // are bootstrapped from email + name. Threaded to the webhook via metadata.
+    const voterId = await resolveVoterId(supabase, {
+      userId: voterUserId,
+      email: voterEmail,
+      firstName: voterFirstName,
+      lastName: voterLastName,
+    })
+
     // Server is the source of truth for the Stripe amount. If the bundler is
     // on, apply the tier multiplier against the competition's base price.
     const basePrice = parseFloat(competition.price_per_vote) || 1.00
@@ -188,6 +283,9 @@ serve(async (req) => {
         contestant_name: contestant.name,
         is_double_vote_day: isDoubleVoteDay ? 'true' : 'false',
         credited_vote_count: creditedVoteCount.toString(),
+        // Account to attribute the vote to (set by the webhook). Empty only in
+        // the legacy fallback where no email was available.
+        voter_id: voterId || '',
         // Governing purchase terms (accepted via the gated checkout checkbox).
         // Surfaced in Stripe so it auto-submits as dispute evidence.
         terms_version: VOTE_TERMS_VERSION,
