@@ -8,7 +8,7 @@ import { colors, spacing, borderRadius, typography, gradients, shadows } from '.
 import { formatNumber } from '../../../utils/formatters';
 import { VOTE_PRESETS } from '../../../constants';
 import { calculateVotePrice } from '../../../types/competition';
-import { hasUsedFreeVoteToday, submitFreeVote, getTodaysVote, getTimeUntilReset, createVotePaymentIntent, recordPaidVote } from '../../../lib/votes';
+import { hasUsedFreeVoteToday, submitFreeVote, getTodaysVote, getTimeUntilReset, createVotePaymentIntent, recordPaidVote, checkActiveVotingRound } from '../../../lib/votes';
 import { useToast } from '../../../contexts/ToastContext';
 import { useIsPreview } from '../../../contexts/PublicCompetitionContext';
 import { getStripe, isStripeConfigured } from '../../../lib/stripe';
@@ -301,6 +301,20 @@ export default function VoteModal({
 
   // Handle successful payment
   const handlePaymentSuccess = async () => {
+    // The round can close in the seconds between starting checkout and the
+    // payment confirming. If it has, the stripe-webhook credits no votes and
+    // auto-refunds (incident #573) — so don't tell the buyer their vote
+    // counted. Re-check before showing the success card.
+    const roundCheck = await checkActiveVotingRound(competitionId);
+    if (!roundCheck.isActive) {
+      toast?.error?.(
+        'Voting closed just as your payment completed — your vote was not counted and your payment is being refunded.'
+      );
+      setShowPaymentForm(false);
+      onClose?.();
+      return;
+    }
+
     // Pre-double the count for double-vote days so the values we write
     // here are correct regardless of whether the webhook gets a chance to
     // run. The webhook would compute the same numbers, but it short-

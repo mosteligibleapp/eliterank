@@ -94,6 +94,32 @@ serve(async (req) => {
       )
     }
 
+    // Binding round-open check (incident #573). The client calls
+    // checkActiveVotingRound() before invoking us, but that's advisory — a
+    // server-side gate keeps us from minting a PaymentIntent for a round that
+    // has already closed. ensure_round_state() finalizes any due rounds and
+    // returns the currently active votable round (voting or finale), if any.
+    // The webhook re-checks at credit time, since a round can still close in
+    // the seconds between intent creation and payment confirmation.
+    const { data: roundState, error: roundError } = await supabase.rpc('ensure_round_state', {
+      p_competition_id: competitionId,
+    })
+
+    if (roundError) {
+      console.error('Round-state check failed:', roundError.message)
+      return new Response(
+        JSON.stringify({ error: 'Could not verify voting status. Please try again.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!roundState?.active) {
+      return new Response(
+        JSON.stringify({ error: 'Voting is not currently open for this competition.' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Fetch contestant to verify they exist and belong to this competition
     const { data: contestant, error: contestantError } = await supabase
       .from('contestants')

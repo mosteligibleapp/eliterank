@@ -237,6 +237,65 @@ serve(async (req) => {
           )
         }
 
+        // Binding round-open guard (incident #573). This is the credit path's
+        // sole source of truth for anonymous paid votes, so the check that
+        // matters lives here: a payment can confirm in the seconds AFTER a
+        // round's end_date, and crediting those votes mutates an already-
+        // finalized result. ensure_round_state() finalizes any due rounds and
+        // tells us whether a votable round is still open. If it's closed, we
+        // credit nothing and auto-refund the buyer — no silent post-cutoff
+        // vote, no manual cleanup.
+        const { data: roundState, error: roundError } = await supabase.rpc('ensure_round_state', {
+          p_competition_id: competition_id,
+        })
+
+        if (roundError) {
+          // Fail closed: 500 makes Stripe retry rather than us crediting a vote
+          // we couldn't verify.
+          console.error('Round-state check failed for', paymentIntent.id, roundError.message)
+          return new Response(
+            JSON.stringify({ error: 'Could not verify voting status', details: roundError.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        if (!roundState?.active) {
+          console.warn(
+            `Round closed for ${paymentIntent.id} (competition ${competition_id}) — refunding, crediting no votes`
+          )
+          try {
+            await stripe.refunds.create({
+              payment_intent: paymentIntent.id,
+              reason: 'requested_by_customer',
+              metadata: {
+                auto_refund_reason: 'voting_round_closed',
+                competition_id,
+                contestant_id,
+              },
+            })
+            console.log(`Auto-refunded ${paymentIntent.id} — voting round was closed`)
+          } catch (refundErr) {
+            // If the charge is already refunded (e.g. Stripe re-delivered this
+            // event), treat it as handled. Any other failure returns 500 so
+            // Stripe retries and we get another chance to refund.
+            const code = (refundErr as { code?: string })?.code
+            if (code === 'charge_already_refunded') {
+              console.log(`${paymentIntent.id} already refunded — nothing to do`)
+            } else {
+              console.error('Auto-refund failed for', paymentIntent.id, refundErr)
+              return new Response(
+                JSON.stringify({ error: 'Auto-refund failed', details: String(refundErr) }),
+                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+          }
+
+          return new Response(
+            JSON.stringify({ received: true, status: 'refunded_round_closed' }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
         // Check if today is a host-scheduled double vote day for this competition.
         // is_double_vote_day uses the competition's stored timezone, so a host
         // in LA picking April 28 gets activation across the LA calendar day,

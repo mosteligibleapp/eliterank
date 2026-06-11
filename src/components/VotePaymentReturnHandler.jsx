@@ -6,7 +6,7 @@ import { Modal, VoteShareCard } from './ui';
 import FanButton from './ui/FanButton';
 import { colors, spacing, borderRadius, typography, gradients, shadows } from '../styles/theme';
 import { getStripe, isStripeConfigured } from '../lib/stripe';
-import { recordPaidVote } from '../lib/votes';
+import { recordPaidVote, checkActiveVotingRound } from '../lib/votes';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores';
 import { useToast } from '../contexts/ToastContext';
@@ -95,6 +95,19 @@ export default function VotePaymentReturnHandler() {
           if (paymentIntent.status === 'requires_payment_method') {
             toast?.error?.('Payment was not completed. Please try again.');
           }
+          stripParams();
+          return;
+        }
+
+        // The round can close between starting checkout and returning from the
+        // off-site payment method. If it has, the stripe-webhook credits no
+        // votes and auto-refunds (incident #573) — so don't show the success
+        // card claiming the vote counted.
+        const roundCheck = await checkActiveVotingRound(competitionId);
+        if (!roundCheck.isActive) {
+          toast?.error?.(
+            'Voting closed just as your payment completed — your vote was not counted and your payment is being refunded.'
+          );
           stripParams();
           return;
         }
