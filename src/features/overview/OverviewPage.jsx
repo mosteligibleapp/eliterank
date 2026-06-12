@@ -3,6 +3,7 @@ import { Globe, Eye } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import RevenueCard from './components/RevenueCard';
 import HostPayoutCard from './components/HostPayoutCard';
+import StripeConnectCard from './components/StripeConnectCard';
 import RankingCard from './components/RankingCard';
 import CurrentPhaseCard from './components/CurrentPhaseCard';
 import TrafficCard from './components/TrafficCard';
@@ -49,6 +50,11 @@ export default function OverviewPage({
           currentCity={cityName}
           currentRevenue={revenueData.total}
         />
+      </div>
+
+      {/* Payout account setup (Stripe Connect) */}
+      <div style={{ marginBottom: spacing.xxxl }}>
+        <StripeConnectCard />
       </div>
 
       {/* Second Row - 3 Cards */}

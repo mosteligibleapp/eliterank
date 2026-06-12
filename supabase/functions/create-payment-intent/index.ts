@@ -83,7 +83,7 @@ serve(async (req) => {
     // Fetch competition to get vote price.
     const { data: competition, error: compError } = await supabase
       .from('competitions')
-      .select('id, name, season, price_per_vote, use_price_bundler, status')
+      .select('id, name, season, price_per_vote, use_price_bundler, status, host_id, host_payout_percentage')
       .eq('id', competitionId)
       .single()
 
@@ -163,14 +163,34 @@ serve(async (req) => {
       ? `${creditedVoteCount} votes (2× Double Vote Day) for ${contestant.name} in ${compName}`
       : `${creditedVoteCount} vote${creditedVoteCount > 1 ? 's' : ''} for ${contestant.name} in ${compName}`
 
+    // Stripe Connect routing. If the host has finished onboarding an Express
+    // account (stripe_charges_enabled), this is a destination charge: EliteRank
+    // (the platform) is the merchant of record, keeps its cut as the
+    // application fee, and the host's share transfers to their connected
+    // account. on_behalf_of makes the connected account the settlement merchant
+    // so Stripe's processing fees come out of the host's share. If the host
+    // isn't onboarded yet, the charge stays wholly on the platform account
+    // (today's behavior) so voting is never blocked on payout setup.
+    let connectedAccountId: string | null = null
+    const hostPayoutPct = Number(competition.host_payout_percentage ?? 20)
+    if (competition.host_id) {
+      const { data: hostProfile } = await supabase
+        .from('profiles')
+        .select('stripe_account_id, stripe_charges_enabled')
+        .eq('id', competition.host_id)
+        .maybeSingle()
+      if (hostProfile?.stripe_account_id && hostProfile.stripe_charges_enabled) {
+        connectedAccountId = hostProfile.stripe_account_id
+      }
+    }
+
     // Initialize Stripe
     const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
     })
 
-    // Create PaymentIntent
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
       amount: totalAmount,
       currency: 'usd',
       automatic_payment_methods: {
@@ -187,7 +207,23 @@ serve(async (req) => {
         credited_vote_count: creditedVoteCount.toString(),
       },
       description,
-    })
+    }
+
+    // Only route a host-share transfer when the host actually receives a
+    // positive share (0% or 100% degenerate cases keep everything on the
+    // platform / would make application_fee or transfer zero, which Stripe
+    // rejects).
+    if (connectedAccountId && hostPayoutPct > 0 && hostPayoutPct < 100) {
+      const applicationFeeAmount = Math.round(totalAmount * (1 - hostPayoutPct / 100))
+      paymentIntentParams.application_fee_amount = applicationFeeAmount
+      paymentIntentParams.on_behalf_of = connectedAccountId
+      paymentIntentParams.transfer_data = { destination: connectedAccountId }
+      paymentIntentParams.metadata!.connected_account_id = connectedAccountId
+      paymentIntentParams.metadata!.application_fee_amount = applicationFeeAmount.toString()
+    }
+
+    // Create PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams)
 
     return new Response(
       JSON.stringify({

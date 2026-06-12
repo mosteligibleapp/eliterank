@@ -264,7 +264,7 @@ serve(async (req) => {
             `Round closed for ${paymentIntent.id} (competition ${competition_id}) — refunding, crediting no votes`
           )
           try {
-            await stripe.refunds.create({
+            const refundParams: Stripe.RefundCreateParams = {
               payment_intent: paymentIntent.id,
               reason: 'requested_by_customer',
               metadata: {
@@ -272,7 +272,16 @@ serve(async (req) => {
                 competition_id,
                 contestant_id,
               },
-            })
+            }
+            // For a Connect destination charge, also reverse the host-share
+            // transfer and refund the application fee so the whole payment
+            // unwinds cleanly instead of leaving the host credited / the
+            // platform fee retained on a refunded charge.
+            if (paymentIntent.transfer_data) {
+              refundParams.reverse_transfer = true
+              refundParams.refund_application_fee = true
+            }
+            await stripe.refunds.create(refundParams)
             console.log(`Auto-refunded ${paymentIntent.id} — voting round was closed`)
           } catch (refundErr) {
             // If the charge is already refunded (e.g. Stripe re-delivered this
