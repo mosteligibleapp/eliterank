@@ -21,3 +21,9 @@ INSERT INTO demographics (label, slug, gender, age_min, age_max, active) VALUES
   ('Women 18+', 'women-18-plus', 'female', 18, NULL, TRUE),
   ('Men 18+', 'men-18-plus', 'male', 18, NULL, TRUE)
 ON CONFLICT (slug) DO NOTHING;
+
+-- Add Pets and Pageant categories.
+INSERT INTO categories (name, slug, active) VALUES
+  ('Pets', 'pets', TRUE),
+  ('Pageant', 'pageant', TRUE)
+ON CONFLICT (slug) DO NOTHING;
