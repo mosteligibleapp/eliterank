@@ -10,6 +10,7 @@ import { useToast } from '@shared/contexts/ToastContext';
 import {
   COMPETITION_STATUS,
   STATUS_CONFIG,
+  US_STATES,
 } from '@shared/types/competition';
 import { validateStatusChange, COMPETITION_STATUSES } from '@shared/utils/competitionPhase';
 import { generateCompetitionSlug } from '@shared/utils/slugs';
@@ -259,8 +260,12 @@ export default function CompetitionsManager({ onViewDashboard }) {
 
   // ── Create competition ──────────────────────────────────
   const handleCreate = async (formData) => {
-    const isScoped = formData.geographic_scope && formData.geographic_scope !== 'city';
-    if (!formData.organization_id || (!isScoped && !formData.city_id) || !formData.category_id || !formData.demographic_id) {
+    const scope = formData.geographic_scope || 'city';
+    const hasLocation =
+      (scope === 'city' && formData.city_id) ||
+      (scope === 'state' && formData.state_code) ||
+      scope === 'national' || scope === 'worldwide';
+    if (!formData.organization_id || !hasLocation || !formData.category_id || !formData.demographic_id) {
       toast.error('Organization, location, category, and demographic are required');
       return;
     }
@@ -284,16 +289,25 @@ export default function CompetitionsManager({ onViewDashboard }) {
         .eq('category_id', formData.category_id)
         .eq('demographic_id', formData.demographic_id)
         .eq('season', formData.season);
-      dupQuery = isScoped
-        ? dupQuery.eq('geographic_scope', formData.geographic_scope).is('city_id', null)
-        : dupQuery.eq('city_id', formData.city_id);
+      if (scope === 'city') {
+        dupQuery = dupQuery.eq('city_id', formData.city_id);
+      } else if (scope === 'state') {
+        dupQuery = dupQuery.eq('geographic_scope', 'state').eq('state_code', formData.state_code);
+      } else {
+        dupQuery = dupQuery.eq('geographic_scope', scope).is('city_id', null);
+      }
       const { data: existing } = await dupQuery.limit(1);
 
-      const selectedCity = isScoped ? null : cities.find(c => c.id === formData.city_id);
+      const selectedCity = scope === 'city' ? cities.find(c => c.id === formData.city_id) : null;
       const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
-      const locationLabel = isScoped
-        ? (formData.geographic_scope === 'usa' ? 'USA' : 'Worldwide')
-        : selectedCity?.name || 'Unknown';
+      const stateName = formData.state_code
+        ? (US_STATES.find(s => s.code === formData.state_code)?.name || formData.state_code)
+        : '';
+      const locationLabel = scope === 'city'
+        ? (selectedCity?.name || 'Unknown')
+        : scope === 'state'
+          ? stateName
+          : scope === 'national' ? 'USA' : 'Worldwide';
 
       if (existing && existing.length > 0) {
         const selectedCategory = categories.find(c => c.id === formData.category_id);
@@ -304,18 +318,24 @@ export default function CompetitionsManager({ onViewDashboard }) {
         return;
       }
 
+      const scopeSlug = scope === 'city'
+        ? (selectedCity?.slug || selectedCity?.name || 'unknown')
+        : scope === 'state'
+          ? (formData.state_code || 'state').toLowerCase()
+          : scope === 'national' ? 'usa' : 'worldwide';
       const competitionSlug = generateCompetitionSlug({
         name: formData.name || 'competition',
-        citySlug: selectedCity?.slug || selectedCity?.name || formData.geographic_scope || 'unknown',
+        citySlug: scopeSlug,
         season: formData.season,
         demographicSlug: selectedDemographic?.slug,
       });
 
       const insertPayload = {
         organization_id: formData.organization_id,
-        city_id: isScoped ? null : formData.city_id,
-        geographic_scope: formData.geographic_scope || 'city',
-        city: isScoped ? locationLabel : (selectedCity?.name || null),
+        city_id: scope === 'city' ? formData.city_id : null,
+        geographic_scope: scope,
+        state_code: scope === 'state' ? formData.state_code : null,
+        city: scope === 'city' ? (selectedCity?.name || null) : locationLabel,
         category_id: formData.category_id,
         demographic_id: formData.demographic_id,
         name: formData.name || null,

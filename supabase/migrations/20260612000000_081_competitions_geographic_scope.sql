@@ -1,15 +1,21 @@
 -- =============================================================================
--- COMPETITIONS: GEOGRAPHIC SCOPE (city vs USA vs Worldwide) + SEED AUSTIN
+-- COMPETITIONS: GEOGRAPHIC SCOPE (city / state / national / worldwide) + SEED AUSTIN
 -- =============================================================================
--- A competition is normally tied to a single city (city_id). This adds the
--- ability to run nationwide ("usa") or global ("worldwide") competitions that
--- are not bound to one city. For those, city_id is left NULL and the scope is
--- recorded here instead.
+-- A competition is normally tied to a single city (city_id). This adds a scope
+-- selector so a competition can instead be statewide, nationwide (USA), or
+-- global. Depending on scope:
+--   city       -> city_id set, state_code null
+--   state      -> state_code set (2-letter code), city_id null
+--   national   -> city_id and state_code null
+--   worldwide  -> city_id and state_code null
 -- =============================================================================
 
 ALTER TABLE competitions
   ADD COLUMN IF NOT EXISTS geographic_scope TEXT NOT NULL DEFAULT 'city'
-  CHECK (geographic_scope IN ('city', 'usa', 'worldwide'));
+  CHECK (geographic_scope IN ('city', 'state', 'national', 'worldwide'));
+
+ALTER TABLE competitions
+  ADD COLUMN IF NOT EXISTS state_code TEXT;
 
 -- Add Austin, TX as a selectable city.
 INSERT INTO cities (name, state, slug) VALUES
