@@ -259,8 +259,9 @@ export default function CompetitionsManager({ onViewDashboard }) {
 
   // ── Create competition ──────────────────────────────────
   const handleCreate = async (formData) => {
-    if (!formData.organization_id || !formData.city_id || !formData.category_id || !formData.demographic_id) {
-      toast.error('Organization, city, category, and demographic are required');
+    const isScoped = formData.geographic_scope && formData.geographic_scope !== 'city';
+    if (!formData.organization_id || (!isScoped && !formData.city_id) || !formData.category_id || !formData.demographic_id) {
+      toast.error('Organization, location, category, and demographic are required');
       return;
     }
     if (formData.min_contestants < 10) {
@@ -276,39 +277,45 @@ export default function CompetitionsManager({ onViewDashboard }) {
     setIsSubmitting(true);
     try {
       // Duplicate check
-      const { data: existing } = await supabase
+      let dupQuery = supabase
         .from('competitions')
         .select('id')
         .eq('organization_id', formData.organization_id)
-        .eq('city_id', formData.city_id)
         .eq('category_id', formData.category_id)
         .eq('demographic_id', formData.demographic_id)
-        .eq('season', formData.season)
-        .limit(1);
+        .eq('season', formData.season);
+      dupQuery = isScoped
+        ? dupQuery.eq('geographic_scope', formData.geographic_scope).is('city_id', null)
+        : dupQuery.eq('city_id', formData.city_id);
+      const { data: existing } = await dupQuery.limit(1);
+
+      const selectedCity = isScoped ? null : cities.find(c => c.id === formData.city_id);
+      const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
+      const locationLabel = isScoped
+        ? (formData.geographic_scope === 'usa' ? 'USA' : 'Worldwide')
+        : selectedCity?.name || 'Unknown';
 
       if (existing && existing.length > 0) {
         const selectedCategory = categories.find(c => c.id === formData.category_id);
-        const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
-        const selectedCity = cities.find(c => c.id === formData.city_id);
         toast.error(
-          `A ${selectedCategory?.name || 'Unknown'} competition for ${selectedDemographic?.label || 'Unknown'} in ${selectedCity?.name || 'Unknown'} already exists for Season ${formData.season}.`
+          `A ${selectedCategory?.name || 'Unknown'} competition for ${selectedDemographic?.label || 'Unknown'} in ${locationLabel} already exists for Season ${formData.season}.`
         );
         setIsSubmitting(false);
         return;
       }
 
-      const selectedCity = cities.find(c => c.id === formData.city_id);
-      const selectedDemographic = demographics.find(d => d.id === formData.demographic_id);
       const competitionSlug = generateCompetitionSlug({
         name: formData.name || 'competition',
-        citySlug: selectedCity?.slug || selectedCity?.name || 'unknown',
+        citySlug: selectedCity?.slug || selectedCity?.name || formData.geographic_scope || 'unknown',
         season: formData.season,
         demographicSlug: selectedDemographic?.slug,
       });
 
       const insertPayload = {
         organization_id: formData.organization_id,
-        city_id: formData.city_id,
+        city_id: isScoped ? null : formData.city_id,
+        geographic_scope: formData.geographic_scope || 'city',
+        city: isScoped ? locationLabel : (selectedCity?.name || null),
         category_id: formData.category_id,
         demographic_id: formData.demographic_id,
         name: formData.name || null,
