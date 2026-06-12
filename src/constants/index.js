@@ -56,5 +56,7 @@ export const ANNOUNCEMENT_TYPE_COLORS = {
 export const VOTE_PRICE = 1; // $1 per vote
 export const VOTE_PRESETS = [1, 10, 25, 50, 100];
 
-// Host payout percentage
-export const HOST_PAYOUT_PERCENTAGE = 0.20; // 20%
+// Host payout percentage. EliteRank's platform fee is 15%, so hosts keep 85%
+// of vote revenue. Kept in sync with competitions.host_payout_percentage
+// (default 85.00) — see migration 083.
+export const HOST_PAYOUT_PERCENTAGE = 0.85; // 85% (EliteRank keeps 15%)

@@ -172,7 +172,9 @@ serve(async (req) => {
     // isn't onboarded yet, the charge stays wholly on the platform account
     // (today's behavior) so voting is never blocked on payout setup.
     let connectedAccountId: string | null = null
-    const hostPayoutPct = Number(competition.host_payout_percentage ?? 20)
+    // Host keeps host_payout_percentage; EliteRank's platform fee is the
+    // remainder (15% by default → host 85%).
+    const hostPayoutPct = Number(competition.host_payout_percentage ?? 85)
     if (competition.host_id) {
       const { data: hostProfile } = await supabase
         .from('profiles')

@@ -8,9 +8,9 @@ and (b) how host payouts work via Stripe Connect (Express).
 - **EliteRank** owns the **platform** Stripe account. All vote charges are
   created on it.
 - Each **host** onboards their own **Express connected account**. Their share
-  of vote revenue (`competitions.host_payout_percentage`, default 20%) is
-  transferred to them automatically; EliteRank keeps the rest as the Stripe
-  **application fee**.
+  of vote revenue (`competitions.host_payout_percentage`, default **85%**) is
+  transferred to them automatically; EliteRank keeps the remaining **15%** as
+  the Stripe **application fee**.
 - We use **destination charges** with `on_behalf_of` set to the connected
   account, so the host is the settlement merchant and **Stripe's processing
   fees come out of the host's share**. EliteRank is the merchant of record for
