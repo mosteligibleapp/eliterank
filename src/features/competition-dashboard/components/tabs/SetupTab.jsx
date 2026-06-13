@@ -821,7 +821,8 @@ export default function SetupTab({
 
       {/* Charity Section */}
       <Panel
-        key={`section-charity-${isHidden('charity')}`}
+        key={`section-charity-${isHidden('charity')}-${focusId === 'charity' ? focusNonce : 'x'}`}
+        id="setup-section-charity"
         title="Charity Partner"
         icon={Gift}
         action={sectionAction('charity',
@@ -830,7 +831,7 @@ export default function SetupTab({
           </Button>
         )}
         collapsible
-        defaultCollapsed
+        defaultCollapsed={focusId !== 'charity'}
         style={sectionStyle('charity')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>

@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Scale,
   Gift,
+  Heart,
   CalendarHeart,
   Users,
 } from 'lucide-react';
@@ -147,6 +148,18 @@ const STEP_PRIZES = {
   ctaLabel: 'Add prizes',
 };
 
+const STEP_CHARITY = {
+  id: 'charity',
+  icon: Heart,
+  title: 'Add a charity partner',
+  description: 'Link the charity your competition supports (optional).',
+  optional: true,
+  getStatus: ({ competition }) =>
+    competition?.charityName ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE,
+  target: { type: 'tab', tab: 'setup', section: 'charity' },
+  ctaLabel: 'Add charity',
+};
+
 const STEP_EVENTS = {
   id: 'events',
   icon: CalendarHeart,
@@ -203,6 +216,7 @@ export const MOST_ELIGIBLE_CHECKLIST = {
     STEP_JUDGES,
     STEP_JUDGING_CRITERIA,
     STEP_PRIZES,
+    STEP_CHARITY,
     STEP_EVENTS,
   ],
   runTitle: 'Run your competition',
@@ -221,6 +235,7 @@ export const GENERAL_CHECKLIST = {
     STEP_JUDGES,
     STEP_JUDGING_CRITERIA,
     STEP_PRIZES,
+    STEP_CHARITY,
   ],
   runTitle: 'Run your competition',
   runSteps: [STEP_NOMINEES],
