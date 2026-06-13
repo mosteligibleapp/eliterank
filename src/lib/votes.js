@@ -425,6 +425,9 @@ export async function createVotePaymentIntent({
       amount: data.amount,
       voteCount: data.voteCount,
       contestantName: data.contestantName,
+      // Present for Connect direct charges — the client must confirm with
+      // Stripe.js scoped to this connected account.
+      connectedAccountId: data.connectedAccountId || null,
     };
   } catch (err) {
     console.error('Error creating payment intent:', err);

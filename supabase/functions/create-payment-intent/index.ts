@@ -163,14 +163,14 @@ serve(async (req) => {
       ? `${creditedVoteCount} votes (2× Double Vote Day) for ${contestant.name} in ${compName}`
       : `${creditedVoteCount} vote${creditedVoteCount > 1 ? 's' : ''} for ${contestant.name} in ${compName}`
 
-    // Stripe Connect routing. If the host has finished onboarding an Express
-    // account (stripe_charges_enabled), this is a destination charge: EliteRank
-    // (the platform) is the merchant of record, keeps its cut as the
-    // application fee, and the host's share transfers to their connected
-    // account. on_behalf_of makes the connected account the settlement merchant
-    // so Stripe's processing fees come out of the host's share. If the host
-    // isn't onboarded yet, the charge stays wholly on the platform account
-    // (today's behavior) so voting is never blocked on payout setup.
+    // Stripe Connect — DIRECT charge model. The host is the merchant of
+    // record: the PaymentIntent is created ON the host's connected account
+    // (via the Stripe-Account header), the host's bank receives the funds, the
+    // host bears Stripe's processing fees + refunds + disputes, and EliteRank
+    // takes its cut as the application fee. There is NO platform fallback —
+    // the platform isn't the one charging — so a host must be fully onboarded
+    // (stripe_charges_enabled) before any paid vote can be taken. Free voting
+    // and nominations are unaffected; only this paid path is gated.
     let connectedAccountId: string | null = null
     // Host keeps host_payout_percentage; EliteRank's platform fee is the
     // remainder (15% by default → host 85%).
@@ -185,6 +185,23 @@ serve(async (req) => {
         connectedAccountId = hostProfile.stripe_account_id
       }
     }
+
+    if (!connectedAccountId) {
+      // Host payouts aren't set up — refuse rather than collect money we can't
+      // route. The client surfaces this as a "paid voting not available yet"
+      // state (code: host_not_onboarded).
+      return new Response(
+        JSON.stringify({
+          error: 'Paid voting isn’t available for this competition yet. Please try again later.',
+          code: 'host_not_onboarded',
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Application fee = EliteRank's share (15% when host is 85%). Omitted only
+    // in the degenerate 100%-to-host case, where Stripe rejects a zero fee.
+    const applicationFeeAmount = Math.round(totalAmount * (1 - hostPayoutPct / 100))
 
     // Initialize Stripe
     const stripe = new Stripe(stripeSecretKey, {
@@ -207,25 +224,19 @@ serve(async (req) => {
         contestant_name: contestant.name,
         is_double_vote_day: isDoubleVoteDay ? 'true' : 'false',
         credited_vote_count: creditedVoteCount.toString(),
+        connected_account_id: connectedAccountId,
+        application_fee_amount: applicationFeeAmount.toString(),
       },
       description,
     }
-
-    // Only route a host-share transfer when the host actually receives a
-    // positive share (0% or 100% degenerate cases keep everything on the
-    // platform / would make application_fee or transfer zero, which Stripe
-    // rejects).
-    if (connectedAccountId && hostPayoutPct > 0 && hostPayoutPct < 100) {
-      const applicationFeeAmount = Math.round(totalAmount * (1 - hostPayoutPct / 100))
+    if (applicationFeeAmount > 0) {
       paymentIntentParams.application_fee_amount = applicationFeeAmount
-      paymentIntentParams.on_behalf_of = connectedAccountId
-      paymentIntentParams.transfer_data = { destination: connectedAccountId }
-      paymentIntentParams.metadata!.connected_account_id = connectedAccountId
-      paymentIntentParams.metadata!.application_fee_amount = applicationFeeAmount.toString()
     }
 
-    // Create PaymentIntent
-    const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams)
+    // DIRECT charge: create the PaymentIntent on the connected account.
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams, {
+      stripeAccount: connectedAccountId,
+    })
 
     return new Response(
       JSON.stringify({
@@ -234,6 +245,9 @@ serve(async (req) => {
         amount: totalAmount,
         voteCount,
         contestantName: contestant.name,
+        // The client must init Stripe.js with this account to confirm a direct
+        // charge.
+        connectedAccountId,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

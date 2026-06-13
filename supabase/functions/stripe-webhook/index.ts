@@ -179,7 +179,18 @@ serve(async (req) => {
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.log('Payment succeeded:', paymentIntent.id)
+        // With Connect DIRECT charges the PaymentIntent lives on the host's
+        // connected account, and Stripe delivers the event with `event.account`
+        // set. All Stripe API calls about this charge (charge retrieve, refund)
+        // must be scoped to that account; the Supabase writes stay on the
+        // platform DB (competition/contestant are platform entities). This
+        // endpoint must be configured to "listen to events on connected
+        // accounts" for these to arrive.
+        const connectedAccountId = event.account || null
+        const stripeAccountOpt = connectedAccountId
+          ? { stripeAccount: connectedAccountId }
+          : undefined
+        console.log('Payment succeeded:', paymentIntent.id, connectedAccountId ? `(account ${connectedAccountId})` : '(platform)')
 
         // Extract metadata
         const {
@@ -207,7 +218,7 @@ serve(async (req) => {
             const chargeId = typeof paymentIntent.latest_charge === 'string'
               ? paymentIntent.latest_charge
               : paymentIntent.latest_charge.id
-            const charge = await stripe.charges.retrieve(chargeId)
+            const charge = await stripe.charges.retrieve(chargeId, stripeAccountOpt)
             resolvedVoterEmail = charge.billing_details?.email || ''
           } catch (err) {
             console.warn('Could not retrieve charge for billing email:', err)
@@ -273,15 +284,21 @@ serve(async (req) => {
                 contestant_id,
               },
             }
-            // For a Connect destination charge, also reverse the host-share
-            // transfer and refund the application fee so the whole payment
-            // unwinds cleanly instead of leaving the host credited / the
-            // platform fee retained on a refunded charge.
+            // Unwind the platform's cut alongside the buyer refund:
+            //  - Direct charge (on the connected account): refund the
+            //    application fee so EliteRank doesn't keep a fee on a fully
+            //    refunded charge.
+            //  - Legacy destination charge (on the platform): also reverse the
+            //    host-share transfer.
+            if (paymentIntent.application_fee_amount) {
+              refundParams.refund_application_fee = true
+            }
             if (paymentIntent.transfer_data) {
               refundParams.reverse_transfer = true
               refundParams.refund_application_fee = true
             }
-            await stripe.refunds.create(refundParams)
+            // Scope the refund to the connected account for direct charges.
+            await stripe.refunds.create(refundParams, stripeAccountOpt)
             console.log(`Auto-refunded ${paymentIntent.id} — voting round was closed`)
           } catch (refundErr) {
             // If the charge is already refunded (e.g. Stripe re-delivered this

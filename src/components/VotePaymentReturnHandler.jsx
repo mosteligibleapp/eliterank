@@ -5,13 +5,13 @@ import * as Sentry from '@sentry/react';
 import { Modal, VoteShareCard } from './ui';
 import FanButton from './ui/FanButton';
 import { colors, spacing, borderRadius, typography, gradients, shadows } from '../styles/theme';
-import { getStripe, isStripeConfigured } from '../lib/stripe';
+import { getStripeForAccount, isStripeConfigured } from '../lib/stripe';
 import { recordPaidVote, checkActiveVotingRound } from '../lib/votes';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores';
 import { useToast } from '../contexts/ToastContext';
 
-const STRIPE_RETURN_PARAMS = ['payment_intent', 'payment_intent_client_secret', 'redirect_status'];
+const STRIPE_RETURN_PARAMS = ['payment_intent', 'payment_intent_client_secret', 'redirect_status', 'ck_acct'];
 
 /**
  * Stripe redirect-based payment methods (Cash App Pay, Amazon Pay, etc.) send
@@ -69,7 +69,11 @@ export default function VotePaymentReturnHandler() {
 
     const run = async () => {
       try {
-        const stripe = await getStripe();
+        // Connect direct charges live on the host's connected account, so
+        // Stripe.js must be scoped to it to retrieve the PaymentIntent. The
+        // account id was threaded onto the return URL as `ck_acct`.
+        const connectedAccountId = params.get('ck_acct');
+        const stripe = await getStripeForAccount(connectedAccountId);
         if (!stripe) {
           stripParams();
           return;

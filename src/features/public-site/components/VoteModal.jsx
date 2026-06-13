@@ -11,7 +11,7 @@ import { calculateVotePrice } from '../../../types/competition';
 import { hasUsedFreeVoteToday, submitFreeVote, getTodaysVote, getTimeUntilReset, createVotePaymentIntent, recordPaidVote, checkActiveVotingRound } from '../../../lib/votes';
 import { useToast } from '../../../contexts/ToastContext';
 import { useIsPreview } from '../../../contexts/PublicCompetitionContext';
-import { getStripe, isStripeConfigured } from '../../../lib/stripe';
+import { getStripeForAccount, isStripeConfigured } from '../../../lib/stripe';
 import { avatarUrl } from '../../../lib/storageImage';
 
 // Show $10 for round totals and $9.90 for fractional bundler prices. The
@@ -69,6 +69,9 @@ export default function VoteModal({
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [clientSecret, setClientSecret] = useState(null);
   const [paymentIntentId, setPaymentIntentId] = useState(null);
+  // Connect direct charge: the host's connected account the PaymentIntent
+  // lives on. Stripe.js must be scoped to it to confirm the payment.
+  const [connectedAccountId, setConnectedAccountId] = useState(null);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [selectedVoteCount, setSelectedVoteCount] = useState(initialVoteCount);
   // Cents. Once set, replaces the client-side calculateVotePrice estimate
@@ -123,7 +126,7 @@ export default function VoteModal({
     if (!showPaymentForm || !clientSecret) return;
     let cancelled = false;
     setStripeLoadFailed(false);
-    const promise = getStripe();
+    const promise = getStripeForAccount(connectedAccountId);
     if (!promise) {
       setStripeLoadFailed(true);
       return;
@@ -282,6 +285,7 @@ export default function VoteModal({
       if (result.success && result.clientSecret) {
         setClientSecret(result.clientSecret);
         setPaymentIntentId(result.paymentIntentId);
+        setConnectedAccountId(result.connectedAccountId || null);
         if (result.amount != null) setConfirmedAmount(result.amount);
         setShowPaymentForm(true);
       } else {
@@ -525,7 +529,7 @@ export default function VoteModal({
       );
     }
 
-    const stripePromise = getStripe();
+    const stripePromise = getStripeForAccount(connectedAccountId);
 
     return (
       <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="360px" centered hideCloseButton variant="gold">
@@ -588,6 +592,7 @@ export default function VoteModal({
                   contestantName={contestant.name}
                   collectEmail={!isAuthenticated || !user?.email}
                   userEmail={user?.email}
+                  connectedAccountId={connectedAccountId}
                 />
               </Elements>
             )}
@@ -1001,7 +1006,7 @@ export default function VoteModal({
 /**
  * Payment checkout form using Stripe Elements
  */
-function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, collectEmail = false, userEmail = null }) {
+function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, collectEmail = false, userEmail = null, connectedAccountId = null }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1018,10 +1023,21 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
     setErrorMessage(null);
 
     try {
+      // For redirect-based methods (Cash App Pay, Amazon Pay, etc.) the buyer
+      // leaves and returns to return_url. With a Connect direct charge the
+      // return handler needs the connected account to retrieve the
+      // PaymentIntent, so thread it through the URL as `ck_acct`.
+      const returnUrl = (() => {
+        if (!connectedAccountId) return window.location.href;
+        const u = new URL(window.location.href);
+        u.searchParams.set('ck_acct', connectedAccountId);
+        return u.toString();
+      })();
+
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.href, // Fallback, but we handle redirect: 'if_required'
+          return_url: returnUrl, // Fallback, but we handle redirect: 'if_required'
           // When collectEmail is false (authenticated user), we told Stripe not to collect
           // email in the form, so we must provide it here
           ...(!collectEmail && userEmail ? {
