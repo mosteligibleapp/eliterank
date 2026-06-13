@@ -4,6 +4,7 @@ import {
   CalendarClock,
   ClipboardList,
   Scale,
+  Gift,
   CalendarHeart,
   Users,
 } from 'lucide-react';
@@ -113,33 +114,37 @@ const STEP_NOMINATION_FORM = {
   ctaLabel: 'Add questions',
 };
 
-const STEP_JUDGING = {
-  id: 'judging',
+const STEP_JUDGES = {
+  id: 'judges',
+  icon: Users,
+  title: 'Add your judges',
+  description: 'Invite the judges who will score contestants. Manage them on the People tab.',
+  getStatus: ({ judges }) =>
+    (judges?.length || 0) > 0 ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE,
+  target: { type: 'tab', tab: 'people' },
+  ctaLabel: 'Add judges',
+};
+
+const STEP_JUDGING_CRITERIA = {
+  id: 'judgingCriteria',
   icon: Scale,
-  title: 'Set up judging, charity & prizes',
-  description: 'Add judges, judging criteria and per-round details, a charity partner, and the prizes.',
-  getStatus: ({ judges, judgingCriteria, prizes }) => {
-    const checks = [
-      (judges?.length || 0) > 0,
-      (judgingCriteria?.length || 0) > 0,
-      (prizes?.length || 0) > 0,
-    ];
-    const done = checks.filter(Boolean).length;
-    if (done === checks.length) return STEP_STATUS.COMPLETE;
-    if (done === 0) return STEP_STATUS.INCOMPLETE;
-    return STEP_STATUS.PARTIAL;
-  },
-  getDetail: ({ judges, judgingCriteria, prizes }) => {
-    const missing = [];
-    if (!(judges?.length > 0)) missing.push('judges');
-    if (!(judgingCriteria?.length > 0)) missing.push('criteria');
-    if (!(prizes?.length > 0)) missing.push('prizes');
-    return missing.length ? `Still need ${missing.join(', ')}` : null;
-  },
-  // Judging criteria, charity and prizes live in Setup; the judge roster
-  // itself is on the People tab.
-  target: { type: 'tab', tab: 'setup' },
-  ctaLabel: 'Set up judging',
+  title: 'Add judging criteria',
+  description: 'Define the qualities judges score on, and how much judging counts each round.',
+  getStatus: ({ judgingCriteria }) =>
+    (judgingCriteria?.length || 0) > 0 ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE,
+  target: { type: 'tab', tab: 'setup', section: 'judgingCriteria' },
+  ctaLabel: 'Add criteria',
+};
+
+const STEP_PRIZES = {
+  id: 'prizes',
+  icon: Gift,
+  title: 'Add prizes',
+  description: 'Add the prizes winners take home (via a sponsor in Setup).',
+  getStatus: ({ prizes }) =>
+    (prizes?.length || 0) > 0 ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE,
+  target: { type: 'tab', tab: 'setup', section: 'sponsors' },
+  ctaLabel: 'Add prizes',
 };
 
 const STEP_EVENTS = {
@@ -195,7 +200,9 @@ export const MOST_ELIGIBLE_CHECKLIST = {
     STEP_PROFILE,
     STEP_TIMELINE,
     STEP_NOMINATION_FORM,
-    STEP_JUDGING,
+    STEP_JUDGES,
+    STEP_JUDGING_CRITERIA,
+    STEP_PRIZES,
     STEP_EVENTS,
   ],
   runTitle: 'Run your competition',
@@ -211,7 +218,9 @@ export const GENERAL_CHECKLIST = {
     STEP_CREATE,
     STEP_PROFILE,
     STEP_TIMELINE,
-    STEP_JUDGING,
+    STEP_JUDGES,
+    STEP_JUDGING_CRITERIA,
+    STEP_PRIZES,
   ],
   runTitle: 'Run your competition',
   runSteps: [STEP_NOMINEES],

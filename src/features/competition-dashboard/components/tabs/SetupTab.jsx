@@ -666,7 +666,7 @@ export default function SetupTab({
       {/* Judging criteria + per-round judge weight. Wrapped so it picks up an
           explicit flex order (these panels aren't grayable, so they'd otherwise
           float above Judges). */}
-      <div style={sectionStyle('judgingCriteria')}>
+      <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
         <JudgingPanel
           criteria={judgingCriteria}
           votingRounds={competition?.voting_rounds || []}
@@ -690,12 +690,13 @@ export default function SetupTab({
 
       {/* Sponsors Section */}
       <Panel
-        key={`section-sponsors-${isHidden('sponsors')}`}
+        key={`section-sponsors-${isHidden('sponsors')}-${focusId === 'sponsors' ? focusNonce : 'x'}`}
+        id="setup-section-sponsors"
         title={`Sponsors (${sponsors.length})`}
         icon={Star}
         action={sectionAction('sponsors', <Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>)}
         collapsible
-        defaultCollapsed
+        defaultCollapsed={focusId !== 'sponsors'}
         style={sectionStyle('sponsors')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
