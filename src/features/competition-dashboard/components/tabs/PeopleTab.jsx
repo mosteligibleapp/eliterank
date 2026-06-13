@@ -15,6 +15,7 @@ import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import { getReachedTierLabel } from '../../../../utils/roundLabels';
 import WinnersManager from '../WinnersManager';
 import SubscribersManager from '../SubscribersManager';
+import JudgesManager from '../JudgesManager';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
 const parseInstagram = (raw) => {
@@ -85,6 +86,10 @@ export default function PeopleTab({
   onRepairAllNomineeAccounts,
   subscribers = [],
   onRemoveSubscriber,
+  judges = [],
+  onOpenJudgeModal,
+  onDeleteJudge,
+  onSendJudgeInvite,
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
@@ -1211,6 +1216,14 @@ export default function PeopleTab({
       {/* Winners Manager */}
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
       </div>
+
+      {/* Judges roster (judging rules + results stay in Setup) */}
+      <JudgesManager
+        judges={judges}
+        onOpenJudgeModal={onOpenJudgeModal}
+        onDeleteJudge={onDeleteJudge}
+        onSendJudgeInvite={onSendJudgeInvite}
+      />
 
       {/* Gender filter chips — only shown when the competition splits
        *  winners by gender. Filters every section below + the contestants

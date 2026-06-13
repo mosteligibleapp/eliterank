@@ -615,8 +615,6 @@ export default function CompetitionDashboard({
       doubleDays={data.doubleDays}
       isSuperAdmin={isSuperAdmin}
       onRefresh={refresh}
-      onDeleteJudge={deleteJudge}
-      onSendJudgeInvite={sendJudgeInvite}
       onAddCriterion={addCriterion}
       onUpdateCriterion={updateCriterion}
       onDeleteCriterion={deleteCriterion}
@@ -628,7 +626,6 @@ export default function CompetitionDashboard({
       onDeleteDoubleDay={deleteDoubleDay}
       onUpdateTimezone={updateCompetitionTimezone}
       onUpdateHiddenSections={updateHiddenSetupSections}
-      onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
       onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
       onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
       onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
@@ -744,6 +741,10 @@ export default function CompetitionDashboard({
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
             subscribers={data.subscribers || []}
             onRemoveSubscriber={removeSubscriber}
+            judges={data.judges}
+            onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
+            onDeleteJudge={deleteJudge}
+            onSendJudgeInvite={sendJudgeInvite}
           />
         );
       case 'emails':
