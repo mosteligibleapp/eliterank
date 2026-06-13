@@ -674,7 +674,7 @@ export default function OverviewTab({
                 ))}
                 {announcements?.length > 3 && (
                   <button
-                    onClick={() => onNavigateToTab?.('content')}
+                    onClick={() => onNavigateToTab?.('engagement')}
                     style={{
                       background: 'none',
                       border: 'none',

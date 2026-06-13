@@ -14,6 +14,7 @@ import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 // Import tab components
 import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
 import LaunchChecklist from './components/LaunchChecklist';
+import AnnouncementsManager from './components/AnnouncementsManager';
 import { resolveLaunchChecklist, computeChecklistProgress } from './launchChecklist';
 import { COMPETITION_STATUS } from '../../types/competition';
 
@@ -755,14 +756,7 @@ export default function CompetitionDashboard({
         return (
           <ContentTab
             competition={competition}
-            announcements={data.announcements}
-            host={data.host}
-            isSuperAdmin={isSuperAdmin}
             onRefresh={refresh}
-            onAddAnnouncement={addAnnouncement}
-            onUpdateAnnouncement={updateAnnouncement}
-            onDeleteAnnouncement={deleteAnnouncement}
-            onTogglePin={toggleAnnouncementPin}
             organizationId={competition?.organizationId}
             organizationHeaderLogoUrl={competition?.organizationHeaderLogoUrl}
             organizationWebsiteUrl={competition?.organizationWebsiteUrl}
@@ -771,7 +765,20 @@ export default function CompetitionDashboard({
       case 'setup':
         return renderSetupTab('setup');
       case 'engagement':
-        return renderSetupTab('engagement');
+        return (
+          <>
+            <AnnouncementsManager
+              announcements={data.announcements}
+              host={data.host}
+              isSuperAdmin={isSuperAdmin}
+              onAddAnnouncement={addAnnouncement}
+              onUpdateAnnouncement={updateAnnouncement}
+              onDeleteAnnouncement={deleteAnnouncement}
+              onTogglePin={toggleAnnouncementPin}
+            />
+            {renderSetupTab('engagement')}
+          </>
+        );
       case 'preview':
         return (
           <PreviewTab
