@@ -143,10 +143,11 @@ export default function RefundPage() {
           </p>
           <ul style={styles.ul}>
             <li style={styles.li}>
-              <span style={styles.strong}>Payment confirmed after a voting round closed.</span> If your payment is
-              confirmed after the relevant voting round has already ended, no votes are credited and we{' '}
-              <span style={styles.strong}>automatically refund the full amount</span> to your original payment method.
-              You do not need to contact us.
+              <span style={styles.strong}>Payment confirmed after a voting round closed.</span> Votes are only
+              counted while a round is open. If a payment is confirmed after the relevant round has already ended,
+              those votes are not credited and the charge is <span style={styles.strong}>refunded in full</span> to
+              your original payment method. If you don&rsquo;t see that refund within a few business days, email us at{' '}
+              <a href="mailto:info@eliterank.co" style={styles.link}>info@eliterank.co</a> and we&rsquo;ll resolve it.
             </li>
             <li style={styles.li}>
               <span style={styles.strong}>Duplicate or erroneous charges.</span> If you were charged more than once for
