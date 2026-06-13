@@ -136,7 +136,9 @@ const STEP_JUDGING = {
     if (!(prizes?.length > 0)) missing.push('prizes');
     return missing.length ? `Still need ${missing.join(', ')}` : null;
   },
-  target: { type: 'tab', tab: 'setup', section: 'judges' },
+  // Judging criteria, charity and prizes live in Setup; the judge roster
+  // itself is on the People tab.
+  target: { type: 'tab', tab: 'setup' },
   ctaLabel: 'Set up judging',
 };
 
@@ -177,6 +179,11 @@ const STEP_NOMINEES = {
 
 // ---------------------------------------------------------------------------
 // Templates
+//
+// `steps` are the launch (setup) tasks. Once every required launch step is
+// done, the dashboard flips the checklist into "run" mode and shows `runSteps`
+// — the ongoing tasks of operating a live competition (e.g. reviewing
+// nominees), which aren't part of getting set up.
 // ---------------------------------------------------------------------------
 
 // Most Eligible's full launch framework, in launch order.
@@ -190,8 +197,9 @@ export const MOST_ELIGIBLE_CHECKLIST = {
     STEP_NOMINATION_FORM,
     STEP_JUDGING,
     STEP_EVENTS,
-    STEP_NOMINEES,
   ],
+  runTitle: 'Run your competition',
+  runSteps: [STEP_NOMINEES],
 };
 
 // Leaner default for competitions outside the Most Eligible framework: just the
@@ -204,8 +212,9 @@ export const GENERAL_CHECKLIST = {
     STEP_PROFILE,
     STEP_TIMELINE,
     STEP_JUDGING,
-    STEP_NOMINEES,
   ],
+  runTitle: 'Run your competition',
+  runSteps: [STEP_NOMINEES],
 };
 
 // Built-in per-organization templates, keyed by a lowercased org name match.

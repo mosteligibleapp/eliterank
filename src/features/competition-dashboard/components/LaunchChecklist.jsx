@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Rocket,
+  Activity,
   CheckCircle2,
   CircleDashed,
   Circle,
@@ -9,7 +10,6 @@ import {
   ChevronUp,
   ArrowRight,
   Lock,
-  PartyPopper,
 } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
@@ -55,22 +55,26 @@ export default function LaunchChecklist({
     [competition]
   );
 
-  const { steps, requiredComplete, requiredTotal, allRequiredComplete } = useMemo(
-    () =>
-      computeChecklistProgress(checklist, {
-        competition,
-        host,
-        nominees,
-        contestants,
-        judges,
-        judgingCriteria,
-        prizes,
-        events,
-        sponsors,
-        doubleDays,
-      }),
-    [checklist, competition, host, nominees, contestants, judges, judgingCriteria, prizes, events, sponsors, doubleDays]
+  const ctx = useMemo(
+    () => ({
+      competition, host, nominees, contestants, judges,
+      judgingCriteria, prizes, events, sponsors, doubleDays,
+    }),
+    [competition, host, nominees, contestants, judges, judgingCriteria, prizes, events, sponsors, doubleDays]
   );
+
+  // Launch (setup) progress. Once every required launch step is done, the card
+  // flips into "run" mode and shows the run steps (operating a live
+  // competition — e.g. reviewing nominees) instead of the setup steps.
+  const launch = useMemo(() => computeChecklistProgress(checklist, ctx), [checklist, ctx]);
+  const isRunning = launch.allRequiredComplete;
+  const run = useMemo(
+    () => computeChecklistProgress({ steps: checklist.runSteps || [] }, ctx),
+    [checklist.runSteps, ctx]
+  );
+
+  const active = isRunning ? run : launch;
+  const { steps, requiredComplete, requiredTotal, allRequiredComplete } = active;
 
   // Collapse memory per competition — once a host has launched they can tuck it
   // away, but it stays available.
@@ -114,10 +118,19 @@ export default function LaunchChecklist({
 
   const pct = requiredTotal > 0 ? Math.round((requiredComplete / requiredTotal) * 100) : 0;
 
+  // Header swaps between the launch (setup) and run (operate) framings.
+  const HeaderIcon = isRunning ? Activity : Rocket;
+  const headerTitle = isRunning ? (checklist.runTitle || 'Run your competition') : checklist.title;
+  const headerSubtitle = isRunning
+    ? (allRequiredComplete
+        ? "You're all caught up — nothing needs your attention."
+        : `${requiredComplete} of ${requiredTotal} done`)
+    : `${requiredComplete} of ${requiredTotal} steps complete`;
+
   return (
     <div style={{
       background: colors.background.card,
-      border: `1px solid ${allRequiredComplete ? colors.border.gold : colors.border.light}`,
+      border: `1px solid ${isRunning ? colors.border.gold : colors.border.light}`,
       borderRadius: borderRadius.xxl,
       overflow: 'hidden',
       boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
@@ -144,9 +157,7 @@ export default function LaunchChecklist({
           justifyContent: 'center',
           flexShrink: 0,
         }}>
-          {allRequiredComplete
-            ? <PartyPopper size={22} style={{ color: colors.gold.primary }} />
-            : <Rocket size={22} style={{ color: colors.gold.primary }} />}
+          <HeaderIcon size={22} style={{ color: colors.gold.primary }} />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -155,12 +166,10 @@ export default function LaunchChecklist({
             fontWeight: typography.fontWeight.semibold,
             color: colors.text.primary,
           }}>
-            {allRequiredComplete ? 'Ready to launch' : checklist.title}
+            {headerTitle}
           </p>
           <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-            {allRequiredComplete
-              ? 'Every required step is done. Fine-tune anytime.'
-              : `${requiredComplete} of ${requiredTotal} steps complete`}
+            {headerSubtitle}
           </p>
         </div>
 

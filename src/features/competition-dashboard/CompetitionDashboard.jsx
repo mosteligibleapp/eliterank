@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle, Mail, ChevronDown, Check, Rocket, TrendingUp
+  Eye, AlertCircle, Mail, ChevronDown, Check, Rocket, TrendingUp, Activity
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -175,18 +175,13 @@ export default function CompetitionDashboard({
   const isFinished =
     competition?.status === COMPETITION_STATUS.COMPLETED ||
     competition?.status === COMPETITION_STATUS.ARCHIVE;
-  const visibleTabs = isFinished ? TABS.filter((t) => t.id !== 'launch') : TABS;
 
-  // Pick the landing tab once data is in: a still-launching competition opens
-  // on the guided Launch checklist; one whose required steps are all done (or
-  // that has already finished) opens on the live Dashboard. Runs a single
-  // time, and never overrides a tab the host has already clicked.
-  const initialTabResolvedRef = useRef(false);
-  useEffect(() => {
-    if (initialTabResolvedRef.current || loading || !competition) return;
-    initialTabResolvedRef.current = true;
+  // Launch (setup) progress. Once every required launch step is done the first
+  // tab flips from "Launch" (guided setup) to "Run" (operating a live comp).
+  const launchComplete = useMemo(() => {
+    if (!competition) return false;
     const checklist = resolveLaunchChecklist(competition);
-    const { allRequiredComplete } = computeChecklistProgress(checklist, {
+    return computeChecklistProgress(checklist, {
       competition,
       host: data.host,
       nominees: data.nominees,
@@ -197,11 +192,35 @@ export default function CompetitionDashboard({
       events: data.events,
       sponsors: data.sponsors,
       doubleDays: data.doubleDays,
-    });
-    if (allRequiredComplete || isFinished) {
+    }).allRequiredComplete;
+  }, [competition, data]);
+
+  const visibleTabs = useMemo(() => {
+    const base = isFinished ? TABS.filter((t) => t.id !== 'launch') : TABS;
+    return base.map((t) =>
+      t.id === 'launch'
+        ? {
+            ...t,
+            label: launchComplete ? 'Run' : 'Launch',
+            shortLabel: launchComplete ? 'Run' : 'Launch',
+            icon: launchComplete ? Activity : Rocket,
+          }
+        : t
+    );
+  }, [isFinished, launchComplete]);
+
+  // Pick the landing tab once data is in: a still-launching competition opens
+  // on the guided Launch checklist; one whose required steps are all done (or
+  // that has already finished) opens on the live Dashboard. Runs a single
+  // time, and never overrides a tab the host has already clicked.
+  const initialTabResolvedRef = useRef(false);
+  useEffect(() => {
+    if (initialTabResolvedRef.current || loading || !competition) return;
+    initialTabResolvedRef.current = true;
+    if (launchComplete || isFinished) {
       setActiveTab((cur) => (cur === 'launch' ? 'dashboard' : cur));
     }
-  }, [loading, competition, data, isFinished]);
+  }, [loading, competition, launchComplete, isFinished]);
 
   // When the host runs more than one competition, the header name becomes a
   // switcher so they can jump between dashboards without leaving the page.
