@@ -742,14 +742,14 @@ export default function CompetitionDashboard({
             onResendInvite={resendInvite}
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
+            subscribers={data.subscribers || []}
+            onRemoveSubscriber={removeSubscriber}
           />
         );
       case 'emails':
         return (
           <EmailActivityTab
             competitionId={competitionId}
-            subscribers={data.subscribers || []}
-            onRemoveSubscriber={removeSubscriber}
           />
         );
       case 'content':

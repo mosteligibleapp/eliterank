@@ -14,6 +14,7 @@ import { supabase } from '../../../../lib/supabase';
 import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import { getReachedTierLabel } from '../../../../utils/roundLabels';
 import WinnersManager from '../WinnersManager';
+import SubscribersManager from '../SubscribersManager';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
 const parseInstagram = (raw) => {
@@ -82,6 +83,8 @@ export default function PeopleTab({
   onRemoveContestant,
   onRepairNomineeAccount,
   onRepairAllNomineeAccounts,
+  subscribers = [],
+  onRemoveSubscriber,
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
@@ -1824,6 +1827,9 @@ export default function PeopleTab({
           )}
         </div>
       </Panel>
+
+      {/* Subscribers — coming-soon opt-ins */}
+      <SubscribersManager subscribers={subscribers} onRemoveSubscriber={onRemoveSubscriber} />
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
