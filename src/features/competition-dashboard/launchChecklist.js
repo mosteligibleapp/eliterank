@@ -281,10 +281,17 @@ export function computeChecklistProgress(checklist, ctx) {
     (s) => s.status === STEP_STATUS.COMPLETE
   ).length;
 
+  // Counts across every step (optional included) — used for the displayed
+  // progress so the counter matches the numbered list. `allRequiredComplete`
+  // (required-only) still governs whether launch is "done".
+  const completedCount = steps.filter((s) => s.status === STEP_STATUS.COMPLETE).length;
+
   return {
     steps,
     requiredComplete,
     requiredTotal: required.length,
+    completedCount,
+    totalCount: steps.length,
     allRequiredComplete: requiredComplete === required.length,
   };
 }

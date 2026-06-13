@@ -74,7 +74,7 @@ export default function LaunchChecklist({
   );
 
   const active = isRunning ? run : launch;
-  const { steps, requiredComplete, requiredTotal, allRequiredComplete } = active;
+  const { steps, completedCount, totalCount, allRequiredComplete } = active;
 
   // Collapse memory per competition — once a host has launched they can tuck it
   // away, but it stays available.
@@ -116,16 +116,18 @@ export default function LaunchChecklist({
     }
   };
 
-  const pct = requiredTotal > 0 ? Math.round((requiredComplete / requiredTotal) * 100) : 0;
+  // Progress reflects every step shown (optional included) so the counter and
+  // bar match the numbered list.
+  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   // Header swaps between the launch (setup) and run (operate) framings.
   const HeaderIcon = isRunning ? Activity : Rocket;
   const headerTitle = isRunning ? (checklist.runTitle || 'Run your competition') : checklist.title;
   const headerSubtitle = isRunning
-    ? (allRequiredComplete
+    ? (allRequiredComplete && completedCount === totalCount
         ? "You're all caught up — nothing needs your attention."
-        : `${requiredComplete} of ${requiredTotal} done`)
-    : `${requiredComplete} of ${requiredTotal} steps complete`;
+        : `${completedCount} of ${totalCount} done`)
+    : `${completedCount} of ${totalCount} steps complete`;
 
   return (
     <div style={{
