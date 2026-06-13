@@ -15,6 +15,7 @@ import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
 import LaunchChecklist from './components/LaunchChecklist';
 import { resolveLaunchChecklist, computeChecklistProgress } from './launchChecklist';
+import { COMPETITION_STATUS } from '../../types/competition';
 
 // Consolidated tab navigation. Launch leads — it's the guided checklist for
 // getting a competition live; the rest are the day-to-day management surfaces.
@@ -167,10 +168,18 @@ export default function CompetitionDashboard({
   const competition = data.competition;
   const competitionName = competition?.name || 'Competition';
 
+  // A finished competition (completed/archived) has already run, so the launch
+  // flow is moot — hide the Launch tab entirely rather than presenting its
+  // steps as open to-dos.
+  const isFinished =
+    competition?.status === COMPETITION_STATUS.COMPLETED ||
+    competition?.status === COMPETITION_STATUS.ARCHIVE;
+  const visibleTabs = isFinished ? TABS.filter((t) => t.id !== 'launch') : TABS;
+
   // Pick the landing tab once data is in: a still-launching competition opens
-  // on the guided Launch checklist; one whose required steps are all done opens
-  // on the live Dashboard. Runs a single time, and never overrides a tab the
-  // host has already clicked.
+  // on the guided Launch checklist; one whose required steps are all done (or
+  // that has already finished) opens on the live Dashboard. Runs a single
+  // time, and never overrides a tab the host has already clicked.
   const initialTabResolvedRef = useRef(false);
   useEffect(() => {
     if (initialTabResolvedRef.current || loading || !competition) return;
@@ -188,10 +197,10 @@ export default function CompetitionDashboard({
       sponsors: data.sponsors,
       doubleDays: data.doubleDays,
     });
-    if (allRequiredComplete) {
+    if (allRequiredComplete || isFinished) {
       setActiveTab((cur) => (cur === 'launch' ? 'dashboard' : cur));
     }
-  }, [loading, competition, data]);
+  }, [loading, competition, data, isFinished]);
 
   // When the host runs more than one competition, the header name becomes a
   // switcher so they can jump between dashboards without leaving the page.
@@ -543,7 +552,7 @@ export default function CompetitionDashboard({
         scrollbarWidth: 'none', // Hide scrollbar on Firefox
         msOverflowStyle: 'none', // Hide scrollbar on IE/Edge
       }}>
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
@@ -667,7 +676,10 @@ export default function CompetitionDashboard({
       );
     }
 
-    switch (activeTab) {
+    // A finished competition has no Launch tab; fall back to the dashboard so a
+    // stale 'launch' selection never renders the checklist.
+    const tab = activeTab === 'launch' && isFinished ? 'dashboard' : activeTab;
+    switch (tab) {
       case 'launch':
         return (
           <LaunchChecklist
