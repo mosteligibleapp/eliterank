@@ -195,7 +195,11 @@ export default function CompetitionDashboard({
       doubleDays: data.doubleDays,
       bonusTasks: data.bonusTasks,
     }).allRequiredComplete;
-  }, [competition, data]);
+  }, [
+    competition, data.host, data.nominees, data.contestants, data.judges,
+    data.judgingCriteria, data.prizes, data.events, data.sponsors,
+    data.doubleDays, data.bonusTasks,
+  ]);
 
   const visibleTabs = useMemo(() => {
     const base = isFinished ? TABS.filter((t) => t.id !== 'launch') : TABS;

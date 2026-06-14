@@ -256,7 +256,6 @@ export default function LaunchChecklist({
                       <span style={{
                         fontWeight: typography.fontWeight.medium,
                         color: colors.text.primary,
-                        textDecoration: isComplete ? 'none' : 'none',
                       }}>
                         {step.title}
                       </span>

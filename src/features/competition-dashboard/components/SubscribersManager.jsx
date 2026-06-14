@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Bell, XCircle } from 'lucide-react';
 import { Panel, Avatar } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { formatDate } from '../../../utils/formatters';
 
 /**
  * SubscribersManager — people who opted in to "Notify me when nominations
@@ -33,7 +34,7 @@ export default function SubscribersManager({ subscribers = [], onRemoveSubscribe
       title={`Subscribers (${subscribers.length})`}
       icon={Bell}
       collapsible
-      defaultOpen={subscribers.length > 0}
+      defaultCollapsed={subscribers.length === 0}
     >
       <div style={{ padding: spacing.lg }}>
         {subscribers.length === 0 ? (
@@ -73,7 +74,7 @@ export default function SubscribersManager({ subscribers = [], onRemoveSubscribe
                 </div>
                 {sub.subscribedAt && (
                   <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs }}>
-                    {new Date(sub.subscribedAt).toLocaleDateString()}
+                    {formatDate(sub.subscribedAt)}
                   </p>
                 )}
                 {onRemoveSubscriber && (
