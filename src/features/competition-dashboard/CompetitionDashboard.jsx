@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone
+  Crown, ArrowLeft, Star, LogOut, BarChart3, Settings as SettingsIcon,
+  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -26,10 +26,9 @@ const TABS = [
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
   { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
-  { id: 'content', label: 'Content', shortLabel: 'Content', icon: FileText },
+  { id: 'site', label: 'Site', shortLabel: 'Site', icon: Globe },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
   { id: 'engagement', label: 'Engagement', shortLabel: 'Engage', icon: TrendingUp },
-  { id: 'preview', label: 'Preview', shortLabel: 'Preview', icon: Eye },
 ];
 
 // SponsorWizardModal collects sponsor + child prizes. The dashboard hook persists prizes
@@ -795,27 +794,28 @@ export default function CompetitionDashboard({
             />
           </>
         );
-      case 'content':
+      case 'site':
+        // The public-facing page: edit its content, then preview how visitors
+        // see it — two halves of the same job, under one tab.
         return (
-          <ContentTab
-            competition={competition}
-            onRefresh={refresh}
-            organizationId={competition?.organizationId}
-            organizationHeaderLogoUrl={competition?.organizationHeaderLogoUrl}
-            organizationWebsiteUrl={competition?.organizationWebsiteUrl}
-          />
+          <>
+            <ContentTab
+              competition={competition}
+              onRefresh={refresh}
+              organizationId={competition?.organizationId}
+              organizationHeaderLogoUrl={competition?.organizationHeaderLogoUrl}
+              organizationWebsiteUrl={competition?.organizationWebsiteUrl}
+            />
+            <PreviewTab
+              competition={competition}
+              contestants={data.contestants}
+            />
+          </>
         );
       case 'setup':
         return renderSetupTab('setup');
       case 'engagement':
         return renderSetupTab('engagement');
-      case 'preview':
-        return (
-          <PreviewTab
-            competition={competition}
-            contestants={data.contestants}
-          />
-        );
       default:
         return null;
     }
