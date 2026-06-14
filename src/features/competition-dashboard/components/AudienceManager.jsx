@@ -73,7 +73,6 @@ export default function AudienceManager({ competition, subscribers = [], onRemov
       <Panel
         title={`Nominators${nominatorsLoaded ? ` (${nominators.length})` : ''}`}
         icon={Heart}
-        style={{ marginBottom: 0 }}
         collapsible
         defaultCollapsed
         action={nominators.length > 0 && (
@@ -126,7 +125,6 @@ export default function AudienceManager({ competition, subscribers = [], onRemov
       <Panel
         title={`Voters${votersLoaded ? ` (${voters.length})` : ''}`}
         icon={Star}
-        style={{ marginBottom: 0 }}
         collapsible
         defaultCollapsed
         action={voters.length > 0 && (
