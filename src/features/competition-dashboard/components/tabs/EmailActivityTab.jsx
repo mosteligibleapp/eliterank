@@ -29,9 +29,13 @@ const labelForType = (type) =>
 const styles = {
   statGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-    gap: spacing.md,
-    marginBottom: spacing.xl,
+    // auto-fit + a capped max keeps the three cards a centered cluster instead
+    // of stretching full-width or leaving empty auto-fill tracks on the left.
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 240px))',
+    justifyContent: 'center',
+    gap: spacing.lg,
+    marginTop: spacing.xxl,
+    marginBottom: spacing.xxl,
   },
   controls: {
     display: 'flex',
