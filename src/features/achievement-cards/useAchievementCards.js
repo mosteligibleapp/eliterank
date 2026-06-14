@@ -70,8 +70,8 @@ export function useAchievementCards(contestantId) {
     try {
       // Build vote URL from competition
       const voteUrl = competition?.slug 
-        ? `mosteligible.co/${competition.slug}`
-        : 'mosteligible.co';
+        ? `eliterank.co/${competition.slug}`
+        : 'eliterank.co';
 
       // Generate the card image
       const blob = await generateAchievementCard({

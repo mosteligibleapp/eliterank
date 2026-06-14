@@ -307,8 +307,8 @@ export default function AchievementsPage() {
       organizationLogoUrl: organization?.logo_url,
       accentColor: competition?.theme_primary || '#d4af37',
       voteUrl: competition?.slug
-        ? `mosteligible.co/${organization?.slug || 'most-eligible'}/${competition.slug}`
-        : 'mosteligible.co',
+        ? `eliterank.co/${organization?.slug || 'most-eligible'}/${competition.slug}`
+        : 'eliterank.co',
       rank: cardOption.rank,
       votingStartDate: competition?.voting_start
         || competition?.voting_rounds

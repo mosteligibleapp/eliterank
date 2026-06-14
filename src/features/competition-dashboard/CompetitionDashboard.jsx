@@ -124,6 +124,7 @@ export default function CompetitionDashboard({
     approveNominee,
     rejectNominee,
     removeContestant,
+    unconvertContestant,
     restoreNominee,
     resendInvite,
     addContestant,
@@ -751,6 +752,7 @@ export default function CompetitionDashboard({
             onApproveNominee={approveNominee}
             onRejectNominee={rejectNominee}
             onRemoveContestant={removeContestant}
+            onUnconvertContestant={unconvertContestant}
             onRestoreNominee={restoreNominee}
             onOpenAddPersonModal={openAddPersonModal}
             onShowHostAssignment={() => setShowHostAssignment(true)}

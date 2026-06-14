@@ -23,6 +23,30 @@ function fetchCompetitionRevenue(competitionId) {
 }
 
 /**
+ * Reverse of increment_profile_competitions: when a contestant is removed or
+ * un-converted, drop the person's lifetime competition count back down (floored
+ * at 0). Best-effort and non-critical — failures are logged, not thrown.
+ */
+async function decrementProfileCompetitions(userId) {
+  if (!userId) return;
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('total_competitions')
+      .eq('id', userId)
+      .maybeSingle();
+    if (profile) {
+      await supabase
+        .from('profiles')
+        .update({ total_competitions: Math.max((profile.total_competitions || 0) - 1, 0) })
+        .eq('id', userId);
+    }
+  } catch (err) {
+    console.warn('Error decrementing profile competition count:', err);
+  }
+}
+
+/**
  * Hook to fetch all dashboard data for a specific competition
  * Fetches contestants, nominees, judges, sponsors, events, announcements, rules, and host data
  * Provides CRUD operations for all entities
@@ -646,6 +670,29 @@ export function useCompetitionDashboard(competitionId) {
         }
       }
 
+      // Guard against duplicate contestants. The DB only enforces uniqueness on
+      // (competition_id, user_id), which doesn't catch nominees with no linked
+      // account (user_id NULL) or a fast double-click. Refuse to create a second
+      // contestant for the same person in this competition.
+      let dupQuery = supabase
+        .from('contestants')
+        .select('id')
+        .eq('competition_id', competitionId);
+      if (linkedUserId) {
+        dupQuery = dupQuery.eq('user_id', linkedUserId);
+      } else if (nominee.email) {
+        dupQuery = dupQuery.ilike('email', nominee.email);
+      } else {
+        dupQuery = dupQuery.eq('id', '00000000-0000-0000-0000-000000000000'); // no match key → skip
+      }
+      const { data: existingContestant } = await dupQuery.limit(1).maybeSingle();
+      if (existingContestant?.id) {
+        return {
+          success: false,
+          error: `${nominee.name} is already a contestant in this competition.`,
+        };
+      }
+
       const contestantData = {
         competition_id: competitionId,
         name: nominee.name,
@@ -788,23 +835,14 @@ export function useCompetitionDashboard(competitionId) {
     if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
 
     try {
-      // Determine the appropriate status to restore to based on the nominee's flow state
-      const { data: nominee } = await supabase
-        .from('nominees')
-        .select('flow_stage, claimed_at')
-        .eq('id', nomineeId)
-        .single();
-
-      let restoreStatus = 'pending';
-      if (nominee?.flow_stage === 'complete' || nominee?.flow_stage === 'profile_complete') {
-        restoreStatus = 'profile_complete';
-      } else if (nominee?.claimed_at) {
-        restoreStatus = 'awaiting_profile';
-      }
-
+      // Restore to 'pending' — the only valid "active nominee" status
+      // (nominees_status_check allows pending/approved/rejected/expired/declined).
+      // The nominee's funnel position is preserved by `flow_stage`, which
+      // reject/restore never touch, so the dashboard re-derives their bucket
+      // (Awaiting Response / Ready to Approve) from flow_stage + profile.
       const { error: updateError } = await supabase
         .from('nominees')
-        .update({ status: restoreStatus })
+        .update({ status: 'pending' })
         .eq('id', nomineeId);
 
       if (updateError) throw updateError;
@@ -842,10 +880,76 @@ export function useCompetitionDashboard(competitionId) {
           .eq('status', 'approved');
       }
 
+      // Conversion bumped the person's lifetime competition count; undo it.
+      await decrementProfileCompetitions(contestant?.user_id);
+
       await fetchDashboardData();
       return { success: true };
     } catch (err) {
       console.error('Error removing contestant:', err);
+      return { success: false, error: err.message };
+    }
+  }, [competitionId, fetchDashboardData]);
+
+  /**
+   * Undo an accidental nominee→contestant conversion.
+   *
+   * Unlike removeContestant (which rejects the person), this returns them to
+   * the nominee pool as "pending" so they can be re-approved on purpose. It
+   * refuses to run if the contestant has accrued real fan votes — those would
+   * be lost. Bonus votes auto-awarded by the conversion itself cascade away
+   * with the contestant row and are expected to be discarded.
+   */
+  const unconvertContestant = useCallback(async (contestantId) => {
+    if (!supabase || !competitionId) return { success: false, error: 'Missing configuration' };
+
+    try {
+      const { data: contestant } = await supabase
+        .from('contestants')
+        .select('email, name, user_id')
+        .eq('id', contestantId)
+        .single();
+
+      // Guard: never silently drop real fan votes. Bonus-vote rows live in a
+      // separate table and cascade with the contestant, so only the `votes`
+      // table counts as "real" here.
+      const { count: realVotes } = await supabase
+        .from('votes')
+        .select('id', { count: 'exact', head: true })
+        .eq('contestant_id', contestantId);
+
+      if (realVotes && realVotes > 0) {
+        return {
+          success: false,
+          error: `${contestant?.name || 'This contestant'} already has ${realVotes} fan vote${realVotes === 1 ? '' : 's'}. Use Remove instead — moving them back to nominees would erase those votes.`,
+        };
+      }
+
+      // Deleting the contestant cascades bonus votes / aggregates / cards etc.
+      const { error: deleteError } = await supabase
+        .from('contestants')
+        .delete()
+        .eq('id', contestantId);
+
+      if (deleteError) throw deleteError;
+
+      // Return the matching nominee to the approve queue (not "rejected").
+      if (contestant?.email) {
+        await supabase
+          .from('nominees')
+          .update({ status: 'pending', converted_to_contestant: false })
+          .eq('competition_id', competitionId)
+          .ilike('email', contestant.email)
+          .eq('status', 'approved');
+      }
+
+      // Conversion bumped the person's lifetime competition count; undo it.
+      await decrementProfileCompetitions(contestant?.user_id);
+
+      await fetchDashboardData();
+      return { success: true };
+    } catch (err) {
+      console.error('Error un-converting contestant:', err);
       return { success: false, error: err.message };
     }
   }, [competitionId, fetchDashboardData]);
@@ -2010,6 +2114,7 @@ export function useCompetitionDashboard(competitionId) {
     approveNominee,
     rejectNominee,
     removeContestant,
+    unconvertContestant,
     restoreNominee,
     resendInvite,
     repairNomineeAccount,
