@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle, Mail, ChevronDown, Check, Rocket, TrendingUp, Activity
+  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -24,7 +24,7 @@ const TABS = [
   { id: 'launch', label: 'Launch', shortLabel: 'Launch', icon: Rocket },
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
-  { id: 'emails', label: 'Emails', shortLabel: 'Emails', icon: Mail },
+  { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
   { id: 'content', label: 'Content', shortLabel: 'Content', icon: FileText },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
   { id: 'engagement', label: 'Engagement', shortLabel: 'Engage', icon: TrendingUp },
@@ -774,11 +774,22 @@ export default function CompetitionDashboard({
             onSendJudgeInvite={sendJudgeInvite}
           />
         );
-      case 'emails':
+      case 'communications':
         return (
-          <EmailActivityTab
-            competitionId={competitionId}
-          />
+          <>
+            <AnnouncementsManager
+              announcements={data.announcements}
+              host={data.host}
+              isSuperAdmin={isSuperAdmin}
+              onAddAnnouncement={addAnnouncement}
+              onUpdateAnnouncement={updateAnnouncement}
+              onDeleteAnnouncement={deleteAnnouncement}
+              onTogglePin={toggleAnnouncementPin}
+            />
+            <EmailActivityTab
+              competitionId={competitionId}
+            />
+          </>
         );
       case 'content':
         return (
@@ -793,20 +804,7 @@ export default function CompetitionDashboard({
       case 'setup':
         return renderSetupTab('setup');
       case 'engagement':
-        return (
-          <>
-            <AnnouncementsManager
-              announcements={data.announcements}
-              host={data.host}
-              isSuperAdmin={isSuperAdmin}
-              onAddAnnouncement={addAnnouncement}
-              onUpdateAnnouncement={updateAnnouncement}
-              onDeleteAnnouncement={deleteAnnouncement}
-              onTogglePin={toggleAnnouncementPin}
-            />
-            {renderSetupTab('engagement')}
-          </>
-        );
+        return renderSetupTab('engagement');
       case 'preview':
         return (
           <PreviewTab
