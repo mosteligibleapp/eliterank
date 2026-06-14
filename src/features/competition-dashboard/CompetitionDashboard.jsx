@@ -15,6 +15,7 @@ import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
 import LaunchChecklist from './components/LaunchChecklist';
 import AnnouncementsManager from './components/AnnouncementsManager';
+import AudienceManager from './components/AudienceManager';
 import { resolveLaunchChecklist, computeChecklistProgress } from './launchChecklist';
 import { COMPETITION_STATUS } from '../../types/competition';
 
@@ -766,8 +767,6 @@ export default function CompetitionDashboard({
             onResendInvite={resendInvite}
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
-            subscribers={data.subscribers || []}
-            onRemoveSubscriber={removeSubscriber}
             judges={data.judges}
             onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
             onDeleteJudge={deleteJudge}
@@ -788,6 +787,11 @@ export default function CompetitionDashboard({
             />
             <EmailActivityTab
               competitionId={competitionId}
+            />
+            <AudienceManager
+              competition={competition}
+              subscribers={data.subscribers || []}
+              onRemoveSubscriber={removeSubscriber}
             />
           </>
         );
