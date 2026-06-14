@@ -104,7 +104,7 @@ const STEP_VOTING_ROUNDS = {
   id: 'votingRounds',
   icon: Vote,
   title: 'Set voting round dates',
-  description: 'Schedule your voting and judging rounds.',
+  description: 'Schedule your voting and judging rounds — your last round decides the winners.',
   getStatus: ({ competition }) => {
     const rounds = competition?.voting_rounds || [];
     const hasDatedRound = rounds.some((r) => r.start_date && r.end_date);
@@ -118,7 +118,7 @@ const STEP_FINALE = {
   id: 'finale',
   icon: Trophy,
   title: 'Set the finale date',
-  description: 'When the competition crowns its winners (optional).',
+  description: 'The official close date — flips the competition to Completed after your last round ends. Winners are already decided by the rounds; this is the public finale/reveal date (optional).',
   optional: true,
   getStatus: ({ competition }) =>
     competition?.finalsDate ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE,

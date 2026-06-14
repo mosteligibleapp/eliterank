@@ -1339,7 +1339,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
             </p>
           )}
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
-            Competition will transition to completed after this date
+            The official close/finale date — the competition flips to Completed after it passes.
+            Winners are decided when your last round ends, so set this after the final round.
           </p>
         </div>
       </div>
