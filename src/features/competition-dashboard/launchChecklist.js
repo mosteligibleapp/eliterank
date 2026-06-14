@@ -2,6 +2,8 @@ import {
   Sparkles,
   UserCircle,
   CalendarClock,
+  Vote,
+  Trophy,
   ClipboardList,
   Scale,
   Gift,
@@ -82,23 +84,45 @@ const STEP_PROFILE = {
   ctaLabel: 'Edit profile',
 };
 
-const STEP_TIMELINE = {
-  id: 'timeline',
+const STEP_NOMINATION_DATES = {
+  id: 'nominationDates',
   icon: CalendarClock,
-  title: 'Build the timeline',
-  description: 'Set nomination and voting round dates. Add double-vote days, reset votes each round, and turn on bonus vote tasks.',
+  title: 'Set nomination dates',
+  description: 'Define the window when people can nominate or apply.',
   getStatus: ({ competition }) => {
-    const rounds = competition?.voting_rounds || [];
-    const hasDatedRound = rounds.some((r) => r.start_date && r.end_date);
     const hasNomination = (competition?.nomination_periods || []).some(
       (p) => p.start_date && p.end_date
     ) || !!competition?.nominationStart;
-    if (hasDatedRound && hasNomination) return STEP_STATUS.COMPLETE;
-    if (hasDatedRound || hasNomination) return STEP_STATUS.PARTIAL;
-    return STEP_STATUS.INCOMPLETE;
+    return hasNomination ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE;
   },
   target: { type: 'tab', tab: 'setup', section: 'timeline' },
-  ctaLabel: 'Set timeline',
+  ctaLabel: 'Set dates',
+};
+
+const STEP_VOTING_ROUNDS = {
+  id: 'votingRounds',
+  icon: Vote,
+  title: 'Set voting round dates',
+  description: 'Schedule your voting and judging rounds.',
+  getStatus: ({ competition }) => {
+    const rounds = competition?.voting_rounds || [];
+    const hasDatedRound = rounds.some((r) => r.start_date && r.end_date);
+    return hasDatedRound ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE;
+  },
+  target: { type: 'tab', tab: 'setup', section: 'timeline' },
+  ctaLabel: 'Set rounds',
+};
+
+const STEP_FINALE = {
+  id: 'finale',
+  icon: Trophy,
+  title: 'Set the finale date',
+  description: 'When the competition crowns its winners (optional).',
+  optional: true,
+  getStatus: ({ competition }) =>
+    competition?.finalsDate ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE,
+  target: { type: 'tab', tab: 'setup', section: 'timeline' },
+  ctaLabel: 'Set finale',
 };
 
 const STEP_NOMINATION_FORM = {
@@ -211,7 +235,9 @@ export const MOST_ELIGIBLE_CHECKLIST = {
   steps: [
     STEP_CREATE,
     STEP_PROFILE,
-    STEP_TIMELINE,
+    STEP_NOMINATION_DATES,
+    STEP_VOTING_ROUNDS,
+    STEP_FINALE,
     STEP_NOMINATION_FORM,
     STEP_JUDGES,
     STEP_JUDGING_CRITERIA,
@@ -231,7 +257,9 @@ export const GENERAL_CHECKLIST = {
   steps: [
     STEP_CREATE,
     STEP_PROFILE,
-    STEP_TIMELINE,
+    STEP_NOMINATION_DATES,
+    STEP_VOTING_ROUNDS,
+    STEP_FINALE,
     STEP_JUDGES,
     STEP_JUDGING_CRITERIA,
     STEP_PRIZES,
