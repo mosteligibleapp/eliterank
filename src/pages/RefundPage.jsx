@@ -205,11 +205,15 @@ export default function RefundPage() {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>7. Competition Hosts</h2>
+          <h2 style={styles.h2}>7. Who Handles Refunds</h2>
           <p style={styles.p}>
-            For competitions run by third-party hosts, EliteRank is the merchant of record for vote purchases and
-            handles refunds under this policy. Any refund reduces the vote revenue on which a host's payout is
-            calculated.
+            The merchant of record for a competition is its operator: <span style={styles.strong}>EliteRank</span> for
+            competitions EliteRank operates directly (including Most Eligible), and the <span style={styles.strong}>
+            third-party host</span> for host-run competitions. The operator is responsible for refunds, chargebacks,
+            and payment disputes for its competition; for host-run competitions EliteRank acts only as a limited
+            payment facilitator. Any amount EliteRank retains as a platform or service fee is non-refundable,
+            including where the underlying purchase is refunded, except as required by law. A refund reduces the vote
+            revenue on which a host&rsquo;s payout is calculated.
           </p>
         </section>
 
