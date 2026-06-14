@@ -192,6 +192,7 @@ export default function CompetitionDashboard({
       events: data.events,
       sponsors: data.sponsors,
       doubleDays: data.doubleDays,
+      bonusTasks: data.bonusTasks,
     }).allRequiredComplete;
   }, [competition, data]);
 
@@ -710,6 +711,7 @@ export default function CompetitionDashboard({
             events={data.events}
             sponsors={data.sponsors}
             doubleDays={data.doubleDays}
+            bonusTasks={data.bonusTasks}
             onNavigateToTab={navigateToTab}
           />
         );

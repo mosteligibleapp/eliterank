@@ -45,6 +45,7 @@ export default function LaunchChecklist({
   events,
   sponsors,
   doubleDays,
+  bonusTasks,
   onNavigateToTab,
 }) {
   const { isMobile } = useResponsive();
@@ -58,9 +59,9 @@ export default function LaunchChecklist({
   const ctx = useMemo(
     () => ({
       competition, host, nominees, contestants, judges,
-      judgingCriteria, prizes, events, sponsors, doubleDays,
+      judgingCriteria, prizes, events, sponsors, doubleDays, bonusTasks,
     }),
-    [competition, host, nominees, contestants, judges, judgingCriteria, prizes, events, sponsors, doubleDays]
+    [competition, host, nominees, contestants, judges, judgingCriteria, prizes, events, sponsors, doubleDays, bonusTasks]
   );
 
   // Launch (setup) progress. Once every required launch step is done, the card

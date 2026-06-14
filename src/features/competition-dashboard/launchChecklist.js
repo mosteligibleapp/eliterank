@@ -4,6 +4,7 @@ import {
   CalendarClock,
   Vote,
   Trophy,
+  Zap,
   ClipboardList,
   Scale,
   Gift,
@@ -196,6 +197,30 @@ const STEP_EVENTS = {
   ctaLabel: 'Add events',
 };
 
+const STEP_DOUBLE_VOTE_DAYS = {
+  id: 'doubleVoteDays',
+  icon: Zap,
+  title: 'Set double-vote days',
+  description: 'Pick days when every vote counts double (optional).',
+  optional: true,
+  getStatus: ({ doubleDays }) =>
+    (doubleDays?.length || 0) > 0 ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE,
+  target: { type: 'tab', tab: 'engagement', section: 'doubleVoteDays' },
+  ctaLabel: 'Set days',
+};
+
+const STEP_BONUS_TASKS = {
+  id: 'bonusTasks',
+  icon: Gift,
+  title: 'Create bonus vote tasks',
+  description: 'Reward contestants with bonus votes for completing tasks (optional).',
+  optional: true,
+  getStatus: ({ bonusTasks }) =>
+    (bonusTasks?.length || 0) > 0 ? STEP_STATUS.COMPLETE : STEP_STATUS.INCOMPLETE,
+  target: { type: 'tab', tab: 'engagement', section: 'bonusVotes' },
+  ctaLabel: 'Create tasks',
+};
+
 const STEP_NOMINEES = {
   id: 'nominees',
   icon: Users,
@@ -244,6 +269,8 @@ export const MOST_ELIGIBLE_CHECKLIST = {
     STEP_PRIZES,
     STEP_CHARITY,
     STEP_EVENTS,
+    STEP_DOUBLE_VOTE_DAYS,
+    STEP_BONUS_TASKS,
   ],
   runTitle: 'Run your competition',
   runSteps: [STEP_NOMINEES],
@@ -264,6 +291,8 @@ export const GENERAL_CHECKLIST = {
     STEP_JUDGING_CRITERIA,
     STEP_PRIZES,
     STEP_CHARITY,
+    STEP_DOUBLE_VOTE_DAYS,
+    STEP_BONUS_TASKS,
   ],
   runTitle: 'Run your competition',
   runSteps: [STEP_NOMINEES],

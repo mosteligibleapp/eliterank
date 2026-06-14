@@ -977,12 +977,13 @@ export default function SetupTab({
 
       {/* Double Vote Days Section */}
       <Panel
-        key={`section-doubleVoteDays-${isHidden('doubleVoteDays')}`}
+        key={`section-doubleVoteDays-${isHidden('doubleVoteDays')}-${focusId === 'doubleVoteDays' ? focusNonce : 'x'}`}
+        id="setup-section-doubleVoteDays"
         title={`Double Vote Days (${doubleDays.length})`}
         icon={Zap}
         action={sectionAction('doubleVoteDays', null)}
         collapsible
-        defaultCollapsed
+        defaultCollapsed={focusId !== 'doubleVoteDays'}
         style={sectionStyle('doubleVoteDays')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
@@ -1147,12 +1148,13 @@ export default function SetupTab({
 
       {/* Bonus Votes Section */}
       <Panel
-        key={`section-bonusVotes-${isHidden('bonusVotes')}`}
+        key={`section-bonusVotes-${isHidden('bonusVotes')}-${focusId === 'bonusVotes' ? focusNonce : 'x'}`}
+        id="setup-section-bonusVotes"
         title="Bonus Votes"
         icon={Gift}
         action={sectionAction('bonusVotes', null)}
         collapsible
-        defaultCollapsed={isHidden('bonusVotes')}
+        defaultCollapsed={isHidden('bonusVotes') && focusId !== 'bonusVotes'}
         style={sectionStyle('bonusVotes')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>

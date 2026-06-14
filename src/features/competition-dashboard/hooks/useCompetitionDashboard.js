@@ -40,6 +40,7 @@ export function useCompetitionDashboard(competitionId) {
     rules: [],
     prizes: [],
     doubleDays: [],
+    bonusTasks: [],
     host: null,
     coHosts: [],
     subscribers: [],
@@ -76,6 +77,7 @@ export function useCompetitionDashboard(competitionId) {
         paidVotesResult,
         coHostsResult,
         subscribersResult,
+        bonusTasksResult,
       ] = await Promise.all([
         // Contestants ordered by votes (for leaderboard) - join with profiles for full data
         supabase
@@ -187,6 +189,12 @@ export function useCompetitionDashboard(competitionId) {
           .select('user_id, created_at, profile:profiles!user_id(id, email, first_name, last_name, avatar_url, city)')
           .eq('competition_id', competitionId)
           .order('created_at', { ascending: false }),
+
+        // Bonus vote tasks (for the launch checklist's engagement step)
+        supabase
+          .from('bonus_vote_tasks')
+          .select('id, enabled')
+          .eq('competition_id', competitionId),
       ]);
 
       // Check for errors
@@ -522,6 +530,7 @@ export function useCompetitionDashboard(competitionId) {
         rules,
         prizes,
         doubleDays,
+        bonusTasks: bonusTasksResult.data || [],
         host,
         coHosts,
         subscribers,
