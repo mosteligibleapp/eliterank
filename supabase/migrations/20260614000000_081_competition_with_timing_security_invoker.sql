@@ -1,0 +1,15 @@
+-- Re-assert SECURITY INVOKER on the competition_with_timing view.
+--
+-- This was originally fixed in migration 005, but the view is defined as
+-- `SELECT c.*, ...` and gets refreshed with a plain `CREATE OR REPLACE VIEW`
+-- whenever new `competitions` columns need to be exposed. A plain CREATE OR
+-- REPLACE silently clears the `security_invoker` reloption, reverting the view
+-- to SECURITY DEFINER and re-tripping the Supabase security advisor.
+--
+-- Use ALTER VIEW ... SET so we only touch the reloption and never re-expand
+-- c.* (no risk of changing the view's column set / behavior).
+--
+-- NOTE for future edits: if you ever recreate this view to expose new
+-- competitions columns, you MUST include `WITH (security_invoker = true)` in
+-- the CREATE VIEW statement, otherwise this advisor will fire again.
+ALTER VIEW public.competition_with_timing SET (security_invoker = on);
