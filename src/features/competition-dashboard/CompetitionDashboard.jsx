@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Crown, ArrowLeft, Star, LogOut, BarChart3, FileText, Settings as SettingsIcon,
-  Eye, AlertCircle, Mail, ChevronDown, Check
+  Crown, ArrowLeft, Star, LogOut, BarChart3, Settings as SettingsIcon,
+  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -13,15 +13,22 @@ import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
 import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
+import LaunchChecklist from './components/LaunchChecklist';
+import AnnouncementsManager from './components/AnnouncementsManager';
+import AudienceManager from './components/AudienceManager';
+import { resolveLaunchChecklist, computeChecklistProgress } from './launchChecklist';
+import { COMPETITION_STATUS } from '../../types/competition';
 
-// Consolidated tab navigation
+// Consolidated tab navigation. Launch leads — it's the guided checklist for
+// getting a competition live; the rest are the day-to-day management surfaces.
 const TABS = [
+  { id: 'launch', label: 'Launch', shortLabel: 'Launch', icon: Rocket },
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
-  { id: 'emails', label: 'Emails', shortLabel: 'Emails', icon: Mail },
-  { id: 'content', label: 'Content', shortLabel: 'Content', icon: FileText },
+  { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
+  { id: 'site', label: 'Site', shortLabel: 'Site', icon: Globe },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
-  { id: 'preview', label: 'Preview', shortLabel: 'Preview', icon: Eye },
+  { id: 'engagement', label: 'Engagement', shortLabel: 'Engage', icon: TrendingUp },
 ];
 
 // SponsorWizardModal collects sponsor + child prizes. The dashboard hook persists prizes
@@ -95,7 +102,11 @@ export default function CompetitionDashboard({
   onSelectCompetition,
 }) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('launch');
+  // When a launch-checklist CTA deep-links into the Setup tab, this carries the
+  // section to auto-expand + scroll to. The nonce re-triggers the scroll even
+  // when the host clicks the same step twice.
+  const [setupFocus, setSetupFocus] = useState(null);
   const [showHostAssignment, setShowHostAssignment] = useState(false);
   const [showAddCoHost, setShowAddCoHost] = useState(false);
   const [showCompSwitcher, setShowCompSwitcher] = useState(false);
@@ -136,7 +147,6 @@ export default function CompetitionDashboard({
     addDoubleDay,
     deleteDoubleDay,
     updateCompetitionTimezone,
-    updateAllowManualVotes,
     updateHiddenSetupSections,
     addAnnouncement,
     updateAnnouncement,
@@ -160,6 +170,64 @@ export default function CompetitionDashboard({
   const competition = data.competition;
   const competitionName = competition?.name || 'Competition';
 
+  // A finished competition (completed/archived) has already run, so the launch
+  // flow is moot — hide the Launch tab entirely rather than presenting its
+  // steps as open to-dos.
+  const isFinished =
+    competition?.status === COMPETITION_STATUS.COMPLETED ||
+    competition?.status === COMPETITION_STATUS.ARCHIVE;
+
+  // Launch (setup) progress. Once every required launch step is done the first
+  // tab flips from "Launch" (guided setup) to "Run" (operating a live comp).
+  const launchComplete = useMemo(() => {
+    if (!competition) return false;
+    const checklist = resolveLaunchChecklist(competition);
+    return computeChecklistProgress(checklist, {
+      competition,
+      host: data.host,
+      nominees: data.nominees,
+      contestants: data.contestants,
+      judges: data.judges,
+      judgingCriteria: data.judgingCriteria,
+      prizes: data.prizes,
+      events: data.events,
+      sponsors: data.sponsors,
+      doubleDays: data.doubleDays,
+      bonusTasks: data.bonusTasks,
+    }).allRequiredComplete;
+  }, [
+    competition, data.host, data.nominees, data.contestants, data.judges,
+    data.judgingCriteria, data.prizes, data.events, data.sponsors,
+    data.doubleDays, data.bonusTasks,
+  ]);
+
+  const visibleTabs = useMemo(() => {
+    const base = isFinished ? TABS.filter((t) => t.id !== 'launch') : TABS;
+    return base.map((t) =>
+      t.id === 'launch'
+        ? {
+            ...t,
+            label: launchComplete ? 'Run' : 'Launch',
+            shortLabel: launchComplete ? 'Run' : 'Launch',
+            icon: launchComplete ? Activity : Rocket,
+          }
+        : t
+    );
+  }, [isFinished, launchComplete]);
+
+  // Pick the landing tab once data is in: a still-launching competition opens
+  // on the guided Launch checklist; one whose required steps are all done (or
+  // that has already finished) opens on the live Dashboard. Runs a single
+  // time, and never overrides a tab the host has already clicked.
+  const initialTabResolvedRef = useRef(false);
+  useEffect(() => {
+    if (initialTabResolvedRef.current || loading || !competition) return;
+    initialTabResolvedRef.current = true;
+    if (launchComplete || isFinished) {
+      setActiveTab((cur) => (cur === 'launch' ? 'dashboard' : cur));
+    }
+  }, [loading, competition, launchComplete, isFinished]);
+
   // When the host runs more than one competition, the header name becomes a
   // switcher so they can jump between dashboards without leaving the page.
   const hasMultipleCompetitions = competitions.length > 1;
@@ -182,6 +250,12 @@ export default function CompetitionDashboard({
   const handleSelectCompetition = (id) => {
     setShowCompSwitcher(false);
     if (id !== activeCompetitionId) onSelectCompetition?.(id);
+  };
+
+  // Tab navigation that can optionally focus a specific Setup section.
+  const navigateToTab = (tab, section = null) => {
+    setActiveTab(tab);
+    setSetupFocus(section ? { id: section, nonce: Date.now() } : null);
   };
 
   // Add person modal state
@@ -504,13 +578,13 @@ export default function CompetitionDashboard({
         scrollbarWidth: 'none', // Hide scrollbar on Firefox
         msOverflowStyle: 'none', // Hide scrollbar on IE/Edge
       }}>
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setSetupFocus(null); }}
               style={{
                 padding: isMobile ? `${spacing.md} ${spacing.md}` : `${spacing.md} ${spacing.xl}`,
                 color: isActive ? colors.gold.primary : colors.text.secondary,
@@ -547,6 +621,42 @@ export default function CompetitionDashboard({
   // ============================================================================
   // MAIN RENDER
   // ============================================================================
+
+  // SetupTab backs two tabs: "Setup" (core config) and "Engagement"
+  // (participation tools — events, double-vote days, bonus votes). Same
+  // component, same handlers; `mode` decides which sections it shows.
+  const renderSetupTab = (mode) => (
+    <SetupTab
+      mode={mode}
+      competition={competition}
+      focusSection={setupFocus}
+      judges={data.judges}
+      judgingCriteria={data.judgingCriteria}
+      judgeScores={data.judgeScores}
+      contestants={data.contestants}
+      sponsors={data.sponsors}
+      events={data.events}
+      prizes={data.prizes}
+      doubleDays={data.doubleDays}
+      isSuperAdmin={isSuperAdmin}
+      onRefresh={refresh}
+      onAddCriterion={addCriterion}
+      onUpdateCriterion={updateCriterion}
+      onDeleteCriterion={deleteCriterion}
+      onUpdateRoundJudgeWeight={updateRoundJudgeWeight}
+      onDeleteSponsor={deleteSponsor}
+      onDeleteEvent={deleteEvent}
+      onDeletePrize={deletePrize}
+      onAddDoubleDay={addDoubleDay}
+      onDeleteDoubleDay={deleteDoubleDay}
+      onUpdateTimezone={updateCompetitionTimezone}
+      onUpdateHiddenSections={updateHiddenSetupSections}
+      onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+      onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+      onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
+      onOpenCharityModal={() => setCharityModal(true)}
+    />
+  );
 
   const renderContent = () => {
     if (loading) {
@@ -589,7 +699,27 @@ export default function CompetitionDashboard({
       );
     }
 
-    switch (activeTab) {
+    // A finished competition has no Launch tab; fall back to the dashboard so a
+    // stale 'launch' selection never renders the checklist.
+    const tab = activeTab === 'launch' && isFinished ? 'dashboard' : activeTab;
+    switch (tab) {
+      case 'launch':
+        return (
+          <LaunchChecklist
+            competition={competition}
+            host={data.host}
+            nominees={data.nominees}
+            contestants={data.contestants}
+            judges={data.judges}
+            judgingCriteria={data.judgingCriteria}
+            prizes={data.prizes}
+            events={data.events}
+            sponsors={data.sponsors}
+            doubleDays={data.doubleDays}
+            bonusTasks={data.bonusTasks}
+            onNavigateToTab={navigateToTab}
+          />
+        );
       case 'dashboard':
         return (
           <OverviewTab
@@ -603,7 +733,7 @@ export default function CompetitionDashboard({
             voteRevenue={data.voteRevenue}
             isSuperAdmin={isSuperAdmin}
             onViewPublicSite={onViewPublicSite}
-            onNavigateToTab={setActiveTab}
+            onNavigateToTab={navigateToTab}
             onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
             onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
             onAddAnnouncement={addAnnouncement}
@@ -636,75 +766,56 @@ export default function CompetitionDashboard({
             onResendInvite={resendInvite}
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
-          />
-        );
-      case 'emails':
-        return (
-          <EmailActivityTab
-            competitionId={competitionId}
-            subscribers={data.subscribers || []}
-            onRemoveSubscriber={removeSubscriber}
-          />
-        );
-      case 'content':
-        return (
-          <ContentTab
-            competition={competition}
-            announcements={data.announcements}
-            host={data.host}
-            isSuperAdmin={isSuperAdmin}
-            onRefresh={refresh}
-            onAddAnnouncement={addAnnouncement}
-            onUpdateAnnouncement={updateAnnouncement}
-            onDeleteAnnouncement={deleteAnnouncement}
-            onTogglePin={toggleAnnouncementPin}
-            organizationId={competition?.organizationId}
-            organizationHeaderLogoUrl={competition?.organizationHeaderLogoUrl}
-            organizationWebsiteUrl={competition?.organizationWebsiteUrl}
-          />
-        );
-      case 'setup':
-        return (
-          <SetupTab
-            competition={competition}
             judges={data.judges}
-            judgingCriteria={data.judgingCriteria}
-            judgeScores={data.judgeScores}
-            contestants={data.contestants}
-            sponsors={data.sponsors}
-            events={data.events}
-            prizes={data.prizes}
-            doubleDays={data.doubleDays}
-            isSuperAdmin={isSuperAdmin}
-            onRefresh={refresh}
+            onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
             onDeleteJudge={deleteJudge}
             onSendJudgeInvite={sendJudgeInvite}
-            onAddCriterion={addCriterion}
-            onUpdateCriterion={updateCriterion}
-            onDeleteCriterion={deleteCriterion}
-            onUpdateRoundJudgeWeight={updateRoundJudgeWeight}
-            onDeleteSponsor={deleteSponsor}
-            onDeleteEvent={deleteEvent}
-            onDeletePrize={deletePrize}
-            onAddDoubleDay={addDoubleDay}
-            onDeleteDoubleDay={deleteDoubleDay}
-            onUpdateTimezone={updateCompetitionTimezone}
-            onUpdateAllowManualVotes={updateAllowManualVotes}
-            onUpdateHiddenSections={updateHiddenSetupSections}
-            onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
-            onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
-            onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
-            onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
-            onOpenCharityModal={() => setCharityModal(true)}
           />
         );
-      case 'preview':
+      case 'communications':
         return (
-          <PreviewTab
-            competition={competition}
-            contestants={data.contestants}
-          />
+          <>
+            <AnnouncementsManager
+              announcements={data.announcements}
+              host={data.host}
+              isSuperAdmin={isSuperAdmin}
+              onAddAnnouncement={addAnnouncement}
+              onUpdateAnnouncement={updateAnnouncement}
+              onDeleteAnnouncement={deleteAnnouncement}
+              onTogglePin={toggleAnnouncementPin}
+            />
+            <EmailActivityTab
+              competitionId={competitionId}
+            />
+            <AudienceManager
+              competition={competition}
+              subscribers={data.subscribers || []}
+              onRemoveSubscriber={removeSubscriber}
+            />
+          </>
         );
+      case 'site':
+        // The public-facing page: edit its content, then preview how visitors
+        // see it — two halves of the same job, under one tab.
+        return (
+          <>
+            <ContentTab
+              competition={competition}
+              onRefresh={refresh}
+              organizationId={competition?.organizationId}
+              organizationHeaderLogoUrl={competition?.organizationHeaderLogoUrl}
+              organizationWebsiteUrl={competition?.organizationWebsiteUrl}
+            />
+            <PreviewTab
+              competition={competition}
+              contestants={data.contestants}
+            />
+          </>
+        );
+      case 'setup':
+        return renderSetupTab('setup');
+      case 'engagement':
+        return renderSetupTab('engagement');
       default:
         return null;
     }

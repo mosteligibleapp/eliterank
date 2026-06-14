@@ -326,7 +326,6 @@ export default function CompetitionsManager({ onViewDashboard }) {
         max_contestants: maxContestants,
         price_per_vote: 1.00,
         use_price_bundler: false,
-        allow_manual_votes: false,
       };
       if (formData.minimum_prize !== '' && formData.minimum_prize !== null) {
         insertPayload.prize_pool_minimum = Number(formData.minimum_prize);
@@ -497,7 +496,6 @@ export default function CompetitionsManager({ onViewDashboard }) {
         cover_image: formData.cover_image || null,
         price_per_vote: formData.price_per_vote,
         use_price_bundler: formData.use_price_bundler,
-        allow_manual_votes: formData.allow_manual_votes,
         winners_split_by_gender: formData.winners_split_by_gender,
         eligibility_radius_miles: formData.eligibility_radius,
         min_contestants: formData.min_contestants,

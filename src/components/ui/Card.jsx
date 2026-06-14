@@ -82,6 +82,7 @@ export const Panel = memo(function Panel({
   style = {},
   collapsible = false,
   defaultCollapsed = false,
+  id,
 }) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
@@ -102,7 +103,7 @@ export const Panel = memo(function Panel({
   };
 
   return (
-    <div style={panelStyle}>
+    <div style={panelStyle} id={id}>
       {title && (
         <div style={headerStyle} onClick={handleHeaderClick}>
           <div style={titleBaseStyle}>

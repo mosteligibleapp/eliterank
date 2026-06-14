@@ -405,7 +405,6 @@ export const DEFAULT_COMPETITION_SETTINGS = {
   nomination_start: null,
   nomination_end: null,
   finals_date: null,
-  allow_manual_votes: false,
 };
 
 export const DEFAULT_VOTING_ROUND = {

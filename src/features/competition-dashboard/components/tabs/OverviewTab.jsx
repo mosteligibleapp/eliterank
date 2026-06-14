@@ -146,12 +146,13 @@ export default function OverviewTab({
   };
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-      gap: isMobile ? spacing.lg : spacing.xl,
-      alignItems: 'start',
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: isMobile ? spacing.lg : spacing.xl,
+        alignItems: 'start',
+      }}>
       {/* Left Column */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
         <TimelineCard competition={competition} events={events} />
@@ -673,7 +674,7 @@ export default function OverviewTab({
                 ))}
                 {announcements?.length > 3 && (
                   <button
-                    onClick={() => onNavigateToTab?.('content')}
+                    onClick={() => onNavigateToTab?.('engagement')}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -717,6 +718,7 @@ export default function OverviewTab({
             View Competition
           </button>
         )}
+      </div>
       </div>
 
       {/* Keyframes for loader animation */}

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, User, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, EyeOff, RotateCcw, Zap, Send, Link2, Mail } from 'lucide-react';
+import { Calendar, Star, Plus, Trash2, Edit2, Lock, MapPin, Users, Tag, ChevronDown, ChevronUp, Gift, Trophy, CheckCircle, Circle, XCircle, Check, X, Clock, Upload, Download, Eye, EyeOff, RotateCcw, Zap } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
 import JudgingPanel from '../JudgingPanel';
 import JudgingResultsPanel from '../JudgingResultsPanel';
+import { NominationFormEditor } from '../settings';
 import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission, getHostManagedTaskContestants, awardHostManagedTask, revokeHostManagedTask } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
 import { useAuthStore } from '../../../../stores';
@@ -56,12 +57,33 @@ const getEventStatus = (event) => {
   return 'upcoming';
 };
 
-// Grayable Setup sections, in their natural top-to-bottom order. Grayed-out
-// sections render dimmed and sort below the visible ones.
+// Top-to-bottom order of every Setup section, aligned with the launch
+// checklist: Timeline → Nomination form → Judging (judges, criteria, results,
+// charity), then the remaining setup extras (sponsors) below. Engagement
+// sections live on their own tab but share this ordering list.
+//
+// `sectionStyle` maps each id to a CSS flex `order`, so THIS list — not DOM
+// source order — is the single source of truth for vertical ordering. That
+// lets us realign sections without physically moving large JSX blocks.
+// Grayable sections a host hides sort to the bottom (see sectionStyle).
 const SECTION_ORDER = [
-  'judges', 'sponsors', 'charity', 'events', 'doubleVoteDays',
-  'manualVotes', 'winnerPrize', 'contestantRewards', 'bonusVotes', 'videoPrompts',
+  'competitionDetails',
+  'timeline',
+  'nominationForm',
+  'judgingCriteria',
+  'judgingResults',
+  'charity',
+  'events',
+  'sponsors',
+  'doubleVoteDays',
+  'bonusVotes',
+  'videoPrompts',
 ];
+
+// Sections that live on the Engagement tab (participation-driving tools) rather
+// than the core Setup tab. SetupTab renders under both tabs and filters its
+// sections by `mode` — see sectionStyle.
+const ENGAGEMENT_SECTIONS = ['events', 'doubleVoteDays', 'bonusVotes', 'videoPrompts'];
 
 const grayOutButtonStyle = {
   display: 'flex',
@@ -100,6 +122,8 @@ const restoreButtonStyle = {
  */
 export default function SetupTab({
   competition,
+  focusSection,
+  mode = 'setup',
   judges,
   judgingCriteria = [],
   judgeScores = [],
@@ -110,8 +134,6 @@ export default function SetupTab({
   doubleDays = [],
   isSuperAdmin = false,
   onRefresh,
-  onDeleteJudge,
-  onSendJudgeInvite,
   onAddCriterion,
   onUpdateCriterion,
   onDeleteCriterion,
@@ -122,9 +144,7 @@ export default function SetupTab({
   onAddDoubleDay,
   onDeleteDoubleDay,
   onUpdateTimezone,
-  onUpdateAllowManualVotes,
   onUpdateHiddenSections,
-  onOpenJudgeModal,
   onOpenSponsorModal,
   onOpenCharityModal,
   onOpenEventModal,
@@ -136,49 +156,6 @@ export default function SetupTab({
   const authStoreUser = useAuthStore(s => s.user);
   const reviewerId = currentUser?.id || authStoreUser?.id;
   const [showCompetitionDetails, setShowCompetitionDetails] = useState(true);
-
-  // Judge invite UI state
-  const [judgeBusy, setJudgeBusy] = useState(new Set());
-  const [judgeCopied, setJudgeCopied] = useState(null);
-  const [judgeSent, setJudgeSent] = useState(null);
-
-  const handleSendJudgeInvite = async (judge) => {
-    if (!onSendJudgeInvite || !judge?.id) return;
-    if (!judge.email) {
-      toast?.error?.('Add an email for this judge first');
-      return;
-    }
-    setJudgeBusy(prev => new Set(prev).add(judge.id));
-    try {
-      const result = await onSendJudgeInvite(judge.id, { forceResend: !!judge.inviteSentAt });
-      if (result?.success) {
-        setJudgeSent(judge.id);
-        setTimeout(() => setJudgeSent(null), 2000);
-        toast?.success?.(judge.inviteSentAt ? 'Reminder sent' : 'Invite sent');
-      } else {
-        toast?.error?.(result?.error || 'Failed to send invite');
-      }
-    } finally {
-      setJudgeBusy(prev => { const next = new Set(prev); next.delete(judge.id); return next; });
-    }
-  };
-
-  const handleCopyJudgeLink = async (judge) => {
-    if (!judge?.inviteToken) return;
-    const url = `${window.location.origin}/claim-judge/${judge.inviteToken}`;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-    }
-    setJudgeCopied(judge.id);
-    setTimeout(() => setJudgeCopied(null), 2000);
-  };
 
   // Bonus votes state
   const [bonusTasks, setBonusTasks] = useState([]);
@@ -213,11 +190,6 @@ export default function SetupTab({
   const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [timezoneError, setTimezoneError] = useState('');
 
-  // Manual votes setting state
-  const [manualVotesSaving, setManualVotesSaving] = useState(false);
-  const [manualVotesError, setManualVotesError] = useState('');
-  const manualVotesEnabled = !!competition?.allowManualVotes;
-
   // ---- Grayed-out Setup sections ----
   // Hosts can gray out sections they aren't using; grayed sections render
   // dimmed and sort to the bottom. Mirrored locally for an instant toggle,
@@ -232,6 +204,22 @@ export default function SetupTab({
 
   const isHidden = (id) => hiddenSections.includes(id);
 
+  // ---- Deep-link focus from the launch checklist ----
+  // A checklist CTA can target a section ({ id, nonce }); the matching Panel
+  // opens expanded and we scroll it into view. The nonce makes repeat clicks
+  // on the same step re-trigger the scroll.
+  const focusId = focusSection?.id || null;
+  const focusNonce = focusSection?.nonce || null;
+
+  useEffect(() => {
+    if (!focusId) return undefined;
+    const t = setTimeout(() => {
+      const el = document.getElementById(`setup-section-${focusId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [focusId, focusNonce]);
+
   const toggleSection = async (id) => {
     const prev = hiddenSections;
     const next = isHidden(id)
@@ -245,7 +233,15 @@ export default function SetupTab({
     }
   };
 
+  // SetupTab renders under two tabs: the core Setup tab and the Engagement tab.
+  // Each shows a disjoint slice of sections; the other slice is hidden outright.
+  const belongsToMode = (id) => {
+    const isEngagementSection = ENGAGEMENT_SECTIONS.includes(id);
+    return mode === 'engagement' ? isEngagementSection : !isEngagementSection;
+  };
+
   const sectionStyle = (id) => {
+    if (!belongsToMode(id)) return { display: 'none' };
     const idx = SECTION_ORDER.indexOf(id);
     return {
       order: isHidden(id) ? 100 + idx : 1 + idx,
@@ -310,17 +306,6 @@ export default function SetupTab({
     setTimezoneSaving(false);
     if (!result?.success) {
       setTimezoneError(result?.error || 'Could not update timezone.');
-    }
-  };
-
-  const handleToggleManualVotes = async () => {
-    if (!onUpdateAllowManualVotes || manualVotesSaving) return;
-    setManualVotesError('');
-    setManualVotesSaving(true);
-    const result = await onUpdateAllowManualVotes(!manualVotesEnabled);
-    setManualVotesSaving(false);
-    if (!result?.success) {
-      setManualVotesError(result?.error || 'Could not update this setting.');
     }
   };
 
@@ -554,6 +539,7 @@ export default function SetupTab({
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Competition Details - View Only (Admin Controlled) - Open by default */}
       <Panel
+        style={sectionStyle('competitionDetails')}
         title="Competition Details"
         icon={Lock}
         action={
@@ -650,197 +636,67 @@ export default function SetupTab({
       </Panel>
 
       {/* Timeline & Status Settings */}
-      <Panel title="Timeline & Status" icon={Calendar} collapsible defaultCollapsed>
+      <Panel
+        key={`section-timeline-${focusId === 'timeline' ? focusNonce : 'x'}`}
+        id="setup-section-timeline"
+        style={sectionStyle('timeline')}
+        title="Timeline & Status"
+        icon={Calendar}
+        collapsible
+        defaultCollapsed={focusId !== 'timeline'}
+      >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
           <TimelineSettings competition={competition} onSave={onRefresh} isSuperAdmin={isSuperAdmin} />
         </div>
       </Panel>
 
-      {/* Judges Section */}
-      <Panel
-        key={`section-judges-${isHidden('judges')}`}
-        title={`Judges (${judges.length})`}
-        icon={User}
-        action={sectionAction('judges', <Button size="sm" icon={Plus} onClick={() => onOpenJudgeModal(null)}>Add Judge</Button>)}
+      {/* Nomination Form — checklist step 4. Lives here in Setup (not Content)
+          so the launch flow's build steps (timeline → form → judging → events)
+          all sit in one tab, in order. */}
+      <NominationFormEditor
+        key={`section-nominationForm-${focusId === 'nominationForm' ? focusNonce : 'x'}`}
+        id="setup-section-nominationForm"
+        style={sectionStyle('nominationForm')}
+        competition={competition}
+        onSave={onRefresh}
         collapsible
-        defaultCollapsed
-        style={sectionStyle('judges')}
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {judges.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <User size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No judges assigned yet</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: spacing.lg }}>
-              {judges.map((judge) => {
-                const isBusy = judgeBusy.has(judge.id);
-                const isCopied = judgeCopied === judge.id;
-                const isSent = judgeSent === judge.id;
-                let statusLabel = 'No email';
-                let statusColor = colors.text.muted;
-                if (judge.email) {
-                  if (judge.claimedAt) {
-                    statusLabel = 'Accepted';
-                    statusColor = colors.status.success;
-                  } else if (judge.inviteSentAt) {
-                    statusLabel = 'Invited';
-                    statusColor = colors.status.warning;
-                  } else {
-                    statusLabel = 'Not invited';
-                    statusColor = colors.text.secondary;
-                  }
-                }
-                return (
-                  <div key={judge.id} style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: spacing.md,
-                    padding: spacing.lg,
-                    background: colors.background.secondary,
-                    borderRadius: borderRadius.lg,
-                    overflow: 'hidden',
-                    minWidth: 0,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                      <Avatar name={judge.name} size={isMobile ? 40 : 48} src={judge.avatarUrl} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontWeight: typography.fontWeight.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.name}</p>
-                        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{judge.title}</p>
-                        {judge.email && (
-                          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
-                            <Mail size={11} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />{judge.email}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' }}>
-                      <span style={{
-                        fontSize: typography.fontSize.xs,
-                        padding: `2px ${spacing.sm}`,
-                        borderRadius: borderRadius.sm,
-                        background: `${statusColor}1f`,
-                        color: statusColor,
-                      }}>
-                        {statusLabel}
-                      </span>
-                      <div style={{ flex: 1 }} />
-                      {judge.inviteToken && (
-                        <button
-                          onClick={() => handleCopyJudgeLink(judge)}
-                          title={isCopied ? 'Copied!' : 'Copy claim link'}
-                          style={{
-                            padding: spacing.sm,
-                            background: isCopied ? 'rgba(34,197,94,0.1)' : 'transparent',
-                            border: `1px solid ${isCopied ? colors.status.success : colors.border.primary}`,
-                            borderRadius: borderRadius.md,
-                            color: isCopied ? colors.status.success : colors.text.secondary,
-                            cursor: 'pointer',
-                            minWidth: '36px',
-                            minHeight: '36px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {isCopied ? <Check size={14} /> : <Link2 size={14} />}
-                        </button>
-                      )}
-                      {judge.email && (
-                        <button
-                          onClick={() => handleSendJudgeInvite(judge)}
-                          disabled={isBusy}
-                          title={isSent ? 'Sent!' : judge.inviteSentAt ? 'Resend invite' : 'Send invite'}
-                          style={{
-                            padding: spacing.sm,
-                            background: isSent ? 'rgba(34,197,94,0.1)' : 'transparent',
-                            border: `1px solid ${isSent ? colors.status.success : colors.border.primary}`,
-                            borderRadius: borderRadius.md,
-                            color: isSent ? colors.status.success : colors.gold.primary,
-                            cursor: isBusy ? 'wait' : 'pointer',
-                            minWidth: '36px',
-                            minHeight: '36px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {isSent ? <Check size={14} /> : <Send size={14} />}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => onOpenJudgeModal(judge)}
-                        style={{
-                          padding: spacing.sm,
-                          background: 'transparent',
-                          border: `1px solid ${colors.border.primary}`,
-                          borderRadius: borderRadius.md,
-                          color: colors.text.secondary,
-                          cursor: 'pointer',
-                          minWidth: '36px',
-                          minHeight: '36px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => onDeleteJudge(judge.id)}
-                        style={{
-                          padding: spacing.sm,
-                          background: 'transparent',
-                          border: `1px solid rgba(239,68,68,0.3)`,
-                          borderRadius: borderRadius.md,
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          minWidth: '36px',
-                          minHeight: '36px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </Panel>
-
-      {/* Judging criteria + per-round judge weight */}
-      <JudgingPanel
-        criteria={judgingCriteria}
-        votingRounds={competition?.voting_rounds || []}
-        onAddCriterion={onAddCriterion}
-        onUpdateCriterion={onUpdateCriterion}
-        onDeleteCriterion={onDeleteCriterion}
-        onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
+        defaultCollapsed={focusId !== 'nominationForm'}
       />
+
+      {/* Judging criteria + per-round judge weight. Wrapped so it picks up an
+          explicit flex order (these panels aren't grayable, so they'd otherwise
+          float above Judges). */}
+      <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
+        <JudgingPanel
+          criteria={judgingCriteria}
+          votingRounds={competition?.voting_rounds || []}
+          onAddCriterion={onAddCriterion}
+          onUpdateCriterion={onUpdateCriterion}
+          onDeleteCriterion={onDeleteCriterion}
+          onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
+        />
+      </div>
 
       {/* Judging results — blended judge + vote leaderboard per round */}
-      <JudgingResultsPanel
-        contestants={contestants}
-        judges={judges}
-        judgingCriteria={judgingCriteria}
-        judgeScores={judgeScores}
-        votingRounds={competition?.voting_rounds || []}
-      />
+      <div style={sectionStyle('judgingResults')}>
+        <JudgingResultsPanel
+          contestants={contestants}
+          judges={judges}
+          judgingCriteria={judgingCriteria}
+          judgeScores={judgeScores}
+          votingRounds={competition?.voting_rounds || []}
+        />
+      </div>
 
       {/* Sponsors Section */}
       <Panel
-        key={`section-sponsors-${isHidden('sponsors')}`}
+        key={`section-sponsors-${isHidden('sponsors')}-${focusId === 'sponsors' ? focusNonce : 'x'}`}
+        id="setup-section-sponsors"
         title={`Sponsors (${sponsors.length})`}
         icon={Star}
         action={sectionAction('sponsors', <Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>)}
         collapsible
-        defaultCollapsed
+        defaultCollapsed={focusId !== 'sponsors'}
         style={sectionStyle('sponsors')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
@@ -965,7 +821,8 @@ export default function SetupTab({
 
       {/* Charity Section */}
       <Panel
-        key={`section-charity-${isHidden('charity')}`}
+        key={`section-charity-${isHidden('charity')}-${focusId === 'charity' ? focusNonce : 'x'}`}
+        id="setup-section-charity"
         title="Charity Partner"
         icon={Gift}
         action={sectionAction('charity',
@@ -974,7 +831,7 @@ export default function SetupTab({
           </Button>
         )}
         collapsible
-        defaultCollapsed
+        defaultCollapsed={focusId !== 'charity'}
         style={sectionStyle('charity')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
@@ -1023,12 +880,13 @@ export default function SetupTab({
 
       {/* Events Section */}
       <Panel
-        key={`section-events-${isHidden('events')}`}
+        key={`section-events-${isHidden('events')}-${focusId === 'events' ? focusNonce : 'x'}`}
+        id="setup-section-events"
         title={`Events (${events.length})`}
         icon={Calendar}
         action={sectionAction('events', <Button size="sm" icon={Plus} onClick={() => onOpenEventModal(null)}>Add Event</Button>)}
         collapsible
-        defaultCollapsed
+        defaultCollapsed={focusId !== 'events'}
         style={sectionStyle('events')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
@@ -1119,12 +977,13 @@ export default function SetupTab({
 
       {/* Double Vote Days Section */}
       <Panel
-        key={`section-doubleVoteDays-${isHidden('doubleVoteDays')}`}
+        key={`section-doubleVoteDays-${isHidden('doubleVoteDays')}-${focusId === 'doubleVoteDays' ? focusNonce : 'x'}`}
+        id="setup-section-doubleVoteDays"
         title={`Double Vote Days (${doubleDays.length})`}
         icon={Zap}
         action={sectionAction('doubleVoteDays', null)}
         collapsible
-        defaultCollapsed
+        defaultCollapsed={focusId !== 'doubleVoteDays'}
         style={sectionStyle('doubleVoteDays')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
@@ -1287,70 +1146,15 @@ export default function SetupTab({
         </div>
       </Panel>
 
-      {/* Manual Votes Section */}
-      <Panel
-        key={`section-manualVotes-${isHidden('manualVotes')}`}
-        title="Manual Votes"
-        icon={Star}
-        action={sectionAction('manualVotes', null)}
-        collapsible
-        defaultCollapsed
-        style={sectionStyle('manualVotes')}
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-            <button
-              onClick={handleToggleManualVotes}
-              disabled={manualVotesSaving}
-              aria-pressed={manualVotesEnabled}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: borderRadius.md,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: manualVotesEnabled ? 'rgba(34,197,94,0.15)' : 'rgba(100,100,100,0.15)',
-                border: 'none',
-                cursor: manualVotesSaving ? 'wait' : 'pointer',
-                flexShrink: 0,
-              }}
-            >
-              {manualVotesEnabled ? (
-                <CheckCircle size={18} style={{ color: colors.status.success }} />
-              ) : (
-                <XCircle size={18} style={{ color: colors.text.muted }} />
-              )}
-            </button>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontWeight: typography.fontWeight.medium }}>
-                Allow manually adding votes
-              </p>
-              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
-                Shows an "Add Votes" button on the People tab so you can credit votes to a contestant. They count toward the public leaderboard immediately.
-              </p>
-            </div>
-          </div>
-          {manualVotesError && (
-            <p style={{
-              color: colors.status.error,
-              fontSize: typography.fontSize.sm,
-              marginTop: spacing.md,
-            }}>
-              {manualVotesError}
-            </p>
-          )}
-        </div>
-      </Panel>
-
       {/* Bonus Votes Section */}
       <Panel
-        key={`section-bonusVotes-${isHidden('bonusVotes')}`}
+        key={`section-bonusVotes-${isHidden('bonusVotes')}-${focusId === 'bonusVotes' ? focusNonce : 'x'}`}
+        id="setup-section-bonusVotes"
         title="Bonus Votes"
         icon={Gift}
         action={sectionAction('bonusVotes', null)}
         collapsible
-        defaultCollapsed={isHidden('bonusVotes')}
+        defaultCollapsed={isHidden('bonusVotes') && focusId !== 'bonusVotes'}
         style={sectionStyle('bonusVotes')}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>

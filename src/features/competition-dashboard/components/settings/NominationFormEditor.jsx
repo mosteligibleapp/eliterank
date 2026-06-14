@@ -31,8 +31,19 @@ import {
  *
  * @param {object} competition - Competition object
  * @param {function} onSave - Callback after save completes
+ * @param {string} [id] - DOM id for deep-link scrolling (e.g. launch checklist)
+ * @param {object} [style] - Extra style for the outer Panel (e.g. flex order)
+ * @param {boolean} [collapsible] - Render the Panel collapsible
+ * @param {boolean} [defaultCollapsed] - Initial collapsed state when collapsible
  */
-export function NominationFormEditor({ competition, onSave }) {
+export function NominationFormEditor({
+  competition,
+  onSave,
+  id,
+  style,
+  collapsible = false,
+  defaultCollapsed = false,
+}) {
   const toast = useToast();
 
   const [customQuestions, setCustomQuestions] = useState([]);
@@ -183,6 +194,10 @@ export function NominationFormEditor({ competition, onSave }) {
 
   return (
     <Panel
+      id={id}
+      style={style}
+      collapsible={collapsible}
+      defaultCollapsed={defaultCollapsed}
       title="Nomination Form"
       icon={FormInput}
       action={
