@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Check, Camera, Loader, X, Plus, Trash2, Briefcase, Gift } from 'lucide-react';
 import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography, transitions } from '../../styles/theme';
@@ -51,6 +51,21 @@ export default function SponsorWizardModal({
   const logoInputRef = useRef(null);
   const prizeInputRef = useRef(null);
   const isEditing = !!sponsor;
+
+  // The wizard stays mounted while the dashboard is open, so the useState
+  // initializers above only ever capture the first (empty) render. Without this
+  // sync, clicking "Edit" shows a blank form even though the sponsor saved fine.
+  // Re-seed the form from the sponsor each time the modal opens, and reset to
+  // step 1. Depend only on `isOpen`: `sponsor` is rebuilt (sponsorToWizardForm)
+  // on every parent render, so including it would clobber in-progress edits on
+  // each keystroke.
+  useEffect(() => {
+    if (isOpen) {
+      setForm(sponsor || INITIAL_STATE);
+      setStep(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const updateField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
