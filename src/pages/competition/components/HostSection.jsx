@@ -101,7 +101,7 @@ export function HostSection({ showHosts = true } = {}) {
                   className={`sponsor-item sponsor-tier-${sponsor.tier?.toLowerCase()}`}
                 >
                   {sponsor.logo_url ? (
-                    <img src={transformSupabaseImage(sponsor.logo_url, { width: 200, height: 100 })} alt={sponsor.name} className="sponsor-logo" />
+                    <img src={transformSupabaseImage(sponsor.logo_url, { width: 200, height: 100, resize: 'contain' })} alt={sponsor.name} className="sponsor-logo" />
                   ) : (
                     <span className="sponsor-name">{sponsor.name}</span>
                   )}
