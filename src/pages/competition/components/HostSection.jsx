@@ -21,12 +21,12 @@ function getHostName(host) {
  * Host information section (sidebar). Renders the primary host plus any
  * co-hosts side-by-side in a responsive grid.
  */
-export function HostSection() {
+export function HostSection({ showHosts = true } = {}) {
   const { competition, sponsors } = usePublicCompetition();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const hosts = buildHostList(competition);
+  const hosts = showHosts ? buildHostList(competition) : [];
   const isPlural = hosts.length > 1;
 
   // Don't render anything if no hosts AND no sponsors

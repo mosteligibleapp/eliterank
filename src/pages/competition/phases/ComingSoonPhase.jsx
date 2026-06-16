@@ -173,12 +173,12 @@ export function ComingSoonPhase() {
         <HallOfWinnersSection />
       </section>
 
-      {/* Sponsors */}
+      {/* Sponsors — hosts are already featured above, so suppress them here */}
       {hasSponsors && (
         <>
           <hr className="phase-divider" />
           <section className="phase-section">
-            <HostSection />
+            <HostSection showHosts={false} />
           </section>
         </>
       )}
