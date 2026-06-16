@@ -19,8 +19,11 @@ export default function OverviewPage({
   onViewPublicSite,
   onViewEliteRankCity,
 }) {
-  // Calculate revenue from actual data
-  const sponsorshipTotal = sponsors.reduce((sum, s) => sum + s.amount, 0);
+  // Calculate revenue from actual data. In-kind sponsors (tier 'inkind')
+  // contribute goods/services, not cash, so they're excluded from revenue.
+  const sponsorshipTotal = sponsors
+    .filter((s) => s.tier !== 'inkind')
+    .reduce((sum, s) => sum + s.amount, 0);
   const revenueData = {
     total: sponsorshipTotal, // Only sponsorships for now, add votes/tickets when implemented
     sponsorships: sponsorshipTotal,
