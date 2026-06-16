@@ -117,11 +117,6 @@ function PrizeCarousel({ prizes, title }) {
               {currentPrize.description && (
                 <p className="reward-description">{currentPrize.description}</p>
               )}
-              {currentPrize.value && (
-                <span className="rewards-value">
-                  ${Number(currentPrize.value).toLocaleString()}
-                </span>
-              )}
             </Wrapper>
           );
         })()}

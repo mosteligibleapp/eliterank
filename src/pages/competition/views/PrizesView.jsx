@@ -220,23 +220,6 @@ function PrizeCard({ prize, isMobile }) {
             </div>
           )}
 
-          {/* Value badge - bottom right */}
-          {prize.value && (
-            <div style={{
-              position: 'absolute',
-              bottom: isMobile ? spacing.sm : spacing.md,
-              right: isMobile ? spacing.sm : spacing.md,
-              background: 'rgba(34, 197, 94, 0.9)',
-              backdropFilter: 'blur(8px)',
-              borderRadius: '20px',
-              padding: isMobile ? `2px ${spacing.sm}` : `4px ${spacing.md}`,
-              fontSize: isMobile ? '10px' : typography.fontSize.xs,
-              fontWeight: typography.fontWeight.bold,
-              color: '#fff',
-            }}>
-              ${Number(prize.value).toLocaleString()}
-            </div>
-          )}
         </div>
 
         {/* Card Info */}
