@@ -119,7 +119,12 @@ export default function OverviewTab({
       .slice(0, 3);
   }, [events]);
 
-  const sponsorRevenue = (sponsors || []).reduce((sum, s) => sum + (s.amount || 0), 0);
+  // Only paid sponsors contribute cash revenue. In-kind sponsors (tier
+  // 'inkind') provide goods/services valued at `amount`, but they never paid,
+  // so their value must not inflate Total Revenue.
+  const sponsorRevenue = (sponsors || [])
+    .filter((s) => s.tier !== 'inkind')
+    .reduce((sum, s) => sum + (s.amount || 0), 0);
   const totalRevenue = sponsorRevenue + (voteRevenue || 0);
 
   const sortedAnnouncements = useMemo(() => {

@@ -7,7 +7,11 @@ import { formatCurrency } from '../../../utils/formatters';
 export default function RevenueCard({ revenueData, sponsors }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
 
-  const sponsorshipTotal = sponsors.reduce((sum, s) => sum + s.amount, 0);
+  // In-kind sponsors (tier 'inkind') contribute goods/services, not cash, so
+  // they're excluded from the sponsorship revenue line.
+  const sponsorshipTotal = sponsors
+    .filter((s) => s.tier !== 'inkind')
+    .reduce((sum, s) => sum + s.amount, 0);
 
   const breakdownItems = [
     { icon: Building, label: 'Sponsorships', amount: sponsorshipTotal, color: 'rgba(59,130,246,0.15)', iconColor: '#60a5fa' },
