@@ -8,6 +8,7 @@ import { CompetitionHeader } from '../components/CompetitionHeader';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { Timeline } from '../components/Timeline';
 import { PrizePool } from '../components/PrizePool';
+import { Rewards } from '../components/Rewards';
 import { JudgesSection } from '../components/JudgesSection';
 import { CharityHighlight } from '../components/CharityHighlight';
 import { HostCard } from '../components/HostCard';
@@ -148,6 +149,11 @@ export function ComingSoonPhase() {
         </section>
       )}
 
+      {/* Rewards — host-uploaded prizes if any, otherwise the default reward cards */}
+      <section className="phase-section">
+        <Rewards />
+      </section>
+
       {/* Judges credibility */}
       {hasJudges && (
         <section className="phase-section">
@@ -167,12 +173,12 @@ export function ComingSoonPhase() {
         <HallOfWinnersSection />
       </section>
 
-      {/* Sponsors */}
+      {/* Sponsors — hosts are already featured above, so suppress them here */}
       {hasSponsors && (
         <>
           <hr className="phase-divider" />
           <section className="phase-section">
-            <HostSection />
+            <HostSection showHosts={false} />
           </section>
         </>
       )}

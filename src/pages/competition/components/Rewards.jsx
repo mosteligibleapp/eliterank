@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Crown, Gift, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Crown, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { formatPrizeRecipient } from '../../../utils/formatters';
 
@@ -27,7 +27,7 @@ const AUTO_ROTATE_INTERVAL = 4000;
 /**
  * Carousel sub-component for a list of prizes
  */
-function PrizeCarousel({ prizes, title, icon: Icon }) {
+function PrizeCarousel({ prizes, title }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -117,11 +117,6 @@ function PrizeCarousel({ prizes, title, icon: Icon }) {
               {currentPrize.description && (
                 <p className="reward-description">{currentPrize.description}</p>
               )}
-              {currentPrize.value && (
-                <span className="rewards-value">
-                  ${Number(currentPrize.value).toLocaleString()}
-                </span>
-              )}
             </Wrapper>
           );
         })()}
@@ -197,7 +192,6 @@ export function Rewards() {
         <PrizeCarousel
           prizes={winnerPrizes}
           title="Winner's Prize Package"
-          icon={Trophy}
         />
       )}
 
@@ -205,7 +199,6 @@ export function Rewards() {
         <PrizeCarousel
           prizes={contestantRewards}
           title="Contestant Rewards"
-          icon={Gift}
         />
       )}
     </div>
