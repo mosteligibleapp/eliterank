@@ -114,6 +114,7 @@ const LEGAL_LINKS = [
   { label: 'Terms of Use', path: '/terms' },
   { label: 'Cookie Policy', path: '/cookies' },
   { label: 'Contest Terms', path: '/contest-terms' },
+  { label: 'Refund Policy', path: '/refunds' },
 ];
 
 export default function GlobalFooter() {
@@ -158,7 +159,16 @@ export default function GlobalFooter() {
 
         <div style={styles.bottomRow}>
           <div style={styles.copyright}>
-            © {year} Most Eligible LLC. All rights reserved.
+            © {year} Most Eligible LLC, dba EliteRank. All rights reserved.
+            {' · '}
+            <a
+              href="mailto:info@eliterank.co"
+              style={{ color: 'inherit', textDecoration: 'none' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = colors.gold.primary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'inherit'; }}
+            >
+              info@eliterank.co
+            </a>
           </div>
           <nav style={styles.legalRow} aria-label="Legal">
             {LEGAL_LINKS.map(link => (
