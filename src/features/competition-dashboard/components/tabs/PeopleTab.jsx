@@ -1032,7 +1032,21 @@ export default function PeopleTab({
                     borderRadius: borderRadius.md,
                   }}
                 >
-                    <Avatar name={host.name} src={host.avatar} size={44} />
+                    <button
+                      onClick={() => handleViewProfile(host.id)}
+                      disabled={!host.id}
+                      title={host.id ? 'View host profile' : undefined}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        cursor: host.id ? 'pointer' : 'default',
+                      }}
+                    >
+                      <Avatar name={host.name} src={host.avatar} size={44} />
+                    </button>
                     <button
                       onClick={() => handleViewProfile(host.id)}
                       disabled={!host.id}
@@ -1104,7 +1118,21 @@ export default function PeopleTab({
                     borderRadius: borderRadius.md,
                   }}
                 >
-                  <Avatar name={coHost.name} src={coHost.avatar} size={44} />
+                  <button
+                    onClick={() => handleViewProfile(coHost.id)}
+                    disabled={!coHost.id}
+                    title={coHost.id ? 'View co-host profile' : undefined}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      cursor: coHost.id ? 'pointer' : 'default',
+                    }}
+                  >
+                    <Avatar name={coHost.name} src={coHost.avatar} size={44} />
+                  </button>
                   <button
                     onClick={() => handleViewProfile(coHost.id)}
                     disabled={!coHost.id}
