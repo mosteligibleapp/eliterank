@@ -9,6 +9,7 @@ import { colors, gradients, spacing, borderRadius, typography, transitions } fro
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
 import { useCompetitionDashboard } from './hooks/useCompetitionDashboard';
+import { useStripeConnect } from './hooks/useStripeConnect';
 import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
@@ -227,6 +228,40 @@ export default function CompetitionDashboard({
       setActiveTab((cur) => (cur === 'launch' ? 'dashboard' : cur));
     }
   }, [loading, competition, launchComplete, isFinished]);
+
+  // Stripe Connect return handler. When the host comes back from Stripe's
+  // hosted onboarding (return_url carries ?connect=return&org=...), pull the
+  // latest KYC status, refresh the dashboard, and clean the URL. A 'refresh'
+  // param means the onboarding link expired before completion — just clear it.
+  const { syncStatus: syncConnectStatus } = useStripeConnect();
+  const connectReturnHandledRef = useRef(false);
+  useEffect(() => {
+    if (connectReturnHandledRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const connect = params.get('connect');
+    const org = params.get('org');
+    if (!connect) return;
+    connectReturnHandledRef.current = true;
+
+    // Strip the connect params so a reload doesn't re-trigger this.
+    params.delete('connect');
+    params.delete('org');
+    const cleaned = window.location.pathname + (params.toString() ? `?${params}` : '');
+    window.history.replaceState({}, '', cleaned);
+
+    if (connect === 'return' && org) {
+      syncConnectStatus(org).then((status) => {
+        refresh();
+        if (status?.kyc_status === 'verified') {
+          toast?.success?.('Stripe account connected — payouts are enabled.');
+        } else if (status?.kyc_status === 'pending') {
+          toast?.info?.('Stripe is verifying your details. We’ll update your status shortly.');
+        }
+      });
+    } else if (connect === 'refresh') {
+      toast?.info?.('Onboarding link expired. Tap “Connect with Stripe” to continue.');
+    }
+  }, [syncConnectStatus, refresh, toast]);
 
   // When the host runs more than one competition, the header name becomes a
   // switcher so they can jump between dashboards without leaving the page.

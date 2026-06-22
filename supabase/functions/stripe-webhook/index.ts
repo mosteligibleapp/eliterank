@@ -299,6 +299,66 @@ serve(async (req) => {
         break
       }
 
+      // Stripe Connect: a host's Express account changed (KYC progressed,
+      // capabilities enabled/disabled, requirements updated). Mirror the
+      // capability flags + derived kyc_status onto the organization so the
+      // host dashboard reflects reality without polling (§5.1, Invariant 15:
+      // we store status only, never raw identity).
+      case 'account.updated': {
+        const account = event.data.object as Stripe.Account
+        console.log('Connect account updated:', account.id)
+
+        const disabledReason = account.requirements?.disabled_reason || ''
+        let kycStatus: 'not_started' | 'pending' | 'verified' | 'failed'
+        if (account.charges_enabled && account.payouts_enabled) {
+          kycStatus = 'verified'
+        } else if (disabledReason.startsWith('rejected')) {
+          kycStatus = 'failed'
+        } else if (account.details_submitted) {
+          kycStatus = 'pending'
+        } else {
+          kycStatus = 'not_started'
+        }
+
+        // Only set connect_onboarded_at the first time it verifies.
+        const { data: existingOrg } = await supabase
+          .from('organizations')
+          .select('id, connect_onboarded_at')
+          .eq('stripe_connect_account_id', account.id)
+          .maybeSingle()
+
+        if (!existingOrg) {
+          console.warn('account.updated for unknown connected account:', account.id)
+          break
+        }
+
+        const update: Record<string, unknown> = {
+          kyc_status: kycStatus,
+          charges_enabled: account.charges_enabled,
+          payouts_enabled: account.payouts_enabled,
+          connect_details_submitted: account.details_submitted,
+        }
+        if (kycStatus === 'verified' && !existingOrg.connect_onboarded_at) {
+          update.connect_onboarded_at = new Date().toISOString()
+        }
+
+        const { error: orgUpdateError } = await supabase
+          .from('organizations')
+          .update(update)
+          .eq('stripe_connect_account_id', account.id)
+
+        if (orgUpdateError) {
+          console.error('Failed to sync connect account status:', orgUpdateError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to sync account', details: orgUpdateError.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log(`Synced connect account ${account.id} → kyc_status=${kycStatus}`)
+        break
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`)
     }
