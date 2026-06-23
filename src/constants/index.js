@@ -56,5 +56,10 @@ export const ANNOUNCEMENT_TYPE_COLORS = {
 export const VOTE_PRICE = 1; // $1 per vote
 export const VOTE_PRESETS = [1, 10, 25, 50, 100];
 
-// Host payout percentage
-export const HOST_PAYOUT_PERCENTAGE = 0.20; // 20%
+// Host payout percentage — under the Stripe Connect direct-charge model the
+// host (merchant of record) keeps the charge minus EliteRank's platform fee.
+// Default platform fee is 15% (competitions.platform_fee_pct), so the host
+// keeps 85%. This constant is the display fallback when a competition's
+// specific fee isn't available.
+export const PLATFORM_FEE_PERCENTAGE = 0.15; // 15%
+export const HOST_PAYOUT_PERCENTAGE = 1 - PLATFORM_FEE_PERCENTAGE; // 85%

@@ -98,6 +98,7 @@ export default function CompetitionCardVoting({
   const [preloadedCheckout, setPreloadedCheckout] = useState({
     clientSecret: null,
     paymentIntentId: null,
+    connectedAccountId: null,
     voteCount: null,
     // Server-authoritative charge amount in cents. Until this is set, any
     // displayed price is just a client-side estimate against possibly-stale
@@ -244,6 +245,7 @@ export default function CompetitionCardVoting({
       setPreloadedCheckout({
         clientSecret: result.clientSecret,
         paymentIntentId: result.paymentIntentId,
+        connectedAccountId: result.connectedAccountId ?? null,
         voteCount,
         amount: result.amount ?? null,
       });
@@ -700,6 +702,7 @@ export default function CompetitionCardVoting({
           externalCheckout
           preloadedClientSecret={preloadedCheckout.clientSecret}
           preloadedPaymentIntentId={preloadedCheckout.paymentIntentId}
+          preloadedConnectedAccountId={preloadedCheckout.connectedAccountId}
           serverAmount={preloadedCheckout.amount}
         />
       )}

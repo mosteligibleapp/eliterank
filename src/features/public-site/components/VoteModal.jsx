@@ -47,6 +47,10 @@ export default function VoteModal({
   externalCheckout = false,
   preloadedClientSecret = null,
   preloadedPaymentIntentId = null,
+  // Connected account (host) the PaymentIntent was created on. Required to
+  // confirm direct-charge PaymentIntents (Stripe Connect) — Stripe.js must be
+  // initialized for this account.
+  preloadedConnectedAccountId = null,
   // Server-authoritative charge amount in cents from create-payment-intent.
   // When provided, the modal uses this for every displayed price after the
   // PaymentIntent resolves so the user never sees a number that disagrees
@@ -69,6 +73,9 @@ export default function VoteModal({
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [clientSecret, setClientSecret] = useState(null);
   const [paymentIntentId, setPaymentIntentId] = useState(null);
+  // Connected account the PaymentIntent lives on (direct charge). Drives which
+  // Stripe.js instance is used to confirm.
+  const [connectedAccountId, setConnectedAccountId] = useState(preloadedConnectedAccountId);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [selectedVoteCount, setSelectedVoteCount] = useState(initialVoteCount);
   // Cents. Once set, replaces the client-side calculateVotePrice estimate
@@ -109,6 +116,7 @@ export default function VoteModal({
       setShowPaymentForm(false);
       setClientSecret(null);
       setPaymentIntentId(null);
+      setConnectedAccountId(null);
       setSelectedVoteCount(10);
       setConfirmedAmount(null);
       setStripeLoadFailed(false);
@@ -123,7 +131,7 @@ export default function VoteModal({
     if (!showPaymentForm || !clientSecret) return;
     let cancelled = false;
     setStripeLoadFailed(false);
-    const promise = getStripe();
+    const promise = getStripe(connectedAccountId);
     if (!promise) {
       setStripeLoadFailed(true);
       return;
@@ -143,7 +151,7 @@ export default function VoteModal({
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showPaymentForm, clientSecret, stripeRetryKey]);
+  }, [showPaymentForm, clientSecret, connectedAccountId, stripeRetryKey]);
 
   const retryStripeLoad = () => {
     setStripeLoadFailed(false);
@@ -205,8 +213,9 @@ export default function VoteModal({
     if (!isOpen || !preloadedClientSecret) return;
     setClientSecret(preloadedClientSecret);
     setPaymentIntentId(preloadedPaymentIntentId);
+    setConnectedAccountId(preloadedConnectedAccountId);
     setShowPaymentForm(true);
-  }, [isOpen, preloadedClientSecret, preloadedPaymentIntentId]);
+  }, [isOpen, preloadedClientSecret, preloadedPaymentIntentId, preloadedConnectedAccountId]);
 
   // Handle free vote submission
   const handleFreeVote = async () => {
@@ -282,6 +291,7 @@ export default function VoteModal({
       if (result.success && result.clientSecret) {
         setClientSecret(result.clientSecret);
         setPaymentIntentId(result.paymentIntentId);
+        setConnectedAccountId(result.connectedAccountId);
         if (result.amount != null) setConfirmedAmount(result.amount);
         setShowPaymentForm(true);
       } else {
@@ -511,7 +521,7 @@ export default function VoteModal({
       );
     }
 
-    const stripePromise = getStripe();
+    const stripePromise = getStripe(connectedAccountId);
 
     return (
       <Modal isOpen={isOpen} onClose={handleBackFromPayment} title="" maxWidth="360px" centered hideCloseButton variant="gold">
@@ -574,6 +584,7 @@ export default function VoteModal({
                   contestantName={contestant.name}
                   collectEmail={!isAuthenticated || !user?.email}
                   userEmail={user?.email}
+                  connectedAccountId={connectedAccountId}
                 />
               </Elements>
             )}
@@ -987,7 +998,7 @@ export default function VoteModal({
 /**
  * Payment checkout form using Stripe Elements
  */
-function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, collectEmail = false, userEmail = null }) {
+function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, collectEmail = false, userEmail = null, connectedAccountId = null }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1004,10 +1015,21 @@ function PaymentCheckoutForm({ onSuccess, onCancel, amount, contestantName, coll
     setErrorMessage(null);
 
     try {
+      // For redirect-based methods (Cash App Pay, etc.) the buyer leaves and
+      // returns to this URL. Carry the connected account id (`va`) so the
+      // return handler can retrieve the direct-charge PaymentIntent with the
+      // right Stripe.js instance.
+      const returnUrl = (() => {
+        if (!connectedAccountId) return window.location.href;
+        const u = new URL(window.location.href);
+        u.searchParams.set('va', connectedAccountId);
+        return u.toString();
+      })();
+
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.href, // Fallback, but we handle redirect: 'if_required'
+          return_url: returnUrl, // Fallback, but we handle redirect: 'if_required'
           // When collectEmail is false (authenticated user), we told Stripe not to collect
           // email in the form, so we must provide it here
           ...(!collectEmail && userEmail ? {

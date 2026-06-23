@@ -10,6 +10,7 @@ import { isLive } from '../../../../utils/competitionPhase';
 import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
+import HostConnectCard from '../HostConnectCard';
 
 /**
  * OverviewTab - Host Dashboard with performance metrics and quick actions
@@ -376,6 +377,12 @@ export default function OverviewTab({
             </p>
           )}
         </div>
+
+        {/* Payouts (Stripe Connect) */}
+        <HostConnectCard
+          connect={competition?.connect}
+          organizationId={competition?.organizationId}
+        />
 
         {/* Top Contestants */}
         <Panel
