@@ -346,11 +346,13 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Host dashboard - requires host role */}
+      {/* Host dashboard — any signed-in user can reach it. Hosts/co-hosts see
+          their competitions; everyone else gets the "Launch your competition"
+          create CTA (self-serve onboarding). Publishing stays admin-approved. */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute allowedRoles={[ROLE.HOST, ROLE.SUPER_ADMIN]}>
+          <ProtectedRoute>
             <SuspenseWrapper fallback={<DashboardSkeleton />}>
               <DashboardPage />
             </SuspenseWrapper>
