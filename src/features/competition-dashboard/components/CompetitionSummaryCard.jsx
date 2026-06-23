@@ -4,7 +4,7 @@ import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { isFieldEditable } from '../../../utils/fieldEditability';
-import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, US_STATES } from '../../../lib/competitionTemplates';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, US_STATES, LAUNCH_TIMEFRAMES, LAUNCH_TIMEFRAME_LABELS } from '../../../lib/competitionTemplates';
 
 /**
  * CompetitionSummaryCard — recap of what the host set during onboarding, shown
@@ -87,6 +87,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
       numberOfWinners: c.numberOfWinners ?? 5,
       charityYes: !!c.charityPercentage,
       charityPercentage: c.charityPercentage || 10,
+      plannedLaunchTimeframe: c.plannedLaunchTimeframe || '',
     });
     setError(null);
     setEditing(true);
@@ -140,6 +141,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
         selection_criteria: form.selectionCriteria,
         number_of_winners: Number(form.numberOfWinners) || 1,
         charity_percentage: form.charityYes ? (Number(form.charityPercentage) || null) : null,
+        planned_launch_timeframe: form.plannedLaunchTimeframe || null,
       };
 
       const { error: e } = await supabase.from('competitions').update(updates).eq('id', c.id);
@@ -188,6 +190,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
       ['How they win', WIN[c.selectionCriteria] || c.selectionCriteria],
       ['Winners', c.numberOfWinners],
       ['Charity', c.charityPercentage ? `${c.charityPercentage}% of proceeds` : 'None'],
+      ['Planned launch', LAUNCH_TIMEFRAME_LABELS[c.plannedLaunchTimeframe] || '—'],
     ];
 
     return (
@@ -356,6 +359,18 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
                 </select>
               )}
             </div>
+          </div>
+
+          {/* Planned launch */}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>When do you plan to launch?</label>
+            <select style={fieldStyle} value={form.plannedLaunchTimeframe} onChange={(e) => set('plannedLaunchTimeframe', e.target.value)}>
+              <option value="">Select a timeframe…</option>
+              {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+            </select>
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>
+              We don’t recommend launching in less than 4 weeks. You’ll set exact dates before publishing.
+            </p>
           </div>
 
           {/* Charity */}

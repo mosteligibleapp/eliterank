@@ -4,7 +4,7 @@ import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { slugify, generateCompetitionSlug } from '../../utils/slugs';
-import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES } from '../../lib/competitionTemplates';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES, LAUNCH_TIMEFRAMES } from '../../lib/competitionTemplates';
 
 const NEW_ORG = '__new__';
 // Config pages in order, per the onboarding flow.
@@ -40,6 +40,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     templateId: '', customCategory: '',
     // format
     name: '', numberOfWinners: 5, entryType: 'nominations', pricePerVote: 1.0, selectionCriteria: 'votes',
+    plannedLaunchTimeframe: '',
     // eligibility
     cityId: '', territoryScope: 'city', territoryState: '', eligibilityRadius: 100, relationshipStatus: '',
     gender: 'all', ageMin: 21, ageMax: '',
@@ -119,6 +120,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     }
     if (s === 'format') {
       if (!form.name.trim()) return 'Enter a competition name.';
+      if (!form.plannedLaunchTimeframe) return 'Choose when you plan to launch.';
       if (form.territoryScope === 'city' && !form.cityId) return 'Pick a city.';
       if (form.territoryScope === 'state' && !form.territoryState) return 'Pick a state.';
       if (!form.ageMin || Number(form.ageMin) < 18) return 'Minimum age must be 18 or older — all competitions are 18+.';
@@ -224,7 +226,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       // Persist flexible eligibility + charity % on the new draft (host can
       // update their own competition via RLS). Name/details for charity come
       // later in the dashboard.
-      const updates = { eligibility_gender: form.gender, eligibility_age_min: ageMin, eligibility_age_max: ageMax, territory_state: form.territoryScope === 'state' ? form.territoryState : null };
+      const updates = { eligibility_gender: form.gender, eligibility_age_min: ageMin, eligibility_age_max: ageMax, territory_state: form.territoryScope === 'state' ? form.territoryState : null, planned_launch_timeframe: form.plannedLaunchTimeframe || null };
       if (form.charityYes) updates.charity_percentage = Number(form.charityPercentage) || null;
       await supabase.from('competitions').update(updates).eq('id', comp.id);
 
@@ -447,6 +449,16 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
         <div>
           <label style={labelStyle}>Competition name</label>
           <input style={fieldStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Most Eligible Austin" />
+
+          <label style={labelStyle}>When do you plan to launch?</label>
+          <select style={fieldStyle} value={form.plannedLaunchTimeframe} onChange={(e) => set('plannedLaunchTimeframe', e.target.value)}>
+            <option value="">Select a timeframe…</option>
+            {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+          </select>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: -spacing.md, marginBottom: spacing.lg }}>
+            We don’t recommend launching in less than 4 weeks — you’ll need time for KYC, the agreement, and building entries. You’ll set exact dates before publishing.
+          </p>
+
           <div style={{ display: 'flex', gap: spacing.md }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Number of winners</label>
@@ -580,6 +592,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
               : `City-wide · ${lookups.cities.find((c) => c.id === form.cityId)?.name || '—'} (${form.eligibilityRadius} mi)`],
             ['Who can enter', `${({ all: 'All genders', female: 'Women', male: 'Men', 'LGBTQ+': 'LGBTQ+' }[form.gender] || '')}${form.ageMin ? `, ${form.ageMin}–${form.ageMax || '+'}` : ''}`],
             ['Charity', form.charityYes ? `${form.charityPercentage}% of proceeds` : 'No'],
+            ['Planned launch', LAUNCH_TIMEFRAMES.find((t) => t.id === form.plannedLaunchTimeframe)?.label || '—'],
             ['Season', form.season],
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: `${spacing.sm} 0`, borderBottom: `1px solid ${colors.border.secondary}`, fontSize: typography.fontSize.sm }}>

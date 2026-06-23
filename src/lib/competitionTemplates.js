@@ -25,6 +25,16 @@ export const COMPETITION_TEMPLATES = [
 // "Other" — host types their own category.
 export const CUSTOM_TEMPLATE = { id: 'custom', label: 'Other', icon: Pencil };
 
+// Planned launch window asked at onboarding — a planning signal, not the real
+// nomination/voting dates (those come just before publish). We don't offer a
+// "less than 4 weeks" option: launching in under a month isn't recommended.
+export const LAUNCH_TIMEFRAMES = [
+  { id: '6_plus_months', label: '6+ months out' },
+  { id: '3_6_months', label: '3–6 months out' },
+  { id: '1_2_months', label: '1–2 months out' },
+];
+export const LAUNCH_TIMEFRAME_LABELS = LAUNCH_TIMEFRAMES.reduce((m, t) => { m[t.id] = t.label; return m; }, {});
+
 // US states + DC — shared by the create wizard and the dashboard recap editor.
 export const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME',
