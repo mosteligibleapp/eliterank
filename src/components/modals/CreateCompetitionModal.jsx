@@ -457,7 +457,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           <label style={labelStyle}>Competition name</label>
           <input style={fieldStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Most Eligible Austin" />
           <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: -spacing.md, marginBottom: spacing.lg }}>
-            This becomes the title winners earn — make it a social accolade they’ll be excited to promote (e.g. “Most Eligible Austin 2026”).
+            This becomes the title winners earn — make it a social accolade they’ll be excited to promote (e.g. “Realtor of the Year”).
           </p>
 
           <label style={labelStyle}>When do you plan to launch?</label>
