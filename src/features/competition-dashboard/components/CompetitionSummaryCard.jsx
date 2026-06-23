@@ -253,6 +253,9 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
         <div style={{ marginBottom: spacing.lg }}>
           <label style={labelStyle}>Competition name</label>
           <input style={fieldStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Most Eligible Austin" />
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs, lineHeight: 1.4 }}>
+            This becomes the title winners earn — make it a social accolade they’ll be excited to promote (e.g. “Most Eligible Austin 2026”).
+          </p>
         </div>
 
         {/* Sponsor of record (organization) */}
