@@ -2,6 +2,27 @@ import { useState, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
 
 /**
+ * Pull the real error message out of a Supabase Functions error. supabase-js
+ * wraps a non-2xx response as FunctionsHttpError with a generic message, but
+ * exposes the actual Response on `err.context`. The connect-onboard function
+ * returns { error, details } (details carries Stripe's own message), so surface
+ * that instead of the opaque "non-2xx status code".
+ */
+async function extractFnError(err, fallback) {
+  try {
+    const res = err?.context;
+    if (res && typeof res.json === 'function') {
+      const body = await res.clone().json();
+      if (body?.details) return `${body.error || 'Onboarding failed'}: ${body.details}`;
+      if (body?.error) return body.error;
+    }
+  } catch (_) {
+    // fall through to the generic message
+  }
+  return err?.message || fallback;
+}
+
+/**
  * useStripeConnect
  *
  * Thin client for the `connect-onboard` edge function (§5.1). Handles starting
@@ -42,7 +63,7 @@ export function useStripeConnect() {
       window.location.href = data.url;
     } catch (err) {
       console.error('Failed to start Stripe onboarding:', err);
-      setError(err.message || 'Could not start onboarding.');
+      setError(await extractFnError(err, 'Could not start onboarding.'));
       setStarting(false);
     }
   }, []);
@@ -63,7 +84,7 @@ export function useStripeConnect() {
       return data;
     } catch (err) {
       console.error('Failed to sync Stripe status:', err);
-      setError(err.message || 'Could not refresh status.');
+      setError(await extractFnError(err, 'Could not refresh status.'));
       return null;
     } finally {
       setSyncing(false);
