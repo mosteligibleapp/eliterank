@@ -106,7 +106,7 @@ serve(async (req) => {
     const { data: org, error: orgError } = await admin
       .from('organizations')
       .select(
-        'id, name, owner_id, stripe_connect_account_id, kyc_status, charges_enabled, payouts_enabled, connect_details_submitted, connect_onboarded_at'
+        'id, name, slug, owner_id, stripe_connect_account_id, kyc_status, charges_enabled, payouts_enabled, connect_details_submitted, connect_onboarded_at'
       )
       .eq('id', organization_id)
       .single()
@@ -134,7 +134,18 @@ serve(async (req) => {
       return json({ error: 'Not authorized to manage payouts for this organization' }, 403)
     }
 
-    const stripe = new Stripe(stripeSecretKey, {
+    // Sandbox routing: the dedicated test org ('sandbox-connect-test') runs
+    // against the platform's TEST-mode key so the onboarding flow can be
+    // exercised with Stripe test data without touching live payments. Every
+    // real org uses the live STRIPE_SECRET_KEY. Remove once testing is done.
+    const isSandbox = org.slug === 'sandbox-connect-test'
+    const testKey = Deno.env.get('STRIPE_SECRET_KEY_TEST')
+    if (isSandbox && !testKey) {
+      return json({ error: 'Sandbox not ready: STRIPE_SECRET_KEY_TEST is not configured.' }, 500)
+    }
+    const effectiveKey = isSandbox && testKey ? testKey : stripeSecretKey
+
+    const stripe = new Stripe(effectiveKey, {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
     })
