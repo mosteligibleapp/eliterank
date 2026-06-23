@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ClipboardList, Pencil, Loader, Check, X } from 'lucide-react';
+import { ClipboardList, Pencil, Loader, Check, X, Building2 } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -34,14 +34,37 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
   const [error, setError] = useState(null);
   const [lookups, setLookups] = useState({ cities: [], categories: [], loaded: false });
   const [form, setForm] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   if (!competition) return null;
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const handleLogoUpload = async (file) => {
+    if (!file) return;
+    setUploadingLogo(true); setError(null);
+    try {
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const fileName = `org-logos/${c.organizationId || c.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true, cacheControl: '3600' });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      set('orgLogoUrl', data.publicUrl);
+    } catch (err) {
+      setError('Logo upload failed: ' + (err.message || 'try again'));
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const startEdit = async () => {
     const tplId = templateIdFor(c.categoryTemplate);
     setForm({
+      name: c.name || '',
+      orgName: c.organizationName || '',
+      orgLogoUrl: c.organizationLogoUrl || '',
+      orgWebsite: c.organizationWebsiteUrl || '',
+      orgInstagram: c.organizationInstagram || '',
       templateId: tplId,
       customCategory: tplId === CUSTOM_TEMPLATE.id ? (c.categoryTemplate || '') : '',
       territoryScope: c.territoryScope || 'city',
@@ -74,6 +97,8 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
     // Validate
     const ageMin = form.ageMin === '' || form.ageMin == null ? null : Number(form.ageMin);
     const ageMax = form.ageMax === '' || form.ageMax == null ? null : Number(form.ageMax);
+    if (!form.name.trim()) { setError('Enter a competition name.'); return; }
+    if (!form.orgName.trim()) { setError('Enter the Sponsor-of-record name.'); return; }
     if (!ageMin || ageMin < 18) { setError('Minimum age must be 18 or older — all competitions are 18+.'); return; }
     if (ageMax && ageMax < ageMin) { setError('Max age must be greater than the minimum.'); return; }
     if (form.templateId === CUSTOM_TEMPLATE.id && !form.customCategory.trim()) { setError('Type your category.'); return; }
@@ -92,6 +117,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
         : null;
 
       const updates = {
+        name: form.name.trim(),
         category_template: categoryTemplate,
         category_id: categoryId,
         territory_scope: form.territoryScope,
@@ -109,6 +135,19 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
 
       const { error: e } = await supabase.from('competitions').update(updates).eq('id', c.id);
       if (e) throw e;
+
+      // Sponsor-of-record (organization) — name, logo, website, Instagram.
+      if (c.organizationId) {
+        const orgUpdates = {
+          name: form.orgName.trim(),
+          logo_url: form.orgLogoUrl || null,
+          website_url: form.orgWebsite.trim() || null,
+          instagram: form.orgInstagram.trim() || null,
+        };
+        const { error: orgErr } = await supabase.from('organizations').update(orgUpdates).eq('id', c.organizationId);
+        if (orgErr) throw orgErr;
+      }
+
       setEditing(false);
       onRefresh?.();
     } catch (err) {
@@ -131,6 +170,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
     }`;
 
     const rows = [
+      ['Name', c.name],
       ['Sponsor of record', c.organizationName],
       ['Category', c.categoryTemplate || c.categoryName],
       ['Territory', territory],
@@ -190,9 +230,42 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
       }
     >
       <div style={{ padding: spacing.xl }}>
-        <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginBottom: spacing.lg }}>
-          Sponsor of record: <strong style={{ color: colors.text.secondary }}>{c.organizationName || '—'}</strong>
-        </p>
+        {/* Competition name */}
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={labelStyle}>Competition name</label>
+          <input style={fieldStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Most Eligible Austin" />
+        </div>
+
+        {/* Sponsor of record (organization) */}
+        <div style={{ marginBottom: spacing.lg, padding: spacing.lg, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.md }}>
+            <Building2 size={14} style={{ color: colors.gold.primary }} />
+            <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Sponsor of record</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md }}>
+            {form.orgLogoUrl
+              ? <img src={form.orgLogoUrl} alt="Logo" style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'cover', border: `1px solid ${colors.border.primary}` }} />
+              : <div style={{ width: 48, height: 48, borderRadius: borderRadius.md, background: colors.background.primary, border: `1px dashed ${colors.border.primary}` }} />}
+            <label style={{ cursor: 'pointer', color: colors.gold.primary, fontSize: typography.fontSize.sm }}>
+              {uploadingLogo ? 'Uploading…' : (form.orgLogoUrl ? 'Replace logo' : 'Upload logo')}
+              <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingLogo} onChange={(e) => handleLogoUpload(e.target.files?.[0])} />
+            </label>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: spacing.md }}>
+            <div>
+              <label style={labelStyle}>Name</label>
+              <input style={fieldStyle} value={form.orgName} onChange={(e) => set('orgName', e.target.value)} placeholder="Sponsor name" />
+            </div>
+            <div>
+              <label style={labelStyle}>Website</label>
+              <input style={fieldStyle} value={form.orgWebsite} onChange={(e) => set('orgWebsite', e.target.value)} placeholder="https://…" />
+            </div>
+            <div>
+              <label style={labelStyle}>Instagram</label>
+              <input style={fieldStyle} value={form.orgInstagram} onChange={(e) => set('orgInstagram', e.target.value)} placeholder="@handle" />
+            </div>
+          </div>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
           {/* Category */}
