@@ -390,6 +390,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
               <select style={fieldStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
                 <option value="votes">Public votes</option>
                 <option value="hybrid">Votes + judges (hybrid)</option>
+                <option value="judges">Judges only</option>
               </select>
             </div>
             <div style={{ flex: 1 }}>
@@ -466,7 +467,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             ['Template', template?.id === CUSTOM_TEMPLATE.id ? form.customCategory : template?.label],
             ['Winners', form.numberOfWinners],
             ['Entry', form.entryType === 'nominations' ? 'Nomination' : 'Application'],
-            ['How they win', form.selectionCriteria === 'votes' ? 'Public votes' : 'Votes + judges'],
+            ['How they win', form.selectionCriteria === 'votes' ? 'Public votes' : form.selectionCriteria === 'judges' ? 'Judges only' : 'Votes + judges'],
             ['Price / vote', `$${form.pricePerVote}`],
             ['Territory', form.territoryScope === 'us' ? 'US-wide (+ Toronto)' : form.territoryScope === 'state' ? 'State-wide' : `City-wide (${form.eligibilityRadius} mi)`],
             ['City', lookups.cities.find((c) => c.id === form.cityId)?.name],
