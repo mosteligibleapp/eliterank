@@ -11,6 +11,7 @@ import { useAuthStore } from '../stores';
 import { CompetitionDashboard } from '../features/competition-dashboard';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 import ErrorState from '../components/common/ErrorState';
+import CreateCompetitionModal from '../components/modals/CreateCompetitionModal';
 import { getCompetitionUrl, generateCompetitionSlug, slugify } from '../utils/slugs';
 
 /**
@@ -47,6 +48,7 @@ export default function DashboardPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   // Fetch all competitions this user hosts (primary + co-hosted) from Supabase
   useEffect(() => {
@@ -195,25 +197,49 @@ export default function DashboardPage() {
           👑
         </div>
         <h1 style={{ color: '#d4af37', marginBottom: '0.75rem', fontSize: '1.5rem' }}>
-          No Competition Assigned
+          Launch your competition
         </h1>
-        <p style={{ color: '#9ca3af', marginBottom: '2rem', maxWidth: '400px' }}>
-          You don't have a competition assigned yet. Contact an administrator to get started.
+        <p style={{ color: '#9ca3af', marginBottom: '2rem', maxWidth: '420px' }}>
+          You don't have a competition yet. Create one to get started — you'll set it up as a draft, then accept the
+          Host Agreement and connect Stripe before it goes live.
         </p>
-        <button
-          onClick={handleBack}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
-            color: '#0a0a0f',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: '600',
-            cursor: 'pointer',
-          }}
-        >
-          Back to Competitions
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <button
+            onClick={() => setShowCreate(true)}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
+              color: '#0a0a0f',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            Create a competition
+          </button>
+          <button
+            onClick={handleBack}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'transparent',
+              color: '#9ca3af',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '8px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            Back to Competitions
+          </button>
+        </div>
+
+        <CreateCompetitionModal
+          isOpen={showCreate}
+          onClose={() => setShowCreate(false)}
+          userId={user?.id}
+          onCreated={() => window.location.reload()}
+        />
       </div>
     );
   }
