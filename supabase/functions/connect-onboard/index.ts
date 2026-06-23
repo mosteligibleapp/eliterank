@@ -115,19 +115,40 @@ serve(async (req) => {
       return json({ error: 'Organization not found' }, 404)
     }
 
+    // Authorize: the org owner, OR any host / co-host of a competition under
+    // this org (they manage the org's single shared Connect account). For
+    // legacy orgs with no owner yet, the first such manager claims ownership.
     let isAuthorized = org.owner_id === userId
-    if (!isAuthorized && !org.owner_id) {
-      // Legacy org with no owner yet: allow a host of any competition under
-      // this org, and claim ownership on first connect.
-      const { count } = await admin
+    if (!isAuthorized) {
+      const { count: hostCount } = await admin
         .from('competitions')
         .select('id', { count: 'exact', head: true })
         .eq('organization_id', organization_id)
         .eq('host_id', userId)
-      if ((count ?? 0) > 0) {
+      let managesOrg = (hostCount ?? 0) > 0
+
+      if (!managesOrg) {
+        const { data: orgComps } = await admin
+          .from('competitions')
+          .select('id')
+          .eq('organization_id', organization_id)
+        const compIds = (orgComps || []).map((c) => c.id)
+        if (compIds.length > 0) {
+          const { count: coHostCount } = await admin
+            .from('competition_co_hosts')
+            .select('competition_id', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .in('competition_id', compIds)
+          managesOrg = (coHostCount ?? 0) > 0
+        }
+      }
+
+      if (managesOrg) {
         isAuthorized = true
-        await admin.from('organizations').update({ owner_id: userId }).eq('id', organization_id)
-        org.owner_id = userId
+        if (!org.owner_id) {
+          await admin.from('organizations').update({ owner_id: userId }).eq('id', organization_id)
+          org.owner_id = userId
+        }
       }
     }
     if (!isAuthorized) {
