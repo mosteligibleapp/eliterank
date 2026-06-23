@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Crown, Plus, MapPin, Calendar, Edit2, Trash2, UserPlus,
-  Eye, AlertTriangle, Trophy, Radio, FileEdit, Globe,
+  Eye, AlertTriangle, Trophy, Radio, FileEdit, Globe, CheckCircle,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui';
 import { colors, spacing, borderRadius, typography } from '@shared/styles/theme';
@@ -226,6 +226,17 @@ export default function CompetitionsManager({ onViewDashboard }) {
       fetchData();
     } catch {
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleApproveCompetition = async (competitionId) => {
+    try {
+      const { error } = await supabase.rpc('approve_competition', { p_competition_id: competitionId });
+      if (error) throw error;
+      toast.success('Competition approved — the host can now publish.');
+      fetchData();
+    } catch (err) {
+      toast.error(err?.message || 'Failed to approve competition');
     }
   };
 
@@ -729,6 +740,16 @@ export default function CompetitionsManager({ onViewDashboard }) {
       { label: 'Edit', icon: Edit2, onClick: () => openEditModal(row, 'basic') },
       { label: 'Pricing', icon: Calendar, onClick: () => openEditModal(row, 'pricing') },
     );
+
+    // Host submitted this competition for review — approve it so the host can
+    // publish to the public.
+    if (row.status === 'pending_approval') {
+      actions.push({
+        label: 'Approve competition',
+        icon: CheckCircle,
+        onClick: () => handleApproveCompetition(row.id),
+      });
+    }
     if (!row.host_id) {
       actions.push({
         label: 'Assign Host',
