@@ -13,6 +13,7 @@ import MetricCard from '../../../overview/components/MetricCard';
 import HostConnectCard from '../HostConnectCard';
 import HostAgreementCard from '../HostAgreementCard';
 import HostLaunchStatus from '../HostLaunchStatus';
+import CompetitionSummaryCard from '../CompetitionSummaryCard';
 import { hasAcceptedCurrentAgreement } from '../../../../lib/hostAgreement';
 
 /**
@@ -37,6 +38,7 @@ export default function OverviewTab({
   onDeleteAnnouncement,
   onTogglePin,
   onRefresh,
+  mode = 'launch',
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
@@ -165,7 +167,21 @@ export default function OverviewTab({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
-      <HostLaunchStatus competition={competition} rulesComplete={rulesComplete} onRefresh={onRefresh} onNavigateToTab={onNavigateToTab} />
+      {mode === 'launch' && (
+        <>
+          <HostLaunchStatus competition={competition} rulesComplete={rulesComplete} onRefresh={onRefresh} onNavigateToTab={onNavigateToTab} />
+          <CompetitionSummaryCard competition={competition} onNavigateToTab={onNavigateToTab} />
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? spacing.lg : spacing.xl, alignItems: 'start' }}>
+            <div id="host-agreement-card">
+              <HostAgreementCard agreement={competition?.agreement} organizationId={competition?.organizationId} onAccepted={onRefresh} />
+            </div>
+            <div id="host-connect-card">
+              <HostConnectCard connect={competition?.connect} organizationId={competition?.organizationId} locked={!hasAcceptedCurrentAgreement(competition?.agreement)} />
+            </div>
+          </div>
+        </>
+      )}
+      {mode === 'activity' && (
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -389,24 +405,6 @@ export default function OverviewTab({
               Revenue from votes, sponsors, and events will appear here
             </p>
           )}
-        </div>
-
-        {/* Host Agreement — must be accepted before connecting payouts (§ onboarding flow) */}
-        <div id="host-agreement-card">
-          <HostAgreementCard
-            agreement={competition?.agreement}
-            organizationId={competition?.organizationId}
-            onAccepted={onRefresh}
-          />
-        </div>
-
-        {/* Payouts (Stripe Connect) — locked until the Host Agreement is accepted */}
-        <div id="host-connect-card">
-          <HostConnectCard
-            connect={competition?.connect}
-            organizationId={competition?.organizationId}
-            locked={!hasAcceptedCurrentAgreement(competition?.agreement)}
-          />
         </div>
 
         {/* Top Contestants */}
@@ -757,6 +755,7 @@ export default function OverviewTab({
         )}
       </div>
       </div>
+      )}
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

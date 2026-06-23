@@ -22,6 +22,7 @@ import { COMPETITION_STATUS } from '../../types/competition';
 // getting a competition live; the rest are the day-to-day management surfaces.
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
+  { id: 'activity', label: 'Activity', shortLabel: 'Activity', icon: Activity },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
   { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
   { id: 'site', label: 'Site', shortLabel: 'Site', icon: Globe },
@@ -707,6 +708,31 @@ export default function CompetitionDashboard({
             onDeleteAnnouncement={deleteAnnouncement}
             onTogglePin={toggleAnnouncementPin}
             onRefresh={refresh}
+            mode="launch"
+          />
+        );
+      case 'activity':
+        return (
+          <OverviewTab
+            competition={competition}
+            contestants={data.contestants}
+            nominees={data.nominees}
+            sponsors={data.sponsors}
+            events={data.events}
+            announcements={data.announcements}
+            host={data.host}
+            voteRevenue={data.voteRevenue}
+            isSuperAdmin={isSuperAdmin}
+            onViewPublicSite={onViewPublicSite}
+            onNavigateToTab={navigateToTab}
+            onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+            onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+            onAddAnnouncement={addAnnouncement}
+            onUpdateAnnouncement={updateAnnouncement}
+            onDeleteAnnouncement={deleteAnnouncement}
+            onTogglePin={toggleAnnouncementPin}
+            onRefresh={refresh}
+            mode="activity"
           />
         );
       case 'people':

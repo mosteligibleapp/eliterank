@@ -604,6 +604,17 @@ export function useCompetitionDashboard(competitionId) {
           eligibilityRadiusMiles: competition.eligibility_radius_miles || 100,
           minContestants: competition.min_contestants || 40,
           maxContestants: competition.max_contestants || null,
+          // Onboarding-set fields (the create wizard) — for the overview recap.
+          categoryTemplate: competition.category_template || null,
+          territoryScope: competition.territory_scope || null,
+          territoryState: competition.territory_state || null,
+          eligibilityGender: competition.eligibility_gender || null,
+          eligibilityAgeMin: competition.eligibility_age_min ?? null,
+          eligibilityAgeMax: competition.eligibility_age_max ?? null,
+          entryType: competition.entry_type || null,
+          selectionCriteria: competition.selection_criteria || null,
+          numberOfWinners: competition.number_of_winners ?? null,
+          charityPercentage: competition.charity_percentage ?? null,
           // Additional fields for card generation and links
           slug: competition.slug || null,
           organizationName: competition.organization?.name || null,
