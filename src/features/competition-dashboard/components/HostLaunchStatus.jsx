@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Circle, Loader, Landmark, FileText, ClipboardList, Send, Rocket, Lock } from 'lucide-react';
+import { CheckCircle, Circle, Loader, Landmark, FileText, ClipboardList, Send, Rocket, Lock, ChevronRight } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -28,7 +28,7 @@ function phaseIndex(status) {
   return i === -1 ? 0 : i;
 }
 
-export default function HostLaunchStatus({ competition, rulesComplete, onRefresh }) {
+export default function HostLaunchStatus({ competition, rulesComplete, onRefresh, onNavigateToTab }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   if (!competition) return null;
@@ -36,13 +36,15 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
   const status = competition.status || 'draft';
   const current = phaseIndex(status);
 
+  const goTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
   const agreementOk = hasAcceptedCurrentAgreement(competition.agreement);
   const stripeOk = competition.connect?.kycStatus === 'verified' && !!competition.connect?.chargesEnabled;
   const rulesOk = !!rulesComplete;
   const gates = [
-    { ok: agreementOk, Icon: FileText, label: 'Review & sign the Host Agreement' },
-    { ok: stripeOk, Icon: Landmark, label: 'Complete Stripe identity verification (KYC)' },
-    { ok: rulesOk, Icon: ClipboardList, label: 'Enter all required competition rules' },
+    { ok: agreementOk, Icon: FileText, label: 'Review & sign the Host Agreement', action: () => goTo('host-agreement-card') },
+    { ok: stripeOk, Icon: Landmark, label: 'Complete Stripe identity verification (KYC)', action: () => goTo('host-connect-card') },
+    { ok: rulesOk, Icon: ClipboardList, label: 'Enter all required competition rules', action: () => onNavigateToTab?.('setup') },
   ];
   const allGates = agreementOk && stripeOk && rulesOk;
 
@@ -90,10 +92,24 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
               Finish these to submit for approval. <strong>Some details lock once you submit.</strong>
             </p>
             {gates.map((g) => (
-              <div key={g.label} style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm, color: g.ok ? colors.text.primary : colors.text.secondary, fontSize: typography.fontSize.sm }}>
+              <button
+                key={g.label}
+                onClick={g.ok ? undefined : g.action}
+                disabled={g.ok}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: spacing.sm, width: '100%', textAlign: 'left',
+                  padding: `${spacing.sm} ${spacing.md}`, marginBottom: spacing.xs,
+                  background: g.ok ? 'transparent' : colors.background.secondary,
+                  border: `1px solid ${g.ok ? 'transparent' : colors.border.primary}`,
+                  borderRadius: borderRadius.md,
+                  color: g.ok ? colors.text.primary : colors.text.secondary,
+                  fontSize: typography.fontSize.sm, cursor: g.ok ? 'default' : 'pointer',
+                }}
+              >
                 {g.ok ? <CheckCircle size={16} style={{ color: colors.status.success }} /> : <Circle size={16} style={{ color: colors.text.muted }} />}
-                <span>{g.label}</span>
-              </div>
+                <span style={{ flex: 1 }}>{g.label}</span>
+                {!g.ok && <ChevronRight size={16} style={{ color: colors.gold.primary }} />}
+              </button>
             ))}
             <Button onClick={() => callRpc('submit_for_approval')} disabled={!allGates || busy} icon={busy ? Loader : Send} style={{ marginTop: spacing.lg }}>
               {busy ? 'Submitting…' : 'Submit for approval'}

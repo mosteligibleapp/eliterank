@@ -165,7 +165,7 @@ export default function OverviewTab({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
-      <HostLaunchStatus competition={competition} rulesComplete={rulesComplete} onRefresh={onRefresh} />
+      <HostLaunchStatus competition={competition} rulesComplete={rulesComplete} onRefresh={onRefresh} onNavigateToTab={onNavigateToTab} />
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -392,18 +392,22 @@ export default function OverviewTab({
         </div>
 
         {/* Host Agreement — must be accepted before connecting payouts (§ onboarding flow) */}
-        <HostAgreementCard
-          agreement={competition?.agreement}
-          organizationId={competition?.organizationId}
-          onAccepted={onRefresh}
-        />
+        <div id="host-agreement-card">
+          <HostAgreementCard
+            agreement={competition?.agreement}
+            organizationId={competition?.organizationId}
+            onAccepted={onRefresh}
+          />
+        </div>
 
         {/* Payouts (Stripe Connect) — locked until the Host Agreement is accepted */}
-        <HostConnectCard
-          connect={competition?.connect}
-          organizationId={competition?.organizationId}
-          locked={!hasAcceptedCurrentAgreement(competition?.agreement)}
-        />
+        <div id="host-connect-card">
+          <HostConnectCard
+            connect={competition?.connect}
+            organizationId={competition?.organizationId}
+            locked={!hasAcceptedCurrentAgreement(competition?.agreement)}
+          />
+        </div>
 
         {/* Top Contestants */}
         <Panel
