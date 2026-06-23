@@ -775,6 +775,7 @@ export default function CompetitionDashboard({
             onUpdateAnnouncement={updateAnnouncement}
             onDeleteAnnouncement={deleteAnnouncement}
             onTogglePin={toggleAnnouncementPin}
+            onRefresh={refresh}
           />
         );
       case 'people':

@@ -11,6 +11,8 @@ import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
 import HostConnectCard from '../HostConnectCard';
+import HostAgreementCard from '../HostAgreementCard';
+import { hasAcceptedCurrentAgreement } from '../../../../lib/hostAgreement';
 
 /**
  * OverviewTab - Host Dashboard with performance metrics and quick actions
@@ -33,6 +35,7 @@ export default function OverviewTab({
   onUpdateAnnouncement,
   onDeleteAnnouncement,
   onTogglePin,
+  onRefresh,
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
@@ -378,10 +381,18 @@ export default function OverviewTab({
           )}
         </div>
 
-        {/* Payouts (Stripe Connect) */}
+        {/* Host Agreement — must be accepted before connecting payouts (§ onboarding flow) */}
+        <HostAgreementCard
+          agreement={competition?.agreement}
+          organizationId={competition?.organizationId}
+          onAccepted={onRefresh}
+        />
+
+        {/* Payouts (Stripe Connect) — locked until the Host Agreement is accepted */}
         <HostConnectCard
           connect={competition?.connect}
           organizationId={competition?.organizationId}
+          locked={!hasAcceptedCurrentAgreement(competition?.agreement)}
         />
 
         {/* Top Contestants */}

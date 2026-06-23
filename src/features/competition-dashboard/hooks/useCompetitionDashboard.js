@@ -189,7 +189,7 @@ export function useCompetitionDashboard(competitionId) {
             category:categories(id, name, slug),
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
-            organization:organizations(id, name, slug, logo_url, header_logo_url, website_url, stripe_connect_account_id, kyc_status, charges_enabled, payouts_enabled, connect_details_submitted),
+            organization:organizations(id, name, slug, logo_url, header_logo_url, website_url, stripe_connect_account_id, kyc_status, charges_enabled, payouts_enabled, connect_details_submitted, master_agreement_version, master_agreement_accepted_at),
             host:profiles!competitions_host_id_fkey(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery),
             voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance, judge_weight, finalized_at, finalized_snapshot),
             nomination_periods(id, start_date, end_date, period_order, title)
@@ -618,6 +618,13 @@ export function useCompetitionDashboard(competitionId) {
             chargesEnabled: !!competition.organization?.charges_enabled,
             payoutsEnabled: !!competition.organization?.payouts_enabled,
             detailsSubmitted: !!competition.organization?.connect_details_submitted,
+          },
+          // Promoter/Master Agreement acceptance for the host org. Must be
+          // accepted (current version) BEFORE connecting Stripe, and is a
+          // requirement for publishing (migration 083).
+          agreement: {
+            version: competition.organization?.master_agreement_version || null,
+            acceptedAt: competition.organization?.master_agreement_accepted_at || null,
           },
           themePrimary: competition.theme_primary || null,
           // Charity fields

@@ -87,6 +87,25 @@ const PUBLISH_REQUIREMENTS = {
   finaleDate: (c) => Boolean(c.finals_date),
 };
 
+// Host-onboarding gates for publishing: the Sponsor-of-record org must have
+// accepted the Promoter/Master Agreement AND completed Stripe Connect KYC before
+// a competition can go live (§ onboarding flow). These read the joined
+// `organization` row; when it isn't loaded they report `null` (unknown) so they
+// surface as advisory rather than falsely blocking.
+//
+// NOTE: currently surfaced as WARNINGS in validateAdminStatusChange. Flip them
+// to hard errors (and/or add a DB trigger) as a deliberate rollout step once the
+// orgs you intend to launch have signed + connected — a hard block today would
+// stop publishing for every org, since none have onboarded yet.
+const PUBLISH_ONBOARDING_GATES = {
+  agreementAccepted: (c) =>
+    c.organization ? Boolean(c.organization.master_agreement_version) : null,
+  stripeVerified: (c) =>
+    c.organization
+      ? c.organization.kyc_status === 'verified' && Boolean(c.organization.charges_enabled)
+      : null,
+};
+
 /**
  * Checks what requirements are met for a competition
  *
@@ -130,6 +149,12 @@ export function validateAdminStatusChange(competition, newStatus) {
     if (!requirements.host) errors.push('Host must be assigned');
     if (!requirements.nominationStart) warnings.push('Nomination start date not set');
     if (!requirements.finaleDate) warnings.push('Finale date not set');
+
+    // Onboarding gates (advisory for now — see PUBLISH_ONBOARDING_GATES note).
+    const agreementAccepted = PUBLISH_ONBOARDING_GATES.agreementAccepted(competition);
+    const stripeVerified = PUBLISH_ONBOARDING_GATES.stripeVerified(competition);
+    if (agreementAccepted === false) warnings.push('Host has not accepted the Promoter/Master Agreement');
+    if (stripeVerified === false) warnings.push('Host has not connected Stripe (payouts not verified)');
   }
 
   // Validate transition from completed/archived

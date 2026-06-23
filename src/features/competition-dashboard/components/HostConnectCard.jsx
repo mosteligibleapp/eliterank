@@ -16,7 +16,7 @@ import { useStripeConnect } from '../hooks/useStripeConnect';
  *   - connect: { hasAccount, kycStatus, chargesEnabled, payoutsEnabled, detailsSubmitted }
  *   - organizationId: string
  */
-export default function HostConnectCard({ connect, organizationId }) {
+export default function HostConnectCard({ connect, organizationId, locked = false }) {
   const { startOnboarding, starting, error } = useStripeConnect();
 
   const status = connect?.kycStatus || 'not_started';
@@ -35,7 +35,9 @@ export default function HostConnectCard({ connect, organizationId }) {
     ? { color: colors.status.error, Icon: AlertTriangle, label: 'Action needed', tint: 'rgba(239,68,68,0.1)' }
     : { color: colors.text.muted, Icon: Landmark, label: 'Not connected', tint: colors.background.secondary };
 
-  const description = verified
+  const description = locked
+    ? 'Accept the Host Agreement above first, then connect a Stripe account to receive your share of vote revenue.'
+    : verified
     ? 'Your Stripe account is verified. Payouts to your bank are enabled.'
     : pending
     ? 'Stripe is verifying your details. This usually takes a few minutes; we’ll update this automatically.'
@@ -113,7 +115,7 @@ export default function HostConnectCard({ connect, organizationId }) {
 
         <Button
           onClick={() => startOnboarding(organizationId)}
-          disabled={starting || !organizationId}
+          disabled={starting || !organizationId || locked}
           icon={starting ? Loader : ExternalLink}
           variant={verified ? 'secondary' : 'primary'}
         >
