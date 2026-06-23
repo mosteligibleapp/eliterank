@@ -41,9 +41,10 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     // format
     name: '', numberOfWinners: 5, entryType: 'nominations', pricePerVote: 1.0, selectionCriteria: 'votes',
     // eligibility
-    cityId: '', demographicId: '', territoryScope: 'city', eligibilityRadius: 100, relationshipStatus: '',
+    cityId: '', territoryScope: 'city', eligibilityRadius: 100, relationshipStatus: '',
+    gender: 'all', ageMin: 21, ageMax: '',
     // prizes
-    charityName: '',
+    charityYes: false, charityPercentage: 10,
     // misc
     season: new Date().getFullYear(),
   });
@@ -98,8 +99,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       if (form.templateId === CUSTOM_TEMPLATE.id && !form.customCategory.trim()) return 'Type your category.';
     }
     if (s === 'format') {
+      if (!form.name.trim()) return 'Enter a competition name.';
       if (!form.cityId) return 'Pick a city.';
-      if (!form.demographicId) return 'Pick who can enter (demographic).';
     }
     return null;
   };
@@ -138,7 +139,16 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     setError(null); setBusy(true);
     try {
       const city = lookups.cities.find((c) => c.id === form.cityId);
-      const demo = lookups.demographics.find((d) => d.id === form.demographicId);
+      // Map flexible gender + age range to a demographic bucket when one matches
+      // exactly; otherwise the eligibility_* fields are the source of truth.
+      const genderMatch = form.gender === 'all' ? null : form.gender;
+      const ageMin = form.ageMin === '' || form.ageMin == null ? null : Number(form.ageMin);
+      const ageMax = form.ageMax === '' || form.ageMax == null ? null : Number(form.ageMax);
+      const demo = lookups.demographics.find((d) =>
+        (d.gender || null) === genderMatch && (d.age_min ?? null) === ageMin && (d.age_max ?? null) === ageMax
+      ) || null;
+      const genderSlug = { all: 'all-genders', male: 'men', female: 'women', 'LGBTQ+': 'lgbtq-plus' }[form.gender] || 'open';
+      const demoSlug = demo?.slug || (ageMin ? `${genderSlug}-${ageMin}-${ageMax || 'plus'}` : 'open');
 
       // Resolve Sponsor-of-record org.
       let organizationId, orgName;
@@ -163,14 +173,14 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       const categoryId = template?.categorySlug ? (lookups.categories.find((c) => c.slug === template.categorySlug)?.id || null) : null;
 
       const name = form.name.trim() || `${orgName || 'Competition'} ${city?.name || ''}`.trim();
-      const slug = generateCompetitionSlug({ name, citySlug: city?.slug, season: Number(form.season), demographicSlug: demo?.slug });
+      const slug = generateCompetitionSlug({ name, citySlug: city?.slug, season: Number(form.season), demographicSlug: demoSlug });
 
       const { data: comp, error: e2 } = await supabase.rpc('create_host_competition', {
         p_payload: {
           organization_id: organizationId,
           city_id: form.cityId,
           category_id: categoryId,
-          demographic_id: form.demographicId,
+          demographic_id: demo?.id || null,
           category_template: categoryTemplate,
           territory_scope: form.territoryScope,
           season: Number(form.season),
@@ -184,10 +194,13 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       });
       if (e2) throw e2;
 
-      // Optional charity — set after create (host can update their own draft).
-      if (form.charityName.trim()) {
-        await supabase.from('competitions').update({ charity_name: form.charityName.trim() }).eq('id', comp.id);
-      }
+      // Persist flexible eligibility + charity % on the new draft (host can
+      // update their own competition via RLS). Name/details for charity come
+      // later in the dashboard.
+      const updates = { eligibility_gender: form.gender, eligibility_age_min: ageMin, eligibility_age_max: ageMax };
+      if (form.charityYes) updates.charity_percentage = Number(form.charityPercentage) || null;
+      await supabase.from('competitions').update(updates).eq('id', comp.id);
+
       onCreated?.(comp);
     } catch (err) {
       console.error('Failed to create competition:', err);
@@ -369,8 +382,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       {/* FORMAT */}
       {step === 'format' && !loading && (
         <div>
-          <label style={labelStyle}>Competition name (optional)</label>
-          <input style={fieldStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Auto-generated if left blank" />
+          <label style={labelStyle}>Competition name</label>
+          <input style={fieldStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Most Eligible Austin" />
           <div style={{ display: 'flex', gap: spacing.md }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Number of winners</label>
@@ -427,10 +440,22 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           </div>
 
           <label style={labelStyle}>Who can enter</label>
-          <select style={fieldStyle} value={form.demographicId} onChange={(e) => set('demographicId', e.target.value)}>
-            <option value="">Select a demographic…</option>
-            {lookups.demographics.map((d) => (<option key={d.id} value={d.id}>{d.label}</option>))}
-          </select>
+          <div style={{ display: 'flex', gap: spacing.md }}>
+            <div style={{ flex: 1.2 }}>
+              <select style={fieldStyle} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
+                <option value="all">All genders</option>
+                <option value="female">Women</option>
+                <option value="male">Men</option>
+                <option value="LGBTQ+">LGBTQ+</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <input style={fieldStyle} type="number" min="13" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <input style={fieldStyle} type="number" min="13" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} />
+            </div>
+          </div>
           {template?.relationshipRelevant && (
             <>
               <label style={labelStyle}>Relationship status</label>
@@ -450,10 +475,20 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       {step === 'prizes' && !loading && (
         <div>
           <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
-            You’ll add prizes, sponsors and IRL events in your dashboard after creating. You can link a charity now if you have one.
+            You’ll add prizes, sponsors and IRL events in your dashboard after creating.
           </p>
-          <label style={labelStyle}>Charity partner (optional)</label>
-          <input style={fieldStyle} value={form.charityName} onChange={(e) => set('charityName', e.target.value)} placeholder="Charity name" />
+          <label style={labelStyle}>Are you donating a portion of proceeds to charity?</label>
+          <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
+            <div style={{ ...cardStyle(form.charityYes), flex: 1 }} onClick={() => set('charityYes', true)}>Yes</div>
+            <div style={{ ...cardStyle(!form.charityYes), flex: 1 }} onClick={() => set('charityYes', false)}>No</div>
+          </div>
+          {form.charityYes && (
+            <>
+              <label style={labelStyle}>Percentage to charity (%)</label>
+              <input style={fieldStyle} type="number" min="1" max="100" value={form.charityPercentage} onChange={(e) => set('charityPercentage', e.target.value)} />
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>You’ll pick the specific charity later in your dashboard.</p>
+            </>
+          )}
           {errEl}
         </div>
       )}
@@ -471,7 +506,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             ['Price / vote', `$${form.pricePerVote}`],
             ['Territory', form.territoryScope === 'us' ? 'US-wide (+ Toronto)' : form.territoryScope === 'state' ? 'State-wide' : `City-wide (${form.eligibilityRadius} mi)`],
             ['City', lookups.cities.find((c) => c.id === form.cityId)?.name],
-            ['Who can enter', lookups.demographics.find((d) => d.id === form.demographicId)?.label],
+            ['Who can enter', `${({ all: 'All genders', female: 'Women', male: 'Men', 'LGBTQ+': 'LGBTQ+' }[form.gender] || '')}${form.ageMin ? `, ${form.ageMin}–${form.ageMax || '+'}` : ''}`],
+            ['Charity', form.charityYes ? `${form.charityPercentage}% of proceeds` : 'No'],
             ['Season', form.season],
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: `${spacing.sm} 0`, borderBottom: `1px solid ${colors.border.lighter}`, fontSize: typography.fontSize.sm }}>
