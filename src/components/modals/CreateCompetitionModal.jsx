@@ -101,6 +101,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     if (s === 'format') {
       if (!form.name.trim()) return 'Enter a competition name.';
       if (!form.cityId) return 'Pick a city.';
+      if (!form.ageMin || Number(form.ageMin) < 18) return 'Minimum age must be 18 or older — all competitions are 18+.';
+      if (form.ageMax && Number(form.ageMax) < Number(form.ageMin)) return 'Max age must be greater than the minimum.';
     }
     return null;
   };
@@ -450,12 +452,13 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <input style={fieldStyle} type="number" min="13" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} />
+              <input style={fieldStyle} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} />
             </div>
             <div style={{ flex: 1 }}>
-              <input style={fieldStyle} type="number" min="13" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} />
+              <input style={fieldStyle} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} />
             </div>
           </div>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginBottom: spacing.lg }}>All competitions are 18+.</p>
           {template?.relationshipRelevant && (
             <>
               <label style={labelStyle}>Relationship status</label>
