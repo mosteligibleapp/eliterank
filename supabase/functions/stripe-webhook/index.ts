@@ -207,7 +207,12 @@ serve(async (req) => {
             const chargeId = typeof paymentIntent.latest_charge === 'string'
               ? paymentIntent.latest_charge
               : paymentIntent.latest_charge.id
-            const charge = await stripe.charges.retrieve(chargeId)
+            // Direct charges live on the host's connected account, so the
+            // charge must be retrieved in that account's context (event.account
+            // is set for Connect events).
+            const charge = event.account
+              ? await stripe.charges.retrieve(chargeId, { stripeAccount: event.account })
+              : await stripe.charges.retrieve(chargeId)
             resolvedVoterEmail = charge.billing_details?.email || ''
           } catch (err) {
             console.warn('Could not retrieve charge for billing email:', err)

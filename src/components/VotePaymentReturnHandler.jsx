@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores';
 import { useToast } from '../contexts/ToastContext';
 
-const STRIPE_RETURN_PARAMS = ['payment_intent', 'payment_intent_client_secret', 'redirect_status'];
+const STRIPE_RETURN_PARAMS = ['payment_intent', 'payment_intent_client_secret', 'redirect_status', 'va'];
 
 /**
  * Stripe redirect-based payment methods (Cash App Pay, Amazon Pay, etc.) send
@@ -41,6 +41,10 @@ export default function VotePaymentReturnHandler() {
     const params = new URLSearchParams(location.search);
     const clientSecret = params.get('payment_intent_client_secret');
     const redirectStatus = params.get('redirect_status');
+    // Connected account the direct-charge PaymentIntent lives on (set by
+    // PaymentCheckoutForm's return_url). Needed to retrieve it with the right
+    // Stripe.js instance.
+    const connectedAccountId = params.get('va');
 
     if (!clientSecret || !redirectStatus) return;
 
@@ -69,7 +73,7 @@ export default function VotePaymentReturnHandler() {
 
     const run = async () => {
       try {
-        const stripe = await getStripe();
+        const stripe = await getStripe(connectedAccountId);
         if (!stripe) {
           stripParams();
           return;
