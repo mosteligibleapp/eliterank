@@ -112,6 +112,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       if (!form.hostType) return 'Choose individual or organization.';
       if (form.hostType === 'individual' && !form.soloName.trim()) return 'Enter your name — it’s shown as the host.';
       if (form.hostType === 'organization' && orgCreatingNew && !form.newOrgName.trim()) return 'Enter a name for your organization.';
+      if (form.hostType === 'organization' && orgCreatingNew && !form.orgWebsite.trim() && !form.orgInstagram.trim()) return 'Add a website or Instagram for your organization.';
     }
     if (s === 'template') {
       if (!form.templateId) return 'Pick a category template.';
@@ -399,9 +400,12 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
                     </label>
                   </div>
 
-                  <label style={labelStyle}>Website (optional)</label>
+                  <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginBottom: spacing.sm }}>
+                    Add at least one — a website or Instagram.
+                  </p>
+                  <label style={labelStyle}>Website</label>
                   <input style={fieldStyle} value={form.orgWebsite} onChange={(e) => set('orgWebsite', e.target.value)} placeholder="https://…" />
-                  <label style={labelStyle}>Instagram (optional)</label>
+                  <label style={labelStyle}>Instagram</label>
                   <input style={fieldStyle} value={form.orgInstagram} onChange={(e) => set('orgInstagram', e.target.value)} placeholder="@yourbrand" />
                 </>
               )}
