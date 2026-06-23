@@ -16,6 +16,11 @@ const STEP_LABELS = {
   prizes: 'Prizes & extras',
   review: 'Review',
 };
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME',
+  'MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI',
+  'SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY',
+];
 
 /**
  * CreateCompetitionModal — self-serve host create wizard.
@@ -42,7 +47,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     // format
     name: '', numberOfWinners: 5, entryType: 'nominations', pricePerVote: 1.0, selectionCriteria: 'votes',
     // eligibility
-    cityId: '', territoryScope: 'city', eligibilityRadius: 100, relationshipStatus: '',
+    cityId: '', territoryScope: 'city', territoryState: '', eligibilityRadius: 100, relationshipStatus: '',
     gender: 'all', ageMin: 21, ageMax: '',
     // prizes
     charityYes: false, charityPercentage: 10,
@@ -120,7 +125,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     }
     if (s === 'format') {
       if (!form.name.trim()) return 'Enter a competition name.';
-      if (!form.cityId) return 'Pick a city.';
+      if (form.territoryScope === 'city' && !form.cityId) return 'Pick a city.';
+      if (form.territoryScope === 'state' && !form.territoryState) return 'Pick a state.';
       if (!form.ageMin || Number(form.ageMin) < 18) return 'Minimum age must be 18 or older — all competitions are 18+.';
       if (form.ageMax && Number(form.ageMax) < Number(form.ageMin)) return 'Max age must be greater than the minimum.';
     }
@@ -198,12 +204,15 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       const categoryId = template?.categorySlug ? (lookups.categories.find((c) => c.slug === template.categorySlug)?.id || null) : null;
 
       const name = form.name.trim() || `${orgName || 'Competition'} ${city?.name || ''}`.trim();
-      const slug = generateCompetitionSlug({ name, citySlug: city?.slug, season: Number(form.season), demographicSlug: demoSlug });
+      const anchorSlug = form.territoryScope === 'city' ? (city?.slug || 'city')
+        : form.territoryScope === 'state' ? (form.territoryState || 'state').toLowerCase()
+        : 'usa';
+      const slug = generateCompetitionSlug({ name, citySlug: anchorSlug, season: Number(form.season), demographicSlug: demoSlug });
 
       const { data: comp, error: e2 } = await supabase.rpc('create_host_competition', {
         p_payload: {
           organization_id: organizationId,
-          city_id: form.cityId,
+          city_id: form.territoryScope === 'city' ? form.cityId : null,
           category_id: categoryId,
           demographic_id: demo?.id || null,
           category_template: categoryTemplate,
@@ -214,7 +223,6 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           entry_type: form.entryType,
           selection_criteria: form.selectionCriteria,
           eligibility_radius_miles: Number(form.eligibilityRadius) || 100,
-          price_per_vote: Number(form.pricePerVote) || 1.0,
         },
       });
       if (e2) throw e2;
@@ -222,7 +230,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       // Persist flexible eligibility + charity % on the new draft (host can
       // update their own competition via RLS). Name/details for charity come
       // later in the dashboard.
-      const updates = { eligibility_gender: form.gender, eligibility_age_min: ageMin, eligibility_age_max: ageMax };
+      const updates = { eligibility_gender: form.gender, eligibility_age_min: ageMin, eligibility_age_max: ageMax, territory_state: form.territoryScope === 'state' ? form.territoryState : null };
       if (form.charityYes) updates.charity_percentage = Number(form.charityPercentage) || null;
       await supabase.from('competitions').update(updates).eq('id', comp.id);
 
@@ -235,8 +243,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
 
   // ── Styles ──────────────────────────────────────────────────────────────────
   const labelStyle = { display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs };
-  const fieldStyle = { width: '100%', padding: spacing.md, background: colors.background.secondary, border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.lg, color: '#fff', fontSize: typography.fontSize.md, marginBottom: spacing.lg };
-  const cardStyle = (active) => ({ padding: spacing.lg, textAlign: 'center', cursor: 'pointer', background: active ? 'rgba(212,175,55,0.12)' : colors.background.secondary, border: `1px solid ${active ? colors.gold.primary : colors.border.light}`, borderRadius: borderRadius.lg, color: colors.text.primary });
+  const fieldStyle = { width: '100%', padding: spacing.md, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.lg, color: '#fff', fontSize: typography.fontSize.md, marginBottom: spacing.lg };
+  const cardStyle = (active) => ({ padding: spacing.lg, textAlign: 'center', cursor: 'pointer', background: active ? 'rgba(212,175,55,0.12)' : colors.background.secondary, border: `${active ? '2px' : '1px'} solid ${active ? colors.gold.primary : colors.border.primary}`, borderRadius: borderRadius.lg, color: colors.text.primary });
   const errEl = error ? <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{error}</p> : null;
 
   // ── Footer ──────────────────────────────────────────────────────────────────
@@ -288,7 +296,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             </div>
           </div>
 
-          <div style={{ marginTop: spacing.xl, padding: spacing.lg, background: colors.background.secondary, border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.lg }}>
+          <div style={{ marginTop: spacing.xl, padding: spacing.lg, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.lg }}>
             <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>
               Your competition won’t go live until:
             </p>
@@ -391,8 +399,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
                   <label style={labelStyle}>Logo</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
                     {form.orgLogoUrl
-                      ? <img src={form.orgLogoUrl} alt="Logo" style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'cover', border: `1px solid ${colors.border.light}` }} />
-                      : <div style={{ width: 48, height: 48, borderRadius: borderRadius.md, background: colors.background.secondary, border: `1px dashed ${colors.border.light}` }} />}
+                      ? <img src={form.orgLogoUrl} alt="Logo" style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'cover', border: `1px solid ${colors.border.primary}` }} />
+                      : <div style={{ width: 48, height: 48, borderRadius: borderRadius.md, background: colors.background.secondary, border: `1px dashed ${colors.border.primary}` }} />}
                     <label style={{ cursor: 'pointer', color: colors.gold.primary, fontSize: typography.fontSize.sm }}>
                       {uploadingLogo ? 'Uploading…' : (form.orgLogoUrl ? 'Replace logo' : 'Upload logo')}
                       <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingLogo}
@@ -458,22 +466,14 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
               </select>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: spacing.md }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>How they win</label>
-              <select style={fieldStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
-                <option value="votes">Public votes</option>
-                <option value="hybrid">Votes + judges (hybrid)</option>
-                <option value="judges">Judges only</option>
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Price per vote ($)</label>
-              <input style={fieldStyle} type="number" min="0.25" step="0.25" value={form.pricePerVote} onChange={(e) => set('pricePerVote', e.target.value)} />
-            </div>
-          </div>
+          <label style={labelStyle}>How they win</label>
+          <select style={fieldStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
+            <option value="votes">Public votes</option>
+            <option value="hybrid">Votes + judges (hybrid)</option>
+            <option value="judges">Judges only</option>
+          </select>
           <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginBottom: spacing.lg }}>
-            Entering is free for contestants; the competition is funded by paid voting.
+            Entering is free for contestants; the competition is funded by paid voting (pricing is set by EliteRank).
           </p>
 
           {/* Eligibility (folded into Format) */}
@@ -484,21 +484,35 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             <option value="us">US-wide (all US cities + Toronto)</option>
           </select>
 
-          <div style={{ display: 'flex', gap: spacing.md }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>{form.territoryScope === 'us' ? 'Home / anchor city' : 'City'}</label>
-              <select style={fieldStyle} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
-                <option value="">Select a city…</option>
-                {lookups.cities.map((c) => (<option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>))}
-              </select>
-            </div>
-            {form.territoryScope === 'city' && (
+          {form.territoryScope === 'city' && (
+            <div style={{ display: 'flex', gap: spacing.md }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>City</label>
+                <select style={fieldStyle} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
+                  <option value="">Select a city…</option>
+                  {lookups.cities.map((c) => (<option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>))}
+                </select>
+              </div>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Radius (miles)</label>
                 <input style={fieldStyle} type="number" min="1" value={form.eligibilityRadius} onChange={(e) => set('eligibilityRadius', e.target.value)} />
               </div>
-            )}
-          </div>
+            </div>
+          )}
+          {form.territoryScope === 'state' && (
+            <>
+              <label style={labelStyle}>State</label>
+              <select style={fieldStyle} value={form.territoryState} onChange={(e) => set('territoryState', e.target.value)}>
+                <option value="">Select a state…</option>
+                {US_STATES.map((s) => (<option key={s} value={s}>{s}</option>))}
+              </select>
+            </>
+          )}
+          {form.territoryScope === 'us' && (
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
+              Open to all US cities + Toronto.
+            </p>
+          )}
 
           <label style={labelStyle}>Who can enter</label>
           <div style={{ display: 'flex', gap: spacing.md }}>
@@ -565,14 +579,16 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             ['Winners', form.numberOfWinners],
             ['Entry', form.entryType === 'nominations' ? 'Nomination' : 'Application'],
             ['How they win', form.selectionCriteria === 'votes' ? 'Public votes' : form.selectionCriteria === 'judges' ? 'Judges only' : 'Votes + judges'],
-            ['Price / vote', `$${form.pricePerVote}`],
-            ['Territory', form.territoryScope === 'us' ? 'US-wide (+ Toronto)' : form.territoryScope === 'state' ? 'State-wide' : `City-wide (${form.eligibilityRadius} mi)`],
-            ['City', lookups.cities.find((c) => c.id === form.cityId)?.name],
+            ['Territory', form.territoryScope === 'us'
+              ? 'US-wide (all US + Toronto)'
+              : form.territoryScope === 'state'
+              ? `State-wide · ${form.territoryState || '—'}`
+              : `City-wide · ${lookups.cities.find((c) => c.id === form.cityId)?.name || '—'} (${form.eligibilityRadius} mi)`],
             ['Who can enter', `${({ all: 'All genders', female: 'Women', male: 'Men', 'LGBTQ+': 'LGBTQ+' }[form.gender] || '')}${form.ageMin ? `, ${form.ageMin}–${form.ageMax || '+'}` : ''}`],
             ['Charity', form.charityYes ? `${form.charityPercentage}% of proceeds` : 'No'],
             ['Season', form.season],
           ].map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: `${spacing.sm} 0`, borderBottom: `1px solid ${colors.border.lighter}`, fontSize: typography.fontSize.sm }}>
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: `${spacing.sm} 0`, borderBottom: `1px solid ${colors.border.secondary}`, fontSize: typography.fontSize.sm }}>
               <span style={{ color: colors.text.muted }}>{k}</span>
               <span style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>{v || '—'}</span>
             </div>

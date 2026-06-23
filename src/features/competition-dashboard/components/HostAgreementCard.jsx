@@ -141,7 +141,7 @@ export default function HostAgreementCard({ agreement, organizationId, onAccepte
             overflowY: 'auto',
             padding: spacing.lg,
             background: colors.background.secondary,
-            border: `1px solid ${colors.border.light}`,
+            border: `1px solid ${colors.border.primary}`,
             borderRadius: borderRadius.lg,
             color: colors.text.secondary,
             fontSize: typography.fontSize.sm,
