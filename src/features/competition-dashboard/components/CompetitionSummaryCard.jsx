@@ -1,74 +1,296 @@
-import React from 'react';
-import { ClipboardList, Pencil } from 'lucide-react';
+import React, { useState } from 'react';
+import { ClipboardList, Pencil, Loader, Check, X } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { supabase } from '../../../lib/supabase';
 import { isFieldEditable } from '../../../utils/fieldEditability';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, US_STATES } from '../../../lib/competitionTemplates';
 
 /**
  * CompetitionSummaryCard — recap of what the host set during onboarding, shown
- * on the dashboard Overview. Edit jumps to Setup; locked fields are noted by the
- * lifecycle phase.
+ * on the dashboard Overview. While the competition is still a draft these core
+ * fields are editable inline; once it's submitted for approval they lock and the
+ * card shows a read-only recap. The lock follows `isFieldEditable('category', …)`.
  */
 const GENDER = { all: 'All genders', female: 'Women', male: 'Men', 'LGBTQ+': 'LGBTQ+' };
 const ENTRY = { nominations: 'Nomination', applications: 'Application' };
 const WIN = { votes: 'Public votes', hybrid: 'Votes + judges', judges: 'Judges only' };
 
-export default function CompetitionSummaryCard({ competition, onNavigateToTab }) {
-  if (!competition) return null;
+const labelStyle = { display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs };
+const fieldStyle = { width: '100%', padding: spacing.sm, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md, color: '#fff', fontSize: typography.fontSize.sm };
+
+function templateIdFor(label) {
+  if (!label) return '';
+  const match = COMPETITION_TEMPLATES.find((t) => t.label === label);
+  return match ? match.id : CUSTOM_TEMPLATE.id;
+}
+
+export default function CompetitionSummaryCard({ competition, onNavigateToTab, onRefresh }) {
   const c = competition;
+  const editable = isFieldEditable('category', c?.status);
 
-  const territory = c.territoryScope === 'us'
-    ? 'US-wide (all US + Toronto)'
-    : c.territoryScope === 'state'
-    ? `State-wide · ${c.territoryState || '—'}`
-    : `City-wide${c.city ? ` · ${c.city}` : ''}${c.eligibilityRadiusMiles ? ` (${c.eligibilityRadiusMiles} mi)` : ''}`;
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [lookups, setLookups] = useState({ cities: [], categories: [], loaded: false });
+  const [form, setForm] = useState(null);
 
-  const whoCanEnter = `${GENDER[c.eligibilityGender] || 'All genders'}${
-    c.eligibilityAgeMin ? `, ${c.eligibilityAgeMin}–${c.eligibilityAgeMax || '+'}` : ''
-  }`;
+  if (!competition) return null;
 
-  const rows = [
-    ['Sponsor of record', c.organizationName],
-    ['Category', c.categoryTemplate || c.categoryName],
-    ['Territory', territory],
-    ['Who can enter', whoCanEnter],
-    ['Entry', ENTRY[c.entryType] || c.entryType],
-    ['How they win', WIN[c.selectionCriteria] || c.selectionCriteria],
-    ['Winners', c.numberOfWinners],
-    ['Charity', c.charityPercentage ? `${c.charityPercentage}% of proceeds` : 'None'],
-  ];
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  // The core onboarding fields lock at submit-for-approval.
-  const editable = isFieldEditable('category', c.status);
+  const startEdit = async () => {
+    const tplId = templateIdFor(c.categoryTemplate);
+    setForm({
+      templateId: tplId,
+      customCategory: tplId === CUSTOM_TEMPLATE.id ? (c.categoryTemplate || '') : '',
+      territoryScope: c.territoryScope || 'city',
+      territoryState: c.territoryState || '',
+      cityId: c.cityId || '',
+      eligibilityRadius: c.eligibilityRadiusMiles || 100,
+      gender: c.eligibilityGender || 'all',
+      ageMin: c.eligibilityAgeMin ?? 21,
+      ageMax: c.eligibilityAgeMax ?? '',
+      entryType: c.entryType || 'nominations',
+      selectionCriteria: c.selectionCriteria || 'votes',
+      numberOfWinners: c.numberOfWinners ?? 5,
+      charityYes: !!c.charityPercentage,
+      charityPercentage: c.charityPercentage || 10,
+    });
+    setError(null);
+    setEditing(true);
+    if (!lookups.loaded) {
+      const [cities, categories] = await Promise.all([
+        supabase.from('cities').select('id, name, state').order('name'),
+        supabase.from('categories').select('id, slug').eq('active', true),
+      ]);
+      setLookups({ cities: cities.data || [], categories: categories.data || [], loaded: true });
+    }
+  };
 
+  const cancelEdit = () => { setEditing(false); setError(null); };
+
+  const save = async () => {
+    // Validate
+    const ageMin = form.ageMin === '' || form.ageMin == null ? null : Number(form.ageMin);
+    const ageMax = form.ageMax === '' || form.ageMax == null ? null : Number(form.ageMax);
+    if (!ageMin || ageMin < 18) { setError('Minimum age must be 18 or older — all competitions are 18+.'); return; }
+    if (ageMax && ageMax < ageMin) { setError('Max age must be greater than the minimum.'); return; }
+    if (form.templateId === CUSTOM_TEMPLATE.id && !form.customCategory.trim()) { setError('Type your category.'); return; }
+    if (!form.templateId) { setError('Pick a category.'); return; }
+    if (form.territoryScope === 'city' && !form.cityId) { setError('Pick a city.'); return; }
+    if (form.territoryScope === 'state' && !form.territoryState) { setError('Pick a state.'); return; }
+
+    setSaving(true); setError(null);
+    try {
+      const tpl = form.templateId === CUSTOM_TEMPLATE.id
+        ? CUSTOM_TEMPLATE
+        : COMPETITION_TEMPLATES.find((t) => t.id === form.templateId);
+      const categoryTemplate = tpl?.id === CUSTOM_TEMPLATE.id ? form.customCategory.trim() : (tpl?.label || null);
+      const categoryId = tpl?.categorySlug
+        ? (lookups.categories.find((cat) => cat.slug === tpl.categorySlug)?.id || null)
+        : null;
+
+      const updates = {
+        category_template: categoryTemplate,
+        category_id: categoryId,
+        territory_scope: form.territoryScope,
+        territory_state: form.territoryScope === 'state' ? form.territoryState : null,
+        city_id: form.territoryScope === 'city' ? form.cityId : null,
+        eligibility_radius_miles: form.territoryScope === 'city' ? (Number(form.eligibilityRadius) || 100) : null,
+        eligibility_gender: form.gender,
+        eligibility_age_min: ageMin,
+        eligibility_age_max: ageMax,
+        entry_type: form.entryType,
+        selection_criteria: form.selectionCriteria,
+        number_of_winners: Number(form.numberOfWinners) || 1,
+        charity_percentage: form.charityYes ? (Number(form.charityPercentage) || null) : null,
+      };
+
+      const { error: e } = await supabase.from('competitions').update(updates).eq('id', c.id);
+      if (e) throw e;
+      setEditing(false);
+      onRefresh?.();
+    } catch (err) {
+      setError(err.message || 'Could not save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Read-only recap ─────────────────────────────────────────────────────────
+  if (!editing) {
+    const territory = c.territoryScope === 'us'
+      ? 'US-wide (all US + Toronto)'
+      : c.territoryScope === 'state'
+      ? `State-wide · ${c.territoryState || '—'}`
+      : `City-wide${c.city ? ` · ${c.city}` : ''}${c.eligibilityRadiusMiles ? ` (${c.eligibilityRadiusMiles} mi)` : ''}`;
+
+    const whoCanEnter = `${GENDER[c.eligibilityGender] || 'All genders'}${
+      c.eligibilityAgeMin ? `, ${c.eligibilityAgeMin}–${c.eligibilityAgeMax || '+'}` : ''
+    }`;
+
+    const rows = [
+      ['Sponsor of record', c.organizationName],
+      ['Category', c.categoryTemplate || c.categoryName],
+      ['Territory', territory],
+      ['Who can enter', whoCanEnter],
+      ['Entry', ENTRY[c.entryType] || c.entryType],
+      ['How they win', WIN[c.selectionCriteria] || c.selectionCriteria],
+      ['Winners', c.numberOfWinners],
+      ['Charity', c.charityPercentage ? `${c.charityPercentage}% of proceeds` : 'None'],
+    ];
+
+    return (
+      <Panel
+        title="Your competition"
+        icon={ClipboardList}
+        style={{ marginBottom: 0 }}
+        action={
+          editable ? (
+            <Button size="sm" variant="secondary" icon={Pencil} onClick={startEdit} style={{ width: 'auto' }}>Edit</Button>
+          ) : (
+            <Button size="sm" variant="secondary" icon={Pencil} onClick={() => onNavigateToTab?.('setup')} style={{ width: 'auto' }}>View in Setup</Button>
+          )
+        }
+      >
+        <div style={{ padding: spacing.xl }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: `${spacing.sm} ${spacing.xl}` }}>
+            {rows.map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>{k}</span>
+                <span style={{ color: colors.text.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>{v || '—'}</span>
+              </div>
+            ))}
+          </div>
+          {!editable && (
+            <p style={{
+              marginTop: spacing.lg, padding: spacing.sm, borderRadius: borderRadius.md,
+              background: colors.background.secondary, color: colors.text.muted, fontSize: typography.fontSize.xs,
+            }}>
+              These were locked when you submitted for approval and can't be changed.
+            </p>
+          )}
+        </div>
+      </Panel>
+    );
+  }
+
+  // ── Inline edit form ────────────────────────────────────────────────────────
   return (
     <Panel
       title="Your competition"
       icon={ClipboardList}
       style={{ marginBottom: 0 }}
       action={
-        <Button size="sm" variant="secondary" icon={Pencil} onClick={() => onNavigateToTab?.('setup')} style={{ width: 'auto' }}>
-          {editable ? 'Edit in Setup' : 'View in Setup'}
-        </Button>
+        <div style={{ display: 'flex', gap: spacing.sm }}>
+          <Button size="sm" variant="secondary" icon={X} onClick={cancelEdit} disabled={saving} style={{ width: 'auto' }}>Cancel</Button>
+          <Button size="sm" icon={saving ? Loader : Check} onClick={save} disabled={saving} style={{ width: 'auto' }}>{saving ? 'Saving…' : 'Save'}</Button>
+        </div>
       }
     >
       <div style={{ padding: spacing.xl }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: `${spacing.sm} ${spacing.xl}` }}>
-          {rows.map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>{k}</span>
-              <span style={{ color: colors.text.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>{v || '—'}</span>
+        <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginBottom: spacing.lg }}>
+          Sponsor of record: <strong style={{ color: colors.text.secondary }}>{c.organizationName || '—'}</strong>
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
+          {/* Category */}
+          <div>
+            <label style={labelStyle}>Category</label>
+            <select style={fieldStyle} value={form.templateId} onChange={(e) => set('templateId', e.target.value)}>
+              {COMPETITION_TEMPLATES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+              <option value={CUSTOM_TEMPLATE.id}>{CUSTOM_TEMPLATE.label}</option>
+            </select>
+            {form.templateId === CUSTOM_TEMPLATE.id && (
+              <input style={{ ...fieldStyle, marginTop: spacing.sm }} value={form.customCategory} onChange={(e) => set('customCategory', e.target.value)} placeholder="Your category" />
+            )}
+          </div>
+
+          {/* Winners */}
+          <div>
+            <label style={labelStyle}>Number of winners</label>
+            <input style={fieldStyle} type="number" min="1" value={form.numberOfWinners} onChange={(e) => set('numberOfWinners', e.target.value)} />
+          </div>
+
+          {/* Entry type */}
+          <div>
+            <label style={labelStyle}>Entry</label>
+            <select style={fieldStyle} value={form.entryType} onChange={(e) => set('entryType', e.target.value)}>
+              <option value="nominations">Nomination</option>
+              <option value="applications">Application</option>
+            </select>
+          </div>
+
+          {/* How they win */}
+          <div>
+            <label style={labelStyle}>How they win</label>
+            <select style={fieldStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
+              <option value="votes">Public votes</option>
+              <option value="hybrid">Votes + judges</option>
+              <option value="judges">Judges only</option>
+            </select>
+          </div>
+
+          {/* Territory */}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Territory</label>
+            <div style={{ display: 'flex', gap: spacing.md }}>
+              <select style={{ ...fieldStyle, flex: 1 }} value={form.territoryScope} onChange={(e) => set('territoryScope', e.target.value)}>
+                <option value="city">City-wide</option>
+                <option value="state">State-wide</option>
+                <option value="us">US-wide (all US + Toronto)</option>
+              </select>
+              {form.territoryScope === 'city' && (
+                <>
+                  <select style={{ ...fieldStyle, flex: 1.5 }} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
+                    <option value="">Select a city…</option>
+                    {lookups.cities.map((city) => (<option key={city.id} value={city.id}>{city.name}{city.state ? `, ${city.state}` : ''}</option>))}
+                  </select>
+                  <input style={{ ...fieldStyle, flex: 0.8 }} type="number" min="1" value={form.eligibilityRadius} onChange={(e) => set('eligibilityRadius', e.target.value)} placeholder="mi" />
+                </>
+              )}
+              {form.territoryScope === 'state' && (
+                <select style={{ ...fieldStyle, flex: 1 }} value={form.territoryState} onChange={(e) => set('territoryState', e.target.value)}>
+                  <option value="">Select a state…</option>
+                  {US_STATES.map((s) => (<option key={s} value={s}>{s}</option>))}
+                </select>
+              )}
             </div>
-          ))}
+          </div>
+
+          {/* Who can enter */}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Who can enter</label>
+            <div style={{ display: 'flex', gap: spacing.md }}>
+              <select style={{ ...fieldStyle, flex: 1.2 }} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
+                <option value="all">All genders</option>
+                <option value="female">Women</option>
+                <option value="male">Men</option>
+                <option value="LGBTQ+">LGBTQ+</option>
+              </select>
+              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} />
+              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} />
+            </div>
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>All competitions are 18+.</p>
+          </div>
+
+          {/* Charity */}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Donating a portion of proceeds to charity?</label>
+            <div style={{ display: 'flex', gap: spacing.md, alignItems: 'center' }}>
+              <select style={{ ...fieldStyle, flex: 1 }} value={form.charityYes ? 'yes' : 'no'} onChange={(e) => set('charityYes', e.target.value === 'yes')}>
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+              {form.charityYes && (
+                <input style={{ ...fieldStyle, flex: 1 }} type="number" min="1" max="100" value={form.charityPercentage} onChange={(e) => set('charityPercentage', e.target.value)} placeholder="% to charity" />
+              )}
+            </div>
+          </div>
         </div>
-        {!editable && (
-          <p style={{
-            marginTop: spacing.lg, padding: spacing.sm, borderRadius: borderRadius.md,
-            background: colors.background.secondary, color: colors.text.muted, fontSize: typography.fontSize.xs,
-          }}>
-            These were locked when you submitted for approval and can't be changed.
-          </p>
-        )}
+
+        {error && <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.lg }}>{error}</p>}
       </div>
     </Panel>
   );

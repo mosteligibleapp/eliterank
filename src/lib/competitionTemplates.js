@@ -25,6 +25,13 @@ export const COMPETITION_TEMPLATES = [
 // "Other" — host types their own category.
 export const CUSTOM_TEMPLATE = { id: 'custom', label: 'Other', icon: Pencil };
 
+// US states + DC — shared by the create wizard and the dashboard recap editor.
+export const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME',
+  'MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI',
+  'SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY',
+];
+
 export function findTemplate(id) {
   if (id === CUSTOM_TEMPLATE.id) return CUSTOM_TEMPLATE;
   return COMPETITION_TEMPLATES.find((t) => t.id === id) || null;

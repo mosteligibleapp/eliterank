@@ -4,7 +4,7 @@ import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { slugify, generateCompetitionSlug } from '../../utils/slugs';
-import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate } from '../../lib/competitionTemplates';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES } from '../../lib/competitionTemplates';
 
 const NEW_ORG = '__new__';
 // Config pages in order, per the onboarding flow.
@@ -16,12 +16,6 @@ const STEP_LABELS = {
   prizes: 'Prizes & extras',
   review: 'Review',
 };
-const US_STATES = [
-  'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME',
-  'MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI',
-  'SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY',
-];
-
 /**
  * CreateCompetitionModal — self-serve host create wizard.
  *

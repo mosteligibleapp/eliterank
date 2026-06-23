@@ -605,6 +605,7 @@ export function useCompetitionDashboard(competitionId) {
           minContestants: competition.min_contestants || 40,
           maxContestants: competition.max_contestants || null,
           // Onboarding-set fields (the create wizard) — for the overview recap.
+          cityId: competition.city_id || null,
           categoryTemplate: competition.category_template || null,
           territoryScope: competition.territory_scope || null,
           territoryState: competition.territory_state || null,

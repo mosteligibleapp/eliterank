@@ -170,7 +170,7 @@ export default function OverviewTab({
       {mode === 'launch' && (
         <>
           <HostLaunchStatus competition={competition} rulesComplete={rulesComplete} onRefresh={onRefresh} onNavigateToTab={onNavigateToTab} />
-          <CompetitionSummaryCard competition={competition} onNavigateToTab={onNavigateToTab} />
+          <CompetitionSummaryCard competition={competition} onNavigateToTab={onNavigateToTab} onRefresh={onRefresh} />
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? spacing.lg : spacing.xl, alignItems: 'start' }}>
             <div id="host-agreement-card">
               <HostAgreementCard agreement={competition?.agreement} organizationId={competition?.organizationId} onAccepted={onRefresh} />
