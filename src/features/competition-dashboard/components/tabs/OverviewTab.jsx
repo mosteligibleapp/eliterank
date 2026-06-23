@@ -12,6 +12,7 @@ import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
 import HostConnectCard from '../HostConnectCard';
 import HostAgreementCard from '../HostAgreementCard';
+import HostLaunchStatus from '../HostLaunchStatus';
 import { hasAcceptedCurrentAgreement } from '../../../../lib/hostAgreement';
 
 /**
@@ -154,8 +155,17 @@ export default function OverviewTab({
     setShowAnnouncementForm(false);
   };
 
+  // "Rules entered" gate for the launch tracker: a name, an entry window and at
+  // least one dated voting round (the core scheduling rules).
+  const rulesComplete = !!(
+    competition?.name &&
+    ((competition?.nomination_periods || []).some((p) => p.start_date && p.end_date) || competition?.nominationStart) &&
+    (competition?.voting_rounds || []).some((r) => r.start_date && r.end_date)
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
+      <HostLaunchStatus competition={competition} rulesComplete={rulesComplete} onRefresh={onRefresh} />
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
