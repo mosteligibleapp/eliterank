@@ -1,47 +1,52 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader, Sparkles, User, Building2, ArrowLeft } from 'lucide-react';
+import { Loader, Sparkles, User, Building2, ArrowLeft, ArrowRight, CheckCircle, Info, CalendarClock } from 'lucide-react';
 import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { slugify, generateCompetitionSlug } from '../../utils/slugs';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate } from '../../lib/competitionTemplates';
 
 const NEW_ORG = '__new__';
+// Config pages in order, per the onboarding flow.
+const CONFIG_ORDER = ['sponsor', 'template', 'format', 'eligibility', 'prizes', 'review'];
 
 /**
- * CreateCompetitionModal — self-serve host competition creation.
+ * CreateCompetitionModal — self-serve host create wizard.
  *
- * Starts with the Sponsor-of-record choice (Individual vs Organization), per the
- * onboarding flow, then collects the competition basics. The creator becomes the
- * host (no assignment step). Creates a DRAFT via the locked create_host_*
- * RPCs; publishing stays admin-approved.
- *
- * Props: isOpen, onClose, userId, onCreated(competition)
+ * Flow: Ready? → (Learn more = lead capture) / Set up now → Individual vs
+ * Organization → 5-page configure (Category template · Format · Eligibility ·
+ * Prizes · Review) → creates a DRAFT (creator = host). Publishing stays
+ * admin-approved; the agreement + Stripe are handled in the dashboard.
  */
 export default function CreateCompetitionModal({ isOpen, onClose, userId, onCreated }) {
-  const [hostType, setHostType] = useState(null); // 'individual' | 'organization'
+  const [step, setStep] = useState('ready');
   const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [leadDone, setLeadDone] = useState(false);
   const [lookups, setLookups] = useState({ cities: [], categories: [], demographics: [], orgs: [] });
+
   const [form, setForm] = useState({
-    soloName: '',
-    organizationId: '',
-    newOrgName: '',
-    orgType: 'company',
-    name: '',
-    cityId: '',
-    categoryId: '',
-    demographicId: '',
+    // sponsor
+    hostType: '', soloName: '', organizationId: '', newOrgName: '', orgType: 'company',
+    // template
+    templateId: '', customCategory: '',
+    // format
+    name: '', numberOfWinners: 5, entryType: 'nominations', pricePerVote: 1.0, selectionCriteria: 'votes',
+    // eligibility
+    cityId: '', demographicId: '', eligibilityRadius: 100, relationshipStatus: '',
+    // prizes
+    charityName: '',
+    // misc
     season: new Date().getFullYear(),
-    numberOfWinners: 5,
-    pricePerVote: 1.0,
   });
+  const [lead, setLead] = useState({ leadType: 'info_packet', name: '', email: '', phone: '', message: '' });
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setL = (k, v) => setLead((l) => ({ ...l, [k]: v }));
 
-  // Reset to the choice screen each time the modal opens.
   useEffect(() => {
-    if (isOpen) { setHostType(null); setError(null); }
+    if (isOpen) { setStep('ready'); setError(null); setLeadDone(false); }
   }, [isOpen]);
 
   useEffect(() => {
@@ -49,32 +54,19 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     let cancelled = false;
     (async () => {
       setLoading(true);
-      setError(null);
       try {
         const [cities, categories, demographics, orgs, profile] = await Promise.all([
           supabase.from('cities').select('id, name, state, slug').order('name'),
           supabase.from('categories').select('id, name, slug').eq('active', true).order('name'),
           supabase.from('demographics').select('id, label, slug').eq('active', true).order('id'),
-          userId
-            ? supabase.from('organizations').select('id, name, slug, org_type').eq('owner_id', userId).order('name')
-            : Promise.resolve({ data: [] }),
-          userId
-            ? supabase.from('profiles').select('first_name, last_name').eq('id', userId).maybeSingle()
-            : Promise.resolve({ data: null }),
+          userId ? supabase.from('organizations').select('id, name, slug, org_type').eq('owner_id', userId).order('name') : Promise.resolve({ data: [] }),
+          userId ? supabase.from('profiles').select('first_name, last_name, email').eq('id', userId).maybeSingle() : Promise.resolve({ data: null }),
         ]);
         if (cancelled) return;
-        setLookups({
-          cities: cities.data || [],
-          categories: categories.data || [],
-          demographics: demographics.data || [],
-          orgs: orgs.data || [],
-        });
+        setLookups({ cities: cities.data || [], categories: categories.data || [], demographics: demographics.data || [], orgs: orgs.data || [] });
         const fullName = `${profile.data?.first_name || ''} ${profile.data?.last_name || ''}`.trim();
-        setForm((f) => ({
-          ...f,
-          soloName: f.soloName || fullName,
-          organizationId: orgs.data?.[0]?.id || NEW_ORG,
-        }));
+        setForm((f) => ({ ...f, soloName: f.soloName || fullName, organizationId: orgs.data?.[0]?.id || NEW_ORG }));
+        setLead((l) => ({ ...l, name: l.name || fullName, email: l.email || profile.data?.email || '' }));
       } catch (err) {
         if (!cancelled) setError(err.message || 'Failed to load options.');
       } finally {
@@ -84,164 +76,236 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     return () => { cancelled = true; };
   }, [isOpen, userId]);
 
-  const handleCreate = useCallback(async () => {
+  const template = findTemplate(form.templateId);
+  const orgCreatingNew = lookups.orgs.length === 0 || form.organizationId === NEW_ORG;
+
+  // ── Validation per config step ──────────────────────────────────────────────
+  const validateStep = (s) => {
+    if (s === 'sponsor') {
+      if (!form.hostType) return 'Choose individual or organization.';
+      if (form.hostType === 'individual' && !form.soloName.trim()) return 'Enter your name — it’s shown as the host.';
+      if (form.hostType === 'organization' && orgCreatingNew && !form.newOrgName.trim()) return 'Enter a name for your organization.';
+    }
+    if (s === 'template') {
+      if (!form.templateId) return 'Pick a category template.';
+      if (form.templateId === CUSTOM_TEMPLATE.id && !form.customCategory.trim()) return 'Type your category.';
+    }
+    if (s === 'eligibility') {
+      if (!form.cityId) return 'Pick a city.';
+      if (!form.demographicId) return 'Pick who can enter (demographic).';
+    }
+    return null;
+  };
+
+  const goNext = () => {
+    const idx = CONFIG_ORDER.indexOf(step);
+    const err = validateStep(step);
+    if (err) { setError(err); return; }
     setError(null);
-    const city = lookups.cities.find((c) => c.id === form.cityId);
-    const demo = lookups.demographics.find((d) => d.id === form.demographicId);
+    setStep(CONFIG_ORDER[idx + 1]);
+  };
+  const goBack = () => {
+    const idx = CONFIG_ORDER.indexOf(step);
+    if (idx <= 0) { setStep('ready'); return; }
+    setError(null);
+    setStep(CONFIG_ORDER[idx - 1]);
+  };
 
-    if (!form.cityId || !form.categoryId || !form.demographicId) {
-      setError('Pick a city, category and demographic.');
-      return;
-    }
-    if (hostType === 'individual' && !form.soloName.trim()) {
-      setError('Enter your name — it’s shown as the host.');
-      return;
-    }
-    const orgCreatingNew = lookups.orgs.length === 0 || form.organizationId === NEW_ORG;
-    if (hostType === 'organization' && orgCreatingNew && !form.newOrgName.trim()) {
-      setError('Enter a name for your organization.');
-      return;
-    }
-
-    setCreating(true);
+  // ── Submit lead ─────────────────────────────────────────────────────────────
+  const submitLead = async () => {
+    if (!lead.name.trim() || !lead.email.trim()) { setError('Name and email are required.'); return; }
+    setBusy(true); setError(null);
     try {
-      // Resolve the Sponsor-of-record org.
-      let organizationId;
-      let orgName;
-      if (hostType === 'individual') {
-        // Solo host: reuse their personal (individual) org if one exists, else create it.
+      const { error: e } = await supabase.rpc('submit_host_lead', {
+        p_lead_type: lead.leadType, p_name: lead.name, p_email: lead.email, p_phone: lead.phone, p_message: lead.message,
+      });
+      if (e) throw e;
+      setLeadDone(true);
+    } catch (err) {
+      setError(err.message || 'Could not submit. Please try again.');
+    } finally { setBusy(false); }
+  };
+
+  // ── Create competition ──────────────────────────────────────────────────────
+  const handleCreate = useCallback(async () => {
+    setError(null); setBusy(true);
+    try {
+      const city = lookups.cities.find((c) => c.id === form.cityId);
+      const demo = lookups.demographics.find((d) => d.id === form.demographicId);
+
+      // Resolve Sponsor-of-record org.
+      let organizationId, orgName;
+      if (form.hostType === 'individual') {
         const personal = lookups.orgs.find((o) => o.org_type === 'individual');
-        if (personal) {
-          organizationId = personal.id;
-          orgName = personal.name;
-        } else {
+        if (personal) { organizationId = personal.id; orgName = personal.name; }
+        else {
           const name = form.soloName.trim();
-          const { data: org, error: orgErr } = await supabase.rpc('create_host_organization', {
-            p_name: name, p_slug: slugify(name), p_type: 'individual',
-          });
-          if (orgErr) throw orgErr;
-          organizationId = org.id;
-          orgName = org.name;
+          const { data: org, error: e } = await supabase.rpc('create_host_organization', { p_name: name, p_slug: slugify(name), p_type: 'individual' });
+          if (e) throw e; organizationId = org.id; orgName = org.name;
         }
       } else if (orgCreatingNew) {
         const name = form.newOrgName.trim();
-        const { data: org, error: orgErr } = await supabase.rpc('create_host_organization', {
-          p_name: name, p_slug: slugify(name), p_type: form.orgType,
-        });
-        if (orgErr) throw orgErr;
-        organizationId = org.id;
-        orgName = org.name;
+        const { data: org, error: e } = await supabase.rpc('create_host_organization', { p_name: name, p_slug: slugify(name), p_type: form.orgType });
+        if (e) throw e; organizationId = org.id; orgName = org.name;
       } else {
-        organizationId = form.organizationId;
-        orgName = lookups.orgs.find((o) => o.id === organizationId)?.name;
+        organizationId = form.organizationId; orgName = lookups.orgs.find((o) => o.id === organizationId)?.name;
       }
 
-      const name = form.name.trim() || `${orgName || 'Competition'} ${city?.name || ''}`.trim();
-      const slug = generateCompetitionSlug({
-        name, citySlug: city?.slug, season: Number(form.season), demographicSlug: demo?.slug,
-      });
+      // Map template → category lookup when one fits; always store the template label.
+      const categoryTemplate = template?.id === CUSTOM_TEMPLATE.id ? form.customCategory.trim() : (template?.label || null);
+      const categoryId = template?.categorySlug ? (lookups.categories.find((c) => c.slug === template.categorySlug)?.id || null) : null;
 
-      const { data: comp, error: compErr } = await supabase.rpc('create_host_competition', {
+      const name = form.name.trim() || `${orgName || 'Competition'} ${city?.name || ''}`.trim();
+      const slug = generateCompetitionSlug({ name, citySlug: city?.slug, season: Number(form.season), demographicSlug: demo?.slug });
+
+      const { data: comp, error: e2 } = await supabase.rpc('create_host_competition', {
         p_payload: {
           organization_id: organizationId,
           city_id: form.cityId,
-          category_id: form.categoryId,
+          category_id: categoryId,
           demographic_id: form.demographicId,
+          category_template: categoryTemplate,
           season: Number(form.season),
-          name,
-          slug,
+          name, slug,
           number_of_winners: Number(form.numberOfWinners) || 5,
+          entry_type: form.entryType,
+          selection_criteria: form.selectionCriteria,
+          eligibility_radius_miles: Number(form.eligibilityRadius) || 100,
           price_per_vote: Number(form.pricePerVote) || 1.0,
         },
       });
-      if (compErr) throw compErr;
+      if (e2) throw e2;
+
+      // Optional charity — set after create (host can update their own draft).
+      if (form.charityName.trim()) {
+        await supabase.from('competitions').update({ charity_name: form.charityName.trim() }).eq('id', comp.id);
+      }
       onCreated?.(comp);
     } catch (err) {
       console.error('Failed to create competition:', err);
       setError(err.message || 'Could not create the competition. Please try again.');
-    } finally {
-      setCreating(false);
-    }
-  }, [form, lookups, hostType, onCreated]);
+    } finally { setBusy(false); }
+  }, [form, lookups, template, orgCreatingNew, onCreated]);
 
-  const labelStyle = {
-    display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs,
-  };
-  const fieldStyle = {
-    width: '100%', padding: spacing.md, background: colors.background.secondary,
-    border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.lg,
-    color: '#fff', fontSize: typography.fontSize.md, marginBottom: spacing.lg,
-  };
-  const choiceCardStyle = (active) => ({
-    flex: 1, padding: spacing.xl, textAlign: 'center', cursor: 'pointer',
-    background: active ? 'rgba(212,175,55,0.1)' : colors.background.secondary,
-    border: `1px solid ${active ? colors.gold.primary : colors.border.light}`,
-    borderRadius: borderRadius.lg, color: colors.text.primary,
-  });
+  // ── Styles ──────────────────────────────────────────────────────────────────
+  const labelStyle = { display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs };
+  const fieldStyle = { width: '100%', padding: spacing.md, background: colors.background.secondary, border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.lg, color: '#fff', fontSize: typography.fontSize.md, marginBottom: spacing.lg };
+  const cardStyle = (active) => ({ padding: spacing.lg, textAlign: 'center', cursor: 'pointer', background: active ? 'rgba(212,175,55,0.12)' : colors.background.secondary, border: `1px solid ${active ? colors.gold.primary : colors.border.light}`, borderRadius: borderRadius.lg, color: colors.text.primary });
+  const errEl = error ? <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{error}</p> : null;
+
+  // ── Footer ──────────────────────────────────────────────────────────────────
+  const footer = (() => {
+    if (step === 'ready') return <Button variant="secondary" onClick={onClose} style={{ width: 'auto' }}>Cancel</Button>;
+    if (step === 'learn') return (
+      <>
+        <Button variant="secondary" onClick={() => { setStep('ready'); setError(null); }} icon={ArrowLeft} disabled={busy} style={{ width: 'auto' }}>Back</Button>
+        {!leadDone && <Button onClick={submitLead} disabled={busy} icon={busy ? Loader : CheckCircle}>{busy ? 'Sending…' : 'Send'}</Button>}
+      </>
+    );
+    if (step === 'review') return (
+      <>
+        <Button variant="secondary" onClick={goBack} icon={ArrowLeft} disabled={busy} style={{ width: 'auto' }}>Back</Button>
+        <Button onClick={handleCreate} disabled={busy || loading} icon={busy ? Loader : Sparkles}>{busy ? 'Creating…' : 'Create draft'}</Button>
+      </>
+    );
+    // config steps
+    return (
+      <>
+        <Button variant="secondary" onClick={goBack} icon={ArrowLeft} style={{ width: 'auto' }}>Back</Button>
+        <Button onClick={goNext} icon={ArrowRight} disabled={loading}>Next</Button>
+      </>
+    );
+  })();
+
+  const stepNumber = CONFIG_ORDER.indexOf(step);
+  const title = step === 'ready' || step === 'learn' ? 'Launch a competition'
+    : `Create a competition · Step ${stepNumber + 1} of ${CONFIG_ORDER.length}`;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={() => !creating && onClose?.()}
-      title="Create a competition"
-      maxWidth="560px"
-      footer={
-        hostType ? (
-          <>
-            <Button variant="secondary" onClick={() => setHostType(null)} disabled={creating} icon={ArrowLeft} style={{ width: 'auto' }}>
-              Back
-            </Button>
-            <Button onClick={handleCreate} disabled={creating || loading} icon={creating ? Loader : Sparkles}>
-              {creating ? 'Creating…' : 'Create draft'}
-            </Button>
-          </>
-        ) : (
-          <Button variant="secondary" onClick={onClose} style={{ width: 'auto' }}>Cancel</Button>
-        )
-      }
-    >
-      {/* Step 1 — Sponsor of record */}
-      {!hostType && (
+    <Modal isOpen={isOpen} onClose={() => !busy && onClose?.()} title={title} maxWidth="600px" footer={footer}>
+      {/* READY */}
+      {step === 'ready' && (
         <div>
           <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.md, marginBottom: spacing.xl }}>
-            Are you hosting as an individual or an organization?
+            Ready to set up your competition now?
           </p>
           <div style={{ display: 'flex', gap: spacing.lg }}>
-            <div style={choiceCardStyle(false)} onClick={() => setHostType('individual')}>
-              <User size={28} color={colors.gold.primary} style={{ marginBottom: spacing.md }} />
-              <div style={{ fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>Individual</div>
-              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-                You're the host and the Sponsor of record.
-              </div>
+            <div style={{ ...cardStyle(false), flex: 1 }} onClick={() => { setError(null); setStep('sponsor'); }}>
+              <Sparkles size={26} color={colors.gold.primary} style={{ marginBottom: spacing.sm }} />
+              <div style={{ fontWeight: typography.fontWeight.semibold }}>Yes, set it up now</div>
+              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>Build your draft in a few steps.</div>
             </div>
-            <div style={choiceCardStyle(false)} onClick={() => setHostType('organization')}>
-              <Building2 size={28} color={colors.gold.primary} style={{ marginBottom: spacing.md }} />
-              <div style={{ fontWeight: typography.fontWeight.semibold, marginBottom: spacing.xs }}>Organization</div>
-              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-                A company, non-profit or agency is the Sponsor of record.
-              </div>
+            <div style={{ ...cardStyle(false), flex: 1 }} onClick={() => { setError(null); setStep('learn'); }}>
+              <Info size={26} color={colors.gold.primary} style={{ marginBottom: spacing.sm }} />
+              <div style={{ fontWeight: typography.fontWeight.semibold }}>Learn more first</div>
+              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>Get the host info packet or schedule a call.</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Step 2 — details */}
-      {hostType && (loading ? (
+      {/* LEARN — lead capture */}
+      {step === 'learn' && (leadDone ? (
+        <div style={{ textAlign: 'center', padding: spacing.xl }}>
+          <CheckCircle size={40} color={colors.status.success} style={{ marginBottom: spacing.md }} />
+          <h3 style={{ marginBottom: spacing.sm }}>Thanks — we’ll be in touch.</h3>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+            You can come back and set up your competition any time.
+          </p>
+        </div>
+      ) : (
+        <div>
+          <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
+            <div style={{ ...cardStyle(lead.leadType === 'info_packet'), flex: 1 }} onClick={() => setL('leadType', 'info_packet')}>
+              <Info size={20} color={colors.gold.primary} /><div style={{ marginTop: spacing.xs, fontSize: typography.fontSize.sm }}>Host info packet</div>
+            </div>
+            <div style={{ ...cardStyle(lead.leadType === 'schedule_call'), flex: 1 }} onClick={() => setL('leadType', 'schedule_call')}>
+              <CalendarClock size={20} color={colors.gold.primary} /><div style={{ marginTop: spacing.xs, fontSize: typography.fontSize.sm }}>Schedule a call</div>
+            </div>
+          </div>
+          <label style={labelStyle}>Name</label>
+          <input style={fieldStyle} value={lead.name} onChange={(e) => setL('name', e.target.value)} />
+          <label style={labelStyle}>Email</label>
+          <input style={fieldStyle} value={lead.email} onChange={(e) => setL('email', e.target.value)} />
+          <label style={labelStyle}>Phone (optional)</label>
+          <input style={fieldStyle} value={lead.phone} onChange={(e) => setL('phone', e.target.value)} />
+          <label style={labelStyle}>Anything you’d like us to know? (optional)</label>
+          <textarea style={{ ...fieldStyle, minHeight: 80 }} value={lead.message} onChange={(e) => setL('message', e.target.value)} />
+          {errEl}
+        </div>
+      ))}
+
+      {/* loading guard for config steps */}
+      {CONFIG_ORDER.includes(step) && loading && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: spacing.xxl, color: colors.text.secondary }}>
           <Loader size={22} style={{ animation: 'spin 1s linear infinite' }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
-      ) : (
+      )}
+
+      {/* SPONSOR */}
+      {step === 'sponsor' && !loading && (
         <div>
-          {hostType === 'individual' ? (
+          <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>Are you hosting as an individual or an organization?</p>
+          <div style={{ display: 'flex', gap: spacing.lg, marginBottom: spacing.xl }}>
+            <div style={{ ...cardStyle(form.hostType === 'individual'), flex: 1 }} onClick={() => set('hostType', 'individual')}>
+              <User size={24} color={colors.gold.primary} /><div style={{ fontWeight: typography.fontWeight.semibold, marginTop: spacing.xs }}>Individual</div>
+              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>You’re the host & Sponsor of record.</div>
+            </div>
+            <div style={{ ...cardStyle(form.hostType === 'organization'), flex: 1 }} onClick={() => set('hostType', 'organization')}>
+              <Building2 size={24} color={colors.gold.primary} /><div style={{ fontWeight: typography.fontWeight.semibold, marginTop: spacing.xs }}>Organization</div>
+              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>A company, non-profit or agency.</div>
+            </div>
+          </div>
+
+          {form.hostType === 'individual' && (
             <>
               <label style={labelStyle}>Your name (shown as the host / Sponsor of record)</label>
               <input style={fieldStyle} value={form.soloName} onChange={(e) => set('soloName', e.target.value)} placeholder="Your full name" />
             </>
-          ) : (
+          )}
+          {form.hostType === 'organization' && (
             <>
-              {/* "Select" only shows if you already belong to organizations. */}
               {lookups.orgs.length > 0 && (
                 <>
                   <label style={labelStyle}>Organization</label>
@@ -251,7 +315,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
                   </select>
                 </>
               )}
-              {(lookups.orgs.length === 0 || form.organizationId === NEW_ORG) && (
+              {orgCreatingNew && (
                 <>
                   <label style={labelStyle}>Organization name</label>
                   <input style={fieldStyle} value={form.newOrgName} onChange={(e) => set('newOrgName', e.target.value)} placeholder="e.g. Your Brand LLC" />
@@ -265,48 +329,141 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
               )}
             </>
           )}
+          {errEl}
+        </div>
+      )}
 
+      {/* TEMPLATE */}
+      {step === 'template' && !loading && (
+        <div>
+          <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>Pick a category template — it pre-fills sensible defaults you can tweak.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: spacing.md }}>
+            {[...COMPETITION_TEMPLATES, CUSTOM_TEMPLATE].map((t) => {
+              const Icon = t.icon;
+              return (
+                <div key={t.id} style={cardStyle(form.templateId === t.id)} onClick={() => set('templateId', t.id)}>
+                  <Icon size={22} color={colors.gold.primary} />
+                  <div style={{ marginTop: spacing.xs, fontSize: typography.fontSize.sm }}>{t.label}</div>
+                </div>
+              );
+            })}
+          </div>
+          {form.templateId === CUSTOM_TEMPLATE.id && (
+            <div style={{ marginTop: spacing.lg }}>
+              <label style={labelStyle}>Your category</label>
+              <input style={fieldStyle} value={form.customCategory} onChange={(e) => set('customCategory', e.target.value)} placeholder="e.g. Chefs, Realtors…" />
+            </div>
+          )}
+          {errEl}
+        </div>
+      )}
+
+      {/* FORMAT */}
+      {step === 'format' && !loading && (
+        <div>
+          <label style={labelStyle}>Competition name (optional)</label>
+          <input style={fieldStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Auto-generated if left blank" />
+          <div style={{ display: 'flex', gap: spacing.md }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Number of winners</label>
+              <input style={fieldStyle} type="number" min="1" value={form.numberOfWinners} onChange={(e) => set('numberOfWinners', e.target.value)} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Entry type</label>
+              <select style={fieldStyle} value={form.entryType} onChange={(e) => set('entryType', e.target.value)}>
+                <option value="nominations">Nomination</option>
+                <option value="applications">Application</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: spacing.md }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>How they win</label>
+              <select style={fieldStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
+                <option value="votes">Public votes</option>
+                <option value="hybrid">Votes + judges (hybrid)</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Price per vote ($)</label>
+              <input style={fieldStyle} type="number" min="0.25" step="0.25" value={form.pricePerVote} onChange={(e) => set('pricePerVote', e.target.value)} />
+            </div>
+          </div>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
+            Entering is free for contestants; the competition is funded by paid voting.
+          </p>
+          {errEl}
+        </div>
+      )}
+
+      {/* ELIGIBILITY */}
+      {step === 'eligibility' && !loading && (
+        <div>
           <label style={labelStyle}>City</label>
           <select style={fieldStyle} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
             <option value="">Select a city…</option>
             {lookups.cities.map((c) => (<option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>))}
           </select>
-
-          <label style={labelStyle}>Category</label>
-          <select style={fieldStyle} value={form.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
-            <option value="">Select a category…</option>
-            {lookups.categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-          </select>
-
-          <label style={labelStyle}>Demographic</label>
+          <label style={labelStyle}>Who can enter</label>
           <select style={fieldStyle} value={form.demographicId} onChange={(e) => set('demographicId', e.target.value)}>
             <option value="">Select a demographic…</option>
             {lookups.demographics.map((d) => (<option key={d.id} value={d.id}>{d.label}</option>))}
           </select>
-
-          <label style={labelStyle}>Competition name (optional)</label>
-          <input style={fieldStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Auto-generated if left blank" />
-
-          <div style={{ display: 'flex', gap: spacing.md }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Season</label>
-              <input style={fieldStyle} type="number" value={form.season} onChange={(e) => set('season', e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Winners</label>
-              <input style={fieldStyle} type="number" min="1" value={form.numberOfWinners} onChange={(e) => set('numberOfWinners', e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Price / vote ($)</label>
-              <input style={fieldStyle} type="number" min="0.25" step="0.25" value={form.pricePerVote} onChange={(e) => set('pricePerVote', e.target.value)} />
-            </div>
-          </div>
-
-          {error && (
-            <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{error}</p>
+          <label style={labelStyle}>Territory radius (miles)</label>
+          <input style={fieldStyle} type="number" min="1" value={form.eligibilityRadius} onChange={(e) => set('eligibilityRadius', e.target.value)} />
+          {template?.relationshipRelevant && (
+            <>
+              <label style={labelStyle}>Relationship status</label>
+              <select style={fieldStyle} value={form.relationshipStatus} onChange={(e) => set('relationshipStatus', e.target.value)}>
+                <option value="">Any</option>
+                <option value="single">Single</option>
+                <option value="engaged">Engaged</option>
+                <option value="married">Married</option>
+              </select>
+            </>
           )}
+          {errEl}
         </div>
-      ))}
+      )}
+
+      {/* PRIZES */}
+      {step === 'prizes' && !loading && (
+        <div>
+          <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
+            You’ll add prizes, sponsors and IRL events in your dashboard after creating. You can link a charity now if you have one.
+          </p>
+          <label style={labelStyle}>Charity partner (optional)</label>
+          <input style={fieldStyle} value={form.charityName} onChange={(e) => set('charityName', e.target.value)} placeholder="Charity name" />
+          {errEl}
+        </div>
+      )}
+
+      {/* REVIEW */}
+      {step === 'review' && !loading && (
+        <div>
+          <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>Does this look right? You can edit everything in your dashboard before publishing.</p>
+          {[
+            ['Host', form.hostType === 'individual' ? `${form.soloName} (individual)` : (orgCreatingNew ? `${form.newOrgName} (${form.orgType})` : lookups.orgs.find((o) => o.id === form.organizationId)?.name)],
+            ['Template', template?.id === CUSTOM_TEMPLATE.id ? form.customCategory : template?.label],
+            ['Winners', form.numberOfWinners],
+            ['Entry', form.entryType === 'nominations' ? 'Nomination' : 'Application'],
+            ['How they win', form.selectionCriteria === 'votes' ? 'Public votes' : 'Votes + judges'],
+            ['Price / vote', `$${form.pricePerVote}`],
+            ['City', lookups.cities.find((c) => c.id === form.cityId)?.name],
+            ['Who can enter', lookups.demographics.find((d) => d.id === form.demographicId)?.label],
+            ['Season', form.season],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: `${spacing.sm} 0`, borderBottom: `1px solid ${colors.border.lighter}`, fontSize: typography.fontSize.sm }}>
+              <span style={{ color: colors.text.muted }}>{k}</span>
+              <span style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>{v || '—'}</span>
+            </div>
+          ))}
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.lg }}>
+            Next: accept the Host Agreement and connect Stripe in your dashboard. Publishing is approved by EliteRank.
+          </p>
+          {errEl}
+        </div>
+      )}
     </Modal>
   );
 }
