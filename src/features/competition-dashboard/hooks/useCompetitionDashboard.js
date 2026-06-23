@@ -617,6 +617,9 @@ export function useCompetitionDashboard(competitionId) {
           numberOfWinners: competition.number_of_winners ?? null,
           charityPercentage: competition.charity_percentage ?? null,
           plannedLaunchTimeframe: competition.planned_launch_timeframe || null,
+          cashPrizeAmount: competition.cash_prize_amount ?? null,
+          hasSponsoredPrizes: !!competition.has_sponsored_prizes,
+          prizeReviewRequired: !!competition.prize_review_required,
           // Additional fields for card generation and links
           slug: competition.slug || null,
           organizationName: competition.organization?.name || null,

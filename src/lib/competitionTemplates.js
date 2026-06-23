@@ -35,6 +35,12 @@ export const LAUNCH_TIMEFRAMES = [
 ];
 export const LAUNCH_TIMEFRAME_LABELS = LAUNCH_TIMEFRAMES.reduce((m, t) => { m[t.id] = t.label; return m; }, {});
 
+// What each entry type means — shown under the Entry selector everywhere.
+export const ENTRY_TYPE_HELP = {
+  nominations: 'Nomination — a casual entry form. Prospective contestants can submit themselves, or someone else can nominate them.',
+  applications: 'Application — a longer, qualitative form that contestants must submit themselves.',
+};
+
 // US states + DC — shared by the create wizard and the dashboard recap editor.
 export const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME',

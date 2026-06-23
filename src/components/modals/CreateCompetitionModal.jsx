@@ -4,7 +4,7 @@ import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { slugify, generateCompetitionSlug } from '../../utils/slugs';
-import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES, LAUNCH_TIMEFRAMES } from '../../lib/competitionTemplates';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES, LAUNCH_TIMEFRAMES, ENTRY_TYPE_HELP } from '../../lib/competitionTemplates';
 
 const NEW_ORG = '__new__';
 // Config pages in order, per the onboarding flow.
@@ -45,6 +45,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     cityId: '', territoryScope: 'city', territoryState: '', eligibilityRadius: 100, relationshipStatus: '',
     gender: 'all', ageMin: 21, ageMax: '',
     // prizes
+    cashPrizeYes: false, cashPrizeAmount: '', sponsoredPrizesYes: false,
     charityYes: false, charityPercentage: 10,
     // misc
     season: new Date().getFullYear(),
@@ -226,7 +227,13 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       // Persist flexible eligibility + charity % on the new draft (host can
       // update their own competition via RLS). Name/details for charity come
       // later in the dashboard.
-      const updates = { eligibility_gender: form.gender, eligibility_age_min: ageMin, eligibility_age_max: ageMax, territory_state: form.territoryScope === 'state' ? form.territoryState : null, planned_launch_timeframe: form.plannedLaunchTimeframe || null };
+      const updates = {
+        eligibility_gender: form.gender, eligibility_age_min: ageMin, eligibility_age_max: ageMax,
+        territory_state: form.territoryScope === 'state' ? form.territoryState : null,
+        planned_launch_timeframe: form.plannedLaunchTimeframe || null,
+        cash_prize_amount: form.cashPrizeYes ? (Number(form.cashPrizeAmount) || 0) : null,
+        has_sponsored_prizes: !!form.sponsoredPrizesYes,
+      };
       if (form.charityYes) updates.charity_percentage = Number(form.charityPercentage) || null;
       await supabase.from('competitions').update(updates).eq('id', comp.id);
 
@@ -472,6 +479,9 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
               </select>
             </div>
           </div>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: -spacing.sm, marginBottom: spacing.lg }}>
+            {ENTRY_TYPE_HELP[form.entryType]}
+          </p>
           <label style={labelStyle}>How they win</label>
           <select style={fieldStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
             <option value="votes">Public votes</option>
@@ -557,8 +567,32 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       {step === 'prizes' && !loading && (
         <div>
           <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>
-            You’ll add prizes, sponsors and IRL events in your dashboard after creating.
+            You’ll add the specific prizes, sponsors and IRL events in your dashboard after creating — just the basics here.
           </p>
+
+          <label style={labelStyle}>Is there a cash prize?</label>
+          <div style={{ display: 'flex', gap: spacing.md, marginBottom: form.cashPrizeYes ? spacing.md : spacing.lg }}>
+            <div style={{ ...cardStyle(form.cashPrizeYes), flex: 1 }} onClick={() => set('cashPrizeYes', true)}>Yes</div>
+            <div style={{ ...cardStyle(!form.cashPrizeYes), flex: 1 }} onClick={() => { set('cashPrizeYes', false); set('cashPrizeAmount', ''); }}>No</div>
+          </div>
+          {form.cashPrizeYes && (
+            <>
+              <label style={labelStyle}>Total cash prize (USD)</label>
+              <input style={fieldStyle} type="number" min="0" value={form.cashPrizeAmount} onChange={(e) => set('cashPrizeAmount', e.target.value)} placeholder="e.g. 1000" />
+              {Number(form.cashPrizeAmount) > 1999 && (
+                <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.xs, marginTop: -spacing.md, marginBottom: spacing.lg }}>
+                  Cash prizes over $1,999 require a quick review call with EliteRank before approval — we’ll reach out to schedule it.
+                </p>
+              )}
+            </>
+          )}
+
+          <label style={labelStyle}>Are there sponsored prizes (goods or services)?</label>
+          <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
+            <div style={{ ...cardStyle(form.sponsoredPrizesYes), flex: 1 }} onClick={() => set('sponsoredPrizesYes', true)}>Yes</div>
+            <div style={{ ...cardStyle(!form.sponsoredPrizesYes), flex: 1 }} onClick={() => set('sponsoredPrizesYes', false)}>No</div>
+          </div>
+
           <label style={labelStyle}>Are you donating a portion of proceeds to charity?</label>
           <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
             <div style={{ ...cardStyle(form.charityYes), flex: 1 }} onClick={() => set('charityYes', true)}>Yes</div>
@@ -591,6 +625,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
               ? `State-wide · ${form.territoryState || '—'}`
               : `City-wide · ${lookups.cities.find((c) => c.id === form.cityId)?.name || '—'} (${form.eligibilityRadius} mi)`],
             ['Who can enter', `${({ all: 'All genders', female: 'Women', male: 'Men', 'LGBTQ+': 'LGBTQ+' }[form.gender] || '')}${form.ageMin ? `, ${form.ageMin}–${form.ageMax || '+'}` : ''}`],
+            ['Cash prize', form.cashPrizeYes ? `$${Number(form.cashPrizeAmount) || 0}` : 'No'],
+            ['Sponsored prizes', form.sponsoredPrizesYes ? 'Yes' : 'No'],
             ['Charity', form.charityYes ? `${form.charityPercentage}% of proceeds` : 'No'],
             ['Planned launch', LAUNCH_TIMEFRAMES.find((t) => t.id === form.plannedLaunchTimeframe)?.label || '—'],
             ['Season', form.season],

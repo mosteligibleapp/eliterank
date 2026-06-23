@@ -4,7 +4,7 @@ import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { isFieldEditable } from '../../../utils/fieldEditability';
-import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, US_STATES, LAUNCH_TIMEFRAMES, LAUNCH_TIMEFRAME_LABELS } from '../../../lib/competitionTemplates';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, US_STATES, LAUNCH_TIMEFRAMES, LAUNCH_TIMEFRAME_LABELS, ENTRY_TYPE_HELP } from '../../../lib/competitionTemplates';
 
 /**
  * CompetitionSummaryCard — recap of what the host set during onboarding, shown
@@ -88,6 +88,9 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
       charityYes: !!c.charityPercentage,
       charityPercentage: c.charityPercentage || 10,
       plannedLaunchTimeframe: c.plannedLaunchTimeframe || '',
+      cashPrizeYes: c.cashPrizeAmount != null,
+      cashPrizeAmount: c.cashPrizeAmount ?? '',
+      sponsoredPrizesYes: !!c.hasSponsoredPrizes,
     });
     setError(null);
     setEditing(true);
@@ -142,6 +145,8 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
         number_of_winners: Number(form.numberOfWinners) || 1,
         charity_percentage: form.charityYes ? (Number(form.charityPercentage) || null) : null,
         planned_launch_timeframe: form.plannedLaunchTimeframe || null,
+        cash_prize_amount: form.cashPrizeYes ? (Number(form.cashPrizeAmount) || 0) : null,
+        has_sponsored_prizes: !!form.sponsoredPrizesYes,
       };
 
       const { error: e } = await supabase.from('competitions').update(updates).eq('id', c.id);
@@ -189,6 +194,8 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
       ['Entry', ENTRY[c.entryType] || c.entryType],
       ['How they win', WIN[c.selectionCriteria] || c.selectionCriteria],
       ['Winners', c.numberOfWinners],
+      ['Cash prize', c.cashPrizeAmount != null ? `$${c.cashPrizeAmount}` : 'None'],
+      ['Sponsored prizes', c.hasSponsoredPrizes ? 'Yes' : 'No'],
       ['Charity', c.charityPercentage ? `${c.charityPercentage}% of proceeds` : 'None'],
       ['Planned launch', LAUNCH_TIMEFRAME_LABELS[c.plannedLaunchTimeframe] || '—'],
     ];
@@ -306,6 +313,9 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
               <option value="nominations">Nomination</option>
               <option value="applications">Application</option>
             </select>
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs, lineHeight: 1.4 }}>
+              {ENTRY_TYPE_HELP[form.entryType]}
+            </p>
           </div>
 
           {/* How they win */}
@@ -359,6 +369,34 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
                 </select>
               )}
             </div>
+          </div>
+
+          {/* Cash prize */}
+          <div>
+            <label style={labelStyle}>Cash prize?</label>
+            <div style={{ display: 'flex', gap: spacing.md }}>
+              <select style={{ ...fieldStyle, flex: 1 }} value={form.cashPrizeYes ? 'yes' : 'no'} onChange={(e) => { const yes = e.target.value === 'yes'; set('cashPrizeYes', yes); if (!yes) set('cashPrizeAmount', ''); }}>
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+              {form.cashPrizeYes && (
+                <input style={{ ...fieldStyle, flex: 1 }} type="number" min="0" value={form.cashPrizeAmount} onChange={(e) => set('cashPrizeAmount', e.target.value)} placeholder="USD" />
+              )}
+            </div>
+            {form.cashPrizeYes && Number(form.cashPrizeAmount) > 1999 && (
+              <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>
+                Cash prizes over $1,999 need a quick review call with EliteRank before approval.
+              </p>
+            )}
+          </div>
+
+          {/* Sponsored prizes */}
+          <div>
+            <label style={labelStyle}>Sponsored prizes (goods/services)?</label>
+            <select style={fieldStyle} value={form.sponsoredPrizesYes ? 'yes' : 'no'} onChange={(e) => set('sponsoredPrizesYes', e.target.value === 'yes')}>
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
           </div>
 
           {/* Planned launch */}
