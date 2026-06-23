@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Settings, TrendingUp, Gavel } from 'lucide-react';
+import { User, LogOut, LayoutDashboard, UserCircle, LogIn, Gift, Lightbulb, Settings, TrendingUp, Gavel, PlusCircle } from 'lucide-react';
 import { colors, borderRadius, spacing, typography, shadows, transitions } from '../../styles/theme';
 import Avatar from './Avatar';
 import { SkeletonPulse } from '../common/Skeleton';
@@ -19,6 +19,7 @@ function ProfileIcon({
   onRewards,
   onAchievements,
   onDashboard,
+  onLaunchCompetition,
   onJudge,
   onAccountSettings,
   onHowToCompete,
@@ -305,6 +306,24 @@ function ProfileIcon({
               >
                 <LayoutDashboard size={16} />
                 Dashboard
+              </button>
+            )}
+
+            {onLaunchCompetition && (
+              <button
+                onClick={() => handleMenuClick(onLaunchCompetition)}
+                style={menuItemStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.interactive.hover;
+                  e.currentTarget.style.color = colors.text.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = colors.text.secondary;
+                }}
+              >
+                <PlusCircle size={16} />
+                Launch a competition
               </button>
             )}
 

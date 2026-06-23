@@ -85,6 +85,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             onAccountSettings={handleAccountSettings}
             onHowToCompete={handleHowToCompete}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
+            onLaunchCompetition={isAuthenticated && !hasDashboardAccess ? handleDashboard : undefined}
             hasDashboardAccess={hasDashboardAccess}
             onJudge={isJudge ? handleJudge : null}
             isJudge={isJudge}
