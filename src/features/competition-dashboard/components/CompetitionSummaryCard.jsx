@@ -328,7 +328,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
                 <option value="male">Men</option>
                 <option value="LGBTQ+">LGBTQ+</option>
               </select>
-              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} onBlur={(e) => set('ageMin', clampAge(e.target.value, 21))} />
+              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} onBlur={(e) => set('ageMin', clampAge(e.target.value, 18))} />
               <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} onBlur={(e) => set('ageMax', e.target.value === '' ? '' : clampAge(e.target.value, 18))} />
             </div>
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>All competitions are 18+ — minimum age can't be lower than 18.</p>
