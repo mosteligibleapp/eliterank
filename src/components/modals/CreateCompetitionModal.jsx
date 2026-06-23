@@ -27,6 +27,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     soloName: '',
     organizationId: '',
     newOrgName: '',
+    orgType: 'company',
     name: '',
     cityId: '',
     categoryId: '',
@@ -55,7 +56,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           supabase.from('categories').select('id, name, slug').eq('active', true).order('name'),
           supabase.from('demographics').select('id, label, slug').eq('active', true).order('id'),
           userId
-            ? supabase.from('organizations').select('id, name, slug').eq('owner_id', userId).order('name')
+            ? supabase.from('organizations').select('id, name, slug, org_type').eq('owner_id', userId).order('name')
             : Promise.resolve({ data: [] }),
           userId
             ? supabase.from('profiles').select('first_name, last_name').eq('id', userId).maybeSingle()
@@ -96,7 +97,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       setError('Enter your name — it’s shown as the host.');
       return;
     }
-    if (hostType === 'organization' && form.organizationId === NEW_ORG && !form.newOrgName.trim()) {
+    const orgCreatingNew = lookups.orgs.length === 0 || form.organizationId === NEW_ORG;
+    if (hostType === 'organization' && orgCreatingNew && !form.newOrgName.trim()) {
       setError('Enter a name for your organization.');
       return;
     }
@@ -107,31 +109,31 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       let organizationId;
       let orgName;
       if (hostType === 'individual') {
-        // Solo host: reuse their personal org if they already own one, else create it.
-        if (lookups.orgs.length > 0) {
-          organizationId = lookups.orgs[0].id;
-          orgName = lookups.orgs[0].name;
+        // Solo host: reuse their personal (individual) org if one exists, else create it.
+        const personal = lookups.orgs.find((o) => o.org_type === 'individual');
+        if (personal) {
+          organizationId = personal.id;
+          orgName = personal.name;
         } else {
           const name = form.soloName.trim();
           const { data: org, error: orgErr } = await supabase.rpc('create_host_organization', {
-            p_name: name, p_slug: slugify(name),
+            p_name: name, p_slug: slugify(name), p_type: 'individual',
           });
           if (orgErr) throw orgErr;
           organizationId = org.id;
           orgName = org.name;
         }
+      } else if (orgCreatingNew) {
+        const name = form.newOrgName.trim();
+        const { data: org, error: orgErr } = await supabase.rpc('create_host_organization', {
+          p_name: name, p_slug: slugify(name), p_type: form.orgType,
+        });
+        if (orgErr) throw orgErr;
+        organizationId = org.id;
+        orgName = org.name;
       } else {
         organizationId = form.organizationId;
         orgName = lookups.orgs.find((o) => o.id === organizationId)?.name;
-        if (organizationId === NEW_ORG) {
-          const name = form.newOrgName.trim();
-          const { data: org, error: orgErr } = await supabase.rpc('create_host_organization', {
-            p_name: name, p_slug: slugify(name),
-          });
-          if (orgErr) throw orgErr;
-          organizationId = org.id;
-          orgName = org.name;
-        }
       }
 
       const name = form.name.trim() || `${orgName || 'Competition'} ${city?.name || ''}`.trim();
@@ -239,15 +241,26 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             </>
           ) : (
             <>
-              <label style={labelStyle}>Organization</label>
-              <select style={fieldStyle} value={form.organizationId} onChange={(e) => set('organizationId', e.target.value)}>
-                {lookups.orgs.map((o) => (<option key={o.id} value={o.id}>{o.name}</option>))}
-                <option value={NEW_ORG}>+ Create a new organization</option>
-              </select>
-              {form.organizationId === NEW_ORG && (
+              {/* "Select" only shows if you already belong to organizations. */}
+              {lookups.orgs.length > 0 && (
                 <>
-                  <label style={labelStyle}>New organization name</label>
+                  <label style={labelStyle}>Organization</label>
+                  <select style={fieldStyle} value={form.organizationId} onChange={(e) => set('organizationId', e.target.value)}>
+                    {lookups.orgs.map((o) => (<option key={o.id} value={o.id}>{o.name}</option>))}
+                    <option value={NEW_ORG}>+ Create a new organization</option>
+                  </select>
+                </>
+              )}
+              {(lookups.orgs.length === 0 || form.organizationId === NEW_ORG) && (
+                <>
+                  <label style={labelStyle}>Organization name</label>
                   <input style={fieldStyle} value={form.newOrgName} onChange={(e) => set('newOrgName', e.target.value)} placeholder="e.g. Your Brand LLC" />
+                  <label style={labelStyle}>Entity type</label>
+                  <select style={fieldStyle} value={form.orgType} onChange={(e) => set('orgType', e.target.value)}>
+                    <option value="company">Company</option>
+                    <option value="non_profit">Non-profit</option>
+                    <option value="agency">Agency</option>
+                  </select>
                 </>
               )}
             </>
