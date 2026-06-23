@@ -19,6 +19,14 @@ const WIN = { votes: 'Public votes', hybrid: 'Votes + judges', judges: 'Judges o
 const labelStyle = { display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs };
 const fieldStyle = { width: '100%', padding: spacing.sm, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md, color: '#fff', fontSize: typography.fontSize.sm };
 
+// Keep ages at or above the 18+ floor; empty stays empty for the optional max.
+function clampAge(value, floor) {
+  if (value === '' || value == null) return '';
+  const n = Number(value);
+  if (Number.isNaN(n)) return '';
+  return n < floor ? floor : n;
+}
+
 function templateIdFor(label) {
   if (!label) return '';
   const match = COMPETITION_TEMPLATES.find((t) => t.label === label);
@@ -99,6 +107,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
     const ageMax = form.ageMax === '' || form.ageMax == null ? null : Number(form.ageMax);
     if (!form.name.trim()) { setError('Enter a competition name.'); return; }
     if (!form.orgName.trim()) { setError('Enter the Sponsor-of-record name.'); return; }
+    if (!form.orgWebsite.trim() && !form.orgInstagram.trim()) { setError('Add a website or Instagram for the Sponsor of record.'); return; }
     if (!ageMin || ageMin < 18) { setError('Minimum age must be 18 or older — all competitions are 18+.'); return; }
     if (ageMax && ageMax < ageMin) { setError('Max age must be greater than the minimum.'); return; }
     if (form.templateId === CUSTOM_TEMPLATE.id && !form.customCategory.trim()) { setError('Type your category.'); return; }
@@ -265,6 +274,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
               <input style={fieldStyle} value={form.orgInstagram} onChange={(e) => set('orgInstagram', e.target.value)} placeholder="@handle" />
             </div>
           </div>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>Add at least one — a website or Instagram.</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
@@ -305,6 +315,22 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
             </select>
           </div>
 
+          {/* Who can enter */}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Who can enter</label>
+            <div style={{ display: 'flex', gap: spacing.md }}>
+              <select style={{ ...fieldStyle, flex: 1.2 }} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
+                <option value="all">All genders</option>
+                <option value="female">Women</option>
+                <option value="male">Men</option>
+                <option value="LGBTQ+">LGBTQ+</option>
+              </select>
+              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} onBlur={(e) => set('ageMin', clampAge(e.target.value, 21))} />
+              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} onBlur={(e) => set('ageMax', e.target.value === '' ? '' : clampAge(e.target.value, 18))} />
+            </div>
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>All competitions are 18+ — minimum age can't be lower than 18.</p>
+          </div>
+
           {/* Territory */}
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={labelStyle}>Territory</label>
@@ -330,22 +356,6 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
                 </select>
               )}
             </div>
-          </div>
-
-          {/* Who can enter */}
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={labelStyle}>Who can enter</label>
-            <div style={{ display: 'flex', gap: spacing.md }}>
-              <select style={{ ...fieldStyle, flex: 1.2 }} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
-                <option value="all">All genders</option>
-                <option value="female">Women</option>
-                <option value="male">Men</option>
-                <option value="LGBTQ+">LGBTQ+</option>
-              </select>
-              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} />
-              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} />
-            </div>
-            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>All competitions are 18+.</p>
           </div>
 
           {/* Charity */}
