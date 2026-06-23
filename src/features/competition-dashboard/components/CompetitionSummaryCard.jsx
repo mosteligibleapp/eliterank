@@ -160,7 +160,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
   // ── Read-only recap ─────────────────────────────────────────────────────────
   if (!editing) {
     const territory = c.territoryScope === 'us'
-      ? 'US-wide (all US + Toronto)'
+      ? 'US-wide'
       : c.territoryScope === 'state'
       ? `State-wide · ${c.territoryState || '—'}`
       : `City-wide${c.city ? ` · ${c.city}` : ''}${c.eligibilityRadiusMiles ? ` (${c.eligibilityRadiusMiles} mi)` : ''}`;
@@ -312,7 +312,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
               <select style={{ ...fieldStyle, flex: 1 }} value={form.territoryScope} onChange={(e) => set('territoryScope', e.target.value)}>
                 <option value="city">City-wide</option>
                 <option value="state">State-wide</option>
-                <option value="us">US-wide (all US + Toronto)</option>
+                <option value="us">US-wide</option>
               </select>
               {form.territoryScope === 'city' && (
                 <>

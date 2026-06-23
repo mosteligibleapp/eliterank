@@ -475,7 +475,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           <select style={fieldStyle} value={form.territoryScope} onChange={(e) => set('territoryScope', e.target.value)}>
             <option value="city">City-wide</option>
             <option value="state">State-wide</option>
-            <option value="us">US-wide (all US cities + Toronto)</option>
+            <option value="us">US-wide</option>
           </select>
 
           {form.territoryScope === 'city' && (
@@ -504,7 +504,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           )}
           {form.territoryScope === 'us' && (
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
-              Open to all US cities + Toronto.
+              Open across the US.
             </p>
           )}
 
@@ -574,7 +574,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             ['Entry', form.entryType === 'nominations' ? 'Nomination' : 'Application'],
             ['How they win', form.selectionCriteria === 'votes' ? 'Public votes' : form.selectionCriteria === 'judges' ? 'Judges only' : 'Votes + judges'],
             ['Territory', form.territoryScope === 'us'
-              ? 'US-wide (all US + Toronto)'
+              ? 'US-wide'
               : form.territoryScope === 'state'
               ? `State-wide · ${form.territoryState || '—'}`
               : `City-wide · ${lookups.cities.find((c) => c.id === form.cityId)?.name || '—'} (${form.eligibilityRadius} mi)`],
