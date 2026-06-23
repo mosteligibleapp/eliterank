@@ -36,6 +36,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
   const [form, setForm] = useState({
     // sponsor
     hostType: '', soloName: '', organizationId: '', newOrgName: '', orgType: 'company',
+    orgLogoUrl: '', orgWebsite: '', orgInstagram: '',
     // template
     templateId: '', customCategory: '',
     // format
@@ -50,8 +51,26 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
   });
   const [lead, setLead] = useState({ leadType: 'info_packet', name: '', email: '', phone: '', message: '' });
 
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setL = (k, v) => setLead((l) => ({ ...l, [k]: v }));
+
+  const handleLogoUpload = async (file) => {
+    if (!file) return;
+    setUploadingLogo(true); setError(null);
+    try {
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const fileName = `org-logos/${userId || 'anon'}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true, cacheControl: '3600' });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      set('orgLogoUrl', data.publicUrl);
+    } catch (err) {
+      setError('Logo upload failed: ' + (err.message || 'try again'));
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) { setStep('ready'); setError(null); setLeadDone(false); }
@@ -164,7 +183,10 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
         }
       } else if (orgCreatingNew) {
         const name = form.newOrgName.trim();
-        const { data: org, error: e } = await supabase.rpc('create_host_organization', { p_name: name, p_slug: slugify(name), p_type: form.orgType });
+        const { data: org, error: e } = await supabase.rpc('create_host_organization', {
+          p_name: name, p_slug: slugify(name), p_type: form.orgType,
+          p_logo_url: form.orgLogoUrl || null, p_website_url: form.orgWebsite || null, p_instagram: form.orgInstagram || null,
+        });
         if (e) throw e; organizationId = org.id; orgName = org.name;
       } else {
         organizationId = form.organizationId; orgName = lookups.orgs.find((o) => o.id === organizationId)?.name;
@@ -348,6 +370,23 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
                     <option value="non_profit">Non-profit</option>
                     <option value="agency">Agency</option>
                   </select>
+
+                  <label style={labelStyle}>Logo</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+                    {form.orgLogoUrl
+                      ? <img src={form.orgLogoUrl} alt="Logo" style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'cover', border: `1px solid ${colors.border.light}` }} />
+                      : <div style={{ width: 48, height: 48, borderRadius: borderRadius.md, background: colors.background.secondary, border: `1px dashed ${colors.border.light}` }} />}
+                    <label style={{ cursor: 'pointer', color: colors.gold.primary, fontSize: typography.fontSize.sm }}>
+                      {uploadingLogo ? 'Uploading…' : (form.orgLogoUrl ? 'Replace logo' : 'Upload logo')}
+                      <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingLogo}
+                        onChange={(e) => handleLogoUpload(e.target.files?.[0])} />
+                    </label>
+                  </div>
+
+                  <label style={labelStyle}>Website (optional)</label>
+                  <input style={fieldStyle} value={form.orgWebsite} onChange={(e) => set('orgWebsite', e.target.value)} placeholder="https://…" />
+                  <label style={labelStyle}>Instagram (optional)</label>
+                  <input style={fieldStyle} value={form.orgInstagram} onChange={(e) => set('orgInstagram', e.target.value)} placeholder="@yourbrand" />
                 </>
               )}
             </>
