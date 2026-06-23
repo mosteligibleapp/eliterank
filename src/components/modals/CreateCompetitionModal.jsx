@@ -286,6 +286,22 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
               <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>Get the host info packet or schedule a call.</div>
             </div>
           </div>
+
+          <div style={{ marginTop: spacing.xl, padding: spacing.lg, background: colors.background.secondary, border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.lg }}>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>
+              Your competition won’t go live until:
+            </p>
+            {[
+              'You approve the competition',
+              'Your Stripe identity verification (KYC) is approved',
+              'You’ve signed the Host Agreement',
+            ].map((t) => (
+              <div key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm, color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>
+                <CheckCircle size={15} style={{ color: colors.gold.primary, flexShrink: 0, marginTop: 2 }} />
+                <span>{t}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
