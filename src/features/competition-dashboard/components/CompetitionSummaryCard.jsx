@@ -248,7 +248,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
         </div>
       }
     >
-      <div style={{ padding: spacing.xl }}>
+      <div style={{ padding: spacing.xl, paddingTop: spacing.md }}>
         {/* Competition name */}
         <div style={{ marginBottom: spacing.lg }}>
           <label style={labelStyle}>Competition name</label>
