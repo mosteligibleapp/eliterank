@@ -14,16 +14,13 @@ import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
 import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
-import LaunchChecklist from './components/LaunchChecklist';
 import AnnouncementsManager from './components/AnnouncementsManager';
 import AudienceManager from './components/AudienceManager';
-import { resolveLaunchChecklist, computeChecklistProgress } from './launchChecklist';
 import { COMPETITION_STATUS } from '../../types/competition';
 
 // Consolidated tab navigation. Launch leads — it's the guided checklist for
 // getting a competition live; the rest are the day-to-day management surfaces.
 const TABS = [
-  { id: 'launch', label: 'Launch', shortLabel: 'Launch', icon: Rocket },
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
   { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
@@ -103,7 +100,7 @@ export default function CompetitionDashboard({
   onSelectCompetition,
 }) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState('launch');
+  const [activeTab, setActiveTab] = useState('dashboard');
   // When a launch-checklist CTA deep-links into the Setup tab, this carries the
   // section to auto-expand + scroll to. The nonce re-triggers the scroll even
   // when the host clicks the same step twice.
@@ -178,56 +175,10 @@ export default function CompetitionDashboard({
     competition?.status === COMPETITION_STATUS.COMPLETED ||
     competition?.status === COMPETITION_STATUS.ARCHIVE;
 
-  // Launch (setup) progress. Once every required launch step is done the first
-  // tab flips from "Launch" (guided setup) to "Run" (operating a live comp).
-  const launchComplete = useMemo(() => {
-    if (!competition) return false;
-    const checklist = resolveLaunchChecklist(competition);
-    return computeChecklistProgress(checklist, {
-      competition,
-      host: data.host,
-      nominees: data.nominees,
-      contestants: data.contestants,
-      judges: data.judges,
-      judgingCriteria: data.judgingCriteria,
-      prizes: data.prizes,
-      events: data.events,
-      sponsors: data.sponsors,
-      doubleDays: data.doubleDays,
-      bonusTasks: data.bonusTasks,
-    }).allRequiredComplete;
-  }, [
-    competition, data.host, data.nominees, data.contestants, data.judges,
-    data.judgingCriteria, data.prizes, data.events, data.sponsors,
-    data.doubleDays, data.bonusTasks,
-  ]);
-
-  const visibleTabs = useMemo(() => {
-    const base = isFinished ? TABS.filter((t) => t.id !== 'launch') : TABS;
-    return base.map((t) =>
-      t.id === 'launch'
-        ? {
-            ...t,
-            label: launchComplete ? 'Run' : 'Launch',
-            shortLabel: launchComplete ? 'Run' : 'Launch',
-            icon: launchComplete ? Activity : Rocket,
-          }
-        : t
-    );
-  }, [isFinished, launchComplete]);
-
-  // Pick the landing tab once data is in: a still-launching competition opens
-  // on the guided Launch checklist; one whose required steps are all done (or
-  // that has already finished) opens on the live Dashboard. Runs a single
-  // time, and never overrides a tab the host has already clicked.
-  const initialTabResolvedRef = useRef(false);
-  useEffect(() => {
-    if (initialTabResolvedRef.current || loading || !competition) return;
-    initialTabResolvedRef.current = true;
-    if (launchComplete || isFinished) {
-      setActiveTab((cur) => (cur === 'launch' ? 'dashboard' : cur));
-    }
-  }, [loading, competition, launchComplete, isFinished]);
+  // The dashboard (Overview) is the landing surface; the launch lifecycle now
+  // lives in the Launch Status tracker on that tab, so there's no separate
+  // Launch checklist tab.
+  const visibleTabs = TABS;
 
   // Stripe Connect return handler. When the host comes back from Stripe's
   // hosted onboarding (return_url carries ?connect=return&org=...), pull the
@@ -734,27 +685,7 @@ export default function CompetitionDashboard({
       );
     }
 
-    // A finished competition has no Launch tab; fall back to the dashboard so a
-    // stale 'launch' selection never renders the checklist.
-    const tab = activeTab === 'launch' && isFinished ? 'dashboard' : activeTab;
-    switch (tab) {
-      case 'launch':
-        return (
-          <LaunchChecklist
-            competition={competition}
-            host={data.host}
-            nominees={data.nominees}
-            contestants={data.contestants}
-            judges={data.judges}
-            judgingCriteria={data.judgingCriteria}
-            prizes={data.prizes}
-            events={data.events}
-            sponsors={data.sponsors}
-            doubleDays={data.doubleDays}
-            bonusTasks={data.bonusTasks}
-            onNavigateToTab={navigateToTab}
-          />
-        );
+    switch (activeTab) {
       case 'dashboard':
         return (
           <OverviewTab
