@@ -8,7 +8,14 @@ import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate } from '../../lib/
 
 const NEW_ORG = '__new__';
 // Config pages in order, per the onboarding flow.
-const CONFIG_ORDER = ['sponsor', 'template', 'format', 'eligibility', 'prizes', 'review'];
+const CONFIG_ORDER = ['sponsor', 'template', 'format', 'prizes', 'review'];
+const STEP_LABELS = {
+  sponsor: 'Organization setup',
+  template: 'Category',
+  format: 'Format',
+  prizes: 'Prizes & extras',
+  review: 'Review',
+};
 
 /**
  * CreateCompetitionModal — self-serve host create wizard.
@@ -34,7 +41,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     // format
     name: '', numberOfWinners: 5, entryType: 'nominations', pricePerVote: 1.0, selectionCriteria: 'votes',
     // eligibility
-    cityId: '', demographicId: '', eligibilityRadius: 100, relationshipStatus: '',
+    cityId: '', demographicId: '', territoryScope: 'city', eligibilityRadius: 100, relationshipStatus: '',
     // prizes
     charityName: '',
     // misc
@@ -90,7 +97,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       if (!form.templateId) return 'Pick a category template.';
       if (form.templateId === CUSTOM_TEMPLATE.id && !form.customCategory.trim()) return 'Type your category.';
     }
-    if (s === 'eligibility') {
+    if (s === 'format') {
       if (!form.cityId) return 'Pick a city.';
       if (!form.demographicId) return 'Pick who can enter (demographic).';
     }
@@ -165,6 +172,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           category_id: categoryId,
           demographic_id: form.demographicId,
           category_template: categoryTemplate,
+          territory_scope: form.territoryScope,
           season: Number(form.season),
           name, slug,
           number_of_winners: Number(form.numberOfWinners) || 5,
@@ -219,7 +227,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
 
   const stepNumber = CONFIG_ORDER.indexOf(step);
   const title = step === 'ready' || step === 'learn' ? 'Launch a competition'
-    : `Create a competition · Step ${stepNumber + 1} of ${CONFIG_ORDER.length}`;
+    : `Step ${stepNumber + 1} of ${CONFIG_ORDER.length} · ${STEP_LABELS[step]}`;
 
   return (
     <Modal isOpen={isOpen} onClose={() => !busy && onClose?.()} title={title} maxWidth="600px" footer={footer}>
@@ -389,28 +397,39 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
               <input style={fieldStyle} type="number" min="0.25" step="0.25" value={form.pricePerVote} onChange={(e) => set('pricePerVote', e.target.value)} />
             </div>
           </div>
-          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginBottom: spacing.lg }}>
             Entering is free for contestants; the competition is funded by paid voting.
           </p>
-          {errEl}
-        </div>
-      )}
 
-      {/* ELIGIBILITY */}
-      {step === 'eligibility' && !loading && (
-        <div>
-          <label style={labelStyle}>City</label>
-          <select style={fieldStyle} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
-            <option value="">Select a city…</option>
-            {lookups.cities.map((c) => (<option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>))}
+          {/* Eligibility (folded into Format) */}
+          <label style={labelStyle}>Territory</label>
+          <select style={fieldStyle} value={form.territoryScope} onChange={(e) => set('territoryScope', e.target.value)}>
+            <option value="city">City-wide</option>
+            <option value="state">State-wide</option>
+            <option value="us">US-wide (all US cities + Toronto)</option>
           </select>
+
+          <div style={{ display: 'flex', gap: spacing.md }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>{form.territoryScope === 'us' ? 'Home / anchor city' : 'City'}</label>
+              <select style={fieldStyle} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
+                <option value="">Select a city…</option>
+                {lookups.cities.map((c) => (<option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>))}
+              </select>
+            </div>
+            {form.territoryScope === 'city' && (
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Radius (miles)</label>
+                <input style={fieldStyle} type="number" min="1" value={form.eligibilityRadius} onChange={(e) => set('eligibilityRadius', e.target.value)} />
+              </div>
+            )}
+          </div>
+
           <label style={labelStyle}>Who can enter</label>
           <select style={fieldStyle} value={form.demographicId} onChange={(e) => set('demographicId', e.target.value)}>
             <option value="">Select a demographic…</option>
             {lookups.demographics.map((d) => (<option key={d.id} value={d.id}>{d.label}</option>))}
           </select>
-          <label style={labelStyle}>Territory radius (miles)</label>
-          <input style={fieldStyle} type="number" min="1" value={form.eligibilityRadius} onChange={(e) => set('eligibilityRadius', e.target.value)} />
           {template?.relationshipRelevant && (
             <>
               <label style={labelStyle}>Relationship status</label>
@@ -449,6 +468,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             ['Entry', form.entryType === 'nominations' ? 'Nomination' : 'Application'],
             ['How they win', form.selectionCriteria === 'votes' ? 'Public votes' : 'Votes + judges'],
             ['Price / vote', `$${form.pricePerVote}`],
+            ['Territory', form.territoryScope === 'us' ? 'US-wide (+ Toronto)' : form.territoryScope === 'state' ? 'State-wide' : `City-wide (${form.eligibilityRadius} mi)`],
             ['City', lookups.cities.find((c) => c.id === form.cityId)?.name],
             ['Who can enter', lookups.demographics.find((d) => d.id === form.demographicId)?.label],
             ['Season', form.season],
