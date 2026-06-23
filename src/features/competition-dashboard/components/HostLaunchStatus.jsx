@@ -44,7 +44,13 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
   const gates = [
     { ok: agreementOk, Icon: FileText, label: 'Review & sign the Host Agreement', action: () => goTo('host-agreement-card') },
     { ok: stripeOk, Icon: Landmark, label: 'Complete Stripe identity verification (KYC)', action: () => goTo('host-connect-card') },
-    { ok: rulesOk, Icon: ClipboardList, label: 'Enter all required competition rules', action: () => onNavigateToTab?.('setup') },
+    {
+      ok: rulesOk,
+      Icon: ClipboardList,
+      label: 'Make any adjustments to your competition before submitting',
+      hint: 'After submission you can only change these by contacting customer support — make sure they’re accurate.',
+      action: () => onNavigateToTab?.('setup'),
+    },
   ];
   const allGates = agreementOk && stripeOk && rulesOk;
 
@@ -106,9 +112,12 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
                   fontSize: typography.fontSize.sm, cursor: g.ok ? 'default' : 'pointer',
                 }}
               >
-                {g.ok ? <CheckCircle size={16} style={{ color: colors.status.success }} /> : <Circle size={16} style={{ color: colors.text.muted }} />}
-                <span style={{ flex: 1 }}>{g.label}</span>
-                {!g.ok && <ChevronRight size={16} style={{ color: colors.gold.primary }} />}
+                {g.ok ? <CheckCircle size={16} style={{ color: colors.status.success, flexShrink: 0 }} /> : <Circle size={16} style={{ color: colors.text.muted, flexShrink: 0 }} />}
+                <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span>{g.label}</span>
+                  {g.hint && <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, lineHeight: 1.4 }}>{g.hint}</span>}
+                </span>
+                {!g.ok && <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />}
               </button>
             ))}
             <Button onClick={() => callRpc('submit_for_approval')} disabled={!allGates || busy} icon={busy ? Loader : Send} style={{ marginTop: spacing.lg }}>
