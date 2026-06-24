@@ -108,6 +108,18 @@ export default function LaunchRoadmap({ competition, onNavigateToTab }) {
                   : 'Still editable until you publish — then they lock too: nomination & voting dates, judging criteria, the nomination form, and your rules. Get them right before you publish.'}
               </span>
             </div>
+            {!published && onNavigateToTab && (
+              <button
+                onClick={() => onNavigateToTab('setup', 'timeline')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs,
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium,
+                }}
+              >
+                Review these before you publish <ArrowRight size={14} />
+              </button>
+            )}
           </div>
 
           {/* 2 — Brand & experience */}
