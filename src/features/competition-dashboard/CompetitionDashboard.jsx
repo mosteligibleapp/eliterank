@@ -183,24 +183,33 @@ export default function CompetitionDashboard({
   // Before a competition is live we keep premature tabs visible but locked
   // (not clickable), so the host stays focused on finishing their launch steps
   // without the nav feeling like it lost features. Tabs unlock in step with the
-  // lifecycle:
-  //   draft / pending_approval → Dashboard + Setup unlocked
-  //   approved                 → + Site, People (prepping the public specifics)
+  // lifecycle, one new tab per phase:
+  //   draft                    → Dashboard + Setup unlocked
+  //   pending_approval         → + People (start gathering nominees while
+  //                              they wait on approval)
+  //   approved                 → + Site (prepping the public specifics)
   //   published / live / done  → everything unlocked
   const launchPhase = (() => {
     const s = competition?.status;
-    if (s === 'draft' || s === 'pending_approval') return 'draft';
+    if (s === 'draft') return 'draft';
+    if (s === 'pending_approval') return 'pending';
     if (s === 'approved') return 'approved';
     return 'live';
   })();
   const unlockedTabIds =
     launchPhase === 'draft' ? ['dashboard', 'setup']
+    : launchPhase === 'pending' ? ['dashboard', 'setup', 'people']
     : launchPhase === 'approved' ? ['dashboard', 'people', 'site', 'setup']
     : TABS.map((t) => t.id);
   const isTabLocked = (id) => !unlockedTabIds.includes(id);
-  const lockedTabReason = launchPhase === 'draft'
-    ? 'Available after your competition is approved.'
-    : 'Available once your competition is published.';
+  // Per-tab tooltip explaining when a locked tab becomes available, matching
+  // the unlock schedule above (People at submit, Site at approval, the rest at
+  // publish) so each lock reads accurately regardless of the current phase.
+  const lockedTabReason = (id) => {
+    if (id === 'people') return 'Available after you submit for approval.';
+    if (id === 'site') return 'Available once your competition is approved.';
+    return 'Available once your competition is published.';
+  };
   const visibleTabs = TABS;
 
   // If the active tab is locked (e.g. status changed while open), fall back to
@@ -609,7 +618,7 @@ export default function CompetitionDashboard({
               onClick={() => { if (locked) return; setActiveTab(tab.id); setSetupFocus(null); }}
               disabled={locked}
               aria-disabled={locked}
-              title={locked ? lockedTabReason : undefined}
+              title={locked ? lockedTabReason(tab.id) : undefined}
               style={{
                 padding: isMobile ? `${spacing.md} ${spacing.md}` : `${spacing.md} ${spacing.xl}`,
                 color: locked ? colors.text.muted : isActive ? colors.gold.primary : colors.text.secondary,
