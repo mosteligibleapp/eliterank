@@ -15,6 +15,7 @@ import { supabase } from '../../../lib/supabase';
  */
 
 export default function JudgingPanel({
+  competition,
   criteria = [],
   votingRounds = [],
   onAddCriterion,
@@ -130,6 +131,13 @@ export default function JudgingPanel({
   // Judging happens in exactly one round — the one with judge_weight > 0.
   const sortedRounds = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
   const judgingRound = votingRounds.find((r) => (r.judge_weight || 0) > 0) || null;
+  const competitionId = competition?.id;
+  const multiWinner = (competition?.numberOfWinners || 1) > 1;
+  const lastRoundId = sortedRounds.length ? sortedRounds[sortedRounds.length - 1].id : null;
+  // A judged competition must have a judging round; the judged round should be
+  // the final round (nothing votes-only after it) unless a ranking round
+  // follows for a multi-winner competition.
+  const judgingNotLast = !!judgingRound && !!lastRoundId && judgingRound.id !== lastRoundId;
   const selectJudgingRound = async (newId) => {
     const current = judgingRound;
     if (!newId) {
@@ -265,21 +273,32 @@ export default function JudgingPanel({
                   onChange={(e) => selectJudgingRound(e.target.value)}
                   style={{
                     width: '100%', padding: spacing.md, background: colors.background.secondary,
-                    border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md,
+                    border: `1px solid ${judgingRound ? colors.border.primary : colors.status.error}`, borderRadius: borderRadius.md,
                     color: colors.text.primary, fontSize: typography.fontSize.sm,
                   }}
                 >
-                  <option value="">Decided by public votes (no judging)</option>
+                  <option value="">Select a round…</option>
                   {sortedRounds.map((r) => (
                     <option key={r.id} value={r.id}>{r.title || `Round ${r.round_order || ''}`}</option>
                   ))}
                 </select>
+                {!judgingRound && (
+                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>
+                    Your competition is judged (Votes + judges), so it needs a judging round — pick which round judges score.
+                  </p>
+                )}
+                {judgingNotLast && (
+                  <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.xs, marginTop: spacing.xs, lineHeight: 1.4 }}>
+                    Judging should be your final round — there shouldn’t be a votes-only round after it{multiWinner ? ', except a ranking round to order multiple winners.' : '.'} Either blend judging into your last round or move it to the end.
+                  </p>
+                )}
               </div>
 
               {judgingRound && (
                 <RoundWeightRow
                   key={judgingRound.id}
                   round={judgingRound}
+                  competitionId={competitionId}
                   votingRounds={votingRounds}
                   onUpdate={onUpdateRoundJudgeWeight}
                   onRefresh={onRefresh}
@@ -316,7 +335,7 @@ function JudgingRoundSummary({ votingRounds }) {
   );
 }
 
-function RoundWeightRow({ round, votingRounds, onUpdate, onRefresh }) {
+function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefresh }) {
   const [weight, setWeight] = useState(round.judge_weight ?? 0);
   const [saving, setSaving] = useState(false);
   const dirty = weight !== (round.judge_weight ?? 0);
@@ -333,6 +352,15 @@ function RoundWeightRow({ round, votingRounds, onUpdate, onRefresh }) {
     setSavingDates(true);
     try {
       await supabase.from('voting_rounds').update({ start_date: start || null, end_date: end || null }).eq('id', round.id);
+      // The finale is tied to the end of judging: default it to 1 minute after
+      // (host can push it up to 24h later in Voting Details).
+      if (competitionId && end) {
+        const d = new Date(end);
+        if (!Number.isNaN(d.getTime())) {
+          d.setMinutes(d.getMinutes() + 1);
+          await supabase.from('competitions').update({ finals_date: d.toISOString() }).eq('id', competitionId);
+        }
+      }
       onRefresh?.();
     } finally {
       setSavingDates(false);
@@ -448,6 +476,9 @@ function RoundWeightRow({ round, votingRounds, onUpdate, onRefresh }) {
               {savingDates ? 'Saving…' : 'Save dates'}
             </Button>
           </div>
+          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs, lineHeight: 1.4 }}>
+            Saving sets the finale to 1 minute after judging ends. You can push it up to 24 hours later in Voting Details.
+          </p>
         </div>
       )}
     </div>

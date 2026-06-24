@@ -638,6 +638,7 @@ export default function SetupTab({
         <>
           <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
             <JudgingPanel
+              competition={competition}
               criteria={judgingCriteria}
               votingRounds={competition?.voting_rounds || []}
               onAddCriterion={onAddCriterion}

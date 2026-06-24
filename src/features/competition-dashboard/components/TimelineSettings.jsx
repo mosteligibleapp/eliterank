@@ -444,6 +444,20 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       validationErrors.push('Finale date must be after the last round ends');
     }
 
+    // Finale is tied to the end of judging: between 1 minute and 24 hours after.
+    const judgingRound = votingRounds.find((r) => (r.judge_weight || 0) > 0);
+    if (judgingRound?.end_date && finale) {
+      const jEnd = new Date(judgingRound.end_date).getTime();
+      const fin = finale.getTime();
+      if (!Number.isNaN(jEnd) && !Number.isNaN(fin)) {
+        if (fin < jEnd + 60000) {
+          validationErrors.push('Finale must be at least 1 minute after judging ends.');
+        } else if (fin > jEnd + 24 * 60 * 60 * 1000) {
+          validationErrors.push('Finale can be at most 24 hours after judging ends.');
+        }
+      }
+    }
+
     // Voting minimums (only enforced once the host has started adding voting
     // rounds): at least 3 rounds and at least 30 days of voting total.
     const votingTypeRounds = votingRounds.filter((r) => r.round_type === 'voting');
