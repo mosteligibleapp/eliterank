@@ -623,6 +623,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     // (5 days after) so the host doesn't have to compute it.
     const isFirstVoting = roundType === 'voting' && votingRounds.filter(r => r.round_type === 'voting').length === 0;
     const autoStartIso = isFirstVoting && recommendedVotingStartIso ? recommendedVotingStartIso : '';
+    // When we auto-fill the start, also suggest a valid end (~10 days later) so
+    // the round is never left with an end-before-start — the host can adjust it.
+    const autoEndIso = autoStartIso
+      ? new Date(new Date(autoStartIso).getTime() + 10 * 86400000).toISOString()
+      : '';
     setVotingRounds(prev => [
       ...prev,
       {
@@ -631,9 +636,13 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         round_order: prev.length + 1,
         round_type: roundType,
         start_date: autoStartIso || DEFAULT_VOTING_ROUND.start_date || '',
+        end_date: autoEndIso || DEFAULT_VOTING_ROUND.end_date || null,
       }
     ]);
-    setRoundDisplayValues(prev => [...prev, { start_date: autoStartIso ? formatDateForDisplay(autoStartIso) : '', end_date: '' }]);
+    setRoundDisplayValues(prev => [...prev, {
+      start_date: autoStartIso ? formatDateForDisplay(autoStartIso) : '',
+      end_date: autoEndIso ? formatDateForDisplay(autoEndIso) : '',
+    }]);
   };
 
   const removeVotingRound = (index) => {

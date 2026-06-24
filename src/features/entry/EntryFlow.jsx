@@ -184,7 +184,7 @@ export default function EntryFlow() {
 
       {/* Competition banner */}
       {flow.currentStep !== 'card' && (
-        <CompetitionBanner competition={competition} />
+        <CompetitionBanner competition={competition} logoUrl={organization?.logo_url || organization?.header_logo_url} />
       )}
 
       {/* Step content with slide animation */}
