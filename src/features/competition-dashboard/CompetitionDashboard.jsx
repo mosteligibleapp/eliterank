@@ -658,6 +658,7 @@ export default function CompetitionDashboard({
       focusSection={setupFocus}
       host={data.host}
       coHosts={data.coHosts || []}
+      canManageHosts={isSuperAdmin || role === 'host'}
       onShowHostAssignment={() => setShowHostAssignment(true)}
       onShowAddCoHost={() => setShowAddCoHost(true)}
       onRemoveHost={removeHost}

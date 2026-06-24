@@ -1,27 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, UserPlus, Star, ExternalLink } from 'lucide-react';
+import { User, UserPlus, Star, ExternalLink, RefreshCw, EyeOff, Eye } from 'lucide-react';
 import { Panel, Button, Avatar, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { supabase } from '../../../lib/supabase';
 
 /**
- * HostsPanel — the competition's host (creator) + co-hosts, shown on the Setup
- * tab. The host is the person who created the competition; assignment/removal
- * actions are super-admin only (a regular host sees a read-only roster).
+ * HostsPanel — the competition's forward-facing host (creator) + co-hosts, on
+ * the Setup tab. The host is the "face" of the competition shown publicly; it's
+ * recommended but optional. The manager (host/super-admin) can hide themselves
+ * from the public page, set a different forward-facing host, or add co-hosts.
  */
 export default function HostsPanel({
   host,
   coHosts = [],
-  isSuperAdmin = false,
+  competition,
+  canManage = false,
   isMobile = false,
   onShowHostAssignment,
   onShowAddCoHost,
-  onRemoveHost,
   onRemoveCoHost,
+  onRefresh,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [savingVis, setSavingVis] = useState(false);
   const viewProfile = (id) => { if (id) navigate(`/profile/${id}${location.search || ''}`); };
+
+  const showPublicHost = competition?.showPublicHost !== false;
+
+  const toggleVisibility = async () => {
+    if (!competition?.id) return;
+    setSavingVis(true);
+    try {
+      await supabase.from('competitions').update({ show_public_host: !showPublicHost }).eq('id', competition.id);
+      onRefresh?.();
+    } finally {
+      setSavingVis(false);
+    }
+  };
 
   const personRow = (person, isHost) => (
     <div
@@ -46,13 +63,10 @@ export default function HostsPanel({
       <Badge variant="gold" size="sm">
         <Star size={12} style={{ marginRight: spacing.xs }} /> {isHost ? 'Host' : 'Co-Host'}
       </Badge>
-      {isSuperAdmin && isHost && (
-        <>
-          <Button size="sm" variant="secondary" onClick={onShowHostAssignment}>Reassign</Button>
-          <Button size="sm" variant="secondary" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }} onClick={onRemoveHost}>Remove</Button>
-        </>
+      {canManage && isHost && (
+        <Button size="sm" variant="secondary" icon={RefreshCw} onClick={onShowHostAssignment}>Change</Button>
       )}
-      {isSuperAdmin && !isHost && (
+      {canManage && !isHost && (
         <Button size="sm" variant="secondary" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }} onClick={() => onRemoveCoHost?.(person.id)}>Remove</Button>
       )}
     </div>
@@ -63,26 +77,42 @@ export default function HostsPanel({
       title={`Hosts${host ? ` (${1 + coHosts.length})` : coHosts.length ? ` (${coHosts.length})` : ''}`}
       icon={User}
       action={
-        isSuperAdmin ? (
+        canManage ? (
           host ? (
-            <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowAddCoHost?.(); }}>Add Co-Host</Button>
+            <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowAddCoHost?.(); }}>Add co-host</Button>
           ) : (
-            <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment?.(); }}>Assign Host</Button>
+            <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment?.(); }}>Set host</Button>
           )
         ) : null
       }
     >
       <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
-        {!host && coHosts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-            <User size={40} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-            <p style={{ marginBottom: spacing.md, fontSize: typography.fontSize.sm }}>The competition creator is the host.</p>
-            {isSuperAdmin && <Button icon={UserPlus} onClick={onShowHostAssignment}>Assign Host</Button>}
-          </div>
-        ) : (
+        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, margin: `0 0 ${spacing.lg}`, lineHeight: 1.5 }}>
+          This is the <strong>face of your competition</strong> — shown publicly as the host. We recommend having a forward-facing host, but it’s not required.
+        </p>
+
+        {host || coHosts.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
             {host && personRow(host, true)}
             {coHosts.map((coHost) => personRow(coHost, false))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
+            <User size={40} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
+            <p style={{ marginBottom: spacing.md, fontSize: typography.fontSize.sm }}>No forward-facing host set.</p>
+            {canManage && <Button icon={UserPlus} onClick={onShowHostAssignment}>Set a host</Button>}
+          </div>
+        )}
+
+        {/* Forward-facing visibility — host can keep themselves off the public page */}
+        {host && canManage && (
+          <div style={{ marginTop: spacing.lg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' }}>
+            <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
+              {showPublicHost ? 'Shown publicly on your competition page.' : 'Hidden — not shown on your public page.'}
+            </span>
+            <Button size="sm" variant="secondary" icon={showPublicHost ? EyeOff : Eye} onClick={toggleVisibility} disabled={savingVis} style={{ width: 'auto' }}>
+              {savingVis ? 'Saving…' : showPublicHost ? 'Remove me as forward-facing host' : 'Show me as forward-facing host'}
+            </Button>
           </div>
         )}
       </div>

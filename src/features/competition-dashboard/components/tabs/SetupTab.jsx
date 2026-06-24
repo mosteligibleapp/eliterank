@@ -159,6 +159,7 @@ export default function SetupTab({
   mode = 'setup',
   host,
   coHosts = [],
+  canManageHosts = false,
   onShowHostAssignment,
   onShowAddCoHost,
   onRemoveHost,
@@ -575,12 +576,13 @@ export default function SetupTab({
         <HostsPanel
           host={host}
           coHosts={coHosts}
-          isSuperAdmin={isSuperAdmin}
+          competition={competition}
+          canManage={canManageHosts}
           isMobile={isMobile}
           onShowHostAssignment={onShowHostAssignment}
           onShowAddCoHost={onShowAddCoHost}
-          onRemoveHost={onRemoveHost}
           onRemoveCoHost={onRemoveCoHost}
+          onRefresh={onRefresh}
         />
       </div>
 
