@@ -144,7 +144,7 @@ export default function JudgingPanel({
   const separateJudgingRound = sortedRounds.find((r) => r.round_type === 'judging') || null;
   const judgingMode = !judgingRound ? 'none' : (judgingRound.round_type === 'judging' ? 'separate' : 'blend');
 
-  // Blend judging into the final voting round (50/50 by default, adjustable).
+  // Blend judging into the final voting round (judges 60%+ — the skill-contest floor).
   const applyBlend = async () => {
     if (!lastVotingRound || busy) return;
     if (separateJudgingRound &&
@@ -160,7 +160,9 @@ export default function JudgingPanel({
           await supabase.from('voting_rounds').update({ judge_weight: 0 }).eq('id', r.id);
         }
       }
-      const w = (lastVotingRound.judge_weight || 0) > 0 ? lastVotingRound.judge_weight : 50;
+      // Judges must control at least 60% of the deciding round (skill-contest
+      // requirement). Blend defaults to 60% and never goes below it.
+      const w = Math.max(60, lastVotingRound.judge_weight || 0);
       await supabase.from('voting_rounds').update({ judge_weight: w }).eq('id', lastVotingRound.id);
       onRefresh?.();
     } finally { setBusy(false); }
@@ -349,7 +351,7 @@ export default function JudgingPanel({
                 {layoutCard({
                   active: judgingMode === 'blend',
                   title: 'Judges score your final round',
-                  desc: 'Public votes + judges decide your last voting round together (50/50 by default).',
+                  desc: 'Judges decide your last voting round, with public votes influencing it (judges 60%+; adjustable).',
                   onClick: applyBlend,
                 })}
                 {layoutCard({
@@ -493,25 +495,25 @@ function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefres
             {round.title || `Round ${round.round_order || ''}`}
           </p>
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: 2 }}>
-            {weight === 0 ? '100% votes' : weight === 100 ? '100% judges' : `${weight}% judges · ${100 - weight}% votes`}
+            {weight === 100 ? '100% judges' : `${weight}% judges · ${100 - weight}% votes`}
             {round.contestants_advance > 0 && ` · top ${round.contestants_advance} advance`}
           </p>
         </div>
         <input
           type="range"
-          min={0}
+          min={60}
           max={100}
           step={5}
           value={weight}
-          onChange={(e) => setWeight(parseInt(e.target.value, 10))}
+          onChange={(e) => setWeight(Math.max(60, parseInt(e.target.value, 10)))}
           style={{ width: 140, accentColor: colors.gold.primary }}
         />
         <input
           type="number"
-          min={0}
+          min={60}
           max={100}
           value={weight}
-          onChange={(e) => setWeight(Math.max(0, Math.min(100, parseInt(e.target.value || '0', 10))))}
+          onChange={(e) => setWeight(Math.max(60, Math.min(100, parseInt(e.target.value || '60', 10))))}
           style={{
             width: 60,
             padding: `${spacing.xs} ${spacing.sm}`,

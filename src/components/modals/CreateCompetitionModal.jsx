@@ -553,11 +553,10 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
 
           {field('How they win',
             <select style={controlStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
-              <option value="votes">Public votes</option>
               <option value="hybrid">Votes + judges (hybrid)</option>
               <option value="judges">Judges only</option>
             </select>,
-            'Entering is free for contestants; the competition is funded by paid voting (pricing is set by EliteRank).')}
+            'Winners are decided by a judging panel (judges control at least 60% of the final round). Public votes can influence — but never solely decide — the outcome. Entering is free; the competition is funded by paid voting.')}
 
           {/* Eligibility (folded into Format) */}
           {field('Territory',
