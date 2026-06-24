@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Circle, Loader, Landmark, FileText, ClipboardList, Send, Rocket, Lock, ChevronRight, CalendarClock, Milestone } from 'lucide-react';
+import { CheckCircle, Circle, Loader, Landmark, FileText, ClipboardList, Send, Rocket, Lock, ChevronRight, CalendarClock, Milestone, Globe } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -33,6 +33,9 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [confirming, setConfirming] = useState(false);
+  // Host must explicitly confirm they've reviewed Setup + their public page
+  // before they can publish (the approved-phase gate below).
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
   if (!competition) return null;
 
   const status = competition.status || 'draft';
@@ -180,34 +183,83 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
           </>
         )}
 
-        {status === 'approved' && (
-          <>
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
-              ✅ Approved! One last step before you go live: verify payouts with Stripe. <strong>More details lock once you publish.</strong>
-            </p>
-            <button
-              onClick={stripeOk ? undefined : () => goTo('host-connect-card')}
-              disabled={stripeOk}
-              style={{
-                display: 'flex', alignItems: 'center', gap: spacing.sm, width: '100%', textAlign: 'left',
-                padding: `${spacing.sm} ${spacing.md}`, marginBottom: spacing.lg,
-                background: stripeOk ? 'transparent' : colors.background.secondary,
-                border: `1px solid ${stripeOk ? 'transparent' : colors.border.primary}`,
-                borderRadius: borderRadius.md,
-                color: stripeOk ? colors.text.primary : colors.text.secondary,
-                fontSize: typography.fontSize.sm, cursor: stripeOk ? 'default' : 'pointer',
-              }}
-            >
-              {stripeOk ? <CheckCircle size={16} style={{ color: colors.status.success, flexShrink: 0 }} /> : <Circle size={16} style={{ color: colors.text.muted, flexShrink: 0 }} />}
-              <span style={{ flex: 1 }}>Complete Stripe identity verification (KYC)</span>
-              {!stripeOk && <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />}
-            </button>
-            <Button onClick={() => callRpc('publish_to_public')} disabled={!stripeOk || busy} icon={busy ? Loader : Rocket}>
-              {busy ? 'Publishing…' : 'Publish to public'}
-            </Button>
-            {!stripeOk && <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>Verify payouts with Stripe to publish — it can take a little time, so start it now.</p>}
-          </>
-        )}
+        {status === 'approved' && (() => {
+          const rowStyle = (clickable = true) => ({
+            display: 'flex', alignItems: 'center', gap: spacing.sm, width: '100%', textAlign: 'left',
+            padding: `${spacing.sm} ${spacing.md}`,
+            background: colors.background.secondary,
+            border: `1px solid ${colors.border.primary}`,
+            borderRadius: borderRadius.md,
+            color: colors.text.secondary, fontSize: typography.fontSize.sm,
+            cursor: clickable ? 'pointer' : 'default',
+          });
+          const publishHint = !rulesOk
+            ? 'Enter your required details in Setup (name, dates & voting rounds) before publishing.'
+            : !stripeOk
+              ? 'Verify payouts with Stripe to publish — it can take a little time, so start it now.'
+              : !reviewConfirmed
+                ? 'Confirm you’ve reviewed everything above to publish.'
+                : null;
+          return (
+            <>
+              <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
+                ✅ Approved! Before you publish, finish and review everything below — <strong>some details lock the moment you go public.</strong>
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: spacing.lg }}>
+                {/* Required details + review Setup */}
+                <button onClick={() => onNavigateToTab?.('setup', 'timeline')} style={rowStyle()}>
+                  {rulesOk
+                    ? <CheckCircle size={16} style={{ color: colors.status.success, flexShrink: 0 }} />
+                    : <Circle size={16} style={{ color: colors.text.muted, flexShrink: 0 }} />}
+                  <span style={{ flex: 1 }}>
+                    {rulesOk
+                      ? 'Review your Setup — timeline, nomination form & judging (these lock at publish)'
+                      : 'Enter required details in Setup — name, dates & voting rounds'}
+                  </span>
+                  <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+                </button>
+
+                {/* Review public page */}
+                <button onClick={() => onNavigateToTab?.('site')} style={rowStyle()}>
+                  <Globe size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>Review your public page — branding &amp; About</span>
+                  <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+                </button>
+
+                {/* Stripe KYC */}
+                <button
+                  onClick={stripeOk ? undefined : () => goTo('host-connect-card')}
+                  disabled={stripeOk}
+                  style={{ ...rowStyle(!stripeOk), ...(stripeOk ? { background: 'transparent', border: '1px solid transparent', color: colors.text.primary } : {}) }}
+                >
+                  {stripeOk ? <CheckCircle size={16} style={{ color: colors.status.success, flexShrink: 0 }} /> : <Circle size={16} style={{ color: colors.text.muted, flexShrink: 0 }} />}
+                  <span style={{ flex: 1 }}>Complete Stripe identity verification (KYC)</span>
+                  {!stripeOk && <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />}
+                </button>
+              </div>
+
+              {/* Reviewed-and-ready confirmation */}
+              <label style={{
+                display: 'flex', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.lg,
+                cursor: 'pointer', color: colors.text.secondary, fontSize: typography.fontSize.sm, lineHeight: 1.5,
+              }}>
+                <input
+                  type="checkbox"
+                  checked={reviewConfirmed}
+                  onChange={(e) => setReviewConfirmed(e.target.checked)}
+                  style={{ marginTop: 3, accentColor: colors.gold.primary, flexShrink: 0 }}
+                />
+                <span>I’ve entered everything required and reviewed my Setup and public page. I understand the locked details can’t change after I publish.</span>
+              </label>
+
+              <Button onClick={() => callRpc('publish_to_public')} disabled={!stripeOk || !rulesOk || !reviewConfirmed || busy} icon={busy ? Loader : Rocket}>
+                {busy ? 'Publishing…' : 'Publish to public'}
+              </Button>
+              {publishHint && <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>{publishHint}</p>}
+            </>
+          );
+        })()}
 
         {status === 'publish' && (
           <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
