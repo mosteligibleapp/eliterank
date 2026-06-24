@@ -266,39 +266,13 @@ export default function SetupTab({
   const sectionStyle = (id) => {
     if (!belongsToMode(id)) return { display: 'none' };
     const idx = SECTION_ORDER.indexOf(id);
-    return {
-      order: isHidden(id) ? 100 + idx : 1 + idx,
-      opacity: isHidden(id) ? 0.5 : 1,
-    };
+    return { order: 1 + idx, opacity: 1 };
   };
 
-  // Panel header action: the section's own action plus a gray-out control,
-  // or a Restore button when the section is already grayed.
-  const sectionAction = (id, ownAction) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-      {isHidden(id) ? (
-        <button
-          onClick={(e) => { e.stopPropagation(); toggleSection(id); }}
-          style={restoreButtonStyle}
-          title="Restore this section"
-        >
-          <RotateCcw size={13} /> Restore
-        </button>
-      ) : (
-        <>
-          {ownAction}
-          <button
-            onClick={(e) => { e.stopPropagation(); toggleSection(id); }}
-            style={grayOutButtonStyle}
-            title="Not using this section? Gray it out and move it to the bottom."
-            aria-label="Gray out this section — mark as not using"
-          >
-            <EyeOff size={13} /> Not using
-          </button>
-        </>
-      )}
-    </div>
-  );
+  // Whether a section applies is driven by what the host entered in their
+  // competition details (e.g. charity / judging), not a manual "not using"
+  // toggle — so the header just shows the section's own action.
+  const sectionAction = (id, ownAction) => ownAction || null;
 
   const competitionTimezone = competition?.timezone || 'UTC';
   const timezoneGroups = React.useMemo(() => getTimezoneOptionGroups(), []);
