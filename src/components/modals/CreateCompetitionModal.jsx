@@ -259,10 +259,60 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
   }, [form, lookups, template, orgCreatingNew, onCreated]);
 
   // ── Styles ──────────────────────────────────────────────────────────────────
-  const labelStyle = { display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs };
-  const fieldStyle = { width: '100%', padding: spacing.md, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.lg, color: '#fff', fontSize: typography.fontSize.md, marginBottom: spacing.lg };
-  const cardStyle = (active) => ({ padding: spacing.lg, textAlign: 'center', cursor: 'pointer', background: active ? 'rgba(212,175,55,0.12)' : colors.background.secondary, border: `${active ? '2px' : '1px'} solid ${active ? colors.gold.primary : colors.border.primary}`, borderRadius: borderRadius.lg, color: colors.text.primary });
+  // Field border/background + tile hover/active live in the scoped CSS below so
+  // we get real :focus / :hover states; inline styles only carry layout.
+  const labelStyle = { display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs, letterSpacing: '0.01em' };
+  const fieldStyle = { width: '100%', padding: `${spacing.md} ${spacing.md}`, borderRadius: borderRadius.lg, color: colors.text.primary, fontSize: typography.fontSize.md, marginBottom: spacing.lg, boxSizing: 'border-box' };
+  // Tile props (className + layout-only inline style) for selectable cards.
+  const tile = (active, extra = {}) => ({
+    className: `cc-tile${active ? ' is-active' : ''}`,
+    style: {
+      padding: spacing.lg, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', gap: spacing.xs, textAlign: 'center', cursor: 'pointer',
+      borderRadius: borderRadius.lg, color: colors.text.primary, ...extra,
+    },
+  });
   const errEl = error ? <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>{error}</p> : null;
+
+  const wizardCss = `
+    .cc-wizard input, .cc-wizard select, .cc-wizard textarea {
+      background: ${colors.background.secondary};
+      border: 1px solid ${colors.border.primary};
+      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .cc-wizard input::placeholder { color: ${colors.text.muted}; }
+    .cc-wizard input:focus, .cc-wizard select:focus, .cc-wizard textarea:focus {
+      outline: none;
+      border-color: ${colors.gold.primary};
+      box-shadow: 0 0 0 3px rgba(212,175,55,0.15);
+      background: rgba(255,255,255,0.04);
+    }
+    .cc-wizard select {
+      -webkit-appearance: none; -moz-appearance: none; appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+      background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px;
+    }
+    .cc-wizard .cc-tile {
+      background: ${colors.background.secondary};
+      border: 1px solid ${colors.border.primary};
+      transition: transform .12s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+    }
+    .cc-wizard .cc-tile:hover {
+      border-color: rgba(212,175,55,0.55);
+      background: rgba(212,175,55,0.04);
+      transform: translateY(-1px);
+    }
+    .cc-wizard .cc-tile.is-active {
+      border-color: ${colors.gold.primary};
+      background: rgba(212,175,55,0.10);
+      box-shadow: inset 0 0 0 1px ${colors.gold.primary}, 0 8px 24px rgba(212,175,55,0.08);
+    }
+    .cc-wizard .cc-tile-ic {
+      width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(212,175,55,0.10);
+    }
+  `;
 
   // ── Footer ──────────────────────────────────────────────────────────────────
   const footer = (() => {
@@ -291,6 +341,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
 
   return (
     <Modal isOpen={isOpen} onClose={() => !busy && onClose?.()} title={title} maxWidth="600px" footer={footer}>
+      <div className="cc-wizard">
+      <style>{wizardCss}</style>
       {/* READY */}
       {step === 'ready' && (
         <div>
@@ -298,15 +350,15 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             Ready to set up your competition now?
           </p>
           <div style={{ display: 'flex', gap: spacing.lg }}>
-            <div style={{ ...cardStyle(false), flex: 1 }} onClick={() => { setError(null); setStep('sponsor'); }}>
-              <Sparkles size={26} color={colors.gold.primary} style={{ marginBottom: spacing.sm }} />
+            <div {...tile(false, { flex: 1, gap: spacing.sm })} onClick={() => { setError(null); setStep('sponsor'); }}>
+              <span className="cc-tile-ic"><Sparkles size={22} color={colors.gold.primary} /></span>
               <div style={{ fontWeight: typography.fontWeight.semibold }}>Yes, set it up now</div>
-              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>Build your draft in a few steps.</div>
+              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Build your draft in a few steps.</div>
             </div>
-            <div style={{ ...cardStyle(false), flex: 1 }} onClick={() => { setError(null); setStep('learn'); }}>
-              <Info size={26} color={colors.gold.primary} style={{ marginBottom: spacing.sm }} />
+            <div {...tile(false, { flex: 1, gap: spacing.sm })} onClick={() => { setError(null); setStep('learn'); }}>
+              <span className="cc-tile-ic"><Info size={22} color={colors.gold.primary} /></span>
               <div style={{ fontWeight: typography.fontWeight.semibold }}>Learn more first</div>
-              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>Get the host info packet or schedule a call.</div>
+              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Get the host info packet or schedule a call.</div>
             </div>
           </div>
 
@@ -356,12 +408,14 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
         <div>
           <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>Are you hosting as an individual or an organization?</p>
           <div style={{ display: 'flex', gap: spacing.lg, marginBottom: spacing.xl }}>
-            <div style={{ ...cardStyle(form.hostType === 'individual'), flex: 1 }} onClick={() => set('hostType', 'individual')}>
-              <User size={24} color={colors.gold.primary} /><div style={{ fontWeight: typography.fontWeight.semibold, marginTop: spacing.xs }}>Individual</div>
+            <div {...tile(form.hostType === 'individual', { flex: 1, gap: spacing.sm })} onClick={() => set('hostType', 'individual')}>
+              <span className="cc-tile-ic"><User size={22} color={colors.gold.primary} /></span>
+              <div style={{ fontWeight: typography.fontWeight.semibold }}>Individual</div>
               <div style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>You’re the host.</div>
             </div>
-            <div style={{ ...cardStyle(form.hostType === 'organization'), flex: 1 }} onClick={() => set('hostType', 'organization')}>
-              <Building2 size={24} color={colors.gold.primary} /><div style={{ fontWeight: typography.fontWeight.semibold, marginTop: spacing.xs }}>Organization</div>
+            <div {...tile(form.hostType === 'organization', { flex: 1, gap: spacing.sm })} onClick={() => set('hostType', 'organization')}>
+              <span className="cc-tile-ic"><Building2 size={22} color={colors.gold.primary} /></span>
+              <div style={{ fontWeight: typography.fontWeight.semibold }}>Organization</div>
               <div style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>A company or non-profit.</div>
             </div>
           </div>
@@ -424,13 +478,13 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       {step === 'template' && !loading && (
         <div>
           <p style={{ color: colors.text.secondary, marginBottom: spacing.lg }}>Pick a category template — it pre-fills sensible defaults you can tweak.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: spacing.md }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(132px, 1fr))', gap: spacing.md }}>
             {[...COMPETITION_TEMPLATES, CUSTOM_TEMPLATE].map((t) => {
               const Icon = t.icon;
               return (
-                <div key={t.id} style={cardStyle(form.templateId === t.id)} onClick={() => set('templateId', t.id)}>
-                  <Icon size={22} color={colors.gold.primary} />
-                  <div style={{ marginTop: spacing.xs, fontSize: typography.fontSize.sm }}>{t.label}</div>
+                <div key={t.id} {...tile(form.templateId === t.id, { gap: spacing.sm, minHeight: 104, justifyContent: 'center' })} onClick={() => set('templateId', t.id)}>
+                  <span className="cc-tile-ic"><Icon size={22} color={colors.gold.primary} /></span>
+                  <div style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>{t.label}</div>
                 </div>
               );
             })}
@@ -569,8 +623,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
 
           <label style={labelStyle}>Is there a cash prize?</label>
           <div style={{ display: 'flex', gap: spacing.md, marginBottom: form.cashPrizeYes ? spacing.md : spacing.lg }}>
-            <div style={{ ...cardStyle(form.cashPrizeYes), flex: 1 }} onClick={() => set('cashPrizeYes', true)}>Yes</div>
-            <div style={{ ...cardStyle(!form.cashPrizeYes), flex: 1 }} onClick={() => { set('cashPrizeYes', false); set('cashPrizeAmount', ''); }}>No</div>
+            <div {...tile(form.cashPrizeYes, { flex: 1, padding: spacing.md, fontWeight: typography.fontWeight.medium })} onClick={() => set('cashPrizeYes', true)}>Yes</div>
+            <div {...tile(!form.cashPrizeYes, { flex: 1, padding: spacing.md, fontWeight: typography.fontWeight.medium })} onClick={() => { set('cashPrizeYes', false); set('cashPrizeAmount', ''); }}>No</div>
           </div>
           {form.cashPrizeYes && (
             <>
@@ -581,14 +635,14 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
 
           <label style={labelStyle}>Are there sponsored prizes (goods or services)?</label>
           <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
-            <div style={{ ...cardStyle(form.sponsoredPrizesYes), flex: 1 }} onClick={() => set('sponsoredPrizesYes', true)}>Yes</div>
-            <div style={{ ...cardStyle(!form.sponsoredPrizesYes), flex: 1 }} onClick={() => set('sponsoredPrizesYes', false)}>No</div>
+            <div {...tile(form.sponsoredPrizesYes, { flex: 1, padding: spacing.md, fontWeight: typography.fontWeight.medium })} onClick={() => set('sponsoredPrizesYes', true)}>Yes</div>
+            <div {...tile(!form.sponsoredPrizesYes, { flex: 1, padding: spacing.md, fontWeight: typography.fontWeight.medium })} onClick={() => set('sponsoredPrizesYes', false)}>No</div>
           </div>
 
           <label style={labelStyle}>Are you donating a portion of proceeds to charity?</label>
           <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
-            <div style={{ ...cardStyle(form.charityYes), flex: 1 }} onClick={() => set('charityYes', true)}>Yes</div>
-            <div style={{ ...cardStyle(!form.charityYes), flex: 1 }} onClick={() => set('charityYes', false)}>No</div>
+            <div {...tile(form.charityYes, { flex: 1, padding: spacing.md, fontWeight: typography.fontWeight.medium })} onClick={() => set('charityYes', true)}>Yes</div>
+            <div {...tile(!form.charityYes, { flex: 1, padding: spacing.md, fontWeight: typography.fontWeight.medium })} onClick={() => set('charityYes', false)}>No</div>
           </div>
           {form.charityYes && (
             <>
@@ -634,6 +688,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           {errEl}
         </div>
       )}
+      </div>
     </Modal>
   );
 }
