@@ -24,10 +24,10 @@ import { COMPETITION_STATUS } from '../../types/competition';
 const TABS = [
   { id: 'dashboard', label: 'Status', shortLabel: 'Status', icon: Gauge },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
-  { id: 'activity', label: 'Activity', shortLabel: 'Activity', icon: Activity },
-  { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
-  { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
   { id: 'site', label: 'Site', shortLabel: 'Site', icon: Globe },
+  { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
+  { id: 'activity', label: 'Activity', shortLabel: 'Activity', icon: Activity },
+  { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
   { id: 'engagement', label: 'Engagement', shortLabel: 'Engage', icon: TrendingUp },
 ];
 
@@ -199,16 +199,15 @@ export default function CompetitionDashboard({
   })();
   const unlockedTabIds =
     launchPhase === 'draft' ? ['dashboard', 'setup']
-    : launchPhase === 'pending' ? ['dashboard', 'setup', 'people']
-    : launchPhase === 'approved' ? ['dashboard', 'people', 'site', 'setup']
+    : launchPhase === 'pending' ? ['dashboard', 'setup', 'site', 'people']
+    : launchPhase === 'approved' ? ['dashboard', 'setup', 'site', 'people']
     : TABS.map((t) => t.id);
   const isTabLocked = (id) => !unlockedTabIds.includes(id);
   // Per-tab tooltip explaining when a locked tab becomes available, matching
-  // the unlock schedule above (People at submit, Site at approval, the rest at
-  // publish) so each lock reads accurately regardless of the current phase.
+  // the unlock schedule above (Site & People at submit, the rest at publish) so
+  // each lock reads accurately regardless of the current phase.
   const lockedTabReason = (id) => {
-    if (id === 'people') return 'Available after you submit for approval.';
-    if (id === 'site') return 'Available once your competition is approved.';
+    if (id === 'people' || id === 'site') return 'Available after you submit for approval.';
     return 'Available once your competition is published.';
   };
   const visibleTabs = TABS;
@@ -857,6 +856,7 @@ export default function CompetitionDashboard({
               onRefresh={refresh}
               organizationId={competition?.organizationId}
               organizationHeaderLogoUrl={competition?.organizationHeaderLogoUrl}
+              organizationLogoUrl={competition?.organizationLogoUrl}
               organizationWebsiteUrl={competition?.organizationWebsiteUrl}
             />
             <PreviewTab

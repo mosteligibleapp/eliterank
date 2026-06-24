@@ -17,6 +17,7 @@ export default function ContentTab({
   onRefresh,
   organizationId,
   organizationHeaderLogoUrl,
+  organizationLogoUrl,
   organizationWebsiteUrl,
 }) {
   return (
@@ -59,6 +60,7 @@ export default function ContentTab({
       <OrganizationBrandingEditor
         organizationId={organizationId}
         currentHeaderLogoUrl={organizationHeaderLogoUrl}
+        fallbackLogoUrl={organizationLogoUrl}
         currentWebsiteUrl={organizationWebsiteUrl}
         onSave={onRefresh}
       />

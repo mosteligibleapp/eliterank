@@ -14,7 +14,7 @@ import { useToast } from '../../../../contexts/ToastContext';
  * @param {string} currentWebsiteUrl - Current website_url
  * @param {function} onSave - Callback when save completes
  */
-export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUrl, currentWebsiteUrl, onSave }) {
+export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUrl, fallbackLogoUrl, currentWebsiteUrl, onSave }) {
   const toast = useToast();
   const fileInputRef = useRef(null);
 
@@ -24,10 +24,16 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // No dedicated header logo yet? Fall back to the org logo uploaded during
+  // onboarding (stored as logo_url) so the host sees what we already have on
+  // file instead of an empty uploader. Saving promotes it to the header logo.
+  const seededHeaderLogoUrl = currentHeaderLogoUrl || fallbackLogoUrl || '';
+  const usingFallbackLogo = !currentHeaderLogoUrl && !!fallbackLogoUrl;
+
   useEffect(() => {
-    setHeaderLogoUrl(currentHeaderLogoUrl || '');
+    setHeaderLogoUrl(seededHeaderLogoUrl);
     setWebsiteUrl(currentWebsiteUrl || '');
-  }, [currentHeaderLogoUrl, currentWebsiteUrl]);
+  }, [seededHeaderLogoUrl, currentWebsiteUrl]);
 
   const hasChanges = () => {
     return headerLogoUrl !== (currentHeaderLogoUrl || '') ||
@@ -201,6 +207,11 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
           <p style={styles.hint}>
             Wide logo with your organization name. Transparent background recommended (PNG).
           </p>
+          {usingFallbackLogo && (
+            <p style={{ ...styles.hint, color: colors.gold.primary }}>
+              Showing the logo from your onboarding. Upload a wide header version any time, or Save to keep this one.
+            </p>
+          )}
 
           {headerLogoUrl ? (
             <div style={styles.previewContainer}>

@@ -145,10 +145,13 @@ export default function LaunchRoadmap({ competition, onNavigateToTab }) {
             </p>
             {itemList([
               'Contestants & nominees — approve, add, and manage your lineup',
-              'Judges — swap in a replacement if one steps down',
+              'Judges — add or swap them in from the Setup tab',
               'Sponsors & prizes — add more reward for contestants any time',
             ])}
-            {linkBtn('Go to People', 'people')}
+            <div style={{ display: 'flex', gap: spacing.lg, flexWrap: 'wrap' }}>
+              {linkBtn('Go to People', 'people')}
+              {linkBtn('Judges & sponsors in Setup', 'setup')}
+            </div>
           </div>
         </div>
       </div>
