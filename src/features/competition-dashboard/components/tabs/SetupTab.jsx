@@ -71,13 +71,17 @@ const getEventStatus = (event) => {
 // Grayable sections a host hides sort to the bottom (see sectionStyle).
 const SECTION_ORDER = [
   'competitionDetails',
-  'hosts',
+  // Locks at publish — get these right before going public (grouped first).
   'nominationForm',
   'timeline',
   'judgingCriteria',
   'charity',
-  'events',
+  // Editable anytime — adjust whenever, even after going live.
+  'hosts',
+  'judges',
   'sponsors',
+  // Engagement tab (own tab; shares this ordering list).
+  'events',
   'doubleVoteDays',
   'bonusVotes',
   'videoPrompts',
@@ -663,19 +667,11 @@ export default function SetupTab({
       {/* Judging criteria + results. Only relevant when winners are decided by
           judges (or a hybrid). For pure public-vote competitions these are
           grayed out and inaccessible. */}
+      {/* Judging criteria + weight — locks at publish. The judge roster lives in
+          its own section below (editable anytime), so locked vs. editable group
+          cleanly. */}
       {usesJudges ? (
-        <div id="setup-section-judgingCriteria" style={{ ...sectionStyle('judgingCriteria'), display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
-          {/* Who judges — the roster lives here alongside the judging rules so
-              the whole "set up judging" task is in one place. Judges are
-              manage-anytime (invite/swap throughout), so this isn't
-              publish-locked even though the criteria below are. */}
-          <JudgesManager
-            judges={judges}
-            onOpenJudgeModal={onOpenJudgeModal}
-            onDeleteJudge={onDeleteJudge}
-            onSendJudgeInvite={onSendJudgeInvite}
-            badge={editBadge}
-          />
+        <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
           <JudgingPanel
             competition={competition}
             criteria={judgingCriteria}
@@ -692,9 +688,23 @@ export default function SetupTab({
       ) : (
         <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
           <LockedSection
-            title="Judges & criteria"
+            title="Judging"
             icon={CheckCircle}
             reason="Not used — winners are decided by public votes. Switch “How they win” to Judges or Votes + judges to set this up."
+          />
+        </div>
+      )}
+
+      {/* Judge roster — invite/manage; editable any time, so it's grouped with
+          the other always-editable sections. */}
+      {usesJudges && (
+        <div id="setup-section-judges" style={sectionStyle('judges')}>
+          <JudgesManager
+            judges={judges}
+            onOpenJudgeModal={onOpenJudgeModal}
+            onDeleteJudge={onDeleteJudge}
+            onSendJudgeInvite={onSendJudgeInvite}
+            badge={editBadge}
           />
         </div>
       )}

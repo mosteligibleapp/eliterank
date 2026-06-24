@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores';
 import { CompetitionDashboard } from '../features/competition-dashboard';
@@ -51,6 +51,20 @@ export default function DashboardPage() {
   const [fetchError, setFetchError] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [createStep, setCreateStep] = useState('ready');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // "Launch a new competition" (from the profile dropdown, anywhere) navigates
+  // here with ?create=1 — open the create wizard even if the host already has a
+  // competition, then strip the param so a refresh doesn't reopen it.
+  useEffect(() => {
+    if (searchParams.get('create')) {
+      setCreateStep('ready');
+      setShowCreate(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('create');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch all competitions this user hosts (primary + co-hosted) from Supabase
   useEffect(() => {
@@ -194,16 +208,26 @@ export default function DashboardPage() {
   }
 
   return (
-    <CompetitionDashboard
-      competitionId={selectedCompetition.id}
-      role="host"
-      onBack={handleBack}
-      onLogout={handleLogout}
-      currentUserId={user?.id}
-      onViewPublicSite={handleViewPublicSite}
-      competitions={competitions}
-      selectedCompetitionId={selectedCompetition.id}
-      onSelectCompetition={setSelectedId}
-    />
+    <>
+      <CompetitionDashboard
+        competitionId={selectedCompetition.id}
+        role="host"
+        onBack={handleBack}
+        onLogout={handleLogout}
+        currentUserId={user?.id}
+        onViewPublicSite={handleViewPublicSite}
+        competitions={competitions}
+        selectedCompetitionId={selectedCompetition.id}
+        onSelectCompetition={setSelectedId}
+      />
+      {/* Launch-another-competition wizard, opened via ?create=1. */}
+      <CreateCompetitionModal
+        isOpen={showCreate}
+        initialStep={createStep}
+        onClose={() => setShowCreate(false)}
+        userId={user?.id}
+        onCreated={() => window.location.reload()}
+      />
+    </>
   );
 }

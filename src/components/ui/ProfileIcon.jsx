@@ -323,7 +323,7 @@ function ProfileIcon({
                 }}
               >
                 <PlusCircle size={16} />
-                Launch a competition
+                Launch a new competition
               </button>
             )}
 
