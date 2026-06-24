@@ -381,6 +381,13 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   });
   const phaseConfig = getPhaseDisplayConfig(computedPhase);
 
+  // Recommended first-voting start = 5 days after nominations close (owned by
+  // the Nomination Form section). Used to auto-fill the first voting round.
+  const nominationCloseIso = competition?.nominationEnd || competition?.nomination_end || null;
+  const recommendedVotingStartIso = nominationCloseIso
+    ? new Date(new Date(nominationCloseIso).getTime() + 5 * 86400000).toISOString()
+    : null;
+
   // Validate dates
   const validateDates = () => {
     const validationErrors = [];
@@ -431,6 +438,25 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
     if (finale && prevRoundEnd && finale < prevRoundEnd) {
       validationErrors.push('Finale date must be after the last round ends');
+    }
+
+    // Voting minimums (only enforced once the host has started adding voting
+    // rounds): at least 3 rounds and at least 30 days of voting total.
+    const votingTypeRounds = votingRounds.filter((r) => r.round_type === 'voting');
+    if (votingTypeRounds.length > 0) {
+      if (votingTypeRounds.length < 3) {
+        validationErrors.push('Voting needs at least 3 rounds.');
+      }
+      const starts = votingTypeRounds.map((r) => r.start_date && new Date(r.start_date)).filter(Boolean);
+      const ends = votingTypeRounds.map((r) => r.end_date && new Date(r.end_date)).filter(Boolean);
+      if (starts.length && ends.length) {
+        const firstStart = Math.min(...starts.map((d) => d.getTime()));
+        const lastEnd = Math.max(...ends.map((d) => d.getTime()));
+        const days = (lastEnd - firstStart) / 86400000;
+        if (days < 30) {
+          validationErrors.push('Voting must run at least 30 days total (first round start to last round end).');
+        }
+      }
     }
 
     if (status === COMPETITION_STATUS.LIVE) {
@@ -575,6 +601,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Voting/Judging round management
   const addVotingRound = (roundType = 'voting') => {
     const typeLabel = roundType === 'judging' ? 'Judging' : 'Voting';
+    // Auto-fill the first voting round's start from the nomination close date
+    // (5 days after) so the host doesn't have to compute it.
+    const isFirstVoting = roundType === 'voting' && votingRounds.filter(r => r.round_type === 'voting').length === 0;
+    const autoStartIso = isFirstVoting && recommendedVotingStartIso ? recommendedVotingStartIso : '';
     setVotingRounds(prev => [
       ...prev,
       {
@@ -582,9 +612,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         title: `${typeLabel} Round ${prev.filter(r => r.round_type === roundType).length + 1}`,
         round_order: prev.length + 1,
         round_type: roundType,
+        start_date: autoStartIso || DEFAULT_VOTING_ROUND.start_date || '',
       }
     ]);
-    setRoundDisplayValues(prev => [...prev, { start_date: '', end_date: '' }]);
+    setRoundDisplayValues(prev => [...prev, { start_date: autoStartIso ? formatDateForDisplay(autoStartIso) : '', end_date: '' }]);
   };
 
   const removeVotingRound = (index) => {
@@ -769,143 +800,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </div>
       )}
 
-      {/* Phase Indicator */}
-      <div style={sectionStyle}>
-        <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-          <Activity size={18} />
-          Current Phase
-        </h4>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.md,
-          padding: spacing.lg,
-          background: colors.background.card,
-          borderRadius: borderRadius.lg,
-          border: `1px solid ${colors.border.light}`,
-        }}>
-          <Badge variant={phaseConfig.variant} size="lg">
-            {phaseConfig.label}
-          </Badge>
-          <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-            {status === COMPETITION_STATUS.LIVE
-              ? 'Phase is computed from timeline dates'
-              : 'Set status to "Live" to enable timeline-based phases'}
-          </span>
-        </div>
-      </div>
-
-      {/* Status Section - Admin can change, hosts see read-only */}
-      <div style={sectionStyle}>
-        <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-          <Vote size={18} />
-          Competition Status
-          {!isSuperAdmin && (
-            <Badge variant="secondary" size="sm" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-              <Lock size={12} /> Admin Controlled
-            </Badge>
-          )}
-        </h4>
-
-        {isSuperAdmin ? (
-          /* Admin view: clickable status buttons */
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-              <button
-                key={key}
-                onClick={() => setStatus(key)}
-                style={{
-                  padding: `${spacing.sm} ${spacing.md}`,
-                  background: status === key ? config.bg : 'transparent',
-                  border: `1px solid ${status === key ? config.color : colors.border.light}`,
-                  borderRadius: borderRadius.md,
-                  color: status === key ? config.color : colors.text.muted,
-                  fontSize: typography.fontSize.sm,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: spacing.xs,
-                  minWidth: '120px',
-                }}
-              >
-                <span style={{ fontWeight: typography.fontWeight.medium }}>{config.label}</span>
-                <span style={{ fontSize: typography.fontSize.xs, opacity: 0.7 }}>{config.description}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          /* Host view: read-only status display */
-          <div>
-            {/* Current status badge */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.md,
-              padding: spacing.lg,
-              background: colors.background.card,
-              borderRadius: borderRadius.lg,
-              border: `1px solid ${colors.border.light}`,
-              marginBottom: spacing.md,
-            }}>
-              <Badge
-                variant={STATUS_CONFIG[status]?.variant || 'secondary'}
-                size="lg"
-                style={{
-                  background: STATUS_CONFIG[status]?.bg,
-                  color: STATUS_CONFIG[status]?.color,
-                  border: `1px solid ${STATUS_CONFIG[status]?.color}`,
-                }}
-              >
-                {STATUS_CONFIG[status]?.label || status}
-              </Badge>
-              <div>
-                <p style={{ margin: 0, fontSize: typography.fontSize.sm, color: colors.text.primary }}>
-                  {STATUS_CONFIG[status]?.description || 'Competition status'}
-                </p>
-                <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                  {getStatusChangeRestriction(status)}
-                </p>
-              </div>
-            </div>
-
-            {/* Auto-transition info */}
-            {(() => {
-              const nextTransition = getNextAutoTransition({
-                status,
-                nomination_start: nominationPeriods[0]?.start_date,
-                finals_date: settings.finals_date,
-              });
-
-              if (nextTransition) {
-                return (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: spacing.sm,
-                    padding: spacing.md,
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: borderRadius.md,
-                  }}>
-                    <Info size={16} style={{ color: 'rgb(59, 130, 246)', marginTop: '2px', flexShrink: 0 }} />
-                    <div>
-                      <p style={{ margin: 0, fontSize: typography.fontSize.sm, color: 'rgb(59, 130, 246)' }}>
-                        {nextTransition.description}
-                      </p>
-                      <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                        Scheduled: {formatDateForDisplay(nextTransition.triggerDate.toISOString())}
-                      </p>
-                    </div>
-                  </div>
-                );
-              }
-
-              return null;
-            })()}
-          </div>
-        )}
-      </div>
+      {/* Current Phase + Competition Status removed — phase/status are driven by
+          the launch lifecycle (submit → approve → publish), not edited here. */}
 
       {isLocked ? (
         <>
@@ -954,8 +850,12 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
             </Button>
           </div>
         </div>
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
           Competitions can have voting rounds (public votes), judging rounds (judge scores), or both.
+        </p>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginBottom: spacing.md }}>
+          Voting should run at least <strong>30 days</strong> across at least <strong>3 rounds</strong>. We recommend voting opens 5 days after nominations close
+          {recommendedVotingStartIso ? <> — about <strong>{formatDateForDisplay(recommendedVotingStartIso)}</strong>. The first round’s start is filled in for you.</> : '. Set your nomination close date first and we’ll suggest the start.'}
         </p>
 
         {votingRounds.length === 0 ? (
