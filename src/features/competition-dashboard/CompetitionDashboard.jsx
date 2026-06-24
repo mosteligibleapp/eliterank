@@ -102,6 +102,10 @@ export default function CompetitionDashboard({
 }) {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
+  // A locked tab the host has clicked to peek at: we show a read-only teaser of
+  // what that tab unlocks (not its real, premature content). Cleared whenever
+  // they land on an actually-usable tab.
+  const [lockedPreview, setLockedPreview] = useState(null);
   // When a launch-checklist CTA deep-links into the Setup tab, this carries the
   // section to auto-expand + scroll to. The nonce re-triggers the scroll even
   // when the host clicks the same step twice.
@@ -210,6 +214,15 @@ export default function CompetitionDashboard({
     if (id === 'site') return 'Available once your competition is approved.';
     return 'Available once your competition is published.';
   };
+  // One-line description of what each tab is for, shown in the locked-tab teaser
+  // so a host can see what's coming without being handed premature controls.
+  const lockedTabBlurb = (id) => ({
+    activity: 'Watch votes, revenue, and engagement roll in live once your competition is out in the world.',
+    people: 'Approve nominees, manage your contestant lineup, and invite judges.',
+    communications: 'Post announcements and email your audience to keep momentum up.',
+    site: 'Fine-tune your public competition page — story, photos, and details visitors see.',
+    engagement: 'Run bonus-vote tasks, double-vote days, and video prompts to drive participation.',
+  }[id] || 'More tools unlock as your competition progresses.');
   const visibleTabs = TABS;
 
   // If the active tab is locked (e.g. status changed while open), fall back to
@@ -218,6 +231,16 @@ export default function CompetitionDashboard({
     if (isTabLocked(activeTab)) setActiveTab('dashboard');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [launchPhase, activeTab]);
+
+  // If a tab being previewed unlocks (phase advanced), drop the teaser and open
+  // it for real.
+  useEffect(() => {
+    if (lockedPreview && !isTabLocked(lockedPreview)) {
+      setActiveTab(lockedPreview);
+      setLockedPreview(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [launchPhase, lockedPreview]);
 
   // Stripe Connect return handler. When the host comes back from Stripe's
   // hosted onboarding (return_url carries ?connect=return&org=...), pull the
@@ -279,6 +302,7 @@ export default function CompetitionDashboard({
 
   // Tab navigation that can optionally focus a specific Setup section.
   const navigateToTab = (tab, section = null) => {
+    setLockedPreview(null);
     setActiveTab(tab);
     setSetupFocus(section ? { id: section, nonce: Date.now() } : null);
   };
@@ -610,23 +634,28 @@ export default function CompetitionDashboard({
       }}>
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
           const locked = isTabLocked(tab.id);
+          const isPreviewing = locked && lockedPreview === tab.id;
+          const isActive = (!locked && activeTab === tab.id) || isPreviewing;
           return (
             <button
               key={tab.id}
-              onClick={() => { if (locked) return; setActiveTab(tab.id); setSetupFocus(null); }}
-              disabled={locked}
+              onClick={() => {
+                setSetupFocus(null);
+                if (locked) { setLockedPreview(tab.id); return; }
+                setLockedPreview(null);
+                setActiveTab(tab.id);
+              }}
               aria-disabled={locked}
               title={locked ? lockedTabReason(tab.id) : undefined}
               style={{
                 padding: isMobile ? `${spacing.md} ${spacing.md}` : `${spacing.md} ${spacing.xl}`,
-                color: locked ? colors.text.muted : isActive ? colors.gold.primary : colors.text.secondary,
+                color: locked ? (isPreviewing ? colors.gold.primary : colors.text.muted) : isActive ? colors.gold.primary : colors.text.secondary,
                 fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 fontWeight: typography.fontWeight.medium,
-                cursor: locked ? 'not-allowed' : 'pointer',
-                opacity: locked ? 0.5 : 1,
-                borderBottom: `2px solid ${isActive && !locked ? colors.gold.primary : 'transparent'}`,
+                cursor: 'pointer',
+                opacity: locked ? (isPreviewing ? 0.9 : 0.5) : 1,
+                borderBottom: `2px solid ${isActive ? colors.gold.primary : 'transparent'}`,
                 background: 'none',
                 border: 'none',
                 display: 'flex',
@@ -871,6 +900,90 @@ export default function CompetitionDashboard({
     }
   };
 
+  // Read-only teaser for a locked tab the host clicked — shows what the tab is
+  // for and when it unlocks, instead of its premature (empty/half-interactive)
+  // real content.
+  const renderLockedTeaser = () => {
+    const tab = TABS.find((t) => t.id === lockedPreview);
+    if (!tab) return null;
+    const Icon = tab.icon;
+    return (
+      <div style={{
+        maxWidth: 520,
+        margin: '0 auto',
+        textAlign: 'center',
+        padding: isMobile ? spacing.xl : spacing.xxxl,
+        background: colors.background.secondary,
+        border: `1px solid ${colors.border.primary}`,
+        borderRadius: borderRadius.xxl,
+      }}>
+        <div style={{
+          width: 64,
+          height: 64,
+          margin: '0 auto',
+          borderRadius: borderRadius.xl,
+          background: 'rgba(212,175,55,0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+        }}>
+          <Icon size={30} style={{ color: colors.gold.primary }} />
+          <div style={{
+            position: 'absolute',
+            bottom: -6,
+            right: -6,
+            width: 26,
+            height: 26,
+            borderRadius: '50%',
+            background: colors.background.secondary,
+            border: `1px solid ${colors.border.primary}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Lock size={13} style={{ color: colors.text.muted }} />
+          </div>
+        </div>
+        <h2 style={{
+          fontSize: typography.fontSize.xxl,
+          fontWeight: typography.fontWeight.semibold,
+          margin: `${spacing.lg} 0 ${spacing.sm}`,
+        }}>
+          {tab.label}
+        </h2>
+        <p style={{
+          color: colors.text.secondary,
+          fontSize: typography.fontSize.md,
+          lineHeight: 1.6,
+          margin: `0 0 ${spacing.lg}`,
+        }}>
+          {lockedTabBlurb(tab.id)}
+        </p>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: spacing.xs,
+          padding: `${spacing.xs} ${spacing.md}`,
+          borderRadius: borderRadius.full,
+          background: 'rgba(212,175,55,0.1)',
+          border: `1px solid rgba(212,175,55,0.3)`,
+          color: colors.gold.primary,
+          fontSize: typography.fontSize.sm,
+          fontWeight: typography.fontWeight.medium,
+        }}>
+          <Lock size={13} />
+          {lockedTabReason(tab.id)}
+        </div>
+        <div style={{ marginTop: spacing.xl, display: 'flex', gap: spacing.sm, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Button variant="secondary" onClick={() => setLockedPreview(null)}>
+            Back to my checklist
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div style={{ minHeight: '100vh', background: gradients.background }}>
@@ -881,7 +994,7 @@ export default function CompetitionDashboard({
           margin: '0 auto',
           padding: isMobile ? `${spacing.lg} ${spacing.md}` : `${spacing.xxxl} ${spacing.xxl}`,
         }}>
-          {renderContent()}
+          {lockedPreview ? renderLockedTeaser() : renderContent()}
         </main>
       </div>
       <HostAssignmentModal
