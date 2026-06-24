@@ -406,11 +406,6 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
                 <input style={{ ...fieldStyle, flex: 1 }} type="number" min="0" value={form.cashPrizeAmount} onChange={(e) => set('cashPrizeAmount', e.target.value)} placeholder="USD" />
               )}
             </div>
-            {form.cashPrizeYes && Number(form.cashPrizeAmount) > 1999 && (
-              <p style={{ ...helpStyle, color: colors.gold.primary }}>
-                Cash prizes over $1,999 need a quick review call with EliteRank before approval.
-              </p>
-            )}
           </div>
 
           <div>

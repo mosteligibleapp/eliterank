@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { CheckCircle, Circle, Loader, Landmark, FileText, ClipboardList, Send, Rocket, Lock, ChevronRight } from 'lucide-react';
+import { CheckCircle, Circle, Loader, Landmark, FileText, ClipboardList, Send, Rocket, Lock, ChevronRight, CalendarClock } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { hasAcceptedCurrentAgreement } from '../../../lib/hostAgreement';
+import { CALENDLY_URL } from '../../../lib/scheduling';
 
 /**
  * HostLaunchStatus — the competition lifecycle tracker on the host dashboard.
@@ -128,9 +129,30 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
         )}
 
         {status === 'pending_approval' && (
-          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-            ⏳ Submitted — EliteRank is reviewing your competition. Core rules are locked while it's under review. We'll let you know when it's approved.
-          </p>
+          <>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+              ⏳ Submitted — EliteRank is reviewing your competition. Core rules are locked while it's under review. We'll let you know when it's approved.
+            </p>
+            {competition.prizeReviewRequired && (
+              <div style={{
+                marginTop: spacing.lg, padding: spacing.lg, borderRadius: borderRadius.md,
+                background: colors.gold.muted, border: `1px solid ${colors.gold.primary}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs }}>
+                  <CalendarClock size={16} style={{ color: colors.gold.primary }} />
+                  <span style={{ color: colors.text.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold }}>
+                    Required: book your review call
+                  </span>
+                </div>
+                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, margin: `0 0 ${spacing.md}` }}>
+                  Your cash prize is over $1,999, so we need a quick call before we can approve. Book a time and we’ll get you approved right after.
+                </p>
+                <Button icon={CalendarClock} onClick={() => window.open(CALENDLY_URL, '_blank', 'noopener,noreferrer')} style={{ width: 'auto' }}>
+                  Book your review call
+                </Button>
+              </div>
+            )}
+          </>
         )}
 
         {status === 'approved' && (

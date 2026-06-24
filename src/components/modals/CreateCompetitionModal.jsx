@@ -5,10 +5,9 @@ import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { slugify, generateCompetitionSlug } from '../../utils/slugs';
 import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES, LAUNCH_TIMEFRAMES, ENTRY_TYPE_HELP } from '../../lib/competitionTemplates';
+import { CALENDLY_URL } from '../../lib/scheduling';
 
 const NEW_ORG = '__new__';
-// Calendly scheduling link used by the "Learn more → Schedule a call" flow.
-const CALENDLY_URL = 'https://calendly.com/crystal-mosteligibleusa/eliterank-info-session';
 
 /**
  * CalendlyInline — embeds a Calendly scheduler inline, prefilled with the
@@ -577,11 +576,6 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             <>
               <label style={labelStyle}>Total cash prize (USD)</label>
               <input style={fieldStyle} type="number" min="0" value={form.cashPrizeAmount} onChange={(e) => set('cashPrizeAmount', e.target.value)} placeholder="e.g. 1000" />
-              {Number(form.cashPrizeAmount) > 1999 && (
-                <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.xs, marginTop: -spacing.md, marginBottom: spacing.lg }}>
-                  Cash prizes over $1,999 require a quick review call with EliteRank before approval — we’ll reach out to schedule it.
-                </p>
-              )}
             </>
           )}
 
