@@ -1,5 +1,5 @@
 import React from 'react';
-import { AboutSectionEditor, OrganizationBrandingEditor } from '../settings';
+import { AboutSectionEditor, OrganizationBrandingEditor, AutoRulesPreview } from '../settings';
 
 /**
  * ContentTab - Public-facing content: organization branding and the About section.
@@ -24,6 +24,9 @@ export default function ContentTab({
 
       {/* About Section */}
       <AboutSectionEditor competition={competition} organization={null} onSave={onRefresh} />
+
+      {/* Rules — auto-generated from the competition setup, read-only. */}
+      <AutoRulesPreview competition={competition} />
     </div>
   );
 }
