@@ -571,6 +571,17 @@ export default function SetupTab({
         <CompetitionSummaryCard competition={competition} onRefresh={onRefresh} />
       </div>
 
+      {/* Intro for the publish-locked, public-facing sections below. */}
+      <div style={{ order: 1, marginBottom: spacing.lg }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+          <Lock size={16} style={{ color: colors.gold.primary }} />
+          <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, margin: 0 }}>Important Information</h3>
+        </div>
+        <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, margin: `${spacing.xs} 0 0` }}>
+          This is the public-facing information for your competition. Fill it in carefully — it locks and can’t be changed once you publish to the public.
+        </p>
+      </div>
+
       {/* Hosts (creator + co-hosts) — moved here from the People tab. */}
       <div style={{ ...sectionStyle('hosts'), marginBottom: spacing.xxl }}>
         <HostsPanel
@@ -578,6 +589,7 @@ export default function SetupTab({
           coHosts={coHosts}
           competition={competition}
           canManage={canManageHosts}
+          locked
           isMobile={isMobile}
           onShowHostAssignment={onShowHostAssignment}
           onShowAddCoHost={onShowAddCoHost}
@@ -593,6 +605,7 @@ export default function SetupTab({
         style={sectionStyle('timeline')}
         title="Voting Details"
         icon={Calendar}
+        locked
         collapsible
         defaultCollapsed={focusId !== 'timeline'}
       >
@@ -610,6 +623,7 @@ export default function SetupTab({
         style={sectionStyle('nominationForm')}
         competition={competition}
         onSave={onRefresh}
+        locked
         collapsible
         defaultCollapsed={focusId !== 'nominationForm'}
       />
@@ -628,6 +642,7 @@ export default function SetupTab({
               onDeleteCriterion={onDeleteCriterion}
               onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
               onRefresh={onRefresh}
+              locked
             />
           </div>
           <div style={sectionStyle('judgingResults')}>
@@ -668,6 +683,7 @@ export default function SetupTab({
         id="setup-section-charity"
         title="Charity Partner"
         icon={Gift}
+        locked
         action={sectionAction('charity',
           <Button size="sm" icon={competition?.charityName ? Edit2 : Plus} onClick={onOpenCharityModal}>
             {competition?.charityName ? 'Edit' : 'Add Charity'}

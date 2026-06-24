@@ -16,6 +16,7 @@ export default function HostsPanel({
   coHosts = [],
   competition,
   canManage = false,
+  locked = false,
   isMobile = false,
   onShowHostAssignment,
   onShowAddCoHost,
@@ -92,6 +93,7 @@ export default function HostsPanel({
     <Panel
       title={`Hosts${host ? ` (${1 + coHosts.length})` : coHosts.length ? ` (${coHosts.length})` : ''}`}
       icon={User}
+      locked={locked}
       action={
         canManage ? (
           host ? (

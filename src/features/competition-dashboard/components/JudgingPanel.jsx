@@ -22,6 +22,7 @@ export default function JudgingPanel({
   onDeleteCriterion,
   onUpdateRoundJudgeWeight,
   onRefresh,
+  locked = false,
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -127,7 +128,7 @@ export default function JudgingPanel({
   const sectionLabel = { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.text.muted };
 
   return (
-    <Panel title="Judging" icon={Award} collapsible defaultCollapsed>
+    <Panel title="Judging" icon={Award} locked={locked} collapsible defaultCollapsed>
       <div style={{ padding: spacing.xl }}>
         {/* Criteria */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.sm }}>

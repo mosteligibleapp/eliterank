@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ClipboardList, Pencil, Loader, Check, X, Building2 } from 'lucide-react';
+import { ClipboardList, Pencil, Loader, Check, X, Building2, Plus } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -222,7 +222,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
           editable ? (
             <Button size="sm" variant="secondary" icon={Pencil} onClick={startEdit} style={{ width: 'auto' }}>Edit</Button>
           ) : (
-            <Button size="sm" variant="secondary" icon={Pencil} onClick={() => onNavigateToTab?.('setup')} style={{ width: 'auto' }}>View in Setup</Button>
+            <Button size="sm" icon={Plus} onClick={() => onNavigateToTab?.('setup')} style={{ width: 'auto' }}>Add details</Button>
           )
         }
       >
