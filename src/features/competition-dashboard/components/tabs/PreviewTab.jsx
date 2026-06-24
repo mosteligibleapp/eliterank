@@ -111,44 +111,6 @@ export default function PreviewTab({ competition, contestants = [] }) {
 
   return (
     <div style={{ padding: spacing.lg, display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
-      {/* Current phase banner */}
-      <div style={{
-        padding: spacing.lg,
-        background: 'rgba(212,175,55,0.08)',
-        border: '1px solid rgba(212,175,55,0.2)',
-        borderRadius: borderRadius.lg,
-        display: 'flex',
-        alignItems: 'center',
-        gap: spacing.md,
-      }}>
-        <Eye size={20} style={{ color: colors.gold.primary, flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.muted,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '2px',
-          }}>
-            Current Phase
-          </p>
-          <p style={{
-            fontSize: typography.fontSize.lg,
-            fontWeight: typography.fontWeight.semibold,
-            color: colors.text.primary,
-          }}>
-            {formatPhaseLabel(currentPhaseKey)}
-          </p>
-          <p style={{
-            fontSize: typography.fontSize.xs,
-            color: colors.text.secondary,
-            marginTop: '2px',
-          }}>
-            Status: <span style={{ color: colors.gold.primary }}>{competition?.status || 'draft'}</span>
-          </p>
-        </div>
-      </div>
-
       {/* Phase previews */}
       <Panel title="Phase Previews" icon={Eye}>
         <div style={{ padding: spacing.lg, display: 'flex', flexDirection: 'column', gap: spacing.md }}>
@@ -369,26 +331,4 @@ export default function PreviewTab({ competition, contestants = [] }) {
       </Panel>
     </div>
   );
-}
-
-function formatPhaseLabel(phase) {
-  if (!phase) return 'Unknown';
-  const map = {
-    draft: 'Draft',
-    publish: 'Published — Coming Soon',
-    'coming-soon': 'Coming Soon',
-    live: 'Live',
-    nomination: 'Nominations Open',
-    nominations: 'Nominations Open',
-    voting: 'Voting Open',
-    finals: 'Finals',
-    resurrection: 'Resurrection',
-    judging: 'Judging',
-    between: 'Between Rounds',
-    'between-rounds': 'Between Rounds',
-    completed: 'Completed',
-    results: 'Results',
-    archive: 'Archived',
-  };
-  return map[phase] || phase;
 }
