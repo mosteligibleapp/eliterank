@@ -893,6 +893,7 @@ export default function CompetitionDashboard({
         excludeIds={(data.coHosts || []).map((c) => c.id)}
         title="Add Co-Host"
         assignLabel="Add Co-Host"
+        emailOnly
       />
       <JudgeModal
         isOpen={judgeModal.isOpen}

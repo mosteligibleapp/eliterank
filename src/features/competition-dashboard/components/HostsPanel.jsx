@@ -40,37 +40,53 @@ export default function HostsPanel({
     }
   };
 
-  const personRow = (person, isHost) => (
-    <div
-      key={person.id || person.email}
-      style={{ display: 'flex', alignItems: 'center', gap: spacing.md, padding: spacing.md, background: 'rgba(255,255,255,0.03)', border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.md }}
-    >
-      <Avatar name={person.name} src={person.avatar} size={44} />
-      <button
-        onClick={() => viewProfile(person.id)}
-        disabled={!person.id}
-        title={person.id ? `View ${isHost ? 'host' : 'co-host'} profile` : undefined}
-        style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: person.id ? 'pointer' : 'default', color: 'inherit' }}
+  const personRow = (person, isHost) => {
+    const dimmed = isHost && !showPublicHost;
+    return (
+      <div
+        key={person.id || person.email}
+        style={{ display: 'flex', alignItems: 'center', gap: spacing.md, padding: spacing.md, background: 'rgba(255,255,255,0.03)', border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.md }}
       >
-        <p style={{ fontWeight: typography.fontWeight.medium, display: 'flex', alignItems: 'center', gap: spacing.xs, color: '#fff' }}>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{person.name}</span>
-          {person.id && <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />}
-        </p>
-        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {isHost ? (person.city || '') : person.email}
-        </p>
-      </button>
-      <Badge variant="gold" size="sm">
-        <Star size={12} style={{ marginRight: spacing.xs }} /> {isHost ? 'Host' : 'Co-Host'}
-      </Badge>
-      {canManage && isHost && (
-        <Button size="sm" variant="secondary" icon={RefreshCw} onClick={onShowHostAssignment}>Change</Button>
-      )}
-      {canManage && !isHost && (
-        <Button size="sm" variant="secondary" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }} onClick={() => onRemoveCoHost?.(person.id)}>Remove</Button>
-      )}
-    </div>
-  );
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flex: 1, minWidth: 0, opacity: dimmed ? 0.45 : 1, transition: 'opacity 0.15s' }}>
+          <Avatar name={person.name} src={person.avatar} size={44} />
+          <button
+            onClick={() => viewProfile(person.id)}
+            disabled={!person.id}
+            title={person.id ? `View ${isHost ? 'host' : 'co-host'} profile` : undefined}
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: person.id ? 'pointer' : 'default', color: 'inherit' }}
+          >
+            <p style={{ fontWeight: typography.fontWeight.medium, display: 'flex', alignItems: 'center', gap: spacing.xs, color: '#fff' }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{person.name}</span>
+              {person.id && <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />}
+            </p>
+            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {isHost ? (person.city || '') : person.email}
+            </p>
+          </button>
+          <Badge variant="gold" size="sm">
+            <Star size={12} style={{ marginRight: spacing.xs }} /> {isHost ? 'Host' : 'Co-Host'}
+          </Badge>
+        </div>
+        {canManage && isHost && (
+          <>
+            <button
+              onClick={toggleVisibility}
+              disabled={savingVis}
+              title={showPublicHost ? 'Hide from the public page' : 'Show on the public page'}
+              aria-label={showPublicHost ? 'Hide from the public page' : 'Show on the public page'}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, flexShrink: 0, background: 'transparent', border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md, color: showPublicHost ? colors.text.secondary : colors.gold.primary, cursor: savingVis ? 'default' : 'pointer' }}
+            >
+              {showPublicHost ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+            <Button size="sm" variant="secondary" icon={RefreshCw} onClick={onShowHostAssignment}>Change</Button>
+          </>
+        )}
+        {canManage && !isHost && (
+          <Button size="sm" variant="secondary" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }} onClick={() => onRemoveCoHost?.(person.id)}>Remove</Button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Panel
@@ -104,16 +120,10 @@ export default function HostsPanel({
           </div>
         )}
 
-        {/* Forward-facing visibility — host can keep themselves off the public page */}
-        {host && canManage && (
-          <div style={{ marginTop: spacing.lg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' }}>
-            <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
-              {showPublicHost ? 'Shown publicly on your competition page.' : 'Hidden — not shown on your public page.'}
-            </span>
-            <Button size="sm" variant="secondary" icon={showPublicHost ? EyeOff : Eye} onClick={toggleVisibility} disabled={savingVis} style={{ width: 'auto' }}>
-              {savingVis ? 'Saving…' : showPublicHost ? 'Remove me as forward-facing host' : 'Show me as forward-facing host'}
-            </Button>
-          </div>
+        {host && canManage && !showPublicHost && (
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.md }}>
+            Hidden — not shown on your public page. Click the eye to show again.
+          </p>
         )}
       </div>
     </Panel>
