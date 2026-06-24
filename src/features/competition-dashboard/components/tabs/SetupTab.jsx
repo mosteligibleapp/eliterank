@@ -5,6 +5,7 @@ import { colors, spacing, borderRadius, typography } from '../../../../styles/th
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
 import JudgingPanel from '../JudgingPanel';
+import JudgesManager from '../JudgesManager';
 import CompetitionSummaryCard from '../CompetitionSummaryCard';
 import HostsPanel from '../HostsPanel';
 import { isFieldEditable } from '../../../../utils/fieldEditability';
@@ -163,7 +164,10 @@ export default function SetupTab({
   onShowAddCoHost,
   onRemoveHost,
   onRemoveCoHost,
-  judges,
+  judges = [],
+  onOpenJudgeModal,
+  onDeleteJudge,
+  onSendJudgeInvite,
   judgingCriteria = [],
   judgeScores = [],
   contestants = [],
@@ -633,7 +637,17 @@ export default function SetupTab({
           judges (or a hybrid). For pure public-vote competitions these are
           grayed out and inaccessible. */}
       {usesJudges ? (
-        <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
+        <div id="setup-section-judgingCriteria" style={{ ...sectionStyle('judgingCriteria'), display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+          {/* Who judges — the roster lives here alongside the judging rules so
+              the whole "set up judging" task is in one place. Judges are
+              manage-anytime (invite/swap throughout), so this isn't
+              publish-locked even though the criteria below are. */}
+          <JudgesManager
+            judges={judges}
+            onOpenJudgeModal={onOpenJudgeModal}
+            onDeleteJudge={onDeleteJudge}
+            onSendJudgeInvite={onSendJudgeInvite}
+          />
           <JudgingPanel
             competition={competition}
             criteria={judgingCriteria}

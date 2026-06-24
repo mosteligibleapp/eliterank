@@ -665,6 +665,9 @@ export default function CompetitionDashboard({
       onRemoveHost={removeHost}
       onRemoveCoHost={removeCoHost}
       judges={data.judges}
+      onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
+      onDeleteJudge={deleteJudge}
+      onSendJudgeInvite={sendJudgeInvite}
       judgingCriteria={data.judgingCriteria}
       judgeScores={data.judgeScores}
       contestants={data.contestants}
@@ -820,10 +823,6 @@ export default function CompetitionDashboard({
             onResendInvite={resendInvite}
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
-            judges={data.judges}
-            onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
-            onDeleteJudge={deleteJudge}
-            onSendJudgeInvite={sendJudgeInvite}
           />
         );
       case 'communications':

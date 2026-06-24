@@ -14,7 +14,6 @@ import { supabase } from '../../../../lib/supabase';
 import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import { getReachedTierLabel } from '../../../../utils/roundLabels';
 import WinnersManager from '../WinnersManager';
-import JudgesManager from '../JudgesManager';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
 const parseInstagram = (raw) => {
@@ -84,10 +83,6 @@ export default function PeopleTab({
   onUnconvertContestant,
   onRepairNomineeAccount,
   onRepairAllNomineeAccounts,
-  judges = [],
-  onOpenJudgeModal,
-  onDeleteJudge,
-  onSendJudgeInvite,
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
@@ -1164,16 +1159,9 @@ export default function PeopleTab({
         <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
       </div>
 
-      {/* Judges roster — judging rules live in Setup; live results (the
-          leaderboard) live on the Activity tab. */}
-      <div style={{ order: sectionOrder('judges') }}>
-        <JudgesManager
-          judges={judges}
-          onOpenJudgeModal={onOpenJudgeModal}
-          onDeleteJudge={onDeleteJudge}
-          onSendJudgeInvite={onSendJudgeInvite}
-        />
-      </div>
+      {/* Judges now live in the Setup tab, next to the judging rules, so the
+          whole judging setup is in one place. Live results (the leaderboard)
+          remain on the Activity tab. */}
 
       {/* Gender filter chips — only shown when the competition splits
        *  winners by gender. Filters every section below + the contestants
