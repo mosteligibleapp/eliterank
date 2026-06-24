@@ -17,7 +17,20 @@ const ENTRY = { nominations: 'Nomination', applications: 'Application' };
 const WIN = { votes: 'Public votes', hybrid: 'Votes + judges', judges: 'Judges only' };
 
 const labelStyle = { display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs };
-const fieldStyle = { width: '100%', padding: spacing.sm, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md, color: '#fff', fontSize: typography.fontSize.sm };
+const fieldStyle = { width: '100%', padding: spacing.md, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md, color: colors.text.primary, fontSize: typography.fontSize.sm };
+const helpStyle = { color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs, lineHeight: 1.4 };
+
+// Small uppercase divider used to group the edit form into scannable sections.
+function SectionLabel({ children }) {
+  return (
+    <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5, margin: `${spacing.lg} 0 ${spacing.sm}` }}>
+      {children}
+    </p>
+  );
+}
+
+// Whole-dollar money, with thousands separators (e.g. $1,500).
+const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 
 // Keep ages at or above the 18+ floor; empty stays empty for the optional max.
 function clampAge(value, floor) {
@@ -194,7 +207,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
       ['Entry', ENTRY[c.entryType] || c.entryType],
       ['How they win', WIN[c.selectionCriteria] || c.selectionCriteria],
       ['Winners', c.numberOfWinners],
-      ['Cash prize', c.cashPrizeAmount != null ? `$${c.cashPrizeAmount}` : 'None'],
+      ['Cash prize', c.cashPrizeAmount != null ? money(c.cashPrizeAmount) : 'None'],
       ['Sponsored prizes', c.hasSponsoredPrizes ? 'Yes' : 'No'],
       ['Charity', c.charityPercentage ? `${c.charityPercentage}% of proceeds` : 'None'],
       ['Planned launch', LAUNCH_TIMEFRAME_LABELS[c.plannedLaunchTimeframe] || '—'],
@@ -213,8 +226,13 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
           )
         }
       >
-        <div style={{ padding: spacing.xl }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: `${spacing.sm} ${spacing.xl}` }}>
+        <div style={{ padding: spacing.xl, paddingTop: spacing.md }}>
+          <p style={{ ...helpStyle, marginTop: 0, marginBottom: spacing.lg }}>
+            {editable
+              ? 'A recap of what you set up. You can edit any of it while your competition is still a draft.'
+              : 'A recap of what you set up. These details are locked now that you’ve submitted for approval.'}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: `${spacing.md} ${spacing.xl}` }}>
             {rows.map(([k, v]) => (
               <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>{k}</span>
@@ -260,10 +278,13 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
 
         {/* Sponsor of record (organization) */}
         <div style={{ marginBottom: spacing.lg, padding: spacing.lg, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.md }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs }}>
             <Building2 size={14} style={{ color: colors.gold.primary }} />
             <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Sponsor of record</span>
           </div>
+          <p style={{ ...helpStyle, marginTop: 0, marginBottom: spacing.md }}>
+            The business or person officially running this competition and receiving payouts. Shown publicly as the host.
+          </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md }}>
             {form.orgLogoUrl
               ? <img src={form.orgLogoUrl} alt="Logo" style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'cover', border: `1px solid ${colors.border.primary}` }} />
@@ -290,8 +311,9 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
           <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>Add at least one — a website or Instagram.</p>
         </div>
 
+        {/* Category & format */}
+        <SectionLabel>Category &amp; format</SectionLabel>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
-          {/* Category */}
           <div>
             <label style={labelStyle}>Category</label>
             <select style={fieldStyle} value={form.templateId} onChange={(e) => set('templateId', e.target.value)}>
@@ -303,25 +325,20 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
             )}
           </div>
 
-          {/* Winners */}
           <div>
             <label style={labelStyle}>Number of winners</label>
             <input style={fieldStyle} type="number" min="1" value={form.numberOfWinners} onChange={(e) => set('numberOfWinners', e.target.value)} />
           </div>
 
-          {/* Entry type */}
           <div>
-            <label style={labelStyle}>Entry</label>
+            <label style={labelStyle}>How they enter</label>
             <select style={fieldStyle} value={form.entryType} onChange={(e) => set('entryType', e.target.value)}>
               <option value="nominations">Nomination</option>
               <option value="applications">Application</option>
             </select>
-            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs, lineHeight: 1.4 }}>
-              {ENTRY_TYPE_HELP[form.entryType]}
-            </p>
+            <p style={helpStyle}>{ENTRY_TYPE_HELP[form.entryType]}</p>
           </div>
 
-          {/* How they win */}
           <div>
             <label style={labelStyle}>How they win</label>
             <select style={fieldStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
@@ -329,52 +346,55 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
               <option value="hybrid">Votes + judges</option>
               <option value="judges">Judges only</option>
             </select>
+            <p style={helpStyle}>How winners are decided — public voting, a judging panel, or both.</p>
           </div>
+        </div>
 
-          {/* Who can enter */}
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={labelStyle}>Who can enter</label>
-            <div style={{ display: 'flex', gap: spacing.md }}>
-              <select style={{ ...fieldStyle, flex: 1.2 }} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
-                <option value="all">All genders</option>
-                <option value="female">Women</option>
-                <option value="male">Men</option>
-                <option value="LGBTQ+">LGBTQ+</option>
+        {/* Who can enter */}
+        <SectionLabel>Who can enter</SectionLabel>
+        <label style={labelStyle}>Gender &amp; age</label>
+        <div style={{ display: 'flex', gap: spacing.md }}>
+          <select style={{ ...fieldStyle, flex: 1.2 }} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
+            <option value="all">All genders</option>
+            <option value="female">Women</option>
+            <option value="male">Men</option>
+            <option value="LGBTQ+">LGBTQ+</option>
+          </select>
+          <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} onBlur={(e) => set('ageMin', clampAge(e.target.value, 18))} />
+          <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} onBlur={(e) => set('ageMax', e.target.value === '' ? '' : clampAge(e.target.value, 18))} />
+        </div>
+        <p style={helpStyle}>All competitions are 18+ — minimum age can’t be lower than 18.</p>
+
+        <label style={{ ...labelStyle, marginTop: spacing.md }}>Where they’re based</label>
+        <div style={{ display: 'flex', gap: spacing.md }}>
+          <select style={{ ...fieldStyle, flex: 1 }} value={form.territoryScope} onChange={(e) => set('territoryScope', e.target.value)}>
+            <option value="city">City-wide</option>
+            <option value="state">State-wide</option>
+            <option value="us">US-wide</option>
+          </select>
+          {form.territoryScope === 'city' && (
+            <>
+              <select style={{ ...fieldStyle, flex: 1.5 }} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
+                <option value="">Select a city…</option>
+                {lookups.cities.map((city) => (<option key={city.id} value={city.id}>{city.name}{city.state ? `, ${city.state}` : ''}</option>))}
               </select>
-              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} onBlur={(e) => set('ageMin', clampAge(e.target.value, 18))} />
-              <input style={{ ...fieldStyle, flex: 1 }} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} onBlur={(e) => set('ageMax', e.target.value === '' ? '' : clampAge(e.target.value, 18))} />
-            </div>
-            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>All competitions are 18+ — minimum age can't be lower than 18.</p>
-          </div>
+              <input style={{ ...fieldStyle, flex: 0.8 }} type="number" min="1" value={form.eligibilityRadius} onChange={(e) => set('eligibilityRadius', e.target.value)} placeholder="Radius (mi)" />
+            </>
+          )}
+          {form.territoryScope === 'state' && (
+            <select style={{ ...fieldStyle, flex: 1 }} value={form.territoryState} onChange={(e) => set('territoryState', e.target.value)}>
+              <option value="">Select a state…</option>
+              {US_STATES.map((s) => (<option key={s} value={s}>{s}</option>))}
+            </select>
+          )}
+        </div>
+        {form.territoryScope === 'city' && (
+          <p style={helpStyle}>Radius is how far around the city (in miles) a contestant can be based.</p>
+        )}
 
-          {/* Territory */}
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={labelStyle}>Territory</label>
-            <div style={{ display: 'flex', gap: spacing.md }}>
-              <select style={{ ...fieldStyle, flex: 1 }} value={form.territoryScope} onChange={(e) => set('territoryScope', e.target.value)}>
-                <option value="city">City-wide</option>
-                <option value="state">State-wide</option>
-                <option value="us">US-wide</option>
-              </select>
-              {form.territoryScope === 'city' && (
-                <>
-                  <select style={{ ...fieldStyle, flex: 1.5 }} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
-                    <option value="">Select a city…</option>
-                    {lookups.cities.map((city) => (<option key={city.id} value={city.id}>{city.name}{city.state ? `, ${city.state}` : ''}</option>))}
-                  </select>
-                  <input style={{ ...fieldStyle, flex: 0.8 }} type="number" min="1" value={form.eligibilityRadius} onChange={(e) => set('eligibilityRadius', e.target.value)} placeholder="mi" />
-                </>
-              )}
-              {form.territoryScope === 'state' && (
-                <select style={{ ...fieldStyle, flex: 1 }} value={form.territoryState} onChange={(e) => set('territoryState', e.target.value)}>
-                  <option value="">Select a state…</option>
-                  {US_STATES.map((s) => (<option key={s} value={s}>{s}</option>))}
-                </select>
-              )}
-            </div>
-          </div>
-
-          {/* Cash prize */}
+        {/* Prizes & charity */}
+        <SectionLabel>Prizes &amp; charity</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
           <div>
             <label style={labelStyle}>Cash prize?</label>
             <div style={{ display: 'flex', gap: spacing.md }}>
@@ -387,13 +407,12 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
               )}
             </div>
             {form.cashPrizeYes && Number(form.cashPrizeAmount) > 1999 && (
-              <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>
+              <p style={{ ...helpStyle, color: colors.gold.primary }}>
                 Cash prizes over $1,999 need a quick review call with EliteRank before approval.
               </p>
             )}
           </div>
 
-          {/* Sponsored prizes */}
           <div>
             <label style={labelStyle}>Sponsored prizes (goods/services)?</label>
             <select style={fieldStyle} value={form.sponsoredPrizesYes ? 'yes' : 'no'} onChange={(e) => set('sponsoredPrizesYes', e.target.value === 'yes')}>
@@ -402,19 +421,6 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
             </select>
           </div>
 
-          {/* Planned launch */}
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={labelStyle}>When do you plan to launch?</label>
-            <select style={fieldStyle} value={form.plannedLaunchTimeframe} onChange={(e) => set('plannedLaunchTimeframe', e.target.value)}>
-              <option value="">Select a timeframe…</option>
-              {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
-            </select>
-            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>
-              We don’t recommend launching in less than 4 weeks. You’ll set exact dates before publishing.
-            </p>
-          </div>
-
-          {/* Charity */}
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={labelStyle}>Donating a portion of proceeds to charity?</label>
             <div style={{ display: 'flex', gap: spacing.md, alignItems: 'center' }}>
@@ -428,6 +434,17 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
             </div>
           </div>
         </div>
+
+        {/* Timeline */}
+        <SectionLabel>Timeline</SectionLabel>
+        <label style={labelStyle}>When do you plan to launch?</label>
+        <select style={fieldStyle} value={form.plannedLaunchTimeframe} onChange={(e) => set('plannedLaunchTimeframe', e.target.value)}>
+          <option value="">Select a timeframe…</option>
+          {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+        </select>
+        <p style={helpStyle}>
+          We don’t recommend launching in less than 4 weeks. You’ll set exact dates before publishing.
+        </p>
 
         {error && <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.lg }}>{error}</p>}
       </div>
