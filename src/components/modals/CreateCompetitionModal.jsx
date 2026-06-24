@@ -68,14 +68,14 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     // template
     templateId: '', customCategory: '',
     // format
-    name: '', numberOfWinners: 5, entryType: 'nominations', pricePerVote: 1.0, selectionCriteria: 'votes',
+    name: '', numberOfWinners: 1, entryType: 'nominations', pricePerVote: 1.0, selectionCriteria: 'hybrid',
     plannedLaunchTimeframe: '',
     // eligibility
     cityId: '', territoryScope: 'city', territoryState: '', eligibilityRadius: 100, relationshipStatus: '',
     gender: 'all', ageMin: 21, ageMax: '',
     // prizes
     cashPrizeYes: false, cashPrizeAmount: '', sponsoredPrizesYes: false,
-    charityYes: false, charityPercentage: 10,
+    charityYes: true, charityPercentage: 10,
     // misc
     season: new Date().getFullYear(),
   });
