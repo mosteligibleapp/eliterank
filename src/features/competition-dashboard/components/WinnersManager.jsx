@@ -17,10 +17,17 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [confirmed, setConfirmed] = useState(false);
+
   const maxWinners = competition?.number_of_winners || 5;
   const isCompleted = competition?.status === COMPETITION_STATUS.COMPLETED;
-  // Allow editing if explicitly allowed or if competition is completed
-  const canEdit = allowEdit || isCompleted;
+  // Winners are decided automatically when the final round finalizes
+  // (finalize_voting_round writes competitions.winners). Hosts don't pick them —
+  // they just review and confirm once everything's done. `allowEdit` is an
+  // admin-only manual override that re-enables search-and-select.
+  const manualEdit = !!allowEdit;
+  const canView = manualEdit || isCompleted;
+  const autoMode = isCompleted && !manualEdit;
 
   // Load existing winners on mount
   useEffect(() => {
@@ -201,8 +208,8 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
     return fullName || profile.email || 'Unknown';
   };
 
-  // Show locked state only if editing is not allowed
-  if (!canEdit) {
+  // Before the competition is done, there are no winners to confirm yet.
+  if (!canView) {
     return (
       <div style={{
         background: colors.background.card,
@@ -225,15 +232,16 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
           </div>
           <div>
             <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold }}>
-              Winners Management
+              Competition Winners
             </h3>
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-              Available when competition is completed
+              Decided automatically when voting & judging finish
             </p>
           </div>
         </div>
-        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-          Winners can only be assigned after the competition status is set to "Completed".
+        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, lineHeight: 1.5 }}>
+          You don’t pick winners — they’re decided automatically from the final results once voting and
+          judging wrap up. When the competition completes, they’ll appear here for you to review and confirm.
         </p>
       </div>
     );
@@ -286,7 +294,9 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
               Competition Winners
             </h3>
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-              {winners.length} of {maxWinners} winners selected
+              {autoMode
+                ? 'Decided automatically from the final results — review and confirm'
+                : `${winners.length} of ${maxWinners} winners selected`}
             </p>
           </div>
         </div>
@@ -324,8 +334,8 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
         </div>
       )}
 
-      {/* Search input */}
-      {winners.length < maxWinners && (
+      {/* Search input — manual (admin) override only. Hosts never pick winners. */}
+      {manualEdit && winners.length < maxWinners && (
         <div style={{ position: 'relative', marginBottom: spacing.lg }}>
           <div style={{
             display: 'flex',
@@ -496,23 +506,25 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
 
               <Badge variant="gold" size="sm">Winner</Badge>
 
-              <button
-                onClick={() => removeWinner(winner.id)}
-                style={{
-                  padding: spacing.sm,
-                  background: 'rgba(239,68,68,0.1)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  borderRadius: borderRadius.md,
-                  cursor: 'pointer',
-                  color: '#ef4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                title="Remove winner"
-              >
-                <X size={16} />
-              </button>
+              {manualEdit && (
+                <button
+                  onClick={() => removeWinner(winner.id)}
+                  style={{
+                    padding: spacing.sm,
+                    background: 'rgba(239,68,68,0.1)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: borderRadius.md,
+                    cursor: 'pointer',
+                    color: '#ef4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Remove winner"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -523,15 +535,43 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
           color: colors.text.secondary,
         }}>
           <Crown size={48} style={{ marginBottom: spacing.md, opacity: 0.3, color: colors.gold.primary }} />
-          <p>No winners selected yet</p>
+          <p>{autoMode ? 'Winners not in yet' : 'No winners selected yet'}</p>
           <p style={{ fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-            Use the search above to find and add winners
+            {autoMode
+              ? 'Winners will appear here automatically once the final results are in.'
+              : 'Use the search above to find and add winners'}
           </p>
         </div>
       )}
 
-      {/* Max winners indicator */}
-      {winners.length >= maxWinners && (
+      {/* Host confirm step — winners are auto-decided; the host just verifies. */}
+      {autoMode && winners.length > 0 && (
+        confirmed ? (
+          <div style={{
+            marginTop: spacing.lg, padding: spacing.md,
+            background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+            borderRadius: borderRadius.md, textAlign: 'center', color: '#22c55e',
+            fontSize: typography.fontSize.sm,
+          }}>
+            <Check size={16} style={{ marginRight: spacing.xs, verticalAlign: 'middle' }} />
+            Winners confirmed
+          </div>
+        ) : (
+          <div style={{ marginTop: spacing.lg, display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+            <Button onClick={() => { setConfirmed(true); onUpdate?.(); }} icon={Check}>
+              These are correct — confirm winners
+            </Button>
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, textAlign: 'center', margin: 0 }}>
+              Something look off? Email{' '}
+              <a href="mailto:info@eliterank.co" style={{ color: colors.gold.primary }}>info@eliterank.co</a>{' '}
+              before announcing.
+            </p>
+          </div>
+        )
+      )}
+
+      {/* Manual (admin) max-winners indicator */}
+      {manualEdit && winners.length >= maxWinners && (
         <div style={{
           marginTop: spacing.lg,
           padding: spacing.md,

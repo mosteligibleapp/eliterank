@@ -13,7 +13,7 @@ import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
 import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import { getReachedTierLabel } from '../../../../utils/roundLabels';
-import { getNominationWindow } from '../../../../utils/competitionPhase';
+import { getNominationWindow, isLive } from '../../../../utils/competitionPhase';
 import WinnersManager from '../WinnersManager';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
@@ -107,19 +107,23 @@ export default function PeopleTab({
 
   const splitByGender = !!competition?.winnersSplitByGender;
 
-  // Adding nominees is gated on the nomination open date — a host can't seed
-  // their field before nominations have actually opened. Until then the add
-  // controls are disabled and we say when (and where to set it).
+  // Adding nominees is gated on nominations actually being LIVE — the
+  // competition is live AND inside the nomination window. A host can't seed
+  // their field before the public can nominate, or after nominations close.
   const nomWindow = getNominationWindow(competition);
-  const canAddNominee = nomWindow.state === 'open' || nomWindow.state === 'ended';
+  const canAddNominee = isLive(competition?.status) && nomWindow.state === 'open';
   const nomOpenDateLabel = nomWindow.start
     ? nomWindow.start.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : null;
   const addNomineeBlockedReason = canAddNominee
     ? null
-    : nomWindow.state === 'upcoming'
-      ? `Nominations open ${nomOpenDateLabel}. You’ll be able to add nominees then.`
-      : 'Set your nomination dates in the Setup tab, then you can add nominees.';
+    : nomWindow.state === 'no_date'
+      ? 'Set your nomination dates in the Setup tab, then you can add nominees.'
+      : nomWindow.state === 'ended'
+        ? 'Nominations have closed, so no new nominees can be added.'
+        : nomOpenDateLabel
+          ? `You can add nominees once nominations open${nomWindow.state === 'upcoming' ? ` on ${nomOpenDateLabel}` : ''} and your competition is live.`
+          : 'You can add nominees once nominations are live.';
 
   const isLegacy = competition?.is_legacy;
   const isCompleted = competition?.status === 'completed';
@@ -1190,7 +1194,7 @@ export default function PeopleTab({
 
       {/* Winners Manager */}
       <div style={{ order: sectionOrder('winners') }}>
-        <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
+        <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={isSuperAdmin} />
       </div>
 
       {/* Judges now live in the Setup tab, next to the judging rules, so the
