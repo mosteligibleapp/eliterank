@@ -216,6 +216,7 @@ export default function DashboardPage() {
         onLogout={handleLogout}
         currentUserId={user?.id}
         onViewPublicSite={handleViewPublicSite}
+        onLaunchCompetition={() => { setCreateStep('ready'); setShowCreate(true); }}
         competitions={competitions}
         selectedCompetitionId={selectedCompetition.id}
         onSelectCompetition={setSelectedId}

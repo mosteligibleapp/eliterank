@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, Settings as SettingsIcon,
-  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe, Lock, Gauge
+  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe, Lock, Gauge, Plus
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -96,6 +96,7 @@ export default function CompetitionDashboard({
   onBack,
   onLogout,
   onViewPublicSite,
+  onLaunchCompetition,
   currentUserId,
   competitions = [],
   selectedCompetitionId,
@@ -494,6 +495,22 @@ export default function CompetitionDashboard({
                           </button>
                         );
                       })}
+                      {onLaunchCompetition && (
+                        <button
+                          type="button"
+                          onClick={() => { setShowCompSwitcher(false); onLaunchCompetition(); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: spacing.sm, width: '100%',
+                            textAlign: 'left', padding: `${spacing.sm} ${spacing.md}`, marginTop: spacing.xs,
+                            borderTop: `1px solid ${colors.border.light}`, background: 'transparent',
+                            border: 'none', color: colors.gold.primary, fontSize: typography.fontSize.sm,
+                            fontWeight: typography.fontWeight.medium, cursor: 'pointer',
+                          }}
+                        >
+                          <Plus size={14} style={{ flexShrink: 0 }} />
+                          Launch a new competition
+                        </button>
+                      )}
                     </div>
                   </>
                 )}
@@ -554,6 +571,23 @@ export default function CompetitionDashboard({
             </button>
           )}
 
+          {onLaunchCompetition && !hasMultipleCompetitions && (
+            <button
+              onClick={onLaunchCompetition}
+              title="Launch a new competition"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
+                padding: isMobile ? spacing.xs : `${spacing.sm} ${spacing.md}`,
+                background: 'transparent', border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.md, color: colors.text.secondary,
+                fontSize: typography.fontSize.sm, cursor: 'pointer',
+                minWidth: isMobile ? '32px' : 'auto', minHeight: isMobile ? '32px' : 'auto',
+              }}
+            >
+              <Plus size={16} />
+              {!isMobile && <span>New</span>}
+            </button>
+          )}
           {onLogout && (
             <button
               onClick={onLogout}
