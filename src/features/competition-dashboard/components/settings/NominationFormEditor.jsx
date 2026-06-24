@@ -67,6 +67,7 @@ export function NominationFormEditor({
   collapsible = false,
   defaultCollapsed = false,
   locked = false,
+  badge,
 }) {
   const toast = useToast();
 
@@ -287,6 +288,7 @@ export function NominationFormEditor({
       collapsible={collapsible}
       defaultCollapsed={defaultCollapsed}
       locked={locked}
+      badge={badge}
       title="Nomination Form"
       icon={FormInput}
       action={

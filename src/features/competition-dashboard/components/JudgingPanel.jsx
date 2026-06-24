@@ -24,6 +24,7 @@ export default function JudgingPanel({
   onUpdateRoundJudgeWeight,
   onRefresh,
   locked = false,
+  badge,
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -151,7 +152,7 @@ export default function JudgingPanel({
   };
 
   return (
-    <Panel title="Judging" icon={Award} locked={locked} collapsible defaultCollapsed>
+    <Panel title="Judging" icon={Award} locked={locked} badge={badge} collapsible defaultCollapsed>
       <div style={{ padding: spacing.xl }}>
         {/* Criteria */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.sm }}>

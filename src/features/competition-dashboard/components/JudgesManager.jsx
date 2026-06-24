@@ -10,7 +10,7 @@ import { useToast } from '../../../contexts/ToastContext';
  * people with a role in the competition, so this lives on the People tab. The
  * judging *rules* (criteria, per-round weight) and results stay in Setup.
  */
-export default function JudgesManager({ judges = [], onOpenJudgeModal, onDeleteJudge, onSendJudgeInvite }) {
+export default function JudgesManager({ judges = [], onOpenJudgeModal, onDeleteJudge, onSendJudgeInvite, badge }) {
   const { isMobile } = useResponsive();
   const toast = useToast();
 
@@ -60,6 +60,7 @@ export default function JudgesManager({ judges = [], onOpenJudgeModal, onDeleteJ
     <Panel
       title={`Judges (${judges.length})`}
       icon={User}
+      badge={badge}
       action={<Button size="sm" icon={Plus} onClick={() => onOpenJudgeModal(null)}>Add Judge</Button>}
       collapsible
       defaultCollapsed={judges.length > 0}

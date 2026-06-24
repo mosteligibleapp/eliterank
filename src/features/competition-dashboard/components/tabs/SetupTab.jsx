@@ -568,6 +568,25 @@ export default function SetupTab({
   // published (publish-lock tier) — show the lock badge only then.
   const publishLocked = !isFieldEditable('nomination_form', competition?.status);
 
+  // Per-section editability badges so the host knows, at a glance, which
+  // sections lock when they publish vs. which stay editable throughout.
+  const badgeBase = {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: `2px ${spacing.sm}`, borderRadius: '999px',
+    fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium,
+    whiteSpace: 'nowrap',
+  };
+  const lockBadge = (
+    <span style={{ ...badgeBase, background: 'rgba(212,175,55,0.12)', color: colors.gold.primary, border: '1px solid rgba(212,175,55,0.3)' }}>
+      <Lock size={11} /> {publishLocked ? 'Locked' : 'Locks at publish'}
+    </span>
+  );
+  const editBadge = (
+    <span style={{ ...badgeBase, background: 'rgba(255,255,255,0.05)', color: colors.text.muted, border: `1px solid ${colors.border.lighter}` }}>
+      Editable anytime
+    </span>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Competition details — the same recap the host sees on the Dashboard, so
@@ -583,8 +602,13 @@ export default function SetupTab({
           <Lock size={16} style={{ color: colors.gold.primary }} />
           <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, margin: 0 }}>Important Information</h3>
         </div>
-        <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, margin: `${spacing.xs} 0 0` }}>
-          This is the public-facing information for your competition. Fill it in carefully — it locks and can’t be changed once you publish to the public.
+        <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, margin: `${spacing.xs} 0 0`, lineHeight: 1.6 }}>
+          This is the public-facing information for your competition. Some of it{' '}
+          <span style={{ color: colors.gold.primary }}>locks when you publish</span> — get the{' '}
+          nomination form, voting &amp; judging dates, judging criteria &amp; weight, and your charity
+          partner right before you go public. Your{' '}
+          <span style={{ color: colors.text.secondary }}>host, judges, and sponsors stay editable anytime</span>,
+          even after you’re live.
         </p>
       </div>
 
@@ -595,6 +619,7 @@ export default function SetupTab({
           coHosts={coHosts}
           competition={competition}
           canManage={canManageHosts}
+          badge={editBadge}
           isMobile={isMobile}
           onShowHostAssignment={onShowHostAssignment}
           onShowAddCoHost={onShowAddCoHost}
@@ -611,6 +636,7 @@ export default function SetupTab({
         title="Voting Details"
         icon={Calendar}
         locked={publishLocked}
+        badge={lockBadge}
         collapsible
         defaultCollapsed={focusId !== 'timeline'}
       >
@@ -629,6 +655,7 @@ export default function SetupTab({
         competition={competition}
         onSave={onRefresh}
         locked={publishLocked}
+        badge={lockBadge}
         collapsible
         defaultCollapsed={focusId !== 'nominationForm'}
       />
@@ -647,6 +674,7 @@ export default function SetupTab({
             onOpenJudgeModal={onOpenJudgeModal}
             onDeleteJudge={onDeleteJudge}
             onSendJudgeInvite={onSendJudgeInvite}
+            badge={editBadge}
           />
           <JudgingPanel
             competition={competition}
@@ -658,6 +686,7 @@ export default function SetupTab({
             onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
             onRefresh={onRefresh}
             locked={publishLocked}
+            badge={lockBadge}
           />
         </div>
       ) : (
@@ -678,6 +707,7 @@ export default function SetupTab({
         id="setup-section-sponsors"
         title={`Sponsors (${sponsors.length})`}
         icon={Star}
+        badge={editBadge}
         action={sectionAction('sponsors', <Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>)}
         collapsible
         defaultCollapsed={focusId !== 'sponsors'}
@@ -782,6 +812,7 @@ export default function SetupTab({
         title="Charity Partner"
         icon={Gift}
         locked={publishLocked}
+        badge={lockBadge}
         action={sectionAction('charity',
           <Button size="sm" icon={competition?.charityName ? Edit2 : Plus} onClick={onOpenCharityModal}>
             {competition?.charityName ? 'Edit' : 'Add Charity'}

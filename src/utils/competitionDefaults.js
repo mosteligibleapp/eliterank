@@ -125,9 +125,17 @@ export function getDefaultTraits(competition) {
 }
 
 /**
- * Get default age range for a competition
+ * Get default age range for a competition. Prefer the exact min/max the host
+ * entered (e.g. "21-50"); fall back to the demographic-based range only when
+ * those aren't set.
  */
 export function getDefaultAgeRange(competition) {
+  const min = pick(competition, 'eligibilityAgeMin', 'eligibility_age_min', null);
+  const max = pick(competition, 'eligibilityAgeMax', 'eligibility_age_max', null);
+  if (min && max) return `${min}-${max}`;
+  if (min) return `${min}+`;
+  if (max) return `Up to ${max}`;
+
   const slug = getDemographicSlug(competition);
   return AGE_RANGE_BY_DEMOGRAPHIC[slug] || AGE_RANGE_BY_DEMOGRAPHIC.default;
 }

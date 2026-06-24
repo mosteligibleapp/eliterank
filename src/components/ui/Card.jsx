@@ -83,6 +83,7 @@ export const Panel = memo(function Panel({
   collapsible = false,
   defaultCollapsed = false,
   locked = false,
+  badge,
   id,
 }) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
@@ -113,6 +114,7 @@ export const Panel = memo(function Panel({
             {locked && (
               <Lock size={14} style={{ color: colors.text.muted }} title="Locks when you publish to the public" />
             )}
+            {badge}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             {action}
