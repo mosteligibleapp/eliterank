@@ -218,6 +218,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
         title="Your competition"
         icon={ClipboardList}
         style={{ marginBottom: 0 }}
+        locked={!editable}
         action={
           editable ? (
             <Button size="sm" variant="secondary" icon={Pencil} onClick={startEdit} style={{ width: 'auto' }}>Edit</Button>

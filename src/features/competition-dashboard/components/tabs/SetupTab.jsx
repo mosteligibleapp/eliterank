@@ -8,6 +8,7 @@ import JudgingPanel from '../JudgingPanel';
 import JudgingResultsPanel from '../JudgingResultsPanel';
 import CompetitionSummaryCard from '../CompetitionSummaryCard';
 import HostsPanel from '../HostsPanel';
+import { isFieldEditable } from '../../../../utils/fieldEditability';
 import { NominationFormEditor } from '../settings';
 import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission, getHostManagedTaskContestants, awardHostManagedTask, revokeHostManagedTask } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
@@ -561,6 +562,9 @@ export default function SetupTab({
   //  - judging is only relevant if winners are decided by judges (not pure votes)
   const charityApplies = !!competition?.charityPercentage || !!competition?.charityName;
   const usesJudges = ['judges', 'hybrid'].includes(competition?.selectionCriteria);
+  // These public-facing sections only actually lock once the competition is
+  // published (publish-lock tier) — show the lock badge only then.
+  const publishLocked = !isFieldEditable('nomination_form', competition?.status);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -589,7 +593,6 @@ export default function SetupTab({
           coHosts={coHosts}
           competition={competition}
           canManage={canManageHosts}
-          locked
           isMobile={isMobile}
           onShowHostAssignment={onShowHostAssignment}
           onShowAddCoHost={onShowAddCoHost}
@@ -605,7 +608,7 @@ export default function SetupTab({
         style={sectionStyle('timeline')}
         title="Voting Details"
         icon={Calendar}
-        locked
+        locked={publishLocked}
         collapsible
         defaultCollapsed={focusId !== 'timeline'}
       >
@@ -623,7 +626,7 @@ export default function SetupTab({
         style={sectionStyle('nominationForm')}
         competition={competition}
         onSave={onRefresh}
-        locked
+        locked={publishLocked}
         collapsible
         defaultCollapsed={focusId !== 'nominationForm'}
       />
@@ -642,7 +645,7 @@ export default function SetupTab({
               onDeleteCriterion={onDeleteCriterion}
               onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
               onRefresh={onRefresh}
-              locked
+              locked={publishLocked}
             />
           </div>
           <div style={sectionStyle('judgingResults')}>
@@ -683,7 +686,7 @@ export default function SetupTab({
         id="setup-section-charity"
         title="Charity Partner"
         icon={Gift}
-        locked
+        locked={publishLocked}
         action={sectionAction('charity',
           <Button size="sm" icon={competition?.charityName ? Edit2 : Plus} onClick={onOpenCharityModal}>
             {competition?.charityName ? 'Edit' : 'Add Charity'}
