@@ -42,9 +42,10 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
   const agreementOk = hasAcceptedCurrentAgreement(competition.agreement);
   const stripeOk = competition.connect?.kycStatus === 'verified' && !!competition.connect?.chargesEnabled;
   const rulesOk = !!rulesComplete;
+  // Submit-for-approval gates: agreement + rules. Stripe KYC is required later,
+  // at publish (it only matters for payouts once the competition is live).
   const gates = [
     { ok: agreementOk, Icon: FileText, label: 'Review & sign the Host Agreement', action: () => goTo('host-agreement-card') },
-    { ok: stripeOk, Icon: Landmark, label: 'Complete Stripe identity verification (KYC)', action: () => goTo('host-connect-card') },
     {
       ok: rulesOk,
       Icon: ClipboardList,
@@ -53,7 +54,7 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
       action: () => onNavigateToTab?.('setup'),
     },
   ];
-  const allGates = agreementOk && stripeOk && rulesOk;
+  const allGates = agreementOk && rulesOk;
 
   const callRpc = async (fn) => {
     setBusy(true); setError(null);
@@ -124,7 +125,7 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
             <Button onClick={() => callRpc('submit_for_approval')} disabled={!allGates || busy} icon={busy ? Loader : Send} style={{ marginTop: spacing.lg }}>
               {busy ? 'Submitting…' : 'Submit for approval'}
             </Button>
-            {!allGates && <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>Complete all three above to submit.</p>}
+            {!allGates && <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>Complete both above to submit. You’ll verify payouts with Stripe after approval, before going live.</p>}
           </>
         )}
 
@@ -158,11 +159,29 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
         {status === 'approved' && (
           <>
             <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
-              ✅ Approved! Finish any remaining specifics, then publish to the public. <strong>More details lock once you publish.</strong>
+              ✅ Approved! One last step before you go live: verify payouts with Stripe. <strong>More details lock once you publish.</strong>
             </p>
-            <Button onClick={() => callRpc('publish_to_public')} disabled={busy} icon={busy ? Loader : Rocket}>
+            <button
+              onClick={stripeOk ? undefined : () => goTo('host-connect-card')}
+              disabled={stripeOk}
+              style={{
+                display: 'flex', alignItems: 'center', gap: spacing.sm, width: '100%', textAlign: 'left',
+                padding: `${spacing.sm} ${spacing.md}`, marginBottom: spacing.lg,
+                background: stripeOk ? 'transparent' : colors.background.secondary,
+                border: `1px solid ${stripeOk ? 'transparent' : colors.border.primary}`,
+                borderRadius: borderRadius.md,
+                color: stripeOk ? colors.text.primary : colors.text.secondary,
+                fontSize: typography.fontSize.sm, cursor: stripeOk ? 'default' : 'pointer',
+              }}
+            >
+              {stripeOk ? <CheckCircle size={16} style={{ color: colors.status.success, flexShrink: 0 }} /> : <Circle size={16} style={{ color: colors.text.muted, flexShrink: 0 }} />}
+              <span style={{ flex: 1 }}>Complete Stripe identity verification (KYC)</span>
+              {!stripeOk && <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />}
+            </button>
+            <Button onClick={() => callRpc('publish_to_public')} disabled={!stripeOk || busy} icon={busy ? Loader : Rocket}>
               {busy ? 'Publishing…' : 'Publish to public'}
             </Button>
+            {!stripeOk && <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>Verify payouts with Stripe to publish — it can take a little time, so start it now.</p>}
           </>
         )}
 
