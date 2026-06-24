@@ -6,4 +6,3 @@ export {
   getRoundAdvancementTitle,
 } from './generateAchievementCard';
 export { useAchievementCards } from './useAchievementCards';
-export { default as MyCardsSection } from './MyCardsSection';
