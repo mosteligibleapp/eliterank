@@ -222,9 +222,9 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
         action={
           editable ? (
             <Button size="sm" variant="secondary" icon={Pencil} onClick={startEdit} style={{ width: 'auto' }}>Edit</Button>
-          ) : (
-            <Button size="sm" icon={ArrowRight} iconPosition="right" onClick={() => onNavigateToTab?.('setup')} style={{ width: 'auto' }}>Add details</Button>
-          )
+          ) : onNavigateToTab ? (
+            <Button size="sm" icon={ArrowRight} iconPosition="right" onClick={() => onNavigateToTab('setup')} style={{ width: 'auto' }}>Add details</Button>
+          ) : null
         }
       >
         <div style={{ padding: spacing.xl, paddingTop: spacing.md }}>
