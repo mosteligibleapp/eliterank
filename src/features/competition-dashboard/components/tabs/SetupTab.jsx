@@ -127,17 +127,25 @@ const restoreButtonStyle = {
  */
 function LockedSection({ title, icon: Icon = Lock, reason }) {
   return (
-    <Panel
-      title={title}
-      icon={Icon}
-      style={{ opacity: 0.5, pointerEvents: 'none' }}
-      action={<Lock size={16} style={{ color: colors.text.muted }} />}
-    >
-      <div style={{ padding: `${spacing.sm} ${spacing.xl} ${spacing.lg}`, display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+    <div style={{
+      background: colors.background.card,
+      border: `1px solid ${colors.border.light}`,
+      borderRadius: borderRadius.xxl,
+      boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+      opacity: 0.5,
+      pointerEvents: 'none',
+      padding: spacing.xl,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
+        <Icon size={22} style={{ color: colors.gold.primary }} />
+        <span style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.text.primary }}>{title}</span>
+        <Lock size={16} style={{ color: colors.text.muted, marginLeft: 'auto' }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.muted, fontSize: typography.fontSize.sm }}>
         <Lock size={14} style={{ flexShrink: 0 }} />
         <span>{reason}</span>
       </div>
-    </Panel>
+    </div>
   );
 }
 
@@ -274,7 +282,14 @@ export default function SetupTab({
   const sectionStyle = (id) => {
     if (!belongsToMode(id)) return { display: 'none' };
     const idx = SECTION_ORDER.indexOf(id);
-    return { order: 1 + idx, opacity: 1 };
+    // Sections that don't apply to this competition's configuration are grayed
+    // out and sink below the active ones.
+    const usesJudges = ['judges', 'hybrid'].includes(competition?.selectionCriteria);
+    const charityActive = !!competition?.charityPercentage || !!competition?.charityName;
+    const locked =
+      (!usesJudges && (id === 'judgingCriteria' || id === 'judgingResults')) ||
+      (!charityActive && id === 'charity');
+    return { order: locked ? 100 + idx : 1 + idx, opacity: 1 };
   };
 
   // Whether a section applies is driven by what the host entered in their
