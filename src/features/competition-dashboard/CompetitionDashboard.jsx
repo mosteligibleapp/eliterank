@@ -16,6 +16,7 @@ import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
 import AnnouncementsManager from './components/AnnouncementsManager';
 import AudienceManager from './components/AudienceManager';
+import JudgingResultsPanel from './components/JudgingResultsPanel';
 import { COMPETITION_STATUS } from '../../types/competition';
 
 // Consolidated tab navigation. Launch leads — it's the guided checklist for
@@ -102,10 +103,6 @@ export default function CompetitionDashboard({
 }) {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
-  // A locked tab the host has clicked to peek at: we show a read-only teaser of
-  // what that tab unlocks (not its real, premature content). Cleared whenever
-  // they land on an actually-usable tab.
-  const [lockedPreview, setLockedPreview] = useState(null);
   // When a launch-checklist CTA deep-links into the Setup tab, this carries the
   // section to auto-expand + scroll to. The nonce re-triggers the scroll even
   // when the host clicks the same step twice.
@@ -214,33 +211,7 @@ export default function CompetitionDashboard({
     if (id === 'site') return 'Available once your competition is approved.';
     return 'Available once your competition is published.';
   };
-  // One-line description of what each tab is for, shown in the locked-tab teaser
-  // so a host can see what's coming without being handed premature controls.
-  const lockedTabBlurb = (id) => ({
-    activity: 'Watch votes, revenue, and engagement roll in live once your competition is out in the world.',
-    people: 'Approve nominees, manage your contestant lineup, and invite judges.',
-    communications: 'Post announcements and email your audience to keep momentum up.',
-    site: 'Fine-tune your public competition page — story, photos, and details visitors see.',
-    engagement: 'Run bonus-vote tasks, double-vote days, and video prompts to drive participation.',
-  }[id] || 'More tools unlock as your competition progresses.');
   const visibleTabs = TABS;
-
-  // If the active tab is locked (e.g. status changed while open), fall back to
-  // the Dashboard so we never render a tab the host can't currently use.
-  useEffect(() => {
-    if (isTabLocked(activeTab)) setActiveTab('dashboard');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [launchPhase, activeTab]);
-
-  // If a tab being previewed unlocks (phase advanced), drop the teaser and open
-  // it for real.
-  useEffect(() => {
-    if (lockedPreview && !isTabLocked(lockedPreview)) {
-      setActiveTab(lockedPreview);
-      setLockedPreview(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [launchPhase, lockedPreview]);
 
   // Stripe Connect return handler. When the host comes back from Stripe's
   // hosted onboarding (return_url carries ?connect=return&org=...), pull the
@@ -302,7 +273,6 @@ export default function CompetitionDashboard({
 
   // Tab navigation that can optionally focus a specific Setup section.
   const navigateToTab = (tab, section = null) => {
-    setLockedPreview(null);
     setActiveTab(tab);
     setSetupFocus(section ? { id: section, nonce: Date.now() } : null);
   };
@@ -635,26 +605,19 @@ export default function CompetitionDashboard({
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           const locked = isTabLocked(tab.id);
-          const isPreviewing = locked && lockedPreview === tab.id;
-          const isActive = (!locked && activeTab === tab.id) || isPreviewing;
+          const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
-              onClick={() => {
-                setSetupFocus(null);
-                if (locked) { setLockedPreview(tab.id); return; }
-                setLockedPreview(null);
-                setActiveTab(tab.id);
-              }}
-              aria-disabled={locked}
+              onClick={() => { setActiveTab(tab.id); setSetupFocus(null); }}
               title={locked ? lockedTabReason(tab.id) : undefined}
               style={{
                 padding: isMobile ? `${spacing.md} ${spacing.md}` : `${spacing.md} ${spacing.xl}`,
-                color: locked ? (isPreviewing ? colors.gold.primary : colors.text.muted) : isActive ? colors.gold.primary : colors.text.secondary,
+                color: isActive ? colors.gold.primary : locked ? colors.text.muted : colors.text.secondary,
                 fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 fontWeight: typography.fontWeight.medium,
                 cursor: 'pointer',
-                opacity: locked ? (isPreviewing ? 0.9 : 0.5) : 1,
+                opacity: locked && !isActive ? 0.55 : 1,
                 borderBottom: `2px solid ${isActive ? colors.gold.primary : 'transparent'}`,
                 background: 'none',
                 border: 'none',
@@ -797,27 +760,41 @@ export default function CompetitionDashboard({
         );
       case 'activity':
         return (
-          <OverviewTab
-            competition={competition}
-            contestants={data.contestants}
-            nominees={data.nominees}
-            sponsors={data.sponsors}
-            events={data.events}
-            announcements={data.announcements}
-            host={data.host}
-            voteRevenue={data.voteRevenue}
-            isSuperAdmin={isSuperAdmin}
-            onViewPublicSite={onViewPublicSite}
-            onNavigateToTab={navigateToTab}
-            onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
-            onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
-            onAddAnnouncement={addAnnouncement}
-            onUpdateAnnouncement={updateAnnouncement}
-            onDeleteAnnouncement={deleteAnnouncement}
-            onTogglePin={toggleAnnouncementPin}
-            onRefresh={refresh}
-            mode="activity"
-          />
+          <>
+            <OverviewTab
+              competition={competition}
+              contestants={data.contestants}
+              nominees={data.nominees}
+              sponsors={data.sponsors}
+              events={data.events}
+              announcements={data.announcements}
+              host={data.host}
+              voteRevenue={data.voteRevenue}
+              isSuperAdmin={isSuperAdmin}
+              onViewPublicSite={onViewPublicSite}
+              onNavigateToTab={navigateToTab}
+              onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+              onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+              onAddAnnouncement={addAnnouncement}
+              onUpdateAnnouncement={updateAnnouncement}
+              onDeleteAnnouncement={deleteAnnouncement}
+              onTogglePin={toggleAnnouncementPin}
+              onRefresh={refresh}
+              mode="activity"
+            />
+            {/* Judging results — the live leaderboard of judge scores blended
+                with votes. Sits with the other live activity; renders nothing
+                until a judging-enabled round exists. */}
+            <div style={{ marginTop: spacing.xl }}>
+              <JudgingResultsPanel
+                contestants={data.contestants}
+                judges={data.judges}
+                judgingCriteria={data.judgingCriteria}
+                judgeScores={data.judgeScores}
+                votingRounds={competition?.voting_rounds || []}
+              />
+            </div>
+          </>
         );
       case 'people':
         return (
@@ -844,8 +821,6 @@ export default function CompetitionDashboard({
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
             judges={data.judges}
-            judgingCriteria={data.judgingCriteria}
-            judgeScores={data.judgeScores}
             onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
             onDeleteJudge={deleteJudge}
             onSendJudgeInvite={sendJudgeInvite}
@@ -900,86 +875,31 @@ export default function CompetitionDashboard({
     }
   };
 
-  // Read-only teaser for a locked tab the host clicked — shows what the tab is
-  // for and when it unlocks, instead of its premature (empty/half-interactive)
-  // real content.
-  const renderLockedTeaser = () => {
-    const tab = TABS.find((t) => t.id === lockedPreview);
+  // Slim banner shown atop a locked tab's real content. Locked tabs are fully
+  // viewable before they "go live" — this just sets expectations (it's a peek
+  // ahead, not yet active) and says when it formally unlocks.
+  const renderPreviewBanner = () => {
+    if (!isTabLocked(activeTab)) return null;
+    const tab = TABS.find((t) => t.id === activeTab);
     if (!tab) return null;
-    const Icon = tab.icon;
     return (
       <div style={{
-        maxWidth: 520,
-        margin: '0 auto',
-        textAlign: 'center',
-        padding: isMobile ? spacing.xl : spacing.xxxl,
-        background: colors.background.secondary,
-        border: `1px solid ${colors.border.primary}`,
-        borderRadius: borderRadius.xxl,
+        display: 'flex',
+        alignItems: 'center',
+        gap: spacing.sm,
+        padding: `${spacing.sm} ${spacing.md}`,
+        marginBottom: spacing.xl,
+        background: 'rgba(212,175,55,0.08)',
+        border: `1px solid rgba(212,175,55,0.3)`,
+        borderRadius: borderRadius.lg,
+        color: colors.gold.primary,
+        fontSize: typography.fontSize.sm,
       }}>
-        <div style={{
-          width: 64,
-          height: 64,
-          margin: '0 auto',
-          borderRadius: borderRadius.xl,
-          background: 'rgba(212,175,55,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-        }}>
-          <Icon size={30} style={{ color: colors.gold.primary }} />
-          <div style={{
-            position: 'absolute',
-            bottom: -6,
-            right: -6,
-            width: 26,
-            height: 26,
-            borderRadius: '50%',
-            background: colors.background.secondary,
-            border: `1px solid ${colors.border.primary}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Lock size={13} style={{ color: colors.text.muted }} />
-          </div>
-        </div>
-        <h2 style={{
-          fontSize: typography.fontSize.xxl,
-          fontWeight: typography.fontWeight.semibold,
-          margin: `${spacing.lg} 0 ${spacing.sm}`,
-        }}>
-          {tab.label}
-        </h2>
-        <p style={{
-          color: colors.text.secondary,
-          fontSize: typography.fontSize.md,
-          lineHeight: 1.6,
-          margin: `0 0 ${spacing.lg}`,
-        }}>
-          {lockedTabBlurb(tab.id)}
-        </p>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: spacing.xs,
-          padding: `${spacing.xs} ${spacing.md}`,
-          borderRadius: borderRadius.full,
-          background: 'rgba(212,175,55,0.1)',
-          border: `1px solid rgba(212,175,55,0.3)`,
-          color: colors.gold.primary,
-          fontSize: typography.fontSize.sm,
-          fontWeight: typography.fontWeight.medium,
-        }}>
-          <Lock size={13} />
-          {lockedTabReason(tab.id)}
-        </div>
-        <div style={{ marginTop: spacing.xl, display: 'flex', gap: spacing.sm, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Button variant="secondary" onClick={() => setLockedPreview(null)}>
-            Back to my checklist
-          </Button>
-        </div>
+        <Lock size={15} style={{ flexShrink: 0 }} />
+        <span>
+          <strong style={{ fontWeight: typography.fontWeight.semibold }}>Preview — {tab.label} isn’t live yet.</strong>{' '}
+          <span style={{ color: colors.text.secondary }}>{lockedTabReason(tab.id)} Look around to see what’s coming.</span>
+        </span>
       </div>
     );
   };
@@ -994,7 +914,8 @@ export default function CompetitionDashboard({
           margin: '0 auto',
           padding: isMobile ? `${spacing.lg} ${spacing.md}` : `${spacing.xxxl} ${spacing.xxl}`,
         }}>
-          {lockedPreview ? renderLockedTeaser() : renderContent()}
+          {renderPreviewBanner()}
+          {renderContent()}
         </main>
       </div>
       <HostAssignmentModal

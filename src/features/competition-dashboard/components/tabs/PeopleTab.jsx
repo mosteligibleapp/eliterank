@@ -15,7 +15,6 @@ import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import { getReachedTierLabel } from '../../../../utils/roundLabels';
 import WinnersManager from '../WinnersManager';
 import JudgesManager from '../JudgesManager';
-import JudgingResultsPanel from '../JudgingResultsPanel';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
 const parseInstagram = (raw) => {
@@ -86,8 +85,6 @@ export default function PeopleTab({
   onRepairNomineeAccount,
   onRepairAllNomineeAccounts,
   judges = [],
-  judgingCriteria = [],
-  judgeScores = [],
   onOpenJudgeModal,
   onDeleteJudge,
   onSendJudgeInvite,
@@ -116,6 +113,20 @@ export default function PeopleTab({
   const isLegacy = competition?.is_legacy;
   const isCompleted = competition?.status === 'completed';
   const showReorder = isLegacy || isCompleted;
+
+  // Vertical order of the People sections, via CSS flex `order` on the column
+  // container — so we reorder without physically moving the large JSX blocks.
+  // Before the competition is live the host is still building their field, so
+  // nominees sit on top (ready to approve → awaiting → incomplete), with
+  // contestants below. Once live, the contestant lineup is what matters most,
+  // so it jumps above the nominee buckets. Judges + winners stay at the bottom.
+  const preLive = ['draft', 'pending_approval', 'approved'].includes(competition?.status);
+  const sectionOrder = (id) => {
+    const map = preLive
+      ? { readyToApprove: 1, awaitingResponse: 2, incompleteSelfNoms: 3, contestants: 4, judges: 5, winners: 6, declined: 7 }
+      : { contestants: 1, readyToApprove: 2, awaitingResponse: 3, incompleteSelfNoms: 4, judges: 5, winners: 6, declined: 7 };
+    return map[id];
+  };
 
   const handleMoveContestant = async (contestantId, direction) => {
     if (!supabase || !competition?.id) return;
@@ -1149,26 +1160,20 @@ export default function PeopleTab({
       )}
 
       {/* Winners Manager */}
-      <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
+      <div style={{ order: sectionOrder('winners') }}>
+        <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
+      </div>
 
-      {/* Judges roster — judging rules live in Setup; live results sit here,
-          next to the judges and contestants they rank. */}
-      <JudgesManager
-        judges={judges}
-        onOpenJudgeModal={onOpenJudgeModal}
-        onDeleteJudge={onDeleteJudge}
-        onSendJudgeInvite={onSendJudgeInvite}
-      />
-
-      {/* Judging results — leaderboard of judge scores blended with votes.
-          Renders nothing until the competition has a judging-enabled round. */}
-      <JudgingResultsPanel
-        contestants={contestants}
-        judges={judges}
-        judgingCriteria={judgingCriteria}
-        judgeScores={judgeScores}
-        votingRounds={votingRounds}
-      />
+      {/* Judges roster — judging rules live in Setup; live results (the
+          leaderboard) live on the Activity tab. */}
+      <div style={{ order: sectionOrder('judges') }}>
+        <JudgesManager
+          judges={judges}
+          onOpenJudgeModal={onOpenJudgeModal}
+          onDeleteJudge={onDeleteJudge}
+          onSendJudgeInvite={onSendJudgeInvite}
+        />
+      </div>
 
       {/* Gender filter chips — only shown when the competition splits
        *  winners by gender. Filters every section below + the contestants
@@ -1270,7 +1275,7 @@ export default function PeopleTab({
       <Panel
         title={`Contestants (${contestantsFiltered.length})`}
         icon={Crown}
-        style={{ marginBottom: 0 }}
+        style={{ marginBottom: 0, order: sectionOrder('contestants') }}
         collapsible
         defaultCollapsed
         action={
@@ -1422,7 +1427,7 @@ export default function PeopleTab({
       <Panel
         title={`Ready to Approve (${nomineesWithProfile.length})`}
         icon={UserCheck}
-        style={{ marginBottom: 0 }}
+        style={{ marginBottom: 0, order: sectionOrder('readyToApprove') }}
         collapsible
         defaultCollapsed
       >
@@ -1457,7 +1462,7 @@ export default function PeopleTab({
       <Panel
         title={`Awaiting Response (${externalNominees.length})`}
         icon={Users}
-        style={{ marginBottom: 0 }}
+        style={{ marginBottom: 0, order: sectionOrder('awaitingResponse') }}
         collapsible
         defaultCollapsed
         action={
@@ -1534,7 +1539,7 @@ export default function PeopleTab({
         <Panel
           title={`Incomplete Self-Nominations (${incompleteNominees.length})`}
           icon={Clock}
-          style={{ marginBottom: 0 }}
+          style={{ marginBottom: 0, order: sectionOrder('incompleteSelfNoms') }}
           collapsible
           defaultCollapsed
         >
@@ -1651,7 +1656,7 @@ export default function PeopleTab({
         <Panel
           title={`Declined (${declinedNominees.length})`}
           icon={XCircle}
-          style={{ marginBottom: 0 }}
+          style={{ marginBottom: 0, order: sectionOrder('declined') }}
           collapsible
           defaultCollapsed
         >
