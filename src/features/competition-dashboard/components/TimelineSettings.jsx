@@ -550,6 +550,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           contestants_advance: round.contestants_advance || 10,
           tier_label: round.tier_label?.trim() || null,
           votes_reset_at_start: !!round.votes_reset_at_start,
+          // Round-trip the judging weight (loaded via select('*')) so the
+          // recommended-schedule seed (60% on the final round) persists and an
+          // existing blend isn't zeroed on save. The Judging section remains
+          // where hosts switch between blend and a separate judge-only round.
+          judge_weight: round.judge_weight ?? 0,
         }),
       });
 
@@ -646,11 +651,13 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   };
 
   // Build the recommended schedule: three contiguous 10-day voting rounds
-  // (≥30 days total, the validator's minimum), then a judging round, with the
-  // finale set 1 hour after the determining round ends (inside the 1-min→24-hr
-  // window the validator enforces). Anchored to the recommended first-voting
-  // start (nominations close + 5 days); falls back to ~4 weeks out if the
-  // nomination close date isn't set yet.
+  // (≥30 days total, the validator's minimum). Judging is tied to the LAST
+  // voting round — that round becomes the determining round with judges at the
+  // 60% skill-contest floor (the "blend" layout JudgingPanel offers), so there
+  // is never a separate judging round. The finale is set 1 hour after that
+  // round ends (inside the 1-min→24-hr window the validator enforces). Anchored
+  // to the recommended first-voting start (nominations close + 5 days); falls
+  // back to ~4 weeks out if the nomination close date isn't set yet.
   const buildRecommendedSchedule = () => {
     const DAY = 86400000;
     const addDays = (d, n) => new Date(d.getTime() + n * DAY);
@@ -668,6 +675,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     votingTiers.forEach((t, i) => {
       const start = new Date(cursor);
       const end = addDays(start, 10);
+      const isLast = i === votingTiers.length - 1;
       rounds.push({
         ...DEFAULT_VOTING_ROUND,
         title: t.title,
@@ -678,31 +686,14 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         start_date: start.toISOString(),
         end_date: end.toISOString(),
         votes_reset_at_start: false,
+        // Judging rides on the final voting round when winners are judge-decided
+        // (judges 60% + votes 40%). Pure-vote competitions leave it at 0.
+        judge_weight: isLast && usesJudges ? 60 : 0,
       });
       cursor = end; // next round opens as this one closes
     });
 
-    // The judging round only applies when winners are judge-decided. For
-    // pure-vote competitions the finale just follows the last voting round.
-    let finaleAnchorEnd = cursor;
-    if (usesJudges) {
-      const jStart = new Date(cursor);
-      const jEnd = addDays(jStart, 5);
-      rounds.push({
-        ...DEFAULT_VOTING_ROUND,
-        title: 'Judging Round',
-        tier_label: 'Final Judging',
-        round_type: 'judging',
-        round_order: rounds.length + 1,
-        contestants_advance: 5,
-        start_date: jStart.toISOString(),
-        end_date: jEnd.toISOString(),
-        votes_reset_at_start: false,
-      });
-      finaleAnchorEnd = jEnd;
-    }
-
-    const finale = new Date(finaleAnchorEnd.getTime() + 60 * 60 * 1000); // +1 hr
+    const finale = new Date(cursor.getTime() + 60 * 60 * 1000); // +1 hr after the deciding round
     return { rounds, finaleIso: finale.toISOString() };
   };
 
@@ -966,7 +957,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginBottom: spacing.md }}>
           Voting should run at least <strong>30 days</strong> across at least <strong>3 rounds</strong>. We recommend voting opens 5 days after nominations close
           {recommendedVotingStartIso ? <> — about <strong>{formatDateForDisplay(recommendedVotingStartIso)}</strong>.</> : '.'}{' '}
-          Use <strong>Auto-fill recommended</strong> to lay out 3 voting rounds{usesJudges ? ', a judging round,' : ''} and the finale for you — then adjust any date.
+          Use <strong>Auto-fill recommended</strong> to lay out 3 voting rounds and the finale for you
+          {usesJudges ? <> — judges decide the final round at <strong>60%</strong>. Prefer a separate judge-only finale? Switch the layout in the Judging section.</> : '. '}
+          {' '}Adjust anything after.
         </p>
 
         {votingRounds.length === 0 ? (
