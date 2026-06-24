@@ -962,7 +962,16 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           {' '}Adjust anything after.
         </p>
 
-        {votingRounds.length === 0 ? (
+        {(() => {
+        // The "Voting Rounds" list shows voting rounds only. A separate judging
+        // round (round_type 'judging') is owned by the Judging section — keep it
+        // in state so it still saves/validates, but don't render it here mixed
+        // in with voting rounds. Keep each row's real index for the handlers.
+        const displayRounds = votingRounds
+          .map((round, index) => ({ round, index }))
+          .filter(({ round }) => (round.round_type || 'voting') !== 'judging');
+        const hasSeparateJudging = votingRounds.some((r) => r.round_type === 'judging');
+        return displayRounds.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: spacing.xl,
@@ -971,12 +980,13 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
             color: colors.text.secondary,
           }}>
             <Vote size={32} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-            <p>No rounds configured</p>
-            <p style={{ fontSize: typography.fontSize.sm }}>Add voting or judging rounds to define the schedule</p>
+            <p>No voting rounds yet</p>
+            <p style={{ fontSize: typography.fontSize.sm }}>Use Auto-fill recommended, or add voting rounds to define the schedule</p>
           </div>
         ) : (
+          <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            {votingRounds.map((round, index) => {
+            {displayRounds.map(({ round, index }) => {
               const roundConfig = ROUND_TYPE_CONFIG[round.round_type] || ROUND_TYPE_CONFIG.voting;
               return (
               <div
@@ -1145,7 +1155,15 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
               );
             })}
           </div>
-        )}
+          {hasSeparateJudging && (
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.md, display: 'flex', alignItems: 'flex-start', gap: spacing.xs }}>
+              <Info size={13} style={{ color: colors.gold.primary, flexShrink: 0, marginTop: 2 }} />
+              <span>Your judging round runs after voting closes — its dates and weight are set in the <strong style={{ color: colors.text.secondary }}>Judging</strong> section.</span>
+            </p>
+          )}
+          </>
+        );
+        })()}
       </div>
 
       {/* Finals Date */}

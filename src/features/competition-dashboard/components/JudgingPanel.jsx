@@ -417,6 +417,10 @@ function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefres
   // When this round is the judging round, its date is editable right here
   // (a direct field write — the round still lives in the voting schedule).
   const isJudgingRound = (round.judge_weight ?? 0) > 0;
+  // Blend = judging rides on the final voting round; separate = a dedicated
+  // judging round after voting. Drives the labels so "judging on a voting
+  // round" reads intentionally instead of looking like a mislabel.
+  const isBlendRound = (round.round_type || 'voting') !== 'judging';
   const toLocal = (v) => (v ? String(v).slice(0, 16) : '');
   const [start, setStart] = useState(toLocal(round.start_date));
   const [end, setEnd] = useState(toLocal(round.end_date));
@@ -491,12 +495,17 @@ function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefres
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontWeight: typography.fontWeight.semibold }}>
-            {round.title || `Round ${round.round_order || ''}`}
+          <p style={{ fontWeight: typography.fontWeight.semibold, display: 'flex', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' }}>
+            {isBlendRound ? 'Your final voting round' : 'Dedicated judging round'}
+            <span style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.regular, color: colors.text.muted }}>
+              · {round.title || `Round ${round.round_order || ''}`}
+            </span>
           </p>
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: 2 }}>
-            {weight === 100 ? '100% judges' : `${weight}% judges · ${100 - weight}% votes`}
-            {round.contestants_advance > 0 && ` · top ${round.contestants_advance} advance`}
+            {isBlendRound
+              ? `Judges score this round alongside public votes — ${weight}% judges · ${100 - weight}% votes.`
+              : `Judges alone decide this round after voting closes${weight === 100 ? ' — 100% judges' : ` — ${weight}% judges · ${100 - weight}% votes`}.`}
+            {round.contestants_advance > 0 && ` Top ${round.contestants_advance} advance.`}
           </p>
         </div>
         <input
@@ -535,7 +544,9 @@ function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefres
         <div style={{ borderTop: `1px solid ${colors.border.primary}`, paddingTop: spacing.sm }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs }}>
             <Calendar size={13} style={{ color: colors.gold.primary }} />
-            <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>When judging runs</span>
+            <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
+              {isBlendRound ? 'When your final round runs (judging rides along)' : 'When judging runs'}
+            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: spacing.sm, flexWrap: 'wrap' }}>
             <label style={{ flex: 1, minWidth: 150 }}>
