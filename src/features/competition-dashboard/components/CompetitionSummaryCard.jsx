@@ -418,15 +418,26 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
 
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={labelStyle}>Donating a portion of proceeds to charity?</label>
-            <div style={{ display: 'flex', gap: spacing.md, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: spacing.md, alignItems: 'flex-start' }}>
               <select style={{ ...fieldStyle, flex: 1 }} value={form.charityYes ? 'yes' : 'no'} onChange={(e) => set('charityYes', e.target.value === 'yes')}>
                 <option value="no">No</option>
                 <option value="yes">Yes</option>
               </select>
               {form.charityYes && (
-                <input style={{ ...fieldStyle, flex: 1 }} type="number" min="1" max="100" value={form.charityPercentage} onChange={(e) => set('charityPercentage', e.target.value)} placeholder="% to charity" />
+                <div style={{ flex: 1 }}>
+                  <label style={{ ...labelStyle, marginBottom: spacing.xs }}>Percentage of proceeds</label>
+                  <div style={{ position: 'relative' }}>
+                    <input style={{ ...fieldStyle, paddingRight: 28 }} type="number" min="1" max="100" value={form.charityPercentage} onChange={(e) => set('charityPercentage', e.target.value)} placeholder="e.g. 10" />
+                    <span style={{ position: 'absolute', right: spacing.sm, top: '50%', transform: 'translateY(-50%)', color: colors.text.muted, fontSize: typography.fontSize.sm, pointerEvents: 'none' }}>%</span>
+                  </div>
+                </div>
               )}
             </div>
+            {form.charityYes && (
+              <p style={helpStyle}>
+                {Number(form.charityPercentage) || 0}% of competition proceeds will be donated to charity. You’ll pick the specific charity later.
+              </p>
+            )}
           </div>
         </div>
 
