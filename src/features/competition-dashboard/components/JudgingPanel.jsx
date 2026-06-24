@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Sliders, Award } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Sliders, Award, Calendar } from 'lucide-react';
 import { Button, Panel, Input } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
+import { supabase } from '../../../lib/supabase';
 
 /**
  * JudgingPanel — host-side controls for the judging system.
@@ -20,6 +21,7 @@ export default function JudgingPanel({
   onUpdateCriterion,
   onDeleteCriterion,
   onUpdateRoundJudgeWeight,
+  onRefresh,
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -122,24 +124,20 @@ export default function JudgingPanel({
     </div>
   );
 
+  const sectionLabel = { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.text.muted };
+
   return (
-    <>
-      {/* Criteria */}
-      <Panel
-        title={`Judging Criteria (${criteria.length})`}
-        icon={Award}
-        collapsible
-        defaultCollapsed
-        action={
-          !adding && !editingId && (
-            <Button size="sm" icon={Plus} onClick={(e) => { e.stopPropagation(); startAdd(); }}>
-              Add Criterion
-            </Button>
-          )
-        }
-      >
-        <div style={{ padding: spacing.xl, display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginTop: -spacing.sm }}>
+    <Panel title="Judging" icon={Award} collapsible defaultCollapsed>
+      <div style={{ padding: spacing.xl }}>
+        {/* Criteria */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.sm }}>
+          <span style={sectionLabel}>Criteria ({criteria.length})</span>
+          {!adding && !editingId && (
+            <Button size="sm" icon={Plus} onClick={startAdd}>Add Criterion</Button>
+          )}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
             Judges score each contestant 1–10 on every criterion. Keep them broad and holistic — overall qualities, not narrow checklists. The same criteria are reused across every judging round.
           </p>
 
@@ -226,25 +224,21 @@ export default function JudgingPanel({
 
           {adding && editor}
         </div>
-      </Panel>
 
-      {/* Round Weights */}
-      <Panel
-        title="Judging Round"
-        icon={Sliders}
-        collapsible
-        defaultCollapsed
-      >
-        <div style={{ padding: spacing.xl, display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginTop: -spacing.sm }}>
-            Pick the single round judges score, and how much their scores count toward who advances. 0% means votes decide that round; 100% means judges decide; anything between is a blend (e.g. 60% judges + 40% votes). Only one round can be a judging round at a time.
+        {/* Judging round — weight + date, all here (not in the voting timeline) */}
+        <div style={{ borderTop: `1px solid ${colors.border.primary}`, marginTop: spacing.xl, paddingTop: spacing.lg }}>
+          <span style={sectionLabel}>Judging round</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md, marginTop: spacing.md }}>
+          <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+            Pick the single round judges score, how much their scores count toward who advances, and when it runs. 0% means votes decide that round; 100% means judges decide; anything between is a blend (e.g. 60% judges + 40% votes). Only one round can be a judging round at a time.
           </p>
 
           <JudgingRoundSummary votingRounds={votingRounds} />
 
           {votingRounds.length === 0 ? (
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-              Add voting rounds in the Timeline first.
+              Add a voting round in Voting Details first, then make one of them the judging round here.
             </p>
           ) : (
             [...votingRounds]
@@ -255,12 +249,13 @@ export default function JudgingPanel({
                   round={r}
                   votingRounds={votingRounds}
                   onUpdate={onUpdateRoundJudgeWeight}
+                  onRefresh={onRefresh}
                 />
               ))
           )}
         </div>
-      </Panel>
-    </>
+      </div>
+    </Panel>
   );
 }
 
@@ -287,10 +282,33 @@ function JudgingRoundSummary({ votingRounds }) {
   );
 }
 
-function RoundWeightRow({ round, votingRounds, onUpdate }) {
+function RoundWeightRow({ round, votingRounds, onUpdate, onRefresh }) {
   const [weight, setWeight] = useState(round.judge_weight ?? 0);
   const [saving, setSaving] = useState(false);
   const dirty = weight !== (round.judge_weight ?? 0);
+
+  // When this round is the judging round, its date is editable right here
+  // (a direct field write — the round still lives in the voting schedule).
+  const isJudgingRound = (round.judge_weight ?? 0) > 0;
+  const toLocal = (v) => (v ? String(v).slice(0, 16) : '');
+  const [start, setStart] = useState(toLocal(round.start_date));
+  const [end, setEnd] = useState(toLocal(round.end_date));
+  const [savingDates, setSavingDates] = useState(false);
+  const datesDirty = start !== toLocal(round.start_date) || end !== toLocal(round.end_date);
+  const saveDates = async () => {
+    setSavingDates(true);
+    try {
+      await supabase.from('voting_rounds').update({ start_date: start || null, end_date: end || null }).eq('id', round.id);
+      onRefresh?.();
+    } finally {
+      setSavingDates(false);
+    }
+  };
+  const dateInput = {
+    flex: 1, padding: `${spacing.xs} ${spacing.sm}`, background: colors.background.secondary,
+    border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.sm, color: colors.text.primary,
+    fontSize: typography.fontSize.sm, colorScheme: 'dark',
+  };
 
   const save = async () => {
     // Enforce: only one round can have judge_weight > 0 at a time.
@@ -328,52 +346,76 @@ function RoundWeightRow({ round, votingRounds, onUpdate }) {
   return (
     <div style={{
       display: 'flex',
-      alignItems: 'center',
-      gap: spacing.md,
+      flexDirection: 'column',
+      gap: spacing.sm,
       padding: spacing.md,
       background: colors.background.card,
-      border: `1px solid ${colors.border.primary}`,
+      border: `1px solid ${isJudgingRound ? 'rgba(212,175,55,0.3)' : colors.border.primary}`,
       borderRadius: borderRadius.md,
     }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontWeight: typography.fontWeight.semibold }}>
-          {round.title || `Round ${round.round_order || ''}`}
-        </p>
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: 2 }}>
-          {weight === 0 ? '100% votes' : weight === 100 ? '100% judges' : `${weight}% judges · ${100 - weight}% votes`}
-          {round.contestants_advance > 0 && ` · top ${round.contestants_advance} advance`}
-        </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontWeight: typography.fontWeight.semibold }}>
+            {round.title || `Round ${round.round_order || ''}`}
+          </p>
+          <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: 2 }}>
+            {weight === 0 ? '100% votes' : weight === 100 ? '100% judges' : `${weight}% judges · ${100 - weight}% votes`}
+            {round.contestants_advance > 0 && ` · top ${round.contestants_advance} advance`}
+          </p>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={weight}
+          onChange={(e) => setWeight(parseInt(e.target.value, 10))}
+          style={{ width: 140, accentColor: colors.gold.primary }}
+        />
+        <input
+          type="number"
+          min={0}
+          max={100}
+          value={weight}
+          onChange={(e) => setWeight(Math.max(0, Math.min(100, parseInt(e.target.value || '0', 10))))}
+          style={{
+            width: 60,
+            padding: `${spacing.xs} ${spacing.sm}`,
+            background: colors.background.secondary,
+            border: `1px solid ${colors.border.primary}`,
+            borderRadius: borderRadius.sm,
+            color: colors.text.primary,
+            textAlign: 'right',
+            fontSize: typography.fontSize.sm,
+          }}
+        />
+        <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>%</span>
+        <Button size="sm" disabled={!dirty || saving} onClick={save}>
+          {saving ? 'Saving…' : 'Save'}
+        </Button>
       </div>
-      <input
-        type="range"
-        min={0}
-        max={100}
-        step={5}
-        value={weight}
-        onChange={(e) => setWeight(parseInt(e.target.value, 10))}
-        style={{ width: 140, accentColor: colors.gold.primary }}
-      />
-      <input
-        type="number"
-        min={0}
-        max={100}
-        value={weight}
-        onChange={(e) => setWeight(Math.max(0, Math.min(100, parseInt(e.target.value || '0', 10))))}
-        style={{
-          width: 60,
-          padding: `${spacing.xs} ${spacing.sm}`,
-          background: colors.background.secondary,
-          border: `1px solid ${colors.border.primary}`,
-          borderRadius: borderRadius.sm,
-          color: colors.text.primary,
-          textAlign: 'right',
-          fontSize: typography.fontSize.sm,
-        }}
-      />
-      <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>%</span>
-      <Button size="sm" disabled={!dirty || saving} onClick={save}>
-        {saving ? 'Saving…' : 'Save'}
-      </Button>
+
+      {isJudgingRound && (
+        <div style={{ borderTop: `1px solid ${colors.border.primary}`, paddingTop: spacing.sm }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs }}>
+            <Calendar size={13} style={{ color: colors.gold.primary }} />
+            <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>When judging runs</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: spacing.sm, flexWrap: 'wrap' }}>
+            <label style={{ flex: 1, minWidth: 150 }}>
+              <span style={{ display: 'block', fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: 2 }}>Opens</span>
+              <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} style={dateInput} />
+            </label>
+            <label style={{ flex: 1, minWidth: 150 }}>
+              <span style={{ display: 'block', fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: 2 }}>Closes</span>
+              <input type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} style={dateInput} />
+            </label>
+            <Button size="sm" variant="secondary" disabled={!datesDirty || savingDates} onClick={saveDates} style={{ width: 'auto' }}>
+              {savingDates ? 'Saving…' : 'Save dates'}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

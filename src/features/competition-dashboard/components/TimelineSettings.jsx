@@ -843,22 +843,15 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
           <h4 style={{ fontSize: typography.fontSize.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
             <Vote size={18} />
-            {usesJudges ? 'Voting & Judging Rounds' : 'Voting Rounds'}
+            Voting Rounds
           </h4>
-          <div style={{ display: 'flex', gap: spacing.sm }}>
-            <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('voting')}>
-              Add Voting
-            </Button>
-            {usesJudges && (
-              <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('judging')}>
-                Add Judging
-              </Button>
-            )}
-          </div>
+          <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('voting')}>
+            Add Voting
+          </Button>
         </div>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
           {usesJudges
-            ? 'Competitions can have voting rounds (public votes), judging rounds (judge scores), or both.'
+            ? 'These are the public-vote rounds. Judging (criteria, weight and dates) is set in the Judging section.'
             : 'This competition is vote-based only. To add judges, change “How they win” in your competition details before submitting.'}
         </p>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginBottom: spacing.md }}>

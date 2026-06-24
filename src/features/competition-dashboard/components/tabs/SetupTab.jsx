@@ -627,6 +627,7 @@ export default function SetupTab({
               onUpdateCriterion={onUpdateCriterion}
               onDeleteCriterion={onDeleteCriterion}
               onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
+              onRefresh={onRefresh}
             />
           </div>
           <div style={sectionStyle('judgingResults')}>
