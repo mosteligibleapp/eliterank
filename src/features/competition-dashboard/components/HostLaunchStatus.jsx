@@ -67,7 +67,7 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
   };
 
   return (
-    <Panel title="Launch status" icon={Rocket} style={{ marginBottom: spacing.xl }}>
+    <Panel title="Launch status" icon={Rocket} style={{ marginBottom: 0 }}>
       <div style={{ padding: spacing.xl }}>
         {/* Phase stepper */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: spacing.xl }}>

@@ -543,7 +543,7 @@ export default function SetupTab({
       {/* Competition details — the same recap the host sees on the Dashboard, so
           Setup is aligned with what they entered during onboarding. Editable in
           draft, locked thereafter (handled inside the card). */}
-      <div style={sectionStyle('competitionDetails')}>
+      <div style={{ ...sectionStyle('competitionDetails'), marginBottom: spacing.xxl }}>
         <CompetitionSummaryCard competition={competition} onRefresh={onRefresh} />
       </div>
 

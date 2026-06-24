@@ -381,6 +381,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   });
   const phaseConfig = getPhaseDisplayConfig(computedPhase);
 
+  // Judges only matter when winners are decided by judges (or a hybrid). For
+  // pure public-vote competitions we hide the judging controls entirely.
+  const usesJudges = ['judges', 'hybrid'].includes(competition?.selectionCriteria);
+
   // Recommended first-voting start = 5 days after nominations close (owned by
   // the Nomination Form section). Used to auto-fill the first voting round.
   const nominationCloseIso = competition?.nominationEnd || competition?.nomination_end || null;
@@ -839,19 +843,23 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
           <h4 style={{ fontSize: typography.fontSize.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
             <Vote size={18} />
-            Voting & Judging Rounds
+            {usesJudges ? 'Voting & Judging Rounds' : 'Voting Rounds'}
           </h4>
           <div style={{ display: 'flex', gap: spacing.sm }}>
             <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('voting')}>
               Add Voting
             </Button>
-            <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('judging')}>
-              Add Judging
-            </Button>
+            {usesJudges && (
+              <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('judging')}>
+                Add Judging
+              </Button>
+            )}
           </div>
         </div>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
-          Competitions can have voting rounds (public votes), judging rounds (judge scores), or both.
+          {usesJudges
+            ? 'Competitions can have voting rounds (public votes), judging rounds (judge scores), or both.'
+            : 'This competition is vote-based only. To add judges, change “How they win” in your competition details before submitting.'}
         </p>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginBottom: spacing.md }}>
           Voting should run at least <strong>30 days</strong> across at least <strong>3 rounds</strong>. We recommend voting opens 5 days after nominations close
