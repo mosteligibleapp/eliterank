@@ -127,15 +127,22 @@ export default function DashboardPage() {
 
     const orgSlug = selectedCompetition?.organization?.slug || 'most-eligible';
 
+    // Before a competition is published it isn't public, so the live page would
+    // show "not currently public". Open it in the host coming-soon preview
+    // (?preview=coming-soon) which the public page renders for any phase.
+    const preLaunch = ['draft', 'pending_approval', 'approved'].includes(selectedCompetition?.status);
+    const withPreview = (url) => (preLaunch ? `${url}${url.includes('?') ? '&' : '?'}preview=coming-soon` : url);
+    const open = (url) => window.open(withPreview(url), '_blank');
+
     // Priority 1: Use the database slug directly (preferred)
     if (selectedCompetition?.slug) {
-      window.open(getCompetitionUrl(orgSlug, selectedCompetition.slug), '_blank');
+      open(getCompetitionUrl(orgSlug, selectedCompetition.slug));
       return;
     }
 
     // Priority 2: Use the competition ID — the most reliable lookup
     if (selectedCompetition?.id) {
-      window.open(`/${orgSlug}/id/${selectedCompetition.id}`, '_blank');
+      open(`/${orgSlug}/id/${selectedCompetition.id}`);
       return;
     }
 
@@ -146,7 +153,7 @@ export default function DashboardPage() {
       citySlug: slugify(cityName),
       season: selectedCompetition?.season,
     });
-    window.open(getCompetitionUrl(orgSlug, generatedSlug), '_blank');
+    open(getCompetitionUrl(orgSlug, generatedSlug));
   }, [selectedCompetition]);
 
 
