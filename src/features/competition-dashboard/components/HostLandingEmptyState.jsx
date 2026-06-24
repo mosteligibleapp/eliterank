@@ -109,8 +109,8 @@ export default function HostLandingEmptyState({ onCreate, onLearnMore, onBack })
           </ExplainerCard>
           <ExplainerCard Icon={Users} eyebrow="Who hosts them">
             Brands, creators, associations, nonprofits, and local businesses —
-            anyone with a community worth celebrating. You’re the host and Sponsor
-            of record; EliteRank powers voting, payments, and the public site.
+            anyone with a community worth celebrating. You’re the host; EliteRank
+            powers voting, payments, and the public site.
           </ExplainerCard>
         </div>
 

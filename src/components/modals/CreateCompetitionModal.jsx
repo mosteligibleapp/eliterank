@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader, Sparkles, User, Building2, ArrowLeft, ArrowRight, CheckCircle, Info, CalendarClock } from 'lucide-react';
 import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
@@ -7,6 +7,37 @@ import { slugify, generateCompetitionSlug } from '../../utils/slugs';
 import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES, LAUNCH_TIMEFRAMES, ENTRY_TYPE_HELP } from '../../lib/competitionTemplates';
 
 const NEW_ORG = '__new__';
+// Calendly scheduling link used by the "Learn more → Schedule a call" flow.
+const CALENDLY_URL = 'https://calendly.com/crystal-mosteligibleusa/eliterank-info-session';
+
+/**
+ * CalendlyInline — embeds a Calendly scheduler inline, prefilled with the
+ * visitor's name/email. Loads Calendly's widget script once and (re)initializes
+ * the inline widget into our container.
+ */
+function CalendlyInline({ url, name, email }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!url) return undefined;
+    const SRC = 'https://assets.calendly.com/assets/external/widget.js';
+    const render = () => {
+      if (window.Calendly && ref.current) {
+        ref.current.innerHTML = '';
+        window.Calendly.initInlineWidget({ url, parentElement: ref.current, prefill: { name: name || '', email: email || '' } });
+      }
+    };
+    const existing = document.querySelector(`script[src="${SRC}"]`);
+    if (window.Calendly) render();
+    else if (existing) existing.addEventListener('load', render);
+    else {
+      const s = document.createElement('script');
+      s.src = SRC; s.async = true; s.addEventListener('load', render);
+      document.body.appendChild(s);
+    }
+    return () => { if (existing) existing.removeEventListener('load', render); };
+  }, [url, name, email]);
+  return <div ref={ref} style={{ minWidth: 300, height: 620 }} />;
+}
 // Config pages in order, per the onboarding flow.
 const CONFIG_ORDER = ['sponsor', 'template', 'format', 'prizes', 'review'];
 const STEP_LABELS = {
@@ -29,7 +60,6 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [leadDone, setLeadDone] = useState(false);
   const [lookups, setLookups] = useState({ cities: [], categories: [], demographics: [], orgs: [] });
 
   const [form, setForm] = useState({
@@ -50,11 +80,11 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     // misc
     season: new Date().getFullYear(),
   });
-  const [lead, setLead] = useState({ leadType: 'info_packet', name: '', email: '', phone: '', message: '' });
+  // Visitor identity for the Calendly prefill on the "Learn more" flow.
+  const [lead, setLead] = useState({ name: '', email: '' });
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const setL = (k, v) => setLead((l) => ({ ...l, [k]: v }));
 
   const handleLogoUpload = async (file) => {
     if (!file) return;
@@ -74,7 +104,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
   };
 
   useEffect(() => {
-    if (isOpen) { setStep(initialStep); setError(null); setLeadDone(false); }
+    if (isOpen) { setStep(initialStep); setError(null); }
   }, [isOpen, initialStep]);
 
   useEffect(() => {
@@ -142,21 +172,6 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     if (idx <= 0) { setStep('ready'); return; }
     setError(null);
     setStep(CONFIG_ORDER[idx - 1]);
-  };
-
-  // ── Submit lead ─────────────────────────────────────────────────────────────
-  const submitLead = async () => {
-    if (!lead.name.trim() || !lead.email.trim()) { setError('Name and email are required.'); return; }
-    setBusy(true); setError(null);
-    try {
-      const { error: e } = await supabase.rpc('submit_host_lead', {
-        p_lead_type: lead.leadType, p_name: lead.name, p_email: lead.email, p_phone: lead.phone, p_message: lead.message,
-      });
-      if (e) throw e;
-      setLeadDone(true);
-    } catch (err) {
-      setError(err.message || 'Could not submit. Please try again.');
-    } finally { setBusy(false); }
   };
 
   // ── Create competition ──────────────────────────────────────────────────────
@@ -254,10 +269,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
   const footer = (() => {
     if (step === 'ready') return <Button variant="secondary" onClick={onClose} style={{ width: 'auto' }}>Cancel</Button>;
     if (step === 'learn') return (
-      <>
-        <Button variant="secondary" onClick={() => { setStep('ready'); setError(null); }} icon={ArrowLeft} disabled={busy} style={{ width: 'auto' }}>Back</Button>
-        {!leadDone && <Button onClick={submitLead} disabled={busy} icon={busy ? Loader : CheckCircle}>{busy ? 'Sending…' : 'Send'}</Button>}
-      </>
+      <Button variant="secondary" onClick={() => { setStep('ready'); setError(null); }} icon={ArrowLeft} style={{ width: 'auto' }}>Back</Button>
     );
     if (step === 'review') return (
       <>
@@ -317,36 +329,20 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
         </div>
       )}
 
-      {/* LEARN — lead capture */}
-      {step === 'learn' && (leadDone ? (
-        <div style={{ textAlign: 'center', padding: spacing.xl }}>
-          <CheckCircle size={40} color={colors.status.success} style={{ marginBottom: spacing.md }} />
-          <h3 style={{ marginBottom: spacing.sm }}>Thanks — we’ll be in touch.</h3>
-          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-            You can come back and set up your competition any time.
-          </p>
-        </div>
-      ) : (
+      {/* LEARN — schedule a call via Calendly */}
+      {step === 'learn' && (
         <div>
-          <div style={{ display: 'flex', gap: spacing.md, marginBottom: spacing.lg }}>
-            <div style={{ ...cardStyle(lead.leadType === 'info_packet'), flex: 1 }} onClick={() => setL('leadType', 'info_packet')}>
-              <Info size={20} color={colors.gold.primary} /><div style={{ marginTop: spacing.xs, fontSize: typography.fontSize.sm }}>Host info packet</div>
-            </div>
-            <div style={{ ...cardStyle(lead.leadType === 'schedule_call'), flex: 1 }} onClick={() => setL('leadType', 'schedule_call')}>
-              <CalendarClock size={20} color={colors.gold.primary} /><div style={{ marginTop: spacing.xs, fontSize: typography.fontSize.sm }}>Schedule a call</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+            <CalendarClock size={20} color={colors.gold.primary} />
+            <div>
+              <div style={{ fontWeight: typography.fontWeight.semibold }}>Schedule a call</div>
+              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>Grab a time and we’ll walk you through hosting a competition.</div>
             </div>
           </div>
-          <label style={labelStyle}>Name</label>
-          <input style={fieldStyle} value={lead.name} onChange={(e) => setL('name', e.target.value)} />
-          <label style={labelStyle}>Email</label>
-          <input style={fieldStyle} value={lead.email} onChange={(e) => setL('email', e.target.value)} />
-          <label style={labelStyle}>Phone (optional)</label>
-          <input style={fieldStyle} value={lead.phone} onChange={(e) => setL('phone', e.target.value)} />
-          <label style={labelStyle}>Anything you’d like us to know? (optional)</label>
-          <textarea style={{ ...fieldStyle, minHeight: 80 }} value={lead.message} onChange={(e) => setL('message', e.target.value)} />
+          <CalendlyInline url={CALENDLY_URL} name={lead.name} email={lead.email} />
           {errEl}
         </div>
-      ))}
+      )}
 
       {/* loading guard for config steps */}
       {CONFIG_ORDER.includes(step) && loading && (
@@ -363,17 +359,17 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           <div style={{ display: 'flex', gap: spacing.lg, marginBottom: spacing.xl }}>
             <div style={{ ...cardStyle(form.hostType === 'individual'), flex: 1 }} onClick={() => set('hostType', 'individual')}>
               <User size={24} color={colors.gold.primary} /><div style={{ fontWeight: typography.fontWeight.semibold, marginTop: spacing.xs }}>Individual</div>
-              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>You’re the host & Sponsor of record.</div>
+              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>You’re the host.</div>
             </div>
             <div style={{ ...cardStyle(form.hostType === 'organization'), flex: 1 }} onClick={() => set('hostType', 'organization')}>
               <Building2 size={24} color={colors.gold.primary} /><div style={{ fontWeight: typography.fontWeight.semibold, marginTop: spacing.xs }}>Organization</div>
-              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>A company, non-profit or agency.</div>
+              <div style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>A company or non-profit.</div>
             </div>
           </div>
 
           {form.hostType === 'individual' && (
             <>
-              <label style={labelStyle}>Your name (shown as the host / Sponsor of record)</label>
+              <label style={labelStyle}>Your name (shown as the host)</label>
               <input style={fieldStyle} value={form.soloName} onChange={(e) => set('soloName', e.target.value)} placeholder="Your full name" />
             </>
           )}
