@@ -32,6 +32,7 @@ function phaseIndex(status) {
 export default function HostLaunchStatus({ competition, rulesComplete, onRefresh, onNavigateToTab }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [confirming, setConfirming] = useState(false);
   if (!competition) return null;
 
   const status = competition.status || 'draft';
@@ -42,19 +43,13 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
   const agreementOk = hasAcceptedCurrentAgreement(competition.agreement);
   const stripeOk = competition.connect?.kycStatus === 'verified' && !!competition.connect?.chargesEnabled;
   const rulesOk = !!rulesComplete;
-  // Submit-for-approval gates: agreement + rules. Stripe KYC is required later,
-  // at publish (it only matters for payouts once the competition is live).
+  // Submit-for-approval gate: sign the Host Agreement. Hosts review/edit their
+  // competition in the summary right below this card (no separate page), and
+  // Stripe KYC comes later at publish.
   const gates = [
     { ok: agreementOk, Icon: FileText, label: 'Review & sign the Host Agreement', action: () => goTo('host-agreement-card') },
-    {
-      ok: rulesOk,
-      Icon: ClipboardList,
-      label: 'Make any adjustments to your competition before submitting',
-      hint: 'After submission you can only change these by contacting customer support — make sure they’re accurate.',
-      action: () => onNavigateToTab?.('setup'),
-    },
   ];
-  const allGates = agreementOk && rulesOk;
+  const allGates = agreementOk;
 
   const callRpc = async (fn) => {
     setBusy(true); setError(null);
@@ -97,7 +92,7 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
         {status === 'draft' && (
           <>
             <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
-              Finish these to submit for approval. <strong>Some details lock once you submit.</strong>
+              Sign the Host Agreement and review your competition summary below, then submit for approval. <strong>Some details lock once you submit.</strong>
             </p>
             {gates.map((g) => (
               <button
@@ -122,10 +117,34 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
                 {!g.ok && <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />}
               </button>
             ))}
-            <Button onClick={() => callRpc('submit_for_approval')} disabled={!allGates || busy} icon={busy ? Loader : Send} style={{ marginTop: spacing.lg }}>
-              {busy ? 'Submitting…' : 'Submit for approval'}
-            </Button>
-            {!allGates && <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>Complete both above to submit. You’ll verify payouts with Stripe after approval, before going live.</p>}
+            {!confirming ? (
+              <>
+                <Button onClick={() => setConfirming(true)} disabled={!allGates || busy} icon={Send} style={{ marginTop: spacing.lg }}>
+                  Submit for approval
+                </Button>
+                {!allGates && <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>Sign the Host Agreement to submit. You’ll verify payouts with Stripe after approval, before going live.</p>}
+              </>
+            ) : (
+              <div style={{ marginTop: spacing.lg, padding: spacing.lg, borderRadius: borderRadius.md, background: colors.background.secondary, border: `1px solid ${colors.border.primary}` }}>
+                <p style={{ color: colors.text.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, margin: `0 0 ${spacing.xs}` }}>
+                  Ready to submit for approval?
+                </p>
+                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, margin: `0 0 ${spacing.md}` }}>
+                  Double-check your competition summary below — once you submit, the core details lock and can only be changed by contacting support. Not sure about something? Hop on a quick call first.
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
+                  <Button onClick={() => callRpc('submit_for_approval')} disabled={busy} icon={busy ? Loader : Send} style={{ width: 'auto' }}>
+                    {busy ? 'Submitting…' : 'Confirm & submit'}
+                  </Button>
+                  <Button variant="outline" icon={CalendarClock} onClick={() => window.open(CALENDLY_URL, '_blank', 'noopener,noreferrer')} style={{ width: 'auto' }}>
+                    Schedule a call
+                  </Button>
+                  <Button variant="ghost" onClick={() => setConfirming(false)} disabled={busy} style={{ width: 'auto' }}>
+                    Back
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
