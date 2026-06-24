@@ -9,7 +9,10 @@
  *     sponsor-of-record org, name/identity).
  *  - PUBLISH_LOCK: editable through "approved"; locks once published to public
  *    (nomination/voting dates, prize structure, judging criteria, nomination/
- *     application form fields).
+ *     application form fields, rules).
+ *
+ * Sponsors & prizes are intentionally EDITABLE at every phase — hosts can add
+ * or adjust rewards any time, including after going live.
  *
  * Plus: LOCKED (platform-controlled, never host-editable — e.g. vote pricing),
  * EDITABLE (always), MARKETING (until completed), THEME (warn while live).
@@ -63,13 +66,17 @@ const FIELD_RULES = {
   voting_start: PUBLISH_LOCK,
   voting_end: PUBLISH_LOCK,
   finals_date: PUBLISH_LOCK,
-  sponsors: PUBLISH_LOCK,
-  prizes: PUBLISH_LOCK,
   prize_structure: PUBLISH_LOCK,
   judging_criteria: PUBLISH_LOCK,
   nomination_form: PUBLISH_LOCK,
   advancement_thresholds: PUBLISH_LOCK,
   rules: PUBLISH_LOCK,
+
+  // Sponsors & prizes — addable/editable any time, even after going live.
+  // Adding more reward for contestants is always welcome; the host controls
+  // these throughout (a sponsor can come aboard mid-competition).
+  sponsors: EDITABLE,
+  prizes: EDITABLE,
 
   // Editable until the competition ends
   events: MARKETING,

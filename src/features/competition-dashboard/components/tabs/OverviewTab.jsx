@@ -13,6 +13,7 @@ import MetricCard from '../../../overview/components/MetricCard';
 import HostConnectCard from '../HostConnectCard';
 import HostAgreementCard from '../HostAgreementCard';
 import HostLaunchStatus from '../HostLaunchStatus';
+import LaunchRoadmap from '../LaunchRoadmap';
 import CompetitionSummaryCard from '../CompetitionSummaryCard';
 import { hasAcceptedCurrentAgreement } from '../../../../lib/hostAgreement';
 
@@ -170,6 +171,7 @@ export default function OverviewTab({
       {mode === 'launch' && (
         <>
           <HostLaunchStatus competition={competition} rulesComplete={rulesComplete} onRefresh={onRefresh} onNavigateToTab={onNavigateToTab} />
+          <LaunchRoadmap competition={competition} onNavigateToTab={onNavigateToTab} />
           <CompetitionSummaryCard competition={competition} onNavigateToTab={onNavigateToTab} onRefresh={onRefresh} />
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? spacing.lg : spacing.xl, alignItems: 'start' }}>
             <div id="host-agreement-card">
