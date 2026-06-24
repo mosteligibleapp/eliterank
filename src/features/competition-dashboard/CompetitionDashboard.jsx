@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, Settings as SettingsIcon,
-  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe
+  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe, Lock
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -180,28 +180,33 @@ export default function CompetitionDashboard({
   // lives in the Launch Status tracker on that tab, so there's no separate
   // Launch checklist tab.
   //
-  // Before a competition is live we hide tabs that are empty or premature, so
-  // the host stays focused on finishing their launch steps. Tabs reveal in
-  // step with the lifecycle:
-  //   draft / pending_approval → Dashboard + Setup only
+  // Before a competition is live we keep premature tabs visible but locked
+  // (not clickable), so the host stays focused on finishing their launch steps
+  // without the nav feeling like it lost features. Tabs unlock in step with the
+  // lifecycle:
+  //   draft / pending_approval → Dashboard + Setup unlocked
   //   approved                 → + Site, People (prepping the public specifics)
-  //   published / live / done  → all tabs
+  //   published / live / done  → everything unlocked
   const launchPhase = (() => {
     const s = competition?.status;
     if (s === 'draft' || s === 'pending_approval') return 'draft';
     if (s === 'approved') return 'approved';
     return 'live';
   })();
-  const allowedTabIds =
+  const unlockedTabIds =
     launchPhase === 'draft' ? ['dashboard', 'setup']
     : launchPhase === 'approved' ? ['dashboard', 'people', 'site', 'setup']
     : TABS.map((t) => t.id);
-  const visibleTabs = TABS.filter((t) => allowedTabIds.includes(t.id));
+  const isTabLocked = (id) => !unlockedTabIds.includes(id);
+  const lockedTabReason = launchPhase === 'draft'
+    ? 'Available after your competition is approved.'
+    : 'Available once your competition is published.';
+  const visibleTabs = TABS;
 
-  // If the active tab gets hidden (e.g. status changed while open), fall back to
-  // the Dashboard so we never render a tab the host can no longer see.
+  // If the active tab is locked (e.g. status changed while open), fall back to
+  // the Dashboard so we never render a tab the host can't currently use.
   useEffect(() => {
-    if (!allowedTabIds.includes(activeTab)) setActiveTab('dashboard');
+    if (isTabLocked(activeTab)) setActiveTab('dashboard');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [launchPhase, activeTab]);
 
@@ -592,17 +597,22 @@ export default function CompetitionDashboard({
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
+          const locked = isTabLocked(tab.id);
           return (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setSetupFocus(null); }}
+              onClick={() => { if (locked) return; setActiveTab(tab.id); setSetupFocus(null); }}
+              disabled={locked}
+              aria-disabled={locked}
+              title={locked ? lockedTabReason : undefined}
               style={{
                 padding: isMobile ? `${spacing.md} ${spacing.md}` : `${spacing.md} ${spacing.xl}`,
-                color: isActive ? colors.gold.primary : colors.text.secondary,
+                color: locked ? colors.text.muted : isActive ? colors.gold.primary : colors.text.secondary,
                 fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 fontWeight: typography.fontWeight.medium,
-                cursor: 'pointer',
-                borderBottom: `2px solid ${isActive ? colors.gold.primary : 'transparent'}`,
+                cursor: locked ? 'not-allowed' : 'pointer',
+                opacity: locked ? 0.5 : 1,
+                borderBottom: `2px solid ${isActive && !locked ? colors.gold.primary : 'transparent'}`,
                 background: 'none',
                 border: 'none',
                 display: 'flex',
@@ -616,7 +626,7 @@ export default function CompetitionDashboard({
                 minHeight: '44px', // Touch-friendly
               }}
             >
-              <Icon size={isMobile ? 20 : 18} />
+              {locked ? <Lock size={isMobile ? 18 : 15} /> : <Icon size={isMobile ? 20 : 18} />}
               {isMobile ? (
                 <span style={{ fontSize: '10px' }}>{tab.shortLabel || tab.label}</span>
               ) : (
