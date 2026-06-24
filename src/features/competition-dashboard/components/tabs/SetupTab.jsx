@@ -69,8 +69,8 @@ const getEventStatus = (event) => {
 // Grayable sections a host hides sort to the bottom (see sectionStyle).
 const SECTION_ORDER = [
   'competitionDetails',
-  'timeline',
   'nominationForm',
+  'timeline',
   'judgingCriteria',
   'judgingResults',
   'charity',
@@ -573,12 +573,12 @@ export default function SetupTab({
         <CompetitionSummaryCard competition={competition} onRefresh={onRefresh} />
       </div>
 
-      {/* Timeline & Status Settings */}
+      {/* Voting Details (voting/judging rounds + finale) */}
       <Panel
         key={`section-timeline-${focusId === 'timeline' ? focusNonce : 'x'}`}
         id="setup-section-timeline"
         style={sectionStyle('timeline')}
-        title="Timeline & Status"
+        title="Voting Details"
         icon={Calendar}
         collapsible
         defaultCollapsed={focusId !== 'timeline'}
