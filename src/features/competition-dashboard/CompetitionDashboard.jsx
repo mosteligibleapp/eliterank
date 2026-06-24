@@ -22,11 +22,11 @@ import { COMPETITION_STATUS } from '../../types/competition';
 // getting a competition live; the rest are the day-to-day management surfaces.
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
+  { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
   { id: 'activity', label: 'Activity', shortLabel: 'Activity', icon: Activity },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
   { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
   { id: 'site', label: 'Site', shortLabel: 'Site', icon: Globe },
-  { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
   { id: 'engagement', label: 'Engagement', shortLabel: 'Engage', icon: TrendingUp },
 ];
 
