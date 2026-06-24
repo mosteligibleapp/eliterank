@@ -179,7 +179,31 @@ export default function CompetitionDashboard({
   // The dashboard (Overview) is the landing surface; the launch lifecycle now
   // lives in the Launch Status tracker on that tab, so there's no separate
   // Launch checklist tab.
-  const visibleTabs = TABS;
+  //
+  // Before a competition is live we hide tabs that are empty or premature, so
+  // the host stays focused on finishing their launch steps. Tabs reveal in
+  // step with the lifecycle:
+  //   draft / pending_approval → Dashboard + Setup only
+  //   approved                 → + Site, People (prepping the public specifics)
+  //   published / live / done  → all tabs
+  const launchPhase = (() => {
+    const s = competition?.status;
+    if (s === 'draft' || s === 'pending_approval') return 'draft';
+    if (s === 'approved') return 'approved';
+    return 'live';
+  })();
+  const allowedTabIds =
+    launchPhase === 'draft' ? ['dashboard', 'setup']
+    : launchPhase === 'approved' ? ['dashboard', 'people', 'site', 'setup']
+    : TABS.map((t) => t.id);
+  const visibleTabs = TABS.filter((t) => allowedTabIds.includes(t.id));
+
+  // If the active tab gets hidden (e.g. status changed while open), fall back to
+  // the Dashboard so we never render a tab the host can no longer see.
+  useEffect(() => {
+    if (!allowedTabIds.includes(activeTab)) setActiveTab('dashboard');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [launchPhase, activeTab]);
 
   // Stripe Connect return handler. When the host comes back from Stripe's
   // hosted onboarding (return_url carries ?connect=return&org=...), pull the
