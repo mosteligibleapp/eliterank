@@ -592,7 +592,20 @@ export default function SetupTab({
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div className="er-setup" style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Scoped form polish — a gold focus ring + custom select chevron so the
+          Setup tab's inputs feel consistent with the create wizard. Uses a
+          box-shadow ring (works regardless of each control's inline border). */}
+      <style>{`
+        .er-setup input:focus, .er-setup select:focus, .er-setup textarea:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(212,175,55,0.15);
+          border-color: ${colors.gold.primary} !important;
+        }
+        .er-setup input, .er-setup select, .er-setup textarea {
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+      `}</style>
       {/* Competition details — the same recap the host sees on the Dashboard, so
           Setup is aligned with what they entered during onboarding. Editable in
           draft, locked thereafter (handled inside the card). */}
