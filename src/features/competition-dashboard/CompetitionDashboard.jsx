@@ -528,6 +528,9 @@ export default function CompetitionDashboard({
           {onViewPublicSite && (
             <button
               onClick={onViewPublicSite}
+              title={launchPhase === 'live'
+                ? 'View your live competition page'
+                : 'Preview your coming-soon page — a live look at what you’ve entered so far'}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -543,7 +546,9 @@ export default function CompetitionDashboard({
               }}
             >
               <Eye size={isMobile ? 12 : 14} />
-              {isMobile ? 'View' : 'View Competition'}
+              {launchPhase === 'live'
+                ? (isMobile ? 'View' : 'View Competition')
+                : (isMobile ? 'Preview' : 'Preview Competition')}
             </button>
           )}
 
