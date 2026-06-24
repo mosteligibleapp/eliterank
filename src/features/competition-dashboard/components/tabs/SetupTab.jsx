@@ -5,7 +5,6 @@ import { colors, spacing, borderRadius, typography } from '../../../../styles/th
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
 import JudgingPanel from '../JudgingPanel';
-import JudgingResultsPanel from '../JudgingResultsPanel';
 import CompetitionSummaryCard from '../CompetitionSummaryCard';
 import HostsPanel from '../HostsPanel';
 import { isFieldEditable } from '../../../../utils/fieldEditability';
@@ -75,7 +74,6 @@ const SECTION_ORDER = [
   'nominationForm',
   'timeline',
   'judgingCriteria',
-  'judgingResults',
   'charity',
   'events',
   'sponsors',
@@ -289,7 +287,7 @@ export default function SetupTab({
     const usesJudges = ['judges', 'hybrid'].includes(competition?.selectionCriteria);
     const charityActive = !!competition?.charityPercentage || !!competition?.charityName;
     const locked =
-      (!usesJudges && (id === 'judgingCriteria' || id === 'judgingResults')) ||
+      (!usesJudges && id === 'judgingCriteria') ||
       (!charityActive && id === 'charity');
     return { order: locked ? 100 + idx : 1 + idx, opacity: 1 };
   };
@@ -635,30 +633,19 @@ export default function SetupTab({
           judges (or a hybrid). For pure public-vote competitions these are
           grayed out and inaccessible. */}
       {usesJudges ? (
-        <>
-          <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
-            <JudgingPanel
-              competition={competition}
-              criteria={judgingCriteria}
-              votingRounds={competition?.voting_rounds || []}
-              onAddCriterion={onAddCriterion}
-              onUpdateCriterion={onUpdateCriterion}
-              onDeleteCriterion={onDeleteCriterion}
-              onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
-              onRefresh={onRefresh}
-              locked={publishLocked}
-            />
-          </div>
-          <div style={sectionStyle('judgingResults')}>
-            <JudgingResultsPanel
-              contestants={contestants}
-              judges={judges}
-              judgingCriteria={judgingCriteria}
-              judgeScores={judgeScores}
-              votingRounds={competition?.voting_rounds || []}
-            />
-          </div>
-        </>
+        <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
+          <JudgingPanel
+            competition={competition}
+            criteria={judgingCriteria}
+            votingRounds={competition?.voting_rounds || []}
+            onAddCriterion={onAddCriterion}
+            onUpdateCriterion={onUpdateCriterion}
+            onDeleteCriterion={onDeleteCriterion}
+            onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
+            onRefresh={onRefresh}
+            locked={publishLocked}
+          />
+        </div>
       ) : (
         <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
           <LockedSection

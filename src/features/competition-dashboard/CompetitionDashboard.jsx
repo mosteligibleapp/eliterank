@@ -806,6 +806,8 @@ export default function CompetitionDashboard({
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
             judges={data.judges}
+            judgingCriteria={data.judgingCriteria}
+            judgeScores={data.judgeScores}
             onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
             onDeleteJudge={deleteJudge}
             onSendJudgeInvite={sendJudgeInvite}

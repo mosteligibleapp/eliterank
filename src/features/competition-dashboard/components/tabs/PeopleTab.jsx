@@ -15,6 +15,7 @@ import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import { getReachedTierLabel } from '../../../../utils/roundLabels';
 import WinnersManager from '../WinnersManager';
 import JudgesManager from '../JudgesManager';
+import JudgingResultsPanel from '../JudgingResultsPanel';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
 const parseInstagram = (raw) => {
@@ -85,6 +86,8 @@ export default function PeopleTab({
   onRepairNomineeAccount,
   onRepairAllNomineeAccounts,
   judges = [],
+  judgingCriteria = [],
+  judgeScores = [],
   onOpenJudgeModal,
   onDeleteJudge,
   onSendJudgeInvite,
@@ -1148,12 +1151,23 @@ export default function PeopleTab({
       {/* Winners Manager */}
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
 
-      {/* Judges roster (judging rules + results stay in Setup) */}
+      {/* Judges roster — judging rules live in Setup; live results sit here,
+          next to the judges and contestants they rank. */}
       <JudgesManager
         judges={judges}
         onOpenJudgeModal={onOpenJudgeModal}
         onDeleteJudge={onDeleteJudge}
         onSendJudgeInvite={onSendJudgeInvite}
+      />
+
+      {/* Judging results — leaderboard of judge scores blended with votes.
+          Renders nothing until the competition has a judging-enabled round. */}
+      <JudgingResultsPanel
+        contestants={contestants}
+        judges={judges}
+        judgingCriteria={judgingCriteria}
+        judgeScores={judgeScores}
+        votingRounds={votingRounds}
       />
 
       {/* Gender filter chips — only shown when the competition splits
