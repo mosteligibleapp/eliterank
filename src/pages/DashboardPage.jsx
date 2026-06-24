@@ -12,6 +12,7 @@ import { CompetitionDashboard } from '../features/competition-dashboard';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 import ErrorState from '../components/common/ErrorState';
 import CreateCompetitionModal from '../components/modals/CreateCompetitionModal';
+import HostLandingEmptyState from '../features/competition-dashboard/components/HostLandingEmptyState';
 import { getCompetitionUrl, generateCompetitionSlug, slugify } from '../utils/slugs';
 
 /**
@@ -49,6 +50,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [createStep, setCreateStep] = useState('ready');
 
   // Fetch all competitions this user hosts (primary + co-hosted) from Supabase
   useEffect(() => {
@@ -167,80 +169,20 @@ export default function DashboardPage() {
   // Host must have an assigned competition to view the dashboard
   if (!selectedCompetition) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)',
-          color: '#fff',
-          padding: '2rem',
-          textAlign: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        <div
-          style={{
-            width: '64px',
-            height: '64px',
-            marginBottom: '1.5rem',
-            background: 'rgba(212, 175, 55, 0.2)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '2rem',
-          }}
-        >
-          👑
-        </div>
-        <h1 style={{ color: '#d4af37', marginBottom: '0.75rem', fontSize: '1.5rem' }}>
-          Launch your competition
-        </h1>
-        <p style={{ color: '#9ca3af', marginBottom: '2rem', maxWidth: '420px' }}>
-          You don't have a competition yet. Create one to get started — you'll set it up as a draft, then accept the
-          Host Agreement and connect Stripe before it goes live.
-        </p>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button
-            onClick={() => setShowCreate(true)}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
-              color: '#0a0a0f',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
-            Create a competition
-          </button>
-          <button
-            onClick={handleBack}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'transparent',
-              color: '#9ca3af',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '8px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
-            Back to Competitions
-          </button>
-        </div>
-
+      <>
+        <HostLandingEmptyState
+          onCreate={() => { setCreateStep('ready'); setShowCreate(true); }}
+          onLearnMore={() => { setCreateStep('learn'); setShowCreate(true); }}
+          onBack={handleBack}
+        />
         <CreateCompetitionModal
           isOpen={showCreate}
+          initialStep={createStep}
           onClose={() => setShowCreate(false)}
           userId={user?.id}
           onCreated={() => window.location.reload()}
         />
-      </div>
+      </>
     );
   }
 

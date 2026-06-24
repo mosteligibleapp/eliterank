@@ -24,8 +24,8 @@ const STEP_LABELS = {
  * Prizes · Review) → creates a DRAFT (creator = host). Publishing stays
  * admin-approved; the agreement + Stripe are handled in the dashboard.
  */
-export default function CreateCompetitionModal({ isOpen, onClose, userId, onCreated }) {
-  const [step, setStep] = useState('ready');
+export default function CreateCompetitionModal({ isOpen, onClose, userId, onCreated, initialStep = 'ready' }) {
+  const [step, setStep] = useState(initialStep);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -74,8 +74,8 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
   };
 
   useEffect(() => {
-    if (isOpen) { setStep('ready'); setError(null); setLeadDone(false); }
-  }, [isOpen]);
+    if (isOpen) { setStep(initialStep); setError(null); setLeadDone(false); }
+  }, [isOpen, initialStep]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -396,7 +396,6 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
                   <select style={fieldStyle} value={form.orgType} onChange={(e) => set('orgType', e.target.value)}>
                     <option value="company">Company</option>
                     <option value="non_profit">Non-profit</option>
-                    <option value="agency">Agency</option>
                   </select>
 
                   <label style={labelStyle}>Logo</label>
