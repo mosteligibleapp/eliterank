@@ -130,14 +130,12 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
                   Ready to submit for approval?
                 </p>
                 <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, margin: `0 0 ${spacing.md}` }}>
-                  Double-check your competition summary below — once you submit, the core details lock and can only be changed by contacting support. Not sure about something? Hop on a quick call first.
+                  Double-check your competition summary below — once you submit, the core details lock and can only be changed by contacting support. Not sure about something? Shoot us an email at{' '}
+                  <a href="mailto:info@eliterank.co" style={{ color: colors.gold.primary }}>info@eliterank.co</a>.
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
                   <Button onClick={() => callRpc('submit_for_approval')} disabled={busy} icon={busy ? Loader : Send} style={{ width: 'auto' }}>
                     {busy ? 'Submitting…' : 'Confirm & submit'}
-                  </Button>
-                  <Button variant="outline" icon={CalendarClock} onClick={() => window.open(CALENDLY_URL, '_blank', 'noopener,noreferrer')} style={{ width: 'auto' }}>
-                    Schedule a call
                   </Button>
                   <Button variant="ghost" onClick={() => setConfirming(false)} disabled={busy} style={{ width: 'auto' }}>
                     Back
@@ -169,6 +167,13 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
                 </p>
                 <Button icon={CalendarClock} onClick={() => window.open(CALENDLY_URL, '_blank', 'noopener,noreferrer')} style={{ width: 'auto' }}>
                   Book your review call
+                </Button>
+              </div>
+            )}
+            {!competition.prizeReviewRequired && (
+              <div style={{ marginTop: spacing.md }}>
+                <Button variant="outline" icon={CalendarClock} onClick={() => window.open(CALENDLY_URL, '_blank', 'noopener,noreferrer')} style={{ width: 'auto' }}>
+                  Have questions? Schedule a call
                 </Button>
               </div>
             )}
