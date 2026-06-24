@@ -26,28 +26,23 @@ export function FieldLockIndicator({
     position: 'relative',
   };
 
+  // Dim + disable the field itself so it visibly reads as "not editable",
+  // without an overlay that could overflow short fields and cover neighbours.
   const lockedContentStyle = {
-    opacity: 0.5,
+    opacity: 0.45,
     pointerEvents: 'none',
   };
 
-  const overlayStyle = {
-    position: 'absolute',
-    inset: 0,
+  // A contained caption tucked beneath the field — explains the lock without
+  // floating on top of (and spilling past) a single-line input.
+  const reasonStyle = {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    background: 'rgba(10, 10, 12, 0.8)',
-    borderRadius: borderRadius.md,
-    zIndex: 1,
-  };
-
-  const reasonStyle = {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    maxWidth: '200px',
-    textAlign: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted,
+    lineHeight: 1.4,
   };
 
   const warningBadgeStyle = {
@@ -69,14 +64,12 @@ export function FieldLockIndicator({
         <div style={lockedContentStyle}>
           {children}
         </div>
-        <div style={overlayStyle}>
-          <Lock size={16} style={{ color: colors.text.muted }} />
-          {showLabel && (
-            <span style={reasonStyle}>
-              {getLockedReason(fieldName, status)}
-            </span>
-          )}
-        </div>
+        {showLabel && (
+          <div style={reasonStyle}>
+            <Lock size={12} style={{ flexShrink: 0 }} />
+            <span>{getLockedReason(fieldName, status)}</span>
+          </div>
+        )}
       </div>
     );
   }
