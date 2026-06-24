@@ -1,22 +1,24 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { generateStandardRules } from '../../../utils/generateStandardRules';
+import { buildAutoRules } from '../../../lib/competitionRules';
 
 /**
  * Rules accordion — generates rules dynamically from competition configuration.
- * Falls back to sensible defaults when no competition data is provided.
+ * Uses the shared buildAutoRules generator so the public page and the host
+ * dashboard's Site-tab preview always state the rules identically.
  */
 export function RulesAccordion({ competition, votingRounds = [], about, events = [] }) {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
-  const rules = generateStandardRules({ competition, votingRounds, about, events }).map(rule => ({
-    id: rule.id,
-    title: rule.section_title,
-    content: rule.section_content
-      .split('\n')
-      .map(line => line.replace(/^•\s*/, '').trim())
-      .filter(Boolean),
+  // Merge the loaded rounds in so the hybrid judging-round detail can render.
+  const source = competition
+    ? { ...competition, voting_rounds: (votingRounds && votingRounds.length) ? votingRounds : competition.voting_rounds }
+    : null;
+  const rules = buildAutoRules(source).map((rule, i) => ({
+    id: rule.title,
+    title: rule.title,
+    content: rule.content,
   }));
 
   const toggle = (index) => {
@@ -53,11 +55,7 @@ export function RulesAccordion({ competition, votingRounds = [], about, events =
             </button>
             {expandedIndex === index && (
               <div className="rule-content">
-                <ul className="rule-bullet-list">
-                  {rule.content.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
+                <p className="rule-paragraph">{rule.content}</p>
               </div>
             )}
           </div>

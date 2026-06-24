@@ -5,7 +5,11 @@
  * derived automatically from the competition's own configuration, so the public
  * page always states the *actual* mechanics (selection process, eligibility,
  * entry, voting, charity) and can never drift from how the competition is set
- * up. Pure function — safe to use on the host dashboard and the public site.
+ * up. Pure function — used by both the host dashboard preview (Site tab) and
+ * the public competition page, so the two always match.
+ *
+ * Tolerant of both the dashboard's camelCase competition object and the public
+ * page's raw snake_case row, so a single generator serves both.
  *
  * Returns an array of `{ title, content }` sections. Sections with nothing
  * meaningful to say are omitted.
@@ -18,21 +22,43 @@ const GENDER = {
   'LGBTQ+': 'LGBTQ+ individuals',
 };
 
+// Read a field that may be camelCase (dashboard) or snake_case (public row).
+const pick = (c, camel, snake, fallback = undefined) => {
+  if (c[camel] !== undefined && c[camel] !== null) return c[camel];
+  if (c[snake] !== undefined && c[snake] !== null) return c[snake];
+  return fallback;
+};
+
 export function buildAutoRules(competition) {
   const c = competition;
   if (!c) return [];
   const sections = [];
 
+  const selectionCriteria = pick(c, 'selectionCriteria', 'selection_criteria', 'votes');
+  const numberOfWinners = pick(c, 'numberOfWinners', 'number_of_winners', 1) || 1;
+  const splitByGender = !!pick(c, 'winnersSplitByGender', 'winners_split_by_gender', false);
+  const eligibilityGender = pick(c, 'eligibilityGender', 'eligibility_gender', 'all');
+  const territoryScope = pick(c, 'territoryScope', 'territory_scope', 'city');
+  const territoryState = pick(c, 'territoryState', 'territory_state', null);
+  const radiusMiles = pick(c, 'eligibilityRadiusMiles', 'eligibility_radius_miles', null);
+  const ageMin = pick(c, 'eligibilityAgeMin', 'eligibility_age_min', 18) || 18;
+  const ageMax = pick(c, 'eligibilityAgeMax', 'eligibility_age_max', null);
+  const entryType = pick(c, 'entryType', 'entry_type', 'nominations');
+  const charityPct = pick(c, 'charityPercentage', 'charity_percentage', null);
+  const charityName = pick(c, 'charityName', 'charity_name', null);
+  const cityVal = c.city;
+  const cityName = typeof cityVal === 'object' ? cityVal?.name : cityVal;
+  const rounds = pick(c, 'voting_rounds', 'votingRounds', []) || [];
+
   // ── How winners are chosen ──────────────────────────────────────────────
-  const rounds = c.voting_rounds || [];
   const judgingRound = [...rounds]
     .filter((r) => (r.judge_weight || 0) > 0)
     .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))[0];
 
   let selection;
-  if (c.selectionCriteria === 'judges') {
+  if (selectionCriteria === 'judges') {
     selection = 'Winners are selected by a panel of judges, who score each contestant against the published judging criteria.';
-  } else if (c.selectionCriteria === 'hybrid') {
+  } else if (selectionCriteria === 'hybrid') {
     selection = "Winners are determined through a hybrid process that combines public votes with judges' scores.";
     if (judgingRound) {
       const w = judgingRound.judge_weight || 0;
@@ -44,29 +70,27 @@ export function buildAutoRules(competition) {
     selection = 'Winners are determined by public vote — the contestants with the most votes advance through each round and ultimately win.';
   }
 
-  const winnerCount = c.numberOfWinners || 1;
-  let winnersLine = ` This competition crowns ${winnerCount === 1 ? 'one winner' : `${winnerCount} winners`}.`;
-  if (c.winnersSplitByGender) winnersLine += ' Winners are chosen separately for men and women.';
+  let winnersLine = ` This competition crowns ${numberOfWinners === 1 ? 'one winner' : `${numberOfWinners} winners`}.`;
+  if (splitByGender) winnersLine += ' Winners are chosen separately for men and women.';
   sections.push({ title: 'How winners are chosen', content: selection + winnersLine });
 
   // ── Who can enter ───────────────────────────────────────────────────────
-  const genderTxt = GENDER[c.eligibilityGender] || 'all genders';
+  const genderTxt = GENDER[eligibilityGender] || 'all genders';
   let where;
-  if (c.territoryScope === 'us') {
+  if (territoryScope === 'us') {
     where = 'across the United States';
-  } else if (c.territoryScope === 'state') {
-    where = `in ${c.territoryState || 'the host state'}`;
+  } else if (territoryScope === 'state') {
+    where = `in ${territoryState || 'the host state'}`;
   } else {
-    where = `in and around ${c.city || 'the host city'}${c.eligibilityRadiusMiles ? ` (within ${c.eligibilityRadiusMiles} miles)` : ''}`;
+    where = `in and around ${cityName || 'the host city'}${radiusMiles ? ` (within ${radiusMiles} miles)` : ''}`;
   }
-  const minAge = c.eligibilityAgeMin || 18;
-  let eligibility = `Entry is open to ${genderTxt} ${where}. All entrants must be at least ${minAge} years old`;
-  eligibility += c.eligibilityAgeMax ? ` and no older than ${c.eligibilityAgeMax}.` : '.';
+  let eligibility = `Entry is open to ${genderTxt} ${where}. All entrants must be at least ${ageMin} years old`;
+  eligibility += ageMax ? ` and no older than ${ageMax}.` : '.';
   sections.push({ title: 'Who can enter', content: eligibility });
 
   // ── How to enter ────────────────────────────────────────────────────────
   let entry;
-  if (c.entryType === 'applications') {
+  if (entryType === 'applications') {
     entry = 'Entry is by application: eligible people apply directly to take part.';
   } else {
     entry = 'Entry is by nomination: anyone can nominate an eligible person, and prospective contestants can also nominate themselves. Nominees confirm and complete a profile to join the competition.';
@@ -75,7 +99,7 @@ export function buildAutoRules(competition) {
   sections.push({ title: 'How to enter', content: entry });
 
   // ── Voting (only when the public actually votes) ────────────────────────
-  if (c.selectionCriteria !== 'judges') {
+  if (selectionCriteria !== 'judges') {
     sections.push({
       title: 'Voting',
       content: 'Anyone can vote on the public competition page. Free votes are available to everyone, and additional votes may be purchased to support a contestant. Voting opens and closes on the dates shown on the competition timeline.',
@@ -83,10 +107,10 @@ export function buildAutoRules(competition) {
   }
 
   // ── Charity (optional) ──────────────────────────────────────────────────
-  if (c.charityPercentage) {
+  if (charityPct) {
     sections.push({
       title: 'Charity',
-      content: `${c.charityPercentage}% of net proceeds will be donated to ${c.charityName || 'the designated charity partner'}.`,
+      content: `${charityPct}% of net proceeds will be donated to ${charityName || 'the designated charity partner'}.`,
     });
   }
 

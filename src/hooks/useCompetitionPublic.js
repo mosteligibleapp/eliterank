@@ -37,7 +37,7 @@ const COMPETITION_SELECT = `
   competition_rules (id, section_title, section_content, sort_order),
   voting_rounds (
     id, title, round_order, start_date, end_date,
-    contestants_advance, votes_accumulate, round_type
+    contestants_advance, votes_accumulate, round_type, judge_weight
   ),
   nomination_periods (id, title, period_order, start_date, end_date, max_submissions),
   announcements (id, type, title, content, pinned, published_at, is_ai_generated)
