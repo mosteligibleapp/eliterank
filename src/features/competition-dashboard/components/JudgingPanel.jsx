@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Sliders, Award, Calendar } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Sliders, Award, Calendar, CheckCircle2, Circle } from 'lucide-react';
 import { Button, Panel, Input } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -133,23 +133,103 @@ export default function JudgingPanel({
   const sortedRounds = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
   const judgingRound = votingRounds.find((r) => (r.judge_weight || 0) > 0) || null;
   const competitionId = competition?.id;
-  const multiWinner = (competition?.numberOfWinners || 1) > 1;
-  const lastRoundId = sortedRounds.length ? sortedRounds[sortedRounds.length - 1].id : null;
-  // A judged competition must have a judging round; the judged round should be
-  // the final round (nothing votes-only after it) unless a ranking round
-  // follows for a multi-winner competition.
-  const judgingNotLast = !!judgingRound && !!lastRoundId && judgingRound.id !== lastRoundId;
-  const selectJudgingRound = async (newId) => {
-    const current = judgingRound;
-    if (!newId) {
-      if (current) await onUpdateRoundJudgeWeight?.(current.id, 0);
-      return;
-    }
-    if (current?.id === newId) return;
-    if (current) await onUpdateRoundJudgeWeight?.(current.id, 0);
-    const target = votingRounds.find((r) => r.id === newId);
-    await onUpdateRoundJudgeWeight?.(newId, (target?.judge_weight || 0) > 0 ? target.judge_weight : 50);
+
+  // ── Guided judging layout ────────────────────────────────────────────────
+  // There's only ever one judging round, and only two sensible places for it.
+  // The host picks one and we set it up as a default they can then fine-tune:
+  //   • blend    — judges score the LAST voting round (votes + judges together)
+  //   • separate — a dedicated judging round right AFTER voting closes
+  const votingTypeRounds = sortedRounds.filter((r) => r.round_type === 'voting');
+  const lastVotingRound = votingTypeRounds.length ? votingTypeRounds[votingTypeRounds.length - 1] : null;
+  const separateJudgingRound = sortedRounds.find((r) => r.round_type === 'judging') || null;
+  const judgingMode = !judgingRound ? 'none' : (judgingRound.round_type === 'judging' ? 'separate' : 'blend');
+
+  // Blend judging into the final voting round (50/50 by default, adjustable).
+  const applyBlend = async () => {
+    if (!lastVotingRound || busy) return;
+    if (separateJudgingRound &&
+      !window.confirm('Move judging into your final voting round? This removes the separate judging round you added.')) return;
+    setBusy(true);
+    try {
+      if (separateJudgingRound) {
+        await supabase.from('voting_rounds').delete().eq('id', separateJudgingRound.id);
+      }
+      // Clear any stray weight on other rounds, then blend into the last round.
+      for (const r of sortedRounds) {
+        if (r.id !== lastVotingRound.id && r.id !== separateJudgingRound?.id && (r.judge_weight || 0) > 0) {
+          await supabase.from('voting_rounds').update({ judge_weight: 0 }).eq('id', r.id);
+        }
+      }
+      const w = (lastVotingRound.judge_weight || 0) > 0 ? lastVotingRound.judge_weight : 50;
+      await supabase.from('voting_rounds').update({ judge_weight: w }).eq('id', lastVotingRound.id);
+      onRefresh?.();
+    } finally { setBusy(false); }
   };
+
+  // A dedicated judging round right after voting (judges decide; 100% default).
+  const applySeparate = async () => {
+    if (!lastVotingRound || busy) return;
+    setBusy(true);
+    try {
+      // Voting rounds carry no judge weight in this layout.
+      for (const r of votingTypeRounds) {
+        if ((r.judge_weight || 0) > 0) await supabase.from('voting_rounds').update({ judge_weight: 0 }).eq('id', r.id);
+      }
+      if (separateJudgingRound) {
+        const w = (separateJudgingRound.judge_weight || 0) > 0 ? separateJudgingRound.judge_weight : 100;
+        await supabase.from('voting_rounds').update({ judge_weight: w }).eq('id', separateJudgingRound.id);
+      } else {
+        // Create it right after the last voting round: starts when voting ends,
+        // runs ~5 days, judges decide, advancing to the number of winners.
+        const start = lastVotingRound.end_date || null;
+        const end = start ? new Date(new Date(start).getTime() + 5 * 86400000).toISOString() : null;
+        const maxOrder = Math.max(0, ...sortedRounds.map((r) => r.round_order || 0));
+        const advance = competition?.numberOfWinners || competition?.number_of_winners || lastVotingRound.contestants_advance || 1;
+        const { error } = await supabase.from('voting_rounds').insert({
+          competition_id: competitionId,
+          title: 'Judging Round',
+          round_type: 'judging',
+          round_order: maxOrder + 1,
+          start_date: start,
+          end_date: end,
+          contestants_advance: advance,
+          judge_weight: 100,
+        });
+        if (error) throw error;
+        // Tie the finale to just after judging ends.
+        if (competitionId && end) {
+          const finale = new Date(new Date(end).getTime() + 60000).toISOString();
+          await supabase.from('competitions').update({ finals_date: finale }).eq('id', competitionId);
+        }
+      }
+      onRefresh?.();
+    } catch (err) {
+      window.alert(`Could not set up the judging round: ${err.message || err}`);
+    } finally { setBusy(false); }
+  };
+
+  // A pickable layout card.
+  const layoutCard = ({ active, title, desc, onClick }) => (
+    <button
+      onClick={onClick}
+      disabled={busy}
+      style={{
+        textAlign: 'left', cursor: busy ? 'default' : 'pointer',
+        padding: spacing.md, borderRadius: borderRadius.md,
+        background: active ? 'rgba(212,175,55,0.08)' : colors.background.card,
+        border: `1px solid ${active ? colors.gold.primary : colors.border.primary}`,
+        display: 'flex', flexDirection: 'column', gap: spacing.xs,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+        {active
+          ? <CheckCircle2 size={15} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+          : <Circle size={15} style={{ color: colors.text.muted, flexShrink: 0 }} />}
+        <span style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>{title}</span>
+      </div>
+      <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, lineHeight: 1.4 }}>{desc}</span>
+    </button>
+  );
 
   return (
     <Panel title="Judging" icon={Award} locked={locked} badge={badge} collapsible defaultCollapsed>
@@ -256,44 +336,35 @@ export default function JudgingPanel({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md, marginTop: spacing.md }}>
           <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-            Choose which round judges score, how much their scores count toward who advances, and when it runs. 0% means votes decide that round; 100% means judges decide; anything between is a blend (e.g. 60% judges + 40% votes). Only one round can be judged.
+            Pick how judging fits your timeline — we’ll set it up, and you can fine-tune the weight and dates below. There’s only ever one judging round.
           </p>
 
-          {votingRounds.length === 0 ? (
+          {votingTypeRounds.length === 0 ? (
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-              Add a voting round in Voting Details first, then choose it here.
+              Add a voting round in Voting Details first, then choose a judging layout here.
             </p>
           ) : (
             <>
-              <div>
-                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs }}>
-                  Judging happens in
-                </label>
-                <select
-                  value={judgingRound?.id || ''}
-                  onChange={(e) => selectJudgingRound(e.target.value)}
-                  style={{
-                    width: '100%', padding: spacing.md, background: colors.background.secondary,
-                    border: `1px solid ${judgingRound ? colors.border.primary : colors.status.error}`, borderRadius: borderRadius.md,
-                    color: colors.text.primary, fontSize: typography.fontSize.sm,
-                  }}
-                >
-                  <option value="">Select a round…</option>
-                  {sortedRounds.map((r) => (
-                    <option key={r.id} value={r.id}>{r.title || `Round ${r.round_order || ''}`}</option>
-                  ))}
-                </select>
-                {!judgingRound && (
-                  <p style={{ color: colors.status.error, fontSize: typography.fontSize.xs, marginTop: spacing.xs }}>
-                    Your competition is judged (Votes + judges), so it needs a judging round — pick which round judges score.
-                  </p>
-                )}
-                {judgingNotLast && (
-                  <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.xs, marginTop: spacing.xs, lineHeight: 1.4 }}>
-                    Judging should be your final round — there shouldn’t be a votes-only round after it{multiWinner ? ', except a ranking round to order multiple winners.' : '.'} Either blend judging into your last round or move it to the end.
-                  </p>
-                )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: spacing.md }}>
+                {layoutCard({
+                  active: judgingMode === 'blend',
+                  title: 'Judges score your final round',
+                  desc: 'Public votes + judges decide your last voting round together (50/50 by default).',
+                  onClick: applyBlend,
+                })}
+                {layoutCard({
+                  active: judgingMode === 'separate',
+                  title: 'Separate round after voting',
+                  desc: 'After voting closes, judges score the finalists in a dedicated round (judges decide).',
+                  onClick: applySeparate,
+                })}
               </div>
+
+              {judgingMode === 'none' && (
+                <p style={{ color: colors.status.error, fontSize: typography.fontSize.xs }}>
+                  Your competition is judged — pick one of the layouts above to set up the judging round.
+                </p>
+              )}
 
               {judgingRound && (
                 <RoundWeightRow
