@@ -461,22 +461,14 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
     setSaving(true);
     try {
-      // Derive flat nomination fields from nomination_periods for backward compatibility
-      // This ensures display components (AboutTab, CompetitionTeaser, etc.) show correct dates
-      const sortedPeriods = [...nominationPeriods].sort(
-        (a, b) => (a.period_order || 0) - (b.period_order || 0)
-      );
-      const firstPeriodStart = sortedPeriods[0]?.start_date || null;
-      const lastPeriodEnd = sortedPeriods[sortedPeriods.length - 1]?.end_date || null;
-
-      // Update competition status, finals_date, and synced nomination fields
+      // Nomination open/close dates are owned by the Nomination Form section,
+      // not here — this section only manages voting/judging rounds, the finale
+      // and status. (See NominationFormEditor for the nomination window.)
       const { error: compError } = await supabase
         .from('competitions')
         .update({
           status,
           finals_date: settings.finals_date || null,
-          nomination_start: firstPeriodStart,
-          nomination_end: lastPeriodEnd,
           updated_at: new Date().toISOString(),
         })
         .eq('id', competition.id);
@@ -500,19 +492,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       // UNIQUE (competition_id, round_order) constraint when rows are
       // reordered.
       // ────────────────────────────────────────────────────────────────────
-
-      await reconcileOrderedRows({
-        table: 'nomination_periods',
-        competitionId: competition.id,
-        desired: nominationPeriods,
-        orderField: 'period_order',
-        buildPayload: (period, index) => ({
-          title: period.title || `Period ${index + 1}`,
-          start_date: period.start_date || null,
-          end_date: period.end_date || null,
-          max_submissions: period.max_submissions || null,
-        }),
-      });
 
       await reconcileOrderedRows({
         table: 'voting_rounds',
@@ -724,18 +703,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
           <Calendar size={18} /> Schedule
         </h4>
-
-        <div style={{ marginBottom: spacing.lg }}>
-          {groupLabel(Calendar, 'Prospecting Periods')}
-          {nominationPeriods.length > 0
-            ? nominationPeriods.map((p, i) => (
-              <div key={i} style={rowStyle}>
-                <span style={{ color: colors.text.primary, fontSize: typography.fontSize.sm }}>{p.title || `Period ${i + 1}`}</span>
-                <span style={dateText}>{fmtRange(nominationDisplayValues[i]?.start_date, nominationDisplayValues[i]?.end_date)}</span>
-              </div>
-            ))
-            : muted('No prospecting periods')}
-        </div>
 
         <div style={{ marginBottom: spacing.lg }}>
           {groupLabel(Vote, 'Voting & Judging Rounds')}
@@ -969,126 +936,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </>
       ) : (
         <>
-      {/* Contestant Prospecting Periods */}
-      <div style={sectionStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-          <h4 style={{ fontSize: typography.fontSize.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-            <Calendar size={18} />
-            Contestant Prospecting Periods
-          </h4>
-          <Button variant="secondary" size="sm" icon={Plus} onClick={addNominationPeriod}>
-            Add Period
-          </Button>
-        </div>
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
-          Define periods when nominations/applications are accepted. Enter dates like: Jan 15, 2025 6:00 PM
-        </p>
-
-        {nominationPeriods.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: spacing.xl,
-            background: colors.background.card,
-            borderRadius: borderRadius.lg,
-            color: colors.text.secondary,
-          }}>
-            <Calendar size={32} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-            <p>No prospecting periods configured</p>
-            <p style={{ fontSize: typography.fontSize.sm }}>Add a period to define when nominations are open</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            {nominationPeriods.map((period, index) => (
-              <div
-                key={index}
-                style={{
-                  background: colors.background.card,
-                  borderRadius: borderRadius.md,
-                  padding: spacing.md,
-                  border: `1px solid ${colors.border.light}`,
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-                  <input
-                    type="text"
-                    value={period.title}
-                    onChange={(e) => updateNominationPeriod(index, 'title', e.target.value)}
-                    placeholder={`Period ${index + 1}`}
-                    style={{
-                      ...inputStyle,
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      fontWeight: typography.fontWeight.medium,
-                      maxWidth: '250px',
-                    }}
-                  />
-                  <button
-                    onClick={() => removeNominationPeriod(index)}
-                    style={{
-                      background: 'rgba(239,68,68,0.1)',
-                      border: 'none',
-                      borderRadius: borderRadius.sm,
-                      padding: spacing.xs,
-                      cursor: 'pointer',
-                      color: '#ef4444',
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                  gap: spacing.sm,
-                }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
-                    <input
-                      type="text"
-                      placeholder="Jan 15, 2025 12:00 AM"
-                      value={nominationDisplayValues[index]?.start_date || ''}
-                      onChange={(e) => updateNominationDisplayValue(index, 'start_date', e.target.value)}
-                      onBlur={(e) => handleNominationDateBlur(index, 'start_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`nom_${index}_start_date`] ? '#ef4444' : colors.border.light,
-                      }}
-                    />
-                    {parseErrors[`nom_${index}_start_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>End</label>
-                    <input
-                      type="text"
-                      placeholder="Jan 31, 2025 11:59 PM"
-                      value={nominationDisplayValues[index]?.end_date || ''}
-                      onChange={(e) => updateNominationDisplayValue(index, 'end_date', e.target.value)}
-                      onBlur={(e) => handleNominationDateBlur(index, 'end_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`nom_${index}_end_date`] ? '#ef4444' : colors.border.light,
-                      }}
-                    />
-                    {parseErrors[`nom_${index}_end_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Nomination open/close dates moved to the Nomination Form section. */}
 
       {/* Voting & Judging Rounds */}
       <div style={sectionStyle}>

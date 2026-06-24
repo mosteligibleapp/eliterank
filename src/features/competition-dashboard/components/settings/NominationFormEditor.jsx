@@ -7,6 +7,7 @@ import {
   Trash2,
   AlertCircle,
   Lock,
+  Calendar,
 } from 'lucide-react';
 import { Button, Panel } from '../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
@@ -19,6 +20,26 @@ import {
   getStandardNominationFields,
   MAX_CUSTOM_QUESTIONS,
 } from '../../../../utils/nominationFormDefaults';
+
+// Recommended nomination duration by territory scope (issue: hosts asked for
+// guidance on how long to leave nominations open).
+const NOMINATION_REC = {
+  city: { weeks: 6, label: 'city-wide' },
+  state: { weeks: 8, label: 'state-wide' },
+  us: { weeks: 12, label: 'nationwide' },
+};
+
+// timestamptz → 'YYYY-MM-DD' for a <input type="date">. Slicing the ISO string
+// avoids a timezone day-shift from new Date().
+const toDateInput = (v) => (v ? String(v).slice(0, 10) : '');
+
+// Add whole weeks to a 'YYYY-MM-DD' value, in UTC, returning 'YYYY-MM-DD'.
+const addWeeks = (value, weeks) => {
+  if (!value) return '';
+  const d = new Date(`${value}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + weeks * 7);
+  return d.toISOString().slice(0, 10);
+};
 
 /**
  * Nomination form creator for hosts.
@@ -50,6 +71,42 @@ export function NominationFormEditor({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Nomination open/close window (moved here from Timeline & Status). Stored on
+  // the competition (nomination_start/end) and as a single nomination_periods
+  // row so the public site and phase logic keep working.
+  const [nomStart, setNomStart] = useState('');
+  const [nomEnd, setNomEnd] = useState('');
+  const [nomPeriodId, setNomPeriodId] = useState(null);
+  const [initialNom, setInitialNom] = useState({ start: '', end: '' });
+
+  const rec = NOMINATION_REC[competition?.territoryScope] || NOMINATION_REC.city;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!competition?.id) return;
+      const { data } = await supabase
+        .from('nomination_periods')
+        .select('id, start_date, end_date')
+        .eq('competition_id', competition.id)
+        .order('period_order', { ascending: true })
+        .limit(1);
+      if (cancelled) return;
+      const row = data?.[0];
+      const start = toDateInput(row?.start_date || competition.nominationStart || competition.nomination_start);
+      const end = toDateInput(row?.end_date || competition.nominationEnd || competition.nomination_end);
+      setNomPeriodId(row?.id || null);
+      setNomStart(start);
+      setNomEnd(end);
+      setInitialNom({ start, end });
+    })();
+    return () => { cancelled = true; };
+  }, [competition?.id]);
+
+  const applyRecommendation = () => {
+    if (nomStart) setNomEnd(addWeeks(nomStart, rec.weeks));
+  };
+
   // The dashboard hook normalizes the competition row and exposes the JSONB
   // column as camelCase `nominationFormConfig`; the raw DB row uses snake_case
   // `nomination_form_config`. Accept either so the editor works regardless of
@@ -69,10 +126,17 @@ export function NominationFormEditor({
     const current = JSON.stringify(
       resolveNominationFormConfig({ custom_questions: customQuestions }).custom_questions
     );
-    return stored !== current;
+    const nomChanged = nomStart !== initialNom.start || nomEnd !== initialNom.end;
+    return stored !== current || nomChanged;
   };
 
   const validate = () => {
+    if ((nomStart && !nomEnd) || (!nomStart && nomEnd)) {
+      return 'Set both an open and a close date for nominations.';
+    }
+    if (nomStart && nomEnd && nomEnd <= nomStart) {
+      return 'Nominations must close after they open.';
+    }
     for (const q of customQuestions) {
       if (!q.label.trim()) return 'Every custom question needs a label.';
       if (q.type === 'select' && (!q.options || q.options.length < 2)) {
@@ -102,6 +166,8 @@ export function NominationFormEditor({
         .from('competitions')
         .update({
           nomination_form_config: { custom_questions: customQuestions },
+          nomination_start: nomStart || null,
+          nomination_end: nomEnd || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', competition.id)
@@ -111,6 +177,25 @@ export function NominationFormEditor({
       if (!data || data.length === 0) {
         throw new Error("You don't have permission to edit this competition.");
       }
+
+      // Keep a single nomination_periods row in sync (drives phase logic + the
+      // public site) so the window isn't only in the flat fields.
+      if (nomStart && nomEnd) {
+        if (nomPeriodId) {
+          await supabase
+            .from('nomination_periods')
+            .update({ start_date: nomStart, end_date: nomEnd })
+            .eq('id', nomPeriodId);
+        } else {
+          const { data: inserted } = await supabase
+            .from('nomination_periods')
+            .insert({ competition_id: competition.id, title: 'Open Nominations', start_date: nomStart, end_date: nomEnd, period_order: 0 })
+            .select('id')
+            .single();
+          if (inserted?.id) setNomPeriodId(inserted.id);
+        }
+      }
+      setInitialNom({ start: nomStart, end: nomEnd });
 
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -222,6 +307,36 @@ export function NominationFormEditor({
       }
     >
       <div style={{ padding: spacing.xl }}>
+        {/* When nominations open & close */}
+        <div style={{ marginBottom: spacing.xxl }}>
+          <div style={sectionHeaderStyle}>
+            <Calendar size={13} style={{ display: 'inline', marginRight: spacing.xs, verticalAlign: 'middle' }} />
+            When nominations open &amp; close
+          </div>
+          <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.xs, margin: `0 0 ${spacing.md}` }}>
+            We recommend {rec.weeks} weeks of nominations for {rec.label} competitions.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
+            <div>
+              <label style={{ display: 'block', fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Opens</label>
+              <input type="date" value={nomStart} onChange={(e) => setNomStart(e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Closes</label>
+              <input type="date" value={nomEnd} min={nomStart || undefined} onChange={(e) => setNomEnd(e.target.value)} style={inputStyle} />
+              {nomStart && (
+                <button
+                  type="button"
+                  onClick={applyRecommendation}
+                  style={{ marginTop: spacing.xs, background: 'transparent', border: 'none', color: colors.gold.primary, fontSize: typography.fontSize.xs, cursor: 'pointer', padding: 0 }}
+                >
+                  Use recommended ({rec.weeks} weeks)
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, margin: `0 0 ${spacing.xl}` }}>
           Add up to {MAX_CUSTOM_QUESTIONS} custom questions on top of the standard nomination flow.
           Answers are saved with the nominee.
