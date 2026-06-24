@@ -67,13 +67,20 @@ export default function AddPersonModal({
     setSearching(true);
 
     try {
-      const searchTerm = query.toLowerCase().trim();
-
+      // Search on the server against the joined profiles so we don't cap to a
+      // first-N batch of subscribers and filter in JS — anyone past the cap was
+      // previously unsearchable.
+      const safe = query.trim().replace(/[(),%]/g, '');
+      const pattern = `%${safe}%`;
       const { data, error } = await supabase
         .from('competition_subscribers')
         .select('profiles!inner(id, email, first_name, last_name, avatar_url, instagram, city)')
         .eq('competition_id', competitionId)
-        .limit(500);
+        .or(
+          `email.ilike.${pattern},first_name.ilike.${pattern},last_name.ilike.${pattern},instagram.ilike.${pattern}`,
+          { referencedTable: 'profiles' }
+        )
+        .limit(20);
 
       if (error) {
         console.error('Search error:', error);
@@ -81,26 +88,8 @@ export default function AddPersonModal({
         return;
       }
 
-      const profiles = (data || []).map(row => row.profiles).filter(Boolean);
-
-      // Client-side filtering
-      const filtered = profiles.filter(p => {
-        const email = (p.email || '').toLowerCase();
-        const firstName = (p.first_name || '').toLowerCase();
-        const lastName = (p.last_name || '').toLowerCase();
-        const fullName = `${firstName} ${lastName}`.toLowerCase();
-        const instagram = (p.instagram || '').toLowerCase();
-
-        return (
-          email.includes(searchTerm) ||
-          firstName.includes(searchTerm) ||
-          lastName.includes(searchTerm) ||
-          fullName.includes(searchTerm) ||
-          instagram.includes(searchTerm)
-        );
-      }).slice(0, 10);
-
-      setSearchResults(filtered);
+      const profiles = (data || []).map((row) => row.profiles).filter(Boolean).slice(0, 10);
+      setSearchResults(profiles);
     } catch (err) {
       console.error('Error searching profiles:', err);
     } finally {

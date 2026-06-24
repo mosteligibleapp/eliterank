@@ -92,14 +92,17 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
     setError(null);
 
     try {
-      const searchTerm = query.toLowerCase().trim();
-
-      // Fetch profiles and filter client-side for more reliable search
-      // This works around RLS and query syntax issues
+      // Server-side search so results aren't capped to an arbitrary first-N
+      // batch (which silently hid anyone past the cap). Strip PostgREST `or`
+      // syntax chars from user input.
+      const safe = query.trim().replace(/[(),%]/g, '');
+      const pattern = `%${safe}%`;
       const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('id, email, first_name, last_name, avatar_url')
-        .limit(100);
+        .or(`email.ilike.${pattern},first_name.ilike.${pattern},last_name.ilike.${pattern}`)
+        .order('first_name', { nullsFirst: false })
+        .limit(20);
 
       if (fetchError) {
         console.error('Supabase error:', fetchError);
@@ -108,34 +111,9 @@ export default function WinnersManager({ competition, onUpdate, allowEdit = fals
         return;
       }
 
-      if (!data || data.length === 0) {
-        setSearchResults([]);
-        return;
-      }
-
-      // Filter out already selected winners
-      const winnerIds = winners.map(w => w.id);
-
-      // Client-side search filtering
-      const filtered = data.filter(p => {
-        // Skip already selected winners
-        if (winnerIds.includes(p.id)) return false;
-
-        // Search across multiple fields
-        const email = (p.email || '').toLowerCase();
-        const firstName = (p.first_name || '').toLowerCase();
-        const lastName = (p.last_name || '').toLowerCase();
-        const fullName = `${firstName} ${lastName}`.toLowerCase();
-
-        return (
-          email.includes(searchTerm) ||
-          firstName.includes(searchTerm) ||
-          lastName.includes(searchTerm) ||
-          fullName.includes(searchTerm)
-        );
-      }).slice(0, 10);
-
-      setSearchResults(filtered);
+      // Drop anyone already selected (small set) and cap the dropdown.
+      const winnerIds = new Set(winners.map((w) => w.id));
+      setSearchResults((data || []).filter((p) => !winnerIds.has(p.id)).slice(0, 10));
     } catch (err) {
       console.error('Error searching profiles:', err);
       setError('Failed to search profiles');

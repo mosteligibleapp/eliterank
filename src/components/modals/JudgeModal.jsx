@@ -52,47 +52,41 @@ export default function JudgeModal({
     }
   }, [isOpen, judge]);
 
-  // Fetch profiles on mount
+  // Debounced server-side search so results aren't capped to the first 100
+  // profiles (which hid anyone past the cap). Empty query = browse the first
+  // batch; typing filters on the server.
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
+    const trimmed = searchQuery.trim();
+    const safe = trimmed.replace(/[(),%]/g, '');
 
-    const fetchProfiles = async () => {
+    const run = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        let q = supabase
           .from('profiles')
           .select('id, email, first_name, last_name, avatar_url, bio, instagram')
-          .order('first_name')
+          .order('first_name', { nullsFirst: false })
           .limit(100);
-
+        if (safe) {
+          const pattern = `%${safe}%`;
+          q = q.or(`email.ilike.${pattern},first_name.ilike.${pattern},last_name.ilike.${pattern}`);
+        }
+        const { data, error } = await q;
+        if (cancelled) return;
         if (error) throw error;
-        setProfiles(data || []);
         setFilteredProfiles(data || []);
       } catch (err) {
-        console.error('Error fetching profiles:', err);
+        if (!cancelled) console.error('Error fetching profiles:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchProfiles();
-  }, [isOpen]);
-
-  // Filter profiles based on search
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredProfiles(profiles);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase();
-    const filtered = profiles.filter(p => {
-      const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
-      const email = (p.email || '').toLowerCase();
-      return fullName.includes(query) || email.includes(query);
-    });
-    setFilteredProfiles(filtered);
-  }, [searchQuery, profiles]);
+    const handle = setTimeout(run, trimmed ? 200 : 0);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [isOpen, searchQuery]);
 
   const updateField = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
