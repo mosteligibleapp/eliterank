@@ -127,6 +127,21 @@ export default function JudgingPanel({
 
   const sectionLabel = { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.text.muted };
 
+  // Judging happens in exactly one round — the one with judge_weight > 0.
+  const sortedRounds = [...votingRounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+  const judgingRound = votingRounds.find((r) => (r.judge_weight || 0) > 0) || null;
+  const selectJudgingRound = async (newId) => {
+    const current = judgingRound;
+    if (!newId) {
+      if (current) await onUpdateRoundJudgeWeight?.(current.id, 0);
+      return;
+    }
+    if (current?.id === newId) return;
+    if (current) await onUpdateRoundJudgeWeight?.(current.id, 0);
+    const target = votingRounds.find((r) => r.id === newId);
+    await onUpdateRoundJudgeWeight?.(newId, (target?.judge_weight || 0) > 0 ? target.judge_weight : 50);
+  };
+
   return (
     <Panel title="Judging" icon={Award} locked={locked} collapsible defaultCollapsed>
       <div style={{ padding: spacing.xl }}>
@@ -232,27 +247,45 @@ export default function JudgingPanel({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md, marginTop: spacing.md }}>
           <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-            Pick the single round judges score, how much their scores count toward who advances, and when it runs. 0% means votes decide that round; 100% means judges decide; anything between is a blend (e.g. 60% judges + 40% votes). Only one round can be a judging round at a time.
+            Choose which round judges score, how much their scores count toward who advances, and when it runs. 0% means votes decide that round; 100% means judges decide; anything between is a blend (e.g. 60% judges + 40% votes). Only one round can be judged.
           </p>
-
-          <JudgingRoundSummary votingRounds={votingRounds} />
 
           {votingRounds.length === 0 ? (
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-              Add a voting round in Voting Details first, then make one of them the judging round here.
+              Add a voting round in Voting Details first, then choose it here.
             </p>
           ) : (
-            [...votingRounds]
-              .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
-              .map((r) => (
+            <>
+              <div>
+                <label style={{ display: 'block', fontSize: typography.fontSize.sm, color: colors.text.secondary, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs }}>
+                  Judging happens in
+                </label>
+                <select
+                  value={judgingRound?.id || ''}
+                  onChange={(e) => selectJudgingRound(e.target.value)}
+                  style={{
+                    width: '100%', padding: spacing.md, background: colors.background.secondary,
+                    border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md,
+                    color: colors.text.primary, fontSize: typography.fontSize.sm,
+                  }}
+                >
+                  <option value="">Decided by public votes (no judging)</option>
+                  {sortedRounds.map((r) => (
+                    <option key={r.id} value={r.id}>{r.title || `Round ${r.round_order || ''}`}</option>
+                  ))}
+                </select>
+              </div>
+
+              {judgingRound && (
                 <RoundWeightRow
-                  key={r.id}
-                  round={r}
+                  key={judgingRound.id}
+                  round={judgingRound}
                   votingRounds={votingRounds}
                   onUpdate={onUpdateRoundJudgeWeight}
                   onRefresh={onRefresh}
                 />
-              ))
+              )}
+            </>
           )}
         </div>
       </div>

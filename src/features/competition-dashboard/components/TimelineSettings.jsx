@@ -902,24 +902,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                         maxWidth: '200px',
                       }}
                     />
-                    <select
-                      value={round.round_type || 'voting'}
-                      onChange={(e) => updateVotingRound(index, 'round_type', e.target.value)}
-                      style={{
-                        background: `${roundConfig.color}22`,
-                        border: `1px solid ${roundConfig.color}`,
-                        borderRadius: borderRadius.sm,
-                        color: roundConfig.color,
-                        padding: `${spacing.xs} ${spacing.sm}`,
-                        fontSize: typography.fontSize.xs,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <option value="voting">Voting</option>
-                      <option value="judging">Judging</option>
-                      <option value="resurrection">Resurrection</option>
-                      <option value="finale">Finale</option>
-                    </select>
                   </div>
                   <button
                     onClick={() => removeVotingRound(index)}
