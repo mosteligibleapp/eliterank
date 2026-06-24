@@ -7,6 +7,7 @@ import TimelineSettings from '../TimelineSettings';
 import JudgingPanel from '../JudgingPanel';
 import JudgingResultsPanel from '../JudgingResultsPanel';
 import CompetitionSummaryCard from '../CompetitionSummaryCard';
+import HostsPanel from '../HostsPanel';
 import { NominationFormEditor } from '../settings';
 import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission, getHostManagedTaskContestants, awardHostManagedTask, revokeHostManagedTask } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
@@ -69,6 +70,7 @@ const getEventStatus = (event) => {
 // Grayable sections a host hides sort to the bottom (see sectionStyle).
 const SECTION_ORDER = [
   'competitionDetails',
+  'hosts',
   'nominationForm',
   'timeline',
   'judgingCriteria',
@@ -147,6 +149,12 @@ export default function SetupTab({
   competition,
   focusSection,
   mode = 'setup',
+  host,
+  coHosts = [],
+  onShowHostAssignment,
+  onShowAddCoHost,
+  onRemoveHost,
+  onRemoveCoHost,
   judges,
   judgingCriteria = [],
   judgeScores = [],
@@ -545,6 +553,20 @@ export default function SetupTab({
           draft, locked thereafter (handled inside the card). */}
       <div style={{ ...sectionStyle('competitionDetails'), marginBottom: spacing.xxl }}>
         <CompetitionSummaryCard competition={competition} onRefresh={onRefresh} />
+      </div>
+
+      {/* Hosts (creator + co-hosts) — moved here from the People tab. */}
+      <div style={{ ...sectionStyle('hosts'), marginBottom: spacing.xxl }}>
+        <HostsPanel
+          host={host}
+          coHosts={coHosts}
+          isSuperAdmin={isSuperAdmin}
+          isMobile={isMobile}
+          onShowHostAssignment={onShowHostAssignment}
+          onShowAddCoHost={onShowAddCoHost}
+          onRemoveHost={onRemoveHost}
+          onRemoveCoHost={onRemoveCoHost}
+        />
       </div>
 
       {/* Voting Details (voting/judging rounds + finale) */}

@@ -984,30 +984,12 @@ export default function PeopleTab({
         </div>
       )}
 
-      {/* Host Profile + Winners Row */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-        gap: spacing.xl,
-        alignItems: 'start',
-      }}>
+      {/* Host roster moved to the Setup tab. */}
+      {false && (
       <Panel
-        title={`Hosts${host ? ` (${1 + coHosts.length})` : coHosts.length ? ` (${coHosts.length})` : ''}`}
+        title="Hosts"
         icon={User}
         style={{ marginBottom: 0 }}
-        action={
-          isSuperAdmin ? (
-            host ? (
-              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowAddCoHost?.(); }}>
-                Add Co-Host
-              </Button>
-            ) : (
-              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
-                Assign Host
-              </Button>
-            )
-          ) : null
-        }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
           {!host && coHosts.length === 0 ? (
@@ -1161,10 +1143,10 @@ export default function PeopleTab({
           )}
         </div>
       </Panel>
+      )}
 
       {/* Winners Manager */}
       <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
-      </div>
 
       {/* Judges roster (judging rules + results stay in Setup) */}
       <JudgesManager

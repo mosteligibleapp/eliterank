@@ -656,6 +656,12 @@ export default function CompetitionDashboard({
       mode={mode}
       competition={competition}
       focusSection={setupFocus}
+      host={data.host}
+      coHosts={data.coHosts || []}
+      onShowHostAssignment={() => setShowHostAssignment(true)}
+      onShowAddCoHost={() => setShowAddCoHost(true)}
+      onRemoveHost={removeHost}
+      onRemoveCoHost={removeCoHost}
       judges={data.judges}
       judgingCriteria={data.judgingCriteria}
       judgeScores={data.judgeScores}
