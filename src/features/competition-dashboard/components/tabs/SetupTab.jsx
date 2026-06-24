@@ -600,21 +600,24 @@ export default function SetupTab({
         <CompetitionSummaryCard competition={competition} onRefresh={onRefresh} />
       </div>
 
-      {/* Intro for the publish-locked, public-facing sections below. */}
-      <div style={{ order: 1, marginBottom: spacing.lg }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-          <Lock size={16} style={{ color: colors.gold.primary }} />
-          <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, margin: 0 }}>Important Information</h3>
+      {/* Intro for the publish-locked, public-facing sections below. Setup tab
+          only — the Engagement tab shows just its participation tools. */}
+      {mode !== 'engagement' && (
+        <div style={{ order: 1, marginBottom: spacing.lg }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+            <Lock size={16} style={{ color: colors.gold.primary }} />
+            <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, margin: 0 }}>Important Information</h3>
+          </div>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, margin: `${spacing.xs} 0 0`, lineHeight: 1.6 }}>
+            This is the public-facing information for your competition. Some of it{' '}
+            <span style={{ color: colors.gold.primary }}>locks when you publish</span> — get the{' '}
+            nomination form, voting &amp; judging dates, judging criteria &amp; weight, and your charity
+            partner right before you go public. Your{' '}
+            <span style={{ color: colors.text.secondary }}>host, judges, and sponsors stay editable anytime</span>,
+            even after you’re live.
+          </p>
         </div>
-        <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, margin: `${spacing.xs} 0 0`, lineHeight: 1.6 }}>
-          This is the public-facing information for your competition. Some of it{' '}
-          <span style={{ color: colors.gold.primary }}>locks when you publish</span> — get the{' '}
-          nomination form, voting &amp; judging dates, judging criteria &amp; weight, and your charity
-          partner right before you go public. Your{' '}
-          <span style={{ color: colors.text.secondary }}>host, judges, and sponsors stay editable anytime</span>,
-          even after you’re live.
-        </p>
-      </div>
+      )}
 
       {/* Hosts (creator + co-hosts) — moved here from the People tab. */}
       <div style={{ ...sectionStyle('hosts'), marginBottom: spacing.xxl }}>

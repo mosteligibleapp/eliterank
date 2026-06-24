@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, Lock } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { AboutSectionEditor, OrganizationBrandingEditor, AutoRulesPreview } from '../settings';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 
@@ -49,9 +49,7 @@ export default function ContentTab({
             color: colors.text.secondary,
             lineHeight: 1.5,
           }}>
-            These settings are editable now and save right away — they’ll appear on your page once it’s
-            live. Fields marked with a <Lock size={11} style={{ verticalAlign: 'middle', margin: '0 1px' }} />
-            {' '}are locked because they define your competition. Scroll down to preview how visitors will see it.
+            These settings are editable now and save right away — they’ll appear on your page once it’s live.
           </p>
         </div>
       </div>
