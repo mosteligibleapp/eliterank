@@ -13,9 +13,11 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
  *                    rules/dates. Fixed because contestants and voters rely on
  *                    them. (SUBMIT_LOCK / PUBLISH_LOCK)
  *   2. Brand & experience — the host's presentation, editable as they polish.
- *   3. People & rewards   — contestants, judges, sponsors & prizes: managed any
+ *   3. Your team & rewards — sponsors, judges, hosts & prizes: adjustable any
  *                    time, even after going live (e.g. a judge steps down, a new
- *                    sponsor comes aboard).
+ *                    sponsor comes aboard), though we recommend minimal changes
+ *                    once public. (Contestants/nominees are NOT here — they're
+ *                    governed by the nomination timeline, not freely editable.)
  */
 export default function LaunchRoadmap({ competition, onNavigateToTab }) {
   const status = competition?.status || 'draft';
@@ -137,21 +139,19 @@ export default function LaunchRoadmap({ competition, onNavigateToTab }) {
             {linkBtn('Edit your public page', 'site')}
           </div>
 
-          {/* 3 — People & rewards */}
+          {/* 3 — Your team & rewards */}
           <div style={cardStyle}>
-            {headRow(Users, 'People & rewards — manage any time', 'rgba(212,175,55,0.12)')}
+            {headRow(Users, 'Your team & rewards — adjust any time', 'rgba(212,175,55,0.12)')}
             <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, margin: 0, lineHeight: 1.5 }}>
-              These stay in your hands throughout — even after you go live.
+              Sponsors, judges, and hosts stay in your hands throughout. Once you’re live to the
+              public, though, we strongly recommend keeping changes to a minimum.
             </p>
             {itemList([
-              'Contestants & nominees — approve, add, and manage your lineup',
-              'Judges — add or swap them in from the Setup tab',
-              'Sponsors & prizes — add more reward for contestants any time',
+              'Sponsors & prizes — add more reward for contestants',
+              'Judges — add or swap them in if one steps down',
+              'Hosts & co-hosts — update who runs the competition',
             ])}
-            <div style={{ display: 'flex', gap: spacing.lg, flexWrap: 'wrap' }}>
-              {linkBtn('Go to People', 'people')}
-              {linkBtn('Judges & sponsors in Setup', 'setup')}
-            </div>
+            {linkBtn('Manage in Setup', 'setup')}
           </div>
         </div>
       </div>
