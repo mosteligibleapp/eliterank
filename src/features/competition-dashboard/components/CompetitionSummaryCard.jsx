@@ -123,8 +123,8 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
     const ageMin = form.ageMin === '' || form.ageMin == null ? null : Number(form.ageMin);
     const ageMax = form.ageMax === '' || form.ageMax == null ? null : Number(form.ageMax);
     if (!form.name.trim()) { setError('Enter a competition name.'); return; }
-    if (!form.orgName.trim()) { setError('Enter the host name.'); return; }
-    if (!form.orgWebsite.trim() && !form.orgInstagram.trim()) { setError('Add a website or Instagram for the host.'); return; }
+    if (!form.orgName.trim()) { setError('Enter the name of the presenting entity.'); return; }
+    if (!form.orgWebsite.trim() && !form.orgInstagram.trim()) { setError('Add a website or Instagram for the presenting entity.'); return; }
     if (!ageMin || ageMin < 18) { setError('Minimum age must be 18 or older — all competitions are 18+.'); return; }
     if (ageMax && ageMax < ageMin) { setError('Max age must be greater than the minimum.'); return; }
     if (form.templateId === CUSTOM_TEMPLATE.id && !form.customCategory.trim()) { setError('Type your category.'); return; }
@@ -200,7 +200,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
 
     const rows = [
       ['Name', c.name],
-      ['Host', c.organizationName],
+      ['Presented by', c.organizationName],
       ['Category', c.categoryTemplate || c.categoryName],
       ['Territory', territory],
       ['Who can enter', whoCanEnter],
@@ -280,10 +280,10 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
         <div style={{ marginBottom: spacing.lg, padding: spacing.lg, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs }}>
             <Building2 size={14} style={{ color: colors.gold.primary }} />
-            <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Host</span>
+            <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Presented by</span>
           </div>
           <p style={{ ...helpStyle, marginTop: 0, marginBottom: spacing.md }}>
-            The business or person officially running this competition and receiving payouts. Shown publicly as the host.
+            The business or person officially running this competition and receiving payouts. Shown publicly as “Presented by”.
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md }}>
             {form.orgLogoUrl
