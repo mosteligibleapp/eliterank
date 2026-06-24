@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Calendar, Vote, Plus, Trash2, AlertTriangle, Save,
-  Clock, Activity, Trophy, Archive, FileEdit, Lock, Info
+  Clock, Activity, Trophy, Archive, FileEdit, Lock, Info, Sparkles
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -645,6 +645,87 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     }]);
   };
 
+  // Build the recommended schedule: three contiguous 10-day voting rounds
+  // (≥30 days total, the validator's minimum), then a judging round, with the
+  // finale set 1 hour after the determining round ends (inside the 1-min→24-hr
+  // window the validator enforces). Anchored to the recommended first-voting
+  // start (nominations close + 5 days); falls back to ~4 weeks out if the
+  // nomination close date isn't set yet.
+  const buildRecommendedSchedule = () => {
+    const DAY = 86400000;
+    const addDays = (d, n) => new Date(d.getTime() + n * DAY);
+    const base = recommendedVotingStartIso
+      ? new Date(recommendedVotingStartIso)
+      : new Date(Date.now() + 28 * DAY);
+
+    const rounds = [];
+    let cursor = new Date(base);
+    const votingTiers = [
+      { title: 'Voting Round 1', tier_label: 'Opening Round', advance: 15 },
+      { title: 'Voting Round 2', tier_label: 'Semifinals', advance: 8 },
+      { title: 'Voting Round 3', tier_label: 'Finals', advance: 5 },
+    ];
+    votingTiers.forEach((t, i) => {
+      const start = new Date(cursor);
+      const end = addDays(start, 10);
+      rounds.push({
+        ...DEFAULT_VOTING_ROUND,
+        title: t.title,
+        tier_label: t.tier_label,
+        round_type: 'voting',
+        round_order: i + 1,
+        contestants_advance: t.advance,
+        start_date: start.toISOString(),
+        end_date: end.toISOString(),
+        votes_reset_at_start: false,
+      });
+      cursor = end; // next round opens as this one closes
+    });
+
+    // The judging round only applies when winners are judge-decided. For
+    // pure-vote competitions the finale just follows the last voting round.
+    let finaleAnchorEnd = cursor;
+    if (usesJudges) {
+      const jStart = new Date(cursor);
+      const jEnd = addDays(jStart, 5);
+      rounds.push({
+        ...DEFAULT_VOTING_ROUND,
+        title: 'Judging Round',
+        tier_label: 'Final Judging',
+        round_type: 'judging',
+        round_order: rounds.length + 1,
+        contestants_advance: 5,
+        start_date: jStart.toISOString(),
+        end_date: jEnd.toISOString(),
+        votes_reset_at_start: false,
+      });
+      finaleAnchorEnd = jEnd;
+    }
+
+    const finale = new Date(finaleAnchorEnd.getTime() + 60 * 60 * 1000); // +1 hr
+    return { rounds, finaleIso: finale.toISOString() };
+  };
+
+  const applyRecommendedSchedule = () => {
+    if (votingRounds.length > 0 || settings.finals_date) {
+      const ok = window.confirm(
+        'Replace the current rounds and finale with the recommended schedule? Your existing rounds will be overwritten.'
+      );
+      if (!ok) return;
+    }
+    const { rounds, finaleIso } = buildRecommendedSchedule();
+    setVotingRounds(rounds);
+    setRoundDisplayValues(rounds.map(r => ({
+      start_date: formatDateForDisplay(r.start_date),
+      end_date: formatDateForDisplay(r.end_date),
+    })));
+    setSettings(prev => ({ ...prev, finals_date: finaleIso }));
+    setDisplayValues(prev => ({ ...prev, finals_date: formatDateForDisplay(finaleIso) }));
+    setParseErrors({});
+    setErrors([]);
+    toast.success('Recommended schedule filled in — review the dates, then Save.');
+  };
+
   const removeVotingRound = (index) => {
     setVotingRounds(prev => prev.filter((_, i) => i !== index));
     setRoundDisplayValues(prev => prev.filter((_, i) => i !== index));
@@ -868,9 +949,14 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
             <Vote size={18} />
             Voting Rounds
           </h4>
-          <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('voting')}>
-            Add Voting
-          </Button>
+          <div style={{ display: 'flex', gap: spacing.sm }}>
+            <Button size="sm" icon={Sparkles} onClick={applyRecommendedSchedule}>
+              Auto-fill recommended
+            </Button>
+            <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('voting')}>
+              Add Voting
+            </Button>
+          </div>
         </div>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
           {usesJudges
@@ -879,7 +965,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </p>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginBottom: spacing.md }}>
           Voting should run at least <strong>30 days</strong> across at least <strong>3 rounds</strong>. We recommend voting opens 5 days after nominations close
-          {recommendedVotingStartIso ? <> — about <strong>{formatDateForDisplay(recommendedVotingStartIso)}</strong>. The first round’s start is filled in for you.</> : '. Set your nomination close date first and we’ll suggest the start.'}
+          {recommendedVotingStartIso ? <> — about <strong>{formatDateForDisplay(recommendedVotingStartIso)}</strong>.</> : '.'}{' '}
+          Use <strong>Auto-fill recommended</strong> to lay out 3 voting rounds{usesJudges ? ', a judging round,' : ''} and the finale for you — then adjust any date.
         </p>
 
         {votingRounds.length === 0 ? (
