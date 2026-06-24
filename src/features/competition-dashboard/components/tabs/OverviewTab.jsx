@@ -729,32 +729,6 @@ export default function OverviewTab({
             )}
           </div>
         </Panel>
-
-        {/* View Competition Button */}
-        {onViewPublicSite && (
-          <button
-            onClick={onViewPublicSite}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: spacing.sm,
-              padding: spacing.lg,
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(212,175,55,0.08) 100%)',
-              border: `1px solid rgba(212,175,55,0.35)`,
-              borderRadius: borderRadius.xl,
-              color: colors.gold.primary,
-              fontSize: typography.fontSize.md,
-              fontWeight: typography.fontWeight.semibold,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 12px rgba(212,175,55,0.1)',
-            }}
-          >
-            <Eye size={18} />
-            View Competition
-          </button>
-        )}
       </div>
       </div>
       )}

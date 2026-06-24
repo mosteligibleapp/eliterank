@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Loader, Sparkles, User, Building2, ArrowLeft, ArrowRight, CheckCircle, Info, CalendarClock } from 'lucide-react';
+import { Loader, Sparkles, User, Building2, ArrowLeft, ArrowRight, CheckCircle, Info, CalendarClock, ShieldCheck } from 'lucide-react';
 import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
@@ -263,6 +263,18 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
   // we get real :focus / :hover states; inline styles only carry layout.
   const labelStyle = { display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs, letterSpacing: '0.01em' };
   const fieldStyle = { width: '100%', padding: `${spacing.md} ${spacing.md}`, borderRadius: borderRadius.lg, color: colors.text.primary, fontSize: typography.fontSize.md, marginBottom: spacing.lg, boxSizing: 'border-box' };
+  // Control without its own bottom margin — used inside field() so spacing is
+  // owned by the field group, not the control (consistent vertical rhythm).
+  const controlStyle = { ...fieldStyle, marginBottom: 0 };
+  const helpStyle = { color: colors.text.muted, fontSize: typography.fontSize.xs, margin: `${spacing.xs} 0 0`, lineHeight: 1.5 };
+  // Render-function (not a component) so inputs keep focus across keystrokes.
+  const field = (label, control, help) => (
+    <div style={{ marginBottom: spacing.lg }}>
+      {label && <label style={labelStyle}>{label}</label>}
+      {control}
+      {help && <p style={helpStyle}>{help}</p>}
+    </div>
+  );
   // Tile props (className + layout-only inline style) for selectable cards.
   const tile = (active, extra = {}) => ({
     className: `cc-tile${active ? ' is-active' : ''}`,
@@ -362,20 +374,30 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             </div>
           </div>
 
-          <div style={{ marginTop: spacing.xl, padding: spacing.lg, background: colors.background.secondary, border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.lg }}>
-            <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm }}>
-              Your competition won’t go live until:
-            </p>
-            {[
-              'You approve the competition',
-              'Your Stripe identity verification (KYC) is approved',
-              'You’ve signed the Host Agreement',
-            ].map((t) => (
-              <div key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm, color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.xs }}>
-                <CheckCircle size={15} style={{ color: colors.gold.primary, flexShrink: 0, marginTop: 2 }} />
-                <span>{t}</span>
-              </div>
-            ))}
+          <div style={{
+            marginTop: spacing.xl, padding: spacing.lg, borderRadius: borderRadius.xl,
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.10) 0%, rgba(212,175,55,0.03) 100%)',
+            border: '1px solid rgba(212,175,55,0.28)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+              <ShieldCheck size={18} style={{ color: colors.gold.primary, flexShrink: 0 }} />
+              <p style={{ color: colors.text.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, margin: 0 }}>
+                Your competition won’t go live until:
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+              {[
+                'You approve the competition',
+                'Your Stripe identity verification (KYC) is approved',
+                'You’ve signed the Host Agreement',
+              ].map((t) => (
+                <div key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm, color: colors.text.secondary, fontSize: typography.fontSize.sm, lineHeight: 1.5 }}>
+                  <CheckCircle size={15} style={{ color: colors.gold.primary, flexShrink: 0, marginTop: 2 }} />
+                  <span>{t}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -502,114 +524,97 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       {/* FORMAT */}
       {step === 'format' && !loading && (
         <div>
-          <label style={labelStyle}>Competition name</label>
-          <input style={fieldStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Most Eligible Austin" />
-          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: -spacing.md, marginBottom: spacing.lg }}>
-            This becomes the title winners earn — make it a social accolade they’ll be excited to promote (e.g. “Realtor of the Year”).
-          </p>
+          {field('Competition name',
+            <input style={controlStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Most Eligible Austin" />,
+            'This becomes the title winners earn — make it a social accolade they’ll be excited to promote (e.g. “Realtor of the Year”).')}
 
-          <label style={labelStyle}>When do you plan to launch?</label>
-          <select style={fieldStyle} value={form.plannedLaunchTimeframe} onChange={(e) => set('plannedLaunchTimeframe', e.target.value)}>
-            <option value="">Select a timeframe…</option>
-            {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
-          </select>
-          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: -spacing.md, marginBottom: spacing.lg }}>
-            We don’t recommend launching in less than 4 weeks — you’ll need time for KYC, the agreement, and building entries. You’ll set exact dates before publishing.
-          </p>
+          {field('When do you plan to launch?',
+            <select style={controlStyle} value={form.plannedLaunchTimeframe} onChange={(e) => set('plannedLaunchTimeframe', e.target.value)}>
+              <option value="">Select a timeframe…</option>
+              {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+            </select>,
+            'We don’t recommend launching in less than 4 weeks — you’ll need time for KYC, the agreement, and building entries. You’ll set exact dates before publishing.')}
 
-          <div style={{ display: 'flex', gap: spacing.md }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Number of winners</label>
-              <input style={fieldStyle} type="number" min="1" value={form.numberOfWinners} onChange={(e) => set('numberOfWinners', e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Entry type</label>
-              <select style={fieldStyle} value={form.entryType} onChange={(e) => set('entryType', e.target.value)}>
-                <option value="nominations">Nomination</option>
-                <option value="applications">Application</option>
-              </select>
-            </div>
-          </div>
-          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: -spacing.sm, marginBottom: spacing.lg }}>
-            {ENTRY_TYPE_HELP[form.entryType]}
-          </p>
-          <label style={labelStyle}>How they win</label>
-          <select style={fieldStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
-            <option value="votes">Public votes</option>
-            <option value="hybrid">Votes + judges (hybrid)</option>
-            <option value="judges">Judges only</option>
-          </select>
-          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginBottom: spacing.lg }}>
-            Entering is free for contestants; the competition is funded by paid voting (pricing is set by EliteRank).
-          </p>
+          {field(null,
+            <div style={{ display: 'flex', gap: spacing.md }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Number of winners</label>
+                <input style={controlStyle} type="number" min="1" value={form.numberOfWinners} onChange={(e) => set('numberOfWinners', e.target.value)} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Entry type</label>
+                <select style={controlStyle} value={form.entryType} onChange={(e) => set('entryType', e.target.value)}>
+                  <option value="nominations">Nomination</option>
+                  <option value="applications">Application</option>
+                </select>
+              </div>
+            </div>,
+            ENTRY_TYPE_HELP[form.entryType])}
+
+          {field('How they win',
+            <select style={controlStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
+              <option value="votes">Public votes</option>
+              <option value="hybrid">Votes + judges (hybrid)</option>
+              <option value="judges">Judges only</option>
+            </select>,
+            'Entering is free for contestants; the competition is funded by paid voting (pricing is set by EliteRank).')}
 
           {/* Eligibility (folded into Format) */}
-          <label style={labelStyle}>Territory</label>
-          <select style={fieldStyle} value={form.territoryScope} onChange={(e) => set('territoryScope', e.target.value)}>
-            <option value="city">City-wide</option>
-            <option value="state">State-wide</option>
-            <option value="us">US-wide</option>
-          </select>
+          {field('Territory',
+            <select style={controlStyle} value={form.territoryScope} onChange={(e) => set('territoryScope', e.target.value)}>
+              <option value="city">City-wide</option>
+              <option value="state">State-wide</option>
+              <option value="us">US-wide</option>
+            </select>,
+            form.territoryScope === 'us' ? 'Open to entrants across the United States.' : null)}
 
-          {form.territoryScope === 'city' && (
+          {form.territoryScope === 'city' && field(null,
             <div style={{ display: 'flex', gap: spacing.md }}>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>City</label>
-                <select style={fieldStyle} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
+                <select style={controlStyle} value={form.cityId} onChange={(e) => set('cityId', e.target.value)}>
                   <option value="">Select a city…</option>
                   {lookups.cities.map((c) => (<option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>))}
                 </select>
               </div>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Radius (miles)</label>
-                <input style={fieldStyle} type="number" min="1" value={form.eligibilityRadius} onChange={(e) => set('eligibilityRadius', e.target.value)} />
+                <input style={controlStyle} type="number" min="1" value={form.eligibilityRadius} onChange={(e) => set('eligibilityRadius', e.target.value)} />
               </div>
-            </div>
-          )}
-          {form.territoryScope === 'state' && (
-            <>
-              <label style={labelStyle}>State</label>
-              <select style={fieldStyle} value={form.territoryState} onChange={(e) => set('territoryState', e.target.value)}>
-                <option value="">Select a state…</option>
-                {US_STATES.map((s) => (<option key={s} value={s}>{s}</option>))}
-              </select>
-            </>
-          )}
-          {form.territoryScope === 'us' && (
-            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
-              Open across the US.
-            </p>
-          )}
+            </div>)}
 
-          <label style={labelStyle}>Who can enter</label>
-          <div style={{ display: 'flex', gap: spacing.md }}>
-            <div style={{ flex: 1.2 }}>
-              <select style={fieldStyle} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
-                <option value="all">All genders</option>
-                <option value="female">Women</option>
-                <option value="male">Men</option>
-                <option value="LGBTQ+">LGBTQ+</option>
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <input style={fieldStyle} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <input style={fieldStyle} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} />
-            </div>
-          </div>
-          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginBottom: spacing.lg }}>All competitions are 18+.</p>
-          {template?.relationshipRelevant && (
-            <>
-              <label style={labelStyle}>Relationship status</label>
-              <select style={fieldStyle} value={form.relationshipStatus} onChange={(e) => set('relationshipStatus', e.target.value)}>
-                <option value="">Any</option>
-                <option value="single">Single</option>
-                <option value="engaged">Engaged</option>
-                <option value="married">Married</option>
-              </select>
-            </>
-          )}
+          {form.territoryScope === 'state' && field('State',
+            <select style={controlStyle} value={form.territoryState} onChange={(e) => set('territoryState', e.target.value)}>
+              <option value="">Select a state…</option>
+              {US_STATES.map((s) => (<option key={s} value={s}>{s}</option>))}
+            </select>)}
+
+          {field('Who can enter',
+            <div style={{ display: 'flex', gap: spacing.md }}>
+              <div style={{ flex: 1.2 }}>
+                <select style={controlStyle} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
+                  <option value="all">All genders</option>
+                  <option value="female">Women</option>
+                  <option value="male">Men</option>
+                  <option value="LGBTQ+">LGBTQ+</option>
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <input style={controlStyle} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <input style={controlStyle} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} />
+              </div>
+            </div>,
+            'All competitions are 18+.')}
+
+          {template?.relationshipRelevant && field('Relationship status',
+            <select style={controlStyle} value={form.relationshipStatus} onChange={(e) => set('relationshipStatus', e.target.value)}>
+              <option value="">Any</option>
+              <option value="single">Single</option>
+              <option value="engaged">Engaged</option>
+              <option value="married">Married</option>
+            </select>)}
           {errEl}
         </div>
       )}
