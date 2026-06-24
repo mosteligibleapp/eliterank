@@ -29,16 +29,18 @@ const NOMINATION_REC = {
   us: { weeks: 12, label: 'nationwide' },
 };
 
-// timestamptz → 'YYYY-MM-DD' for a <input type="date">. Slicing the ISO string
-// avoids a timezone day-shift from new Date().
-const toDateInput = (v) => (v ? String(v).slice(0, 10) : '');
+// timestamptz → 'YYYY-MM-DDTHH:mm' for an <input type="datetime-local">.
+// Slicing the ISO string avoids a timezone shift from new Date().
+const toDateInput = (v) => (v ? String(v).slice(0, 16) : '');
 
-// Add whole weeks to a 'YYYY-MM-DD' value, in UTC, returning 'YYYY-MM-DD'.
+// Add whole weeks to a 'YYYY-MM-DDTHH:mm' value, preserving the time.
 const addWeeks = (value, weeks) => {
   if (!value) return '';
-  const d = new Date(`${value}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + weeks * 7);
-  return d.toISOString().slice(0, 10);
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() + weeks * 7);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 /**
@@ -321,11 +323,11 @@ export function NominationFormEditor({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
             <div>
               <label style={{ display: 'block', fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Opens</label>
-              <input type="date" value={nomStart} onChange={(e) => setNomStart(e.target.value)} style={inputStyle} />
+              <input type="datetime-local" value={nomStart} onChange={(e) => setNomStart(e.target.value)} style={{ ...inputStyle, colorScheme: 'dark' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Closes</label>
-              <input type="date" value={nomEnd} min={nomStart || undefined} onChange={(e) => setNomEnd(e.target.value)} style={inputStyle} />
+              <input type="datetime-local" value={nomEnd} min={nomStart || undefined} onChange={(e) => setNomEnd(e.target.value)} style={{ ...inputStyle, colorScheme: 'dark' }} />
               {nomStart && (
                 <button
                   type="button"
