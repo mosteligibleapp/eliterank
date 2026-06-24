@@ -17,14 +17,14 @@ const PHASES = [
   { key: 'draft', label: 'Draft' },
   { key: 'pending_approval', label: 'Submitted' },
   { key: 'approved', label: 'Approved' },
-  { key: 'publish', label: 'Entry open' },
+  { key: 'publish', label: 'Published' },
+  { key: 'nomination', label: 'Entry open' },
   { key: 'live', label: 'Live' },
   { key: 'completed', label: 'Completed' },
 ];
 
 function phaseIndex(status) {
-  if (status === 'nomination') return 3;
-  if (status === 'voting' || status === 'finals') return 4;
+  if (status === 'voting' || status === 'finals') return 5; // Live
   const i = PHASES.findIndex((p) => p.key === status);
   return i === -1 ? 0 : i;
 }
@@ -166,9 +166,14 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
           </>
         )}
 
-        {(status === 'publish' || status === 'nomination') && (
+        {status === 'publish' && (
           <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-            🎉 Live to the public — you're in the <strong>entry period</strong> (applications / nominations open).
+            🎉 <strong>Published</strong> — your competition page is live to the public. Entry opens on your nomination start date.
+          </p>
+        )}
+        {status === 'nomination' && (
+          <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+            📝 <strong>Entry period open</strong> — applications / nominations are being collected.
           </p>
         )}
         {(status === 'live' || status === 'voting' || status === 'finals') && (
