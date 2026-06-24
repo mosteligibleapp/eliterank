@@ -131,7 +131,7 @@ function LockedSection({ title, icon: Icon = Lock, reason }) {
       style={{ opacity: 0.5, pointerEvents: 'none' }}
       action={<Lock size={16} style={{ color: colors.text.muted }} />}
     >
-      <div style={{ padding: spacing.xl, display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+      <div style={{ padding: `${spacing.sm} ${spacing.xl} ${spacing.lg}`, display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.muted, fontSize: typography.fontSize.sm }}>
         <Lock size={14} style={{ flexShrink: 0 }} />
         <span>{reason}</span>
       </div>
