@@ -13,6 +13,7 @@ import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
 import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import { getReachedTierLabel } from '../../../../utils/roundLabels';
+import { getNominationWindow } from '../../../../utils/competitionPhase';
 import WinnersManager from '../WinnersManager';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
@@ -105,6 +106,21 @@ export default function PeopleTab({
   const [genderFilter, setGenderFilter] = useState('all');
 
   const splitByGender = !!competition?.winnersSplitByGender;
+
+  // Adding nominees is gated on the nomination open date — a host can't seed
+  // their field before nominations have actually opened. Until then the add
+  // controls are disabled and we say when (and where to set it).
+  const nomWindow = getNominationWindow(competition);
+  const canAddNominee = nomWindow.state === 'open' || nomWindow.state === 'ended';
+  const nomOpenDateLabel = nomWindow.start
+    ? nomWindow.start.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+  const addNomineeBlockedReason = canAddNominee
+    ? null
+    : nomWindow.state === 'upcoming'
+      ? `Nominations open ${nomOpenDateLabel}. You’ll be able to add nominees then.`
+      : 'Set your nomination dates in the Setup tab, then you can add nominees.';
+
   const isLegacy = competition?.is_legacy;
   const isCompleted = competition?.status === 'completed';
   const showReorder = isLegacy || isCompleted;
@@ -983,12 +999,30 @@ export default function PeopleTab({
             lineHeight: 1.6,
             marginBottom: spacing.lg,
           }}>
-            Share your competition link to collect nominations, or add people manually to get started.
+            {canAddNominee
+              ? 'Share your competition link to collect nominations, or add people manually to get started.'
+              : 'Once nominations open, you can collect them from your competition link or add people manually.'}
           </p>
-          <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
-            <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
-              Add Nominee
-            </Button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+            <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+              <Button
+                size="sm"
+                icon={Plus}
+                disabled={!canAddNominee}
+                onClick={() => onOpenAddPersonModal('nominee')}
+              >
+                Add Nominee
+              </Button>
+            </div>
+            {addNomineeBlockedReason && (
+              <p style={{
+                display: 'flex', alignItems: 'center', gap: spacing.xs,
+                color: colors.text.muted, fontSize: typography.fontSize.xs, margin: 0,
+              }}>
+                <Clock size={12} style={{ flexShrink: 0 }} />
+                {addNomineeBlockedReason}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -1454,9 +1488,16 @@ export default function PeopleTab({
         collapsible
         defaultCollapsed
         action={
-          <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
-            Add
-          </Button>
+          <span title={addNomineeBlockedReason || undefined}>
+            <Button
+              size="sm"
+              icon={Plus}
+              disabled={!canAddNominee}
+              onClick={() => onOpenAddPersonModal('nominee')}
+            >
+              Add
+            </Button>
+          </span>
         }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>

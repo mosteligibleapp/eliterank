@@ -336,6 +336,58 @@ export function isCompetitionViewable(phase) {
 }
 
 /**
+ * Resolve the competition's nomination window into a simple state machine the
+ * UI can gate on. Tolerant of both the new `nomination_periods` array and the
+ * legacy flat fields, and of both camelCase (dashboard) and snake_case (raw row)
+ * shapes.
+ *
+ * @param {Object} competition
+ * @returns {{ state: 'no_date'|'upcoming'|'open'|'ended', start: Date|null, end: Date|null }}
+ *   - no_date:  no nomination start set yet
+ *   - upcoming: start date is in the future
+ *   - open:     now is within [start, end)
+ *   - ended:    end date has passed
+ */
+export function getNominationWindow(competition) {
+  if (!competition) return { state: 'no_date', start: null, end: null };
+
+  const periods = competition.nomination_periods || competition.nominationPeriods || [];
+  let start = null;
+  let end = null;
+
+  if (periods.length > 0) {
+    const sorted = [...periods].sort((a, b) => (a.period_order || 0) - (b.period_order || 0));
+    start = sorted[0]?.start_date ? new Date(sorted[0].start_date) : null;
+    end = sorted[sorted.length - 1]?.end_date ? new Date(sorted[sorted.length - 1].end_date) : null;
+  } else {
+    const s = competition.nominationStart || competition.nomination_start;
+    const e = competition.nominationEnd || competition.nomination_end;
+    start = s ? new Date(s) : null;
+    end = e ? new Date(e) : null;
+  }
+
+  if (!start || Number.isNaN(start.getTime())) return { state: 'no_date', start: null, end };
+
+  const now = new Date();
+  if (now < start) return { state: 'upcoming', start, end };
+  if (end && !Number.isNaN(end.getTime()) && now >= end) return { state: 'ended', start, end };
+  return { state: 'open', start, end };
+}
+
+/**
+ * Whether the host is allowed to add nominees right now. Adding is gated on the
+ * nomination open date — a host can't seed nominees before nominations have
+ * actually opened. True once the open date has passed (window open or ended).
+ *
+ * @param {Object} competition
+ * @returns {boolean}
+ */
+export function canHostAddNominees(competition) {
+  const { state } = getNominationWindow(competition);
+  return state === 'open' || state === 'ended';
+}
+
+/**
  * Check if nomination dates are set (required for active status)
  * Supports both nomination_periods array and flat fields
  *

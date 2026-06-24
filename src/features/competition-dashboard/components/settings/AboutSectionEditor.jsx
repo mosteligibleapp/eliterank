@@ -36,19 +36,25 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
   const [warningModal, setWarningModal] = useState({ open: false, field: null });
   const [pendingChanges, setPendingChanges] = useState(null);
 
-  // Initialize form with competition data or org defaults
+  // Initialize the form. We prefill every field with the auto-generated default
+  // (built from the org name, competition name, territory & demographic on file)
+  // when the host hasn't set their own value yet — so the section reads as fully
+  // filled-in and one Save persists it to the public page. Saved values always
+  // win over the generated default.
   useEffect(() => {
     if (competition) {
-      setDescription(competition.about_description || '');
+      setDescription(competition.about_description || defaults.description || '');
       setTraits(
         competition.about_traits?.length
           ? [...competition.about_traits, '', '', '', ''].slice(0, 4)
-          : organization?.default_about_traits || ['', '', '', '']
+          : organization?.default_about_traits?.length
+            ? [...organization.default_about_traits, '', '', '', ''].slice(0, 4)
+            : [...(defaults.traits || []), '', '', '', ''].slice(0, 4)
       );
-      setAgeRange(competition.about_age_range || organization?.default_age_range || '');
-      setRequirement(competition.about_requirement || organization?.default_requirement || '');
+      setAgeRange(competition.about_age_range || organization?.default_age_range || defaults.ageRange || '');
+      setRequirement(competition.about_requirement || organization?.default_requirement || defaults.requirement || '');
     }
-  }, [competition, organization]);
+  }, [competition, organization, defaults]);
 
   // Check if form has changes
   const hasChanges = () => {
@@ -88,22 +94,28 @@ export function AboutSectionEditor({ competition, organization, onSave }) {
     const updates = {};
     const changedFields = [];
 
-    if (description !== (competition.about_description || '')) {
+    // Only persist a field if it's editable in the current phase — the inputs
+    // are disabled when locked, but we also prefill them with defaults, so guard
+    // the save so a locked field (e.g. age range / requirement after submit)
+    // can't be written by the prefill.
+    const canEdit = (field) => isFieldEditable(field, status) !== false;
+
+    if (canEdit('about_description') && description !== (competition.about_description || '')) {
       updates.about_description = description || null;
       changedFields.push('about_description');
     }
 
     const cleanTraits = traits.filter((t) => t.trim());
-    if (JSON.stringify(cleanTraits) !== JSON.stringify(competition.about_traits || [])) {
+    if (canEdit('about_traits') && JSON.stringify(cleanTraits) !== JSON.stringify(competition.about_traits || [])) {
       updates.about_traits = cleanTraits.length > 0 ? cleanTraits : null;
       changedFields.push('about_traits');
     }
 
-    if (ageRange !== (competition.about_age_range || organization?.default_age_range || '')) {
+    if (canEdit('about_age_range') && ageRange !== (competition.about_age_range || organization?.default_age_range || '')) {
       updates.about_age_range = ageRange || null;
       changedFields.push('about_age_range');
     }
-    if (requirement !== (competition.about_requirement || organization?.default_requirement || '')) {
+    if (canEdit('about_requirement') && requirement !== (competition.about_requirement || organization?.default_requirement || '')) {
       updates.about_requirement = requirement || null;
       changedFields.push('about_requirement');
     }
