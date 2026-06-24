@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, Settings as SettingsIcon,
-  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe, Lock
+  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe, Lock, Gauge
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -21,7 +21,7 @@ import { COMPETITION_STATUS } from '../../types/competition';
 // Consolidated tab navigation. Launch leads — it's the guided checklist for
 // getting a competition live; the rest are the day-to-day management surfaces.
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
+  { id: 'dashboard', label: 'Status', shortLabel: 'Status', icon: Gauge },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
   { id: 'activity', label: 'Activity', shortLabel: 'Activity', icon: Activity },
   { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },

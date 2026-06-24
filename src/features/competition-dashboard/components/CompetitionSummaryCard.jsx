@@ -86,6 +86,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
       orgLogoUrl: c.organizationLogoUrl || '',
       orgWebsite: c.organizationWebsiteUrl || '',
       orgInstagram: c.organizationInstagram || '',
+      showPublicHost: c.showPublicHost !== false,
       templateId: tplId,
       customCategory: tplId === CUSTOM_TEMPLATE.id ? (c.categoryTemplate || '') : '',
       territoryScope: c.territoryScope || 'city',
@@ -160,6 +161,7 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
         planned_launch_timeframe: form.plannedLaunchTimeframe || null,
         cash_prize_amount: form.cashPrizeYes ? (Number(form.cashPrizeAmount) || 0) : null,
         has_sponsored_prizes: !!form.sponsoredPrizesYes,
+        show_public_host: !!form.showPublicHost,
       };
 
       const { error: e } = await supabase.from('competitions').update(updates).eq('id', c.id);
@@ -309,6 +311,14 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
             </div>
           </div>
           <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm }}>Add at least one — a website or Instagram.</p>
+
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm, marginTop: spacing.md, cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.showPublicHost} onChange={(e) => set('showPublicHost', e.target.checked)} style={{ marginTop: 3, accentColor: colors.gold.primary }} />
+            <span>
+              <span style={{ color: colors.text.primary, fontSize: typography.fontSize.sm }}>Show me as the public-facing host</span>
+              <span style={{ ...helpStyle, display: 'block', marginTop: 2 }}>Displays you (the creator) as the host on the public page. On by default — turn off to keep the host private.</span>
+            </span>
+          </label>
         </div>
 
         {/* Category & format */}

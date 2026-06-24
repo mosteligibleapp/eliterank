@@ -620,6 +620,7 @@ export function useCompetitionDashboard(competitionId) {
           cashPrizeAmount: competition.cash_prize_amount ?? null,
           hasSponsoredPrizes: !!competition.has_sponsored_prizes,
           prizeReviewRequired: !!competition.prize_review_required,
+          showPublicHost: competition.show_public_host !== false,
           // Additional fields for card generation and links
           slug: competition.slug || null,
           organizationName: competition.organization?.name || null,

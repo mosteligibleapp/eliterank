@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Circle, Loader, Landmark, FileText, ClipboardList, Send, Rocket, Lock, ChevronRight, CalendarClock } from 'lucide-react';
+import { CheckCircle, Circle, Loader, Landmark, FileText, ClipboardList, Send, Rocket, Lock, ChevronRight, CalendarClock, Milestone } from 'lucide-react';
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
@@ -67,7 +67,7 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
   };
 
   return (
-    <Panel title="Launch status" icon={Rocket} style={{ marginBottom: 0 }}>
+    <Panel title="Competition phase" icon={Milestone} style={{ marginBottom: 0 }}>
       <div style={{ padding: spacing.xl }}>
         {/* Phase stepper */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: spacing.xl }}>
