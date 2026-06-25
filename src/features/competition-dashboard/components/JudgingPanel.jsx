@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Check, X, Sliders, Award, Calendar, CheckCircle2, Circle } from 'lucide-react';
 import { Button, Panel, Input } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -144,6 +144,19 @@ export default function JudgingPanel({
   const separateJudgingRound = sortedRounds.find((r) => r.round_type === 'judging') || null;
   const judgingMode = !judgingRound ? 'none' : (judgingRound.round_type === 'judging' ? 'separate' : 'blend');
 
+  // A separate judging round is always 100% judges. Normalize any stray value
+  // below 100 (e.g. from an earlier build where it was adjustable). Guard on
+  // !== 100 so this writes once and then no-ops after the refetch.
+  useEffect(() => {
+    if (separateJudgingRound && (separateJudgingRound.judge_weight || 0) !== 100) {
+      supabase
+        .from('voting_rounds')
+        .update({ judge_weight: 100 })
+        .eq('id', separateJudgingRound.id)
+        .then(() => onRefresh?.());
+    }
+  }, [separateJudgingRound?.id, separateJudgingRound?.judge_weight, onRefresh]);
+
   // Blend judging into the final voting round (judges 60%+ — the skill-contest floor).
   const applyBlend = async () => {
     if (!lastVotingRound || busy) return;
@@ -178,8 +191,8 @@ export default function JudgingPanel({
         if ((r.judge_weight || 0) > 0) await supabase.from('voting_rounds').update({ judge_weight: 0 }).eq('id', r.id);
       }
       if (separateJudgingRound) {
-        const w = (separateJudgingRound.judge_weight || 0) > 0 ? separateJudgingRound.judge_weight : 100;
-        await supabase.from('voting_rounds').update({ judge_weight: w }).eq('id', separateJudgingRound.id);
+        // A separate judging round is always 100% judges — never less.
+        await supabase.from('voting_rounds').update({ judge_weight: 100 }).eq('id', separateJudgingRound.id);
       } else {
         // Create it right after the last voting round: starts when voting ends,
         // runs ~5 days, judges decide, advancing to the number of winners.
@@ -505,40 +518,54 @@ function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefres
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: 2 }}>
             {isBlendRound
               ? `Judges score this round alongside public votes — ${weight}% judges · ${100 - weight}% votes.`
-              : `Judges alone decide this round after voting closes${weight === 100 ? ' — 100% judges' : ` — ${weight}% judges · ${100 - weight}% votes`}.`}
+              : 'Judges alone decide this round after voting closes — 100% judges.'}
             {round.contestants_advance > 0 && ` Top ${round.contestants_advance} advance.`}
           </p>
         </div>
-        <input
-          type="range"
-          min={60}
-          max={100}
-          step={5}
-          value={weight}
-          onChange={(e) => setWeight(Math.max(60, parseInt(e.target.value, 10)))}
-          style={{ width: 140, accentColor: colors.gold.primary }}
-        />
-        <input
-          type="number"
-          min={60}
-          max={100}
-          value={weight}
-          onChange={(e) => setWeight(Math.max(60, Math.min(100, parseInt(e.target.value || '60', 10))))}
-          style={{
-            width: 60,
-            padding: `${spacing.xs} ${spacing.sm}`,
-            background: colors.background.secondary,
-            border: `1px solid ${colors.border.primary}`,
-            borderRadius: borderRadius.sm,
-            color: colors.text.primary,
-            textAlign: 'right',
-            fontSize: typography.fontSize.sm,
-          }}
-        />
-        <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>%</span>
-        <Button size="sm" disabled={!dirty || saving} onClick={save}>
-          {saving ? 'Saving…' : 'Save'}
-        </Button>
+        {isBlendRound ? (
+          <>
+            <input
+              type="range"
+              min={60}
+              max={100}
+              step={5}
+              value={weight}
+              onChange={(e) => setWeight(Math.max(60, parseInt(e.target.value, 10)))}
+              style={{ width: 140, accentColor: colors.gold.primary }}
+            />
+            <input
+              type="number"
+              min={60}
+              max={100}
+              value={weight}
+              onChange={(e) => setWeight(Math.max(60, Math.min(100, parseInt(e.target.value || '60', 10))))}
+              style={{
+                width: 60,
+                padding: `${spacing.xs} ${spacing.sm}`,
+                background: colors.background.secondary,
+                border: `1px solid ${colors.border.primary}`,
+                borderRadius: borderRadius.sm,
+                color: colors.text.primary,
+                textAlign: 'right',
+                fontSize: typography.fontSize.sm,
+              }}
+            />
+            <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>%</span>
+            <Button size="sm" disabled={!dirty || saving} onClick={save}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </>
+        ) : (
+          // A separate judging round is always 100% judges — fixed, not adjustable.
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap',
+            padding: `${spacing.xs} ${spacing.md}`, borderRadius: borderRadius.sm,
+            background: 'rgba(212,175,55,0.12)', border: `1px solid ${colors.gold.primary}55`,
+            color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold,
+          }}>
+            100% judges
+          </span>
+        )}
       </div>
 
       {isJudgingRound && (
