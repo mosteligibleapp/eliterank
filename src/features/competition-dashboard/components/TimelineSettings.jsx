@@ -550,11 +550,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           contestants_advance: round.contestants_advance || 10,
           tier_label: round.tier_label?.trim() || null,
           votes_reset_at_start: !!round.votes_reset_at_start,
-          // Round-trip the judging weight (loaded via select('*')) so the
-          // recommended-schedule seed (60% on the final round) persists and an
-          // existing blend isn't zeroed on save. The Judging section remains
-          // where hosts switch between blend and a separate judge-only round.
-          judge_weight: round.judge_weight ?? 0,
+          // judge_weight is owned by the Judging section for existing rounds.
+          // Only seed it on INSERT (e.g. the recommended-schedule fill, which
+          // creates fresh id-less rounds) so the 60% blend persists — and a
+          // stale timeline save can never overwrite a weight set in JudgingPanel.
+          ...(round.id ? {} : { judge_weight: round.judge_weight ?? 0 }),
         }),
       });
 
