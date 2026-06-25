@@ -4,7 +4,10 @@ import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { slugify, generateCompetitionSlug } from '../../utils/slugs';
-import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES, LAUNCH_TIMEFRAMES, ENTRY_TYPE_HELP } from '../../lib/competitionTemplates';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES, ENTRY_TYPE_HELP } from '../../lib/competitionTemplates';
+
+// Age options for the eligibility selects (all competitions are 18+).
+const AGE_OPTIONS = Array.from({ length: 80 - 18 + 1 }, (_, i) => 18 + i);
 import { CALENDLY_URL } from '../../lib/scheduling';
 
 const NEW_ORG = '__new__';
@@ -150,7 +153,6 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
     }
     if (s === 'format') {
       if (!form.name.trim()) return 'Enter a competition name.';
-      if (!form.plannedLaunchTimeframe) return 'Choose when you plan to launch.';
       if (form.territoryScope === 'city' && !form.cityId) return 'Pick a city.';
       if (form.territoryScope === 'state' && !form.territoryState) return 'Pick a state.';
       if (!form.ageMin || Number(form.ageMin) < 18) return 'Minimum age must be 18 or older — all competitions are 18+.';
@@ -528,13 +530,6 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             <input style={controlStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Most Eligible Austin" />,
             'This becomes the title winners earn — make it a social accolade they’ll be excited to promote (e.g. “Realtor of the Year”).')}
 
-          {field('When do you plan to launch?',
-            <select style={controlStyle} value={form.plannedLaunchTimeframe} onChange={(e) => set('plannedLaunchTimeframe', e.target.value)}>
-              <option value="">Select a timeframe…</option>
-              {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
-            </select>,
-            'We don’t recommend launching in less than 4 weeks — you’ll need time for KYC, the agreement, and building entries. You’ll set exact dates before publishing.')}
-
           {field(null,
             <div style={{ display: 'flex', gap: spacing.md }}>
               <div style={{ flex: 1 }}>
@@ -591,6 +586,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
           {field('Who can enter',
             <div style={{ display: 'flex', gap: spacing.md }}>
               <div style={{ flex: 1.2 }}>
+                <label style={labelStyle}>Gender</label>
                 <select style={controlStyle} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
                   <option value="all">All genders</option>
                   <option value="female">Women</option>
@@ -599,10 +595,17 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
                 </select>
               </div>
               <div style={{ flex: 1 }}>
-                <input style={controlStyle} type="number" min="18" placeholder="Min age" value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)} />
+                <label style={labelStyle}>Min age</label>
+                <select style={controlStyle} value={form.ageMin} onChange={(e) => set('ageMin', e.target.value)}>
+                  {AGE_OPTIONS.map((n) => (<option key={n} value={n}>{n}</option>))}
+                </select>
               </div>
               <div style={{ flex: 1 }}>
-                <input style={controlStyle} type="number" min="18" placeholder="Max (blank = none)" value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)} />
+                <label style={labelStyle}>Max age</label>
+                <select style={controlStyle} value={form.ageMax} onChange={(e) => set('ageMax', e.target.value)}>
+                  <option value="">No max</option>
+                  {AGE_OPTIONS.map((n) => (<option key={n} value={n}>{n}</option>))}
+                </select>
               </div>
             </div>,
             'All competitions are 18+.')}
@@ -678,7 +681,6 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             ['Cash prize', form.cashPrizeYes ? `$${Number(form.cashPrizeAmount) || 0}` : 'No'],
             ['Sponsored prizes', form.sponsoredPrizesYes ? 'Yes' : 'No'],
             ['Charity', form.charityYes ? `${form.charityPercentage}% of proceeds` : 'No'],
-            ['Planned launch', LAUNCH_TIMEFRAMES.find((t) => t.id === form.plannedLaunchTimeframe)?.label || '—'],
             ['Season', form.season],
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: `${spacing.sm} 0`, borderBottom: `1px solid ${colors.border.secondary}`, fontSize: typography.fontSize.sm }}>

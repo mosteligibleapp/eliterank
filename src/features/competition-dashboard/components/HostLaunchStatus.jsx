@@ -5,6 +5,7 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { supabase } from '../../../lib/supabase';
 import { hasAcceptedCurrentAgreement } from '../../../lib/hostAgreement';
 import { CALENDLY_URL } from '../../../lib/scheduling';
+import { LAUNCH_TIMEFRAMES } from '../../../lib/competitionTemplates';
 
 /**
  * HostLaunchStatus — the competition lifecycle tracker on the host dashboard.
@@ -36,6 +37,10 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
   // Host must explicitly confirm they've reviewed Setup + their public page
   // before they can publish (the approved-phase gate below).
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  // Asked once, here at submit-for-review (moved out of the create wizard).
+  const [launchTimeframe, setLaunchTimeframe] = useState(
+    competition?.plannedLaunchTimeframe || competition?.planned_launch_timeframe || ''
+  );
   if (!competition) return null;
 
   const status = competition.status || 'draft';
@@ -58,6 +63,26 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
     setBusy(true); setError(null);
     try {
       const { error: e } = await supabase.rpc(fn, { p_competition_id: competition.id });
+      if (e) throw e;
+      onRefresh?.();
+    } catch (err) {
+      setError(err.message || 'Something went wrong.');
+    } finally { setBusy(false); }
+  };
+
+  // Submit-for-approval: persist the planned launch timeframe (asked here, once)
+  // then flip the status via the RPC.
+  const submitForApproval = async () => {
+    setBusy(true); setError(null);
+    try {
+      if (launchTimeframe) {
+        const { error: upErr } = await supabase
+          .from('competitions')
+          .update({ planned_launch_timeframe: launchTimeframe })
+          .eq('id', competition.id);
+        if (upErr) throw upErr;
+      }
+      const { error: e } = await supabase.rpc('submit_for_approval', { p_competition_id: competition.id });
       if (e) throw e;
       onRefresh?.();
     } catch (err) {
@@ -136,8 +161,28 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
                   Double-check your competition summary below — once you submit, the core details lock and can only be changed by contacting support. Not sure about something? Shoot us an email at{' '}
                   <a href="mailto:info@eliterank.co" style={{ color: colors.gold.primary }}>info@eliterank.co</a>.
                 </p>
+                <div style={{ marginBottom: spacing.md }}>
+                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.xs }}>
+                    When do you plan to launch?
+                  </label>
+                  <select
+                    value={launchTimeframe}
+                    onChange={(e) => setLaunchTimeframe(e.target.value)}
+                    style={{
+                      width: '100%', padding: spacing.sm, background: colors.background.card,
+                      border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md,
+                      color: colors.text.primary, fontSize: typography.fontSize.sm, colorScheme: 'dark',
+                    }}
+                  >
+                    <option value="">Select a timeframe…</option>
+                    {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+                  </select>
+                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, margin: `${spacing.xs} 0 0` }}>
+                    We don’t recommend launching in less than 4 weeks — you’ll need time for KYC, the agreement, and building entries. You’ll set exact dates before publishing.
+                  </p>
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-                  <Button onClick={() => callRpc('submit_for_approval')} disabled={busy} icon={busy ? Loader : Send} style={{ width: 'auto' }}>
+                  <Button onClick={submitForApproval} disabled={busy || !launchTimeframe} icon={busy ? Loader : Send} style={{ width: 'auto' }}>
                     {busy ? 'Submitting…' : 'Confirm & submit'}
                   </Button>
                   <Button variant="ghost" onClick={() => setConfirming(false)} disabled={busy} style={{ width: 'auto' }}>
