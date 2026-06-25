@@ -46,9 +46,11 @@ function templateIdFor(label) {
   return match ? match.id : CUSTOM_TEMPLATE.id;
 }
 
-export default function CompetitionSummaryCard({ competition, onNavigateToTab, onRefresh }) {
+export default function CompetitionSummaryCard({ competition, onNavigateToTab, onRefresh, isSuperAdmin = false }) {
   const c = competition;
-  const editable = isFieldEditable('category', c?.status);
+  // Core details lock after submit, but super admins keep edit access to correct
+  // a published competition (e.g. fix a mis-set "How they win").
+  const editable = isSuperAdmin || isFieldEditable('category', c?.status);
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -96,7 +98,9 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
       ageMin: c.eligibilityAgeMin ?? 21,
       ageMax: c.eligibilityAgeMax ?? '',
       entryType: c.entryType || 'nominations',
-      selectionCriteria: c.selectionCriteria || 'votes',
+      // Pure public-vote is no longer supported; map a null/legacy 'votes' value
+      // to hybrid so a misconfigured competition opens on a valid choice.
+      selectionCriteria: (!c.selectionCriteria || c.selectionCriteria === 'votes') ? 'hybrid' : c.selectionCriteria,
       numberOfWinners: c.numberOfWinners ?? 5,
       charityYes: !!c.charityPercentage,
       charityPercentage: c.charityPercentage || 10,
@@ -331,11 +335,10 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
           <div>
             <label style={labelStyle}>How they win</label>
             <select style={fieldStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>
-              <option value="votes">Public votes</option>
               <option value="hybrid">Votes + judges</option>
               <option value="judges">Judges only</option>
             </select>
-            <p style={helpStyle}>How winners are decided — public voting, a judging panel, or both.</p>
+            <p style={helpStyle}>How winners are decided — a judging panel, or judges plus public votes. Judges always control the deciding round.</p>
           </div>
         </div>
 

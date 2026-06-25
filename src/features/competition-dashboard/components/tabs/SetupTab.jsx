@@ -612,7 +612,7 @@ export default function SetupTab({
           Setup is aligned with what they entered during onboarding. Editable in
           draft, locked thereafter (handled inside the card). */}
       <div style={{ ...sectionStyle('competitionDetails'), marginBottom: spacing.xxl }}>
-        <CompetitionSummaryCard competition={competition} onRefresh={onRefresh} />
+        <CompetitionSummaryCard competition={competition} onRefresh={onRefresh} isSuperAdmin={isSuperAdmin} />
       </div>
 
       {/* Intro for the publish-locked, public-facing sections below. Setup tab
@@ -699,7 +699,7 @@ export default function SetupTab({
             onDeleteCriterion={onDeleteCriterion}
             onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
             onRefresh={onRefresh}
-            locked={publishLocked}
+            locked={publishLocked && !isSuperAdmin}
             badge={lockBadge}
           />
         </div>
