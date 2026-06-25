@@ -61,6 +61,45 @@ const CITY_IMAGES = {
 // Default fallback image
 const DEFAULT_CITY_IMAGE = 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800&q=80';
 
+// ── State-wide & US-wide imagery ───────────────────────────────────────────
+// A state-wide competition shouldn't show a random city skyline — it should
+// reflect the state's landscape. We map each state to a regional landscape
+// (mountains, coast, forest, plains…) so the hero feels like the place. These
+// are a curated starting set and can be swapped for exact per-state photos; a
+// host-uploaded cover_image always takes priority over any of these.
+const LANDSCAPE = {
+  snowyMountains: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1600&q=80', // snow-capped peaks (Alaska / high country)
+  mountains: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1600&q=80',      // mountain valley + river
+  greenMountains: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1600&q=80', // rolling green hills (Appalachia)
+  beach: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=80',          // coastline / beach
+  forestLake: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1600&q=80',     // forest + lake
+  plains: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1600&q=80',         // open fields / plains
+};
+
+// State (2-letter code) → regional landscape.
+const STATE_IMAGES = {
+  AK: LANDSCAPE.snowyMountains, AL: LANDSCAPE.greenMountains, AR: LANDSCAPE.greenMountains,
+  AZ: LANDSCAPE.mountains, CA: LANDSCAPE.beach, CO: LANDSCAPE.snowyMountains,
+  CT: LANDSCAPE.forestLake, DE: LANDSCAPE.beach, FL: LANDSCAPE.beach,
+  GA: LANDSCAPE.greenMountains, HI: LANDSCAPE.beach, IA: LANDSCAPE.plains,
+  ID: LANDSCAPE.snowyMountains, IL: LANDSCAPE.plains, IN: LANDSCAPE.plains,
+  KS: LANDSCAPE.plains, KY: LANDSCAPE.greenMountains, LA: LANDSCAPE.beach,
+  MA: LANDSCAPE.forestLake, MD: LANDSCAPE.beach, ME: LANDSCAPE.forestLake,
+  MI: LANDSCAPE.forestLake, MN: LANDSCAPE.forestLake, MO: LANDSCAPE.greenMountains,
+  MS: LANDSCAPE.beach, MT: LANDSCAPE.snowyMountains, NC: LANDSCAPE.greenMountains,
+  ND: LANDSCAPE.plains, NE: LANDSCAPE.plains, NH: LANDSCAPE.snowyMountains,
+  NJ: LANDSCAPE.beach, NM: LANDSCAPE.mountains, NV: LANDSCAPE.mountains,
+  NY: LANDSCAPE.forestLake, OH: LANDSCAPE.plains, OK: LANDSCAPE.plains,
+  OR: LANDSCAPE.forestLake, PA: LANDSCAPE.greenMountains, RI: LANDSCAPE.beach,
+  SC: LANDSCAPE.beach, SD: LANDSCAPE.plains, TN: LANDSCAPE.greenMountains,
+  TX: LANDSCAPE.plains, UT: LANDSCAPE.mountains, VA: LANDSCAPE.greenMountains,
+  VT: LANDSCAPE.snowyMountains, WA: LANDSCAPE.forestLake, WI: LANDSCAPE.forestLake,
+  WV: LANDSCAPE.greenMountains, WY: LANDSCAPE.snowyMountains, DC: LANDSCAPE.greenMountains,
+};
+
+const DEFAULT_STATE_IMAGE = LANDSCAPE.mountains;
+const US_WIDE_IMAGE = LANDSCAPE.mountains;
+
 /**
  * Get background image URL for a competition
  * First checks for competition-specific images, then falls back to city images
@@ -104,6 +143,43 @@ export function getCityImage(cityName, competitionName = '') {
   }
 
   return DEFAULT_CITY_IMAGE;
+}
+
+/**
+ * Map a US state (2-letter code, e.g. "AK") to a regional landscape image.
+ * @param {string} state
+ * @returns {string} image URL
+ */
+export function getStateImage(state) {
+  if (!state) return DEFAULT_STATE_IMAGE;
+  const key = String(state).trim().toUpperCase();
+  return STATE_IMAGES[key] || DEFAULT_STATE_IMAGE;
+}
+
+/**
+ * Territory-aware hero/cover image for a competition. A host-uploaded cover
+ * always wins; otherwise state-wide → state landscape, US-wide → national
+ * landscape, city-wide → city skyline. Tolerant of snake_case or camelCase.
+ * @param {object} competition
+ * @returns {string} image URL
+ */
+export function getCompetitionImage(competition = {}) {
+  const cover = competition.cover_image || competition.coverImage;
+  if (cover) return cover;
+
+  const scope = String(competition.territory_scope || competition.territoryScope || '').toLowerCase();
+
+  if (scope === 'state') {
+    return getStateImage(competition.territory_state || competition.territoryState);
+  }
+  if (scope === 'us' || scope === 'us-wide' || scope === 'nationwide') {
+    return US_WIDE_IMAGE;
+  }
+
+  const cityName = typeof competition.city === 'string'
+    ? competition.city
+    : (competition.city?.name || competition.cityName || '');
+  return getCityImage(cityName, competition.name);
 }
 
 /**

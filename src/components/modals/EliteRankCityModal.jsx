@@ -28,7 +28,7 @@ import {
   isCompleted,
   compareByFinalizationProximity,
 } from '../../utils/competitionPhase';
-import { getCityImage } from '../../utils/cityImages';
+import { getCompetitionImage } from '../../utils/cityImages';
 import { SkeletonPulse, SkeletonCard, SkeletonText } from '../common/Skeleton';
 
 // Tab configuration
@@ -307,7 +307,7 @@ export default function EliteRankCityModal({
     // coming-soon ("Coming Soon") cards, so the redundant status badge is
     // omitted for those. Live cards keep their pulsing indicator.
     const hideStatusBadge = displayPhase === 'completed' || isPublished(competition.status);
-    const cityImage = competition.cover_image || getCityImage(competition.city, competition.name);
+    const cityImage = getCompetitionImage(competition);
     const org = getOrg(competition.organizationId);
 
     const getCtaText = () => {

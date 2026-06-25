@@ -13,7 +13,7 @@ import { JudgesSection } from '../components/JudgesSection';
 import { CharityHighlight } from '../components/CharityHighlight';
 import { HostCard } from '../components/HostCard';
 import { PoweredByEliteRank } from '../components/PoweredByEliteRank';
-import { getCityImage } from '../../../utils/cityImages';
+import { getCompetitionImage } from '../../../utils/cityImages';
 import { useAuthStore } from '../../../stores';
 import { useCompetitionSubscription } from '../../../features/competition/useCompetitionSubscription';
 
@@ -77,7 +77,7 @@ export function ComingSoonPhase() {
     || competition?.finals_date,
   );
 
-  const heroImage = competition?.cover_image || getCityImage(competition?.city, competition?.name);
+  const heroImage = getCompetitionImage(competition || {});
 
   return (
     <div
