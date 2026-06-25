@@ -39,10 +39,15 @@ function parseTypedDate(input) {
 
   const str = input.trim();
 
-  // Try direct ISO parse first
-  let date = new Date(str);
-  if (!isNaN(date.getTime())) {
-    return date.toISOString();
+  // A complete ISO instant with an explicit timezone — keep its exact instant.
+  // Naive strings (no offset) fall through and are parsed as UTC wall-clock
+  // below, matching the nomination editor / datetime-local convention.
+  let date;
+  if (/\d{4}-\d{2}-\d{2}t\d{2}:\d{2}.*(z|[+-]\d{2}:?\d{2})$/i.test(str)) {
+    date = new Date(str);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString();
+    }
   }
 
   // Normalize common patterns
@@ -79,7 +84,7 @@ function parseTypedDate(input) {
 
     if (month !== undefined && day >= 1 && day <= 31) {
       const { hours, minutes } = parseTime(timeStr);
-      date = new Date(year, month, day, hours, minutes);
+      date = new Date(Date.UTC(year, month, day, hours, minutes));
       if (!isNaN(date.getTime())) {
         return date.toISOString();
       }
@@ -97,7 +102,7 @@ function parseTypedDate(input) {
 
     if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
       const { hours, minutes } = parseTime(timeStr);
-      date = new Date(year, month, day, hours, minutes);
+      date = new Date(Date.UTC(year, month, day, hours, minutes));
       if (!isNaN(date.getTime())) {
         return date.toISOString();
       }
@@ -115,7 +120,7 @@ function parseTypedDate(input) {
 
     if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
       const { hours, minutes } = parseTime(timeStr);
-      date = new Date(year, month, day, hours, minutes);
+      date = new Date(Date.UTC(year, month, day, hours, minutes));
       if (!isNaN(date.getTime())) {
         return date.toISOString();
       }
@@ -161,13 +166,17 @@ function formatDateForDisplay(isoDate) {
   const date = new Date(isoDate);
   if (isNaN(date.getTime())) return '';
 
+  // Read UTC components (naive wall-clock), matching how the nomination editor
+  // and the datetime-local inputs store/show times. This keeps a time shown as
+  // "7:04 AM" identical across nominations, voting and the finale instead of
+  // drifting by the viewer's UTC offset.
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = months[date.getMonth()];
-  const day = date.getDate();
-  const year = date.getFullYear();
+  const month = months[date.getUTCMonth()];
+  const day = date.getUTCDate();
+  const year = date.getUTCFullYear();
 
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
+  let hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes();
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12 || 12;
 
