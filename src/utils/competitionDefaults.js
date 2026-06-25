@@ -1,58 +1,34 @@
 /**
- * Template-based default content for competition pages
- * Computed on-the-fly from competition context
+ * Template-based default content for competition pages.
+ *
+ * Computed on-the-fly from competition context so a brand-new competition reads
+ * as fully filled-in (about copy, traits, eligibility) using the information we
+ * already have on file — organization name, competition name, territory, and
+ * demographic. The host can override any of it in the About Section editor.
+ *
+ * Tolerant of BOTH the dashboard's flattened camelCase competition object and
+ * the public page's raw snake_case row, so one generator serves both.
  */
 
-// Category-specific content
-const CATEGORY_CONFIG = {
-  dating: {
-    description: (city, demo, season) =>
-      `The search is on for ${city}'s most desirable ${demo.toLowerCase()}. Vote for your favorites and help crown the winners of Season ${season}.`,
-    traits: ['Charismatic', 'Ambitious', 'Genuine', 'Confident'],
-    requirement: (city) => `Single & based in ${city}`,
-  },
-  fitness: {
-    description: (city, demo, season) =>
-      `Celebrating ${city}'s fittest ${demo.toLowerCase()}. Vote for the athletes who inspire you and help crown the champions of Season ${season}.`,
-    traits: ['Disciplined', 'Dedicated', 'Strong', 'Inspiring'],
-    requirement: (city) => `Based in ${city}`,
-  },
-  talent: {
-    description: (city, demo, season) =>
-      `Showcasing ${city}'s brightest ${demo.toLowerCase()}. Vote for the performers who move you and help crown the stars of Season ${season}.`,
-    traits: ['Creative', 'Skilled', 'Passionate', 'Captivating'],
-    requirement: (city) => `Based in ${city}`,
-  },
-  business: {
-    description: (city, demo, season) =>
-      `Recognizing ${city}'s most accomplished ${demo.toLowerCase()} in business. Vote for the leaders who inspire you in Season ${season}.`,
-    traits: ['Driven', 'Innovative', 'Strategic', 'Visionary'],
-    requirement: (city) => `Based in ${city}`,
-  },
-  pageant: {
-    description: (city, demo, season) =>
-      `Celebrating beauty, talent, and poise in ${city}. Vote for the ${demo.toLowerCase()} who captivate you in Season ${season}.`,
-    traits: ['Elegant', 'Poised', 'Talented', 'Radiant'],
-    requirement: (city) => `Based in ${city}`,
-  },
-  health: {
-    description: (city, demo, season) =>
-      `Celebrating wellness and vitality in ${city}. Vote for the ${demo.toLowerCase()} who embody healthy living in Season ${season}.`,
-    traits: ['Balanced', 'Energetic', 'Mindful', 'Vibrant'],
-    requirement: (city) => `Based in ${city}`,
-  },
-  social: {
-    description: (city, demo, season) =>
-      `Recognizing ${city}'s top social influencers. Vote for the ${demo.toLowerCase()} who inspire your feed in Season ${season}.`,
-    traits: ['Engaging', 'Authentic', 'Creative', 'Influential'],
-    requirement: (city) => `Based in ${city}`,
-  },
-  default: {
-    description: (city, demo, season) =>
-      `Join the search for ${city}'s finest ${demo.toLowerCase()}. Vote for your favorites and help crown the winners of Season ${season}.`,
-    traits: ['Charismatic', 'Driven', 'Authentic', 'Inspiring'],
-    requirement: (city) => `Based in ${city}`,
-  },
+// Read a field that may be camelCase (dashboard) or snake_case (public row).
+const pick = (c, camel, snake, fallback = undefined) => {
+  if (!c) return fallback;
+  if (c[camel] !== undefined && c[camel] !== null) return c[camel];
+  if (c[snake] !== undefined && c[snake] !== null) return c[snake];
+  return fallback;
+};
+
+// Trait sets by category — the only category-specific content left (description
+// and requirement are now derived from real config below).
+const CATEGORY_TRAITS = {
+  dating: ['Charismatic', 'Ambitious', 'Genuine', 'Confident'],
+  fitness: ['Disciplined', 'Dedicated', 'Strong', 'Inspiring'],
+  talent: ['Creative', 'Skilled', 'Passionate', 'Captivating'],
+  business: ['Driven', 'Innovative', 'Strategic', 'Visionary'],
+  pageant: ['Elegant', 'Poised', 'Talented', 'Radiant'],
+  health: ['Balanced', 'Energetic', 'Mindful', 'Vibrant'],
+  social: ['Engaging', 'Authentic', 'Creative', 'Influential'],
+  default: ['Charismatic', 'Driven', 'Authentic', 'Inspiring'],
 };
 
 // Age range by demographic slug
@@ -69,45 +45,117 @@ const AGE_RANGE_BY_DEMOGRAPHIC = {
   default: '21+',
 };
 
+// ── Shape-tolerant accessors ────────────────────────────────────────────────
+
+function getCityName(c) {
+  const city = c?.city;
+  if (city && typeof city === 'object') return city.name || null;
+  if (typeof city === 'string') return city || null;
+  return c?.cityData?.name || null;
+}
+
+function getCategorySlug(c) {
+  return pick(c, 'categorySlug', 'category_slug', null) || c?.category?.slug || 'default';
+}
+
+function getDemographicSlug(c) {
+  return pick(c, 'demographicSlug', 'demographic_slug', null) || c?.demographic?.slug || 'default';
+}
+
+function getOrgName(c) {
+  return pick(c, 'organizationName', null) || c?.organization?.name || null;
+}
+
+// Possessive form, handling names already ending in "s" (Illinois → Illinois').
+function possessive(name) {
+  if (!name) return name;
+  return /s$/i.test(name) ? `${name}'` : `${name}'s`;
+}
+
+// The possessive place phrase used in the about copy — "Chicago's", "Texas'",
+// or "America's" — based on the competition's territory scope.
+function getLocationPossessive(c) {
+  const scope = pick(c, 'territoryScope', 'territory_scope', 'city');
+  if (scope === 'us') return "America's";
+  if (scope === 'state') {
+    const state = pick(c, 'territoryState', 'territory_state', null);
+    return state ? possessive(state) : "the state's";
+  }
+  const city = getCityName(c);
+  return city ? possessive(city) : "your city's";
+}
+
+// The noun for who competes — from the competition's gender eligibility, falling
+// back to the demographic slug, then a neutral "standouts".
+function getContestantNoun(c) {
+  const gender = pick(c, 'eligibilityGender', 'eligibility_gender', null);
+  if (gender === 'female') return 'women';
+  if (gender === 'male') return 'men';
+  if (gender === 'LGBTQ+') return 'LGBTQ+ standouts';
+
+  const slug = getDemographicSlug(c);
+  if (slug.startsWith('women')) return 'women';
+  if (slug.startsWith('men')) return 'men';
+  if (slug.startsWith('lgbtq')) return 'LGBTQ+ standouts';
+  return 'standouts';
+}
+
 /**
- * Get default description for a competition
+ * Default About description — "{Org} presents {Competition}, a competition for
+ * {place}'s {who} who deserve the spotlight." Built from the org name,
+ * competition name, territory, and demographic we already have on file.
  */
 export function getDefaultDescription(competition) {
-  const city = competition?.city?.name || competition?.city || 'your city';
-  const demographic = competition?.demographic?.label || 'contestants';
-  const season = competition?.season || new Date().getFullYear();
-  const categorySlug = competition?.category?.slug || 'default';
-
-  const config = CATEGORY_CONFIG[categorySlug] || CATEGORY_CONFIG.default;
-  return config.description(city, demographic, season);
+  const orgName = getOrgName(competition);
+  const compName = competition?.name || 'this competition';
+  const place = getLocationPossessive(competition);
+  const who = getContestantNoun(competition);
+  const body = `a competition for ${place} ${who} who deserve the spotlight.`;
+  return orgName
+    ? `${orgName} presents ${compName}, ${body}`
+    : `${compName} is ${body}`;
 }
 
 /**
  * Get default traits for a competition
  */
 export function getDefaultTraits(competition) {
-  const categorySlug = competition?.category?.slug || 'default';
-  const config = CATEGORY_CONFIG[categorySlug] || CATEGORY_CONFIG.default;
-  return [...config.traits]; // Return copy to prevent mutation
+  const slug = getCategorySlug(competition);
+  return [...(CATEGORY_TRAITS[slug] || CATEGORY_TRAITS.default)];
 }
 
 /**
- * Get default age range for a competition
+ * Get default age range for a competition. Prefer the exact min/max the host
+ * entered (e.g. "21-50"); fall back to the demographic-based range only when
+ * those aren't set.
  */
 export function getDefaultAgeRange(competition) {
-  const demographicSlug = competition?.demographic?.slug || 'default';
-  return AGE_RANGE_BY_DEMOGRAPHIC[demographicSlug] || AGE_RANGE_BY_DEMOGRAPHIC.default;
+  const min = pick(competition, 'eligibilityAgeMin', 'eligibility_age_min', null);
+  const max = pick(competition, 'eligibilityAgeMax', 'eligibility_age_max', null);
+  if (min && max) return `${min}-${max}`;
+  if (min) return `${min}+`;
+  if (max) return `Up to ${max}`;
+
+  const slug = getDemographicSlug(competition);
+  return AGE_RANGE_BY_DEMOGRAPHIC[slug] || AGE_RANGE_BY_DEMOGRAPHIC.default;
 }
 
 /**
- * Get default requirement for a competition
+ * Default eligibility requirement — derived from the actual territory:
+ *  - city scope:  "Lives within {radius} miles of {city}"
+ *  - state scope: "Lives in {state}"
+ *  - US scope:    "Lives in the United States"
  */
 export function getDefaultRequirement(competition) {
-  const city = competition?.city?.name || competition?.city || 'the area';
-  const categorySlug = competition?.category?.slug || 'default';
-
-  const config = CATEGORY_CONFIG[categorySlug] || CATEGORY_CONFIG.default;
-  return config.requirement(city);
+  const scope = pick(competition, 'territoryScope', 'territory_scope', 'city');
+  if (scope === 'us') return 'Lives in the United States';
+  if (scope === 'state') {
+    const state = pick(competition, 'territoryState', 'territory_state', null);
+    return state ? `Lives in ${state}` : 'Lives in the host state';
+  }
+  const city = getCityName(competition) || 'the host city';
+  const radius = pick(competition, 'eligibilityRadiusMiles', 'eligibility_radius_miles', null);
+  return radius ? `Lives within ${radius} miles of ${city}` : `Lives in ${city}`;
 }
 
 /**

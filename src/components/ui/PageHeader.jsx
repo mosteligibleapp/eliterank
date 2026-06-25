@@ -29,6 +29,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   const handleRewards = () => navigate('/rewards');
   const handleAchievements = () => navigate('/achievements');
   const handleDashboard = () => navigate('/dashboard');
+  const handleLaunchCompetition = () => navigate('/dashboard?create=1');
   const handleJudge = () => navigate('/judge');
   const handleAccountSettings = () => navigate('/account');
   const handleLogout = async () => {
@@ -85,6 +86,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             onAccountSettings={handleAccountSettings}
             onHowToCompete={handleHowToCompete}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
+            onLaunchCompetition={isAuthenticated ? handleLaunchCompetition : undefined}
             hasDashboardAccess={hasDashboardAccess}
             onJudge={isJudge ? handleJudge : null}
             isJudge={isJudge}

@@ -5,7 +5,10 @@ import { colors, spacing, borderRadius, typography } from '../../../../styles/th
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
 import JudgingPanel from '../JudgingPanel';
-import JudgingResultsPanel from '../JudgingResultsPanel';
+import JudgesManager from '../JudgesManager';
+import CompetitionSummaryCard from '../CompetitionSummaryCard';
+import HostsPanel from '../HostsPanel';
+import { isFieldEditable } from '../../../../utils/fieldEditability';
 import { NominationFormEditor } from '../settings';
 import { getBonusVoteTasks, setupDefaultBonusTasks, updateBonusVoteTask, getBonusVoteCompletionStats, createCustomBonusTask, deleteCustomBonusTask, getPendingSubmissions, reviewBonusSubmission, getHostManagedTaskContestants, awardHostManagedTask, revokeHostManagedTask } from '../../../../lib/bonusVotes';
 import { isSupabaseConfigured } from '../../../../lib/supabase';
@@ -68,13 +71,17 @@ const getEventStatus = (event) => {
 // Grayable sections a host hides sort to the bottom (see sectionStyle).
 const SECTION_ORDER = [
   'competitionDetails',
-  'timeline',
+  // Locks at publish — get these right before going public (grouped first).
   'nominationForm',
+  'timeline',
   'judgingCriteria',
-  'judgingResults',
   'charity',
-  'events',
+  // Editable anytime — adjust whenever, even after going live.
+  'hosts',
+  'judges',
   'sponsors',
+  // Engagement tab (own tab; shares this ordering list).
+  'events',
   'doubleVoteDays',
   'bonusVotes',
   'videoPrompts',
@@ -117,14 +124,54 @@ const restoreButtonStyle = {
 };
 
 /**
+ * LockedSection — a grayed-out, inaccessible placeholder for a Setup section
+ * that doesn't apply to this competition (e.g. no charity, or no judges
+ * because winners are decided by public vote). Stays visible so the host can
+ * see it exists, but is dimmed and non-interactive.
+ */
+function LockedSection({ title, icon: Icon = Lock, reason }) {
+  return (
+    <div style={{
+      background: colors.background.card,
+      border: `1px solid ${colors.border.light}`,
+      borderRadius: borderRadius.xxl,
+      boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+      opacity: 0.5,
+      pointerEvents: 'none',
+      padding: spacing.xl,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
+        <Icon size={22} style={{ color: colors.gold.primary }} />
+        <span style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.text.primary }}>{title}</span>
+        <Lock size={16} style={{ color: colors.text.muted, marginLeft: 'auto' }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.muted, fontSize: typography.fontSize.sm }}>
+        <Lock size={14} style={{ flexShrink: 0 }} />
+        <span>{reason}</span>
+      </div>
+    </div>
+  );
+}
+
+/**
  * SetupTab - Configuration settings tab
- * Contains competition details, timeline, judges, sponsors, and events
+ * Contains competition details, timeline, judges, and events
  */
 export default function SetupTab({
   competition,
   focusSection,
   mode = 'setup',
-  judges,
+  host,
+  coHosts = [],
+  canManageHosts = false,
+  onShowHostAssignment,
+  onShowAddCoHost,
+  onRemoveHost,
+  onRemoveCoHost,
+  judges = [],
+  onOpenJudgeModal,
+  onDeleteJudge,
+  onSendJudgeInvite,
   judgingCriteria = [],
   judgeScores = [],
   contestants = [],
@@ -243,39 +290,20 @@ export default function SetupTab({
   const sectionStyle = (id) => {
     if (!belongsToMode(id)) return { display: 'none' };
     const idx = SECTION_ORDER.indexOf(id);
-    return {
-      order: isHidden(id) ? 100 + idx : 1 + idx,
-      opacity: isHidden(id) ? 0.5 : 1,
-    };
+    // Sections that don't apply to this competition's configuration are grayed
+    // out and sink below the active ones.
+    const usesJudges = ['judges', 'hybrid'].includes(competition?.selectionCriteria);
+    const charityActive = !!competition?.charityPercentage || !!competition?.charityName;
+    const locked =
+      (!usesJudges && id === 'judgingCriteria') ||
+      (!charityActive && id === 'charity');
+    return { order: locked ? 100 + idx : 1 + idx, opacity: 1 };
   };
 
-  // Panel header action: the section's own action plus a gray-out control,
-  // or a Restore button when the section is already grayed.
-  const sectionAction = (id, ownAction) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-      {isHidden(id) ? (
-        <button
-          onClick={(e) => { e.stopPropagation(); toggleSection(id); }}
-          style={restoreButtonStyle}
-          title="Restore this section"
-        >
-          <RotateCcw size={13} /> Restore
-        </button>
-      ) : (
-        <>
-          {ownAction}
-          <button
-            onClick={(e) => { e.stopPropagation(); toggleSection(id); }}
-            style={grayOutButtonStyle}
-            title="Not using this section? Gray it out and move it to the bottom."
-            aria-label="Gray out this section — mark as not using"
-          >
-            <EyeOff size={13} /> Not using
-          </button>
-        </>
-      )}
-    </div>
-  );
+  // Whether a section applies is driven by what the host entered in their
+  // competition details (e.g. charity / judging), not a manual "not using"
+  // toggle — so the header just shows the section's own action.
+  const sectionAction = (id, ownAction) => ownAction || null;
 
   const competitionTimezone = competition?.timezone || 'UTC';
   const timezoneGroups = React.useMemo(() => getTimezoneOptionGroups(), []);
@@ -349,11 +377,15 @@ export default function SetupTab({
     setVideoResponses(rResult.responses);
   }, [competitionId]);
 
+  // These power the Engagement-tab sections only. Don't fetch them (or hold
+  // their state churn) when this component is rendering the core Setup tab —
+  // the sections are hidden there anyway.
   useEffect(() => {
+    if (mode !== 'engagement') return;
     loadBonusTasks();
     loadSubmissions();
     loadVideoData();
-  }, [loadBonusTasks, loadSubmissions, loadVideoData]);
+  }, [mode, loadBonusTasks, loadSubmissions, loadVideoData]);
 
   const handleCreateVideoPrompt = async (data) => {
     const result = await createVideoPrompt(competitionId, { ...data, createdBy: reviewerId });
@@ -535,113 +567,100 @@ export default function SetupTab({
     </div>
   );
 
+  // What the host actually configured drives which Setup sections apply:
+  //  - charity panel is only relevant if they're donating a % of proceeds
+  //  - judging is only relevant if winners are decided by judges (not pure votes)
+  const charityApplies = !!competition?.charityPercentage || !!competition?.charityName;
+  const usesJudges = ['judges', 'hybrid'].includes(competition?.selectionCriteria);
+  // These public-facing sections only actually lock once the competition is
+  // published (publish-lock tier) — show the lock badge only then.
+  const publishLocked = !isFieldEditable('nomination_form', competition?.status);
+
+  // Per-section editability badges so the host knows, at a glance, which
+  // sections lock when they publish vs. which stay editable throughout.
+  const badgeBase = {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: `2px ${spacing.sm}`, borderRadius: '999px',
+    fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium,
+    whiteSpace: 'nowrap',
+  };
+  const lockBadge = (
+    <span style={{ ...badgeBase, background: 'rgba(212,175,55,0.12)', color: colors.gold.primary, border: '1px solid rgba(212,175,55,0.3)' }}>
+      <Lock size={11} /> {publishLocked ? 'Locked' : 'Locks at publish'}
+    </span>
+  );
+  const editBadge = (
+    <span style={{ ...badgeBase, background: 'rgba(255,255,255,0.05)', color: colors.text.muted, border: `1px solid ${colors.border.lighter}` }}>
+      Editable anytime
+    </span>
+  );
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Competition Details - View Only (Admin Controlled) - Open by default */}
-      <Panel
-        style={sectionStyle('competitionDetails')}
-        title="Competition Details"
-        icon={Lock}
-        action={
-          <button
-            onClick={() => setShowCompetitionDetails(!showCompetitionDetails)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.xs,
-              background: 'none',
-              border: 'none',
-              color: colors.text.secondary,
-              cursor: 'pointer',
-              fontSize: typography.fontSize.sm,
-            }}
-          >
-            {showCompetitionDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            {showCompetitionDetails ? 'Hide' : 'Show'}
-          </button>
+    <div className="er-setup" style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Scoped form polish — a gold focus ring + custom select chevron so the
+          Setup tab's inputs feel consistent with the create wizard. Uses a
+          box-shadow ring (works regardless of each control's inline border). */}
+      <style>{`
+        .er-setup input:focus, .er-setup select:focus, .er-setup textarea:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(212,175,55,0.15);
+          border-color: ${colors.gold.primary} !important;
         }
-      >
-        {showCompetitionDetails && (
-          <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-            <p style={{
-              color: colors.text.muted,
-              fontSize: typography.fontSize.sm,
-              marginBottom: spacing.md,
-            }}>
-              These settings are managed by the admin.
-            </p>
+        .er-setup input, .er-setup select, .er-setup textarea {
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+      `}</style>
+      {/* Competition details — the same recap the host sees on the Dashboard, so
+          Setup is aligned with what they entered during onboarding. Editable in
+          draft, locked thereafter (handled inside the card). */}
+      <div style={{ ...sectionStyle('competitionDetails'), marginBottom: spacing.xxl }}>
+        <CompetitionSummaryCard competition={competition} onRefresh={onRefresh} />
+      </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: spacing.sm,
-            }}>
-              {/* Slot Fields */}
-              <ViewOnlyField
-                label="Category"
-                value={competition?.categoryName}
-                icon={Tag}
-              />
-              <ViewOnlyField
-                label="Demographic"
-                value={competition?.demographicName}
-                icon={Users}
-              />
-              <ViewOnlyField
-                label="City"
-                value={typeof competition?.city === 'object' ? competition?.city?.name : competition?.city}
-                icon={MapPin}
-              />
-              <ViewOnlyField
-                label="Season"
-                value={competition?.season}
-                icon={Calendar}
-              />
-
-              <ViewOnlyField
-                label="Number of Winners"
-                value={competition?.numberOfWinners}
-                icon={Star}
-              />
-              <ViewOnlyField
-                label="Eligibility Radius"
-                value={formatRadius(competition?.eligibilityRadiusMiles)}
-                icon={MapPin}
-              />
-
-              {/* Contestant Limits */}
-              <ViewOnlyField
-                label="Min Contestants"
-                value={competition?.minContestants || 40}
-                icon={Users}
-              />
-              <ViewOnlyField
-                label="Max Contestants"
-                value={competition?.maxContestants || 'No limit'}
-                icon={Users}
-              />
-            </div>
+      {/* Intro for the publish-locked, public-facing sections below. Setup tab
+          only — the Engagement tab shows just its participation tools. */}
+      {mode !== 'engagement' && (
+        <div style={{ order: 1, marginBottom: spacing.lg }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+            <Lock size={16} style={{ color: colors.gold.primary }} />
+            <h3 style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, margin: 0 }}>Important Information</h3>
           </div>
-        )}
-        {!showCompetitionDetails && (
-          <div style={{
-            padding: isMobile ? spacing.md : spacing.lg,
-            color: colors.text.muted,
-            fontSize: typography.fontSize.sm,
-          }}>
-            <Lock size={14} style={{ display: 'inline', marginRight: spacing.xs, verticalAlign: 'middle' }} />
-            Admin-managed slot and economics settings. Click "Show" to view.
-          </div>
-        )}
-      </Panel>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.sm, margin: `${spacing.xs} 0 0`, lineHeight: 1.6 }}>
+            This is the public-facing information for your competition. Some of it{' '}
+            <span style={{ color: colors.gold.primary }}>locks when you publish</span> — get the{' '}
+            nomination form, voting &amp; judging dates, judging criteria &amp; weight, and your charity
+            partner right before you go public. Your{' '}
+            <span style={{ color: colors.text.secondary }}>host, judges, and sponsors stay editable anytime</span>,
+            even after you’re live.
+          </p>
+        </div>
+      )}
 
-      {/* Timeline & Status Settings */}
+      {/* Hosts (creator + co-hosts) — moved here from the People tab. */}
+      <div style={{ ...sectionStyle('hosts'), marginBottom: spacing.xxl }}>
+        <HostsPanel
+          host={host}
+          coHosts={coHosts}
+          competition={competition}
+          canManage={canManageHosts}
+          badge={editBadge}
+          isMobile={isMobile}
+          onShowHostAssignment={onShowHostAssignment}
+          onShowAddCoHost={onShowAddCoHost}
+          onRemoveCoHost={onRemoveCoHost}
+          onRefresh={onRefresh}
+        />
+      </div>
+
+      {/* Voting Details (voting/judging rounds + finale) */}
       <Panel
         key={`section-timeline-${focusId === 'timeline' ? focusNonce : 'x'}`}
         id="setup-section-timeline"
         style={sectionStyle('timeline')}
-        title="Timeline & Status"
+        title="Voting Details"
         icon={Calendar}
+        locked={publishLocked}
+        badge={lockBadge}
         collapsible
         defaultCollapsed={focusId !== 'timeline'}
       >
@@ -659,41 +678,66 @@ export default function SetupTab({
         style={sectionStyle('nominationForm')}
         competition={competition}
         onSave={onRefresh}
+        locked={publishLocked}
+        badge={lockBadge}
         collapsible
         defaultCollapsed={focusId !== 'nominationForm'}
       />
 
-      {/* Judging criteria + per-round judge weight. Wrapped so it picks up an
-          explicit flex order (these panels aren't grayable, so they'd otherwise
-          float above Judges). */}
-      <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
-        <JudgingPanel
-          criteria={judgingCriteria}
-          votingRounds={competition?.voting_rounds || []}
-          onAddCriterion={onAddCriterion}
-          onUpdateCriterion={onUpdateCriterion}
-          onDeleteCriterion={onDeleteCriterion}
-          onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
-        />
-      </div>
+      {/* Judging criteria + results. Only relevant when winners are decided by
+          judges (or a hybrid). For pure public-vote competitions these are
+          grayed out and inaccessible. */}
+      {/* Judging criteria + weight — locks at publish. The judge roster lives in
+          its own section below (editable anytime), so locked vs. editable group
+          cleanly. */}
+      {usesJudges ? (
+        <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
+          <JudgingPanel
+            competition={competition}
+            criteria={judgingCriteria}
+            votingRounds={competition?.voting_rounds || []}
+            onAddCriterion={onAddCriterion}
+            onUpdateCriterion={onUpdateCriterion}
+            onDeleteCriterion={onDeleteCriterion}
+            onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
+            onRefresh={onRefresh}
+            locked={publishLocked}
+            badge={lockBadge}
+          />
+        </div>
+      ) : (
+        <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
+          <LockedSection
+            title="Judging"
+            icon={CheckCircle}
+            reason="Not used — winners are decided by public votes. Switch “How they win” to Judges or Votes + judges to set this up."
+          />
+        </div>
+      )}
 
-      {/* Judging results — blended judge + vote leaderboard per round */}
-      <div style={sectionStyle('judgingResults')}>
-        <JudgingResultsPanel
-          contestants={contestants}
-          judges={judges}
-          judgingCriteria={judgingCriteria}
-          judgeScores={judgeScores}
-          votingRounds={competition?.voting_rounds || []}
-        />
-      </div>
+      {/* Judge roster — invite/manage; editable any time, so it's grouped with
+          the other always-editable sections. */}
+      {usesJudges && (
+        <div id="setup-section-judges" style={sectionStyle('judges')}>
+          <JudgesManager
+            judges={judges}
+            onOpenJudgeModal={onOpenJudgeModal}
+            onDeleteJudge={onDeleteJudge}
+            onSendJudgeInvite={onSendJudgeInvite}
+            badge={editBadge}
+          />
+        </div>
+      )}
 
-      {/* Sponsors Section */}
+      {/* Sponsors — view, add, edit, and remove. Sponsors appear publicly on
+          the competition's Prizes/Rewards page, but can be managed any time, so
+          this isn't part of the publish-locked group above. */}
       <Panel
-        key={`section-sponsors-${isHidden('sponsors')}-${focusId === 'sponsors' ? focusNonce : 'x'}`}
+        key={`section-sponsors-${focusId === 'sponsors' ? focusNonce : 'x'}`}
         id="setup-section-sponsors"
         title={`Sponsors (${sponsors.length})`}
         icon={Star}
+        badge={editBadge}
         action={sectionAction('sponsors', <Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>)}
         collapsible
         defaultCollapsed={focusId !== 'sponsors'}
@@ -704,127 +748,101 @@ export default function SetupTab({
             <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
               <Star size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
               <p>No sponsors yet</p>
+              <p style={{ fontSize: typography.fontSize.sm, marginTop: spacing.sm }}>
+                Add the brands backing your competition — they appear on your public Prizes page.
+              </p>
             </div>
           ) : (
             <div style={{ display: 'grid', gap: spacing.md }}>
-              {sponsors.map((sponsor) => {
-                const childPrizes = sponsor.prizes || [];
-                const winnerCount = childPrizes.filter(p => p.prizeType === 'winner').length;
-                const contestantCount = childPrizes.filter(p => p.prizeType !== 'winner').length;
-                return (
-                  <div key={sponsor.id} style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: spacing.md,
-                    padding: spacing.lg,
-                    background: colors.background.secondary,
-                    borderRadius: borderRadius.lg,
-                  }}>
-                    <div style={{
+              {sponsors.map((sponsor) => (
+                <div key={sponsor.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.lg,
+                  padding: spacing.lg,
+                  background: colors.background.secondary,
+                  borderRadius: borderRadius.lg,
+                  flexWrap: isMobile ? 'wrap' : 'nowrap',
+                }}>
+                  {sponsor.logoUrl ? (
+                    <img src={sponsor.logoUrl} alt={sponsor.name} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 48, height: 48, background: colors.gold.muted, borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Star size={24} style={{ color: colors.gold.primary }} />
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: typography.fontWeight.medium }}>{sponsor.name}</p>
+                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                      {sponsor.tier === 'inkind'
+                        ? 'In-kind'
+                        : `${(sponsor.tier || '').charAt(0).toUpperCase()}${(sponsor.tier || '').slice(1)} Tier`}
+                      {sponsor.amount ? ` • $${sponsor.amount.toLocaleString()}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onOpenSponsorModal(sponsor)}
+                    title="Edit sponsor"
+                    style={{
+                      padding: spacing.sm,
+                      background: 'transparent',
+                      border: `1px solid ${colors.border.primary}`,
+                      borderRadius: borderRadius.md,
+                      color: colors.text.secondary,
+                      cursor: 'pointer',
+                      minWidth: '36px',
+                      minHeight: '36px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: spacing.lg,
-                      flexWrap: isMobile ? 'wrap' : 'nowrap',
-                    }}>
-                      {sponsor.logoUrl ? (
-                        <img src={sponsor.logoUrl} alt={sponsor.name} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain' }} />
-                      ) : (
-                        <div style={{ width: 48, height: 48, background: 'rgba(212,175,55,0.2)', borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Star size={24} style={{ color: colors.gold.primary }} />
-                        </div>
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontWeight: typography.fontWeight.medium }}>{sponsor.name}</p>
-                        <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                          {sponsor.tier === 'inkind' ? 'In-kind' : `${sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)} Tier`}
-                          {sponsor.amount > 0 ? ` • $${sponsor.amount.toLocaleString()}` : ''}
-                          {childPrizes.length > 0 ? ` • ${childPrizes.length} prize${childPrizes.length === 1 ? '' : 's'}` : ''}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => onOpenSponsorModal(sponsor)}
-                        style={{
-                          padding: spacing.sm,
-                          background: 'transparent',
-                          border: `1px solid ${colors.border.primary || 'rgba(255,255,255,0.15)'}`,
-                          borderRadius: borderRadius.md,
-                          color: colors.text.secondary,
-                          cursor: 'pointer',
-                          minWidth: '36px',
-                          minHeight: '36px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => onDeleteSponsor(sponsor.id)}
-                        style={{
-                          padding: spacing.sm,
-                          background: 'transparent',
-                          border: `1px solid rgba(239,68,68,0.3)`,
-                          borderRadius: borderRadius.md,
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          minWidth: '36px',
-                          minHeight: '36px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                    {childPrizes.length > 0 && (
-                      <div style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: spacing.xs,
-                        paddingLeft: 60,
-                        fontSize: typography.fontSize.xs,
-                        color: colors.text.muted,
-                      }}>
-                        {winnerCount > 0 && (
-                          <span style={{
-                            padding: `2px ${spacing.sm}`,
-                            background: 'rgba(212,175,55,0.15)',
-                            color: colors.gold.primary,
-                            borderRadius: borderRadius.sm,
-                          }}>
-                            <Trophy size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
-                            {winnerCount} winner prize{winnerCount === 1 ? '' : 's'}
-                          </span>
-                        )}
-                        {contestantCount > 0 && (
-                          <span style={{
-                            padding: `2px ${spacing.sm}`,
-                            background: 'rgba(212,175,55,0.15)',
-                            color: colors.gold.primary,
-                            borderRadius: borderRadius.sm,
-                          }}>
-                            <Gift size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
-                            {contestantCount} contestant reward{contestantCount === 1 ? '' : 's'}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => onDeleteSponsor(sponsor.id)}
+                    title="Remove sponsor"
+                    style={{
+                      padding: spacing.sm,
+                      background: 'transparent',
+                      border: `1px solid rgba(239,68,68,0.3)`,
+                      borderRadius: borderRadius.md,
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      minWidth: '36px',
+                      minHeight: '36px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </Panel>
 
-      {/* Charity Section */}
+      {/* Charity Section — only relevant if the host is donating a % of
+          proceeds. Otherwise it's grayed out and inaccessible. */}
+      {!charityApplies ? (
+        <div id="setup-section-charity" style={sectionStyle('charity')}>
+          <LockedSection
+            title="Charity Partner"
+            icon={Gift}
+            reason="Not used — you chose not to donate a portion of proceeds. Turn charity on in your competition details to set this up."
+          />
+        </div>
+      ) : (
       <Panel
         key={`section-charity-${isHidden('charity')}-${focusId === 'charity' ? focusNonce : 'x'}`}
         id="setup-section-charity"
         title="Charity Partner"
         icon={Gift}
+        locked={publishLocked}
+        badge={lockBadge}
         action={sectionAction('charity',
           <Button size="sm" icon={competition?.charityName ? Edit2 : Plus} onClick={onOpenCharityModal}>
             {competition?.charityName ? 'Edit' : 'Add Charity'}
@@ -877,6 +895,7 @@ export default function SetupTab({
           )}
         </div>
       </Panel>
+      )}
 
       {/* Events Section */}
       <Panel

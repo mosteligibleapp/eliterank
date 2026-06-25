@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Crown, ArrowLeft, Star, LogOut, BarChart3, Settings as SettingsIcon,
-  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe
+  Eye, AlertCircle, ChevronDown, Check, Rocket, TrendingUp, Activity, Megaphone, Globe, Lock, Gauge, Plus
 } from 'lucide-react';
 import { Button, Badge, Avatar, NotificationBell } from '../../components/ui';
 import { HostAssignmentModal, JudgeModal, SponsorWizardModal, EventModal, PrizeModal, AddPersonModal, CharityModal } from '../../components/modals';
@@ -9,25 +9,25 @@ import { colors, gradients, spacing, borderRadius, typography, transitions } fro
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToast } from '../../contexts/ToastContext';
 import { useCompetitionDashboard } from './hooks/useCompetitionDashboard';
+import { useStripeConnect } from './hooks/useStripeConnect';
 import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
 import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
-import LaunchChecklist from './components/LaunchChecklist';
 import AnnouncementsManager from './components/AnnouncementsManager';
 import AudienceManager from './components/AudienceManager';
-import { resolveLaunchChecklist, computeChecklistProgress } from './launchChecklist';
+import JudgingResultsPanel from './components/JudgingResultsPanel';
 import { COMPETITION_STATUS } from '../../types/competition';
 
 // Consolidated tab navigation. Launch leads — it's the guided checklist for
 // getting a competition live; the rest are the day-to-day management surfaces.
 const TABS = [
-  { id: 'launch', label: 'Launch', shortLabel: 'Launch', icon: Rocket },
-  { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: BarChart3 },
-  { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
-  { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
-  { id: 'site', label: 'Site', shortLabel: 'Site', icon: Globe },
+  { id: 'dashboard', label: 'Status', shortLabel: 'Status', icon: Gauge },
   { id: 'setup', label: 'Setup', shortLabel: 'Setup', icon: SettingsIcon },
+  { id: 'site', label: 'Site', shortLabel: 'Site', icon: Globe },
+  { id: 'people', label: 'People', shortLabel: 'People', icon: Crown },
+  { id: 'activity', label: 'Activity', shortLabel: 'Activity', icon: Activity },
+  { id: 'communications', label: 'Communications', shortLabel: 'Comms', icon: Megaphone },
   { id: 'engagement', label: 'Engagement', shortLabel: 'Engage', icon: TrendingUp },
 ];
 
@@ -96,13 +96,14 @@ export default function CompetitionDashboard({
   onBack,
   onLogout,
   onViewPublicSite,
+  onLaunchCompetition,
   currentUserId,
   competitions = [],
   selectedCompetitionId,
   onSelectCompetition,
 }) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState('launch');
+  const [activeTab, setActiveTab] = useState('dashboard');
   // When a launch-checklist CTA deep-links into the Setup tab, this carries the
   // section to auto-expand + scroll to. The nonce re-triggers the scroll even
   // when the host clicks the same step twice.
@@ -177,56 +178,74 @@ export default function CompetitionDashboard({
     competition?.status === COMPETITION_STATUS.COMPLETED ||
     competition?.status === COMPETITION_STATUS.ARCHIVE;
 
-  // Launch (setup) progress. Once every required launch step is done the first
-  // tab flips from "Launch" (guided setup) to "Run" (operating a live comp).
-  const launchComplete = useMemo(() => {
-    if (!competition) return false;
-    const checklist = resolveLaunchChecklist(competition);
-    return computeChecklistProgress(checklist, {
-      competition,
-      host: data.host,
-      nominees: data.nominees,
-      contestants: data.contestants,
-      judges: data.judges,
-      judgingCriteria: data.judgingCriteria,
-      prizes: data.prizes,
-      events: data.events,
-      sponsors: data.sponsors,
-      doubleDays: data.doubleDays,
-      bonusTasks: data.bonusTasks,
-    }).allRequiredComplete;
-  }, [
-    competition, data.host, data.nominees, data.contestants, data.judges,
-    data.judgingCriteria, data.prizes, data.events, data.sponsors,
-    data.doubleDays, data.bonusTasks,
-  ]);
+  // The dashboard (Overview) is the landing surface; the launch lifecycle now
+  // lives in the Launch Status tracker on that tab, so there's no separate
+  // Launch checklist tab.
+  //
+  // Before a competition is live we keep premature tabs visible but locked
+  // (not clickable), so the host stays focused on finishing their launch steps
+  // without the nav feeling like it lost features. Tabs unlock in step with the
+  // lifecycle, one new tab per phase:
+  //   draft                    → Dashboard + Setup unlocked
+  //   pending_approval         → + People (start gathering nominees while
+  //                              they wait on approval)
+  //   approved                 → + Site (prepping the public specifics)
+  //   published / live / done  → everything unlocked
+  const launchPhase = (() => {
+    const s = competition?.status;
+    if (s === 'draft') return 'draft';
+    if (s === 'pending_approval') return 'pending';
+    if (s === 'approved') return 'approved';
+    return 'live';
+  })();
+  const unlockedTabIds =
+    launchPhase === 'draft' ? ['dashboard', 'setup']
+    : launchPhase === 'pending' ? ['dashboard', 'setup', 'site', 'people']
+    : launchPhase === 'approved' ? ['dashboard', 'setup', 'site', 'people']
+    : TABS.map((t) => t.id);
+  const isTabLocked = (id) => !unlockedTabIds.includes(id);
+  // Per-tab tooltip explaining when a locked tab becomes available, matching
+  // the unlock schedule above (Site & People at submit, the rest at publish) so
+  // each lock reads accurately regardless of the current phase.
+  const lockedTabReason = (id) => {
+    if (id === 'people' || id === 'site') return 'Available after you submit for approval.';
+    return 'Available once your competition is published.';
+  };
+  const visibleTabs = TABS;
 
-  const visibleTabs = useMemo(() => {
-    const base = isFinished ? TABS.filter((t) => t.id !== 'launch') : TABS;
-    return base.map((t) =>
-      t.id === 'launch'
-        ? {
-            ...t,
-            label: launchComplete ? 'Run' : 'Launch',
-            shortLabel: launchComplete ? 'Run' : 'Launch',
-            icon: launchComplete ? Activity : Rocket,
-          }
-        : t
-    );
-  }, [isFinished, launchComplete]);
-
-  // Pick the landing tab once data is in: a still-launching competition opens
-  // on the guided Launch checklist; one whose required steps are all done (or
-  // that has already finished) opens on the live Dashboard. Runs a single
-  // time, and never overrides a tab the host has already clicked.
-  const initialTabResolvedRef = useRef(false);
+  // Stripe Connect return handler. When the host comes back from Stripe's
+  // hosted onboarding (return_url carries ?connect=return&org=...), pull the
+  // latest KYC status, refresh the dashboard, and clean the URL. A 'refresh'
+  // param means the onboarding link expired before completion — just clear it.
+  const { syncStatus: syncConnectStatus } = useStripeConnect();
+  const connectReturnHandledRef = useRef(false);
   useEffect(() => {
-    if (initialTabResolvedRef.current || loading || !competition) return;
-    initialTabResolvedRef.current = true;
-    if (launchComplete || isFinished) {
-      setActiveTab((cur) => (cur === 'launch' ? 'dashboard' : cur));
+    if (connectReturnHandledRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const connect = params.get('connect');
+    const org = params.get('org');
+    if (!connect) return;
+    connectReturnHandledRef.current = true;
+
+    // Strip the connect params so a reload doesn't re-trigger this.
+    params.delete('connect');
+    params.delete('org');
+    const cleaned = window.location.pathname + (params.toString() ? `?${params}` : '');
+    window.history.replaceState({}, '', cleaned);
+
+    if (connect === 'return' && org) {
+      syncConnectStatus(org).then((status) => {
+        refresh();
+        if (status?.kyc_status === 'verified') {
+          toast?.success?.('Stripe account connected — payouts are enabled.');
+        } else if (status?.kyc_status === 'pending') {
+          toast?.info?.('Stripe is verifying your details. We’ll update your status shortly.');
+        }
+      });
+    } else if (connect === 'refresh') {
+      toast?.info?.('Onboarding link expired. Tap “Connect with Stripe” to continue.');
     }
-  }, [loading, competition, launchComplete, isFinished]);
+  }, [syncConnectStatus, refresh, toast]);
 
   // When the host runs more than one competition, the header name becomes a
   // switcher so they can jump between dashboards without leaving the page.
@@ -476,6 +495,22 @@ export default function CompetitionDashboard({
                           </button>
                         );
                       })}
+                      {onLaunchCompetition && (
+                        <button
+                          type="button"
+                          onClick={() => { setShowCompSwitcher(false); onLaunchCompetition(); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: spacing.sm, width: '100%',
+                            textAlign: 'left', padding: `${spacing.sm} ${spacing.md}`, marginTop: spacing.xs,
+                            borderTop: `1px solid ${colors.border.light}`, background: 'transparent',
+                            border: 'none', color: colors.gold.primary, fontSize: typography.fontSize.sm,
+                            fontWeight: typography.fontWeight.medium, cursor: 'pointer',
+                          }}
+                        >
+                          <Plus size={14} style={{ flexShrink: 0 }} />
+                          Launch a new competition
+                        </button>
+                      )}
                     </div>
                   </>
                 )}
@@ -512,6 +547,9 @@ export default function CompetitionDashboard({
           {onViewPublicSite && (
             <button
               onClick={onViewPublicSite}
+              title={launchPhase === 'live'
+                ? 'View your live competition page'
+                : 'Preview your coming-soon page — a live look at what you’ve entered so far'}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -527,10 +565,29 @@ export default function CompetitionDashboard({
               }}
             >
               <Eye size={isMobile ? 12 : 14} />
-              {isMobile ? 'View' : 'View Competition'}
+              {launchPhase === 'live'
+                ? (isMobile ? 'View' : 'View Competition')
+                : (isMobile ? 'Preview' : 'Preview Competition')}
             </button>
           )}
 
+          {onLaunchCompetition && !hasMultipleCompetitions && (
+            <button
+              onClick={onLaunchCompetition}
+              title="Launch a new competition"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
+                padding: isMobile ? spacing.xs : `${spacing.sm} ${spacing.md}`,
+                background: 'transparent', border: `1px solid ${colors.border.light}`,
+                borderRadius: borderRadius.md, color: colors.text.secondary,
+                fontSize: typography.fontSize.sm, cursor: 'pointer',
+                minWidth: isMobile ? '32px' : 'auto', minHeight: isMobile ? '32px' : 'auto',
+              }}
+            >
+              <Plus size={16} />
+              {!isMobile && <span>New</span>}
+            </button>
+          )}
           {onLogout && (
             <button
               onClick={onLogout}
@@ -580,17 +637,20 @@ export default function CompetitionDashboard({
       }}>
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
+          const locked = isTabLocked(tab.id);
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => { setActiveTab(tab.id); setSetupFocus(null); }}
+              title={locked ? lockedTabReason(tab.id) : undefined}
               style={{
                 padding: isMobile ? `${spacing.md} ${spacing.md}` : `${spacing.md} ${spacing.xl}`,
-                color: isActive ? colors.gold.primary : colors.text.secondary,
+                color: isActive ? colors.gold.primary : locked ? colors.text.muted : colors.text.secondary,
                 fontSize: isMobile ? typography.fontSize.sm : typography.fontSize.md,
                 fontWeight: typography.fontWeight.medium,
                 cursor: 'pointer',
+                opacity: locked && !isActive ? 0.55 : 1,
                 borderBottom: `2px solid ${isActive ? colors.gold.primary : 'transparent'}`,
                 background: 'none',
                 border: 'none',
@@ -605,7 +665,7 @@ export default function CompetitionDashboard({
                 minHeight: '44px', // Touch-friendly
               }}
             >
-              <Icon size={isMobile ? 20 : 18} />
+              {locked ? <Lock size={isMobile ? 18 : 15} /> : <Icon size={isMobile ? 20 : 18} />}
               {isMobile ? (
                 <span style={{ fontSize: '10px' }}>{tab.shortLabel || tab.label}</span>
               ) : (
@@ -630,7 +690,17 @@ export default function CompetitionDashboard({
       mode={mode}
       competition={competition}
       focusSection={setupFocus}
+      host={data.host}
+      coHosts={data.coHosts || []}
+      canManageHosts={isSuperAdmin || role === 'host'}
+      onShowHostAssignment={() => setShowHostAssignment(true)}
+      onShowAddCoHost={() => setShowAddCoHost(true)}
+      onRemoveHost={removeHost}
+      onRemoveCoHost={removeCoHost}
       judges={data.judges}
+      onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
+      onDeleteJudge={deleteJudge}
+      onSendJudgeInvite={sendJudgeInvite}
       judgingCriteria={data.judgingCriteria}
       judgeScores={data.judgeScores}
       contestants={data.contestants}
@@ -699,27 +769,7 @@ export default function CompetitionDashboard({
       );
     }
 
-    // A finished competition has no Launch tab; fall back to the dashboard so a
-    // stale 'launch' selection never renders the checklist.
-    const tab = activeTab === 'launch' && isFinished ? 'dashboard' : activeTab;
-    switch (tab) {
-      case 'launch':
-        return (
-          <LaunchChecklist
-            competition={competition}
-            host={data.host}
-            nominees={data.nominees}
-            contestants={data.contestants}
-            judges={data.judges}
-            judgingCriteria={data.judgingCriteria}
-            prizes={data.prizes}
-            events={data.events}
-            sponsors={data.sponsors}
-            doubleDays={data.doubleDays}
-            bonusTasks={data.bonusTasks}
-            onNavigateToTab={navigateToTab}
-          />
-        );
+    switch (activeTab) {
       case 'dashboard':
         return (
           <OverviewTab
@@ -740,7 +790,47 @@ export default function CompetitionDashboard({
             onUpdateAnnouncement={updateAnnouncement}
             onDeleteAnnouncement={deleteAnnouncement}
             onTogglePin={toggleAnnouncementPin}
+            onRefresh={refresh}
+            mode="launch"
           />
+        );
+      case 'activity':
+        return (
+          <>
+            <OverviewTab
+              competition={competition}
+              contestants={data.contestants}
+              nominees={data.nominees}
+              sponsors={data.sponsors}
+              events={data.events}
+              announcements={data.announcements}
+              host={data.host}
+              voteRevenue={data.voteRevenue}
+              isSuperAdmin={isSuperAdmin}
+              onViewPublicSite={onViewPublicSite}
+              onNavigateToTab={navigateToTab}
+              onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+              onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
+              onAddAnnouncement={addAnnouncement}
+              onUpdateAnnouncement={updateAnnouncement}
+              onDeleteAnnouncement={deleteAnnouncement}
+              onTogglePin={toggleAnnouncementPin}
+              onRefresh={refresh}
+              mode="activity"
+            />
+            {/* Judging results — the live leaderboard of judge scores blended
+                with votes. Sits with the other live activity; renders nothing
+                until a judging-enabled round exists. */}
+            <div style={{ marginTop: spacing.xl }}>
+              <JudgingResultsPanel
+                contestants={data.contestants}
+                judges={data.judges}
+                judgingCriteria={data.judgingCriteria}
+                judgeScores={data.judgeScores}
+                votingRounds={competition?.voting_rounds || []}
+              />
+            </div>
+          </>
         );
       case 'people':
         return (
@@ -766,10 +856,6 @@ export default function CompetitionDashboard({
             onResendInvite={resendInvite}
             onRepairNomineeAccount={repairNomineeAccount}
             onRepairAllNomineeAccounts={repairAllNomineeAccounts}
-            judges={data.judges}
-            onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
-            onDeleteJudge={deleteJudge}
-            onSendJudgeInvite={sendJudgeInvite}
           />
         );
       case 'communications':
@@ -804,6 +890,7 @@ export default function CompetitionDashboard({
               onRefresh={refresh}
               organizationId={competition?.organizationId}
               organizationHeaderLogoUrl={competition?.organizationHeaderLogoUrl}
+              organizationLogoUrl={competition?.organizationLogoUrl}
               organizationWebsiteUrl={competition?.organizationWebsiteUrl}
             />
             <PreviewTab
@@ -821,6 +908,35 @@ export default function CompetitionDashboard({
     }
   };
 
+  // Slim banner shown atop a locked tab's real content. Locked tabs are fully
+  // viewable before they "go live" — this just sets expectations (it's a peek
+  // ahead, not yet active) and says when it formally unlocks.
+  const renderPreviewBanner = () => {
+    if (!isTabLocked(activeTab)) return null;
+    const tab = TABS.find((t) => t.id === activeTab);
+    if (!tab) return null;
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spacing.sm,
+        padding: `${spacing.sm} ${spacing.md}`,
+        marginBottom: spacing.xl,
+        background: 'rgba(212,175,55,0.08)',
+        border: `1px solid rgba(212,175,55,0.3)`,
+        borderRadius: borderRadius.lg,
+        color: colors.gold.primary,
+        fontSize: typography.fontSize.sm,
+      }}>
+        <Lock size={15} style={{ flexShrink: 0 }} />
+        <span>
+          <strong style={{ fontWeight: typography.fontWeight.semibold }}>Preview — {tab.label} isn’t live yet.</strong>{' '}
+          <span style={{ color: colors.text.secondary }}>{lockedTabReason(tab.id)} Look around to see what’s coming.</span>
+        </span>
+      </div>
+    );
+  };
+
   return (
     <>
       <div style={{ minHeight: '100vh', background: gradients.background }}>
@@ -831,6 +947,7 @@ export default function CompetitionDashboard({
           margin: '0 auto',
           padding: isMobile ? `${spacing.lg} ${spacing.md}` : `${spacing.xxxl} ${spacing.xxl}`,
         }}>
+          {renderPreviewBanner()}
           {renderContent()}
         </main>
       </div>
@@ -854,6 +971,7 @@ export default function CompetitionDashboard({
         excludeIds={(data.coHosts || []).map((c) => c.id)}
         title="Add Co-Host"
         assignLabel="Add Co-Host"
+        emailOnly
       />
       <JudgeModal
         isOpen={judgeModal.isOpen}

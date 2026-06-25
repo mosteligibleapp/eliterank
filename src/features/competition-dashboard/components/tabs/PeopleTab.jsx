@@ -13,8 +13,8 @@ import { uploadPhoto } from '../../../entry/utils/uploadPhoto';
 import { supabase } from '../../../../lib/supabase';
 import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import { getReachedTierLabel } from '../../../../utils/roundLabels';
+import { getNominationWindow, isLive } from '../../../../utils/competitionPhase';
 import WinnersManager from '../WinnersManager';
-import JudgesManager from '../JudgesManager';
 
 // Normalize an instagram handle that may be a bare username, "@name", or full URL
 const parseInstagram = (raw) => {
@@ -84,10 +84,6 @@ export default function PeopleTab({
   onUnconvertContestant,
   onRepairNomineeAccount,
   onRepairAllNomineeAccounts,
-  judges = [],
-  onOpenJudgeModal,
-  onDeleteJudge,
-  onSendJudgeInvite,
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
@@ -110,9 +106,42 @@ export default function PeopleTab({
   const [genderFilter, setGenderFilter] = useState('all');
 
   const splitByGender = !!competition?.winnersSplitByGender;
+
+  // Adding nominees is gated on nominations actually being LIVE — the
+  // competition is live AND inside the nomination window. A host can't seed
+  // their field before the public can nominate, or after nominations close.
+  const nomWindow = getNominationWindow(competition);
+  const canAddNominee = isLive(competition?.status) && nomWindow.state === 'open';
+  const nomOpenDateLabel = nomWindow.start
+    ? nomWindow.start.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+  const addNomineeBlockedReason = canAddNominee
+    ? null
+    : nomWindow.state === 'no_date'
+      ? 'Set your nomination dates in the Setup tab, then you can add nominees.'
+      : nomWindow.state === 'ended'
+        ? 'Nominations have closed, so no new nominees can be added.'
+        : nomOpenDateLabel
+          ? `You can add nominees once nominations open${nomWindow.state === 'upcoming' ? ` on ${nomOpenDateLabel}` : ''} and your competition is live.`
+          : 'You can add nominees once nominations are live.';
+
   const isLegacy = competition?.is_legacy;
   const isCompleted = competition?.status === 'completed';
   const showReorder = isLegacy || isCompleted;
+
+  // Vertical order of the People sections, via CSS flex `order` on the column
+  // container — so we reorder without physically moving the large JSX blocks.
+  // Before the competition is live the host is still building their field, so
+  // nominees sit on top (ready to approve → awaiting → incomplete), with
+  // contestants below. Once live, the contestant lineup is what matters most,
+  // so it jumps above the nominee buckets. Judges + winners stay at the bottom.
+  const preLive = ['draft', 'pending_approval', 'approved'].includes(competition?.status);
+  const sectionOrder = (id) => {
+    const map = preLive
+      ? { readyToApprove: 1, awaitingResponse: 2, incompleteSelfNoms: 3, contestants: 4, judges: 5, winners: 6, declined: 7 }
+      : { contestants: 1, readyToApprove: 2, awaitingResponse: 3, incompleteSelfNoms: 4, judges: 5, winners: 6, declined: 7 };
+    return map[id];
+  };
 
   const handleMoveContestant = async (contestantId, direction) => {
     if (!supabase || !competition?.id) return;
@@ -974,205 +1003,43 @@ export default function PeopleTab({
             lineHeight: 1.6,
             marginBottom: spacing.lg,
           }}>
-            Share your competition link to collect nominations, or add people manually to get started.
+            {canAddNominee
+              ? 'Share your competition link to collect nominations, or add people manually to get started.'
+              : 'Once nominations open, you can collect them from your competition link or add people manually.'}
           </p>
-          <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
-            <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
-              Add Nominee
-            </Button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+            <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+              <Button
+                size="sm"
+                icon={Plus}
+                disabled={!canAddNominee}
+                onClick={() => onOpenAddPersonModal('nominee')}
+              >
+                Add Nominee
+              </Button>
+            </div>
+            {addNomineeBlockedReason && (
+              <p style={{
+                display: 'flex', alignItems: 'center', gap: spacing.xs,
+                color: colors.text.muted, fontSize: typography.fontSize.xs, margin: 0,
+              }}>
+                <Clock size={12} style={{ flexShrink: 0 }} />
+                {addNomineeBlockedReason}
+              </p>
+            )}
           </div>
         </div>
       )}
 
-      {/* Host Profile + Winners Row */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-        gap: spacing.xl,
-        alignItems: 'start',
-      }}>
-      <Panel
-        title={`Hosts${host ? ` (${1 + coHosts.length})` : coHosts.length ? ` (${coHosts.length})` : ''}`}
-        icon={User}
-        style={{ marginBottom: 0 }}
-        action={
-          isSuperAdmin ? (
-            host ? (
-              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowAddCoHost?.(); }}>
-                Add Co-Host
-              </Button>
-            ) : (
-              <Button size="sm" icon={UserPlus} onClick={(e) => { e.stopPropagation(); onShowHostAssignment(); }}>
-                Assign Host
-              </Button>
-            )
-          ) : null
-        }
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.lg }}>
-          {!host && coHosts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <User size={40} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p style={{ marginBottom: spacing.md, fontSize: typography.fontSize.sm }}>No hosts assigned yet</p>
-              {isSuperAdmin && (
-                <Button icon={UserPlus} onClick={onShowHostAssignment}>Assign Host</Button>
-              )}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-              {host && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.md,
-                    padding: spacing.md,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${colors.border.light}`,
-                    borderRadius: borderRadius.md,
-                  }}
-                >
-                    <Avatar name={host.name} src={host.avatar} size={44} />
-                    <button
-                      onClick={() => handleViewProfile(host.id)}
-                      disabled={!host.id}
-                      title={host.id ? 'View host profile' : undefined}
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        textAlign: 'left',
-                        cursor: host.id ? 'pointer' : 'default',
-                        color: 'inherit',
-                      }}
-                    >
-                      <p style={{
-                        fontWeight: typography.fontWeight.medium,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        color: '#fff',
-                      }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {host.name}
-                        </span>
-                        {host.id && <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />}
-                      </p>
-                      <p style={{
-                        color: colors.text.secondary,
-                        fontSize: typography.fontSize.sm,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {host.city || ''}
-                      </p>
-                    </button>
-                    <Badge variant="gold" size="sm">
-                      <Star size={12} style={{ marginRight: spacing.xs }} /> Host
-                    </Badge>
-                    {isSuperAdmin && (
-                      <>
-                        <Button size="sm" variant="secondary" onClick={onShowHostAssignment}>
-                          Reassign
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                          onClick={onRemoveHost}
-                        >
-                          Remove
-                        </Button>
-                      </>
-                    )}
-                </div>
-              )}
-
-              {coHosts.map((coHost) => (
-                <div
-                  key={coHost.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.md,
-                    padding: spacing.md,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${colors.border.light}`,
-                    borderRadius: borderRadius.md,
-                  }}
-                >
-                  <Avatar name={coHost.name} src={coHost.avatar} size={44} />
-                  <button
-                    onClick={() => handleViewProfile(coHost.id)}
-                    disabled={!coHost.id}
-                    title={coHost.id ? 'View co-host profile' : undefined}
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      textAlign: 'left',
-                      cursor: coHost.id ? 'pointer' : 'default',
-                      color: 'inherit',
-                    }}
-                  >
-                    <p style={{
-                      fontWeight: typography.fontWeight.medium,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.xs,
-                      color: '#fff',
-                    }}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {coHost.name}
-                      </span>
-                      {coHost.id && <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />}
-                    </p>
-                    <p style={{
-                      color: colors.text.secondary,
-                      fontSize: typography.fontSize.sm,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {coHost.email}
-                    </p>
-                  </button>
-                  <Badge variant="gold" size="sm">
-                    <Star size={12} style={{ marginRight: spacing.xs }} /> Co-Host
-                  </Badge>
-                  {isSuperAdmin && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.5)' }}
-                      onClick={() => onRemoveCoHost?.(coHost.id)}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Panel>
 
       {/* Winners Manager */}
-      <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={true} />
+      <div style={{ order: sectionOrder('winners') }}>
+        <WinnersManager competition={competition} onUpdate={onRefresh} allowEdit={isSuperAdmin} />
       </div>
 
-      {/* Judges roster (judging rules + results stay in Setup) */}
-      <JudgesManager
-        judges={judges}
-        onOpenJudgeModal={onOpenJudgeModal}
-        onDeleteJudge={onDeleteJudge}
-        onSendJudgeInvite={onSendJudgeInvite}
-      />
+      {/* Judges now live in the Setup tab, next to the judging rules, so the
+          whole judging setup is in one place. Live results (the leaderboard)
+          remain on the Activity tab. */}
 
       {/* Gender filter chips — only shown when the competition splits
        *  winners by gender. Filters every section below + the contestants
@@ -1274,7 +1141,7 @@ export default function PeopleTab({
       <Panel
         title={`Contestants (${contestantsFiltered.length})`}
         icon={Crown}
-        style={{ marginBottom: 0 }}
+        style={{ marginBottom: 0, order: sectionOrder('contestants') }}
         collapsible
         defaultCollapsed
         action={
@@ -1426,7 +1293,7 @@ export default function PeopleTab({
       <Panel
         title={`Ready to Approve (${nomineesWithProfile.length})`}
         icon={UserCheck}
-        style={{ marginBottom: 0 }}
+        style={{ marginBottom: 0, order: sectionOrder('readyToApprove') }}
         collapsible
         defaultCollapsed
       >
@@ -1461,13 +1328,20 @@ export default function PeopleTab({
       <Panel
         title={`Awaiting Response (${externalNominees.length})`}
         icon={Users}
-        style={{ marginBottom: 0 }}
+        style={{ marginBottom: 0, order: sectionOrder('awaitingResponse') }}
         collapsible
         defaultCollapsed
         action={
-          <Button size="sm" icon={Plus} onClick={() => onOpenAddPersonModal('nominee')}>
-            Add
-          </Button>
+          <span title={addNomineeBlockedReason || undefined}>
+            <Button
+              size="sm"
+              icon={Plus}
+              disabled={!canAddNominee}
+              onClick={() => onOpenAddPersonModal('nominee')}
+            >
+              Add
+            </Button>
+          </span>
         }
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
@@ -1538,7 +1412,7 @@ export default function PeopleTab({
         <Panel
           title={`Incomplete Self-Nominations (${incompleteNominees.length})`}
           icon={Clock}
-          style={{ marginBottom: 0 }}
+          style={{ marginBottom: 0, order: sectionOrder('incompleteSelfNoms') }}
           collapsible
           defaultCollapsed
         >
@@ -1655,7 +1529,7 @@ export default function PeopleTab({
         <Panel
           title={`Declined (${declinedNominees.length})`}
           icon={XCircle}
-          style={{ marginBottom: 0 }}
+          style={{ marginBottom: 0, order: sectionOrder('declined') }}
           collapsible
           defaultCollapsed
         >

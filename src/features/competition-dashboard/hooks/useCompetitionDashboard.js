@@ -74,13 +74,16 @@ export function useCompetitionDashboard(competitionId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = useCallback(async ({ silent = false } = {}) => {
     if (!competitionId) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    // Silent refetches (e.g. after saving a setting) update data in place
+    // without flipping the global loading flag — which would blank the whole
+    // dashboard to a skeleton and read as a full-page reload.
+    if (!silent) setLoading(true);
     setError(null);
 
     try {
@@ -189,7 +192,7 @@ export function useCompetitionDashboard(competitionId) {
             category:categories(id, name, slug),
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
-            organization:organizations(id, name, slug, logo_url, header_logo_url, website_url),
+            organization:organizations(id, name, slug, logo_url, header_logo_url, website_url, instagram, stripe_connect_account_id, kyc_status, charges_enabled, payouts_enabled, connect_details_submitted, master_agreement_version, master_agreement_accepted_at),
             host:profiles!competitions_host_id_fkey(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery),
             voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance, judge_weight, finalized_at, finalized_snapshot),
             nomination_periods(id, start_date, end_date, period_order, title)
@@ -604,12 +607,46 @@ export function useCompetitionDashboard(competitionId) {
           eligibilityRadiusMiles: competition.eligibility_radius_miles || 100,
           minContestants: competition.min_contestants || 40,
           maxContestants: competition.max_contestants || null,
+          // Onboarding-set fields (the create wizard) — for the overview recap.
+          cityId: competition.city_id || null,
+          categoryTemplate: competition.category_template || null,
+          territoryScope: competition.territory_scope || null,
+          territoryState: competition.territory_state || null,
+          eligibilityGender: competition.eligibility_gender || null,
+          eligibilityAgeMin: competition.eligibility_age_min ?? null,
+          eligibilityAgeMax: competition.eligibility_age_max ?? null,
+          entryType: competition.entry_type || null,
+          selectionCriteria: competition.selection_criteria || null,
+          numberOfWinners: competition.number_of_winners ?? null,
+          charityPercentage: competition.charity_percentage ?? null,
+          plannedLaunchTimeframe: competition.planned_launch_timeframe || null,
+          cashPrizeAmount: competition.cash_prize_amount ?? null,
+          hasSponsoredPrizes: !!competition.has_sponsored_prizes,
+          prizeReviewRequired: !!competition.prize_review_required,
+          showPublicHost: competition.show_public_host !== false,
           // Additional fields for card generation and links
           slug: competition.slug || null,
           organizationName: competition.organization?.name || null,
           organizationLogoUrl: competition.organization?.logo_url || null,
           organizationHeaderLogoUrl: competition.organization?.header_logo_url || null,
           organizationWebsiteUrl: competition.organization?.website_url || null,
+          organizationInstagram: competition.organization?.instagram || null,
+          // Stripe Connect (payouts) status for the host org — read back from
+          // Stripe, never self-attested (§5.1). Drives the Payouts card.
+          connect: {
+            hasAccount: !!competition.organization?.stripe_connect_account_id,
+            kycStatus: competition.organization?.kyc_status || 'not_started',
+            chargesEnabled: !!competition.organization?.charges_enabled,
+            payoutsEnabled: !!competition.organization?.payouts_enabled,
+            detailsSubmitted: !!competition.organization?.connect_details_submitted,
+          },
+          // Promoter/Master Agreement acceptance for the host org. Must be
+          // accepted (current version) BEFORE connecting Stripe, and is a
+          // requirement for publishing (migration 083).
+          agreement: {
+            version: competition.organization?.master_agreement_version || null,
+            acceptedAt: competition.organization?.master_agreement_accepted_at || null,
+          },
           themePrimary: competition.theme_primary || null,
           // Charity fields
           charityName: competition.charity_name || null,
@@ -633,7 +670,7 @@ export function useCompetitionDashboard(competitionId) {
       console.error('Error in useCompetitionDashboard:', err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [competitionId]);
 
@@ -643,7 +680,7 @@ export function useCompetitionDashboard(competitionId) {
 
   // Refresh function for manual refetch
   const refresh = useCallback(() => {
-    fetchDashboardData();
+    fetchDashboardData({ silent: true });
   }, [fetchDashboardData]);
 
   // ============================================================================

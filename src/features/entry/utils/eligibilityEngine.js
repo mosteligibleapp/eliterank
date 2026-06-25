@@ -24,6 +24,14 @@ export function getCityName(competition) {
  * @param {Object} competition - Full competition object with joined category, demographic, city
  * @returns {Array<{id: string, getLabel: (isSelf: boolean) => string, required: boolean}>}
  */
+// Read a field that may be snake_case (public row) or camelCase (entry shape).
+const pick = (c, ...keys) => {
+  for (const k of keys) {
+    if (c?.[k] !== undefined && c?.[k] !== null) return c[k];
+  }
+  return undefined;
+};
+
 export function generateEligibilityFields(competition) {
   const fields = [];
   if (!competition) return fields;
@@ -31,10 +39,30 @@ export function generateEligibilityFields(competition) {
   const demographic = competition.demographic;
   const category = competition.category;
   const cityName = getCityName(competition);
-  const radius = competition.eligibility_radius_miles;
 
-  // 1. Location eligibility
-  if (cityName) {
+  // Pull the host's actual, entered eligibility — not the demographic preset —
+  // so the confirmation matches what they set (e.g. ages 21–50, this territory).
+  const radius = pick(competition, 'eligibility_radius_miles', 'eligibilityRadiusMiles');
+  const territoryScope = pick(competition, 'territory_scope', 'territoryScope') || 'city';
+  const territoryState = pick(competition, 'territory_state', 'territoryState');
+  const gender = pick(competition, 'eligibility_gender', 'eligibilityGender') || demographic?.gender;
+  const ageMin = pick(competition, 'eligibility_age_min', 'eligibilityAgeMin') ?? demographic?.age_min;
+  const ageMax = pick(competition, 'eligibility_age_max', 'eligibilityAgeMax') ?? demographic?.age_max;
+
+  // 1. Location eligibility — match the competition's territory.
+  if (territoryScope === 'us') {
+    fields.push({
+      id: 'lives_in_us',
+      getLabel: (isSelf) => (isSelf ? 'I live in the United States' : 'They live in the United States'),
+      required: true,
+    });
+  } else if (territoryScope === 'state' && territoryState) {
+    fields.push({
+      id: 'lives_in_state',
+      getLabel: (isSelf) => (isSelf ? `I live in ${territoryState}` : `They live in ${territoryState}`),
+      required: true,
+    });
+  } else if (cityName) {
     if (radius && radius > 0) {
       fields.push({
         id: 'lives_in_area',
@@ -56,38 +84,34 @@ export function generateEligibilityFields(competition) {
     }
   }
 
-  // 2. Gender eligibility (from demographic)
-  if (demographic?.gender) {
-    const genderLabel =
-      demographic.gender === 'female'
-        ? 'female'
-        : demographic.gender === 'male'
-          ? 'male'
-          : demographic.gender;
-
-    fields.push({
-      id: 'gender_eligible',
-      getLabel: (isSelf) =>
-        isSelf
-          ? `I identify as ${genderLabel}`
-          : `They identify as ${genderLabel}`,
-      required: true,
-    });
+  // 2. Gender eligibility — only when restricted (not "all genders").
+  if (gender && gender !== 'all') {
+    const phrase = gender === 'female'
+      ? (isSelf) => (isSelf ? 'I am a woman' : 'They are a woman')
+      : gender === 'male'
+        ? (isSelf) => (isSelf ? 'I am a man' : 'They are a man')
+        : (isSelf) => (isSelf ? `I identify as ${gender}` : `They identify as ${gender}`);
+    fields.push({ id: 'gender_eligible', getLabel: phrase, required: true });
   }
 
-  // 3. Age eligibility (from demographic)
-  if (demographic?.age_min != null || demographic?.age_max != null) {
-    const min = demographic.age_min || 18;
-    const ageRange = demographic.age_max
-      ? `${min}–${demographic.age_max}`
-      : `${min}+`;
-
+  // 3. Age eligibility — from the entered min/max, e.g. "between 21 and 50".
+  if (ageMin != null && ageMax != null) {
     fields.push({
       id: 'age_eligible',
       getLabel: (isSelf) =>
-        isSelf
-          ? `I am between the ages of ${ageRange}`
-          : `They are between the ages of ${ageRange}`,
+        isSelf ? `I am between ${ageMin} and ${ageMax}` : `They are between ${ageMin} and ${ageMax}`,
+      required: true,
+    });
+  } else if (ageMin != null) {
+    fields.push({
+      id: 'age_eligible',
+      getLabel: (isSelf) => (isSelf ? `I am ${ageMin} or older` : `They are ${ageMin} or older`),
+      required: true,
+    });
+  } else {
+    fields.push({
+      id: 'age_18',
+      getLabel: (isSelf) => (isSelf ? 'I am 18 or older' : 'They are 18 or older'),
       required: true,
     });
   }

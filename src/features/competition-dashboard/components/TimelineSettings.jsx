@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   Calendar, Vote, Plus, Trash2, AlertTriangle, Save,
-  Clock, Activity, Trophy, Archive, FileEdit, Lock, Info
+  Clock, Activity, Trophy, Archive, FileEdit, Lock, Info, Sparkles
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -15,11 +15,6 @@ import {
   DEFAULT_NOMINATION_PERIOD,
   ROUND_TYPE_CONFIG,
 } from '../../../types/competition';
-import {
-  computeCompetitionPhase,
-  TIMELINE_PHASES,
-  getPhaseDisplayConfig,
-} from '../../../utils/competitionPhase';
 import {
   getStatusChangeRestriction,
   getNextAutoTransition,
@@ -39,10 +34,15 @@ function parseTypedDate(input) {
 
   const str = input.trim();
 
-  // Try direct ISO parse first
-  let date = new Date(str);
-  if (!isNaN(date.getTime())) {
-    return date.toISOString();
+  // A complete ISO instant with an explicit timezone — keep its exact instant.
+  // Naive strings (no offset) fall through and are parsed as UTC wall-clock
+  // below, matching the nomination editor / datetime-local convention.
+  let date;
+  if (/\d{4}-\d{2}-\d{2}t\d{2}:\d{2}.*(z|[+-]\d{2}:?\d{2})$/i.test(str)) {
+    date = new Date(str);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString();
+    }
   }
 
   // Normalize common patterns
@@ -79,7 +79,7 @@ function parseTypedDate(input) {
 
     if (month !== undefined && day >= 1 && day <= 31) {
       const { hours, minutes } = parseTime(timeStr);
-      date = new Date(year, month, day, hours, minutes);
+      date = new Date(Date.UTC(year, month, day, hours, minutes));
       if (!isNaN(date.getTime())) {
         return date.toISOString();
       }
@@ -97,7 +97,7 @@ function parseTypedDate(input) {
 
     if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
       const { hours, minutes } = parseTime(timeStr);
-      date = new Date(year, month, day, hours, minutes);
+      date = new Date(Date.UTC(year, month, day, hours, minutes));
       if (!isNaN(date.getTime())) {
         return date.toISOString();
       }
@@ -115,7 +115,7 @@ function parseTypedDate(input) {
 
     if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
       const { hours, minutes } = parseTime(timeStr);
-      date = new Date(year, month, day, hours, minutes);
+      date = new Date(Date.UTC(year, month, day, hours, minutes));
       if (!isNaN(date.getTime())) {
         return date.toISOString();
       }
@@ -161,13 +161,17 @@ function formatDateForDisplay(isoDate) {
   const date = new Date(isoDate);
   if (isNaN(date.getTime())) return '';
 
+  // Read UTC components (naive wall-clock), matching how the nomination editor
+  // and the datetime-local inputs store/show times. This keeps a time shown as
+  // "7:04 AM" identical across nominations, voting and the finale instead of
+  // drifting by the viewer's UTC offset.
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = months[date.getMonth()];
-  const day = date.getDate();
-  const year = date.getFullYear();
+  const month = months[date.getUTCMonth()];
+  const day = date.getUTCDate();
+  const year = date.getUTCFullYear();
 
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
+  let hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes();
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12 || 12;
 
@@ -175,6 +179,170 @@ function formatDateForDisplay(isoDate) {
 
   return `${month} ${day}, ${year} ${hours}:${minuteStr} ${ampm}`;
 }
+
+// Static styles — module-level so they aren't reallocated per render and so the
+// memoized VotingRoundCard (below) can reference them directly.
+const sectionStyle = {
+  background: colors.background.secondary,
+  borderRadius: borderRadius.lg,
+  padding: spacing.lg,
+  marginBottom: spacing.lg,
+};
+const labelStyle = {
+  display: 'block',
+  fontSize: typography.fontSize.sm,
+  color: colors.text.secondary,
+  marginBottom: spacing.xs,
+  fontWeight: typography.fontWeight.medium,
+};
+const inputStyle = {
+  width: '100%',
+  padding: spacing.md,
+  background: colors.background.card,
+  border: `1px solid ${colors.border.light}`,
+  borderRadius: borderRadius.md,
+  color: '#fff',
+  fontSize: typography.fontSize.md,
+  outline: 'none',
+};
+
+// ISO timestamptz ↔ <input type="datetime-local"> value, using the same naive
+// wall-clock (UTC) convention as the nomination editor so times don't shift.
+function toDateInput(iso) {
+  return iso ? String(iso).slice(0, 16) : '';
+}
+function fromDateInput(local) {
+  if (!local) return null;
+  const withSecs = local.length === 16 ? `${local}:00` : local;
+  const d = new Date(`${withSecs}Z`);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+// One voting-round card, memoized so editing a field only re-renders that row
+// (not every card on each keystroke). Props are referentially stable: `round`
+// keeps its identity for untouched rows, and onUpdate/onRemove are useCallback'd.
+const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLastRound, isMobile, onUpdate, onRemove }) {
+  const roundConfig = ROUND_TYPE_CONFIG[round.round_type] || ROUND_TYPE_CONFIG.voting;
+  const judgeWeight = round.judge_weight || 0;
+  const decides = isLastRound; // the final round decides winners
+  const accentColor = decides ? colors.gold.primary : roundConfig.color;
+  return (
+    <div
+      style={{
+        background: colors.background.card,
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        border: `1px solid ${accentColor}33`,
+        borderLeft: `3px solid ${accentColor}`,
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.text.muted, whiteSpace: 'nowrap' }}>
+            Round {pos + 1}
+          </span>
+          <input
+            type="text"
+            value={round.title}
+            onChange={(e) => onUpdate(index, 'title', e.target.value)}
+            placeholder={`Round ${pos + 1}`}
+            style={{ ...inputStyle, background: 'transparent', border: 'none', padding: 0, fontWeight: typography.fontWeight.medium, flex: 1, minWidth: 0 }}
+          />
+          {decides && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+              padding: `2px ${spacing.sm}`, borderRadius: borderRadius.sm,
+              background: 'rgba(212,175,55,0.12)', border: `1px solid ${colors.gold.primary}55`,
+              color: colors.gold.primary, fontSize: '10px', fontWeight: typography.fontWeight.semibold,
+            }}>
+              <Trophy size={11} /> {judgeWeight > 0 ? `Decides winners · judged ${judgeWeight}%` : 'Decides winners'}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => onRemove(index)}
+          title="Remove round"
+          style={{ background: 'rgba(239,68,68,0.1)', border: 'none', borderRadius: borderRadius.sm, padding: spacing.xs, cursor: 'pointer', color: '#ef4444', flexShrink: 0 }}
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: spacing.md }}>
+        <div>
+          <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Opens</label>
+          <input
+            type="datetime-local"
+            value={toDateInput(round.start_date)}
+            onChange={(e) => onUpdate(index, 'start_date', fromDateInput(e.target.value))}
+            style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px', colorScheme: 'dark' }}
+          />
+        </div>
+        <div>
+          <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Closes</label>
+          <input
+            type="datetime-local"
+            value={toDateInput(round.end_date)}
+            min={toDateInput(round.start_date) || undefined}
+            onChange={(e) => onUpdate(index, 'end_date', fromDateInput(e.target.value))}
+            style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px', colorScheme: 'dark' }}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '180px 1fr', gap: spacing.md, marginTop: spacing.md }}>
+        <div>
+          <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
+            {isLastRound ? 'Winners (top #)' : 'Advance (top #)'}
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={round.contestants_advance}
+            onChange={(e) => onUpdate(index, 'contestants_advance', parseInt(e.target.value) || 1)}
+            style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px' }}
+          />
+          <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+            {isLastRound
+              ? (round.contestants_advance === 1
+                ? 'The top finisher is crowned the winner.'
+                : `Top ${round.contestants_advance} are crowned winners.`)
+              : `Top ${round.contestants_advance} move to the next round.`}
+          </p>
+        </div>
+        <div>
+          <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Public round name (optional)</label>
+          <input
+            type="text"
+            placeholder="e.g. Quarterfinals, Semifinals, Finale"
+            value={round.tier_label || ''}
+            onChange={(e) => onUpdate(index, 'tier_label', e.target.value)}
+            style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px' }}
+          />
+          <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+            Shown to the public during this round. Defaults to the round title.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ marginTop: spacing.md }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={!!round.votes_reset_at_start}
+            onChange={(e) => onUpdate(index, 'votes_reset_at_start', e.target.checked)}
+          />
+          <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
+            Reset votes when this round starts
+          </span>
+        </label>
+        <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+          Off (default): votes carry over and add up across rounds. On: surviving contestants restart at zero.
+        </p>
+      </div>
+    </div>
+  );
+});
 
 /**
  * reconcileOrderedRows
@@ -278,6 +446,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Nomination periods state (replaces single nomination_start/nomination_end)
   const [nominationPeriods, setNominationPeriods] = useState([]);
   const [nominationDisplayValues, setNominationDisplayValues] = useState([]);
+  // Non-blocking confirm for "Auto-fill recommended" when it would overwrite.
+  const [confirmingAutofill, setConfirmingAutofill] = useState(false);
 
   // Voting/Judging rounds state
   const [votingRounds, setVotingRounds] = useState([]);
@@ -286,13 +456,16 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Status state
   const [status, setStatus] = useState(competition?.status || COMPETITION_STATUS.DRAFT);
 
-  // A finished competition's timeline is historical: editing periods/rounds can
-  // re-trigger finalization + vote resets on already-closed rounds. Lock it for
-  // hosts once the competition is completed or archived. Super admins keep edit
-  // access (they own the status controls and can reopen if a fix is needed).
+  // The timeline locks at publish. Editing or replacing rounds on a published/
+  // live competition would delete judge scores + finalization snapshots and can
+  // re-trigger finalization/vote resets on already-closed rounds — so hosts get
+  // a read-only schedule from publish onward (and once completed/archived).
+  // Super admins keep edit access for corrections.
   const isFinished =
     status === COMPETITION_STATUS.COMPLETED || status === COMPETITION_STATUS.ARCHIVE;
-  const isLocked = isFinished && !isSuperAdmin;
+  const isPublished =
+    ['publish', 'live', 'nomination', 'voting', 'finals'].includes(status);
+  const isLocked = (isFinished || isPublished) && !isSuperAdmin;
 
   // Validation errors
   const [errors, setErrors] = useState([]);
@@ -371,15 +544,17 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     }
   };
 
-  // Compute current phase for display
-  const computedPhase = computeCompetitionPhase({
-    ...competition,
-    status,
-    settings,
-    voting_rounds: votingRounds,
-    nomination_periods: nominationPeriods,
-  });
-  const phaseConfig = getPhaseDisplayConfig(computedPhase);
+
+  // Judges only matter when winners are decided by judges (or a hybrid). For
+  // pure public-vote competitions we hide the judging controls entirely.
+  const usesJudges = ['judges', 'hybrid'].includes(competition?.selectionCriteria);
+
+  // Recommended first-voting start = 5 days after nominations close (owned by
+  // the Nomination Form section). Used to auto-fill the first voting round.
+  const nominationCloseIso = competition?.nominationEnd || competition?.nomination_end || null;
+  const recommendedVotingStartIso = nominationCloseIso
+    ? new Date(new Date(nominationCloseIso).getTime() + 5 * 86400000).toISOString()
+    : null;
 
   // Validate dates
   const validateDates = () => {
@@ -433,6 +608,39 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       validationErrors.push('Finale date must be after the last round ends');
     }
 
+    // Finale is tied to the end of judging: between 1 minute and 24 hours after.
+    const judgingRound = votingRounds.find((r) => (r.judge_weight || 0) > 0);
+    if (judgingRound?.end_date && finale) {
+      const jEnd = new Date(judgingRound.end_date).getTime();
+      const fin = finale.getTime();
+      if (!Number.isNaN(jEnd) && !Number.isNaN(fin)) {
+        if (fin < jEnd + 60000) {
+          validationErrors.push('Finale must be at least 1 minute after judging ends.');
+        } else if (fin > jEnd + 24 * 60 * 60 * 1000) {
+          validationErrors.push('Finale can be at most 24 hours after judging ends.');
+        }
+      }
+    }
+
+    // Voting minimums (only enforced once the host has started adding voting
+    // rounds): at least 3 rounds and at least 30 days of voting total.
+    const votingTypeRounds = votingRounds.filter((r) => r.round_type === 'voting');
+    if (votingTypeRounds.length > 0) {
+      if (votingTypeRounds.length < 3) {
+        validationErrors.push('Voting needs at least 3 rounds.');
+      }
+      const starts = votingTypeRounds.map((r) => r.start_date && new Date(r.start_date)).filter(Boolean);
+      const ends = votingTypeRounds.map((r) => r.end_date && new Date(r.end_date)).filter(Boolean);
+      if (starts.length && ends.length) {
+        const firstStart = Math.min(...starts.map((d) => d.getTime()));
+        const lastEnd = Math.max(...ends.map((d) => d.getTime()));
+        const days = (lastEnd - firstStart) / 86400000;
+        if (days < 30) {
+          validationErrors.push('Voting must run at least 30 days total (first round start to last round end).');
+        }
+      }
+    }
+
     if (status === COMPETITION_STATUS.LIVE) {
       if (nominationPeriods.length === 0) {
         validationErrors.push('At least one prospecting period is required for Live status');
@@ -461,22 +669,14 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
     setSaving(true);
     try {
-      // Derive flat nomination fields from nomination_periods for backward compatibility
-      // This ensures display components (AboutTab, CompetitionTeaser, etc.) show correct dates
-      const sortedPeriods = [...nominationPeriods].sort(
-        (a, b) => (a.period_order || 0) - (b.period_order || 0)
-      );
-      const firstPeriodStart = sortedPeriods[0]?.start_date || null;
-      const lastPeriodEnd = sortedPeriods[sortedPeriods.length - 1]?.end_date || null;
-
-      // Update competition status, finals_date, and synced nomination fields
+      // Nomination open/close dates are owned by the Nomination Form section,
+      // not here — this section only manages voting/judging rounds, the finale
+      // and status. (See NominationFormEditor for the nomination window.)
       const { error: compError } = await supabase
         .from('competitions')
         .update({
           status,
           finals_date: settings.finals_date || null,
-          nomination_start: firstPeriodStart,
-          nomination_end: lastPeriodEnd,
           updated_at: new Date().toISOString(),
         })
         .eq('id', competition.id);
@@ -502,19 +702,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       // ────────────────────────────────────────────────────────────────────
 
       await reconcileOrderedRows({
-        table: 'nomination_periods',
-        competitionId: competition.id,
-        desired: nominationPeriods,
-        orderField: 'period_order',
-        buildPayload: (period, index) => ({
-          title: period.title || `Period ${index + 1}`,
-          start_date: period.start_date || null,
-          end_date: period.end_date || null,
-          max_submissions: period.max_submissions || null,
-        }),
-      });
-
-      await reconcileOrderedRows({
         table: 'voting_rounds',
         competitionId: competition.id,
         desired: votingRounds,
@@ -527,6 +714,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           contestants_advance: round.contestants_advance || 10,
           tier_label: round.tier_label?.trim() || null,
           votes_reset_at_start: !!round.votes_reset_at_start,
+          // judge_weight is owned by the Judging section for existing rounds.
+          // Only seed it on INSERT (e.g. the recommended-schedule fill, which
+          // creates fresh id-less rounds) so the 60% blend persists — and a
+          // stale timeline save can never overwrite a weight set in JudgingPanel.
+          ...(round.id ? {} : { judge_weight: round.judge_weight ?? 0 }),
         }),
       });
 
@@ -596,6 +788,15 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Voting/Judging round management
   const addVotingRound = (roundType = 'voting') => {
     const typeLabel = roundType === 'judging' ? 'Judging' : 'Voting';
+    // Auto-fill the first voting round's start from the nomination close date
+    // (5 days after) so the host doesn't have to compute it.
+    const isFirstVoting = roundType === 'voting' && votingRounds.filter(r => r.round_type === 'voting').length === 0;
+    const autoStartIso = isFirstVoting && recommendedVotingStartIso ? recommendedVotingStartIso : '';
+    // When we auto-fill the start, also suggest a valid end (~10 days later) so
+    // the round is never left with an end-before-start — the host can adjust it.
+    const autoEndIso = autoStartIso
+      ? new Date(new Date(autoStartIso).getTime() + 10 * 86400000).toISOString()
+      : '';
     setVotingRounds(prev => [
       ...prev,
       {
@@ -603,23 +804,106 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         title: `${typeLabel} Round ${prev.filter(r => r.round_type === roundType).length + 1}`,
         round_order: prev.length + 1,
         round_type: roundType,
+        start_date: autoStartIso || DEFAULT_VOTING_ROUND.start_date || '',
+        end_date: autoEndIso || DEFAULT_VOTING_ROUND.end_date || null,
       }
     ]);
-    setRoundDisplayValues(prev => [...prev, { start_date: '', end_date: '' }]);
+    setRoundDisplayValues(prev => [...prev, {
+      start_date: autoStartIso ? formatDateForDisplay(autoStartIso) : '',
+      end_date: autoEndIso ? formatDateForDisplay(autoEndIso) : '',
+    }]);
   };
 
-  const removeVotingRound = (index) => {
+  // Build the recommended schedule: three contiguous 10-day voting rounds
+  // (≥30 days total, the validator's minimum). Judging is tied to the LAST
+  // voting round — that round becomes the determining round with judges at the
+  // 60% skill-contest floor (the "blend" layout JudgingPanel offers), so there
+  // is never a separate judging round. The finale is set 1 hour after that
+  // round ends (inside the 1-min→24-hr window the validator enforces). Anchored
+  // to the recommended first-voting start (nominations close + 5 days); falls
+  // back to ~4 weeks out if the nomination close date isn't set yet.
+  const buildRecommendedSchedule = () => {
+    const DAY = 86400000;
+    const addDays = (d, n) => new Date(d.getTime() + n * DAY);
+    const base = recommendedVotingStartIso
+      ? new Date(recommendedVotingStartIso)
+      : new Date(Date.now() + 28 * DAY);
+
+    // The final round crowns the host's actual number of winners (not a fixed 5).
+    const winnerCount = Number(competition?.numberOfWinners || competition?.number_of_winners) || 1;
+
+    const rounds = [];
+    let cursor = new Date(base);
+    const votingTiers = [
+      { title: 'Voting Round 1', tier_label: 'Opening Round', advance: 15 },
+      { title: 'Voting Round 2', tier_label: 'Semifinals', advance: 8 },
+      { title: 'Voting Round 3', tier_label: 'Finals', advance: winnerCount },
+    ];
+    votingTiers.forEach((t, i) => {
+      const start = new Date(cursor);
+      const end = addDays(start, 10);
+      const isLast = i === votingTiers.length - 1;
+      rounds.push({
+        ...DEFAULT_VOTING_ROUND,
+        title: t.title,
+        tier_label: t.tier_label,
+        round_type: 'voting',
+        round_order: i + 1,
+        contestants_advance: t.advance,
+        start_date: start.toISOString(),
+        end_date: end.toISOString(),
+        votes_reset_at_start: false,
+        // Judging rides on the final voting round when winners are judge-decided
+        // (judges 60% + votes 40%). Pure-vote competitions leave it at 0.
+        judge_weight: isLast && usesJudges ? 60 : 0,
+      });
+      cursor = end; // next round opens as this one closes
+    });
+
+    const finale = new Date(cursor.getTime() + 60 * 60 * 1000); // +1 hr after the deciding round
+    return { rounds, finaleIso: finale.toISOString() };
+  };
+
+  // Apply the recommended schedule. Native window.confirm blocks the main
+  // thread (a big INP/long-task offender), so when there's existing data we use
+  // a non-blocking inline confirmation (confirmingAutofill) instead.
+  const applyRecommendedSchedule = () => {
+    const { rounds, finaleIso } = buildRecommendedSchedule();
+    setVotingRounds(rounds);
+    setRoundDisplayValues(rounds.map(r => ({
+      start_date: formatDateForDisplay(r.start_date),
+      end_date: formatDateForDisplay(r.end_date),
+    })));
+    setSettings(prev => ({ ...prev, finals_date: finaleIso }));
+    setDisplayValues(prev => ({ ...prev, finals_date: formatDateForDisplay(finaleIso) }));
+    setParseErrors({});
+    setErrors([]);
+    setConfirmingAutofill(false);
+    toast.success('Recommended schedule filled in — review the dates, then Save.');
+  };
+
+  const handleAutofillClick = () => {
+    if (votingRounds.length > 0 || settings.finals_date) {
+      setConfirmingAutofill(true);
+    } else {
+      applyRecommendedSchedule();
+    }
+  };
+
+  // Stable refs (functional setState, no deps) so the memoized round cards only
+  // re-render the row that actually changed — not every card on each keystroke.
+  const removeVotingRound = useCallback((index) => {
     setVotingRounds(prev => prev.filter((_, i) => i !== index));
     setRoundDisplayValues(prev => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
-  const updateVotingRound = (index, field, value) => {
+  const updateVotingRound = useCallback((index, field, value) => {
     setVotingRounds(prev =>
       prev.map((round, i) =>
         i === index ? { ...round, [field]: value } : round
       )
     );
-  };
+  }, []);
 
   const updateRoundDisplayValue = (index, field, value) => {
     setRoundDisplayValues(prev =>
@@ -667,31 +951,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   };
 
   // Styles
-  const sectionStyle = {
-    background: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  };
-
-  const labelStyle = {
-    display: 'block',
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    marginBottom: spacing.xs,
-    fontWeight: typography.fontWeight.medium,
-  };
-
-  const inputStyle = {
-    width: '100%',
-    padding: spacing.md,
-    background: colors.background.card,
-    border: `1px solid ${colors.border.light}`,
-    borderRadius: borderRadius.md,
-    color: '#fff',
-    fontSize: typography.fontSize.md,
-    outline: 'none',
-  };
 
   // Compact, read-only schedule shown to hosts once the timeline is locked,
   // instead of the full editor with its empty-state cards and disabled inputs.
@@ -724,18 +983,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
           <Calendar size={18} /> Schedule
         </h4>
-
-        <div style={{ marginBottom: spacing.lg }}>
-          {groupLabel(Calendar, 'Prospecting Periods')}
-          {nominationPeriods.length > 0
-            ? nominationPeriods.map((p, i) => (
-              <div key={i} style={rowStyle}>
-                <span style={{ color: colors.text.primary, fontSize: typography.fontSize.sm }}>{p.title || `Period ${i + 1}`}</span>
-                <span style={dateText}>{fmtRange(nominationDisplayValues[i]?.start_date, nominationDisplayValues[i]?.end_date)}</span>
-              </div>
-            ))
-            : muted('No prospecting periods')}
-        </div>
 
         <div style={{ marginBottom: spacing.lg }}>
           {groupLabel(Vote, 'Voting & Judging Rounds')}
@@ -802,143 +1049,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </div>
       )}
 
-      {/* Phase Indicator */}
-      <div style={sectionStyle}>
-        <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-          <Activity size={18} />
-          Current Phase
-        </h4>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spacing.md,
-          padding: spacing.lg,
-          background: colors.background.card,
-          borderRadius: borderRadius.lg,
-          border: `1px solid ${colors.border.light}`,
-        }}>
-          <Badge variant={phaseConfig.variant} size="lg">
-            {phaseConfig.label}
-          </Badge>
-          <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-            {status === COMPETITION_STATUS.LIVE
-              ? 'Phase is computed from timeline dates'
-              : 'Set status to "Live" to enable timeline-based phases'}
-          </span>
-        </div>
-      </div>
-
-      {/* Status Section - Admin can change, hosts see read-only */}
-      <div style={sectionStyle}>
-        <h4 style={{ fontSize: typography.fontSize.md, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-          <Vote size={18} />
-          Competition Status
-          {!isSuperAdmin && (
-            <Badge variant="secondary" size="sm" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-              <Lock size={12} /> Admin Controlled
-            </Badge>
-          )}
-        </h4>
-
-        {isSuperAdmin ? (
-          /* Admin view: clickable status buttons */
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>
-            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-              <button
-                key={key}
-                onClick={() => setStatus(key)}
-                style={{
-                  padding: `${spacing.sm} ${spacing.md}`,
-                  background: status === key ? config.bg : 'transparent',
-                  border: `1px solid ${status === key ? config.color : colors.border.light}`,
-                  borderRadius: borderRadius.md,
-                  color: status === key ? config.color : colors.text.muted,
-                  fontSize: typography.fontSize.sm,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: spacing.xs,
-                  minWidth: '120px',
-                }}
-              >
-                <span style={{ fontWeight: typography.fontWeight.medium }}>{config.label}</span>
-                <span style={{ fontSize: typography.fontSize.xs, opacity: 0.7 }}>{config.description}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          /* Host view: read-only status display */
-          <div>
-            {/* Current status badge */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.md,
-              padding: spacing.lg,
-              background: colors.background.card,
-              borderRadius: borderRadius.lg,
-              border: `1px solid ${colors.border.light}`,
-              marginBottom: spacing.md,
-            }}>
-              <Badge
-                variant={STATUS_CONFIG[status]?.variant || 'secondary'}
-                size="lg"
-                style={{
-                  background: STATUS_CONFIG[status]?.bg,
-                  color: STATUS_CONFIG[status]?.color,
-                  border: `1px solid ${STATUS_CONFIG[status]?.color}`,
-                }}
-              >
-                {STATUS_CONFIG[status]?.label || status}
-              </Badge>
-              <div>
-                <p style={{ margin: 0, fontSize: typography.fontSize.sm, color: colors.text.primary }}>
-                  {STATUS_CONFIG[status]?.description || 'Competition status'}
-                </p>
-                <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                  {getStatusChangeRestriction(status)}
-                </p>
-              </div>
-            </div>
-
-            {/* Auto-transition info */}
-            {(() => {
-              const nextTransition = getNextAutoTransition({
-                status,
-                nomination_start: nominationPeriods[0]?.start_date,
-                finals_date: settings.finals_date,
-              });
-
-              if (nextTransition) {
-                return (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: spacing.sm,
-                    padding: spacing.md,
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: borderRadius.md,
-                  }}>
-                    <Info size={16} style={{ color: 'rgb(59, 130, 246)', marginTop: '2px', flexShrink: 0 }} />
-                    <div>
-                      <p style={{ margin: 0, fontSize: typography.fontSize.sm, color: 'rgb(59, 130, 246)' }}>
-                        {nextTransition.description}
-                      </p>
-                      <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                        Scheduled: {formatDateForDisplay(nextTransition.triggerDate.toISOString())}
-                      </p>
-                    </div>
-                  </div>
-                );
-              }
-
-              return null;
-            })()}
-          </div>
-        )}
-      </div>
+      {/* Current Phase + Competition Status removed — phase/status are driven by
+          the launch lifecycle (submit → approve → publish), not edited here. */}
 
       {isLocked ? (
         <>
@@ -960,8 +1072,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                 Timeline locked
               </p>
               <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                This competition has {status === COMPETITION_STATUS.ARCHIVE ? 'been archived' : 'ended'}. Its
-                schedule is preserved as a record and can no longer be edited.
+                {isFinished
+                  ? `This competition has ${status === COMPETITION_STATUS.ARCHIVE ? 'been archived' : 'ended'}. Its schedule is preserved as a record and can no longer be edited.`
+                  : 'This competition is published, so its schedule is locked. Contact support if a date needs to change.'}
               </p>
             </div>
           </div>
@@ -969,148 +1082,64 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </>
       ) : (
         <>
-      {/* Contestant Prospecting Periods */}
-      <div style={sectionStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-          <h4 style={{ fontSize: typography.fontSize.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-            <Calendar size={18} />
-            Contestant Prospecting Periods
-          </h4>
-          <Button variant="secondary" size="sm" icon={Plus} onClick={addNominationPeriod}>
-            Add Period
-          </Button>
-        </div>
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
-          Define periods when nominations/applications are accepted. Enter dates like: Jan 15, 2025 6:00 PM
-        </p>
-
-        {nominationPeriods.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: spacing.xl,
-            background: colors.background.card,
-            borderRadius: borderRadius.lg,
-            color: colors.text.secondary,
-          }}>
-            <Calendar size={32} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-            <p>No prospecting periods configured</p>
-            <p style={{ fontSize: typography.fontSize.sm }}>Add a period to define when nominations are open</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            {nominationPeriods.map((period, index) => (
-              <div
-                key={index}
-                style={{
-                  background: colors.background.card,
-                  borderRadius: borderRadius.md,
-                  padding: spacing.md,
-                  border: `1px solid ${colors.border.light}`,
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-                  <input
-                    type="text"
-                    value={period.title}
-                    onChange={(e) => updateNominationPeriod(index, 'title', e.target.value)}
-                    placeholder={`Period ${index + 1}`}
-                    style={{
-                      ...inputStyle,
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      fontWeight: typography.fontWeight.medium,
-                      maxWidth: '250px',
-                    }}
-                  />
-                  <button
-                    onClick={() => removeNominationPeriod(index)}
-                    style={{
-                      background: 'rgba(239,68,68,0.1)',
-                      border: 'none',
-                      borderRadius: borderRadius.sm,
-                      padding: spacing.xs,
-                      cursor: 'pointer',
-                      color: '#ef4444',
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                  gap: spacing.sm,
-                }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
-                    <input
-                      type="text"
-                      placeholder="Jan 15, 2025 12:00 AM"
-                      value={nominationDisplayValues[index]?.start_date || ''}
-                      onChange={(e) => updateNominationDisplayValue(index, 'start_date', e.target.value)}
-                      onBlur={(e) => handleNominationDateBlur(index, 'start_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`nom_${index}_start_date`] ? '#ef4444' : colors.border.light,
-                      }}
-                    />
-                    {parseErrors[`nom_${index}_start_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>End</label>
-                    <input
-                      type="text"
-                      placeholder="Jan 31, 2025 11:59 PM"
-                      value={nominationDisplayValues[index]?.end_date || ''}
-                      onChange={(e) => updateNominationDisplayValue(index, 'end_date', e.target.value)}
-                      onBlur={(e) => handleNominationDateBlur(index, 'end_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`nom_${index}_end_date`] ? '#ef4444' : colors.border.light,
-                      }}
-                    />
-                    {parseErrors[`nom_${index}_end_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Nomination open/close dates moved to the Nomination Form section. */}
 
       {/* Voting & Judging Rounds */}
       <div style={sectionStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
           <h4 style={{ fontSize: typography.fontSize.md, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
             <Vote size={18} />
-            Voting & Judging Rounds
+            Voting Rounds
           </h4>
           <div style={{ display: 'flex', gap: spacing.sm }}>
+            <Button size="sm" icon={Sparkles} onClick={handleAutofillClick}>
+              Auto-fill recommended
+            </Button>
             <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('voting')}>
               Add Voting
             </Button>
-            <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('judging')}>
-              Add Judging
-            </Button>
           </div>
         </div>
-        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.md }}>
-          Competitions can have voting rounds (public votes), judging rounds (judge scores), or both.
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
+          {usesJudges
+            ? 'These are the public-vote rounds. Judging (criteria, weight and dates) is set in the Judging section.'
+            : 'This competition is vote-based only. To add judges, change “How they win” in your competition details before submitting.'}
+        </p>
+        <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginBottom: spacing.md }}>
+          Voting should run at least <strong>30 days</strong> across at least <strong>3 rounds</strong>. We recommend voting opens 5 days after nominations close
+          {recommendedVotingStartIso ? <> — about <strong>{formatDateForDisplay(recommendedVotingStartIso)}</strong>.</> : '.'}{' '}
+          Use <strong>Auto-fill recommended</strong> to lay out 3 voting rounds and the finale for you
+          {usesJudges ? <> — judges decide the final round at <strong>60%</strong>. Prefer a separate judge-only finale? Switch the layout in the Judging section.</> : '. '}
+          {' '}Adjust anything after.
         </p>
 
-        {votingRounds.length === 0 ? (
+        {confirmingAutofill && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap',
+            gap: spacing.md, padding: spacing.md, marginBottom: spacing.md,
+            background: colors.background.card, border: `1px solid ${colors.gold.primary}55`,
+            borderRadius: borderRadius.md,
+          }}>
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+              This replaces your current rounds and finale with the recommended schedule.
+            </span>
+            <div style={{ display: 'flex', gap: spacing.sm }}>
+              <Button size="sm" icon={Sparkles} onClick={applyRecommendedSchedule}>Replace</Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmingAutofill(false)}>Keep mine</Button>
+            </div>
+          </div>
+        )}
+
+        {(() => {
+        // The "Voting Rounds" list shows voting rounds only. A separate judging
+        // round (round_type 'judging') is owned by the Judging section — keep it
+        // in state so it still saves/validates, but don't render it here mixed
+        // in with voting rounds. Keep each row's real index for the handlers.
+        const displayRounds = votingRounds
+          .map((round, index) => ({ round, index }))
+          .filter(({ round }) => (round.round_type || 'voting') !== 'judging');
+        const hasSeparateJudging = votingRounds.some((r) => r.round_type === 'judging');
+        return displayRounds.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: spacing.xl,
@@ -1119,199 +1148,34 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
             color: colors.text.secondary,
           }}>
             <Vote size={32} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-            <p>No rounds configured</p>
-            <p style={{ fontSize: typography.fontSize.sm }}>Add voting or judging rounds to define the schedule</p>
+            <p>No voting rounds yet</p>
+            <p style={{ fontSize: typography.fontSize.sm }}>Use Auto-fill recommended, or add voting rounds to define the schedule</p>
           </div>
         ) : (
+          <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            {votingRounds.map((round, index) => {
-              const roundConfig = ROUND_TYPE_CONFIG[round.round_type] || ROUND_TYPE_CONFIG.voting;
-              return (
-              <div
+            {displayRounds.map(({ round, index }, pos) => (
+              <VotingRoundCard
                 key={index}
-                style={{
-                  background: colors.background.card,
-                  borderRadius: borderRadius.md,
-                  padding: spacing.md,
-                  border: `1px solid ${roundConfig.color}33`,
-                  borderLeft: `3px solid ${roundConfig.color}`,
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                    <input
-                      type="text"
-                      value={round.title}
-                      onChange={(e) => updateVotingRound(index, 'title', e.target.value)}
-                      placeholder={`Round ${index + 1}`}
-                      style={{
-                        ...inputStyle,
-                        background: 'transparent',
-                        border: 'none',
-                        padding: 0,
-                        fontWeight: typography.fontWeight.medium,
-                        maxWidth: '200px',
-                      }}
-                    />
-                    <select
-                      value={round.round_type || 'voting'}
-                      onChange={(e) => updateVotingRound(index, 'round_type', e.target.value)}
-                      style={{
-                        background: `${roundConfig.color}22`,
-                        border: `1px solid ${roundConfig.color}`,
-                        borderRadius: borderRadius.sm,
-                        color: roundConfig.color,
-                        padding: `${spacing.xs} ${spacing.sm}`,
-                        fontSize: typography.fontSize.xs,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <option value="voting">Voting</option>
-                      <option value="judging">Judging</option>
-                      <option value="resurrection">Resurrection</option>
-                      <option value="finale">Finale</option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={() => removeVotingRound(index)}
-                    style={{
-                      background: 'rgba(239,68,68,0.1)',
-                      border: 'none',
-                      borderRadius: borderRadius.sm,
-                      padding: spacing.xs,
-                      cursor: 'pointer',
-                      color: '#ef4444',
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 120px',
-                  gap: spacing.sm,
-                }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
-                    <input
-                      type="text"
-                      placeholder="Feb 1, 2025 12:00 AM"
-                      value={roundDisplayValues[index]?.start_date || ''}
-                      onChange={(e) => updateRoundDisplayValue(index, 'start_date', e.target.value)}
-                      onBlur={(e) => handleRoundDateBlur(index, 'start_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`round_${index}_start_date`] ? '#ef4444' : colors.border.light,
-                      }}
-                    />
-                    {parseErrors[`round_${index}_start_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>End</label>
-                    <input
-                      type="text"
-                      placeholder="Feb 14, 2025 11:59 PM"
-                      value={roundDisplayValues[index]?.end_date || ''}
-                      onChange={(e) => updateRoundDisplayValue(index, 'end_date', e.target.value)}
-                      onBlur={(e) => handleRoundDateBlur(index, 'end_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`round_${index}_end_date`] ? '#ef4444' : colors.border.light,
-                      }}
-                    />
-                    {parseErrors[`round_${index}_end_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Top # Advance</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={round.contestants_advance}
-                      onChange={(e) => updateVotingRound(index, 'contestants_advance', parseInt(e.target.value) || 1)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px',
-                        padding: spacing.md,
-                        minHeight: '44px',
-                      }}
-                    />
-                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      Top {round.contestants_advance} move to next round
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                  gap: spacing.sm,
-                  marginTop: spacing.sm,
-                }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
-                      Tier label
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Top 50, Quarterfinals, Finale…"
-                      value={round.tier_label || ''}
-                      onChange={(e) => updateVotingRound(index, 'tier_label', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px',
-                        padding: spacing.md,
-                        minHeight: '44px',
-                      }}
-                    />
-                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      Public headline shown during this round. Falls back to the round title.
-                    </p>
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
-                      Vote behavior
-                    </label>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      minHeight: '44px',
-                      padding: spacing.md,
-                      background: colors.background.secondary,
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.sm,
-                      cursor: 'pointer',
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={!!round.votes_reset_at_start}
-                        onChange={(e) => updateVotingRound(index, 'votes_reset_at_start', e.target.checked)}
-                      />
-                      <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
-                        Reset votes at start of this round
-                      </span>
-                    </label>
-                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      Off (default) = cumulative across rounds. On = surviving contestants restart at zero.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              );
-            })}
+                round={round}
+                index={index}
+                pos={pos}
+                isLastRound={pos === displayRounds.length - 1}
+                isMobile={isMobile}
+                onUpdate={updateVotingRound}
+                onRemove={removeVotingRound}
+              />
+            ))}
           </div>
-        )}
+          {hasSeparateJudging && (
+            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.md, display: 'flex', alignItems: 'flex-start', gap: spacing.xs }}>
+              <Info size={13} style={{ color: colors.gold.primary, flexShrink: 0, marginTop: 2 }} />
+              <span>Your judging round runs after voting closes — its dates and weight are set in the <strong style={{ color: colors.text.secondary }}>Judging</strong> section.</span>
+            </p>
+          )}
+          </>
+        );
+        })()}
       </div>
 
       {/* Finals Date */}
@@ -1322,22 +1186,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </h4>
         <div>
           <input
-            type="text"
-            placeholder="Mar 15, 2025 7:00 PM"
-            value={displayValues.finals_date}
-            onChange={(e) => setDisplayValues(prev => ({ ...prev, finals_date: e.target.value }))}
-            onBlur={(e) => handleDateBlur('finals_date', e.target.value)}
-            style={{
-              ...inputStyle,
-              maxWidth: '300px',
-              borderColor: parseErrors.finals_date ? '#ef4444' : colors.border.light,
-            }}
+            type="datetime-local"
+            value={toDateInput(settings.finals_date)}
+            onChange={(e) => setSettings(prev => ({ ...prev, finals_date: fromDateInput(e.target.value) }))}
+            style={{ ...inputStyle, maxWidth: '300px', colorScheme: 'dark' }}
           />
-          {parseErrors.finals_date && (
-            <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.xs }}>
-              Invalid date format
-            </p>
-          )}
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
             The official close/finale date — the competition flips to Completed after it passes.
             Winners are decided when your last round ends, so set this after the final round.

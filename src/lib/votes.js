@@ -411,7 +411,20 @@ export async function createVotePaymentIntent({
 
     if (error) {
       console.error('Payment intent creation failed:', error);
-      return { success: false, error: error.message || 'Failed to create payment' };
+      // The edge function returns a JSON body with a friendly `error` message
+      // for expected cases (e.g. the host hasn't set up payouts). supabase-js
+      // surfaces non-2xx as FunctionsHttpError with the Response on .context;
+      // read it so the voter sees the real reason instead of a generic string.
+      let message = error.message || 'Failed to create payment';
+      let code;
+      try {
+        const body = await error.context?.json?.();
+        if (body?.error) message = body.error;
+        if (body?.code) code = body.code;
+      } catch {
+        // body wasn't JSON / already consumed — fall back to the generic message
+      }
+      return { success: false, error: message, code };
     }
 
     if (!data?.clientSecret) {
@@ -425,6 +438,7 @@ export async function createVotePaymentIntent({
       amount: data.amount,
       voteCount: data.voteCount,
       contestantName: data.contestantName,
+      connectedAccountId: data.connectedAccountId,
     };
   } catch (err) {
     console.error('Error creating payment intent:', err);

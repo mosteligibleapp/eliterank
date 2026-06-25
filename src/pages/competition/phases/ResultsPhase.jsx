@@ -161,8 +161,10 @@ export function ResultsPhase() {
             {/* All votes cast throughout the competition. Use the competition's
                 running total_votes counter (maintained by the vote-insert
                 triggers, never reset) rather than summing contestants' current
-                votes, which are wiped by per-round vote resets. */}
-            <span className="stat-value">{formatNumber(competition?.total_votes)}</span>
+                votes, which are wiped by per-round vote resets. Fall back to the
+                leaderboard sum for older completed comps that predate the
+                counter (otherwise they'd show 0). */}
+            <span className="stat-value">{formatNumber(competition?.total_votes || leaderboardStats?.totalVotes)}</span>
             <span className="stat-label">Total Votes</span>
           </div>
         </section>

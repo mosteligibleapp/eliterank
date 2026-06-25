@@ -176,7 +176,6 @@ export function Rewards() {
                 <reward.icon size={24} />
               </div>
               <h4 className="reward-name">{reward.title}</h4>
-              <p className="reward-description">{reward.description}</p>
             </div>
           ))}
         </div>

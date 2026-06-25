@@ -3553,6 +3553,10 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   margin-bottom: 0;
 }
 
+.rule-paragraph {
+  margin: 0;
+}
+
 /* Sidebar Stack - stacks cards vertically in right column */
 .sidebar-stack {
   display: flex;

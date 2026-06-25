@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { colors, borderRadius, spacing, typography, gradients } from '../../styles/theme';
 
 const PADDING_MAP = {
@@ -82,6 +82,8 @@ export const Panel = memo(function Panel({
   style = {},
   collapsible = false,
   defaultCollapsed = false,
+  locked = false,
+  badge,
   id,
 }) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
@@ -109,6 +111,10 @@ export const Panel = memo(function Panel({
           <div style={titleBaseStyle}>
             {Icon && <Icon size={22} style={{ color: colors.gold.primary }} />}
             {title}
+            {locked && (
+              <Lock size={14} style={{ color: colors.text.muted }} title="Locks when you publish to the public" />
+            )}
+            {badge}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             {action}

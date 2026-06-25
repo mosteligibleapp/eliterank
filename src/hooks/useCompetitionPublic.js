@@ -37,7 +37,7 @@ const COMPETITION_SELECT = `
   competition_rules (id, section_title, section_content, sort_order),
   voting_rounds (
     id, title, round_order, start_date, end_date,
-    contestants_advance, votes_accumulate, round_type
+    contestants_advance, votes_accumulate, round_type, judge_weight
   ),
   nomination_periods (id, title, period_order, start_date, end_date, max_submissions),
   announcements (id, type, title, content, pinned, published_at, is_ai_generated)
@@ -259,11 +259,15 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
   // configured on the competition or its organization — without a real
   // value, competitions would otherwise advertise a phantom default prize.
   const prizePool = useMemo(() => {
-    const minimum =
-      competition?.prize_pool_minimum ??
-      organization?.default_prize_minimum ??
-      null;
-    if (minimum == null) return null;
+    // Self-serve competitions (created via the host wizard — they carry a
+    // category_template) control the cash prize explicitly: no cash prize
+    // selected means no prize pool, regardless of any legacy default. Older
+    // admin-created competitions fall back to prize_pool_minimum.
+    const isSelfServe = competition?.category_template != null;
+    const minimum = isSelfServe
+      ? (competition?.cash_prize_amount != null ? Number(competition.cash_prize_amount) : null)
+      : (competition?.prize_pool_minimum ?? organization?.default_prize_minimum ?? null);
+    if (minimum == null || Number(minimum) <= 0) return null;
     const voteRevenue =
       phase.isVoting || phase.phase === 'results'
         ? calculateVoteRevenue(votes)

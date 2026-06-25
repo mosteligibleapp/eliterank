@@ -5,7 +5,9 @@ import { transformSupabaseImage } from '../../../lib/storageImage';
 
 function buildHostList(competition) {
   const list = [];
-  if (competition?.host) list.push(competition.host);
+  // The creator/host is shown publicly only when show_public_host is on
+  // (default true). Co-hosts are unaffected.
+  if (competition?.host && competition?.show_public_host !== false) list.push(competition.host);
   const coHostRows = competition?.competition_co_hosts || [];
   for (const row of coHostRows) {
     if (row?.profile) list.push(row.profile);

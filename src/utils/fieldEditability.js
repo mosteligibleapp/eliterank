@@ -1,251 +1,183 @@
 /**
- * Field editability rules based on competition status
+ * Field editability across the competition lifecycle.
  *
- * Values:
- * - true: Fully editable
- * - false: Locked (cannot edit)
- * - 'warn': Editable with confirmation warning
+ * Phases: draft → pending_approval → approved → publish → live → completed
+ *
+ * Two host-facing lock tiers (per product spec):
+ *  - SUBMIT_LOCK: editable only in draft; locks once submitted for approval
+ *    (category, who-can-enter, territory, entry type, how-they-win, # winners,
+ *     sponsor-of-record org, name/identity).
+ *  - PUBLISH_LOCK: editable through "approved"; locks once published to public
+ *    (nomination/voting dates, prize structure, judging criteria, nomination/
+ *     application form fields, rules).
+ *
+ * Sponsors & prizes are intentionally EDITABLE at every phase — hosts can add
+ * or adjust rewards any time, including after going live.
+ *
+ * Plus: LOCKED (platform-controlled, never host-editable — e.g. vote pricing),
+ * EDITABLE (always), MARKETING (until completed), THEME (warn while live).
+ *
+ * Values: true (editable) | false (locked) | 'warn' (editable w/ confirmation).
  */
+
+const PHASES = ['draft', 'pending_approval', 'approved', 'publish', 'live', 'completed'];
+
+const p = (draft, pending, approved, publish, live, completed) => ({
+  draft, pending_approval: pending, approved, publish, live, completed,
+});
+
+// Tiers
+const EDITABLE = p(true, true, true, true, true, true);
+const LOCKED = p(false, false, false, false, false, false);
+const SUBMIT_LOCK = p(true, false, false, false, false, false);
+const PUBLISH_LOCK = p(true, true, true, false, false, false);
+const MARKETING = p(true, true, true, true, true, false);
+const THEME = p(true, true, true, true, 'warn', false);
 
 const FIELD_RULES = {
-  // SLOT FIELDS - Always locked (admin-controlled franchise definition)
-  // These define the unique competition slot and cannot be changed by hosts
-  name: { draft: false, publish: false, live: false, completed: false },
-  city: { draft: false, publish: false, live: false, completed: false },
-  season: { draft: false, publish: false, live: false, completed: false },
-  slug: { draft: false, publish: false, live: false, completed: false },
-  category: { draft: false, publish: false, live: false, completed: false },
-  demographic: { draft: false, publish: false, live: false, completed: false },
+  // Platform-controlled — never host-editable
+  slug: LOCKED,
+  price_per_vote: LOCKED,
+  prize_pool_minimum: LOCKED,
+  minimum_prize: LOCKED,
 
-  // ECONOMICS FIELDS - Always locked (admin-controlled economics)
-  // These affect prize commitments and revenue structure
-  prize_pool_minimum: { draft: false, publish: false, live: false, completed: false },
-  minimum_prize: { draft: false, publish: false, live: false, completed: false },
-  number_of_winners: { draft: false, publish: false, live: false, completed: false },
-  price_per_vote: { draft: false, publish: false, live: false, completed: false },
-  eligibility_radius: { draft: false, publish: false, live: false, completed: false },
-  min_contestants: { draft: false, publish: false, live: false, completed: false },
-  max_contestants: { draft: false, publish: false, live: false, completed: false },
+  // Identity / structure — lock at Submit-for-approval
+  name: SUBMIT_LOCK,
+  city: SUBMIT_LOCK,
+  season: SUBMIT_LOCK,
+  category: SUBMIT_LOCK,
+  category_template: SUBMIT_LOCK,
+  demographic: SUBMIT_LOCK,
+  territory: SUBMIT_LOCK,
+  eligibility: SUBMIT_LOCK,
+  eligibility_radius: SUBMIT_LOCK,
+  about_age_range: SUBMIT_LOCK,
+  about_requirement: SUBMIT_LOCK,
+  min_contestants: SUBMIT_LOCK,
+  max_contestants: SUBMIT_LOCK,
+  entry_type: SUBMIT_LOCK,
+  selection_criteria: SUBMIT_LOCK,
+  number_of_winners: SUBMIT_LOCK,
+  organization: SUBMIT_LOCK,
 
-  // About/Marketing - mostly editable
-  about_description: { draft: true, publish: true, live: true, completed: false },
-  about_traits: { draft: true, publish: true, live: 'warn', completed: false },
-  about_age_range: { draft: true, publish: true, live: false, completed: false },
-  about_requirement: { draft: true, publish: true, live: false, completed: false },
+  // Specifics — lock at Publish-to-public
+  nomination_start: PUBLISH_LOCK,
+  nomination_end: PUBLISH_LOCK,
+  voting_start: PUBLISH_LOCK,
+  voting_end: PUBLISH_LOCK,
+  finals_date: PUBLISH_LOCK,
+  prize_structure: PUBLISH_LOCK,
+  judging_criteria: PUBLISH_LOCK,
+  nomination_form: PUBLISH_LOCK,
+  advancement_thresholds: PUBLISH_LOCK,
+  rules: PUBLISH_LOCK,
 
-  // Theme - warn during live
-  theme_primary: { draft: true, publish: true, live: 'warn', completed: false },
-  theme_voting: { draft: true, publish: true, live: 'warn', completed: false },
-  theme_resurrection: { draft: true, publish: true, live: 'warn', completed: false },
+  // Sponsors & prizes — addable/editable any time, even after going live.
+  // Adding more reward for contestants is always welcome; the host controls
+  // these throughout (a sponsor can come aboard mid-competition).
+  sponsors: EDITABLE,
+  prizes: EDITABLE,
 
-  // Timeline - limited during live
-  nomination_start: { draft: true, publish: true, live: false, completed: false },
-  nomination_end: { draft: true, publish: true, live: false, completed: false },
-  voting_start: { draft: true, publish: true, live: false, completed: false },
-  voting_end: { draft: true, publish: true, live: 'warn', completed: false },
-  finals_date: { draft: true, publish: true, live: 'warn', completed: false },
+  // Editable until the competition ends
+  events: MARKETING,
+  about_description: MARKETING,
+  about_traits: MARKETING,
 
-  // Events - always editable until complete
-  events: { draft: true, publish: true, live: true, completed: false },
+  // Theme — warn during live
+  theme_primary: THEME,
+  theme_voting: THEME,
+  theme_resurrection: THEME,
 
-  // Rules - warn during live
-  rules: { draft: true, publish: true, live: 'warn', completed: false },
+  // Always editable
+  announcements: EDITABLE,
+  host_profile: EDITABLE,
 
-  // Sponsors - always editable until complete
-  sponsors: { draft: true, publish: true, live: true, completed: false },
-
-  // Structure - locked once live
-  number_of_winners: { draft: true, publish: true, live: false, completed: false },
-  selection_criteria: { draft: true, publish: true, live: false, completed: false },
-  advancement_thresholds: { draft: true, publish: true, live: false, completed: false },
-
-  // Announcements - always editable
-  announcements: { draft: true, publish: true, live: true, completed: true },
-
-  // Winners - only after completion
-  winners: { draft: false, publish: false, live: false, completed: true },
-
-  // Host profile - always editable
-  host_profile: { draft: true, publish: true, live: true, completed: true },
+  // Winners — only once completed
+  winners: p(false, false, false, false, false, true),
 };
 
-/**
- * Check if a field is editable for given competition status
- * @param {string} fieldName - Field to check
- * @param {string} status - Competition status (draft, publish, live, completed)
- * @returns {boolean|'warn'} - true if editable, false if locked, 'warn' if needs confirmation
- */
-export function isFieldEditable(fieldName, status) {
-  const normalizedStatus = normalizeStatus(status);
-  const rules = FIELD_RULES[fieldName];
-
-  if (!rules) {
-    // Unknown field - default to editable in draft/publish, locked otherwise
-    console.warn(`No editability rules defined for field: ${fieldName}`);
-    return normalizedStatus === 'draft' || normalizedStatus === 'publish';
-  }
-
-  return rules[normalizedStatus] ?? false;
+function normalizeStatus(status) {
+  if (!status) return 'draft';
+  const s = String(status).toLowerCase().replace(/-/g, '_');
+  const map = {
+    coming_soon: 'publish',
+    comingsoon: 'publish',
+    upcoming: 'publish',
+    nomination: 'publish',
+    active: 'live',
+    in_progress: 'live',
+    voting: 'live',
+    finals: 'live',
+    finished: 'completed',
+    ended: 'completed',
+    done: 'completed',
+    archive: 'completed',
+  };
+  const out = map[s] || s;
+  return PHASES.includes(out) ? out : 'draft';
 }
 
-/**
- * Get all editable fields for a given status
- * @param {string} status - Competition status
- * @returns {object} - Object with field names as keys, editability as values
- */
-export function getEditableFields(status) {
-  const normalizedStatus = normalizeStatus(status);
-  const result = {};
-
-  for (const [field, rules] of Object.entries(FIELD_RULES)) {
-    result[field] = rules[normalizedStatus] ?? false;
+export function isFieldEditable(fieldName, status) {
+  const phase = normalizeStatus(status);
+  const rules = FIELD_RULES[fieldName];
+  if (!rules) {
+    // Unknown field: editable before publish, locked after.
+    return phase === 'draft' || phase === 'pending_approval' || phase === 'approved';
   }
+  return rules[phase] ?? false;
+}
 
+export function getEditableFields(status) {
+  const phase = normalizeStatus(status);
+  const result = {};
+  for (const [field, rules] of Object.entries(FIELD_RULES)) result[field] = rules[phase] ?? false;
   return result;
 }
 
-/**
- * Get fields that are locked for a given status
- * @param {string} status - Competition status
- * @returns {string[]} - Array of locked field names
- */
 export function getLockedFields(status) {
-  const normalizedStatus = normalizeStatus(status);
-
-  return Object.entries(FIELD_RULES)
-    .filter(([_, rules]) => rules[normalizedStatus] === false)
-    .map(([field]) => field);
+  const phase = normalizeStatus(status);
+  return Object.entries(FIELD_RULES).filter(([, r]) => r[phase] === false).map(([f]) => f);
 }
 
-/**
- * Get fields that require warning before editing
- * @param {string} status - Competition status
- * @returns {string[]} - Array of field names requiring warning
- */
 export function getWarnFields(status) {
-  const normalizedStatus = normalizeStatus(status);
-
-  return Object.entries(FIELD_RULES)
-    .filter(([_, rules]) => rules[normalizedStatus] === 'warn')
-    .map(([field]) => field);
+  const phase = normalizeStatus(status);
+  return Object.entries(FIELD_RULES).filter(([, r]) => r[phase] === 'warn').map(([f]) => f);
 }
 
-/**
- * Check if any provided fields would trigger a warning
- * @param {string[]} fields - Fields being edited
- * @param {string} status - Competition status
- * @returns {string[]} - Fields that need warning confirmation
- */
 export function checkFieldsForWarning(fields, status) {
   const warnFields = getWarnFields(status);
   return fields.filter((field) => warnFields.includes(field));
 }
 
-/**
- * Get human-readable reason why a field is locked
- * @param {string} fieldName - Field name
- * @param {string} status - Competition status
- * @returns {string} - Explanation message
- */
 export function getLockedReason(fieldName, status) {
-  const normalizedStatus = normalizeStatus(status);
-
-  // Always-locked fields (admin-controlled) - same message regardless of status
-  const alwaysLockedReasons = {
-    name: 'Competition name is set by admin and defines the franchise slot.',
-    city: 'City is set by admin and defines the franchise slot.',
-    season: 'Season is set by admin and defines the franchise slot.',
-    slug: 'URL slug is generated automatically and cannot be changed.',
-    category: 'Category is set by admin and defines the franchise slot.',
-    demographic: 'Demographic is set by admin and defines the franchise slot.',
-    prize_pool_minimum: 'Minimum prize is set by admin to protect contestant expectations.',
-    minimum_prize: 'Minimum prize is set by admin to protect contestant expectations.',
-    number_of_winners: 'Winner count is set by admin and affects prize distribution.',
-    price_per_vote: 'Price per vote is set by admin and affects revenue structure.',
-    eligibility_radius: 'Eligibility radius is set by admin and defines competition scope.',
-    min_contestants: 'Minimum contestants is set by admin for competition viability.',
-    max_contestants: 'Maximum contestants is set by admin for competition management.',
+  const phase = normalizeStatus(status);
+  const platform = {
+    slug: 'The URL is generated automatically and can’t be changed.',
+    price_per_vote: 'Vote pricing is set by EliteRank, not the host.',
+    prize_pool_minimum: 'Set by EliteRank to protect contestant expectations.',
+    minimum_prize: 'Set by EliteRank to protect contestant expectations.',
   };
+  if (platform[fieldName]) return platform[fieldName];
 
-  // Check always-locked first
-  if (alwaysLockedReasons[fieldName]) {
-    return alwaysLockedReasons[fieldName];
+  const rules = FIELD_RULES[fieldName];
+  if (rules === SUBMIT_LOCK || (rules && rules.pending_approval === false && rules.draft === true && rules.approved === false)) {
+    return 'Locked once you submit for approval — this defines the competition and can’t change.';
   }
-
-  // Status-specific reasons
-  const reasons = {
-    live: {
-      about_age_range:
-        'Eligibility requirements cannot change during an active competition.',
-      about_requirement:
-        'Eligibility requirements cannot change during an active competition.',
-      nomination_start: 'Past dates cannot be modified.',
-      nomination_end: 'Nomination period cannot be changed once voting has started.',
-      voting_start: 'Voting has already begun.',
-      advancement_thresholds: 'Advancement rules are locked once voting begins.',
-    },
-    completed: {
-      default: 'This field cannot be modified after the competition has ended.',
-    },
-  };
-
-  return (
-    reasons[normalizedStatus]?.[fieldName] ||
-    reasons[normalizedStatus]?.default ||
-    'This field is locked for the current competition status.'
-  );
+  if (rules === PUBLISH_LOCK || (rules && rules.approved === true && rules.publish === false)) {
+    return 'Locked once your competition is published to the public.';
+  }
+  if (phase === 'completed') return 'This can’t be changed after the competition has ended.';
+  return 'This field is locked in the current phase.';
 }
 
-/**
- * Get warning message for fields that allow editing with confirmation
- * @param {string} fieldName - Field name
- * @returns {string} - Warning message
- */
 export function getEditWarning(fieldName) {
   const warnings = {
-    about_traits:
-      'Changing "Who Competes" criteria during a live competition may confuse current contestants and voters.',
-    theme_primary:
-      'Changing theme colors will immediately affect how the public page appears.',
-    theme_voting:
-      'Changing theme colors will immediately affect how the public page appears.',
-    theme_resurrection:
-      'Changing theme colors will immediately affect how the public page appears.',
-    voting_end:
-      'Extending or shortening the voting period affects all contestants equally. Consider announcing this change.',
-    finals_date:
-      'Changing the finale date may affect contestant and voter plans. Consider announcing this change.',
-    rules:
-      'Modifying rules during an active competition should be done carefully and communicated to participants.',
+    about_traits: 'Changing who competes during a live competition may confuse current contestants and voters.',
+    theme_primary: 'Changing theme colors immediately affects the public page.',
+    theme_voting: 'Changing theme colors immediately affects the public page.',
+    theme_resurrection: 'Changing theme colors immediately affects the public page.',
   };
-
-  return (
-    warnings[fieldName] ||
-    'This competition is live. Are you sure you want to make this change?'
-  );
-}
-
-/**
- * Normalize status string to match our standard format
- */
-function normalizeStatus(status) {
-  if (!status) return 'draft';
-
-  const s = status.toLowerCase().replace('-', '_');
-
-  // Map variations
-  const statusMap = {
-    coming_soon: 'publish',
-    comingsoon: 'publish',
-    'coming-soon': 'publish',
-    active: 'live',
-    in_progress: 'live',
-    finished: 'completed',
-    ended: 'completed',
-    done: 'completed',
-  };
-
-  return statusMap[s] || s;
+  return warnings[fieldName] || 'This competition is live. Are you sure you want to make this change?';
 }
 
 export default isFieldEditable;

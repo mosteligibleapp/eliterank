@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Image, Link, Upload, X, Check } from 'lucide-react';
+import { Image, Link, Upload, X, Check, Pencil, ExternalLink } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { Button, Panel } from '../../../../components/ui';
@@ -14,20 +14,27 @@ import { useToast } from '../../../../contexts/ToastContext';
  * @param {string} currentWebsiteUrl - Current website_url
  * @param {function} onSave - Callback when save completes
  */
-export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUrl, currentWebsiteUrl, onSave }) {
+export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUrl, fallbackLogoUrl, currentWebsiteUrl, onSave }) {
   const toast = useToast();
   const fileInputRef = useRef(null);
 
   const [headerLogoUrl, setHeaderLogoUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // No dedicated header logo yet? Fall back to the org logo uploaded during
+  // onboarding (stored as logo_url) so the host sees what we already have on
+  // file instead of an empty uploader. Saving promotes it to the header logo.
+  const seededHeaderLogoUrl = currentHeaderLogoUrl || fallbackLogoUrl || '';
+  const usingFallbackLogo = !currentHeaderLogoUrl && !!fallbackLogoUrl;
+
   useEffect(() => {
-    setHeaderLogoUrl(currentHeaderLogoUrl || '');
+    setHeaderLogoUrl(seededHeaderLogoUrl);
     setWebsiteUrl(currentWebsiteUrl || '');
-  }, [currentHeaderLogoUrl, currentWebsiteUrl]);
+  }, [seededHeaderLogoUrl, currentWebsiteUrl]);
 
   const hasChanges = () => {
     return headerLogoUrl !== (currentHeaderLogoUrl || '') ||
@@ -70,6 +77,13 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
     setHeaderLogoUrl('');
   };
 
+  // Discard in-progress edits (revert to what's saved / seeded) and leave edit mode.
+  const handleCancel = () => {
+    setHeaderLogoUrl(seededHeaderLogoUrl);
+    setWebsiteUrl(currentWebsiteUrl || '');
+    setEditing(false);
+  };
+
   const handleSave = async () => {
     if (!organizationId) return;
     setSaving(true);
@@ -83,9 +97,10 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
         .eq('id', organizationId);
 
       if (error) throw error;
-      toast.success('Branding updated');
+      toast.success('Branding updated — it’s live on your competition page');
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      setEditing(false);
       onSave?.();
     } catch (err) {
       console.error('Save error:', err);
@@ -182,58 +197,110 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
       justifyContent: 'flex-end',
       gap: spacing.sm,
     },
+    editBtn: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: spacing.xs,
+      background: 'transparent',
+      border: 'none',
+      color: colors.gold.primary,
+      fontSize: typography.fontSize.sm,
+      fontWeight: typography.fontWeight.medium,
+      cursor: 'pointer',
+    },
+    readValue: {
+      margin: 0,
+      color: colors.text.muted,
+      fontSize: typography.fontSize.sm,
+    },
+    readLink: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: spacing.xs,
+      color: colors.gold.primary,
+      fontSize: typography.fontSize.base,
+      textDecoration: 'none',
+      wordBreak: 'break-all',
+    },
   };
 
   return (
-    <Panel title="Organization Branding" icon={Image}>
+    <Panel
+      title="Organization Branding"
+      icon={Image}
+      action={
+        !editing ? (
+          <button onClick={() => setEditing(true)} style={styles.editBtn}>
+            <Pencil size={14} />
+            Edit
+          </button>
+        ) : null
+      }
+    >
       <div style={styles.content}>
         <p style={styles.description}>
-          Upload your header logo (with organization name included) and set a website link.
+          Your header logo (with organization name included) and website link.
           This logo appears on the competition page with "Presented by" above it.
         </p>
 
-        {/* Header Logo Upload */}
+        {/* Header Logo */}
         <div style={styles.fieldGroup}>
           <label style={styles.label}>
             <Image size={14} />
             Header Logo
           </label>
-          <p style={styles.hint}>
-            Wide logo with your organization name. Transparent background recommended (PNG).
-          </p>
 
-          {headerLogoUrl ? (
+          {editing ? (
+            <>
+              <p style={styles.hint}>
+                Wide logo with your organization name. Transparent background recommended (PNG).
+              </p>
+              {usingFallbackLogo && (
+                <p style={{ ...styles.hint, color: colors.gold.primary }}>
+                  Showing the logo from your onboarding. Upload a wide header version, or Save to keep this one.
+                </p>
+              )}
+
+              {headerLogoUrl ? (
+                <div style={styles.previewContainer}>
+                  <img src={headerLogoUrl} alt="Header logo" style={styles.previewImage} />
+                  <button style={styles.removeButton} onClick={handleRemoveLogo} title="Remove logo">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  style={styles.uploadZone}
+                  onClick={() => fileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+                >
+                  <Upload size={24} style={{ color: colors.text.muted }} />
+                  <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
+                    {uploading ? 'Uploading...' : 'Click to upload header logo'}
+                  </span>
+                  <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
+                    PNG, JPG, WebP · Max 2MB
+                  </span>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                style={{ display: 'none' }}
+                onChange={handleLogoUpload}
+              />
+            </>
+          ) : headerLogoUrl ? (
             <div style={styles.previewContainer}>
               <img src={headerLogoUrl} alt="Header logo" style={styles.previewImage} />
-              <button style={styles.removeButton} onClick={handleRemoveLogo} title="Remove logo">
-                <X size={14} />
-              </button>
             </div>
           ) : (
-            <div
-              style={styles.uploadZone}
-              onClick={() => fileInputRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-            >
-              <Upload size={24} style={{ color: colors.text.muted }} />
-              <span style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                {uploading ? 'Uploading...' : 'Click to upload header logo'}
-              </span>
-              <span style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
-                PNG, JPG, WebP · Max 2MB
-              </span>
-            </div>
+            <p style={styles.readValue}>No logo yet</p>
           )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            style={{ display: 'none' }}
-            onChange={handleLogoUpload}
-          />
         </div>
 
         {/* Website URL */}
@@ -242,29 +309,45 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
             <Link size={14} />
             Website URL
           </label>
-          <p style={styles.hint}>
-            Clicking your logo on the competition page will open this link.
-          </p>
-          <input
-            type="url"
-            value={websiteUrl}
-            onChange={(e) => setWebsiteUrl(e.target.value)}
-            placeholder="https://yourwebsite.com"
-            style={styles.input}
-          />
+          {editing ? (
+            <>
+              <p style={styles.hint}>
+                Clicking your logo on the competition page will open this link.
+              </p>
+              <input
+                type="url"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                placeholder="https://yourwebsite.com"
+                style={styles.input}
+              />
+            </>
+          ) : websiteUrl ? (
+            <a href={websiteUrl} target="_blank" rel="noopener noreferrer" style={styles.readLink}>
+              {websiteUrl}
+              <ExternalLink size={13} />
+            </a>
+          ) : (
+            <p style={styles.readValue}>Not set</p>
+          )}
         </div>
 
-        {/* Save Button */}
-        <div style={styles.actions}>
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges() || saving}
-            icon={saved ? Check : undefined}
-            variant={saved ? 'success' : 'primary'}
-          >
-            {saved ? 'Saved' : saving ? 'Saving...' : 'Save Branding'}
-          </Button>
-        </div>
+        {/* Save / Cancel */}
+        {editing && (
+          <div style={styles.actions}>
+            <Button variant="secondary" icon={X} onClick={handleCancel} disabled={saving || uploading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={!hasChanges() || saving}
+              icon={saved ? Check : undefined}
+              variant={saved ? 'success' : 'primary'}
+            >
+              {saved ? 'Saved' : saving ? 'Saving...' : 'Save Branding'}
+            </Button>
+          </div>
+        )}
       </div>
     </Panel>
   );

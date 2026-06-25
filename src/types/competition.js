@@ -21,6 +21,18 @@ export const STATUS_CONFIG = {
     bg: 'rgba(107, 114, 128, 0.2)',
     description: 'Only visible to super admin',
   },
+  pending_approval: {
+    label: 'Pending approval',
+    color: '#f59e0b',
+    bg: 'rgba(245, 158, 11, 0.2)',
+    description: 'Submitted by host — awaiting EliteRank approval',
+  },
+  approved: {
+    label: 'Approved',
+    color: '#3b82f6',
+    bg: 'rgba(59, 130, 246, 0.2)',
+    description: 'Approved — host can publish to public',
+  },
   [COMPETITION_STATUS.PUBLISH]: {
     label: 'Published',
     color: '#d4af37',

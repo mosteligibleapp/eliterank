@@ -10,6 +10,12 @@ import { isLive } from '../../../../utils/competitionPhase';
 import { sortContestantsByStanding } from '../../../../utils/contestantRanking';
 import TimelineCard from '../../../overview/components/TimelineCard';
 import MetricCard from '../../../overview/components/MetricCard';
+import HostConnectCard from '../HostConnectCard';
+import HostAgreementCard from '../HostAgreementCard';
+import HostLaunchStatus from '../HostLaunchStatus';
+import LaunchRoadmap from '../LaunchRoadmap';
+import CompetitionSummaryCard from '../CompetitionSummaryCard';
+import { hasAcceptedCurrentAgreement } from '../../../../lib/hostAgreement';
 
 /**
  * OverviewTab - Host Dashboard with performance metrics and quick actions
@@ -32,6 +38,8 @@ export default function OverviewTab({
   onUpdateAnnouncement,
   onDeleteAnnouncement,
   onTogglePin,
+  onRefresh,
+  mode = 'launch',
 }) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
@@ -150,8 +158,32 @@ export default function OverviewTab({
     setShowAnnouncementForm(false);
   };
 
+  // "Rules entered" gate for the launch tracker: a name, an entry window and at
+  // least one dated voting round (the core scheduling rules).
+  const rulesComplete = !!(
+    competition?.name &&
+    ((competition?.nomination_periods || []).some((p) => p.start_date && p.end_date) || competition?.nominationStart) &&
+    (competition?.voting_rounds || []).some((r) => r.start_date && r.end_date)
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? spacing.lg : spacing.xl }}>
+      {mode === 'launch' && (
+        <>
+          <HostLaunchStatus competition={competition} rulesComplete={rulesComplete} onRefresh={onRefresh} onNavigateToTab={onNavigateToTab} />
+          <LaunchRoadmap competition={competition} onNavigateToTab={onNavigateToTab} />
+          <CompetitionSummaryCard competition={competition} onNavigateToTab={onNavigateToTab} onRefresh={onRefresh} />
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? spacing.lg : spacing.xl, alignItems: 'start' }}>
+            <div id="host-agreement-card">
+              <HostAgreementCard agreement={competition?.agreement} organizationId={competition?.organizationId} onAccepted={onRefresh} />
+            </div>
+            <div id="host-connect-card">
+              <HostConnectCard connect={competition?.connect} organizationId={competition?.organizationId} locked={!hasAcceptedCurrentAgreement(competition?.agreement)} />
+            </div>
+          </div>
+        </>
+      )}
+      {mode === 'activity' && (
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -697,34 +729,9 @@ export default function OverviewTab({
             )}
           </div>
         </Panel>
-
-        {/* View Competition Button */}
-        {onViewPublicSite && (
-          <button
-            onClick={onViewPublicSite}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: spacing.sm,
-              padding: spacing.lg,
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(212,175,55,0.08) 100%)',
-              border: `1px solid rgba(212,175,55,0.35)`,
-              borderRadius: borderRadius.xl,
-              color: colors.gold.primary,
-              fontSize: typography.fontSize.md,
-              fontWeight: typography.fontWeight.semibold,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 12px rgba(212,175,55,0.1)',
-            }}
-          >
-            <Eye size={18} />
-            View Competition
-          </button>
-        )}
       </div>
       </div>
+      )}
 
       {/* Keyframes for loader animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

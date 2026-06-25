@@ -12,6 +12,7 @@ export default function HostAssignmentModal({
   excludeIds = [],
   title = 'Assign Host',
   assignLabel = 'Assign Host',
+  emailOnly = false,
 }) {
   const excludeSet = new Set(excludeIds);
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,9 +20,41 @@ export default function HostAssignmentModal({
   const [loading, setLoading] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [assigning, setAssigning] = useState(false);
+  // Email-only mode (e.g. adding a co-host): look up one account by email
+  // instead of browsing the whole user base.
+  const [lookupEmail, setLookupEmail] = useState('');
+  const [looking, setLooking] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+
+  // Reset transient state whenever the modal opens/closes.
+  useEffect(() => {
+    if (!isOpen) {
+      setLookupEmail(''); setNotFound(false); setSelectedProfile(null); setSearchQuery('');
+    }
+  }, [isOpen]);
+
+  const lookupByEmail = useCallback(async () => {
+    const email = lookupEmail.trim();
+    if (!email) return;
+    setLooking(true); setNotFound(false); setSelectedProfile(null);
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name, avatar_url, is_host')
+        .ilike('email', email)
+        .limit(1);
+      const p = data?.[0];
+      if (p) setSelectedProfile(p); else setNotFound(true);
+    } catch (err) {
+      console.error('Error looking up profile:', err);
+      setNotFound(true);
+    } finally {
+      setLooking(false);
+    }
+  }, [lookupEmail]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || emailOnly) return;
 
     let cancelled = false;
     const trimmed = searchQuery.trim();
@@ -81,6 +114,14 @@ export default function HostAssignmentModal({
     return name || profile.email || 'Unknown';
   };
 
+  const foundIssue = selectedProfile
+    ? (selectedProfile.id === currentHostId
+        ? 'They’re already the host.'
+        : excludeSet.has(selectedProfile.id)
+        ? 'They’re already a co-host.'
+        : null)
+    : null;
+
   return (
     <Modal
       isOpen={isOpen}
@@ -94,7 +135,7 @@ export default function HostAssignmentModal({
           </Button>
           <Button
             onClick={handleAssign}
-            disabled={!selectedProfile || assigning}
+            disabled={!selectedProfile || assigning || !!foundIssue}
             icon={assigning ? Loader : Check}
           >
             {assigning ? 'Assigning...' : assignLabel}
@@ -102,7 +143,44 @@ export default function HostAssignmentModal({
         </>
       }
     >
+      {/* Email-only lookup (e.g. adding a co-host) */}
+      {emailOnly && (
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={{ display: 'block', color: colors.text.secondary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, marginBottom: spacing.xs }}>
+            Their email
+          </label>
+          <form onSubmit={(e) => { e.preventDefault(); lookupByEmail(); }} style={{ display: 'flex', gap: spacing.sm }}>
+            <input
+              type="email"
+              autoFocus
+              placeholder="name@email.com"
+              value={lookupEmail}
+              onChange={(e) => { setLookupEmail(e.target.value); setNotFound(false); setSelectedProfile(null); }}
+              style={{ flex: 1, padding: spacing.md, background: colors.background.secondary, border: `1px solid ${colors.border.light}`, borderRadius: borderRadius.lg, color: '#fff', fontSize: typography.fontSize.md }}
+            />
+            <Button onClick={lookupByEmail} disabled={looking || !lookupEmail.trim()} icon={looking ? Loader : Search} style={{ width: 'auto' }}>
+              {looking ? 'Finding…' : 'Find'}
+            </Button>
+          </form>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing.sm, lineHeight: 1.4 }}>
+            Enter the email they signed up with. Not popping up? Make sure they’ve created an EliteRank account first, then try again.
+          </p>
+          {notFound && (
+            <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.sm }}>
+              No EliteRank account found for that email.
+            </p>
+          )}
+          {foundIssue && (
+            <p style={{ color: colors.status.warning || colors.gold.primary, fontSize: typography.fontSize.sm, marginTop: spacing.sm }}>
+              {foundIssue}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Search Input */}
+      {!emailOnly && (
+      <>
       <div style={{
         position: 'relative',
         marginBottom: spacing.lg,
@@ -230,6 +308,8 @@ export default function HostAssignmentModal({
           })
         )}
       </div>
+      </>
+      )}
 
       {/* Selected Profile Preview */}
       {selectedProfile && (

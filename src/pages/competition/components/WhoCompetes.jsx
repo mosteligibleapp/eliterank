@@ -23,11 +23,18 @@ export function WhoCompetes() {
   // Get city name
   const city = competition?.city || 'Local Area';
 
+  // Relationship status (e.g. "Single") only makes sense for dating-style
+  // competitions — it shouldn't appear on a fitness / pageant / business / etc.
+  // competition. Derive it from the category rather than hard-coding it.
+  const categorySlug = competition?.category?.slug;
+  const categoryTemplate = (competition?.category_template || '').toLowerCase();
+  const relationshipRelevant = categorySlug === 'dating' && !categoryTemplate.includes('couple');
+
   // Build requirements array to match traits count
   const requirements = [
     { icon: Calendar, label: 'Age', value: about.ageRange || '21+' },
     { icon: Users, label: 'Gender', value: getGender() },
-    { icon: Heart, label: 'Status', value: 'Single' },
+    ...(relationshipRelevant ? [{ icon: Heart, label: 'Status', value: 'Single' }] : []),
     { icon: MapPin, label: 'Location', value: city },
   ];
 

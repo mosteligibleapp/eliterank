@@ -5,12 +5,14 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores';
 import { CompetitionDashboard } from '../features/competition-dashboard';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 import ErrorState from '../components/common/ErrorState';
+import CreateCompetitionModal from '../components/modals/CreateCompetitionModal';
+import HostLandingEmptyState from '../features/competition-dashboard/components/HostLandingEmptyState';
 import { getCompetitionUrl, generateCompetitionSlug, slugify } from '../utils/slugs';
 
 /**
@@ -47,6 +49,22 @@ export default function DashboardPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createStep, setCreateStep] = useState('ready');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // "Launch a new competition" (from the profile dropdown, anywhere) navigates
+  // here with ?create=1 — open the create wizard even if the host already has a
+  // competition, then strip the param so a refresh doesn't reopen it.
+  useEffect(() => {
+    if (searchParams.get('create')) {
+      setCreateStep('ready');
+      setShowCreate(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('create');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch all competitions this user hosts (primary + co-hosted) from Supabase
   useEffect(() => {
@@ -123,15 +141,22 @@ export default function DashboardPage() {
 
     const orgSlug = selectedCompetition?.organization?.slug || 'most-eligible';
 
+    // Before a competition is published it isn't public, so the live page would
+    // show "not currently public". Open it in the host coming-soon preview
+    // (?preview=coming-soon) which the public page renders for any phase.
+    const preLaunch = ['draft', 'pending_approval', 'approved'].includes(selectedCompetition?.status);
+    const withPreview = (url) => (preLaunch ? `${url}${url.includes('?') ? '&' : '?'}preview=coming-soon` : url);
+    const open = (url) => window.open(withPreview(url), '_blank');
+
     // Priority 1: Use the database slug directly (preferred)
     if (selectedCompetition?.slug) {
-      window.open(getCompetitionUrl(orgSlug, selectedCompetition.slug), '_blank');
+      open(getCompetitionUrl(orgSlug, selectedCompetition.slug));
       return;
     }
 
     // Priority 2: Use the competition ID — the most reliable lookup
     if (selectedCompetition?.id) {
-      window.open(`/${orgSlug}/id/${selectedCompetition.id}`, '_blank');
+      open(`/${orgSlug}/id/${selectedCompetition.id}`);
       return;
     }
 
@@ -142,7 +167,7 @@ export default function DashboardPage() {
       citySlug: slugify(cityName),
       season: selectedCompetition?.season,
     });
-    window.open(getCompetitionUrl(orgSlug, generatedSlug), '_blank');
+    open(getCompetitionUrl(orgSlug, generatedSlug));
   }, [selectedCompetition]);
 
 
@@ -165,70 +190,45 @@ export default function DashboardPage() {
   // Host must have an assigned competition to view the dashboard
   if (!selectedCompetition) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)',
-          color: '#fff',
-          padding: '2rem',
-          textAlign: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        <div
-          style={{
-            width: '64px',
-            height: '64px',
-            marginBottom: '1.5rem',
-            background: 'rgba(212, 175, 55, 0.2)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '2rem',
-          }}
-        >
-          👑
-        </div>
-        <h1 style={{ color: '#d4af37', marginBottom: '0.75rem', fontSize: '1.5rem' }}>
-          No Competition Assigned
-        </h1>
-        <p style={{ color: '#9ca3af', marginBottom: '2rem', maxWidth: '400px' }}>
-          You don't have a competition assigned yet. Contact an administrator to get started.
-        </p>
-        <button
-          onClick={handleBack}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: 'linear-gradient(135deg, #d4af37, #f4d03f)',
-            color: '#0a0a0f',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: '600',
-            cursor: 'pointer',
-          }}
-        >
-          Back to Competitions
-        </button>
-      </div>
+      <>
+        <HostLandingEmptyState
+          onCreate={() => { setCreateStep('ready'); setShowCreate(true); }}
+          onLearnMore={() => { setCreateStep('learn'); setShowCreate(true); }}
+          onBack={handleBack}
+        />
+        <CreateCompetitionModal
+          isOpen={showCreate}
+          initialStep={createStep}
+          onClose={() => setShowCreate(false)}
+          userId={user?.id}
+          onCreated={() => window.location.reload()}
+        />
+      </>
     );
   }
 
   return (
-    <CompetitionDashboard
-      competitionId={selectedCompetition.id}
-      role="host"
-      onBack={handleBack}
-      onLogout={handleLogout}
-      currentUserId={user?.id}
-      onViewPublicSite={handleViewPublicSite}
-      competitions={competitions}
-      selectedCompetitionId={selectedCompetition.id}
-      onSelectCompetition={setSelectedId}
-    />
+    <>
+      <CompetitionDashboard
+        competitionId={selectedCompetition.id}
+        role="host"
+        onBack={handleBack}
+        onLogout={handleLogout}
+        currentUserId={user?.id}
+        onViewPublicSite={handleViewPublicSite}
+        onLaunchCompetition={() => { setCreateStep('ready'); setShowCreate(true); }}
+        competitions={competitions}
+        selectedCompetitionId={selectedCompetition.id}
+        onSelectCompetition={setSelectedId}
+      />
+      {/* Launch-another-competition wizard, opened via ?create=1. */}
+      <CreateCompetitionModal
+        isOpen={showCreate}
+        initialStep={createStep}
+        onClose={() => setShowCreate(false)}
+        userId={user?.id}
+        onCreated={() => window.location.reload()}
+      />
+    </>
   );
 }

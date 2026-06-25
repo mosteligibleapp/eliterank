@@ -80,10 +80,10 @@ serve(async (req) => {
       },
     })
 
-    // Fetch competition to get vote price.
+    // Fetch competition to get vote price + the host org (merchant of record).
     const { data: competition, error: compError } = await supabase
       .from('competitions')
-      .select('id, name, season, price_per_vote, use_price_bundler, status')
+      .select('id, name, season, price_per_vote, use_price_bundler, status, platform_fee_pct, organization_id')
       .eq('id', competitionId)
       .single()
 
@@ -91,6 +91,43 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Competition not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ── Strict Stripe Connect gate (§2.1, Invariant 1) ──────────────────────
+    // Paid votes are DIRECT CHARGES on the host organization's connected
+    // account — funds never pool in EliteRank's balance. The vote can only be
+    // taken once that org has completed Stripe KYC and charges are enabled.
+    if (!competition.organization_id) {
+      return new Response(
+        JSON.stringify({
+          error: 'Paid voting isn’t available for this competition yet.',
+          code: 'HOST_PAYOUTS_NOT_READY',
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('id, stripe_connect_account_id, kyc_status, charges_enabled')
+      .eq('id', competition.organization_id)
+      .single()
+
+    const connectedAccountId = org?.stripe_connect_account_id
+    if (
+      orgError ||
+      !org ||
+      !connectedAccountId ||
+      org.kyc_status !== 'verified' ||
+      org.charges_enabled !== true
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: 'Paid voting isn’t available for this competition yet. The host hasn’t finished setting up payouts.',
+          code: 'HOST_PAYOUTS_NOT_READY',
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -143,25 +180,41 @@ serve(async (req) => {
       httpClient: Stripe.createFetchHttpClient(),
     })
 
-    // Create PaymentIntent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalAmount,
-      currency: 'usd',
-      automatic_payment_methods: {
-        enabled: true,
+    // EliteRank's platform fee (§2, §6.14), taken as a Stripe application fee
+    // on the direct charge. The host's connected account keeps the rest.
+    const platformFeePct = parseFloat(competition.platform_fee_pct) || 0
+    const applicationFeeAmount = Math.round((totalAmount * platformFeePct) / 100)
+
+    // Create the PaymentIntent as a DIRECT CHARGE on the host's connected
+    // account (Stripe-Account header). Funds settle to the host, never to the
+    // platform balance (§2.1, Invariant 1); EliteRank takes only the
+    // application fee. The client must confirm this PI with a Stripe.js
+    // instance initialized for `connectedAccountId`.
+    const paymentIntent = await stripe.paymentIntents.create(
+      {
+        amount: totalAmount,
+        currency: 'usd',
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        application_fee_amount: applicationFeeAmount,
+        metadata: {
+          competition_id: competitionId,
+          contestant_id: contestantId,
+          vote_count: voteCount.toString(),
+          voter_email: voterEmail || '',
+          competition_name: compName,
+          contestant_name: contestant.name,
+          is_double_vote_day: isDoubleVoteDay ? 'true' : 'false',
+          credited_vote_count: creditedVoteCount.toString(),
+          organization_id: competition.organization_id,
+          connected_account_id: connectedAccountId,
+          platform_fee_amount: applicationFeeAmount.toString(),
+        },
+        description,
       },
-      metadata: {
-        competition_id: competitionId,
-        contestant_id: contestantId,
-        vote_count: voteCount.toString(),
-        voter_email: voterEmail || '',
-        competition_name: compName,
-        contestant_name: contestant.name,
-        is_double_vote_day: isDoubleVoteDay ? 'true' : 'false',
-        credited_vote_count: creditedVoteCount.toString(),
-      },
-      description,
-    })
+      { stripeAccount: connectedAccountId }
+    )
 
     return new Response(
       JSON.stringify({
@@ -170,6 +223,7 @@ serve(async (req) => {
         amount: totalAmount,
         voteCount,
         contestantName: contestant.name,
+        connectedAccountId,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

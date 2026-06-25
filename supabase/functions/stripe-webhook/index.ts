@@ -122,11 +122,25 @@ serve(async (req) => {
   try {
     // Get environment variables
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    if (!stripeSecretKey || !webhookSecret) {
+    // We receive events from TWO Stripe webhook endpoints that POST to this same
+    // function URL, each with its OWN signing secret:
+    //   1. The platform endpoint (STRIPE_WEBHOOK_SECRET) — platform-account
+    //      events (legacy/transition vote payments, payment_intent.payment_failed).
+    //   2. The Connect endpoint (STRIPE_WEBHOOK_SECRET_CONNECT) — connected-account
+    //      events: account.updated (host KYC sync, §5.1) and the direct-charge
+    //      payment_intent.succeeded that credits paid votes (§5.4).
+    // A single secret can't verify both, so we try each configured secret and
+    // accept the first that validates. Add the second secret in Supabase →
+    // Edge Functions → Secrets as STRIPE_WEBHOOK_SECRET_CONNECT.
+    const webhookSecrets = [
+      Deno.env.get('STRIPE_WEBHOOK_SECRET'),
+      Deno.env.get('STRIPE_WEBHOOK_SECRET_CONNECT'),
+    ].filter((s): s is string => !!s)
+
+    if (!stripeSecretKey || webhookSecrets.length === 0) {
       console.error('Stripe configuration missing')
       return new Response(
         JSON.stringify({ error: 'Webhook not configured' }),
@@ -156,11 +170,20 @@ serve(async (req) => {
     // Deno's Web Crypto is async-only, so we must use constructEventAsync.
     // The synchronous constructEvent throws under Deno and is the root cause
     // of the 100% 400 rate observed on this endpoint.
-    let event: Stripe.Event
-    try {
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret)
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err instanceof Error ? err.message : err)
+    // Try each configured signing secret (platform + Connect) and accept the
+    // first that validates the signature.
+    let event: Stripe.Event | null = null
+    let lastErr: unknown = null
+    for (const secret of webhookSecrets) {
+      try {
+        event = await stripe.webhooks.constructEventAsync(body, signature, secret)
+        break
+      } catch (err) {
+        lastErr = err
+      }
+    }
+    if (!event) {
+      console.error('Webhook signature verification failed:', lastErr instanceof Error ? lastErr.message : lastErr)
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -207,7 +230,12 @@ serve(async (req) => {
             const chargeId = typeof paymentIntent.latest_charge === 'string'
               ? paymentIntent.latest_charge
               : paymentIntent.latest_charge.id
-            const charge = await stripe.charges.retrieve(chargeId)
+            // Direct charges live on the host's connected account, so the
+            // charge must be retrieved in that account's context (event.account
+            // is set for Connect events).
+            const charge = event.account
+              ? await stripe.charges.retrieve(chargeId, { stripeAccount: event.account })
+              : await stripe.charges.retrieve(chargeId)
             resolvedVoterEmail = charge.billing_details?.email || ''
           } catch (err) {
             console.warn('Could not retrieve charge for billing email:', err)
@@ -296,6 +324,66 @@ serve(async (req) => {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
         console.log('Payment failed:', paymentIntent.id, paymentIntent.last_payment_error?.message)
         // Could log this for analytics, but no action needed
+        break
+      }
+
+      // Stripe Connect: a host's Express account changed (KYC progressed,
+      // capabilities enabled/disabled, requirements updated). Mirror the
+      // capability flags + derived kyc_status onto the organization so the
+      // host dashboard reflects reality without polling (§5.1, Invariant 15:
+      // we store status only, never raw identity).
+      case 'account.updated': {
+        const account = event.data.object as Stripe.Account
+        console.log('Connect account updated:', account.id)
+
+        const disabledReason = account.requirements?.disabled_reason || ''
+        let kycStatus: 'not_started' | 'pending' | 'verified' | 'failed'
+        if (account.charges_enabled && account.payouts_enabled) {
+          kycStatus = 'verified'
+        } else if (disabledReason.startsWith('rejected')) {
+          kycStatus = 'failed'
+        } else if (account.details_submitted) {
+          kycStatus = 'pending'
+        } else {
+          kycStatus = 'not_started'
+        }
+
+        // Only set connect_onboarded_at the first time it verifies.
+        const { data: existingOrg } = await supabase
+          .from('organizations')
+          .select('id, connect_onboarded_at')
+          .eq('stripe_connect_account_id', account.id)
+          .maybeSingle()
+
+        if (!existingOrg) {
+          console.warn('account.updated for unknown connected account:', account.id)
+          break
+        }
+
+        const update: Record<string, unknown> = {
+          kyc_status: kycStatus,
+          charges_enabled: account.charges_enabled,
+          payouts_enabled: account.payouts_enabled,
+          connect_details_submitted: account.details_submitted,
+        }
+        if (kycStatus === 'verified' && !existingOrg.connect_onboarded_at) {
+          update.connect_onboarded_at = new Date().toISOString()
+        }
+
+        const { error: orgUpdateError } = await supabase
+          .from('organizations')
+          .update(update)
+          .eq('stripe_connect_account_id', account.id)
+
+        if (orgUpdateError) {
+          console.error('Failed to sync connect account status:', orgUpdateError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to sync account', details: orgUpdateError.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log(`Synced connect account ${account.id} → kyc_status=${kycStatus}`)
         break
       }
 

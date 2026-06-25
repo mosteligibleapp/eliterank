@@ -6,3 +6,4 @@ export { FieldLockIndicator, LockIcon } from './FieldLockIndicator';
 export { EditWarningModal } from './EditWarningModal';
 export { OrganizationBrandingEditor } from './OrganizationBrandingEditor';
 export { NominationFormEditor } from './NominationFormEditor';
+export { AutoRulesPreview } from './AutoRulesPreview';

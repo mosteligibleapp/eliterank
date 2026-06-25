@@ -88,6 +88,10 @@ function CompetitionLayoutInner() {
     navigate('/dashboard');
   };
 
+  const handleLaunchCompetition = () => {
+    navigate('/dashboard?create=1');
+  };
+
   const handleJudge = () => {
     navigate('/judge');
   };
@@ -216,6 +220,7 @@ function CompetitionLayoutInner() {
             onAccountSettings={handleAccountSettings}
             onHowToCompete={profile?.is_nominee_or_contestant && competitionInProgress ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
+            onLaunchCompetition={isAuthenticated ? handleLaunchCompetition : undefined}
             hasDashboardAccess={hasDashboardAccess}
             onJudge={isJudge ? handleJudge : null}
             isJudge={isJudge}
