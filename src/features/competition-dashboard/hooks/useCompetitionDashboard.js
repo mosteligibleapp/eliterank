@@ -74,13 +74,16 @@ export function useCompetitionDashboard(competitionId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = useCallback(async ({ silent = false } = {}) => {
     if (!competitionId) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    // Silent refetches (e.g. after saving a setting) update data in place
+    // without flipping the global loading flag — which would blank the whole
+    // dashboard to a skeleton and read as a full-page reload.
+    if (!silent) setLoading(true);
     setError(null);
 
     try {
@@ -667,7 +670,7 @@ export function useCompetitionDashboard(competitionId) {
       console.error('Error in useCompetitionDashboard:', err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [competitionId]);
 
@@ -677,7 +680,7 @@ export function useCompetitionDashboard(competitionId) {
 
   // Refresh function for manual refetch
   const refresh = useCallback(() => {
-    fetchDashboardData();
+    fetchDashboardData({ silent: true });
   }, [fetchDashboardData]);
 
   // ============================================================================

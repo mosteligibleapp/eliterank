@@ -213,6 +213,7 @@ export default function JudgingPanel({
   // A pickable layout card.
   const layoutCard = ({ active, title, desc, onClick }) => (
     <button
+      type="button"
       onClick={onClick}
       disabled={busy}
       style={{
