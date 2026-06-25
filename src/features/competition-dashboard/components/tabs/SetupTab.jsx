@@ -377,11 +377,15 @@ export default function SetupTab({
     setVideoResponses(rResult.responses);
   }, [competitionId]);
 
+  // These power the Engagement-tab sections only. Don't fetch them (or hold
+  // their state churn) when this component is rendering the core Setup tab —
+  // the sections are hidden there anyway.
   useEffect(() => {
+    if (mode !== 'engagement') return;
     loadBonusTasks();
     loadSubmissions();
     loadVideoData();
-  }, [loadBonusTasks, loadSubmissions, loadVideoData]);
+  }, [mode, loadBonusTasks, loadSubmissions, loadVideoData]);
 
   const handleCreateVideoPrompt = async (data) => {
     const result = await createVideoPrompt(competitionId, { ...data, createdBy: reviewerId });
