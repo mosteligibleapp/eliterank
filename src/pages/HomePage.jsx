@@ -85,6 +85,13 @@ export default function HomePage({
     setShowGuide(true);
   }, []);
 
+  // Launch-a-new-competition was missing on the landing page's profile menu, so
+  // it appeared to "disappear" after coming back from a header that does show
+  // it. Mirror PageHeader/CompetitionLayout: available to any authenticated user.
+  const handleLaunchCompetition = useCallback(() => {
+    navigate('/dashboard?create=1');
+  }, [navigate]);
+
   const handleCloseGuide = useCallback(() => {
     setShowGuide(false);
   }, []);
@@ -103,6 +110,7 @@ export default function HomePage({
         onAchievements={isAuthenticated && profile?.is_nominee_or_contestant ? onShowAchievements : null}
         onAccountSettings={isAuthenticated ? handleAccountSettings : null}
         onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
+        onLaunchCompetition={isAuthenticated ? handleLaunchCompetition : undefined}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
         userName={userName}

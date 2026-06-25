@@ -56,6 +56,7 @@ export default function EliteRankCityModal({
   onAchievements,
   onAccountSettings,
   onHowToCompete,
+  onLaunchCompetition,
   isAuthenticated = false,
   userRole = 'fan',
   userName,
@@ -1599,6 +1600,7 @@ export default function EliteRankCityModal({
               onAccountSettings={onAccountSettings}
               onHowToCompete={onHowToCompete}
               onDashboard={hasDashboardAccess ? onDashboard : null}
+              onLaunchCompetition={onLaunchCompetition}
               hasDashboardAccess={hasDashboardAccess}
               size={isMobile ? 36 : 40}
             />
