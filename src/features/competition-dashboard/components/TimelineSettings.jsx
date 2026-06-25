@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   Calendar, Vote, Plus, Trash2, AlertTriangle, Save,
   Clock, Activity, Trophy, Archive, FileEdit, Lock, Info, Sparkles
@@ -15,11 +15,6 @@ import {
   DEFAULT_NOMINATION_PERIOD,
   ROUND_TYPE_CONFIG,
 } from '../../../types/competition';
-import {
-  computeCompetitionPhase,
-  TIMELINE_PHASES,
-  getPhaseDisplayConfig,
-} from '../../../utils/competitionPhase';
 import {
   getStatusChangeRestriction,
   getNextAutoTransition,
@@ -185,6 +180,32 @@ function formatDateForDisplay(isoDate) {
   return `${month} ${day}, ${year} ${hours}:${minuteStr} ${ampm}`;
 }
 
+// Static styles — module-level so they aren't reallocated per render and so the
+// memoized VotingRoundCard (below) can reference them directly.
+const sectionStyle = {
+  background: colors.background.secondary,
+  borderRadius: borderRadius.lg,
+  padding: spacing.lg,
+  marginBottom: spacing.lg,
+};
+const labelStyle = {
+  display: 'block',
+  fontSize: typography.fontSize.sm,
+  color: colors.text.secondary,
+  marginBottom: spacing.xs,
+  fontWeight: typography.fontWeight.medium,
+};
+const inputStyle = {
+  width: '100%',
+  padding: spacing.md,
+  background: colors.background.card,
+  border: `1px solid ${colors.border.light}`,
+  borderRadius: borderRadius.md,
+  color: '#fff',
+  fontSize: typography.fontSize.md,
+  outline: 'none',
+};
+
 // ISO timestamptz ↔ <input type="datetime-local"> value, using the same naive
 // wall-clock (UTC) convention as the nomination editor so times don't shift.
 function toDateInput(iso) {
@@ -196,6 +217,132 @@ function fromDateInput(local) {
   const d = new Date(`${withSecs}Z`);
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
+
+// One voting-round card, memoized so editing a field only re-renders that row
+// (not every card on each keystroke). Props are referentially stable: `round`
+// keeps its identity for untouched rows, and onUpdate/onRemove are useCallback'd.
+const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLastRound, isMobile, onUpdate, onRemove }) {
+  const roundConfig = ROUND_TYPE_CONFIG[round.round_type] || ROUND_TYPE_CONFIG.voting;
+  const judgeWeight = round.judge_weight || 0;
+  const decides = isLastRound; // the final round decides winners
+  const accentColor = decides ? colors.gold.primary : roundConfig.color;
+  return (
+    <div
+      style={{
+        background: colors.background.card,
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        border: `1px solid ${accentColor}33`,
+        borderLeft: `3px solid ${accentColor}`,
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.text.muted, whiteSpace: 'nowrap' }}>
+            Round {pos + 1}
+          </span>
+          <input
+            type="text"
+            value={round.title}
+            onChange={(e) => onUpdate(index, 'title', e.target.value)}
+            placeholder={`Round ${pos + 1}`}
+            style={{ ...inputStyle, background: 'transparent', border: 'none', padding: 0, fontWeight: typography.fontWeight.medium, flex: 1, minWidth: 0 }}
+          />
+          {decides && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+              padding: `2px ${spacing.sm}`, borderRadius: borderRadius.sm,
+              background: 'rgba(212,175,55,0.12)', border: `1px solid ${colors.gold.primary}55`,
+              color: colors.gold.primary, fontSize: '10px', fontWeight: typography.fontWeight.semibold,
+            }}>
+              <Trophy size={11} /> {judgeWeight > 0 ? `Decides winners · judged ${judgeWeight}%` : 'Decides winners'}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => onRemove(index)}
+          title="Remove round"
+          style={{ background: 'rgba(239,68,68,0.1)', border: 'none', borderRadius: borderRadius.sm, padding: spacing.xs, cursor: 'pointer', color: '#ef4444', flexShrink: 0 }}
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: spacing.md }}>
+        <div>
+          <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Opens</label>
+          <input
+            type="datetime-local"
+            value={toDateInput(round.start_date)}
+            onChange={(e) => onUpdate(index, 'start_date', fromDateInput(e.target.value))}
+            style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px', colorScheme: 'dark' }}
+          />
+        </div>
+        <div>
+          <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Closes</label>
+          <input
+            type="datetime-local"
+            value={toDateInput(round.end_date)}
+            min={toDateInput(round.start_date) || undefined}
+            onChange={(e) => onUpdate(index, 'end_date', fromDateInput(e.target.value))}
+            style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px', colorScheme: 'dark' }}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '180px 1fr', gap: spacing.md, marginTop: spacing.md }}>
+        <div>
+          <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
+            {isLastRound ? 'Winners (top #)' : 'Advance (top #)'}
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={round.contestants_advance}
+            onChange={(e) => onUpdate(index, 'contestants_advance', parseInt(e.target.value) || 1)}
+            style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px' }}
+          />
+          <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+            {isLastRound
+              ? (round.contestants_advance === 1
+                ? 'The top finisher is crowned the winner.'
+                : `Top ${round.contestants_advance} are crowned winners.`)
+              : `Top ${round.contestants_advance} move to the next round.`}
+          </p>
+        </div>
+        <div>
+          <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Public round name (optional)</label>
+          <input
+            type="text"
+            placeholder="e.g. Quarterfinals, Semifinals, Finale"
+            value={round.tier_label || ''}
+            onChange={(e) => onUpdate(index, 'tier_label', e.target.value)}
+            style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px' }}
+          />
+          <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+            Shown to the public during this round. Defaults to the round title.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ marginTop: spacing.md }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={!!round.votes_reset_at_start}
+            onChange={(e) => onUpdate(index, 'votes_reset_at_start', e.target.checked)}
+          />
+          <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
+            Reset votes when this round starts
+          </span>
+        </label>
+        <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+          Off (default): votes carry over and add up across rounds. On: surviving contestants restart at zero.
+        </p>
+      </div>
+    </div>
+  );
+});
 
 /**
  * reconcileOrderedRows
@@ -394,15 +541,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     }
   };
 
-  // Compute current phase for display
-  const computedPhase = computeCompetitionPhase({
-    ...competition,
-    status,
-    settings,
-    voting_rounds: votingRounds,
-    nomination_periods: nominationPeriods,
-  });
-  const phaseConfig = getPhaseDisplayConfig(computedPhase);
 
   // Judges only matter when winners are decided by judges (or a hybrid). For
   // pure public-vote competitions we hide the judging controls entirely.
@@ -749,18 +887,20 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     }
   };
 
-  const removeVotingRound = (index) => {
+  // Stable refs (functional setState, no deps) so the memoized round cards only
+  // re-render the row that actually changed — not every card on each keystroke.
+  const removeVotingRound = useCallback((index) => {
     setVotingRounds(prev => prev.filter((_, i) => i !== index));
     setRoundDisplayValues(prev => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
-  const updateVotingRound = (index, field, value) => {
+  const updateVotingRound = useCallback((index, field, value) => {
     setVotingRounds(prev =>
       prev.map((round, i) =>
         i === index ? { ...round, [field]: value } : round
       )
     );
-  };
+  }, []);
 
   const updateRoundDisplayValue = (index, field, value) => {
     setRoundDisplayValues(prev =>
@@ -808,31 +948,6 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   };
 
   // Styles
-  const sectionStyle = {
-    background: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  };
-
-  const labelStyle = {
-    display: 'block',
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    marginBottom: spacing.xs,
-    fontWeight: typography.fontWeight.medium,
-  };
-
-  const inputStyle = {
-    width: '100%',
-    padding: spacing.md,
-    background: colors.background.card,
-    border: `1px solid ${colors.border.light}`,
-    borderRadius: borderRadius.md,
-    color: '#fff',
-    fontSize: typography.fontSize.md,
-    outline: 'none',
-  };
 
   // Compact, read-only schedule shown to hosts once the timeline is locked,
   // instead of the full editor with its empty-state cards and disabled inputs.
@@ -1035,157 +1150,18 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         ) : (
           <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            {displayRounds.map(({ round, index }, pos) => {
-              const roundConfig = ROUND_TYPE_CONFIG[round.round_type] || ROUND_TYPE_CONFIG.voting;
-              const isLastRound = pos === displayRounds.length - 1;
-              const judgeWeight = round.judge_weight || 0;
-              // The final voting round decides winners; with judging blended in
-              // (judge_weight > 0) it is also the judged round.
-              const decides = isLastRound;
-              const accentColor = decides ? colors.gold.primary : roundConfig.color;
-              return (
-              <div
+            {displayRounds.map(({ round, index }, pos) => (
+              <VotingRoundCard
                 key={index}
-                style={{
-                  background: colors.background.card,
-                  borderRadius: borderRadius.md,
-                  padding: spacing.md,
-                  border: `1px solid ${accentColor}33`,
-                  borderLeft: `3px solid ${accentColor}`,
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.text.muted, whiteSpace: 'nowrap' }}>
-                      Round {pos + 1}
-                    </span>
-                    <input
-                      type="text"
-                      value={round.title}
-                      onChange={(e) => updateVotingRound(index, 'title', e.target.value)}
-                      placeholder={`Round ${pos + 1}`}
-                      style={{
-                        ...inputStyle,
-                        background: 'transparent',
-                        border: 'none',
-                        padding: 0,
-                        fontWeight: typography.fontWeight.medium,
-                        flex: 1,
-                        minWidth: 0,
-                      }}
-                    />
-                    {decides && (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
-                        padding: `2px ${spacing.sm}`, borderRadius: borderRadius.sm,
-                        background: 'rgba(212,175,55,0.12)', border: `1px solid ${colors.gold.primary}55`,
-                        color: colors.gold.primary, fontSize: '10px', fontWeight: typography.fontWeight.semibold,
-                      }}>
-                        <Trophy size={11} /> {judgeWeight > 0 ? `Decides winners · judged ${judgeWeight}%` : 'Decides winners'}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => removeVotingRound(index)}
-                    title="Remove round"
-                    style={{
-                      background: 'rgba(239,68,68,0.1)',
-                      border: 'none',
-                      borderRadius: borderRadius.sm,
-                      padding: spacing.xs,
-                      cursor: 'pointer',
-                      color: '#ef4444',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                  gap: spacing.md,
-                }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Opens</label>
-                    <input
-                      type="datetime-local"
-                      value={toDateInput(round.start_date)}
-                      onChange={(e) => updateVotingRound(index, 'start_date', fromDateInput(e.target.value))}
-                      style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px', colorScheme: 'dark' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Closes</label>
-                    <input
-                      type="datetime-local"
-                      value={toDateInput(round.end_date)}
-                      min={toDateInput(round.start_date) || undefined}
-                      onChange={(e) => updateVotingRound(index, 'end_date', fromDateInput(e.target.value))}
-                      style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px', colorScheme: 'dark' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '180px 1fr',
-                  gap: spacing.md,
-                  marginTop: spacing.md,
-                }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
-                      {isLastRound ? 'Winners (top #)' : 'Advance (top #)'}
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={round.contestants_advance}
-                      onChange={(e) => updateVotingRound(index, 'contestants_advance', parseInt(e.target.value) || 1)}
-                      style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px' }}
-                    />
-                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      {isLastRound
-                        ? (round.contestants_advance === 1
-                          ? 'The top finisher is crowned the winner.'
-                          : `Top ${round.contestants_advance} are crowned winners.`)
-                        : `Top ${round.contestants_advance} move to the next round.`}
-                    </p>
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Public round name (optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Quarterfinals, Semifinals, Finale"
-                      value={round.tier_label || ''}
-                      onChange={(e) => updateVotingRound(index, 'tier_label', e.target.value)}
-                      style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px' }}
-                    />
-                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      Shown to the public during this round. Defaults to the round title.
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: spacing.md }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={!!round.votes_reset_at_start}
-                      onChange={(e) => updateVotingRound(index, 'votes_reset_at_start', e.target.checked)}
-                    />
-                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
-                      Reset votes when this round starts
-                    </span>
-                  </label>
-                  <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                    Off (default): votes carry over and add up across rounds. On: surviving contestants restart at zero.
-                  </p>
-                </div>
-              </div>
-              );
-            })}
+                round={round}
+                index={index}
+                pos={pos}
+                isLastRound={pos === displayRounds.length - 1}
+                isMobile={isMobile}
+                onUpdate={updateVotingRound}
+                onRemove={removeVotingRound}
+              />
+            ))}
           </div>
           {hasSeparateJudging && (
             <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.md, display: 'flex', alignItems: 'flex-start', gap: spacing.xs }}>
