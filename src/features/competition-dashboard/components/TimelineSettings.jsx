@@ -185,6 +185,18 @@ function formatDateForDisplay(isoDate) {
   return `${month} ${day}, ${year} ${hours}:${minuteStr} ${ampm}`;
 }
 
+// ISO timestamptz ↔ <input type="datetime-local"> value, using the same naive
+// wall-clock (UTC) convention as the nomination editor so times don't shift.
+function toDateInput(iso) {
+  return iso ? String(iso).slice(0, 16) : '';
+}
+function fromDateInput(local) {
+  if (!local) return null;
+  const withSecs = local.length === 16 ? `${local}:00` : local;
+  const d = new Date(`${withSecs}Z`);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 /**
  * reconcileOrderedRows
  *
@@ -995,8 +1007,14 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         ) : (
           <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            {displayRounds.map(({ round, index }) => {
+            {displayRounds.map(({ round, index }, pos) => {
               const roundConfig = ROUND_TYPE_CONFIG[round.round_type] || ROUND_TYPE_CONFIG.voting;
+              const isLastRound = pos === displayRounds.length - 1;
+              const judgeWeight = round.judge_weight || 0;
+              // The final voting round decides winners; with judging blended in
+              // (judge_weight > 0) it is also the judged round.
+              const decides = isLastRound;
+              const accentColor = decides ? colors.gold.primary : roundConfig.color;
               return (
               <div
                 key={index}
@@ -1004,29 +1022,44 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                   background: colors.background.card,
                   borderRadius: borderRadius.md,
                   padding: spacing.md,
-                  border: `1px solid ${roundConfig.color}33`,
-                  borderLeft: `3px solid ${roundConfig.color}`,
+                  border: `1px solid ${accentColor}33`,
+                  borderLeft: `3px solid ${accentColor}`,
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.text.muted, whiteSpace: 'nowrap' }}>
+                      Round {pos + 1}
+                    </span>
                     <input
                       type="text"
                       value={round.title}
                       onChange={(e) => updateVotingRound(index, 'title', e.target.value)}
-                      placeholder={`Round ${index + 1}`}
+                      placeholder={`Round ${pos + 1}`}
                       style={{
                         ...inputStyle,
                         background: 'transparent',
                         border: 'none',
                         padding: 0,
                         fontWeight: typography.fontWeight.medium,
-                        maxWidth: '200px',
+                        flex: 1,
+                        minWidth: 0,
                       }}
                     />
+                    {decides && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+                        padding: `2px ${spacing.sm}`, borderRadius: borderRadius.sm,
+                        background: 'rgba(212,175,55,0.12)', border: `1px solid ${colors.gold.primary}55`,
+                        color: colors.gold.primary, fontSize: '10px', fontWeight: typography.fontWeight.semibold,
+                      }}>
+                        <Trophy size={11} /> {judgeWeight > 0 ? `Decides winners · judged ${judgeWeight}%` : 'Decides winners'}
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => removeVotingRound(index)}
+                    title="Remove round"
                     style={{
                       background: 'rgba(239,68,68,0.1)',
                       border: 'none',
@@ -1034,6 +1067,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                       padding: spacing.xs,
                       cursor: 'pointer',
                       color: '#ef4444',
+                      flexShrink: 0,
                     }}
                   >
                     <Trash2 size={14} />
@@ -1042,123 +1076,82 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 120px',
-                  gap: spacing.sm,
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                  gap: spacing.md,
                 }}>
                   <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Start</label>
+                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Opens</label>
                     <input
-                      type="text"
-                      placeholder="Feb 1, 2025 12:00 AM"
-                      value={roundDisplayValues[index]?.start_date || ''}
-                      onChange={(e) => updateRoundDisplayValue(index, 'start_date', e.target.value)}
-                      onBlur={(e) => handleRoundDateBlur(index, 'start_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`round_${index}_start_date`] ? '#ef4444' : colors.border.light,
-                      }}
+                      type="datetime-local"
+                      value={toDateInput(round.start_date)}
+                      onChange={(e) => updateVotingRound(index, 'start_date', fromDateInput(e.target.value))}
+                      style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px', colorScheme: 'dark' }}
                     />
-                    {parseErrors[`round_${index}_start_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>End</label>
+                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Closes</label>
                     <input
-                      type="text"
-                      placeholder="Feb 14, 2025 11:59 PM"
-                      value={roundDisplayValues[index]?.end_date || ''}
-                      onChange={(e) => updateRoundDisplayValue(index, 'end_date', e.target.value)}
-                      onBlur={(e) => handleRoundDateBlur(index, 'end_date', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px', // Prevents iOS zoom
-                        padding: spacing.md,
-                        minHeight: '44px',
-                        borderColor: parseErrors[`round_${index}_end_date`] ? '#ef4444' : colors.border.light,
-                      }}
+                      type="datetime-local"
+                      value={toDateInput(round.end_date)}
+                      min={toDateInput(round.start_date) || undefined}
+                      onChange={(e) => updateVotingRound(index, 'end_date', fromDateInput(e.target.value))}
+                      style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px', colorScheme: 'dark' }}
                     />
-                    {parseErrors[`round_${index}_end_date`] && (
-                      <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>Invalid date</p>
-                    )}
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Top # Advance</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={round.contestants_advance}
-                      onChange={(e) => updateVotingRound(index, 'contestants_advance', parseInt(e.target.value) || 1)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px',
-                        padding: spacing.md,
-                        minHeight: '44px',
-                      }}
-                    />
-                    <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      Top {round.contestants_advance} move to next round
-                    </p>
                   </div>
                 </div>
 
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                  gap: spacing.sm,
-                  marginTop: spacing.sm,
+                  gridTemplateColumns: isMobile ? '1fr' : '180px 1fr',
+                  gap: spacing.md,
+                  marginTop: spacing.md,
                 }}>
                   <div>
                     <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
-                      Tier label
+                      {isLastRound ? 'Winners (top #)' : 'Advance (top #)'}
                     </label>
                     <input
-                      type="text"
-                      placeholder="Top 50, Quarterfinals, Finale…"
-                      value={round.tier_label || ''}
-                      onChange={(e) => updateVotingRound(index, 'tier_label', e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        fontSize: '16px',
-                        padding: spacing.md,
-                        minHeight: '44px',
-                      }}
+                      type="number"
+                      min="1"
+                      value={round.contestants_advance}
+                      onChange={(e) => updateVotingRound(index, 'contestants_advance', parseInt(e.target.value) || 1)}
+                      style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px' }}
                     />
                     <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      Public headline shown during this round. Falls back to the round title.
+                      {isLastRound
+                        ? `Top ${round.contestants_advance} are crowned winners.`
+                        : `Top ${round.contestants_advance} move to the next round.`}
                     </p>
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>
-                      Vote behavior
-                    </label>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      minHeight: '44px',
-                      padding: spacing.md,
-                      background: colors.background.secondary,
-                      border: `1px solid ${colors.border.light}`,
-                      borderRadius: borderRadius.sm,
-                      cursor: 'pointer',
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={!!round.votes_reset_at_start}
-                        onChange={(e) => updateVotingRound(index, 'votes_reset_at_start', e.target.checked)}
-                      />
-                      <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
-                        Reset votes at start of this round
-                      </span>
-                    </label>
+                    <label style={{ ...labelStyle, fontSize: typography.fontSize.xs }}>Public round name (optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Quarterfinals, Semifinals, Finale"
+                      value={round.tier_label || ''}
+                      onChange={(e) => updateVotingRound(index, 'tier_label', e.target.value)}
+                      style={{ ...inputStyle, fontSize: '16px', padding: spacing.md, minHeight: '44px' }}
+                    />
                     <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-                      Off (default) = cumulative across rounds. On = surviving contestants restart at zero.
+                      Shown to the public during this round. Defaults to the round title.
                     </p>
                   </div>
+                </div>
+
+                <div style={{ marginTop: spacing.md }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!round.votes_reset_at_start}
+                      onChange={(e) => updateVotingRound(index, 'votes_reset_at_start', e.target.checked)}
+                    />
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
+                      Reset votes when this round starts
+                    </span>
+                  </label>
+                  <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+                    Off (default): votes carry over and add up across rounds. On: surviving contestants restart at zero.
+                  </p>
                 </div>
               </div>
               );
@@ -1183,22 +1176,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </h4>
         <div>
           <input
-            type="text"
-            placeholder="Mar 15, 2025 7:00 PM"
-            value={displayValues.finals_date}
-            onChange={(e) => setDisplayValues(prev => ({ ...prev, finals_date: e.target.value }))}
-            onBlur={(e) => handleDateBlur('finals_date', e.target.value)}
-            style={{
-              ...inputStyle,
-              maxWidth: '300px',
-              borderColor: parseErrors.finals_date ? '#ef4444' : colors.border.light,
-            }}
+            type="datetime-local"
+            value={toDateInput(settings.finals_date)}
+            onChange={(e) => setSettings(prev => ({ ...prev, finals_date: fromDateInput(e.target.value) }))}
+            style={{ ...inputStyle, maxWidth: '300px', colorScheme: 'dark' }}
           />
-          {parseErrors.finals_date && (
-            <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.xs }}>
-              Invalid date format
-            </p>
-          )}
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs }}>
             The official close/finale date — the competition flips to Completed after it passes.
             Winners are decided when your last round ends, so set this after the final round.
