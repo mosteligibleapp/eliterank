@@ -148,6 +148,8 @@ export default function JudgingPanel({
   // below 100 (e.g. from an earlier build where it was adjustable). Guard on
   // !== 100 so this writes once and then no-ops after the refetch.
   useEffect(() => {
+    // Never auto-mutate a locked (published/live) competition's judging config.
+    if (locked) return;
     if (separateJudgingRound && (separateJudgingRound.judge_weight || 0) !== 100) {
       supabase
         .from('voting_rounds')
@@ -155,11 +157,11 @@ export default function JudgingPanel({
         .eq('id', separateJudgingRound.id)
         .then(() => onRefresh?.());
     }
-  }, [separateJudgingRound?.id, separateJudgingRound?.judge_weight, onRefresh]);
+  }, [locked, separateJudgingRound?.id, separateJudgingRound?.judge_weight, onRefresh]);
 
   // Blend judging into the final voting round (judges 60%+ — the skill-contest floor).
   const applyBlend = async () => {
-    if (!lastVotingRound || busy) return;
+    if (!lastVotingRound || busy || locked) return;
     if (separateJudgingRound &&
       !window.confirm('Move judging into your final voting round? This removes the separate judging round you added.')) return;
     setBusy(true);
@@ -183,7 +185,7 @@ export default function JudgingPanel({
 
   // A dedicated judging round right after voting (judges decide; 100% default).
   const applySeparate = async () => {
-    if (!lastVotingRound || busy) return;
+    if (!lastVotingRound || busy || locked) return;
     setBusy(true);
     try {
       // Voting rounds carry no judge weight in this layout.
@@ -228,9 +230,9 @@ export default function JudgingPanel({
     <button
       type="button"
       onClick={onClick}
-      disabled={busy}
+      disabled={busy || locked}
       style={{
-        textAlign: 'left', cursor: busy ? 'default' : 'pointer',
+        textAlign: 'left', cursor: (busy || locked) ? 'default' : 'pointer',
         padding: spacing.md, borderRadius: borderRadius.md,
         background: active ? 'rgba(212,175,55,0.08)' : colors.background.card,
         border: `1px solid ${active ? colors.gold.primary : colors.border.primary}`,
@@ -253,7 +255,7 @@ export default function JudgingPanel({
         {/* Criteria */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.sm }}>
           <span style={sectionLabel}>Criteria ({criteria.length})</span>
-          {!adding && !editingId && (
+          {!adding && !editingId && !locked && (
             <Button size="sm" icon={Plus} onClick={startAdd}>Add Criterion</Button>
           )}
         </div>
@@ -311,6 +313,7 @@ export default function JudgingPanel({
                     </p>
                   )}
                 </div>
+                {!locked && (<>
                 <button
                   onClick={() => startEdit(c)}
                   title="Edit criterion"
@@ -339,6 +342,7 @@ export default function JudgingPanel({
                 >
                   <Trash2 size={14} />
                 </button>
+                </>)}
               </div>
             )
           ))}
@@ -390,6 +394,7 @@ export default function JudgingPanel({
                   votingRounds={votingRounds}
                   onUpdate={onUpdateRoundJudgeWeight}
                   onRefresh={onRefresh}
+                  locked={locked}
                 />
               )}
             </>
@@ -423,7 +428,7 @@ function JudgingRoundSummary({ votingRounds }) {
   );
 }
 
-function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefresh }) {
+function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefresh, locked = false }) {
   const [weight, setWeight] = useState(round.judge_weight ?? 0);
   const [saving, setSaving] = useState(false);
   const dirty = weight !== (round.judge_weight ?? 0);
@@ -551,7 +556,7 @@ function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefres
               }}
             />
             <span style={{ color: colors.text.muted, fontSize: typography.fontSize.sm }}>%</span>
-            <Button size="sm" disabled={!dirty || saving} onClick={save}>
+            <Button size="sm" disabled={!dirty || saving || locked} onClick={save}>
               {saving ? 'Saving…' : 'Save'}
             </Button>
           </>
@@ -585,7 +590,7 @@ function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefres
               <span style={{ display: 'block', fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: 2 }}>Closes</span>
               <input type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} style={dateInput} />
             </label>
-            <Button size="sm" variant="secondary" disabled={!datesDirty || savingDates} onClick={saveDates} style={{ width: 'auto' }}>
+            <Button size="sm" variant="secondary" disabled={!datesDirty || savingDates || locked} onClick={saveDates} style={{ width: 'auto' }}>
               {savingDates ? 'Saving…' : 'Save dates'}
             </Button>
           </div>

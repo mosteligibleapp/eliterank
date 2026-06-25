@@ -456,13 +456,16 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Status state
   const [status, setStatus] = useState(competition?.status || COMPETITION_STATUS.DRAFT);
 
-  // A finished competition's timeline is historical: editing periods/rounds can
-  // re-trigger finalization + vote resets on already-closed rounds. Lock it for
-  // hosts once the competition is completed or archived. Super admins keep edit
-  // access (they own the status controls and can reopen if a fix is needed).
+  // The timeline locks at publish. Editing or replacing rounds on a published/
+  // live competition would delete judge scores + finalization snapshots and can
+  // re-trigger finalization/vote resets on already-closed rounds — so hosts get
+  // a read-only schedule from publish onward (and once completed/archived).
+  // Super admins keep edit access for corrections.
   const isFinished =
     status === COMPETITION_STATUS.COMPLETED || status === COMPETITION_STATUS.ARCHIVE;
-  const isLocked = isFinished && !isSuperAdmin;
+  const isPublished =
+    ['publish', 'live', 'nomination', 'voting', 'finals'].includes(status);
+  const isLocked = (isFinished || isPublished) && !isSuperAdmin;
 
   // Validation errors
   const [errors, setErrors] = useState([]);
@@ -1069,8 +1072,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                 Timeline locked
               </p>
               <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                This competition has {status === COMPETITION_STATUS.ARCHIVE ? 'been archived' : 'ended'}. Its
-                schedule is preserved as a record and can no longer be edited.
+                {isFinished
+                  ? `This competition has ${status === COMPETITION_STATUS.ARCHIVE ? 'been archived' : 'ended'}. Its schedule is preserved as a record and can no longer be edited.`
+                  : 'This competition is published, so its schedule is locked. Contact support if a date needs to change.'}
               </p>
             </div>
           </div>
