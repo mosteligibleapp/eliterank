@@ -75,11 +75,11 @@ const SECTION_ORDER = [
   'nominationForm',
   'timeline',
   'judgingCriteria',
-  'charity',
   // Editable anytime — adjust whenever, even after going live.
   'hosts',
   'judges',
   'sponsors',
+  'charity',
   // Engagement tab (own tab; shares this ordering list).
   'events',
   'doubleVoteDays',
@@ -293,10 +293,10 @@ export default function SetupTab({
     // Sections that don't apply to this competition's configuration are grayed
     // out and sink below the active ones.
     const usesJudges = ['judges', 'hybrid'].includes(competition?.selectionCriteria);
-    const charityActive = !!competition?.charityPercentage || !!competition?.charityName;
+    // Charity is always available (editable anytime, even after publish), so it
+    // is never grayed out — only judging grays out when winners are vote-only.
     const locked =
-      (!usesJudges && id === 'judgingCriteria') ||
-      (!charityActive && id === 'charity');
+      (!usesJudges && id === 'judgingCriteria');
     return { order: locked ? 100 + idx : 1 + idx, opacity: 1 };
   };
 
@@ -568,9 +568,7 @@ export default function SetupTab({
   );
 
   // What the host actually configured drives which Setup sections apply:
-  //  - charity panel is only relevant if they're donating a % of proceeds
   //  - judging is only relevant if winners are decided by judges (not pure votes)
-  const charityApplies = !!competition?.charityPercentage || !!competition?.charityName;
   const usesJudges = ['judges', 'hybrid'].includes(competition?.selectionCriteria);
   // These public-facing sections only actually lock once the competition is
   // published (publish-lock tier) — show the lock badge only then.
@@ -825,24 +823,15 @@ export default function SetupTab({
         </div>
       </Panel>
 
-      {/* Charity Section — only relevant if the host is donating a % of
-          proceeds. Otherwise it's grayed out and inaccessible. */}
-      {!charityApplies ? (
-        <div id="setup-section-charity" style={sectionStyle('charity')}>
-          <LockedSection
-            title="Charity Partner"
-            icon={Gift}
-            reason="Not used — you chose not to donate a portion of proceeds. Turn charity on in your competition details to set this up."
-          />
-        </div>
-      ) : (
+      {/* Charity Partner — editable anytime, including after publish. Hosts can
+          add or change the charity even if they hadn't set one at launch. */}
       <Panel
         key={`section-charity-${isHidden('charity')}-${focusId === 'charity' ? focusNonce : 'x'}`}
         id="setup-section-charity"
         title="Charity Partner"
         icon={Gift}
-        locked={publishLocked}
-        badge={lockBadge}
+        locked={false}
+        badge={editBadge}
         action={sectionAction('charity',
           <Button size="sm" icon={competition?.charityName ? Edit2 : Plus} onClick={onOpenCharityModal}>
             {competition?.charityName ? 'Edit' : 'Add Charity'}
@@ -895,7 +884,6 @@ export default function SetupTab({
           )}
         </div>
       </Panel>
-      )}
 
       {/* Events Section */}
       <Panel
