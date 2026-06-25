@@ -299,6 +299,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Nomination periods state (replaces single nomination_start/nomination_end)
   const [nominationPeriods, setNominationPeriods] = useState([]);
   const [nominationDisplayValues, setNominationDisplayValues] = useState([]);
+  // Non-blocking confirm for "Auto-fill recommended" when it would overwrite.
+  const [confirmingAutofill, setConfirmingAutofill] = useState(false);
 
   // Voting/Judging rounds state
   const [votingRounds, setVotingRounds] = useState([]);
@@ -686,12 +688,15 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       ? new Date(recommendedVotingStartIso)
       : new Date(Date.now() + 28 * DAY);
 
+    // The final round crowns the host's actual number of winners (not a fixed 5).
+    const winnerCount = Number(competition?.numberOfWinners || competition?.number_of_winners) || 1;
+
     const rounds = [];
     let cursor = new Date(base);
     const votingTiers = [
       { title: 'Voting Round 1', tier_label: 'Opening Round', advance: 15 },
       { title: 'Voting Round 2', tier_label: 'Semifinals', advance: 8 },
-      { title: 'Voting Round 3', tier_label: 'Finals', advance: 5 },
+      { title: 'Voting Round 3', tier_label: 'Finals', advance: winnerCount },
     ];
     votingTiers.forEach((t, i) => {
       const start = new Date(cursor);
@@ -718,13 +723,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     return { rounds, finaleIso: finale.toISOString() };
   };
 
+  // Apply the recommended schedule. Native window.confirm blocks the main
+  // thread (a big INP/long-task offender), so when there's existing data we use
+  // a non-blocking inline confirmation (confirmingAutofill) instead.
   const applyRecommendedSchedule = () => {
-    if (votingRounds.length > 0 || settings.finals_date) {
-      const ok = window.confirm(
-        'Replace the current rounds and finale with the recommended schedule? Your existing rounds will be overwritten.'
-      );
-      if (!ok) return;
-    }
     const { rounds, finaleIso } = buildRecommendedSchedule();
     setVotingRounds(rounds);
     setRoundDisplayValues(rounds.map(r => ({
@@ -735,7 +737,16 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     setDisplayValues(prev => ({ ...prev, finals_date: formatDateForDisplay(finaleIso) }));
     setParseErrors({});
     setErrors([]);
+    setConfirmingAutofill(false);
     toast.success('Recommended schedule filled in — review the dates, then Save.');
+  };
+
+  const handleAutofillClick = () => {
+    if (votingRounds.length > 0 || settings.finals_date) {
+      setConfirmingAutofill(true);
+    } else {
+      applyRecommendedSchedule();
+    }
   };
 
   const removeVotingRound = (index) => {
@@ -962,7 +973,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
             Voting Rounds
           </h4>
           <div style={{ display: 'flex', gap: spacing.sm }}>
-            <Button size="sm" icon={Sparkles} onClick={applyRecommendedSchedule}>
+            <Button size="sm" icon={Sparkles} onClick={handleAutofillClick}>
               Auto-fill recommended
             </Button>
             <Button variant="secondary" size="sm" icon={Plus} onClick={() => addVotingRound('voting')}>
@@ -982,6 +993,23 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           {usesJudges ? <> — judges decide the final round at <strong>60%</strong>. Prefer a separate judge-only finale? Switch the layout in the Judging section.</> : '. '}
           {' '}Adjust anything after.
         </p>
+
+        {confirmingAutofill && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap',
+            gap: spacing.md, padding: spacing.md, marginBottom: spacing.md,
+            background: colors.background.card, border: `1px solid ${colors.gold.primary}55`,
+            borderRadius: borderRadius.md,
+          }}>
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+              This replaces your current rounds and finale with the recommended schedule.
+            </span>
+            <div style={{ display: 'flex', gap: spacing.sm }}>
+              <Button size="sm" icon={Sparkles} onClick={applyRecommendedSchedule}>Replace</Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmingAutofill(false)}>Keep mine</Button>
+            </div>
+          </div>
+        )}
 
         {(() => {
         // The "Voting Rounds" list shows voting rounds only. A separate judging
@@ -1119,7 +1147,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                     />
                     <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
                       {isLastRound
-                        ? `Top ${round.contestants_advance} are crowned winners.`
+                        ? (round.contestants_advance === 1
+                          ? 'The top finisher is crowned the winner.'
+                          : `Top ${round.contestants_advance} are crowned winners.`)
                         : `Top ${round.contestants_advance} move to the next round.`}
                     </p>
                   </div>
