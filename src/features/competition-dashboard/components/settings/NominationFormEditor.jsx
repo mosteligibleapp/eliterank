@@ -20,6 +20,7 @@ import {
   getStandardNominationFields,
   MAX_CUSTOM_QUESTIONS,
 } from '../../../../utils/nominationFormDefaults';
+import { LAUNCH_TIMEFRAME_MONTHS } from '../../../../lib/competitionTemplates';
 
 // Recommended nomination duration by territory scope (issue: hosts asked for
 // guidance on how long to leave nominations open).
@@ -32,6 +33,17 @@ const NOMINATION_REC = {
 // timestamptz → 'YYYY-MM-DDTHH:mm' for an <input type="datetime-local">.
 // Slicing the ISO string avoids a timezone shift from new Date().
 const toDateInput = (v) => (v ? String(v).slice(0, 16) : '');
+
+// 'YYYY-MM-DDTHH:mm' for N months from today at 9:00 AM — a sensible default
+// the host can adjust. Used to pre-fill the nomination open date from the
+// planned launch timeframe.
+const monthsFromNow = (months) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  d.setHours(9, 0, 0, 0);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 // Add whole weeks to a 'YYYY-MM-DDTHH:mm' value, preserving the time.
 const addWeeks = (value, weeks) => {
@@ -82,6 +94,7 @@ export function NominationFormEditor({
   const [nomEnd, setNomEnd] = useState('');
   const [nomPeriodId, setNomPeriodId] = useState(null);
   const [initialNom, setInitialNom] = useState({ start: '', end: '' });
+  const [autoFilled, setAutoFilled] = useState(false);
 
   const rec = NOMINATION_REC[competition?.territoryScope] || NOMINATION_REC.city;
 
@@ -97,12 +110,26 @@ export function NominationFormEditor({
         .limit(1);
       if (cancelled) return;
       const row = data?.[0];
-      const start = toDateInput(row?.start_date || competition.nominationStart || competition.nomination_start);
-      const end = toDateInput(row?.end_date || competition.nominationEnd || competition.nomination_end);
+      const existingStart = toDateInput(row?.start_date || competition.nominationStart || competition.nomination_start);
+      const existingEnd = toDateInput(row?.end_date || competition.nominationEnd || competition.nomination_end);
+      let start = existingStart;
+      let end = existingEnd;
+      // No nomination dates yet? Pre-fill from the host's planned launch
+      // timeframe (e.g. "6+ months out" → opens ~6 months from today) plus a
+      // recommended window. It's a suggestion the host reviews and Saves —
+      // initialNom keeps the real stored value so this counts as a change.
+      if (!start) {
+        const months = LAUNCH_TIMEFRAME_MONTHS[competition.plannedLaunchTimeframe || competition.planned_launch_timeframe];
+        if (months) {
+          start = monthsFromNow(months);
+          end = addWeeks(start, rec.weeks);
+          setAutoFilled(true);
+        }
+      }
       setNomPeriodId(row?.id || null);
       setNomStart(start);
       setNomEnd(end);
-      setInitialNom({ start, end });
+      setInitialNom({ start: existingStart, end: existingEnd });
     })();
     return () => { cancelled = true; };
   }, [competition?.id]);
@@ -322,6 +349,11 @@ export function NominationFormEditor({
           <p style={{ color: colors.gold.primary, fontSize: typography.fontSize.xs, margin: `0 0 ${spacing.md}` }}>
             We recommend {rec.weeks} weeks of nominations for {rec.label} competitions.
           </p>
+          {autoFilled && (
+            <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs, margin: `0 0 ${spacing.md}` }}>
+              We pre-filled these from your planned launch timeframe — adjust them and Save.
+            </p>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
             <div>
               <label style={{ display: 'block', fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.xs }}>Opens</label>

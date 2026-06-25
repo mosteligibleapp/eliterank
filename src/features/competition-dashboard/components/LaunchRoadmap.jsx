@@ -147,7 +147,7 @@ export default function LaunchRoadmap({ competition, onNavigateToTab }) {
             {itemList(mustDoItems)}
             {!published && (
               <div style={{ display: 'flex', gap: spacing.lg, flexWrap: 'wrap' }}>
-                {linkBtn('Set these up in Setup', 'setup', 'timeline')}
+                {linkBtn('Set these up in Setup', 'setup', 'nominationForm')}
                 {linkBtn('Edit your public page', 'site')}
               </div>
             )}

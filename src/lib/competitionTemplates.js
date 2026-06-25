@@ -35,6 +35,15 @@ export const LAUNCH_TIMEFRAMES = [
 ];
 export const LAUNCH_TIMEFRAME_LABELS = LAUNCH_TIMEFRAMES.reduce((m, t) => { m[t.id] = t.label; return m; }, {});
 
+// Approx. months-from-today each timeframe implies — used to pre-fill the
+// nomination open date when the host starts setting up (lower bound of each
+// range so we never schedule later than they intended).
+export const LAUNCH_TIMEFRAME_MONTHS = {
+  '6_plus_months': 6,
+  '3_6_months': 3,
+  '1_2_months': 1,
+};
+
 // What each entry type means — shown under the Entry selector everywhere.
 export const ENTRY_TYPE_HELP = {
   nominations: 'Nomination — a casual entry form. Prospective contestants can submit themselves, or someone else can nominate them.',

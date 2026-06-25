@@ -162,23 +162,35 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
                   <a href="mailto:info@eliterank.co" style={{ color: colors.gold.primary }}>info@eliterank.co</a>.
                 </p>
                 <div style={{ marginBottom: spacing.md }}>
-                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.xs }}>
+                  <label style={{ display: 'block', fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, marginBottom: spacing.sm }}>
                     When do you plan to launch?
                   </label>
-                  <select
-                    value={launchTimeframe}
-                    onChange={(e) => setLaunchTimeframe(e.target.value)}
-                    style={{
-                      width: '100%', padding: spacing.sm, background: colors.background.card,
-                      border: `1px solid ${colors.border.primary}`, borderRadius: borderRadius.md,
-                      color: colors.text.primary, fontSize: typography.fontSize.sm, colorScheme: 'dark',
-                    }}
-                  >
-                    <option value="">Select a timeframe…</option>
-                    {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
-                  </select>
-                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, margin: `${spacing.xs} 0 0` }}>
-                    We don’t recommend launching in less than 4 weeks — you’ll need time for KYC, the agreement, and building entries. You’ll set exact dates before publishing.
+                  <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+                    {LAUNCH_TIMEFRAMES.map((t) => {
+                      const active = launchTimeframe === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setLaunchTimeframe(t.id)}
+                          style={{
+                            flex: '1 1 0', minWidth: 110, padding: `${spacing.sm} ${spacing.md}`,
+                            borderRadius: borderRadius.md, cursor: 'pointer', textAlign: 'center',
+                            background: active ? 'rgba(212,175,55,0.12)' : colors.background.card,
+                            border: `1px solid ${active ? colors.gold.primary : colors.border.primary}`,
+                            color: active ? colors.gold.primary : colors.text.secondary,
+                            fontSize: typography.fontSize.sm,
+                            fontWeight: active ? typography.fontWeight.semibold : typography.fontWeight.medium,
+                            transition: 'all 0.12s ease',
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, margin: `${spacing.sm} 0 0` }}>
+                    We’ll pre-fill your nomination dates from this — fine-tune them in Setup. Launching in under 4 weeks isn’t recommended (you’ll need time for KYC, the agreement and building entries).
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm }}>

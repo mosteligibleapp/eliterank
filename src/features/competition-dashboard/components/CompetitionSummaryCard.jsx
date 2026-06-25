@@ -4,7 +4,7 @@ import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { isFieldEditable } from '../../../utils/fieldEditability';
-import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, US_STATES, LAUNCH_TIMEFRAMES, LAUNCH_TIMEFRAME_LABELS, ENTRY_TYPE_HELP } from '../../../lib/competitionTemplates';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, US_STATES, ENTRY_TYPE_HELP } from '../../../lib/competitionTemplates';
 
 /**
  * CompetitionSummaryCard — recap of what the host set during onboarding, shown
@@ -210,7 +210,6 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
       ['Cash prize', c.cashPrizeAmount != null ? money(c.cashPrizeAmount) : 'None'],
       ['Sponsored prizes', c.hasSponsoredPrizes ? 'Yes' : 'No'],
       ['Charity', c.charityPercentage ? `${c.charityPercentage}% of proceeds` : 'None'],
-      ['Planned launch', LAUNCH_TIMEFRAME_LABELS[c.plannedLaunchTimeframe] || '—'],
     ];
 
     return (
@@ -439,17 +438,6 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
             )}
           </div>
         </div>
-
-        {/* Timeline */}
-        <SectionLabel>Timeline</SectionLabel>
-        <label style={labelStyle}>When do you plan to launch?</label>
-        <select style={fieldStyle} value={form.plannedLaunchTimeframe} onChange={(e) => set('plannedLaunchTimeframe', e.target.value)}>
-          <option value="">Select a timeframe…</option>
-          {LAUNCH_TIMEFRAMES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
-        </select>
-        <p style={helpStyle}>
-          We don’t recommend launching in less than 4 weeks. You’ll set exact dates before publishing.
-        </p>
 
         {error && <p style={{ color: colors.status.error, fontSize: typography.fontSize.sm, marginTop: spacing.lg }}>{error}</p>}
       </div>
