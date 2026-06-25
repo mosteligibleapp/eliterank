@@ -3,7 +3,7 @@ import { Loader, Sparkles, User, Building2, ArrowLeft, ArrowRight, CheckCircle, 
 import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
-import { slugify, generateCompetitionSlug } from '../../utils/slugs';
+import { slugify, generateShortCompetitionSlug, cityCode } from '../../utils/slugs';
 import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES } from '../../lib/competitionTemplates';
 
 // Age options for the eligibility selects (all competitions are 18+).
@@ -217,10 +217,26 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
       const categoryId = template?.categorySlug ? (lookups.categories.find((c) => c.slug === template.categorySlug)?.id || null) : null;
 
       const name = form.name.trim() || `${orgName || 'Competition'} ${city?.name || ''}`.trim();
-      const anchorSlug = form.territoryScope === 'city' ? (city?.slug || 'city')
-        : form.territoryScope === 'state' ? (form.territoryState || 'state').toLowerCase()
-        : 'usa';
-      const slug = generateCompetitionSlug({ name, citySlug: anchorSlug, season: Number(form.season), demographicSlug: demoSlug });
+      // Short, shareable slug: {name}-{placeCode}-{yy} (e.g. creator-of-the-year-chi-26).
+      const placeCode = form.territoryScope === 'city'
+        ? cityCode(city?.slug || city?.name || '')
+        : form.territoryScope === 'state'
+          ? (form.territoryState || '').toLowerCase()
+          : 'us';
+      const baseSlug = generateShortCompetitionSlug({ name, code: placeCode, season: Number(form.season) });
+      // Ensure uniqueness within the org (the URL is /{org}/{slug} and lookups
+      // are org-scoped, so we only disambiguate same-org collisions).
+      let slug = baseSlug;
+      for (let n = 2; n < 50; n++) {
+        const { data: dup } = await supabase
+          .from('competitions')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('slug', slug)
+          .limit(1);
+        if (!dup || dup.length === 0) break;
+        slug = `${baseSlug}-${n}`;
+      }
 
       const { data: comp, error: e2 } = await supabase.rpc('create_host_competition', {
         p_payload: {
