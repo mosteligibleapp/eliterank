@@ -61,9 +61,9 @@ export default function JudgesManager({ judges = [], onOpenJudgeModal, onDeleteJ
       title={`Judges (${judges.length})`}
       icon={User}
       badge={badge}
-      action={<Button size="sm" icon={Plus} onClick={() => onOpenJudgeModal(null)}>Add Judge</Button>}
+      action={<Button size="sm" icon={Plus} onClick={(e) => { e.stopPropagation(); onOpenJudgeModal(null); }}>Add Judge</Button>}
       collapsible
-      defaultCollapsed={judges.length > 0}
+      defaultCollapsed
     >
       <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
         {judges.length === 0 ? (

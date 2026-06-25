@@ -96,6 +96,8 @@ export default function HostsPanel({
       icon={User}
       locked={locked}
       badge={badge}
+      collapsible
+      defaultCollapsed
       action={
         canManage ? (
           host ? (
