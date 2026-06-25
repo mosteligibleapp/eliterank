@@ -4,7 +4,7 @@ import { Modal, Button } from '../ui';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { slugify, generateCompetitionSlug } from '../../utils/slugs';
-import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES, ENTRY_TYPE_HELP } from '../../lib/competitionTemplates';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, findTemplate, US_STATES } from '../../lib/competitionTemplates';
 
 // Age options for the eligibility selects (all competitions are 18+).
 const AGE_OPTIONS = Array.from({ length: 80 - 18 + 1 }, (_, i) => 18 + i);
@@ -530,21 +530,9 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             <input style={controlStyle} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Most Eligible Austin" />,
             'This becomes the title winners earn — make it a social accolade they’ll be excited to promote (e.g. “Realtor of the Year”).')}
 
-          {field(null,
-            <div style={{ display: 'flex', gap: spacing.md }}>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Number of winners</label>
-                <input style={controlStyle} type="number" min="1" value={form.numberOfWinners} onChange={(e) => set('numberOfWinners', e.target.value)} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Entry type</label>
-                <select style={controlStyle} value={form.entryType} onChange={(e) => set('entryType', e.target.value)}>
-                  <option value="nominations">Nomination</option>
-                  <option value="applications">Application</option>
-                </select>
-              </div>
-            </div>,
-            ENTRY_TYPE_HELP[form.entryType])}
+          {field('Number of winners',
+            <input style={controlStyle} type="number" min="1" value={form.numberOfWinners} onChange={(e) => set('numberOfWinners', e.target.value)} />,
+            'Contestants enter by nomination — they can submit themselves or be nominated by someone else.')}
 
           {field('How they win',
             <select style={controlStyle} value={form.selectionCriteria} onChange={(e) => set('selectionCriteria', e.target.value)}>

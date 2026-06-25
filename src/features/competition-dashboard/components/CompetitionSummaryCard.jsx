@@ -4,7 +4,7 @@ import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
 import { isFieldEditable } from '../../../utils/fieldEditability';
-import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, US_STATES, ENTRY_TYPE_HELP } from '../../../lib/competitionTemplates';
+import { COMPETITION_TEMPLATES, CUSTOM_TEMPLATE, US_STATES } from '../../../lib/competitionTemplates';
 
 /**
  * CompetitionSummaryCard — recap of what the host set during onboarding, shown
@@ -326,15 +326,6 @@ export default function CompetitionSummaryCard({ competition, onNavigateToTab, o
           <div>
             <label style={labelStyle}>Number of winners</label>
             <input style={fieldStyle} type="number" min="1" value={form.numberOfWinners} onChange={(e) => set('numberOfWinners', e.target.value)} />
-          </div>
-
-          <div>
-            <label style={labelStyle}>How they enter</label>
-            <select style={fieldStyle} value={form.entryType} onChange={(e) => set('entryType', e.target.value)}>
-              <option value="nominations">Nomination</option>
-              <option value="applications">Application</option>
-            </select>
-            <p style={helpStyle}>{ENTRY_TYPE_HELP[form.entryType]}</p>
           </div>
 
           <div>
