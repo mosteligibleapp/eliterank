@@ -331,15 +331,17 @@ export function buildOfficialRules(competition, context = {}) {
   if (hasJudging) {
     const judgingBlocks = [];
 
-    // The judge panel + where it sits in the process.
+    // The judge panel + where it sits in the process. The judge roster can
+    // change after publish, so the competition page is the source of truth and
+    // any count is framed as "currently" rather than a fixed promise.
     const panelCount = Array.isArray(judges) ? judges.length : 0;
     const panelText =
       panelCount > 0
-        ? `A panel of ${panelCount} ${panelCount === 1 ? 'judge' : 'judges'}, shown on the competition page, evaluates contestants`
-        : 'A panel of qualified judges, shown on the competition page, evaluates contestants';
+        ? `Judging is performed by the panel shown on the competition page (currently ${panelCount} ${panelCount === 1 ? 'judge' : 'judges'})`
+        : 'Judging is performed by the panel of qualified judges shown on the competition page';
     judgingBlocks.push({
       kind: 'p',
-      text: `${panelText} against the criteria below. The Host selects judges qualified to assess contestants, and judges’ decisions are final and binding.`,
+      text: `${panelText}, who evaluate contestants against the criteria below. The Host selects judges qualified to assess contestants and may update the panel; the competition page always shows the current judges. Judges’ decisions are final and binding.`,
     });
 
     // When judging takes place and how it is weighted, per judged round.
@@ -452,14 +454,15 @@ export function buildOfficialRules(competition, context = {}) {
     {
       kind: 'p',
       text: prizeListItems.length
-        ? 'The prizes for the Competition are:'
-        : 'The prizes for the Competition are described on the competition’s Prizes page.',
+        ? 'The prizes currently set for the Competition are listed below. Prizes may change — the competition’s Prizes page always shows the current prizes:'
+        : 'The prizes for the Competition are shown on the competition’s Prizes page and may be updated by the Host.',
     },
   ];
   if (prizeListItems.length) prizeBlocks.push({ kind: 'ul', items: prizeListItems });
   prizeBlocks.push({
     kind: 'ul',
     items: [
+      'Prizes may be added, removed, or updated by the Host; the competition’s Prizes page reflects the current prize lineup at any time.',
       'Prizes are not transferable or for resale and have no cash equivalent unless explicitly stated. The Host may substitute a prize of equal or greater value if the original becomes unavailable.',
       'Each prize provider is responsible only for the portion of the prize it supplies.',
       'Taxes on prizes are the sole responsibility of the winner. Where required (generally $600 or more in aggregate per calendar year for U.S. recipients), the Host will issue an IRS Form 1099 and require a completed Form W-9 before the prize is released.',
@@ -468,19 +471,26 @@ export function buildOfficialRules(competition, context = {}) {
   });
   sections.push({ id: 'prizes', title: 'Prizes', blocks: prizeBlocks });
 
-  // ── Charity (optional) ───────────────────────────────────────────────────
-  if (charityPct) {
+  // ── Charity (only when the Competition has a charity partner) ────────────
+  // Triggered by a partner OR a percentage so the section appears whenever
+  // either is configured; the percentage is stated when set and generalized
+  // when it isn't.
+  if (charityName || charityPct) {
+    const toWhom = charityName || 'the designated charity partner';
+    const shareTxt = charityPct
+      ? `${charityPct}% of net proceeds from purchased votes`
+      : 'A portion of net proceeds from purchased votes';
     sections.push({
       id: 'charity',
       title: 'Charity',
       blocks: [
         {
           kind: 'p',
-          text: `${charityPct}% of net proceeds from purchased votes in the Competition will be donated to ${charityName || 'the designated charity partner'}. If the designated charity is unable or unwilling to accept the donation, the Host may donate to an alternate charity of similar mission.`,
+          text: `The Competition supports ${toWhom} as its charity partner. ${shareTxt} in the Competition will be donated to ${toWhom}. If the designated charity is unable or unwilling to accept the donation, the Host may donate the charity portion to an alternate charity of similar mission.`,
         },
         {
           kind: 'p',
-          text: 'Purchased votes are not tax-deductible charitable contributions, and you will not receive a written acknowledgement for tax purposes.',
+          text: 'Vote purchases are not tax-deductible charitable contributions for voters. No charitable tax receipt or written acknowledgement will be provided for any vote purchase.',
         },
       ],
     });
