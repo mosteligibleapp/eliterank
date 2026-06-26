@@ -893,6 +893,9 @@ export default function CompetitionDashboard({
               organizationLogoUrl={competition?.organizationLogoUrl}
               organizationWebsiteUrl={competition?.organizationWebsiteUrl}
               organizationLegalEntityName={competition?.organizationLegalEntityName}
+              organizationInstagram={competition?.organizationInstagram}
+              organizationTiktok={competition?.organizationTiktok}
+              organizationFacebook={competition?.organizationFacebook}
             />
             <PreviewTab
               competition={competition}
