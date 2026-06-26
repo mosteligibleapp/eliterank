@@ -1,13 +1,26 @@
+import { Link } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { EliteRankCrown } from '../../../components/ui/icons';
 import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
- * Competition page footer showing organization and EliteRank branding
- * No links, just logos and names
+ * Competition page footer showing organization and EliteRank branding, plus a
+ * persistent row of policy links.
+ *
+ * Rendered at the CompetitionLayout level so the policies — this competition's
+ * auto-generated Official Rules, plus the platform-wide Contest Terms, Terms of
+ * Use, and Privacy Policy — are reachable in every phase and view.
  */
 export function CompetitionFooter() {
-  const { organization } = usePublicCompetition();
+  const { organization, orgSlug, competitionSlug, competition } = usePublicCompetition();
+
+  // Per-competition Official Rules path — built the same way across slug-based
+  // and ID-based URLs so it resolves regardless of how the user arrived.
+  const rulesPath = competitionSlug
+    ? `/${orgSlug}/${competitionSlug}/rules`
+    : competition?.id
+      ? `/${orgSlug}/id/${competition.id}/rules`
+      : null;
 
   return (
     <footer className="competition-footer">
@@ -34,6 +47,13 @@ export function CompetitionFooter() {
           </div>
         </div>
       </div>
+
+      <nav className="competition-footer-legal" aria-label="Policies">
+        {rulesPath && <Link to={rulesPath} className="competition-footer-legal-link">Official Rules</Link>}
+        <Link to="/contest-terms" className="competition-footer-legal-link">Contest Terms</Link>
+        <Link to="/terms" className="competition-footer-legal-link">Terms of Use</Link>
+        <Link to="/privacy" className="competition-footer-legal-link">Privacy</Link>
+      </nav>
     </footer>
   );
 }

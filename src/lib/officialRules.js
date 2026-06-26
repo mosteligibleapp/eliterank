@@ -1,0 +1,497 @@
+/**
+ * Auto-generated, per-competition Official Rules.
+ *
+ * Where `competitionRules.buildAutoRules` produces the short at-a-glance
+ * accordion (a handful of blurbs), this builds the *complete* Official Rules
+ * document for a single competition — the long-form page a host can point
+ * entrants, voters, and sponsors at (cf. a magazine cover competition's
+ * `/rules` page).
+ *
+ * Everything here is derived from the competition's own configuration, so the
+ * document always states the *actual* operator, eligibility, schedule, scoring,
+ * prizes, and charity for that competition and can never drift from how it is
+ * set up. Boilerplate that is identical across every competition references the
+ * platform-wide Contest Terms, Terms of Use, and Privacy Policy rather than
+ * being duplicated here.
+ *
+ * Framing note: EliteRank competitions are structured as a **contest of skill**,
+ * not a sweepstakes. This generator deliberately avoids sweepstakes / AMOE
+ * language and instead emphasizes that entry is free and that paid votes only
+ * add voting capacity — the load-bearing facts for that posture. If a
+ * voter-drawing feature is ever added, this framing must be revisited.
+ *
+ * Tolerant of both the dashboard's camelCase competition object and the public
+ * page's raw snake_case row, so a single generator serves both.
+ *
+ * Returns `{ sections: [{ id, title, blocks }] }`, where each block is one of:
+ *   { kind: 'p', text }            — a paragraph
+ *   { kind: 'callout', text }      — an emphasized callout box
+ *   { kind: 'ul', items: [] }      — a bullet list
+ *   { kind: 'policyLinks' }        — renders the standard related-policy links
+ *   { kind: 'contact' }            — renders the operator contact box
+ */
+
+const GENDER = {
+  all: 'all genders',
+  female: 'women',
+  male: 'men',
+  'LGBTQ+': 'LGBTQ+ individuals',
+};
+
+// Read a field that may be camelCase (dashboard) or snake_case (public row).
+const pick = (c, camel, snake, fallback = undefined) => {
+  if (c[camel] !== undefined && c[camel] !== null) return c[camel];
+  if (c[snake] !== undefined && c[snake] !== null) return c[snake];
+  return fallback;
+};
+
+// Format a timestamp as "February 12, 2026". Returns null for missing/invalid.
+function formatDate(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+// "February 1 – February 12, 2026", collapsing where only one bound exists.
+function formatDateRange(start, end) {
+  const s = formatDate(start);
+  const e = formatDate(end);
+  if (s && e) return `${s} – ${e}`;
+  if (s) return `Opens ${s}`;
+  if (e) return `Closes ${e}`;
+  return null;
+}
+
+function formatMoney(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}
+
+export function buildOfficialRules(competition, context = {}) {
+  const c = competition;
+  if (!c) return { sections: [] };
+
+  const {
+    organization = null,
+    host = null,
+    prizes = [],
+    prizePool = null,
+    votingRounds: ctxRounds = null,
+    nominationPeriods = null,
+  } = context;
+
+  // ── Pull config (tolerant of camelCase / snake_case) ─────────────────────
+  const name = pick(c, 'name', 'name', 'This Competition');
+  const orgName =
+    organization?.name ||
+    c.organization?.name ||
+    pick(c, 'organizationName', 'organization_name', null);
+  const hostFirst = host?.first_name || c.host?.first_name || null;
+  const hostLast = host?.last_name || c.host?.last_name || null;
+  const hostPersonName = [hostFirst, hostLast].filter(Boolean).join(' ') || null;
+  const hostName = orgName || hostPersonName || 'the Host';
+
+  const selectionCriteria = pick(c, 'selectionCriteria', 'selection_criteria', 'votes');
+  const numberOfWinners = pick(c, 'numberOfWinners', 'number_of_winners', 1) || 1;
+  const splitByGender = !!pick(c, 'winnersSplitByGender', 'winners_split_by_gender', false);
+  const eligibilityGender = pick(c, 'eligibilityGender', 'eligibility_gender', 'all');
+  const territoryScope = pick(c, 'territoryScope', 'territory_scope', 'city');
+  const territoryState = pick(c, 'territoryState', 'territory_state', null);
+  const radiusMiles = pick(c, 'eligibilityRadiusMiles', 'eligibility_radius_miles', null);
+  const ageMin = pick(c, 'eligibilityAgeMin', 'eligibility_age_min', 18) || 18;
+  const ageMax = pick(c, 'eligibilityAgeMax', 'eligibility_age_max', null);
+  const entryType = pick(c, 'entryType', 'entry_type', 'nominations');
+  const charityPct = pick(c, 'charityPercentage', 'charity_percentage', null);
+  const charityName = pick(c, 'charityName', 'charity_name', null);
+  const pricePerVote = pick(c, 'pricePerVote', 'price_per_vote', null);
+  const cityVal = c.city;
+  const cityName = typeof cityVal === 'object' ? cityVal?.name : cityVal;
+
+  const rounds =
+    (ctxRounds && ctxRounds.length ? ctxRounds : pick(c, 'voting_rounds', 'votingRounds', [])) || [];
+  const periods =
+    (nominationPeriods && nominationPeriods.length
+      ? nominationPeriods
+      : pick(c, 'nomination_periods', 'nominationPeriods', [])) || [];
+  const nominationStart = pick(c, 'nominationStart', 'nomination_start', null);
+  const nominationEnd = pick(c, 'nominationEnd', 'nomination_end', null);
+  const finalsDate = pick(c, 'finalsDate', 'finals_date', null);
+
+  const publicVotes = selectionCriteria !== 'judges';
+  const sections = [];
+
+  // ── 1. Overview ──────────────────────────────────────────────────────────
+  sections.push({
+    id: 'overview',
+    title: '1. Overview',
+    blocks: [
+      {
+        kind: 'p',
+        text: `These are the Official Rules for ${name} (the "Competition"), presented by ${hostName} (the "Host") and administered on the EliteRank platform, operated by Most Eligible LLC ("EliteRank," "we," "us"). By nominating, entering, voting, or otherwise participating in the Competition, you agree to these Official Rules and to the platform-wide Contest Terms & Conditions, Terms of Use, and Privacy Policy.`,
+      },
+      {
+        kind: 'callout',
+        text: 'The Competition is a contest of skill. Winners are determined by the published criteria below — not by random drawing or chance.',
+      },
+      {
+        kind: 'p',
+        text: 'These Official Rules are generated from the Competition’s current configuration and reflect its actual format, eligibility, schedule, and prizes. Where they differ from the general platform terms, these Official Rules control for this Competition. The Host may update the Competition’s configuration; the version shown here always reflects the current setup.',
+      },
+    ],
+  });
+
+  // ── 2. No Purchase Necessary ─────────────────────────────────────────────
+  sections.push({
+    id: 'no-purchase',
+    title: '2. No Purchase Necessary',
+    blocks: [
+      {
+        kind: 'p',
+        text: 'There is no cost to be nominated or to enter as a contestant in the Competition.',
+      },
+      publicVotes
+        ? {
+            kind: 'p',
+            text: 'Where the Competition includes public voting, everyone receives free votes. Purchasing additional votes is entirely optional and is never required to enter, participate, or win. Purchasing votes increases voting capacity only — it is not an entry into any drawing and gives the purchaser no prize, reward, or chance of winning.',
+          }
+        : {
+            kind: 'p',
+            text: 'Winners of this Competition are selected by a panel of judges against the published criteria. No purchase of any kind affects the outcome.',
+          },
+    ],
+  });
+
+  // ── 3. Eligibility ───────────────────────────────────────────────────────
+  const genderTxt = GENDER[eligibilityGender] || 'all genders';
+  let where;
+  if (territoryScope === 'us') {
+    where = 'across the United States';
+  } else if (territoryScope === 'state') {
+    where = `in ${territoryState || 'the host state'}`;
+  } else {
+    where = `in and around ${cityName || 'the host city'}${radiusMiles ? ` (within ${radiusMiles} miles)` : ''}`;
+  }
+  let eligibilityIntro = `Entry is open to ${genderTxt} ${where}. All entrants must be at least ${ageMin} years old`;
+  eligibilityIntro += ageMax ? ` and no older than ${ageMax}.` : ' at the time of entry.';
+  sections.push({
+    id: 'eligibility',
+    title: '3. Eligibility',
+    blocks: [
+      { kind: 'p', text: eligibilityIntro },
+      {
+        kind: 'ul',
+        items: [
+          'Entrants and voters must be legal residents of the United States and not residents of any jurisdiction where the Competition is prohibited by law.',
+          'Employees, officers, directors, and contractors of the Host and the other Promotion Entities, and their immediate family and household members, are not eligible to win prizes.',
+          'It is your responsibility to confirm your eligibility before nominating, entering, or voting.',
+        ],
+      },
+    ],
+  });
+
+  // ── 4. How to Enter ──────────────────────────────────────────────────────
+  let entry;
+  if (entryType === 'applications') {
+    entry = 'Entry is by application: eligible people apply directly to take part. Applicants complete the required profile information and agree to these Official Rules to become a contestant.';
+  } else {
+    entry = 'Entry is by nomination: anyone can nominate an eligible person, and prospective contestants can also nominate themselves. A nominee confirms the nomination, completes the required profile information, and agrees to these Official Rules to become a contestant.';
+  }
+  sections.push({
+    id: 'how-to-enter',
+    title: '4. How to Enter',
+    blocks: [
+      { kind: 'p', text: `${entry} There is no cost to enter.` },
+    ],
+  });
+
+  // ── 5. Competition Schedule ──────────────────────────────────────────────
+  const scheduleItems = [];
+  const nominationRange =
+    formatDateRange(periods?.[0]?.start_date, periods?.[0]?.end_date) ||
+    formatDateRange(nominationStart, nominationEnd);
+  if (nominationRange) scheduleItems.push(`Nominations: ${nominationRange}`);
+
+  [...rounds]
+    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
+    .forEach((r, i) => {
+      const range = formatDateRange(r.start_date, r.end_date);
+      const label =
+        (r.title && r.title.trim()) ||
+        (r.round_order ? `Round ${r.round_order}` : `Round ${i + 1}`);
+      if (range) scheduleItems.push(`${label}: ${range}`);
+    });
+
+  const finals = formatDate(finalsDate);
+  if (finals) scheduleItems.push(`Winners announced: ${finals}`);
+
+  sections.push({
+    id: 'schedule',
+    title: '5. Competition Schedule',
+    blocks: scheduleItems.length
+      ? [
+          {
+            kind: 'p',
+            text: 'The key dates for the Competition are below. All dates and times are subject to adjustment by the Host; the competition page always shows the current schedule.',
+          },
+          { kind: 'ul', items: scheduleItems },
+        ]
+      : [
+          {
+            kind: 'p',
+            text: 'The full schedule for the Competition — including nomination, voting, and finals dates — is published on the competition page and may be adjusted by the Host.',
+          },
+        ],
+  });
+
+  // ── 6. How Winners Are Chosen ────────────────────────────────────────────
+  const judgingRound = [...rounds]
+    .filter((r) => (r.judge_weight || 0) > 0)
+    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))[0];
+
+  let selection;
+  if (selectionCriteria === 'judges') {
+    selection = 'Winners are selected by a panel of judges, who score each contestant against the published judging criteria. Judges’ scores and the Host’s final tally are final and binding.';
+  } else if (selectionCriteria === 'hybrid') {
+    selection = 'Winners are determined through a hybrid process that combines public votes with judges’ scores.';
+    if (judgingRound) {
+      const w = judgingRound.judge_weight || 0;
+      const label =
+        (judgingRound.title && judgingRound.title.trim()) ||
+        (judgingRound.round_order ? `round ${judgingRound.round_order}` : 'the judging round');
+      selection += ` Judging takes place in ${label}, where judges’ scores count for ${w}% and public votes for ${100 - w}% of that round’s result.`;
+    }
+  } else {
+    selection = 'Winners are determined by public vote — the contestants with the most votes advance through each round and ultimately win. The Host’s final tally is final and binding.';
+  }
+  let winnersLine = ` This Competition crowns ${numberOfWinners === 1 ? 'one winner' : `${numberOfWinners} winners`}.`;
+  if (splitByGender) winnersLine += ' Winners are determined separately for men and women.';
+  sections.push({
+    id: 'selection',
+    title: '6. How Winners Are Chosen',
+    blocks: [{ kind: 'p', text: selection + winnersLine }],
+  });
+
+  // ── 7. Voting (only when the public actually votes) ──────────────────────
+  if (publicVotes) {
+    const priceTxt = formatMoney(pricePerVote);
+    const votingBlocks = [
+      {
+        kind: 'p',
+        text: `Anyone eligible may vote on the public competition page. Free votes are available to everyone${
+          priceTxt ? `, and additional votes may be purchased${priceTxt ? ` (from ${priceTxt} per vote)` : ''} to show extra support` : ', and additional votes may be purchased to show extra support'
+        }. Voting opens and closes on the dates shown on the competition timeline; votes recorded after a round closes do not count.`,
+      },
+      {
+        kind: 'p',
+        text: 'To protect competitive integrity, the following are prohibited and may result in voided votes, disqualification, or account suspension:',
+      },
+      {
+        kind: 'ul',
+        items: [
+          'votes generated by automated means (bots or scripts) or fraudulent payment instruments;',
+          'votes followed by chargebacks, refunds, or payment reversals;',
+          'votes cast through multiple accounts or false identities;',
+          'a contestant purchasing votes for their own entry, directly or through anyone acting at their direction or with their funding;',
+          'any vote-buying outside the platform’s official vote-purchase flow.',
+        ],
+      },
+      {
+        kind: 'p',
+        text: 'Purchased votes are final and non-refundable once recorded, except as required by law or as expressly stated on the competition page. See the Contest Terms & Conditions for the complete voting and anti-fraud terms.',
+      },
+    ];
+    sections.push({ id: 'voting', title: '7. Voting', blocks: votingBlocks });
+  }
+
+  // ── 8. Prizes ────────────────────────────────────────────────────────────
+  const prizeItems = (prizes || [])
+    .map((p) => {
+      const title = p.title || p.name;
+      if (!title) return null;
+      const value = formatMoney(p.value);
+      const provider = p.sponsor_name ? `provided by ${p.sponsor_name}` : null;
+      const detail = [value, provider].filter(Boolean).join(', ');
+      return detail ? `${title} (${detail})` : title;
+    })
+    .filter(Boolean);
+
+  const cashLine = prizePool && (prizePool.total || prizePool.minimum)
+    ? `A cash prize pool${
+        formatMoney(prizePool.total || prizePool.minimum)
+          ? ` (currently ${formatMoney(prizePool.total || prizePool.minimum)})`
+          : ''
+      }, as shown on the competition’s Prizes page.`
+    : null;
+
+  const prizeListItems = [...(cashLine ? [cashLine] : []), ...prizeItems];
+  const prizeBlocks = [
+    {
+      kind: 'p',
+      text: prizeListItems.length
+        ? 'The prizes for the Competition are:'
+        : 'The prizes for the Competition are described on the competition’s Prizes page.',
+    },
+  ];
+  if (prizeListItems.length) prizeBlocks.push({ kind: 'ul', items: prizeListItems });
+  prizeBlocks.push({
+    kind: 'ul',
+    items: [
+      'Prizes are not transferable or for resale and have no cash equivalent unless explicitly stated. The Host may substitute a prize of equal or greater value if the original becomes unavailable.',
+      'Each prize provider is responsible only for the portion of the prize it supplies.',
+      'Taxes on prizes are the sole responsibility of the winner. Where required (generally $600 or more in aggregate per calendar year for U.S. recipients), the Host will issue an IRS Form 1099 and require a completed Form W-9 before the prize is released.',
+      'The Promotion Entities are not liable for any injury, loss, or damages arising from acceptance or use of a prize.',
+    ],
+  });
+  sections.push({ id: 'prizes', title: '8. Prizes', blocks: prizeBlocks });
+
+  // ── 9. Charity (optional) ────────────────────────────────────────────────
+  if (charityPct) {
+    sections.push({
+      id: 'charity',
+      title: '9. Charity',
+      blocks: [
+        {
+          kind: 'p',
+          text: `${charityPct}% of net proceeds from purchased votes in the Competition will be donated to ${charityName || 'the designated charity partner'}. If the designated charity is unable or unwilling to accept the donation, the Host may donate to an alternate charity of similar mission.`,
+        },
+        {
+          kind: 'p',
+          text: 'Purchased votes are not tax-deductible charitable contributions, and you will not receive a written acknowledgement for tax purposes.',
+        },
+      ],
+    });
+  }
+
+  // Sections from here on are competition-agnostic boilerplate; number them
+  // continuously after whichever optional sections were included above.
+  let n = charityPct ? 10 : 9;
+
+  // ── Winner Verification & Notification ───────────────────────────────────
+  sections.push({
+    id: 'winners',
+    title: `${n++}. Winner Verification & Notification`,
+    blocks: [
+      {
+        kind: 'p',
+        text: 'All potential winners are subject to verification of eligibility and compliance with these Official Rules. A potential winner may be required to sign an Affidavit of Eligibility, Liability Release, and (where lawful) Publicity Release, and to provide tax forms before a prize is released. A potential winner who cannot be verified, does not respond to a winner notification within five (5) days, declines the prize, or is found to have violated these Official Rules may be disqualified and an alternate winner selected.',
+      },
+    ],
+  });
+
+  // ── Publicity & Submitted Content ────────────────────────────────────────
+  sections.push({
+    id: 'publicity',
+    title: `${n++}. Publicity & Submitted Content`,
+    blocks: [
+      {
+        kind: 'p',
+        text: 'You retain ownership of the photos, videos, and other materials you submit, and grant the Promotion Entities a non-exclusive, worldwide, royalty-free license to use them to administer and promote the Competition and the platform. Except where prohibited by law, each winner consents to the use of their name, city, photograph, and likeness for promotional purposes related to the Competition without further notice or compensation. Full terms are in the Contest Terms & Conditions.',
+      },
+    ],
+  });
+
+  // ── Conduct & Disqualification ───────────────────────────────────────────
+  sections.push({
+    id: 'conduct',
+    title: `${n++}. Conduct & Disqualification`,
+    blocks: [
+      {
+        kind: 'p',
+        text: 'The Host and EliteRank may, at their sole discretion, void votes, adjust rankings, withhold prizes, suspend accounts, and disqualify any contestant or voter who violates these Official Rules, tampers with the Competition, or engages in fraudulent or unsportsmanlike conduct.',
+      },
+    ],
+  });
+
+  // ── Limitation of Liability ──────────────────────────────────────────────
+  sections.push({
+    id: 'liability',
+    title: `${n++}. Limitation of Liability`,
+    blocks: [
+      {
+        kind: 'p',
+        text: 'To the maximum extent permitted by law, all entrants, voters, and winners release the Host, EliteRank, and the other Promotion Entities from any liability arising out of or related to the Competition, including the use of submitted materials and the acceptance or use of prizes. The platform and the Competition are provided "as is." See the Contest Terms & Conditions for the full disclaimer and release.',
+      },
+    ],
+  });
+
+  // ── Changes & Termination ────────────────────────────────────────────────
+  sections.push({
+    id: 'termination',
+    title: `${n++}. Changes & Termination`,
+    blocks: [
+      {
+        kind: 'p',
+        text: 'The Host reserves the right to modify, suspend, or cancel the Competition, in whole or in part, at any time and for any reason — including fraud, technical failure, or events beyond its reasonable control. The Host will not be liable for any such change.',
+      },
+    ],
+  });
+
+  // ── Governing Law ────────────────────────────────────────────────────────
+  sections.push({
+    id: 'governing-law',
+    title: `${n++}. Governing Law`,
+    blocks: [
+      {
+        kind: 'p',
+        text: 'These Official Rules are governed by the laws of the State of Illinois, without regard to conflict-of-laws principles, and any dispute is subject to the jurisdiction of the state and federal courts located in Cook County, Illinois.',
+      },
+    ],
+  });
+
+  // ── Privacy ──────────────────────────────────────────────────────────────
+  sections.push({
+    id: 'privacy',
+    title: `${n++}. Privacy`,
+    blocks: [
+      {
+        kind: 'p',
+        text: 'Information you provide in connection with the Competition is collected and used in accordance with the EliteRank Privacy Policy.',
+      },
+    ],
+  });
+
+  // ── Platform Non-Affiliation ─────────────────────────────────────────────
+  sections.push({
+    id: 'non-affiliation',
+    title: `${n++}. Platform Non-Affiliation`,
+    blocks: [
+      {
+        kind: 'p',
+        text: 'The Competition is not sponsored, endorsed, or administered by, or associated with, Instagram, Facebook, TikTok, X, YouTube, Apple, Google, or any other third-party platform.',
+      },
+    ],
+  });
+
+  // ── Complete Agreement & Related Policies ────────────────────────────────
+  sections.push({
+    id: 'agreement',
+    title: `${n++}. Complete Agreement`,
+    blocks: [
+      {
+        kind: 'p',
+        text: 'These Official Rules, together with the platform-wide Contest Terms & Conditions, Terms of Use, Privacy Policy, and Cookie Policy, are the complete agreement between you and the Promotion Entities concerning the Competition and supersede any prior understanding.',
+      },
+      { kind: 'policyLinks' },
+    ],
+  });
+
+  // ── Contact ──────────────────────────────────────────────────────────────
+  sections.push({
+    id: 'contact',
+    title: `${n++}. Contact`,
+    blocks: [
+      { kind: 'p', text: 'Questions about the Competition or these Official Rules?' },
+      { kind: 'contact' },
+    ],
+  });
+
+  return { sections };
+}
+
+export default buildOfficialRules;

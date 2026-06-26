@@ -48,7 +48,15 @@ export function ActivityView() {
     votingRounds,
     about,
     prizePool,
+    orgSlug,
+    competitionSlug,
   } = usePublicCompetition();
+
+  const rulesPath = competitionSlug
+    ? `/${orgSlug}/${competitionSlug}/rules`
+    : competition?.id
+      ? `/${orgSlug}/id/${competition.id}/rules`
+      : null;
 
   // Find contestant by ID for avatar
   const getContestant = (contestantId) => {
@@ -116,7 +124,7 @@ export function ActivityView() {
 
           {/* Competition Rules */}
           <section className="activity-section">
-            <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
+            <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} rulesPath={rulesPath} />
           </section>
         </div>
 

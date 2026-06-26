@@ -3557,6 +3557,21 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   margin: 0;
 }
 
+/* "Read the full Official Rules" link under the accordion summary */
+.rules-full-link {
+  display: inline-block;
+  margin-top: var(--spacing-md);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.rules-full-link:hover {
+  text-decoration: underline;
+}
+
 /* Sidebar Stack - stacks cards vertically in right column */
 .sidebar-stack {
   display: flex;
@@ -5239,6 +5254,32 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
+}
+
+/* Persistent policy links row (Official Rules, Contest Terms, Terms, Privacy) */
+.competition-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.competition-footer-legal-link {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.competition-footer-legal-link:hover {
+  color: var(--color-primary);
+}
+
+/* Official Rules full-page view sits inside the competition layout */
+.official-rules-view {
+  width: 100%;
 }
 
 /* Judges Section */
