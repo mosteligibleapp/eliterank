@@ -406,7 +406,7 @@ export default function CreateCompetitionModal({ isOpen, onClose, userId, onCrea
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {[
-                'You approve the competition',
+                'The EliteRank team approves your competition',
                 'Your Stripe identity verification (KYC) is approved',
                 'You’ve signed the Host Agreement',
               ].map((t) => (
