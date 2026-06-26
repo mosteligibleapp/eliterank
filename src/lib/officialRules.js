@@ -406,19 +406,11 @@ export function buildOfficialRules(competition, context = {}) {
   if (publicVotes) {
     const priceTxt = formatMoney(pricePerVote);
 
-    // Bonus vote tasks (contestants earn votes through actions, not purchase).
-    const enabledBonusTasks = (bonusTasks || []).filter((t) => t && t.enabled !== false);
-    const bonusTaskItems = enabledBonusTasks.map((t) => {
-      const n = Number(t.votes_awarded ?? t.votesAwarded);
-      const amount = Number.isFinite(n) && n > 0 ? ` (+${n} ${n === 1 ? 'vote' : 'votes'})` : '';
-      return `${t.label || 'Bonus task'}${amount}`;
-    });
-
-    // Double-vote days (every vote counts 2× on scheduled dates).
-    const doubleDayDates = (doubleVoteDays || [])
-      .map((d) => (typeof d === 'string' ? d : d?.date))
-      .map((d) => formatDate(d))
-      .filter(Boolean);
+    // Presence-only detection: describe the mechanic when the competition uses
+    // it, but don't list the specific tasks/dates (they change and live on the
+    // competition timeline / contestant profiles, the source of truth).
+    const hasBonusTasks = (bonusTasks || []).some((t) => t && t.enabled !== false);
+    const hasDoubleDays = (doubleVoteDays || []).length > 0;
 
     const votingBlocks = [
       {
@@ -432,23 +424,19 @@ export function buildOfficialRules(competition, context = {}) {
     ];
 
     // Bonus votes — disclosed when the competition has enabled bonus tasks.
-    if (enabledBonusTasks.length > 0) {
+    if (hasBonusTasks) {
       votingBlocks.push({
         kind: 'p',
-        text: 'Contestants can earn additional votes by completing bonus tasks — actions shown on their profile. Bonus votes are earned through these actions, not purchased, and are added to the contestant’s vote tally.',
+        text: 'Contestants can earn additional votes by completing bonus tasks (for example, completing their profile or sharing their page). Bonus votes are earned through these actions, not purchased, and are added to the contestant’s vote tally. The available tasks and their vote values are shown on each contestant’s profile.',
       });
-      if (bonusTaskItems.length > 0) {
-        votingBlocks.push({ kind: 'ul', items: bonusTaskItems });
-      }
     }
 
     // Double-vote days — disclosed when the competition has scheduled any.
-    if (doubleDayDates.length > 0) {
+    if (hasDoubleDays) {
       votingBlocks.push({
         kind: 'p',
-        text: 'On scheduled double-vote days, every free and purchased vote counts twice (2×). Votes earned from bonus tasks are not doubled. Double-vote days (in the competition’s local time) are:',
+        text: 'On scheduled double-vote days, every free and purchased vote counts twice (2×); votes earned from bonus tasks are not doubled. The scheduled double-vote days are shown on the competition timeline.',
       });
-      votingBlocks.push({ kind: 'ul', items: doubleDayDates });
     }
 
     votingBlocks.push(
