@@ -13,7 +13,7 @@ import { useStripeConnect } from './hooks/useStripeConnect';
 import { SkeletonPulse, SkeletonCard } from '../../components/common/Skeleton';
 
 // Import tab components
-import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, PreviewTab } from './components/tabs';
+import { OverviewTab, PeopleTab, EmailActivityTab, ContentTab, SetupTab, EngagementTab, PreviewTab } from './components/tabs';
 import AnnouncementsManager from './components/AnnouncementsManager';
 import AudienceManager from './components/AudienceManager';
 import JudgingResultsPanel from './components/JudgingResultsPanel';
@@ -148,7 +148,6 @@ export default function CompetitionDashboard({
     addDoubleDay,
     deleteDoubleDay,
     updateCompetitionTimezone,
-    updateHiddenSetupSections,
     addAnnouncement,
     updateAnnouncement,
     deleteAnnouncement,
@@ -158,7 +157,6 @@ export default function CompetitionDashboard({
     deleteRule,
     addPrize,
     updatePrize,
-    deletePrize,
     assignHost,
     removeHost,
     addCoHost,
@@ -682,12 +680,10 @@ export default function CompetitionDashboard({
   // MAIN RENDER
   // ============================================================================
 
-  // SetupTab backs two tabs: "Setup" (core config) and "Engagement"
-  // (participation tools — events, double-vote days, bonus votes). Same
-  // component, same handlers; `mode` decides which sections it shows.
-  const renderSetupTab = (mode) => (
+  // The "Setup" tab — core competition config. Participation tools live on the
+  // separate Engagement tab (see EngagementTab below).
+  const renderSetupTab = () => (
     <SetupTab
-      mode={mode}
       competition={competition}
       focusSection={setupFocus}
       host={data.host}
@@ -695,19 +691,13 @@ export default function CompetitionDashboard({
       canManageHosts={isSuperAdmin || role === 'host'}
       onShowHostAssignment={() => setShowHostAssignment(true)}
       onShowAddCoHost={() => setShowAddCoHost(true)}
-      onRemoveHost={removeHost}
       onRemoveCoHost={removeCoHost}
       judges={data.judges}
       onOpenJudgeModal={(judge) => setJudgeModal({ isOpen: true, judge })}
       onDeleteJudge={deleteJudge}
       onSendJudgeInvite={sendJudgeInvite}
       judgingCriteria={data.judgingCriteria}
-      judgeScores={data.judgeScores}
-      contestants={data.contestants}
       sponsors={data.sponsors}
-      events={data.events}
-      prizes={data.prizes}
-      doubleDays={data.doubleDays}
       isSuperAdmin={isSuperAdmin}
       onRefresh={refresh}
       onAddCriterion={addCriterion}
@@ -715,16 +705,25 @@ export default function CompetitionDashboard({
       onDeleteCriterion={deleteCriterion}
       onUpdateRoundJudgeWeight={updateRoundJudgeWeight}
       onDeleteSponsor={deleteSponsor}
+      onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
+      onOpenCharityModal={() => setCharityModal(true)}
+    />
+  );
+
+  // The "Engagement" tab — participation-driving tools (events, double-vote
+  // days, bonus votes, video prompts). Each section loads its own data.
+  const renderEngagementTab = () => (
+    <EngagementTab
+      competition={competition}
+      focusSection={setupFocus}
+      events={data.events}
+      doubleDays={data.doubleDays}
+      onRefresh={refresh}
       onDeleteEvent={deleteEvent}
-      onDeletePrize={deletePrize}
+      onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
       onAddDoubleDay={addDoubleDay}
       onDeleteDoubleDay={deleteDoubleDay}
       onUpdateTimezone={updateCompetitionTimezone}
-      onUpdateHiddenSections={updateHiddenSetupSections}
-      onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
-      onOpenEventModal={(event) => setEventModal({ isOpen: true, event })}
-      onOpenPrizeModal={(prize, prizeType) => setPrizeModal({ isOpen: true, prize, prizeType: prize?.prizeType || prizeType || 'winner' })}
-      onOpenCharityModal={() => setCharityModal(true)}
     />
   );
 
@@ -900,9 +899,9 @@ export default function CompetitionDashboard({
           </>
         );
       case 'setup':
-        return renderSetupTab('setup');
+        return renderSetupTab();
       case 'engagement':
-        return renderSetupTab('engagement');
+        return renderEngagementTab();
       default:
         return null;
     }
