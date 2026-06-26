@@ -55,11 +55,11 @@
  *      the contest-of-skill framing in ContestTermsPage must be reconciled.
  *
  * 2. PURE VOTE-BASED competitions (selection_criteria === 'votes', no judging).
- *    Currently inactive — pure public-vote competitions were removed from
- *    creation (judges now decide ≥60%; see issue #588) — but will return. The
- *    `else` branch of "How Winners Are Chosen" plus the Voting section already
- *    ARE the rules for that style; keep them accurate and exercised so the
- *    document is correct the moment pure-vote competitions are re-enabled.
+ *    A first-class, supported style: winners decided entirely by public vote —
+ *    the model magazine "cover" competitions use (e.g. Inked). The `else`
+ *    branch of "How Winners Are Chosen" plus the Voting section ARE the rules
+ *    for this style; keep them accurate so the document is correct for every
+ *    pure-vote competition.
  * ───────────────────────────────────────────────────────────────────────────
  */
 
@@ -314,9 +314,9 @@ export function buildOfficialRules(competition, context = {}) {
   } else if (isBlended) {
     selection = 'Winners are determined through a combination of public votes and a panel of judges. In most rounds, the contestants with the most public votes advance; in the judged round(s), judges’ scores are blended with public votes as described in the Judging section below. The Host’s final tally is final and binding.';
   } else {
-    // Pure vote-based style: inactive today (pure public-vote creation was
-    // removed, see #588) but will return — this branch is its rules. Keep it
-    // accurate so the document is correct the moment it's re-enabled.
+    // Pure vote-based style — a supported style: winners decided entirely by
+    // public vote, as magazine "cover" competitions (e.g. Inked) do. This
+    // branch is its rules; keep it accurate.
     selection = 'Winners are determined by public vote — the contestants with the most votes advance through each round and ultimately win. The Host’s final tally is final and binding.';
   }
   let winnersLine = ` This Competition crowns ${numberOfWinners === 1 ? 'one winner' : `${numberOfWinners} winners`}.`;
