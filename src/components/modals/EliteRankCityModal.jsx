@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   X, Crown, MapPin, Calendar, Trophy, Clock, ChevronRight, Sparkles, Users,
   Activity, Info, Briefcase, User, Megaphone, Award, Building, Heart,
-  Home, Search, Bell, Menu, ArrowRight, Play, ExternalLink
+  Home, Search, Bell, Menu, ArrowRight, Play, ExternalLink, Plus
 } from 'lucide-react';
 import { Button, Badge, OrganizationLogo, ProfileIcon, NotificationBell, EliteRankCrown, CrownIcon } from '../ui';
 import { useAppSettings } from '../../hooks';
@@ -57,6 +57,7 @@ export default function EliteRankCityModal({
   onAccountSettings,
   onHowToCompete,
   onLaunchCompetition,
+  onCreateCompetition,
   isAuthenticated = false,
   userRole = 'fan',
   userName,
@@ -1585,6 +1586,22 @@ export default function EliteRankCityModal({
 
           {/* Auth Actions */}
           <div style={{ ...styleHelpers.flexStart, gap: spacing.sm }}>
+            {/* Create Competition CTA — takes the visitor straight to the
+                configuration wizard. Unauthenticated users get bounced through
+                login/signup first (ProtectedRoute → returnTo) and land back on
+                the wizard. */}
+            {onCreateCompetition && (
+              <Button
+                variant="primary"
+                size="sm"
+                icon={Plus}
+                iconOnly={isMobile}
+                onClick={onCreateCompetition}
+                aria-label="Create a competition"
+              >
+                Create Competition
+              </Button>
+            )}
             {isAuthenticated && (
               <NotificationBell size={isMobile ? 36 : 40} />
             )}

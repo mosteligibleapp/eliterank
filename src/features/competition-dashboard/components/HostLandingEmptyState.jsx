@@ -29,7 +29,7 @@ const WHAT_IT_TAKES = [
 ];
 
 const WONT_GO_LIVE_UNTIL = [
-  'You approve the competition',
+  'The EliteRank team approves your competition',
   'Your Stripe identity verification (KYC) is approved',
   'You’ve signed the Host Agreement',
 ];
