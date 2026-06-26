@@ -8,7 +8,10 @@ import { getTimezoneOptionGroups } from '../../../../../lib/timezones';
 import EventsSection from './EventsSection';
 import DoubleVoteDaysSection from './DoubleVoteDaysSection';
 import BonusVotesSection from './BonusVotesSection';
-import VideoPromptsSection from './VideoPromptsSection';
+// VideoPromptsSection intentionally retired for v1 — the single "intro video"
+// bonus task covers this (submit → host approval → bonus votes + public play
+// badge on the profile). The standalone, multi-prompt Video Prompts feature is
+// hidden; its lib/tables remain dormant pending a cleanup migration.
 
 /**
  * EngagementTab — the dashboard's "Engagement" tab: participation-driving tools
@@ -105,13 +108,6 @@ export default function EngagementTab({
         reviewerId={reviewerId}
         toast={toast}
         onRefresh={onRefresh}
-      />
-
-      <VideoPromptsSection
-        competitionId={competitionId}
-        isMobile={isMobile}
-        defaultCollapsed={isHidden('videoPrompts')}
-        reviewerId={reviewerId}
       />
     </div>
   );

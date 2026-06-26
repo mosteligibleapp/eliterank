@@ -4,11 +4,11 @@ import { getContestantCompetitions, getNominationsForUser } from '../../../lib/c
 import { useBonusVotes } from '../../../hooks/useBonusVotes';
 import { useAuthContextSafe } from '../../../contexts/AuthContext';
 import BonusVotesChecklist from '../../../components/BonusVotesChecklist';
-import VideoPromptsChecklist from '../../../components/VideoPromptsChecklist';
+import IntroVideoManager from './IntroVideoManager';
 import SubmitProofModal from '../../../components/modals/SubmitProofModal';
 import SubmitVideoProofModal from '../../../components/modals/SubmitVideoProofModal';
 import { useToast } from '../../../contexts/ToastContext';
-import { BONUS_TASK_KEYS, loadNomineeBonusActions, saveNomineeBonusAction, awardNomineeActionBonuses } from '../../../lib/bonusVotes';
+import { BONUS_TASK_KEYS, loadNomineeBonusActions, saveNomineeBonusAction, awardNomineeActionBonuses, removeIntroVideo } from '../../../lib/bonusVotes';
 import { spacing, typography, colors, borderRadius } from '../../../styles/theme';
 
 const ContestantGuide = lazy(() => import('../../../features/contestant-guide/ContestantGuide'));
@@ -36,6 +36,7 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
   const [showGuide, setShowGuide] = useState(false);
   const [proofTask, setProofTask] = useState(null);
   const [videoTask, setVideoTask] = useState(null);
+  const [introBusy, setIntroBusy] = useState(false);
   const dismissKey = `bonus_dismissed_${contestantId}`;
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem(dismissKey) === 'true'; } catch { return false; }
@@ -46,8 +47,14 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
     completedCount, totalCount,
     totalBonusVotesEarned, totalBonusVotesAvailable,
     progress, allCompleted,
-    checkProfile, awardTask, submitProof, markHowToWinViewed, markProfileShared,
+    checkProfile, awardTask, submitProof, markHowToWinViewed, markProfileShared, refetch,
   } = useBonusVotes(competitionId, contestantId, userId);
+
+  // The intro-video bonus task, once approved, leaves the checklist (completed
+  // tasks are filtered out). IntroVideoManager below is its home for
+  // replace/remove afterward.
+  const introTask = tasks.find(t => t.task_key === BONUS_TASK_KEYS.INTRO_VIDEO);
+  const showIntroManager = !!introTask?.completed;
 
   // Report bonus votes to parent
   useEffect(() => {
@@ -114,6 +121,31 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
     }
   };
 
+  // Remove the contestant's intro video (keeps earned votes). Used directly by
+  // "Remove" and as the first step of "Replace" (clears the approved
+  // submission so a new one can be uploaded).
+  const removeIntroVideoAction = async () => {
+    setIntroBusy(true);
+    const result = await removeIntroVideo(competitionId, contestantId, userId);
+    setIntroBusy(false);
+    if (!result?.success) {
+      toast?.error?.(result?.error || 'Could not remove your intro video.');
+      return false;
+    }
+    await refetch();
+    return true;
+  };
+
+  const handleRemoveIntro = async () => {
+    const ok = await removeIntroVideoAction();
+    if (ok) toast?.info?.('Intro video removed. You can record a new one anytime.');
+  };
+
+  const handleReplaceIntro = async () => {
+    const ok = await removeIntroVideoAction();
+    if (ok) setVideoTask(introTask);
+  };
+
   const handleTaskAction = async (taskKey, task) => {
     if (task?.task_key === BONUS_TASK_KEYS.INTRO_VIDEO) {
       setVideoTask(task);
@@ -158,23 +190,22 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
     }
   };
 
-  if (loading || tasks.length === 0) {
-    // Still show video prompts even when no bonus tasks
-    return (
-      <div style={{ marginBottom: spacing.xl }}>
-        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
-      </div>
-    );
-  }
+  if (loading) return null;
 
-  // All tasks complete - just show video prompts
-  if (allCompleted) {
-    return (
-      <div style={{ marginBottom: spacing.xl }}>
-        <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
-      </div>
-    );
-  }
+  const introManager = showIntroManager ? (
+    <IntroVideoManager
+      task={introTask}
+      busy={introBusy}
+      onReplace={handleReplaceIntro}
+      onRemove={handleRemoveIntro}
+      onAdd={() => setVideoTask(introTask)}
+    />
+  ) : null;
+
+  // Nothing to show: no tasks to complete and no intro video to manage.
+  if (tasks.length === 0 && !introManager) return null;
+  // Everything done and no intro video earned — render nothing.
+  if (allCompleted && !introManager) return null;
 
   return (
     <>
@@ -189,21 +220,22 @@ function CompetitionBonusVotes({ competitionId, contestantId, userId, userEmail,
             {competitionName}
           </p>
         )}
-        <BonusVotesChecklist
-          tasks={tasks}
-          loading={loading}
-          awarding={awarding}
-          completedCount={completedCount}
-          totalCount={totalCount}
-          totalBonusVotesEarned={totalBonusVotesEarned}
-          totalBonusVotesAvailable={totalBonusVotesAvailable}
-          progress={progress}
-          allCompleted={allCompleted}
-          onTaskAction={handleTaskAction}
-          collapsible
-        >
-          <VideoPromptsChecklist competitionId={competitionId} contestantId={contestantId} userId={userId}  />
-        </BonusVotesChecklist>
+        {!allCompleted && tasks.length > 0 && (
+          <BonusVotesChecklist
+            tasks={tasks}
+            loading={loading}
+            awarding={awarding}
+            completedCount={completedCount}
+            totalCount={totalCount}
+            totalBonusVotesEarned={totalBonusVotesEarned}
+            totalBonusVotesAvailable={totalBonusVotesAvailable}
+            progress={progress}
+            allCompleted={allCompleted}
+            onTaskAction={handleTaskAction}
+            collapsible
+          />
+        )}
+        {introManager}
       </div>
       {showGuide && (
         <Suspense fallback={null}>
@@ -359,14 +391,8 @@ function NomineeBonusVotes({ competitionId, competitionName, profile, userId, us
     }
   };
 
-  // All tasks complete - just show video prompts
-  if (allCompleted) {
-    return (
-      <div style={{ marginBottom: spacing.xl }}>
-        <VideoPromptsChecklist  />
-      </div>
-    );
-  }
+  // All tasks complete — nothing more to show for a nominee.
+  if (allCompleted) return null;
 
   return (
     <>
@@ -391,9 +417,7 @@ function NomineeBonusVotes({ competitionId, competitionName, profile, userId, us
           allCompleted={allCompleted}
           onTaskAction={handleTaskAction}
           collapsible
-        >
-          <VideoPromptsChecklist  />
-        </BonusVotesChecklist>
+        />
       </div>
       {showGuide && (
         <Suspense fallback={null}>

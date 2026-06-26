@@ -329,6 +329,37 @@ export async function submitBonusProof(competitionId, contestantId, userId, task
   }
 }
 
+/**
+ * Remove a contestant's approved intro video.
+ *
+ * Clears profiles.intro_video_url (so it stops showing publicly) and deletes
+ * the intro_video submission so the contestant can record a new one. The
+ * earned bonus votes are kept (the completion row is preserved server-side).
+ */
+export async function removeIntroVideo(competitionId, contestantId, userId) {
+  if (!supabase || !competitionId || !contestantId || !userId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('remove_intro_video', {
+      p_competition_id: competitionId,
+      p_contestant_id: contestantId,
+      p_user_id: userId,
+    });
+
+    if (error) {
+      console.error('Error removing intro video:', error);
+      return { success: false, error: error.message };
+    }
+
+    return data || { success: false, error: 'No response' };
+  } catch (err) {
+    console.error('Error removing intro video:', err);
+    return { success: false, error: 'Failed to remove intro video' };
+  }
+}
+
 // =============================================================================
 // Submission Review (Host)
 // =============================================================================
