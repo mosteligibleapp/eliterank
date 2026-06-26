@@ -136,10 +136,17 @@ export function buildOfficialRules(competition, context = {}) {
 
   // ── Pull config (tolerant of camelCase / snake_case) ─────────────────────
   const name = pick(c, 'name', 'name', 'This Competition');
-  const orgName =
+  // Prefer the registered legal entity name ("Acme Events LLC") for the Host
+  // attribution in this legal document; fall back to the display/brand name.
+  const orgLegal =
+    organization?.legal_entity_name ||
+    c.organization?.legal_entity_name ||
+    pick(c, 'legalEntityName', 'legal_entity_name', null);
+  const orgDisplay =
     organization?.name ||
     c.organization?.name ||
     pick(c, 'organizationName', 'organization_name', null);
+  const orgName = orgLegal || orgDisplay;
   const hostFirst = host?.first_name || c.host?.first_name || null;
   const hostLast = host?.last_name || c.host?.last_name || null;
   const hostPersonName = [hostFirst, hostLast].filter(Boolean).join(' ') || null;

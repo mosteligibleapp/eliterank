@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Image, Link, Upload, X, Check, Pencil, ExternalLink } from 'lucide-react';
+import { Image, Link, Upload, X, Check, Pencil, ExternalLink, FileText } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { Button, Panel } from '../../../../components/ui';
@@ -14,12 +14,13 @@ import { useToast } from '../../../../contexts/ToastContext';
  * @param {string} currentWebsiteUrl - Current website_url
  * @param {function} onSave - Callback when save completes
  */
-export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUrl, fallbackLogoUrl, currentWebsiteUrl, onSave }) {
+export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUrl, fallbackLogoUrl, currentWebsiteUrl, currentLegalEntityName, onSave }) {
   const toast = useToast();
   const fileInputRef = useRef(null);
 
   const [headerLogoUrl, setHeaderLogoUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [legalEntityName, setLegalEntityName] = useState('');
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,11 +35,13 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
   useEffect(() => {
     setHeaderLogoUrl(seededHeaderLogoUrl);
     setWebsiteUrl(currentWebsiteUrl || '');
-  }, [seededHeaderLogoUrl, currentWebsiteUrl]);
+    setLegalEntityName(currentLegalEntityName || '');
+  }, [seededHeaderLogoUrl, currentWebsiteUrl, currentLegalEntityName]);
 
   const hasChanges = () => {
     return headerLogoUrl !== (currentHeaderLogoUrl || '') ||
-           websiteUrl !== (currentWebsiteUrl || '');
+           websiteUrl !== (currentWebsiteUrl || '') ||
+           legalEntityName !== (currentLegalEntityName || '');
   };
 
   const handleLogoUpload = async (e) => {
@@ -81,6 +84,7 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
   const handleCancel = () => {
     setHeaderLogoUrl(seededHeaderLogoUrl);
     setWebsiteUrl(currentWebsiteUrl || '');
+    setLegalEntityName(currentLegalEntityName || '');
     setEditing(false);
   };
 
@@ -93,6 +97,7 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
         .update({
           header_logo_url: headerLogoUrl || null,
           website_url: websiteUrl.trim() || null,
+          legal_entity_name: legalEntityName.trim() || null,
         })
         .eq('id', organizationId);
 
@@ -329,6 +334,34 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
             </a>
           ) : (
             <p style={styles.readValue}>Not set</p>
+          )}
+        </div>
+
+        {/* Legal Entity Name */}
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>
+            <FileText size={14} />
+            Legal Entity Name
+          </label>
+          {editing ? (
+            <>
+              <p style={styles.hint}>
+                Your registered legal entity (e.g. "Acme Events LLC"). Shown as the
+                organizer on your competition's Official Rules. Leave blank to use
+                your organization name.
+              </p>
+              <input
+                type="text"
+                value={legalEntityName}
+                onChange={(e) => setLegalEntityName(e.target.value)}
+                placeholder="e.g. Acme Events LLC"
+                style={styles.input}
+              />
+            </>
+          ) : legalEntityName ? (
+            <p style={styles.readValue}>{legalEntityName}</p>
+          ) : (
+            <p style={styles.readValue}>Not set — your organization name is used</p>
           )}
         </div>
 
