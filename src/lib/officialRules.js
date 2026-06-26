@@ -33,6 +33,34 @@
  * Section numbers are assigned from array order at the end, so inserting or
  * omitting a conditional section (judging, voting, charity) can never desync
  * the numbering.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * FUTURE COMPETITION STYLES — rules work pending (noted, not yet built):
+ *
+ * 1. PURE-JUDGE competitions with a CONTESTANT ENTRY FEE (paid on acceptance).
+ *    Decided product direction: purely judge-based competitions will charge an
+ *    entry fee, paid by the contestant when their entry is accepted. NOT built
+ *    yet (no entry_fee field; `create-payment-intent` is vote-only). When it
+ *    ships, the "no cost to enter" assertions in THIS file (see the "How to
+ *    Enter" and "No Purchase Necessary" sections below) become FALSE for those
+ *    competitions and must be made conditional on the fee — the rules must
+ *    state the entry fee, when it is charged (on acceptance), and that it is
+ *    non-refundable / refundable per policy. The same hard-coded "no cost to
+ *    enter" line lives in `competitionRules.buildAutoRules`.
+ *      ⚠️ Lottery analysis (issue #531) MUST be redone first: a contestant
+ *      entry fee introduces "consideration." Pure-judge = judges' weight 100%,
+ *      which lands in the SAFE "skill-dominant contest of skill" quadrant of
+ *      #531's matrix (paid entry + judges ≥ 50%), but it must be gated so a
+ *      paid-entry competition can never launch with judges' weight < 50%, and
+ *      the contest-of-skill framing in ContestTermsPage must be reconciled.
+ *
+ * 2. PURE VOTE-BASED competitions (selection_criteria === 'votes', no judging).
+ *    Currently inactive — pure public-vote competitions were removed from
+ *    creation (judges now decide ≥60%; see issue #588) — but will return. The
+ *    `else` branch of "How Winners Are Chosen" plus the Voting section already
+ *    ARE the rules for that style; keep them accurate and exercised so the
+ *    document is correct the moment pure-vote competitions are re-enabled.
+ * ───────────────────────────────────────────────────────────────────────────
  */
 
 const GENDER = {
@@ -175,6 +203,10 @@ export function buildOfficialRules(competition, context = {}) {
   });
 
   // ── No Purchase Necessary ────────────────────────────────────────────────
+  // NOTE: the "no cost to enter as a contestant" line below assumes free entry.
+  // When the pure-judge entry fee ships (see header note + #531), this section
+  // must reflect that contestants pay a fee on acceptance — while voters still
+  // never pay to participate or win.
   sections.push({
     id: 'no-purchase',
     title: 'No Purchase Necessary',
@@ -230,6 +262,10 @@ export function buildOfficialRules(competition, context = {}) {
   } else {
     entry = 'Entry is by nomination: anyone can nominate an eligible person, and prospective contestants can also nominate themselves. A nominee confirms the nomination, completes the required profile information, and agrees to these Official Rules to become a contestant.';
   }
+  // NOTE: "There is no cost to enter" is hard-coded true today. Pure-judge
+  // competitions will charge a contestant entry fee (paid on acceptance) once
+  // that ships — at which point this must become conditional and state the fee.
+  // See the FUTURE COMPETITION STYLES note in this file's header + issue #531.
   sections.push({
     id: 'how-to-enter',
     title: 'How to Enter',
@@ -278,6 +314,9 @@ export function buildOfficialRules(competition, context = {}) {
   } else if (isBlended) {
     selection = 'Winners are determined through a combination of public votes and a panel of judges. In most rounds, the contestants with the most public votes advance; in the judged round(s), judges’ scores are blended with public votes as described in the Judging section below. The Host’s final tally is final and binding.';
   } else {
+    // Pure vote-based style: inactive today (pure public-vote creation was
+    // removed, see #588) but will return — this branch is its rules. Keep it
+    // accurate so the document is correct the moment it's re-enabled.
     selection = 'Winners are determined by public vote — the contestants with the most votes advance through each round and ultimately win. The Host’s final tally is final and binding.';
   }
   let winnersLine = ` This Competition crowns ${numberOfWinners === 1 ? 'one winner' : `${numberOfWinners} winners`}.`;

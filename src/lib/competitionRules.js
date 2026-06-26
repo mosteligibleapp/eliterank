@@ -98,6 +98,10 @@ export function buildAutoRules(competition) {
   } else {
     entry = 'Entry is by nomination: anyone can nominate an eligible person, and prospective contestants can also nominate themselves. Nominees confirm and complete a profile to join the competition.';
   }
+  // NOTE: hard-coded free entry. Pure-judge competitions will charge a
+  // contestant entry fee (paid on acceptance) once that ships — make this
+  // conditional then. See the FUTURE COMPETITION STYLES note in
+  // `src/lib/officialRules.js` and issue #531 (lottery analysis must be redone).
   entry += ' There is no cost to enter.';
   sections.push({ title: 'How to enter', content: entry });
 
