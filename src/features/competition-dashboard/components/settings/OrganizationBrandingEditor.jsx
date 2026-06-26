@@ -157,10 +157,10 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
     },
     hint: {
       fontSize: typography.fontSize.xs,
-      color: colors.text.muted,
+      color: colors.text.secondary,
     },
     uploadZone: {
-      border: `2px dashed ${colors.border.light}`,
+      border: `2px dashed ${colors.border.primary}`,
       borderRadius: borderRadius.lg,
       padding: spacing.xl,
       display: 'flex',
@@ -179,7 +179,7 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      border: `1px solid ${colors.border.lighter}`,
+      border: `1px solid ${colors.border.primary}`,
     },
     previewImage: {
       maxWidth: '280px',
@@ -193,9 +193,9 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
       width: '28px',
       height: '28px',
       borderRadius: '50%',
-      background: 'rgba(239,68,68,0.15)',
-      border: '1px solid rgba(239,68,68,0.3)',
-      color: '#ef4444',
+      background: colors.status.errorMuted,
+      border: `1px solid ${colors.status.errorMuted}`,
+      color: colors.status.error,
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
@@ -205,7 +205,7 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
       width: '100%',
       padding: `${spacing.sm} ${spacing.md}`,
       background: colors.background.secondary,
-      border: `1px solid ${colors.border.lighter}`,
+      border: `1px solid ${colors.border.primary}`,
       borderRadius: borderRadius.md,
       color: colors.text.primary,
       fontSize: typography.fontSize.base,
@@ -235,7 +235,7 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
     },
     readValue: {
       margin: 0,
-      color: colors.text.muted,
+      color: colors.text.secondary,
       fontSize: typography.fontSize.sm,
     },
     readLink: {

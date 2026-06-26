@@ -3269,7 +3269,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  min-height: 40px;
+  min-height: 44px;
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
@@ -5228,7 +5228,7 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   margin: var(--spacing-2xl) auto 0;
   padding: var(--spacing-xl) var(--spacing-lg)
     calc(var(--spacing-2xl) + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-border);
 }
 
 .competition-footer-items {

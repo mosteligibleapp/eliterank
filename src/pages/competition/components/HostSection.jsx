@@ -3,19 +3,43 @@ import { User, MapPin, Globe, Instagram, Facebook, Music2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { transformSupabaseImage } from '../../../lib/storageImage';
 
-// Turn a stored handle or partial URL into a full link.
+// Turn a stored handle or partial URL into a full, safe https link.
+// Handles all the ways a host might enter it: "@handle", "handle",
+// "instagram.com/handle", "www.instagram.com/handle", or a full URL — without
+// producing doubled domains, and rejecting non-web schemes (javascript:, etc).
+const SOCIAL_DOMAINS = {
+  instagram: 'instagram.com',
+  tiktok: 'tiktok.com',
+  facebook: 'facebook.com',
+};
+
 function normalizeSocialUrl(value, kind) {
   if (!value) return null;
   const v = String(value).trim();
   if (!v) return null;
+  // Already a full URL — pass through only http(s).
   if (/^https?:\/\//i.test(v)) return v;
+  // Block any other explicit scheme (javascript:, data:, mailto:, …).
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return null;
+
+  const lower = v.toLowerCase();
+  const domain = SOCIAL_DOMAINS[kind];
+  // Looks like a URL/domain/path already (website, a path, or the platform's
+  // own domain) → just ensure an https scheme, don't prepend the platform host.
+  const looksLikeUrl =
+    kind === 'website' ||
+    v.includes('/') ||
+    lower.includes('fb.com') ||
+    (domain && lower.includes(domain));
+  if (looksLikeUrl) return `https://${v.replace(/^\/+/, '')}`;
+
+  // Otherwise it's a bare handle → build the platform profile URL.
   const handle = v.replace(/^@/, '');
   switch (kind) {
-    case 'website': return `https://${v.replace(/^\/+/, '')}`;
     case 'instagram': return `https://instagram.com/${handle}`;
     case 'tiktok': return `https://tiktok.com/@${handle}`;
     case 'facebook': return `https://facebook.com/${handle}`;
-    default: return v;
+    default: return `https://${handle}`;
   }
 }
 

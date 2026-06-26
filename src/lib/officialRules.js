@@ -42,7 +42,7 @@
  *    entry fee, paid by the contestant when their entry is accepted. NOT built
  *    yet (no entry_fee field; `create-payment-intent` is vote-only). When it
  *    ships, the "no cost to enter" assertions in THIS file (see the "How to
- *    Enter" and "No Purchase Necessary" sections below) become FALSE for those
+ *    Enter" and "Free to Enter; Paid Votes Optional" sections below) become FALSE for those
  *    competitions and must be made conditional on the fee — the rules must
  *    state the entry fee, when it is charged (on acceptance), and that it is
  *    non-refundable / refundable per policy. The same hard-coded "no cost to
@@ -108,6 +108,14 @@ function formatMoney(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return null;
   return `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}
+
+// Vote prices are often sub-dollar, so they need cents — formatMoney would
+// round $0.40 to "$0". Keep two decimals.
+function formatVotePrice(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return `$${n.toFixed(2)}`;
 }
 
 function roundLabel(r, fallbackIndex) {
@@ -227,7 +235,7 @@ export function buildOfficialRules(competition, context = {}) {
   // never pay to participate or win.
   sections.push({
     id: 'no-purchase',
-    title: 'No Purchase Necessary',
+    title: 'Free to Enter; Paid Votes Optional',
     blocks: [
       {
         kind: 'p',
@@ -328,14 +336,14 @@ export function buildOfficialRules(competition, context = {}) {
   // ── How Winners Are Chosen ───────────────────────────────────────────────
   let selection;
   if (isJudgesOnly) {
-    selection = 'Winners are selected by a panel of judges, who score each contestant against the published judging criteria. Judges’ scores and the Host’s final tally are final and binding.';
+    selection = 'Winners are selected by a panel of judges, who score each contestant against the published judging criteria. Judges’ scores and the Host’s final tally are final and binding, except where applicable law provides otherwise.';
   } else if (isBlended) {
-    selection = 'Winners are determined through a combination of public votes and a panel of judges. In most rounds, the contestants with the most public votes advance; in the judged round(s), judges’ scores are blended with public votes as described in the Judging section below. The Host’s final tally is final and binding.';
+    selection = 'Winners are determined through a combination of public votes and a panel of judges. In most rounds, the contestants with the most public votes advance; in the judged round(s), judges’ scores are blended with public votes as described in the Judging section below. The Host’s final tally is final and binding, except where applicable law provides otherwise.';
   } else {
     // Pure vote-based style — a supported style: winners decided entirely by
     // public vote, as magazine "cover" competitions (e.g. Inked) do. This
     // branch is its rules; keep it accurate.
-    selection = 'Winners are determined by public vote — the contestants with the most votes advance through each round and ultimately win. The Host’s final tally is final and binding.';
+    selection = 'Winners are determined by public vote — the contestants with the most votes advance through each round and ultimately win. The Host’s final tally is final and binding, except where applicable law provides otherwise.';
   }
   let winnersLine = ` This Competition crowns ${numberOfWinners === 1 ? 'one winner' : `${numberOfWinners} winners`}.`;
   if (splitByGender) winnersLine += ' Winners are determined separately for men and women.';
@@ -359,7 +367,7 @@ export function buildOfficialRules(competition, context = {}) {
         : 'Judging is performed by the panel of qualified judges shown on the competition page';
     judgingBlocks.push({
       kind: 'p',
-      text: `${panelText}, who evaluate contestants against the criteria below. The Host selects judges qualified to assess contestants and may update the panel; the competition page always shows the current judges. Judges’ decisions are final and binding.`,
+      text: `${panelText}, who evaluate contestants against the criteria below. The Host selects judges qualified to assess contestants and may update the panel; the competition page always shows the current judges. Judges’ decisions are final and binding, except where applicable law provides otherwise.`,
     });
 
     // When judging takes place and how it is weighted, per judged round.
@@ -415,7 +423,7 @@ export function buildOfficialRules(competition, context = {}) {
 
   // ── Voting (only when the public actually votes) ─────────────────────────
   if (publicVotes) {
-    const priceTxt = formatMoney(pricePerVote);
+    const priceTxt = formatVotePrice(pricePerVote);
 
     // Presence-only detection: describe the mechanic when the competition uses
     // it, but don't list the specific tasks/dates (they change and live on the
@@ -428,7 +436,7 @@ export function buildOfficialRules(competition, context = {}) {
         kind: 'p',
         text: `Anyone eligible may vote on the public competition page. Free votes are available to everyone${
           priceTxt
-            ? `, and additional votes may be purchased (from ${priceTxt} per vote) to show extra support`
+            ? `, and additional votes may be purchased (starting at ${priceTxt} per vote, with lower per-vote pricing on larger vote packs) to show extra support`
             : ', and additional votes may be purchased to show extra support'
         }. Voting opens and closes on the dates shown on the competition timeline; votes recorded after a round closes do not count.`,
       },
@@ -486,7 +494,7 @@ export function buildOfficialRules(competition, context = {}) {
     })
     .filter(Boolean);
 
-  const poolValue = prizePool ? formatMoney(prizePool.total || prizePool.minimum) : null;
+  const poolValue = prizePool ? formatMoney(prizePool.totalPrizePool ?? prizePool.hostMinimum) : null;
   const cashLine = poolValue
     ? `A cash prize pool (currently ${poolValue}), as shown on the competition’s Prizes page.`
     : null;
@@ -521,7 +529,7 @@ export function buildOfficialRules(competition, context = {}) {
     const toWhom = charityName || 'the designated charity partner';
     // The donation comes from the Host's net — the vote revenue the Host
     // receives after EliteRank's fees — and the Host (not EliteRank) makes it.
-    const baseDesc = 'the Host’s net proceeds from purchased votes (the amount the Host receives after EliteRank’s fees)';
+    const baseDesc = 'the Host’s net proceeds from purchased votes (the vote revenue the Host receives after EliteRank’s platform and payment-processing fees)';
     const shareTxt = charityPct ? `${charityPct}% of ${baseDesc}` : `a portion of ${baseDesc}`;
     sections.push({
       id: 'charity',
@@ -547,6 +555,10 @@ export function buildOfficialRules(competition, context = {}) {
       {
         kind: 'p',
         text: 'All potential winners are subject to verification of eligibility and compliance with these Official Rules. A potential winner may be required to sign an Affidavit of Eligibility, Liability Release, and (where lawful) Publicity Release, and to provide tax forms before a prize is released. A potential winner who cannot be verified, does not respond to a winner notification within five (5) days, declines the prize, or is found to have violated these Official Rules may be disqualified and an alternate winner selected.',
+      },
+      {
+        kind: 'p',
+        text: 'Winner verification, prize fulfillment, and any tax reporting for the Competition are the Host’s responsibility. EliteRank operates the competition platform and does not perform these steps or guarantee the Host’s compliance.',
       },
     ],
   });
@@ -606,7 +618,7 @@ export function buildOfficialRules(competition, context = {}) {
     blocks: [
       {
         kind: 'p',
-        text: 'These Official Rules are governed by the laws of the State of Illinois, without regard to conflict-of-laws principles, and any dispute is subject to the jurisdiction of the state and federal courts located in Cook County, Illinois.',
+        text: 'These Official Rules are governed by the laws of the State of Illinois, without regard to conflict-of-laws principles, and any dispute is subject to the jurisdiction of the state and federal courts located in Cook County, Illinois. Any claim arising out of or relating to the Competition must be brought within one (1) year after it arose, or be permanently barred. The Competition is void where prohibited or restricted by law.',
       },
     ],
   });
@@ -643,6 +655,10 @@ export function buildOfficialRules(competition, context = {}) {
       {
         kind: 'p',
         text: 'These Official Rules, together with the platform-wide Contest Terms & Conditions, Terms of Use, Privacy Policy, and Cookie Policy, are the complete agreement between you and the Promotion Entities concerning the Competition and supersede any prior understanding.',
+      },
+      {
+        kind: 'p',
+        text: 'If any provision of these Official Rules is held invalid or unenforceable, that provision will be limited or removed to the minimum extent necessary, and the remaining provisions will remain in full force and effect.',
       },
       { kind: 'policyLinks' },
     ],

@@ -178,7 +178,9 @@ function PolicyLinks({ onNavigate }) {
           onClick={() => onNavigate(p.path)}
           style={styles.policyLink}
           onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+          onFocus={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
           onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+          onBlur={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
         >
           {p.label}
         </button>
@@ -233,6 +235,8 @@ export function OfficialRulesView() {
   const {
     competition,
     organization,
+    orgSlug,
+    competitionSlug,
     prizes,
     prizePool,
     judges,
@@ -242,6 +246,15 @@ export function OfficialRulesView() {
     votingRounds,
     nominationPeriods,
   } = usePublicCompetition();
+
+  // Deterministic "back to competition" target — the rules page is deep-linkable
+  // (footer link, shared URL), so navigate(-1) could leave the site entirely.
+  const basePath = competitionSlug
+    ? `/${orgSlug}/${competitionSlug}`
+    : competition?.id
+      ? `/${orgSlug}/id/${competition.id}`
+      : null;
+  const handleBack = () => (basePath ? navigate(basePath) : navigate(-1));
 
   const { sections } = buildOfficialRules(competition, {
     organization,
@@ -266,10 +279,12 @@ export function OfficialRulesView() {
       <div style={styles.container}>
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={handleBack}
           style={styles.backLink}
           onMouseEnter={(e) => { e.currentTarget.style.color = colors.gold.primary; }}
+          onFocus={(e) => { e.currentTarget.style.color = colors.gold.primary; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = colors.text.secondary; }}
+          onBlur={(e) => { e.currentTarget.style.color = colors.text.secondary; }}
         >
           <ArrowLeft size={16} />
           Back to competition
@@ -293,7 +308,9 @@ export function OfficialRulesView() {
                   onClick={() => scrollTo(s.id)}
                   style={styles.tocLink}
                   onMouseEnter={(e) => { e.currentTarget.style.color = colors.gold.primary; }}
+                  onFocus={(e) => { e.currentTarget.style.color = colors.gold.primary; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = colors.text.secondary; }}
+                  onBlur={(e) => { e.currentTarget.style.color = colors.text.secondary; }}
                 >
                   {s.title}
                 </button>
