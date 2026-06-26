@@ -362,14 +362,32 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     prizePoolPoints.push({
       text: `1st place receives a cash prize (min $${configuredMinimum.toLocaleString()})`,
       subpoints: [
-        'Paid votes are available but not required to advance.',
+        // Paid votes only exist when the public votes.
+        ...(isJudgesOnly ? [] : ['Paid votes are available but not required to advance.']),
         'Winner may keep the prize or donate to a verified 501(c)(3) of their choice',
       ],
     });
   }
 
+  // Tips are audience-specific: a judges-only competition has no voters to
+  // rally, so the vote-centric tips would mislead.
+  const tipsPoints = isJudgesOnly
+    ? [
+        'Complete your profile with a great photo and bio — the judges review it',
+        'Showcase the qualities the judges are scoring',
+        'Be active and keep your profile current',
+        'Tell your story clearly and authentically',
+      ]
+    : [
+        'Complete your profile with a great photo and bio',
+        'Be active — post updates, engage with voters',
+        'Create a sense of urgency near round deadlines',
+        "Thank your voters publicly — they'll keep coming back",
+        'Watch the leaderboard and push harder when you need to',
+      ];
+
   const sections = [
-    // Section 1: How It Works
+    // How It Works
     {
       icon: <Trophy size={48} className="guide-icon guide-icon--gold" />,
       title: 'How It Works',
@@ -380,55 +398,55 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
         : 'The more votes you get, the higher you rank!',
     },
 
-    // Section 2: Voting
-    {
-      icon: <Vote size={48} className="guide-icon guide-icon--pink" />,
-      title: 'Voting',
-      subtitle: 'Understanding votes is key to winning',
-      points: [
-        'Fans can vote once daily for free, or purchase additional votes',
-        'Free votes reset at midnight (local time)',
-        `Additional votes can be purchased ($${pricePerVote.toFixed(2)} each)`,
-        'Paid votes count immediately and never expire',
-        votesAccumulate
-          ? 'Your vote total carries over between rounds'
-          : 'Vote counts reset to zero at the start of each new round',
-        'Keep an eye out for surprise Double Vote Days — when they hit, every vote counts twice',
-      ],
-      tip: 'Remind your supporters to vote daily — those free votes add up fast!',
-    },
+    // Voting + How to Get Votes — only when the public actually votes. A
+    // purely judge-based competition has no public voting, so these are dropped
+    // entirely (mirroring how the Official Rules omit the Voting section).
+    ...(isJudgesOnly
+      ? []
+      : [
+          {
+            icon: <Vote size={48} className="guide-icon guide-icon--pink" />,
+            title: 'Voting',
+            subtitle: 'Understanding votes is key to winning',
+            points: [
+              'Fans can vote once daily for free, or purchase additional votes',
+              'Free votes reset at midnight (local time)',
+              `Additional votes can be purchased ($${pricePerVote.toFixed(2)} each)`,
+              'Paid votes count immediately and never expire',
+              votesAccumulate
+                ? 'Your vote total carries over between rounds'
+                : 'Vote counts reset to zero at the start of each new round',
+              'Keep an eye out for surprise Double Vote Days — when they hit, every vote counts twice',
+            ],
+            tip: 'Remind your supporters to vote daily — those free votes add up fast!',
+          },
+          {
+            icon: <Share2 size={48} className="guide-icon guide-icon--blue" />,
+            title: 'How to Get Votes',
+            subtitle: 'Rally your network to climb the leaderboard',
+            points: [
+              'Share your profile link on social media (Instagram, TikTok, etc.)',
+              'Ask friends and family to vote daily',
+              'Post stories and remind people when voting rounds start',
+              'Engage with the community — voters support active contestants',
+              'Use your shareable card to stand out',
+            ],
+            tip: 'Contestants who share consistently get 3-5x more votes on average!',
+          },
+        ]),
 
-    // Section 3: How to Get Votes
-    {
-      icon: <Share2 size={48} className="guide-icon guide-icon--blue" />,
-      title: 'How to Get Votes',
-      subtitle: 'Rally your network to climb the leaderboard',
-      points: [
-        'Share your profile link on social media (Instagram, TikTok, etc.)',
-        'Ask friends and family to vote daily',
-        'Post stories and remind people when voting rounds start',
-        'Engage with the community — voters support active contestants',
-        'Use your shareable card to stand out',
-      ],
-      tip: 'Contestants who share consistently get 3-5x more votes on average!',
-    },
-
-    // Section 4: Tips for Success
+    // Tips for Success
     {
       icon: <Star size={48} className="guide-icon guide-icon--purple" />,
       title: 'Tips for Success',
       subtitle: 'What winning contestants do differently',
-      points: [
-        'Complete your profile with a great photo and bio',
-        'Be active — post updates, engage with voters',
-        'Create a sense of urgency near round deadlines',
-        "Thank your voters publicly — they'll keep coming back",
-        'Watch the leaderboard and push harder when you need to',
-      ],
-      tip: "Don't wait until the last day — steady daily votes beat last-minute pushes!",
+      points: tipsPoints,
+      tip: isJudgesOnly
+        ? 'Put your best work forward — quality is everything to the judges.'
+        : "Don't wait until the last day — steady daily votes beat last-minute pushes!",
     },
 
-    // Section 5: Prize Pool
+    // Prize Pool
     {
       icon: <Gift size={48} className="guide-icon guide-icon--green" />,
       title: 'Prize Pool',
@@ -438,18 +456,23 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     },
   ];
 
-  // Quick facts for page mode
+  // Quick facts for page mode. Vote-specific facts are dropped for a purely
+  // judge-based competition (no public voting), and the goal reflects judging.
   const quickFacts = [
-    {
-      icon: <Clock size={20} />,
-      label: 'Free Votes',
-      value: '1/day per person',
-    },
-    {
-      icon: <Vote size={20} />,
-      label: 'Vote Price',
-      value: `$${pricePerVote.toFixed(2)}`,
-    },
+    ...(isJudgesOnly
+      ? []
+      : [
+          {
+            icon: <Clock size={20} />,
+            label: 'Free Votes',
+            value: '1/day per person',
+          },
+          {
+            icon: <Vote size={20} />,
+            label: 'Vote Price',
+            value: `$${pricePerVote.toFixed(2)}`,
+          },
+        ]),
     {
       icon: <TrendingUp size={20} />,
       label: 'Rounds',
@@ -470,7 +493,7 @@ function generateGuideContent({ competition, votingRounds = [], prizePool, about
     {
       icon: <Target size={20} />,
       label: 'Goal',
-      value: 'Get the most votes!',
+      value: isJudgesOnly ? 'Impress the judges!' : 'Get the most votes!',
     },
   ];
 
