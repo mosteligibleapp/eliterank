@@ -199,6 +199,10 @@ export function buildOfficialRules(competition, context = {}) {
         text: `These are the Official Rules for ${name} (the "Competition"), presented by ${hostName} (the "Host") and administered on the EliteRank platform, operated by Most Eligible LLC ("EliteRank," "we," "us"). By nominating, entering, voting, or otherwise participating in the Competition, you agree to these Official Rules and to the platform-wide Contest Terms & Conditions, Terms of Use, and Privacy Policy.`,
       },
       {
+        kind: 'p',
+        text: `${hostName} is the organizer responsible for the Competition — including selecting winners and awarding prizes. EliteRank provides the competition platform and processes payments; EliteRank is not the organizer of the Competition unless it is also named as the Host above.`,
+      },
+      {
         kind: 'callout',
         text: 'The Competition is a contest of skill. Winners are determined by the published criteria below — not by random drawing or chance.',
       },
@@ -642,7 +646,11 @@ export function buildOfficialRules(competition, context = {}) {
     id: 'contact',
     title: 'Contact',
     blocks: [
-      { kind: 'p', text: 'Questions about the Competition or these Official Rules?' },
+      {
+        kind: 'p',
+        text: `Questions about the Competition itself — entry, prizes, charity, judging, or results — are handled by the Host, ${hostName}, who is responsible for the Competition and can be reached through the competition page.`,
+      },
+      { kind: 'p', text: 'For questions about the EliteRank platform or these Official Rules, contact:' },
       { kind: 'contact' },
     ],
   });
