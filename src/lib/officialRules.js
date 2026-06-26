@@ -477,16 +477,17 @@ export function buildOfficialRules(competition, context = {}) {
   // when it isn't.
   if (charityName || charityPct) {
     const toWhom = charityName || 'the designated charity partner';
-    const shareTxt = charityPct
-      ? `${charityPct}% of net proceeds from purchased votes`
-      : 'A portion of net proceeds from purchased votes';
+    // The donation comes from the Host's net — the vote revenue the Host
+    // receives after EliteRank's fees — and the Host (not EliteRank) makes it.
+    const baseDesc = 'the Host’s net proceeds from purchased votes (the amount the Host receives after EliteRank’s fees)';
+    const shareTxt = charityPct ? `${charityPct}% of ${baseDesc}` : `a portion of ${baseDesc}`;
     sections.push({
       id: 'charity',
       title: 'Charity',
       blocks: [
         {
           kind: 'p',
-          text: `The Competition supports ${toWhom} as its charity partner. ${shareTxt} in the Competition will be donated to ${toWhom}. If the designated charity is unable or unwilling to accept the donation, the Host may donate the charity portion to an alternate charity of similar mission.`,
+          text: `The Competition supports ${toWhom} as its charity partner. The Host will donate ${shareTxt} to ${toWhom}. The donation is made by the Host — EliteRank operates the competition platform and processes payments but does not collect or make the donation. If the designated charity is unable or unwilling to accept the donation, the Host may donate the charity portion to an alternate charity of similar mission.`,
         },
         {
           kind: 'p',

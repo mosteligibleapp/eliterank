@@ -113,11 +113,15 @@ export function buildAutoRules(competition) {
     });
   }
 
-  // ── Charity (optional) ──────────────────────────────────────────────────
-  if (charityPct) {
+  // ── Charity (when the competition has a charity partner) ─────────────────
+  if (charityName || charityPct) {
+    const toWhom = charityName || 'the designated charity partner';
+    const share = charityPct
+      ? `${charityPct}% of the host's net proceeds from purchased votes (after EliteRank's fees)`
+      : "a portion of the host's net proceeds from purchased votes (after EliteRank's fees)";
     sections.push({
       title: 'Charity',
-      content: `${charityPct}% of net proceeds will be donated to ${charityName || 'the designated charity partner'}.`,
+      content: `The host will donate ${share} to ${toWhom}. Vote purchases are not tax-deductible for voters.`,
     });
   }
 
