@@ -337,7 +337,7 @@ const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLas
           </span>
         </label>
         <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-          Off (default): votes carry over and add up across rounds. On: surviving contestants restart at zero.
+          On (default): surviving contestants restart at zero each round. Off: votes carry over and add up across rounds.
         </p>
       </div>
     </div>
@@ -858,7 +858,8 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         contestants_advance: t.advance,
         start_date: start.toISOString(),
         end_date: end.toISOString(),
-        votes_reset_at_start: false,
+        // Default: each round starts fresh — surviving contestants restart at zero.
+        votes_reset_at_start: true,
         // Judging rides on the final voting round when winners are judge-decided
         // (judges 60% + votes 40%). Pure-vote competitions leave it at 0.
         judge_weight: isLast && usesJudges ? 60 : 0,

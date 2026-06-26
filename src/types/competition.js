@@ -427,7 +427,7 @@ export const DEFAULT_VOTING_ROUND = {
   end_date: null,
   contestants_advance: 10,
   tier_label: '',
-  votes_reset_at_start: false,
+  votes_reset_at_start: true,
 };
 
 export const DEFAULT_NOMINATION_PERIOD = {
