@@ -3251,6 +3251,42 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   text-transform: uppercase;
 }
 
+/* Host website + socials — sits directly beneath the sponsors card */
+.host-links-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.host-links-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.host-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.host-link:hover,
+.host-link:focus-visible {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
 /* Timeline */
 .timeline {
   background: var(--color-bg-secondary);
@@ -3555,6 +3591,21 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 
 .rule-paragraph {
   margin: 0;
+}
+
+/* "Read the full Official Rules" link under the accordion summary */
+.rules-full-link {
+  display: inline-block;
+  margin-top: var(--spacing-md);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.rules-full-link:hover {
+  text-decoration: underline;
 }
 
 /* Sidebar Stack - stacks cards vertically in right column */
@@ -5168,11 +5219,16 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   text-align: center;
 }
 
-/* Competition Footer */
+/* Competition Footer — rendered at the layout level (outside the phase view),
+   so it carries its own max-width + side/bottom padding to match phase content
+   and never run to the screen edge. Bottom inset keeps the policy links clear
+   of the viewport edge / iOS home indicator on mobile. */
 .competition-footer {
-  margin-top: var(--spacing-2xl);
-  padding-top: var(--spacing-xl);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 900px;
+  margin: var(--spacing-2xl) auto 0;
+  padding: var(--spacing-xl) var(--spacing-lg)
+    calc(var(--spacing-2xl) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-border);
 }
 
 .competition-footer-items {
@@ -5239,6 +5295,43 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
+}
+
+/* Persistent policy links row (Official Rules, Contest Terms, Terms, Privacy).
+   Each link is a padded, easily-tappable target (~44px) that wraps as a group
+   on narrow screens so nothing gets cut off on mobile. */
+.competition-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+}
+
+.competition-footer-legal-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.competition-footer-legal-link:hover,
+.competition-footer-legal-link:focus-visible {
+  color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Official Rules full-page view sits inside the competition layout */
+.official-rules-view {
+  width: 100%;
 }
 
 /* Judges Section */

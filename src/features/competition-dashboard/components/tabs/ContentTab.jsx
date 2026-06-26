@@ -19,6 +19,10 @@ export default function ContentTab({
   organizationHeaderLogoUrl,
   organizationLogoUrl,
   organizationWebsiteUrl,
+  organizationLegalEntityName,
+  organizationInstagram,
+  organizationTiktok,
+  organizationFacebook,
 }) {
   return (
     <div>
@@ -60,6 +64,10 @@ export default function ContentTab({
         currentHeaderLogoUrl={organizationHeaderLogoUrl}
         fallbackLogoUrl={organizationLogoUrl}
         currentWebsiteUrl={organizationWebsiteUrl}
+        currentLegalEntityName={organizationLegalEntityName}
+        currentInstagram={organizationInstagram}
+        currentTiktok={organizationTiktok}
+        currentFacebook={organizationFacebook}
         onSave={onRefresh}
       />
 

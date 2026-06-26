@@ -55,11 +55,14 @@ export function buildAutoRules(competition) {
     .filter((r) => (r.judge_weight || 0) > 0)
     .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))[0];
 
+  // A competition can be configured selection_criteria='votes' yet still run a
+  // judged round (judge_weight > 0). Detect judging from the actual round data
+  // so the summary never omits it just because the enum says "votes".
   let selection;
   if (selectionCriteria === 'judges') {
     selection = 'Winners are selected by a panel of judges, who score each contestant against the published judging criteria.';
-  } else if (selectionCriteria === 'hybrid') {
-    selection = "Winners are determined through a hybrid process that combines public votes with judges' scores.";
+  } else if (selectionCriteria === 'hybrid' || judgingRound) {
+    selection = "Winners are determined through a combination of public votes and judges' scores.";
     if (judgingRound) {
       const w = judgingRound.judge_weight || 0;
       const label = (judgingRound.title && judgingRound.title.trim())
@@ -95,6 +98,10 @@ export function buildAutoRules(competition) {
   } else {
     entry = 'Entry is by nomination: anyone can nominate an eligible person, and prospective contestants can also nominate themselves. Nominees confirm and complete a profile to join the competition.';
   }
+  // NOTE: hard-coded free entry. Pure-judge competitions will charge a
+  // contestant entry fee (paid on acceptance) once that ships — make this
+  // conditional then. See the FUTURE COMPETITION STYLES note in
+  // `src/lib/officialRules.js` and issue #531 (lottery analysis must be redone).
   entry += ' There is no cost to enter.';
   sections.push({ title: 'How to enter', content: entry });
 
@@ -106,11 +113,15 @@ export function buildAutoRules(competition) {
     });
   }
 
-  // ── Charity (optional) ──────────────────────────────────────────────────
-  if (charityPct) {
+  // ── Charity (when the competition has a charity partner) ─────────────────
+  if (charityName || charityPct) {
+    const toWhom = charityName || 'the designated charity partner';
+    const share = charityPct
+      ? `${charityPct}% of the host's net proceeds from purchased votes (after EliteRank's fees)`
+      : "a portion of the host's net proceeds from purchased votes (after EliteRank's fees)";
     sections.push({
       title: 'Charity',
-      content: `${charityPct}% of net proceeds will be donated to ${charityName || 'the designated charity partner'}.`,
+      content: `The host will donate ${share} to ${toWhom}. Vote purchases are not tax-deductible for voters.`,
     });
   }
 

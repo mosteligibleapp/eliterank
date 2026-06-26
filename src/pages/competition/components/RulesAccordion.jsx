@@ -8,7 +8,7 @@ import { buildAutoRules } from '../../../lib/competitionRules';
  * Uses the shared buildAutoRules generator so the public page and the host
  * dashboard's Site-tab preview always state the rules identically.
  */
-export function RulesAccordion({ competition, votingRounds = [], about, events = [] }) {
+export function RulesAccordion({ competition, votingRounds = [], about, events = [], rulesPath = null }) {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
   // Merge the loaded rounds in so the hybrid judging-round detail can render.
@@ -61,6 +61,12 @@ export function RulesAccordion({ competition, votingRounds = [], about, events =
           </div>
         ))}
       </div>
+
+      {rulesPath && (
+        <Link to={rulesPath} className="rules-full-link">
+          Read the full Official Rules →
+        </Link>
+      )}
     </div>
   );
 }

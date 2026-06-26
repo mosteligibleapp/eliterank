@@ -6,7 +6,7 @@
  * the four legal documents so they're discoverable from any page.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Instagram } from 'lucide-react';
 import { colors, spacing, typography, borderRadius } from '../../styles/theme';
@@ -94,11 +94,14 @@ const styles = {
     alignItems: 'center',
   },
   legalLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: '40px',
     color: colors.text.secondary,
     textDecoration: 'none',
     background: 'none',
     border: 'none',
-    padding: 0,
+    padding: `${spacing[1]} ${spacing[2]}`,
     fontSize: typography.fontSize.sm,
     cursor: 'pointer',
     fontFamily: 'inherit',
@@ -120,6 +123,18 @@ export default function GlobalFooter() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // On mobile the explore experience renders a fixed bottom nav that overlays
+  // the page; reserve clearance so the footer (and its legal links) sit above
+  // it instead of being hidden behind it. Plus the iOS home-indicator inset.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
   const handleLegal = useCallback((path) => {
     navigate(path);
   }, [navigate]);
@@ -128,8 +143,15 @@ export default function GlobalFooter() {
 
   const year = new Date().getFullYear();
 
+  const footerStyle = {
+    ...styles.footer,
+    padding: `${spacing[8]} ${spacing[4]} ${
+      isMobile ? 'calc(96px + env(safe-area-inset-bottom, 0px))' : spacing[8]
+    }`,
+  };
+
   return (
-    <footer style={styles.footer}>
+    <footer style={footerStyle}>
       <div style={styles.inner}>
         <div style={styles.topRow}>
           <div style={styles.brand}>EliteRank</div>
@@ -156,11 +178,23 @@ export default function GlobalFooter() {
 
         <div style={styles.divider} />
 
-        <div style={styles.bottomRow}>
+        <div
+          style={{
+            ...styles.bottomRow,
+            // On mobile, stack with the legal links above the copyright and
+            // centered so they're prominent and easy to tap.
+            ...(isMobile
+              ? { flexDirection: 'column-reverse', alignItems: 'center', textAlign: 'center', gap: spacing[2] }
+              : {}),
+          }}
+        >
           <div style={styles.copyright}>
             © {year} Most Eligible LLC. All rights reserved.
           </div>
-          <nav style={styles.legalRow} aria-label="Legal">
+          <nav
+            style={{ ...styles.legalRow, ...(isMobile ? { justifyContent: 'center' } : {}) }}
+            aria-label="Legal"
+          >
             {LEGAL_LINKS.map(link => (
               <button
                 key={link.path}

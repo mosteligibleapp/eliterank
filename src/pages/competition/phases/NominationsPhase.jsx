@@ -10,7 +10,6 @@ import { RulesAccordion } from '../components/RulesAccordion';
 import { HostCard } from '../components/HostCard';
 import { CountdownDisplay } from '../components/CountdownDisplay';
 import { CompetitionHeader } from '../components/CompetitionHeader';
-import { CompetitionFooter } from '../components/CompetitionFooter';
 import { CharityHighlight } from '../components/CharityHighlight';
 import { JudgesSection } from '../components/JudgesSection';
 
@@ -41,6 +40,14 @@ export function NominationsPhase() {
     ? `/${orgSlug}/${competitionSlug}/enter`
     : competition?.id
       ? `/${orgSlug}/id/${competition.id}/enter`
+      : null;
+
+  // Path to the full Official Rules page, built the same way as the entry path
+  // so it works across slug-based and ID-based URLs.
+  const rulesPath = competitionSlug
+    ? `/${orgSlug}/${competitionSlug}/rules`
+    : competition?.id
+      ? `/${orgSlug}/id/${competition.id}/rules`
       : null;
 
   // Real entry count — the stat card only appears once entries exist.
@@ -162,17 +169,14 @@ export function NominationsPhase() {
             <CharityHighlight />
           </div>
           <div className="sidebar-stack">
-            <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
+            <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} rulesPath={rulesPath} />
           </div>
         </section>
       ) : (
         <section className="sidebar-stack">
-          <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} />
+          <RulesAccordion competition={competition} votingRounds={votingRounds} about={about} events={events} rulesPath={rulesPath} />
         </section>
       )}
-
-      {/* Footer */}
-      <CompetitionFooter />
     </div>
   );
 }
