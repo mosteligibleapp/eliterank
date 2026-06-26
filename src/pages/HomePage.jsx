@@ -92,6 +92,14 @@ export default function HomePage({
     navigate('/dashboard?create=1');
   }, [navigate]);
 
+  // Header "Create Competition" CTA. Always points at the create wizard:
+  // authenticated users open it directly; everyone else is routed through
+  // login/signup (ProtectedRoute adds ?returnTo=/dashboard?create=1) and lands
+  // back on the wizard once they have an account.
+  const handleCreateCompetition = useCallback(() => {
+    navigate('/dashboard?create=1');
+  }, [navigate]);
+
   const handleCloseGuide = useCallback(() => {
     setShowGuide(false);
   }, []);
@@ -111,6 +119,7 @@ export default function HomePage({
         onAccountSettings={isAuthenticated ? handleAccountSettings : null}
         onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
         onLaunchCompetition={isAuthenticated ? handleLaunchCompetition : undefined}
+        onCreateCompetition={handleCreateCompetition}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
         userName={userName}
