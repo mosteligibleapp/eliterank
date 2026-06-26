@@ -292,10 +292,18 @@ export function buildOfficialRules(competition, context = {}) {
   // competitions will charge a contestant entry fee (paid on acceptance) once
   // that ships — at which point this must become conditional and state the fee.
   // See the FUTURE COMPETITION STYLES note in this file's header + issue #531.
+  const entryBlocks = [{ kind: 'p', text: `${entry} There is no cost to enter.` }];
+  // Nominator obligations — only relevant when a third party can nominate.
+  if (entryType !== 'applications') {
+    entryBlocks.push({
+      kind: 'p',
+      text: 'If you nominate someone else, you confirm that the information you provide is accurate and that you have a good-faith basis to share their contact details so the nominee can be invited. The nominee chooses whether to accept, and only becomes a contestant after accepting. Nominations that are inaccurate, made to harass or impersonate, or submitted without a genuine basis may be removed and may result in suspension.',
+    });
+  }
   sections.push({
     id: 'how-to-enter',
     title: 'How to Enter',
-    blocks: [{ kind: 'p', text: `${entry} There is no cost to enter.` }],
+    blocks: entryBlocks,
   });
 
   // ── Competition Schedule ─────────────────────────────────────────────────
