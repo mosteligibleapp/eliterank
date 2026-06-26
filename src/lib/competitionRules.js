@@ -55,11 +55,14 @@ export function buildAutoRules(competition) {
     .filter((r) => (r.judge_weight || 0) > 0)
     .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))[0];
 
+  // A competition can be configured selection_criteria='votes' yet still run a
+  // judged round (judge_weight > 0). Detect judging from the actual round data
+  // so the summary never omits it just because the enum says "votes".
   let selection;
   if (selectionCriteria === 'judges') {
     selection = 'Winners are selected by a panel of judges, who score each contestant against the published judging criteria.';
-  } else if (selectionCriteria === 'hybrid') {
-    selection = "Winners are determined through a hybrid process that combines public votes with judges' scores.";
+  } else if (selectionCriteria === 'hybrid' || judgingRound) {
+    selection = "Winners are determined through a combination of public votes and judges' scores.";
     if (judgingRound) {
       const w = judgingRound.judge_weight || 0;
       const label = (judgingRound.title && judgingRound.title.trim())

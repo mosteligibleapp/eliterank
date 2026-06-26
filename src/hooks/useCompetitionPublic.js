@@ -35,6 +35,7 @@ const COMPETITION_SELECT = `
   events (*),
   competition_prizes (id, title, description, image_url, value, sponsor_name, external_url, sort_order, prize_type, sponsor_id),
   competition_rules (id, section_title, section_content, sort_order),
+  judging_criteria (id, label, description, weight, sort_order),
   voting_rounds (
     id, title, round_order, start_date, end_date,
     contestants_advance, votes_accumulate, round_type, judge_weight
@@ -59,6 +60,7 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
   const [judges, setJudges] = useState([]);
   const [events, setEvents] = useState([]);
   const [rules, setRules] = useState([]);
+  const [judgingCriteria, setJudgingCriteria] = useState([]);
   const [votingRounds, setVotingRounds] = useState([]);
   const [nominationPeriods, setNominationPeriods] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -212,6 +214,9 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       );
       setRules(
         (compData.competition_rules || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      );
+      setJudgingCriteria(
+        (compData.judging_criteria || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       );
       setVotingRounds(
         (compData.voting_rounds || []).sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
@@ -379,6 +384,7 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
     events,
     prizes,
     rules,
+    judgingCriteria,
     votingRounds,
     nominationPeriods,
     announcements,

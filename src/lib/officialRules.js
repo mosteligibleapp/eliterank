@@ -9,10 +9,10 @@
  *
  * Everything here is derived from the competition's own configuration, so the
  * document always states the *actual* operator, eligibility, schedule, scoring,
- * prizes, and charity for that competition and can never drift from how it is
- * set up. Boilerplate that is identical across every competition references the
- * platform-wide Contest Terms, Terms of Use, and Privacy Policy rather than
- * being duplicated here.
+ * judging, prizes, and charity for that competition and can never drift from
+ * how it is set up. Boilerplate that is identical across every competition
+ * references the platform-wide Contest Terms, Terms of Use, and Privacy Policy
+ * rather than being duplicated here.
  *
  * Framing note: EliteRank competitions are structured as a **contest of skill**,
  * not a sweepstakes. This generator deliberately avoids sweepstakes / AMOE
@@ -29,6 +29,10 @@
  *   { kind: 'ul', items: [] }      — a bullet list
  *   { kind: 'policyLinks' }        — renders the standard related-policy links
  *   { kind: 'contact' }            — renders the operator contact box
+ *
+ * Section numbers are assigned from array order at the end, so inserting or
+ * omitting a conditional section (judging, voting, charity) can never desync
+ * the numbering.
  */
 
 const GENDER = {
@@ -73,6 +77,13 @@ function formatMoney(value) {
   return `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
+function roundLabel(r, fallbackIndex) {
+  return (
+    (r.title && r.title.trim()) ||
+    (r.round_order ? `Round ${r.round_order}` : `Round ${fallbackIndex + 1}`)
+  );
+}
+
 export function buildOfficialRules(competition, context = {}) {
   const c = competition;
   if (!c) return { sections: [] };
@@ -82,6 +93,8 @@ export function buildOfficialRules(competition, context = {}) {
     host = null,
     prizes = [],
     prizePool = null,
+    judges = [],
+    judgingCriteria = [],
     votingRounds: ctxRounds = null,
     nominationPeriods = null,
   } = context;
@@ -119,17 +132,32 @@ export function buildOfficialRules(competition, context = {}) {
     (nominationPeriods && nominationPeriods.length
       ? nominationPeriods
       : pick(c, 'nomination_periods', 'nominationPeriods', [])) || [];
+  const criteria =
+    (judgingCriteria && judgingCriteria.length
+      ? judgingCriteria
+      : pick(c, 'judging_criteria', 'judgingCriteria', [])) || [];
   const nominationStart = pick(c, 'nominationStart', 'nomination_start', null);
   const nominationEnd = pick(c, 'nominationEnd', 'nomination_end', null);
   const finalsDate = pick(c, 'finalsDate', 'finals_date', null);
 
-  const publicVotes = selectionCriteria !== 'judges';
+  // ── Judging detection (drive off the ACTUAL data, not just the enum) ─────
+  // A competition can be configured selection_criteria='votes' yet still run a
+  // judged round (judge_weight > 0) with criteria and a judge panel. Detect
+  // judging from the rounds/criteria so the document never silently omits it.
+  const sortedRounds = [...rounds].sort((a, b) => (a.round_order || 0) - (b.round_order || 0));
+  const judgingRounds = sortedRounds.filter((r) => (r.judge_weight || 0) > 0);
+  const isJudgesOnly = selectionCriteria === 'judges';
+  const hasJudging = isJudgesOnly || judgingRounds.length > 0 || criteria.length > 0;
+  const isBlended = !isJudgesOnly && judgingRounds.length > 0;
+  // Public votes count somewhere unless the competition is pure judging.
+  const publicVotes = !isJudgesOnly;
+
   const sections = [];
 
-  // ── 1. Overview ──────────────────────────────────────────────────────────
+  // ── Overview ─────────────────────────────────────────────────────────────
   sections.push({
     id: 'overview',
-    title: '1. Overview',
+    title: 'Overview',
     blocks: [
       {
         kind: 'p',
@@ -146,10 +174,10 @@ export function buildOfficialRules(competition, context = {}) {
     ],
   });
 
-  // ── 2. No Purchase Necessary ─────────────────────────────────────────────
+  // ── No Purchase Necessary ────────────────────────────────────────────────
   sections.push({
     id: 'no-purchase',
-    title: '2. No Purchase Necessary',
+    title: 'No Purchase Necessary',
     blocks: [
       {
         kind: 'p',
@@ -167,7 +195,7 @@ export function buildOfficialRules(competition, context = {}) {
     ],
   });
 
-  // ── 3. Eligibility ───────────────────────────────────────────────────────
+  // ── Eligibility ──────────────────────────────────────────────────────────
   const genderTxt = GENDER[eligibilityGender] || 'all genders';
   let where;
   if (territoryScope === 'us') {
@@ -181,7 +209,7 @@ export function buildOfficialRules(competition, context = {}) {
   eligibilityIntro += ageMax ? ` and no older than ${ageMax}.` : ' at the time of entry.';
   sections.push({
     id: 'eligibility',
-    title: '3. Eligibility',
+    title: 'Eligibility',
     blocks: [
       { kind: 'p', text: eligibilityIntro },
       {
@@ -195,7 +223,7 @@ export function buildOfficialRules(competition, context = {}) {
     ],
   });
 
-  // ── 4. How to Enter ──────────────────────────────────────────────────────
+  // ── How to Enter ─────────────────────────────────────────────────────────
   let entry;
   if (entryType === 'applications') {
     entry = 'Entry is by application: eligible people apply directly to take part. Applicants complete the required profile information and agree to these Official Rules to become a contestant.';
@@ -204,35 +232,29 @@ export function buildOfficialRules(competition, context = {}) {
   }
   sections.push({
     id: 'how-to-enter',
-    title: '4. How to Enter',
-    blocks: [
-      { kind: 'p', text: `${entry} There is no cost to enter.` },
-    ],
+    title: 'How to Enter',
+    blocks: [{ kind: 'p', text: `${entry} There is no cost to enter.` }],
   });
 
-  // ── 5. Competition Schedule ──────────────────────────────────────────────
+  // ── Competition Schedule ─────────────────────────────────────────────────
   const scheduleItems = [];
   const nominationRange =
     formatDateRange(periods?.[0]?.start_date, periods?.[0]?.end_date) ||
     formatDateRange(nominationStart, nominationEnd);
   if (nominationRange) scheduleItems.push(`Nominations: ${nominationRange}`);
 
-  [...rounds]
-    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))
-    .forEach((r, i) => {
-      const range = formatDateRange(r.start_date, r.end_date);
-      const label =
-        (r.title && r.title.trim()) ||
-        (r.round_order ? `Round ${r.round_order}` : `Round ${i + 1}`);
-      if (range) scheduleItems.push(`${label}: ${range}`);
-    });
+  sortedRounds.forEach((r, i) => {
+    const range = formatDateRange(r.start_date, r.end_date);
+    const judged = (r.judge_weight || 0) > 0 ? ' — judged round' : '';
+    if (range) scheduleItems.push(`${roundLabel(r, i)}: ${range}${judged}`);
+  });
 
   const finals = formatDate(finalsDate);
   if (finals) scheduleItems.push(`Winners announced: ${finals}`);
 
   sections.push({
     id: 'schedule',
-    title: '5. Competition Schedule',
+    title: 'Competition Schedule',
     blocks: scheduleItems.length
       ? [
           {
@@ -249,23 +271,12 @@ export function buildOfficialRules(competition, context = {}) {
         ],
   });
 
-  // ── 6. How Winners Are Chosen ────────────────────────────────────────────
-  const judgingRound = [...rounds]
-    .filter((r) => (r.judge_weight || 0) > 0)
-    .sort((a, b) => (a.round_order || 0) - (b.round_order || 0))[0];
-
+  // ── How Winners Are Chosen ───────────────────────────────────────────────
   let selection;
-  if (selectionCriteria === 'judges') {
+  if (isJudgesOnly) {
     selection = 'Winners are selected by a panel of judges, who score each contestant against the published judging criteria. Judges’ scores and the Host’s final tally are final and binding.';
-  } else if (selectionCriteria === 'hybrid') {
-    selection = 'Winners are determined through a hybrid process that combines public votes with judges’ scores.';
-    if (judgingRound) {
-      const w = judgingRound.judge_weight || 0;
-      const label =
-        (judgingRound.title && judgingRound.title.trim()) ||
-        (judgingRound.round_order ? `round ${judgingRound.round_order}` : 'the judging round');
-      selection += ` Judging takes place in ${label}, where judges’ scores count for ${w}% and public votes for ${100 - w}% of that round’s result.`;
-    }
+  } else if (isBlended) {
+    selection = 'Winners are determined through a combination of public votes and a panel of judges. In most rounds, the contestants with the most public votes advance; in the judged round(s), judges’ scores are blended with public votes as described in the Judging section below. The Host’s final tally is final and binding.';
   } else {
     selection = 'Winners are determined by public vote — the contestants with the most votes advance through each round and ultimately win. The Host’s final tally is final and binding.';
   }
@@ -273,43 +284,114 @@ export function buildOfficialRules(competition, context = {}) {
   if (splitByGender) winnersLine += ' Winners are determined separately for men and women.';
   sections.push({
     id: 'selection',
-    title: '6. How Winners Are Chosen',
+    title: 'How Winners Are Chosen',
     blocks: [{ kind: 'p', text: selection + winnersLine }],
   });
 
-  // ── 7. Voting (only when the public actually votes) ──────────────────────
-  if (publicVotes) {
-    const priceTxt = formatMoney(pricePerVote);
-    const votingBlocks = [
-      {
+  // ── Judging (only when the Competition actually uses judges) ─────────────
+  if (hasJudging) {
+    const judgingBlocks = [];
+
+    // The judge panel + where it sits in the process.
+    const panelCount = Array.isArray(judges) ? judges.length : 0;
+    const panelText =
+      panelCount > 0
+        ? `A panel of ${panelCount} ${panelCount === 1 ? 'judge' : 'judges'}, shown on the competition page, evaluates contestants`
+        : 'A panel of qualified judges, shown on the competition page, evaluates contestants';
+    judgingBlocks.push({
+      kind: 'p',
+      text: `${panelText} against the criteria below. The Host selects judges qualified to assess contestants, and judges’ decisions are final and binding.`,
+    });
+
+    // When judging takes place and how it is weighted, per judged round.
+    if (judgingRounds.length > 0) {
+      const roundLines = judgingRounds.map((r, i) => {
+        const w = r.judge_weight || 0;
+        const label = roundLabel(r, i);
+        const range = formatDateRange(r.start_date, r.end_date);
+        const when = range ? ` (${range})` : '';
+        if (w >= 100) {
+          return `In the ${label} round${when}, judges’ scores alone determine the result.`;
+        }
+        return `In the ${label} round${when}, judges’ scores count for ${w}% and public votes for ${100 - w}% of that round’s result.`;
+      });
+      judgingBlocks.push({ kind: 'ul', items: roundLines });
+    } else if (isJudgesOnly) {
+      judgingBlocks.push({
         kind: 'p',
-        text: `Anyone eligible may vote on the public competition page. Free votes are available to everyone${
-          priceTxt ? `, and additional votes may be purchased${priceTxt ? ` (from ${priceTxt} per vote)` : ''} to show extra support` : ', and additional votes may be purchased to show extra support'
-        }. Voting opens and closes on the dates shown on the competition timeline; votes recorded after a round closes do not count.`,
-      },
-      {
+        text: 'Judges score contestants against the criteria below, and those scores determine who advances and wins.',
+      });
+    }
+
+    // The criteria themselves.
+    if (criteria.length > 0) {
+      const weights = criteria.map((cr) => Number(cr.weight) || 0);
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      const allEqual = weights.every((w) => w === weights[0]);
+
+      const criteriaItems = criteria.map((cr, i) => {
+        const label = cr.label || `Criterion ${i + 1}`;
+        const desc = cr.description ? ` — ${cr.description}` : '';
+        const sharePct =
+          !allEqual && totalWeight > 0
+            ? ` (${Math.round((weights[i] / totalWeight) * 100)}%)`
+            : '';
+        return `${label}${sharePct}${desc}`;
+      });
+
+      judgingBlocks.push({ kind: 'p', text: 'Judges score each contestant on the following criteria:' });
+      judgingBlocks.push({ kind: 'ul', items: criteriaItems });
+      if (allEqual && criteria.length > 1) {
+        judgingBlocks.push({ kind: 'p', text: 'Each criterion is weighted equally.' });
+      }
+    } else {
+      judgingBlocks.push({
         kind: 'p',
-        text: 'To protect competitive integrity, the following are prohibited and may result in voided votes, disqualification, or account suspension:',
-      },
-      {
-        kind: 'ul',
-        items: [
-          'votes generated by automated means (bots or scripts) or fraudulent payment instruments;',
-          'votes followed by chargebacks, refunds, or payment reversals;',
-          'votes cast through multiple accounts or false identities;',
-          'a contestant purchasing votes for their own entry, directly or through anyone acting at their direction or with their funding;',
-          'any vote-buying outside the platform’s official vote-purchase flow.',
-        ],
-      },
-      {
-        kind: 'p',
-        text: 'Purchased votes are final and non-refundable once recorded, except as required by law or as expressly stated on the competition page. See the Contest Terms & Conditions for the complete voting and anti-fraud terms.',
-      },
-    ];
-    sections.push({ id: 'voting', title: '7. Voting', blocks: votingBlocks });
+        text: 'The specific judging criteria are published on the competition page.',
+      });
+    }
+
+    sections.push({ id: 'judging', title: 'Judging', blocks: judgingBlocks });
   }
 
-  // ── 8. Prizes ────────────────────────────────────────────────────────────
+  // ── Voting (only when the public actually votes) ─────────────────────────
+  if (publicVotes) {
+    const priceTxt = formatMoney(pricePerVote);
+    sections.push({
+      id: 'voting',
+      title: 'Voting',
+      blocks: [
+        {
+          kind: 'p',
+          text: `Anyone eligible may vote on the public competition page. Free votes are available to everyone${
+            priceTxt
+              ? `, and additional votes may be purchased (from ${priceTxt} per vote) to show extra support`
+              : ', and additional votes may be purchased to show extra support'
+          }. Voting opens and closes on the dates shown on the competition timeline; votes recorded after a round closes do not count.`,
+        },
+        {
+          kind: 'p',
+          text: 'To protect competitive integrity, the following are prohibited and may result in voided votes, disqualification, or account suspension:',
+        },
+        {
+          kind: 'ul',
+          items: [
+            'votes generated by automated means (bots or scripts) or fraudulent payment instruments;',
+            'votes followed by chargebacks, refunds, or payment reversals;',
+            'votes cast through multiple accounts or false identities;',
+            'a contestant purchasing votes for their own entry, directly or through anyone acting at their direction or with their funding;',
+            'any vote-buying outside the platform’s official vote-purchase flow.',
+          ],
+        },
+        {
+          kind: 'p',
+          text: 'Purchased votes are final and non-refundable once recorded, except as required by law or as expressly stated on the competition page. See the Contest Terms & Conditions for the complete voting and anti-fraud terms.',
+        },
+      ],
+    });
+  }
+
+  // ── Prizes ───────────────────────────────────────────────────────────────
   const prizeItems = (prizes || [])
     .map((p) => {
       const title = p.title || p.name;
@@ -321,12 +403,9 @@ export function buildOfficialRules(competition, context = {}) {
     })
     .filter(Boolean);
 
-  const cashLine = prizePool && (prizePool.total || prizePool.minimum)
-    ? `A cash prize pool${
-        formatMoney(prizePool.total || prizePool.minimum)
-          ? ` (currently ${formatMoney(prizePool.total || prizePool.minimum)})`
-          : ''
-      }, as shown on the competition’s Prizes page.`
+  const poolValue = prizePool ? formatMoney(prizePool.total || prizePool.minimum) : null;
+  const cashLine = poolValue
+    ? `A cash prize pool (currently ${poolValue}), as shown on the competition’s Prizes page.`
     : null;
 
   const prizeListItems = [...(cashLine ? [cashLine] : []), ...prizeItems];
@@ -348,13 +427,13 @@ export function buildOfficialRules(competition, context = {}) {
       'The Promotion Entities are not liable for any injury, loss, or damages arising from acceptance or use of a prize.',
     ],
   });
-  sections.push({ id: 'prizes', title: '8. Prizes', blocks: prizeBlocks });
+  sections.push({ id: 'prizes', title: 'Prizes', blocks: prizeBlocks });
 
-  // ── 9. Charity (optional) ────────────────────────────────────────────────
+  // ── Charity (optional) ───────────────────────────────────────────────────
   if (charityPct) {
     sections.push({
       id: 'charity',
-      title: '9. Charity',
+      title: 'Charity',
       blocks: [
         {
           kind: 'p',
@@ -368,14 +447,10 @@ export function buildOfficialRules(competition, context = {}) {
     });
   }
 
-  // Sections from here on are competition-agnostic boilerplate; number them
-  // continuously after whichever optional sections were included above.
-  let n = charityPct ? 10 : 9;
-
   // ── Winner Verification & Notification ───────────────────────────────────
   sections.push({
     id: 'winners',
-    title: `${n++}. Winner Verification & Notification`,
+    title: 'Winner Verification & Notification',
     blocks: [
       {
         kind: 'p',
@@ -387,7 +462,7 @@ export function buildOfficialRules(competition, context = {}) {
   // ── Publicity & Submitted Content ────────────────────────────────────────
   sections.push({
     id: 'publicity',
-    title: `${n++}. Publicity & Submitted Content`,
+    title: 'Publicity & Submitted Content',
     blocks: [
       {
         kind: 'p',
@@ -399,7 +474,7 @@ export function buildOfficialRules(competition, context = {}) {
   // ── Conduct & Disqualification ───────────────────────────────────────────
   sections.push({
     id: 'conduct',
-    title: `${n++}. Conduct & Disqualification`,
+    title: 'Conduct & Disqualification',
     blocks: [
       {
         kind: 'p',
@@ -411,7 +486,7 @@ export function buildOfficialRules(competition, context = {}) {
   // ── Limitation of Liability ──────────────────────────────────────────────
   sections.push({
     id: 'liability',
-    title: `${n++}. Limitation of Liability`,
+    title: 'Limitation of Liability',
     blocks: [
       {
         kind: 'p',
@@ -423,7 +498,7 @@ export function buildOfficialRules(competition, context = {}) {
   // ── Changes & Termination ────────────────────────────────────────────────
   sections.push({
     id: 'termination',
-    title: `${n++}. Changes & Termination`,
+    title: 'Changes & Termination',
     blocks: [
       {
         kind: 'p',
@@ -435,7 +510,7 @@ export function buildOfficialRules(competition, context = {}) {
   // ── Governing Law ────────────────────────────────────────────────────────
   sections.push({
     id: 'governing-law',
-    title: `${n++}. Governing Law`,
+    title: 'Governing Law',
     blocks: [
       {
         kind: 'p',
@@ -447,7 +522,7 @@ export function buildOfficialRules(competition, context = {}) {
   // ── Privacy ──────────────────────────────────────────────────────────────
   sections.push({
     id: 'privacy',
-    title: `${n++}. Privacy`,
+    title: 'Privacy',
     blocks: [
       {
         kind: 'p',
@@ -459,7 +534,7 @@ export function buildOfficialRules(competition, context = {}) {
   // ── Platform Non-Affiliation ─────────────────────────────────────────────
   sections.push({
     id: 'non-affiliation',
-    title: `${n++}. Platform Non-Affiliation`,
+    title: 'Platform Non-Affiliation',
     blocks: [
       {
         kind: 'p',
@@ -471,7 +546,7 @@ export function buildOfficialRules(competition, context = {}) {
   // ── Complete Agreement & Related Policies ────────────────────────────────
   sections.push({
     id: 'agreement',
-    title: `${n++}. Complete Agreement`,
+    title: 'Complete Agreement',
     blocks: [
       {
         kind: 'p',
@@ -484,14 +559,18 @@ export function buildOfficialRules(competition, context = {}) {
   // ── Contact ──────────────────────────────────────────────────────────────
   sections.push({
     id: 'contact',
-    title: `${n++}. Contact`,
+    title: 'Contact',
     blocks: [
       { kind: 'p', text: 'Questions about the Competition or these Official Rules?' },
       { kind: 'contact' },
     ],
   });
 
-  return { sections };
+  // Number sections from their final order so conditional sections never
+  // desync the numbering.
+  return {
+    sections: sections.map((s, i) => ({ ...s, title: `${i + 1}. ${s.title}` })),
+  };
 }
 
 export default buildOfficialRules;

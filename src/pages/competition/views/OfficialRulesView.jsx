@@ -235,6 +235,8 @@ export function OfficialRulesView() {
     organization,
     prizes,
     prizePool,
+    judges,
+    judgingCriteria,
     votingRounds,
     nominationPeriods,
   } = usePublicCompetition();
@@ -244,6 +246,8 @@ export function OfficialRulesView() {
     host: competition?.host,
     prizes,
     prizePool,
+    judges,
+    judgingCriteria,
     votingRounds,
     nominationPeriods,
   });
