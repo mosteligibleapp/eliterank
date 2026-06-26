@@ -237,6 +237,8 @@ export function OfficialRulesView() {
     prizePool,
     judges,
     judgingCriteria,
+    bonusTasks,
+    doubleVoteDays,
     votingRounds,
     nominationPeriods,
   } = usePublicCompetition();
@@ -248,6 +250,8 @@ export function OfficialRulesView() {
     prizePool,
     judges,
     judgingCriteria,
+    bonusTasks,
+    doubleVoteDays,
     votingRounds,
     nominationPeriods,
   });
