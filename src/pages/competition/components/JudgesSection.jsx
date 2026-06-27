@@ -53,7 +53,6 @@ export function JudgesSection() {
               </div>
               <h3 className="judge-name">{judge.name}</h3>
               {judge.title && <p className="judge-title">{judge.title}</p>}
-              {profileId && <span className="judge-view-profile">View profile</span>}
               {igUrl && (
                 <a
                   href={igUrl}

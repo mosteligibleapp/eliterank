@@ -5391,13 +5391,6 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   border-color: rgba(var(--color-primary-rgb), 0.45);
 }
 
-.judge-view-profile {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-primary);
-  margin: 0;
-}
-
 .judge-avatar {
   width: 80px;
   height: 80px;
