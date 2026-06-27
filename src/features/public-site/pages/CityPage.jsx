@@ -243,7 +243,7 @@ export default function CityPage() {
                     <img
                       src={orgLogo}
                       alt={organization.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />
                   ) : (
                     <Building2 size={24} style={{ color: colors.text.muted }} />

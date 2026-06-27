@@ -161,7 +161,7 @@ export default function OrganizationPage() {
                 <img
                   src={orgLogo}
                   alt={organization.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               ) : (
                 <Crown size={48} style={{ color: colors.gold.primary }} />

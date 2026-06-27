@@ -47,14 +47,16 @@ export default function OrganizationLogo({ logo, size = 48, style = {} }) {
     );
   }
 
-  // Image URL logo
+  // Image URL logo. Use `contain` so logos of any aspect ratio (wide
+  // wordmarks, square marks, tall) display in full instead of being
+  // center-cropped to fill the square.
   return (
     <img
       src={logo}
       alt="Organization logo"
       style={{
         ...containerStyle,
-        objectFit: 'cover',
+        objectFit: 'contain',
       }}
     />
   );

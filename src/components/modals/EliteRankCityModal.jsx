@@ -403,8 +403,8 @@ export default function EliteRankCityModal({
             )}
             {org && (
               <div style={{
-                width: isMobile ? '36px' : '40px',
-                height: isMobile ? '36px' : '40px',
+                width: isMobile ? '52px' : '60px',
+                height: isMobile ? '52px' : '60px',
                 borderRadius: borderRadius.lg,
                 background: 'rgba(255,255,255,0.15)',
                 backdropFilter: 'blur(10px)',
@@ -413,7 +413,7 @@ export default function EliteRankCityModal({
                 transition: 'transform 0.3s, background 0.3s',
                 transform: isHovered ? 'scale(1.1)' : 'scale(1)',
               }}>
-                <OrganizationLogo logo={getOrgLogo(org) || org.logo} size={isMobile ? 28 : 32} />
+                <OrganizationLogo logo={getOrgLogo(org) || org.logo} size={isMobile ? 46 : 54} />
               </div>
             )}
           </div>
