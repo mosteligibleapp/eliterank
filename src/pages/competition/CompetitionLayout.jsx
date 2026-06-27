@@ -8,8 +8,7 @@ import { AlertCircle, Eye, Loader, X, ArrowLeft } from 'lucide-react';
 import CompetitionSkeleton from '../../components/skeletons/CompetitionSkeleton';
 import { useAuthStore } from '../../stores';
 import { ProfileIcon, NotificationBell } from '../../components/ui';
-import { useIsJudge } from '../../hooks';
-import { isCompetitionInProgress } from '../../utils/competitionPhase';
+import { useIsJudge, useMyPerformance } from '../../hooks';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
 // Phase view components (lazy-loaded — only the active phase is needed)
@@ -70,12 +69,13 @@ function CompetitionLayoutInner() {
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
   const isJudge = useIsJudge();
 
-  // "How to Win" only shows while the competition is actively running
-  // (nominations → finals); hidden for Coming Soon and Completed. Merge in the
-  // loaded voting rounds so the live sub-phase resolves accurately.
-  const competitionInProgress = isCompetitionInProgress(
-    competition ? { ...competition, voting_rounds: votingRounds } : null,
+  // "How to Win" and "Rewards" only apply while the user is still in the running
+  // (active competition + not eliminated / not finished). Only fetch for users
+  // who are actually contestants, to avoid an extra query for voters.
+  const { performances } = useMyPerformance(
+    profile?.is_nominee_or_contestant ? user?.id : null,
   );
+  const isStillCompeting = performances.some((p) => p.isActive && p.status === 'active');
 
   // Navigation handlers for profile icon
   const handleLogin = () => {
@@ -218,10 +218,10 @@ function CompetitionLayoutInner() {
             onLogin={handleLogin}
             onLogout={handleLogout}
             onProfile={handleProfile}
-            onRewards={profile?.is_nominee_or_contestant ? handleRewards : undefined}
+            onRewards={isStillCompeting ? handleRewards : undefined}
             onAchievements={profile?.is_nominee_or_contestant ? handleAchievements : undefined}
             onAccountSettings={handleAccountSettings}
-            onHowToCompete={profile?.is_nominee_or_contestant && competitionInProgress ? handleHowToCompete : undefined}
+            onHowToCompete={isStillCompeting ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             onLaunchCompetition={isAuthenticated ? handleLaunchCompetition : undefined}
             hasDashboardAccess={hasDashboardAccess}

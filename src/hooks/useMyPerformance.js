@@ -119,6 +119,10 @@ export function useMyPerformance(userId) {
           // Actively running (nominations → finals) vs Coming Soon / Completed.
           // Used to gate the "How to Win" guide so it only shows mid-competition.
           isActive: isCompetitionInProgress(r.competition),
+          // The contestant's own standing: 'active' = still in the running,
+          // anything else (eliminated, winner, runner_up) = no longer competing.
+          // Gates "How to Win" / "Rewards" so they hide once eliminated or done.
+          status: r.status,
         };
       });
 
