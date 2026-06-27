@@ -11,6 +11,7 @@ import { colors, spacing, borderRadius, typography, shadows, transitions, gradie
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
 import { getOrgLogo } from '../../lib/storageImage';
+import { useTrimmedLogo } from '../../lib/trimLogo';
 import {
   useCities,
   useOrganizations,
@@ -310,6 +311,14 @@ export default function EliteRankCityModal({
     const hideStatusBadge = displayPhase === 'completed' || isPublished(competition.status);
     const cityImage = getCompetitionImage(competition);
     const org = getOrg(competition.organizationId);
+    // Show the host logo constrained by HEIGHT (width flexes) so logos of any
+    // shape read at a consistent size: a wide wordmark stays wide and legible
+    // instead of being shrunk to fit a square slot. Trim padding first so the
+    // mark fills its height. Falls back to the square OrganizationLogo (which
+    // handles the no-logo crown / emoji cases).
+    const rawLogo = org ? (getOrgLogo(org) || org.logo) : null;
+    const isImageLogo = typeof rawLogo === 'string' && rawLogo.startsWith('http');
+    const trimmedLogo = useTrimmedLogo(isImageLogo ? rawLogo : null);
 
     const getCtaText = () => {
       if (isPublished(competition.status)) return 'Coming Soon';
@@ -402,19 +411,34 @@ export default function EliteRankCityModal({
               </Badge>
             )}
             {org && (
-              <div style={{
-                width: isMobile ? '48px' : '54px',
-                height: isMobile ? '48px' : '54px',
-                borderRadius: borderRadius.lg,
-                background: 'rgba(255,255,255,0.15)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                ...styleHelpers.flexCenter,
-                transition: 'transform 0.3s, background 0.3s',
-                transform: isHovered ? 'scale(1.1)' : 'scale(1)',
-              }}>
-                <OrganizationLogo logo={getOrgLogo(org) || org.logo} size={isMobile ? 42 : 48} />
-              </div>
+              isImageLogo ? (
+                <img
+                  src={trimmedLogo}
+                  alt={org.name || 'Organization logo'}
+                  style={{
+                    height: isMobile ? '34px' : '42px',
+                    width: 'auto',
+                    maxWidth: isMobile ? '100px' : '128px',
+                    objectFit: 'contain',
+                    objectPosition: 'top right',
+                    // No frosted container — the logo sits directly on the
+                    // photo; a soft shadow keeps light logos legible.
+                    filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.45))',
+                    transition: 'transform 0.3s',
+                    transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+                  }}
+                />
+              ) : (
+                <OrganizationLogo
+                  logo={rawLogo}
+                  size={isMobile ? 44 : 52}
+                  style={{
+                    filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.45))',
+                    transition: 'transform 0.3s',
+                    transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+                  }}
+                />
+              )
             )}
           </div>
 
