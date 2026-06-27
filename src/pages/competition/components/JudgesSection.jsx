@@ -1,12 +1,17 @@
+import { useNavigate } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Award } from 'lucide-react';
 import { transformSupabaseImage } from '../../../lib/storageImage';
 
 /**
- * Judges section - displays competition judges in a responsive grid
+ * Judges section - displays competition judges in a responsive grid.
+ * Cards show the judge's name + title headline only; the full bio lives on
+ * their public profile. When a judge has a linked profile (RPC returns a
+ * non-null `profile`), the card is clickable and opens that profile.
  */
 export function JudgesSection() {
   const { judges } = usePublicCompetition();
+  const navigate = useNavigate();
 
   if (!judges || judges.length === 0) return null;
 
@@ -26,8 +31,19 @@ export function JudgesSection() {
       <div className="judges-grid" data-count={judges.length}>
         {judges.map((judge) => {
           const igUrl = getInstagramUrl(judge.instagram);
+          const profileId = judge.profile?.id;
+          const openProfile = () => profileId && navigate(`/profile/${profileId}`);
           return (
-            <div key={judge.id} className="judge-card">
+            <div
+              key={judge.id}
+              className={`judge-card${profileId ? ' judge-card-clickable' : ''}`}
+              onClick={profileId ? openProfile : undefined}
+              role={profileId ? 'button' : undefined}
+              tabIndex={profileId ? 0 : undefined}
+              onKeyDown={profileId ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProfile(); }
+              } : undefined}
+            >
               <div className="judge-avatar">
                 {judge.avatar_url ? (
                   <img src={transformSupabaseImage(judge.avatar_url, { width: 150, height: 150 })} alt={judge.name} />
@@ -37,7 +53,6 @@ export function JudgesSection() {
               </div>
               <h3 className="judge-name">{judge.name}</h3>
               {judge.title && <p className="judge-title">{judge.title}</p>}
-              {judge.bio && <p className="judge-bio">{judge.bio}</p>}
               {igUrl && (
                 <a
                   href={igUrl}

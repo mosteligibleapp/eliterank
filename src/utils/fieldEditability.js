@@ -8,8 +8,12 @@
  *    (category, who-can-enter, territory, entry type, how-they-win, # winners,
  *     sponsor-of-record org, name/identity).
  *  - PUBLISH_LOCK: editable through "approved"; locks once published to public
- *    (nomination/voting dates, prize structure, judging criteria, nomination/
+ *    (nomination dates, prize structure, judging criteria, nomination/
  *     application form fields, rules).
+ *  - VOTING_WINDOW_LOCK: editable through "publish" (entry/nomination phase);
+ *    locks only once voting opens (status → live). Voting dates can still be
+ *    fine-tuned after a competition is published, up until voting actually
+ *    starts.
  *
  * Sponsors & prizes are intentionally EDITABLE at every phase — hosts can add
  * or adjust rewards any time, including after going live.
@@ -31,6 +35,9 @@ const EDITABLE = p(true, true, true, true, true, true);
 const LOCKED = p(false, false, false, false, false, false);
 const SUBMIT_LOCK = p(true, false, false, false, false, false);
 const PUBLISH_LOCK = p(true, true, true, false, false, false);
+// Voting dates lock later than other publish-locked fields: a host can keep
+// adjusting them after publishing, right up until voting opens (status → live).
+const VOTING_WINDOW_LOCK = p(true, true, true, true, false, false);
 const MARKETING = p(true, true, true, true, true, false);
 const THEME = p(true, true, true, true, 'warn', false);
 
@@ -63,9 +70,10 @@ const FIELD_RULES = {
   // Specifics — lock at Publish-to-public
   nomination_start: PUBLISH_LOCK,
   nomination_end: PUBLISH_LOCK,
-  voting_start: PUBLISH_LOCK,
-  voting_end: PUBLISH_LOCK,
-  finals_date: PUBLISH_LOCK,
+  // Voting window stays editable through the entry/nomination phase; locks at live.
+  voting_start: VOTING_WINDOW_LOCK,
+  voting_end: VOTING_WINDOW_LOCK,
+  finals_date: VOTING_WINDOW_LOCK,
   prize_structure: PUBLISH_LOCK,
   judging_criteria: PUBLISH_LOCK,
   nomination_form: PUBLISH_LOCK,
@@ -162,6 +170,9 @@ export function getLockedReason(fieldName, status) {
   const rules = FIELD_RULES[fieldName];
   if (rules === SUBMIT_LOCK || (rules && rules.pending_approval === false && rules.draft === true && rules.approved === false)) {
     return 'Locked once you submit for approval — this defines the competition and can’t change.';
+  }
+  if (rules === VOTING_WINDOW_LOCK || (rules && rules.publish === true && rules.live === false)) {
+    return 'Locked once voting opens — you can still adjust this while the competition is published, before voting starts.';
   }
   if (rules === PUBLISH_LOCK || (rules && rules.approved === true && rules.publish === false)) {
     return 'Locked once your competition is published to the public.';
