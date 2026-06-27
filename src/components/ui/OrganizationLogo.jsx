@@ -1,6 +1,7 @@
 import React from 'react';
 import { Crown } from 'lucide-react';
 import { borderRadius } from '../../styles/theme';
+import { useTrimmedLogo } from '../../lib/trimLogo';
 
 // Check if the logo is an emoji or URL
 function isEmoji(str) {
@@ -10,6 +11,12 @@ function isEmoji(str) {
 }
 
 export default function OrganizationLogo({ logo, size = 48, style = {} }) {
+  // Auto-trim image logos so a tightly-padded mark fills the frame instead of
+  // floating small in its own whitespace (wide wordmarks stay uncropped).
+  // Called unconditionally (Rules of Hooks); only image URLs get trimmed.
+  const isImageLogo = !!logo && !isEmoji(logo);
+  const displayLogo = useTrimmedLogo(isImageLogo ? logo : null);
+
   const containerStyle = {
     width: `${size}px`,
     height: `${size}px`,
@@ -47,14 +54,15 @@ export default function OrganizationLogo({ logo, size = 48, style = {} }) {
     );
   }
 
-  // Image URL logo
+  // Image URL logo. Use `contain` on the trimmed logo so a padded square mark
+  // fills the frame while a wide wordmark fits to width — neither is cropped.
   return (
     <img
-      src={logo}
+      src={displayLogo}
       alt="Organization logo"
       style={{
         ...containerStyle,
-        objectFit: 'cover',
+        objectFit: 'contain',
       }}
     />
   );

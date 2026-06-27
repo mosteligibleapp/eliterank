@@ -1,61 +1,7 @@
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
-import { User, MapPin, Globe, Instagram, Facebook, Music2 } from 'lucide-react';
+import { User, MapPin } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { transformSupabaseImage } from '../../../lib/storageImage';
-
-// Turn a stored handle or partial URL into a full, safe https link.
-// Handles all the ways a host might enter it: "@handle", "handle",
-// "instagram.com/handle", "www.instagram.com/handle", or a full URL — without
-// producing doubled domains, and rejecting non-web schemes (javascript:, etc).
-const SOCIAL_DOMAINS = {
-  instagram: 'instagram.com',
-  tiktok: 'tiktok.com',
-  facebook: 'facebook.com',
-};
-
-function normalizeSocialUrl(value, kind) {
-  if (!value) return null;
-  const v = String(value).trim();
-  if (!v) return null;
-  // Already a full URL — pass through only http(s).
-  if (/^https?:\/\//i.test(v)) return v;
-  // Block any other explicit scheme (javascript:, data:, mailto:, …).
-  if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return null;
-
-  const lower = v.toLowerCase();
-  const domain = SOCIAL_DOMAINS[kind];
-  // Looks like a URL/domain/path already (website, a path, or the platform's
-  // own domain) → just ensure an https scheme, don't prepend the platform host.
-  const looksLikeUrl =
-    kind === 'website' ||
-    v.includes('/') ||
-    lower.includes('fb.com') ||
-    (domain && lower.includes(domain));
-  if (looksLikeUrl) return `https://${v.replace(/^\/+/, '')}`;
-
-  // Otherwise it's a bare handle → build the platform profile URL.
-  const handle = v.replace(/^@/, '');
-  switch (kind) {
-    case 'instagram': return `https://instagram.com/${handle}`;
-    case 'tiktok': return `https://tiktok.com/@${handle}`;
-    case 'facebook': return `https://facebook.com/${handle}`;
-    default: return `https://${handle}`;
-  }
-}
-
-// The host org's website + socials, in display order, filled entries only.
-function buildHostLinks(organization) {
-  if (!organization) return [];
-  const defs = [
-    { key: 'website', label: 'Website', Icon: Globe, value: organization.website_url },
-    { key: 'instagram', label: 'Instagram', Icon: Instagram, value: organization.instagram },
-    { key: 'tiktok', label: 'TikTok', Icon: Music2, value: organization.tiktok },
-    { key: 'facebook', label: 'Facebook', Icon: Facebook, value: organization.facebook },
-  ];
-  return defs
-    .map((d) => ({ ...d, url: normalizeSocialUrl(d.value, d.key) }))
-    .filter((d) => d.url);
-}
 
 function buildHostList(competition) {
   const list = [];
@@ -78,16 +24,15 @@ function getHostName(host) {
  * co-hosts side-by-side in a responsive grid.
  */
 export function HostSection({ showHosts = true } = {}) {
-  const { competition, sponsors, organization } = usePublicCompetition();
+  const { competition, sponsors } = usePublicCompetition();
   const navigate = useNavigate();
   const location = useLocation();
 
   const hosts = showHosts ? buildHostList(competition) : [];
   const isPlural = hosts.length > 1;
-  const hostLinks = buildHostLinks(organization);
 
-  // Don't render anything if there's nothing to show
-  if (hosts.length === 0 && (!sponsors || sponsors.length === 0) && hostLinks.length === 0) {
+  // Don't render anything if no hosts AND no sponsors
+  if (hosts.length === 0 && (!sponsors || sponsors.length === 0)) {
     return null;
   }
 
@@ -172,29 +117,6 @@ export function HostSection({ showHosts = true } = {}) {
         </div>
       )}
 
-      {/* Host website + socials — shown directly beneath sponsors */}
-      {hostLinks.length > 0 && (
-        <div className="host-links-card">
-          <h4 className="section-label">
-            {organization?.name ? `Follow ${organization.name}` : 'Follow Along'}
-          </h4>
-          <div className="host-links-row">
-            {hostLinks.map(({ key, label, Icon, url }) => (
-              <a
-                key={key}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="host-link"
-                aria-label={label}
-              >
-                <Icon size={18} />
-                <span>{label}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

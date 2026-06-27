@@ -18,6 +18,7 @@ import RealAnnouncementsTab from '../components/AnnouncementsTab';
 import { useOrganizations, useCities } from '../../../hooks/useCachedQuery';
 import { formatEventTime } from '../../../utils/formatters';
 import CompetitionSkeleton from '../../../components/skeletons/CompetitionSkeleton';
+import { getOrgLogo } from '../../../lib/storageImage';
 
 // Tab definitions
 const TABS = [
@@ -202,6 +203,7 @@ export default function CompetitionPage() {
 
   const isTeaser = competition.status === COMPETITION_STATUS.PUBLISH;
   const statusConfig = STATUS_CONFIG[competition.status];
+  const orgLogo = getOrgLogo(organization);
 
   return (
     <div style={{
@@ -249,11 +251,11 @@ export default function CompetitionPage() {
               border: `2px solid ${colors.border.light}`,
               flexShrink: 0,
             }}>
-              {organization?.logo_url ? (
+              {orgLogo ? (
                 <img
-                  src={organization.logo_url}
+                  src={orgLogo}
                   alt={organization.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               ) : (
                 <Crown size={36} style={{ color: colors.gold.primary }} />
