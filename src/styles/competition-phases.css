@@ -3251,30 +3251,6 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   text-transform: uppercase;
 }
 
-/* Host website + socials — sits directly beneath the sponsors card */
-/* Host website + socials — a bare row of icons (no container), beneath sponsors */
-.host-links-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-
-.host-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
-
-.host-link:hover,
-.host-link:focus-visible {
-  color: var(--color-primary);
-}
-
 /* Timeline */
 .timeline {
   background: var(--color-bg-secondary);
@@ -5320,6 +5296,32 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
 .competition-footer-legal-link:focus-visible {
   color: var(--color-primary);
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* Host website + social icons — centered row beneath the policy links */
+.competition-footer-socials {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.competition-footer-social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.competition-footer-social:hover,
+.competition-footer-social:focus-visible {
+  color: var(--color-primary);
 }
 
 /* Official Rules full-page view sits inside the competition layout */
