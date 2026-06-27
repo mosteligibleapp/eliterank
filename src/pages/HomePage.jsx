@@ -7,6 +7,7 @@
 import React, { lazy, Suspense, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore, useUserRole, useHasDashboardAccess, useUserName, ROLES } from '../stores';
+import { useMyPerformance } from '../hooks';
 import { getCompetitionUrl, generateCompetitionSlug } from '../utils/slugs';
 
 const EliteRankCityModal = lazy(() => import('../components/modals/EliteRankCityModal'));
@@ -30,9 +31,15 @@ export default function HomePage({
 
   // Use Zustand stores for auth state
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const user = useAuthStore(s => s.user);
   const profile = useAuthStore(s => s.profile);
   const signOut = useAuthStore(s => s.signOut);
   const userRole = useUserRole();
+
+  // "How to Win" shows only while the user is in an actively-running
+  // competition — same rule as PageHeader, so it's consistent across pages.
+  const { performances } = useMyPerformance(user?.id);
+  const hasActiveCompetition = performances.some((p) => p.isActive);
   const hasDashboardAccess = useHasDashboardAccess();
   const userName = useUserName();
 
@@ -109,7 +116,7 @@ export default function HomePage({
         onRewards={isAuthenticated && profile?.is_nominee_or_contestant ? onShowRewards : null}
         onAchievements={isAuthenticated && profile?.is_nominee_or_contestant ? onShowAchievements : null}
         onAccountSettings={isAuthenticated ? handleAccountSettings : null}
-        onHowToCompete={profile?.is_nominee_or_contestant ? handleHowToCompete : undefined}
+        onHowToCompete={hasActiveCompetition ? handleHowToCompete : undefined}
         onLaunchCompetition={isAuthenticated ? handleLaunchCompetition : undefined}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
