@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { EliteRankCrown } from '../../../components/ui/icons';
-import { transformSupabaseImage } from '../../../lib/storageImage';
+import { transformSupabaseImage, getOrgLogo } from '../../../lib/storageImage';
 import { buildHostLinks } from './hostLinks';
 
 /**
@@ -15,6 +15,7 @@ import { buildHostLinks } from './hostLinks';
 export function CompetitionFooter() {
   const { organization, orgSlug, competitionSlug, competition } = usePublicCompetition();
   const hostLinks = buildHostLinks(organization);
+  const orgLogo = getOrgLogo(organization);
 
   // Per-competition Official Rules path — built the same way across slug-based
   // and ID-based URLs so it resolves regardless of how the user arrived.
@@ -27,10 +28,10 @@ export function CompetitionFooter() {
   return (
     <footer className="competition-footer">
       <div className="competition-footer-items">
-        {organization?.logo_url && (
+        {orgLogo && (
           <div className="competition-footer-item">
             <div className="competition-footer-logo">
-              <img src={transformSupabaseImage(organization.logo_url, { width: 150, height: 60, resize: 'contain' })} alt={organization.name} />
+              <img src={transformSupabaseImage(orgLogo, { width: 150, height: 60, resize: 'contain' })} alt={organization.name} />
             </div>
             <div className="competition-footer-text">
               <span className="competition-footer-label">Presented by</span>

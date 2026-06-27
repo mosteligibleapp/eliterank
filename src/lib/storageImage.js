@@ -46,6 +46,20 @@ export function transformSupabaseImage(url, { width, height, quality = 75, resiz
 }
 
 /**
+ * The single canonical logo for an organization/competition — the file the
+ * host uploads. Prefer `logo_url` (the host-uploaded mark used everywhere:
+ * footer, listings, modals) and fall back to `header_logo_url` (the optional
+ * wide wordmark) only when no primary logo exists. Returns null when neither
+ * is set so callers can render their own placeholder (crown).
+ *
+ * Using this everywhere keeps one logo per org consistent across the header,
+ * footer, and listings instead of mixing the square mark and wide wordmark.
+ */
+export function getOrgLogo(organization) {
+  return organization?.logo_url || organization?.header_logo_url || null;
+}
+
+/**
  * Convenience for square avatars. Doubles the rendered size so retina
  * displays still get crisp output.
  */

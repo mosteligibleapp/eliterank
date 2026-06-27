@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { usePublicCompetition } from '../../../contexts/PublicCompetitionContext';
 import { Crown } from 'lucide-react';
 import { isDoubleVoteDayForCompetition } from '../../../lib/doubleVoteDay';
-import { transformSupabaseImage } from '../../../lib/storageImage';
+import { transformSupabaseImage, getOrgLogo } from '../../../lib/storageImage';
 
 /**
  * Consistent competition header across all phases
@@ -48,13 +48,10 @@ export function CompetitionHeader({ badge, badgeIcon: BadgeIcon, badgeVariant = 
   }[effectiveVariant] || '';
   const effectiveBadge = isDoubleVoteDay ? 'Double Day · All Votes 2×' : badge;
 
-  // In compact or icon-only mode prefer the square icon logo over the wide
-  // wordmark. Compact is used on leaderboard/prizes to shrink the header;
-  // icon-only keeps the full header layout but swaps the logo variant.
-  const preferIcon = compact || iconOnly;
-  const headerLogo = preferIcon
-    ? (organization?.logo_url || organization?.header_logo_url)
-    : (organization?.header_logo_url || organization?.logo_url);
+  // Use the single canonical host-uploaded logo everywhere (same file the
+  // footer and listings use) so the org's branding is consistent across the
+  // page rather than mixing the square mark and the wide wordmark.
+  const headerLogo = getOrgLogo(organization);
   const websiteUrl = organization?.website_url;
 
   const logoContent = headerLogo ? (
