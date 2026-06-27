@@ -3,6 +3,7 @@ import { Sparkles, Check, FileText, MapPin, Clock, ArrowLeft, ChevronRight, News
 import { Badge, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, gradients } from '../../../styles/theme';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { getOrgLogo } from '../../../lib/storageImage';
 
 const TYPE_CONFIG = {
   announcement: { icon: Sparkles, label: 'Announcement', color: colors.gold.primary, bgColor: 'rgba(212,175,55,0.10)' },
@@ -99,7 +100,7 @@ function parseArticleContent(content) {
 /* ─── Organization Byline ─── */
 function OrgByline({ competition, size = 'md' }) {
   const orgName = competition?.organization?.name || 'Most Eligible';
-  const orgLogo = competition?.organization?.logo_url;
+  const orgLogo = getOrgLogo(competition?.organization);
   const logoSize = size === 'sm' ? 20 : 28;
 
   return (
@@ -405,7 +406,7 @@ function HeadlineCard({ post, onClick, isMobile, competition }) {
     >
       {/* Left: org logo */}
       <OrganizationLogo
-        logo={competition?.organization?.logo_url}
+        logo={getOrgLogo(competition?.organization)}
         size={isMobile ? 40 : 48}
         style={{ borderRadius: borderRadius.lg }}
       />

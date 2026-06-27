@@ -10,6 +10,7 @@ import { useAuthStore } from '../../stores';
 import { colors, spacing, borderRadius, typography, shadows, transitions, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
+import { getOrgLogo } from '../../lib/storageImage';
 import {
   useCities,
   useOrganizations,
@@ -205,7 +206,7 @@ export default function EliteRankCityModal({
         accessible,
         organizationId: comp.organization_id,
         orgSlug: org?.slug,
-        organization: org ? { id: org.id, name: org.name, logo_url: org.logo_url || org.logo, slug: org.slug } : null,
+        organization: org ? { id: org.id, name: org.name, logo_url: org.logo_url || org.logo, header_logo_url: org.header_logo_url || null, slug: org.slug } : null,
         host_id: comp.host_id,
         host: hostProfile ? {
           id: hostProfile.id,
@@ -412,7 +413,7 @@ export default function EliteRankCityModal({
                 transition: 'transform 0.3s, background 0.3s',
                 transform: isHovered ? 'scale(1.1)' : 'scale(1)',
               }}>
-                <OrganizationLogo logo={org.logo_url || org.logo} size={isMobile ? 28 : 32} />
+                <OrganizationLogo logo={getOrgLogo(org) || org.logo} size={isMobile ? 28 : 32} />
               </div>
             )}
           </div>
@@ -1160,7 +1161,7 @@ export default function EliteRankCityModal({
                     {/* Org logo + name */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
                       <OrganizationLogo
-                        logo={a.organization?.logo_url}
+                        logo={getOrgLogo(a.organization)}
                         size={28}
                         style={{ borderRadius: borderRadius.sm }}
                       />

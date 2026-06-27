@@ -7,6 +7,7 @@ import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { PageHeader, Avatar, OrganizationLogo } from '../../components/ui';
 import { useResponsive } from '../../hooks/useResponsive';
 import { generateCompetitionSlug, getCompetitionUrl, slugify } from '../../utils/slugs';
+import { getOrgLogo } from '../../lib/storageImage';
 
 function getCompetitionLink(competition) {
   const orgSlug = competition?.organization?.slug || 'most-eligible';
@@ -230,7 +231,7 @@ export default function JudgeDashboardPage() {
             competition:competitions(
               id, name, season, status, slug,
               city:cities(name),
-              organization:organizations(id, name, slug, logo_url),
+              organization:organizations(id, name, slug, logo_url, header_logo_url),
               voting_rounds(id, title, round_type, round_order, start_date, end_date, judge_weight, contestants_advance)
             )
           `)
@@ -330,6 +331,7 @@ export default function JudgeDashboardPage() {
             const compUrl = getCompetitionLink(comp);
             const isHovered = hoveredCompId === comp.id;
             const org = comp.organization;
+            const orgLogo = getOrgLogo(org);
 
             return (
               <div key={row.id} style={styles.competition}>
@@ -342,9 +344,9 @@ export default function JudgeDashboardPage() {
                   onMouseEnter={() => setHoveredCompId(comp.id)}
                   onMouseLeave={() => setHoveredCompId(null)}
                 >
-                  {org?.logo_url && (
+                  {orgLogo && (
                     <OrganizationLogo
-                      logo={org.logo_url}
+                      logo={orgLogo}
                       size={isMobile ? 56 : 72}
                       alt={org?.name || 'Organization'}
                     />

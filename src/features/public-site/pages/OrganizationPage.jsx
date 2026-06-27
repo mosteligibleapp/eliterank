@@ -8,6 +8,7 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { supabase } from '../../../lib/supabase';
 import { STATUS_CONFIG, COMPETITION_STATUS } from '../../../types/competition';
 import { SkeletonPulse, SkeletonCircle, SkeletonCard } from '../../../components/common/Skeleton';
+import { getOrgLogo } from '../../../lib/storageImage';
 
 export default function OrganizationPage() {
   const { orgSlug } = useParams();
@@ -128,6 +129,8 @@ export default function OrganizationPage() {
     );
   }
 
+  const orgLogo = getOrgLogo(organization);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -154,9 +157,9 @@ export default function OrganizationPage() {
               border: `2px solid ${colors.border.light}`,
               flexShrink: 0,
             }}>
-              {organization.logo_url ? (
+              {orgLogo ? (
                 <img
-                  src={organization.logo_url}
+                  src={orgLogo}
                   alt={organization.name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />

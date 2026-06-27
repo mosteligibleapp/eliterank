@@ -8,6 +8,7 @@ import { colors, spacing, borderRadius, typography } from '../../../styles/theme
 import { supabase } from '../../../lib/supabase';
 import { STATUS_CONFIG, COMPETITION_STATUS, US_STATES } from '../../../types/competition';
 import { SkeletonPulse, SkeletonCard } from '../../../components/common/Skeleton';
+import { getOrgLogo } from '../../../lib/storageImage';
 
 export default function CityPage() {
   const { citySlug } = useParams();
@@ -213,7 +214,9 @@ export default function CityPage() {
             </p>
           </div>
         ) : (
-          Object.values(competitionsByOrg).map(({ organization, competitions: orgComps }) => (
+          Object.values(competitionsByOrg).map(({ organization, competitions: orgComps }) => {
+            const orgLogo = getOrgLogo(organization);
+            return (
             <div key={organization?.id || 'unknown'} style={{ marginBottom: spacing.xxl }}>
               {/* Organization Header */}
               <div
@@ -236,9 +239,9 @@ export default function CityPage() {
                   justifyContent: 'center',
                   overflow: 'hidden',
                 }}>
-                  {organization?.logo_url ? (
+                  {orgLogo ? (
                     <img
-                      src={organization.logo_url}
+                      src={orgLogo}
                       alt={organization.name}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
@@ -268,7 +271,8 @@ export default function CityPage() {
                 ))}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
