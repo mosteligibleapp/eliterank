@@ -402,19 +402,17 @@ export default function EliteRankCityModal({
               </Badge>
             )}
             {org && (
-              <div style={{
-                width: isMobile ? '48px' : '54px',
-                height: isMobile ? '48px' : '54px',
-                borderRadius: borderRadius.lg,
-                background: 'rgba(255,255,255,0.15)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                ...styleHelpers.flexCenter,
-                transition: 'transform 0.3s, background 0.3s',
-                transform: isHovered ? 'scale(1.1)' : 'scale(1)',
-              }}>
-                <OrganizationLogo logo={getOrgLogo(org) || org.logo} size={isMobile ? 42 : 48} />
-              </div>
+              <OrganizationLogo
+                logo={getOrgLogo(org) || org.logo}
+                size={isMobile ? 46 : 54}
+                style={{
+                  // No frosted container — the logo sits directly on the photo.
+                  // A soft shadow keeps light logos legible over bright images.
+                  filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.45))',
+                  transition: 'transform 0.3s',
+                  transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+                }}
+              />
             )}
           </div>
 
