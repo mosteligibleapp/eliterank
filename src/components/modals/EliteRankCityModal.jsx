@@ -409,6 +409,9 @@ export default function EliteRankCityModal({
                   // No frosted container — the logo sits directly on the photo.
                   // A soft shadow keeps light logos legible over bright images.
                   filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.45))',
+                  // Top-align so a short, wide wordmark hugs the corner instead
+                  // of floating in the vertical middle of its square slot.
+                  objectPosition: 'top',
                   transition: 'transform 0.3s',
                   transform: isHovered ? 'scale(1.1)' : 'scale(1)',
                 }}
