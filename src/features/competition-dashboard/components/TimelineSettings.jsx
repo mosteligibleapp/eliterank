@@ -456,16 +456,18 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Status state
   const [status, setStatus] = useState(competition?.status || COMPETITION_STATUS.DRAFT);
 
-  // The timeline locks at publish. Editing or replacing rounds on a published/
-  // live competition would delete judge scores + finalization snapshots and can
-  // re-trigger finalization/vote resets on already-closed rounds — so hosts get
-  // a read-only schedule from publish onward (and once completed/archived).
+  // The voting timeline locks once voting opens — not at publish. Editing or
+  // replacing rounds on a live competition would delete judge scores +
+  // finalization snapshots and can re-trigger finalization/vote resets on
+  // already-closed rounds. Before voting opens (draft → publish/nomination), no
+  // rounds have run yet, so hosts can still fine-tune voting dates and rounds.
+  // Nomination dates lock at publish separately (see NominationFormEditor).
   // Super admins keep edit access for corrections.
   const isFinished =
     status === COMPETITION_STATUS.COMPLETED || status === COMPETITION_STATUS.ARCHIVE;
-  const isPublished =
-    ['publish', 'live', 'nomination', 'voting', 'finals'].includes(status);
-  const isLocked = (isFinished || isPublished) && !isSuperAdmin;
+  const isVotingOpen =
+    ['live', 'voting', 'finals'].includes(status);
+  const isLocked = (isFinished || isVotingOpen) && !isSuperAdmin;
 
   // Validation errors
   const [errors, setErrors] = useState([]);
@@ -659,7 +661,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // Save settings
   const handleSave = async () => {
     if (isLocked) {
-      toast.error('This competition has ended — its timeline is locked.');
+      toast.error(
+        isFinished
+          ? 'This competition has ended — its timeline is locked.'
+          : 'Voting has opened — the voting schedule is locked. Contact support to change a date.'
+      );
       return;
     }
     if (!validateDates()) {
@@ -1074,7 +1080,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
               <p style={{ margin: `${spacing.xs} 0 0`, fontSize: typography.fontSize.xs, color: colors.text.muted }}>
                 {isFinished
                   ? `This competition has ${status === COMPETITION_STATUS.ARCHIVE ? 'been archived' : 'ended'}. Its schedule is preserved as a record and can no longer be edited.`
-                  : 'This competition is published, so its schedule is locked. Contact support if a date needs to change.'}
+                  : 'Voting has opened, so the voting schedule is now locked to protect scores and results. Contact support if a date needs to change.'}
               </p>
             </div>
           </div>
