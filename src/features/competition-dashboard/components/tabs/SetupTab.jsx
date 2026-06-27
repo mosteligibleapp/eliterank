@@ -889,6 +889,11 @@ export default function SetupTab({
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: typography.fontWeight.medium }}>{competition.charityName}</p>
+                {Number(competition.charityPercentage) > 0 && (
+                  <p style={{ margin: `0 0 ${spacing.xs}`, color: colors.gold.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium }}>
+                    {Number(competition.charityPercentage)}% of proceeds donated
+                  </p>
+                )}
                 {competition.charityWebsiteUrl && (
                   <a
                     href={competition.charityWebsiteUrl}
