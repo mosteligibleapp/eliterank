@@ -12,7 +12,6 @@ import { Rewards } from '../components/Rewards';
 import { JudgesSection } from '../components/JudgesSection';
 import { CharityHighlight } from '../components/CharityHighlight';
 import { HostCard } from '../components/HostCard';
-import { PoweredByEliteRank } from '../components/PoweredByEliteRank';
 import { getCompetitionImage } from '../../../utils/cityImages';
 import { useAuthStore } from '../../../stores';
 import { useCompetitionSubscription } from '../../../features/competition/useCompetitionSubscription';
@@ -182,9 +181,6 @@ export function ComingSoonPhase() {
           </section>
         </>
       )}
-
-      {/* Attribution */}
-      <PoweredByEliteRank />
     </div>
   );
 }

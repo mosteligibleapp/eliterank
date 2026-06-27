@@ -172,27 +172,22 @@ export function HostSection({ showHosts = true } = {}) {
         </div>
       )}
 
-      {/* Host website + socials — shown directly beneath sponsors */}
+      {/* Host website + socials — a bare row of icons directly beneath sponsors */}
       {hostLinks.length > 0 && (
-        <div className="host-links-card">
-          <h4 className="section-label">
-            {organization?.name ? `Follow ${organization.name}` : 'Follow Along'}
-          </h4>
-          <div className="host-links-row">
-            {hostLinks.map(({ key, label, Icon, url }) => (
-              <a
-                key={key}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="host-link"
-                aria-label={label}
-              >
-                <Icon size={18} />
-                <span>{label}</span>
-              </a>
-            ))}
-          </div>
+        <div className="host-links-row">
+          {hostLinks.map(({ key, label, Icon, url }) => (
+            <a
+              key={key}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="host-link"
+              aria-label={label}
+              title={label}
+            >
+              <Icon size={20} />
+            </a>
+          ))}
         </div>
       )}
     </div>
