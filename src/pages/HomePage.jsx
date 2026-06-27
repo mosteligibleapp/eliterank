@@ -36,10 +36,11 @@ export default function HomePage({
   const signOut = useAuthStore(s => s.signOut);
   const userRole = useUserRole();
 
-  // "How to Win" shows only while the user is in an actively-running
-  // competition — same rule as PageHeader, so it's consistent across pages.
+  // "How to Win" and "Rewards" show only while the user is still in the running
+  // (active competition + not eliminated / not finished) — same rule as
+  // PageHeader, so it's consistent across pages.
   const { performances } = useMyPerformance(user?.id);
-  const hasActiveCompetition = performances.some((p) => p.isActive);
+  const isStillCompeting = performances.some((p) => p.isActive && p.status === 'active');
   const hasDashboardAccess = useHasDashboardAccess();
   const userName = useUserName();
 
@@ -113,10 +114,10 @@ export default function HomePage({
         onLogin={onShowLogin}
         onDashboard={isAuthenticated && hasDashboardAccess ? handleGoToDashboard : null}
         onProfile={isAuthenticated ? onShowProfile : null}
-        onRewards={isAuthenticated && profile?.is_nominee_or_contestant ? onShowRewards : null}
+        onRewards={isStillCompeting ? onShowRewards : null}
         onAchievements={isAuthenticated && profile?.is_nominee_or_contestant ? onShowAchievements : null}
         onAccountSettings={isAuthenticated ? handleAccountSettings : null}
-        onHowToCompete={hasActiveCompetition ? handleHowToCompete : undefined}
+        onHowToCompete={isStillCompeting ? handleHowToCompete : undefined}
         onLaunchCompetition={isAuthenticated ? handleLaunchCompetition : undefined}
         isAuthenticated={isAuthenticated}
         userRole={userRole}
