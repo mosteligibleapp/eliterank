@@ -327,6 +327,31 @@ export function isCompetitionInProgress(competition) {
 }
 
 /**
+ * Whether public voting has begun for a competition — i.e. the earliest voting
+ * round has started, or the competition is already completed. Used to lock
+ * settings that may only change before votes start accruing (e.g. the master
+ * bonus-votes switch): a host can turn bonus votes off up until voting begins,
+ * but not mid-stream once contestants are earning them.
+ *
+ * @param {Object} competition - Competition object (status + voting_rounds)
+ * @returns {boolean}
+ */
+export function hasVotingBegun(competition) {
+  if (!competition) return false;
+
+  // A completed competition has necessarily been through voting.
+  if (isCompleted(competition.status)) return true;
+
+  const rounds = competition.voting_rounds || competition.votingRounds || [];
+  const now = new Date();
+  return rounds.some((r) => {
+    if ((r.round_type || 'voting') !== 'voting') return false;
+    const start = r.start_date ? new Date(r.start_date) : null;
+    return start && !Number.isNaN(start.getTime()) && now >= start;
+  });
+}
+
+/**
  * Legacy function for backward compatibility.
  * @deprecated Use isCompetitionAccessible instead
  */

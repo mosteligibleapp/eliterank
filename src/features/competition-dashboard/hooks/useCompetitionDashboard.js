@@ -663,6 +663,8 @@ export function useCompetitionDashboard(competitionId) {
           winnersSplitByGender: competition.winners_split_by_gender ?? false,
           // Setup-tab section ids the host has grayed out.
           hiddenSetupSections: competition.hidden_setup_sections || [],
+          // Master switch for the bonus-votes feature (default on).
+          bonusVotesEnabled: competition.bonus_votes_enabled !== false,
           // Timeline arrays — pass through so computeCompetitionPhase can
           // detect between-rounds vs. nominations correctly.
           nomination_periods: competition.nomination_periods || [],
