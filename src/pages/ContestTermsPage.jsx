@@ -136,7 +136,7 @@ export default function ContestTermsPage() {
         </button>
 
         <h1 style={styles.title}>Contest Terms &amp; Conditions</h1>
-        <p style={styles.updated}>Last Updated: May 26, 2026</p>
+        <p style={styles.updated}>Last Updated: June 28, 2026</p>
 
         <section style={styles.section}>
           <h2 style={styles.h2}>1. About These Terms</h2>
@@ -175,6 +175,14 @@ export default function ContestTermsPage() {
             administrator unless explicitly identified as the Host.
           </p>
           <p style={styles.p}>
+            For paid votes, the Host's organization is the <span style={styles.strong}>merchant of record</span>:
+            vote purchases are charged directly to the Host's payment account, EliteRank facilitates payment
+            processing and collects a platform fee, and the Host receives the remainder. The Host is responsible for
+            selecting winners, fulfilling prizes, any required tax reporting, and any charitable donation. EliteRank
+            operates the platform and processes payments but does not perform these functions and does not guarantee
+            the Host's compliance.
+          </p>
+          <p style={styles.p}>
             "Promotion Entities" means the Host, EliteRank, their respective affiliates, and their officers,
             directors, employees, agents, contractors, judges, and sponsors of the competition.
           </p>
@@ -185,7 +193,7 @@ export default function ContestTermsPage() {
           <p style={styles.p}>To enter or vote in a competition, you must:</p>
           <ul style={styles.ul}>
             <li style={styles.li}>be at least <span style={styles.strong}>18 years of age</span> (or the age of majority in your state or province, whichever is greater) at the time of entry;</li>
-            <li style={styles.li}>be a legal resident of the <span style={styles.strong}>United States</span> (the 50 states and the District of Columbia) or the <span style={styles.strong}>province of Ontario, Canada</span>; and</li>
+            <li style={styles.li}>be a legal resident of the <span style={styles.strong}>United States</span> (the 50 states and the District of Columbia) or <span style={styles.strong}>Toronto, Ontario, Canada</span>; and</li>
             <li style={styles.li}>not be a resident of any state, province, or jurisdiction in which the competition is prohibited by law.</li>
           </ul>
           <p style={styles.p}>
@@ -194,9 +202,11 @@ export default function ContestTermsPage() {
             are not eligible to win prizes in any competition they administer.
           </p>
           <p style={styles.p}>
-            Each contest page identifies the specific eligibility, age, and geographic requirements for that
-            competition (for example, a city or regional restriction). It is your responsibility to verify your
-            eligibility before entering or voting.
+            Each contest page identifies the specific eligibility for that competition &mdash; including any minimum
+            or maximum age, the gender(s) eligible to enter, and the geographic territory the competition covers
+            (a host city and surrounding area, a state, or nationwide). These per-competition requirements apply in
+            addition to the baseline requirements above, and a competition may set a minimum age higher than 18. It
+            is your responsibility to verify your eligibility before entering or voting.
           </p>
         </section>
 
@@ -205,10 +215,12 @@ export default function ContestTermsPage() {
 
           <h3 style={styles.h3}>4.1 Nominations and Entries</h3>
           <p style={styles.p}>
-            Each competition will specify on the contest page how individuals may be nominated and how a nomination
-            becomes an entry (a "Contestant"). Typically, an individual may self-nominate or be nominated by a third
-            party. A nominated individual must accept the nomination, complete the required profile information,
-            and agree to these Contest Terms to become a Contestant.
+            Each competition specifies on the contest page how individuals enter and become an entry (a
+            "Contestant"). Entry is typically by <span style={styles.strong}>nomination</span> &mdash; anyone may
+            nominate an eligible person, and individuals may also self-nominate &mdash; or, where the competition
+            uses an <span style={styles.strong}>application</span> format, by direct application. A nominated or
+            applying individual must accept or confirm the entry, complete the required profile information, and
+            agree to these Contest Terms to become a Contestant.
           </p>
 
           <h3 style={styles.h3}>4.2 Submitted Materials</h3>
@@ -278,9 +290,12 @@ export default function ContestTermsPage() {
           <p style={styles.p}>
             Where the competition includes a public-support component, voters may show support by casting votes for
             a contestant. Each voter receives at least one free vote credit per competition; voters may also
-            purchase additional vote credits through the Platform's payment processor (Stripe). Votes are recorded
-            in the contestant's tally and, where the contest page so specifies, factor into the contestant's final
-            score under the published scoring formula.
+            purchase additional vote credits. The starting price per vote is set by the Host for each competition,
+            and larger vote packs may carry a lower per-vote price. Vote purchases are facilitated by EliteRank
+            through Stripe and charged directly to the Stripe account of the organization hosting the competition,
+            which is the merchant of record for the purchase; EliteRank collects a platform fee and the Host
+            receives the remainder. Votes are recorded in the contestant's tally and, where the contest page so
+            specifies, factor into the contestant's final score under the published scoring formula.
           </p>
           <p style={styles.p}>
             Votes are a measure of public support for a contestant and are <span style={styles.strong}>not</span>{' '}
@@ -288,6 +303,14 @@ export default function ContestTermsPage() {
             purchasing votes does not entitle the voter to anything other than additional voting capacity. Votes
             purchased through the Platform are final and non-refundable once recorded, except as required by law or
             as expressly provided on the contest page.
+          </p>
+          <p style={styles.p}>
+            Some competitions let contestants earn additional votes by completing bonus tasks (for example,
+            completing a profile or sharing their page); these bonus votes are earned through those actions, not
+            purchased, and are added to the contestant's tally. Some competitions also designate
+            <span style={styles.strong}> double-vote days</span> on which each free and purchased vote counts twice;
+            votes earned from bonus tasks are not doubled. Where these features apply, they are described on the
+            competition page and timeline.
           </p>
 
           <h3 style={styles.h3}>5.5 Prohibited Voting and Fraud</h3>
@@ -327,10 +350,12 @@ export default function ContestTermsPage() {
           <h2 style={styles.h2}>7. Charity Allocation (When Applicable)</h2>
           <p style={styles.p}>
             Some competitions designate a charitable beneficiary on the contest page. Where a charitable allocation
-            is designated, up to twenty percent (20%) of net proceeds from purchased votes for that competition will
-            typically be donated to the designated charity (or such other percentage as stated on the contest page).
-            If the designated charity is unable or unwilling to accept the donation, the Host may donate the
-            charity portion to an alternate charity of similar mission in its reasonable discretion.
+            is designated, the Host donates the percentage stated on the contest page of its net proceeds from
+            purchased votes for that competition. Net proceeds are the vote revenue the Host receives after
+            EliteRank's platform and payment-processing fees. The donation is made by the Host &mdash; EliteRank
+            operates the platform and processes payments but does not collect or make the donation. If the
+            designated charity is unable or unwilling to accept the donation, the Host may donate the charity
+            portion to an alternate charity of similar mission in its reasonable discretion.
           </p>
           <p style={styles.p}>
             Purchased votes are not tax-deductible charitable contributions and you will not receive a

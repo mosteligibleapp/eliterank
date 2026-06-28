@@ -126,7 +126,7 @@ export default function TermsPage() {
         </button>
 
         <h1 style={styles.title}>Terms of Use</h1>
-        <p style={styles.updated}>Last Updated: May 26, 2026</p>
+        <p style={styles.updated}>Last Updated: June 28, 2026</p>
 
         <section style={styles.section}>
           <h2 style={styles.h2}>1. Agreement to These Terms</h2>
@@ -173,10 +173,16 @@ export default function TermsPage() {
           </p>
           <ul style={styles.ul}>
             <li style={styles.li}>be at least <span style={styles.strong}>18 years of age</span>;</li>
-            <li style={styles.li}>be a resident of the <span style={styles.strong}>United States</span> or the <span style={styles.strong}>province of Ontario, Canada</span>;</li>
+            <li style={styles.li}>be a resident of the <span style={styles.strong}>United States</span> or <span style={styles.strong}>Toronto, Ontario, Canada</span>;</li>
             <li style={styles.li}>have the legal capacity to enter into these Terms; and</li>
             <li style={styles.li}>not be prohibited from receiving the Service under the law of your country, state, or province of residence.</li>
           </ul>
+          <p style={styles.p}>
+            Individual competitions may impose additional eligibility requirements &mdash; such as a minimum or
+            maximum age, gender, or a specific geographic area (a host city and surrounding region, a state, or
+            nationwide) &mdash; which are shown on the relevant contest page and governed by our{' '}
+            <a onClick={() => navigate('/contest-terms')} style={styles.link}>Contest Terms &amp; Conditions</a>.
+          </p>
           <p style={styles.p}>
             If you are acting on behalf of an organization (for example, as a host), you represent that you have
             authority to bind that organization to these Terms.
@@ -248,9 +254,12 @@ export default function TermsPage() {
             competition mechanics.
           </p>
           <p style={styles.p}>
-            Votes may be purchased through our payment processor, Stripe. All purchases are final and non-refundable
-            once the vote has been recorded, except as required by law or expressly stated on the contest page. You
-            are responsible for any taxes associated with purchases.
+            When you purchase votes, EliteRank facilitates the payment through Stripe, and the charge is made
+            directly to the Stripe account of the organization hosting that competition, which acts as the merchant
+            of record for the purchase. EliteRank collects a platform fee on each transaction and the host receives
+            the remainder. All purchases are final and non-refundable once the vote has been recorded, except as
+            required by law or expressly stated on the contest page. You are responsible for any taxes associated
+            with purchases.
           </p>
           <p style={styles.p}>
             We reserve the right to disqualify participants, void votes, withhold prizes, or modify competition
@@ -357,7 +366,7 @@ export default function TermsPage() {
           <h2 style={styles.h2}>15. International Use</h2>
           <p style={styles.p}>
             The Service is operated from the United States and intended for use by residents of the United States
-            and the province of Ontario, Canada. We make no representation that the Service is appropriate or
+            and Toronto, Ontario, Canada. We make no representation that the Service is appropriate or
             available in any other location. If you access the Service from outside these regions, you do so on your
             own initiative and are responsible for compliance with local laws.
           </p>

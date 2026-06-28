@@ -144,7 +144,7 @@ export default function PrivacyPage() {
         </button>
 
         <h1 style={styles.title}>Privacy Policy</h1>
-        <p style={styles.updated}>Last Updated: May 26, 2026</p>
+        <p style={styles.updated}>Last Updated: June 28, 2026</p>
 
         <section style={styles.section}>
           <h2 style={styles.h2}>1. About This Policy</h2>
@@ -155,10 +155,10 @@ export default function PrivacyPage() {
             web app, and any related features, content, communications, and services (collectively, the "Service").
           </p>
           <p style={styles.pBold}>
-            EliteRank is offered to residents of the United States and the province of Ontario, Canada. While the
+            EliteRank is offered to residents of the United States and Toronto, Ontario, Canada. While the
             Service may be technically accessible from other countries, we do not target or actively market the
-            Service outside the United States and Ontario. Sections 11 (California), 12 (EEA, UK, and Switzerland),
-            and 13 (Canada) provide additional disclosures for individuals in those jurisdictions.
+            Service outside the United States and the Toronto area. Sections 11 (California), 12 (EEA, UK, and
+            Switzerland), and 13 (Canada) provide additional disclosures for individuals in those jurisdictions.
           </p>
           <p style={styles.p}>
             By using the Service, you acknowledge that you have read and understood this Policy. If you do not agree,
@@ -174,7 +174,7 @@ export default function PrivacyPage() {
             <li style={styles.li}><span style={styles.strong}>Account information:</span> name, email address, password, mobile phone number, city, and profile details (photos, bio, social handles) you provide during registration, claim, or profile setup.</li>
             <li style={styles.li}><span style={styles.strong}>Competition data:</span> nominations you submit or receive, votes cast, contestant entries, judge scores, bonus task submissions, and competition participation history.</li>
             <li style={styles.li}><span style={styles.strong}>User content:</span> photos, videos, captions, comments, and other materials you upload to or share through the Service.</li>
-            <li style={styles.li}><span style={styles.strong}>Payment information:</span> when you purchase votes or other paid features, payment-card details are collected and processed directly by our payment processor (Stripe). EliteRank receives only a transaction confirmation and the last four digits of the card.</li>
+            <li style={styles.li}><span style={styles.strong}>Payment information:</span> when you purchase votes, your payment is processed by Stripe and charged directly to the connected Stripe account of the organization hosting that competition, which is the merchant of record for the purchase. EliteRank facilitates the payment and collects a platform fee; we receive only a transaction confirmation and the last four digits of the card. Full payment-card details are handled by Stripe.</li>
             <li style={styles.li}><span style={styles.strong}>Communications:</span> messages you send to us (support requests, feedback), your communication preferences, and delivery / interaction data for emails, push notifications, and in-app notifications we send to you.</li>
             <li style={styles.li}><span style={styles.strong}>Identity verification:</span> for prize claims, we may collect government-issued identification, mailing address, and tax-reporting information as required by law.</li>
           </ul>
@@ -232,7 +232,7 @@ export default function PrivacyPage() {
           </p>
           <ul style={styles.ul}>
             <li style={styles.li}><span style={styles.strong}>Other users (public profile data):</span> your profile name, photo, city, social handles, competition entries, vote tallies, and similar competition activity are visible to other users as part of the Service.</li>
-            <li style={styles.li}><span style={styles.strong}>Hosts and judges:</span> if you participate in a competition, the organization hosting that competition and its designated judges may see your entry and scoring data.</li>
+            <li style={styles.li}><span style={styles.strong}>Hosts and judges:</span> if you participate in a competition, the organization hosting that competition and its designated judges may see your entry and scoring data. Because the host organization is the merchant of record for vote purchases in its competition, it also receives transaction-related data (such as purchase amounts and timing) through Stripe.</li>
             <li style={styles.li}><span style={styles.strong}>Service providers (subprocessors):</span> trusted vendors who process information on our behalf, including:
               <ul style={{ ...styles.ul, marginTop: spacing[2], marginBottom: 0 }}>
                 <li style={styles.li}>Supabase &mdash; database, authentication, and file storage hosting</li>
@@ -374,7 +374,7 @@ export default function PrivacyPage() {
         <section style={styles.section}>
           <h2 style={styles.h2}>13. Notice to Canadian Residents (PIPEDA)</h2>
           <p style={styles.p}>
-            EliteRank offers the Service to residents of the province of Ontario, Canada. If you use the Service from
+            EliteRank offers the Service to residents of Toronto, Ontario, Canada. If you use the Service from
             Canada, we collect, use, and disclose your personal information in accordance with the federal Personal
             Information Protection and Electronic Documents Act ("PIPEDA") and applicable provincial laws, including
             Ontario's privacy framework.
