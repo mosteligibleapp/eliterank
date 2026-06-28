@@ -192,7 +192,7 @@ export function useCompetitionDashboard(competitionId) {
             category:categories(id, name, slug),
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
-            organization:organizations(id, name, legal_entity_name, slug, logo_url, header_logo_url, website_url, instagram, tiktok, facebook, stripe_connect_account_id, kyc_status, charges_enabled, payouts_enabled, connect_details_submitted, master_agreement_version, master_agreement_accepted_at),
+            organization:organizations(id, name, legal_entity_name, slug, logo_url, header_logo_url, website_url, instagram, tiktok, facebook, is_managed, stripe_connect_account_id, kyc_status, charges_enabled, payouts_enabled, connect_details_submitted, master_agreement_version, master_agreement_accepted_at),
             host:profiles!competitions_host_id_fkey(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery),
             voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance, judge_weight, finalized_at, finalized_snapshot),
             nomination_periods(id, start_date, end_date, period_order, title)
@@ -627,6 +627,10 @@ export function useCompetitionDashboard(competitionId) {
           // Additional fields for card generation and links
           slug: competition.slug || null,
           organizationName: competition.organization?.name || null,
+          // Company-run ("house") org: Host Agreement is signed off-platform and
+          // payouts settle to the company Stripe account, so the on-platform
+          // agreement + Stripe-Connect/KYC launch gates don't apply.
+          managed: !!competition.organization?.is_managed,
           organizationLegalEntityName: competition.organization?.legal_entity_name || null,
           organizationLogoUrl: competition.organization?.logo_url || null,
           organizationHeaderLogoUrl: competition.organization?.header_logo_url || null,

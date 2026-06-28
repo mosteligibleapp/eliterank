@@ -25,19 +25,22 @@ export default function LaunchRoadmap({ competition, onNavigateToTab }) {
   if (!['pending_approval', 'approved', 'publish'].includes(status)) return null;
 
   const published = status === 'publish';
+  // Company-run ("house") competitions handle payouts off-platform, so the
+  // Stripe payout-verification step doesn't apply to them.
+  const managed = !!competition?.managed;
 
   // The single most relevant "next move" line, by phase — also frames the flow.
   const nextStep = status === 'pending_approval'
-    ? 'EliteRank is reviewing your competition. While you wait, get everything below ready. Once you’re approved, you’ll verify payouts and submit your page to publish.'
+    ? `EliteRank is reviewing your competition. While you wait, get everything below ready. Once you’re approved, you’ll submit your page to publish${managed ? '' : ' (after verifying payouts)'}.`
     : status === 'approved'
-      ? 'You’re approved! Finish the must-haves below and verify payouts, then submit your page to publish for a final review.'
+      ? `You’re approved! Finish the must-haves below${managed ? '' : ' and verify payouts'}, then submit your page to publish for a final review.`
       : 'Your page is live to the public. Entry opens on your nomination start date, then voting begins.';
 
   // Closing flow note — what "publish" actually does.
   const flowNote = status === 'pending_approval'
-    ? 'Once EliteRank approves you, finish the must-haves above and verify payouts with Stripe — then you’ll publish your page to take it live to the public.'
+    ? `Once EliteRank approves you, finish the must-haves above${managed ? '' : ' and verify payouts with Stripe'} — then you’ll publish your page to take it live to the public.`
     : status === 'approved'
-      ? 'When the must-haves above are ready and your payouts are verified, hit Publish to take your competition live to the public.'
+      ? `When the must-haves above are ready${managed ? '' : ' and your payouts are verified'}, hit Publish to take your competition live to the public.`
       : null;
 
   const cardStyle = {
@@ -103,7 +106,7 @@ export default function LaunchRoadmap({ competition, onNavigateToTab }) {
         'Your nomination form questions',
         'Your competition rules',
         'Site & branding — logo, About & theme',
-        'Verify payouts with Stripe (identity check)',
+        ...(managed ? [] : ['Verify payouts with Stripe (identity check)']),
       ];
 
   return (

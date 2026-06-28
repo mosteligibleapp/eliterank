@@ -97,12 +97,17 @@ const PUBLISH_REQUIREMENTS = {
 // to hard errors (and/or add a DB trigger) as a deliberate rollout step once the
 // orgs you intend to launch have signed + connected — a hard block today would
 // stop publishing for every org, since none have onboarded yet.
+// Managed (company-run) orgs sign the agreement off-platform and settle payouts
+// to the company Stripe account, so both onboarding gates are satisfied for them.
 const PUBLISH_ONBOARDING_GATES = {
   agreementAccepted: (c) =>
-    c.organization ? Boolean(c.organization.master_agreement_version) : null,
+    c.organization
+      ? Boolean(c.organization.is_managed) || Boolean(c.organization.master_agreement_version)
+      : null,
   stripeVerified: (c) =>
     c.organization
-      ? c.organization.kyc_status === 'verified' && Boolean(c.organization.charges_enabled)
+      ? Boolean(c.organization.is_managed)
+        || (c.organization.kyc_status === 'verified' && Boolean(c.organization.charges_enabled))
       : null,
 };
 
